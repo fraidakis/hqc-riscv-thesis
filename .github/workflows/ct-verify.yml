@@ -1,0 +1,74 @@
+name: Constant-Time Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'analysis/ct_verify/**'
+      - 'scripts/ci/check_ct.sh'
+  pull_request:
+    branches: [main]
+
+jobs:
+  ctgrind:
+    name: CT check — ctgrind (Valgrind)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Valgrind
+        run: sudo apt-get update -qq && sudo apt-get install -y valgrind
+
+      - name: Restore toolchain cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Thesis/installed-tools
+          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+
+      - name: Build baseline (x86 host, for Valgrind)
+        run: |
+          gcc -O2 -DSECURITY_LEVEL=128 -DHQC_128 \
+              -Iinclude \
+              src/baseline/kem.c src/baseline/poly.c \
+              src/baseline/reed_muller.c src/baseline/fips202.c \
+              src/common/randombytes.c \
+              -o build/hqc128_ct_test
+        # Note: for a real ctgrind run, link with ctgrind.h annotations
+
+      - name: Run ctgrind check
+        run: bash scripts/ci/check_ct.sh build/hqc128_ct_test
+
+      - name: Upload ctgrind report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctgrind-report
+          path: analysis/ct_verify/ctgrind/
+
+  dudect:
+    name: CT check — dudect (statistical)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install deps
+        run: sudo apt-get update -qq && sudo apt-get install -y gcc make
+
+      - name: Build & run dudect harness
+        run: |
+          # Placeholder: dudect integration builds a host-native harness
+          echo "dudect: not yet integrated — placeholder step"
+        # TODO: add dudect submodule to analysis/ct_verify/dudect/
+        # and build the harness here.
+
+      - name: Upload dudect results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dudect-results
+          path: analysis/ct_verify/dudect/

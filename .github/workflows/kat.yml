@@ -1,0 +1,57 @@
+name: KAT Vectors
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  kat:
+    name: Known-Answer Tests (${{ matrix.impl }} / HQC-${{ matrix.level }})
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        impl:  [baseline, scalar_zbc, vector_zvbc]
+        level: [128, 192, 256]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build device-tree-compiler \
+            libboost-regex-dev libboost-system-dev
+
+      - name: Restore toolchain cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Thesis/installed-tools
+          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+
+      - name: Source toolchain environment
+        run: source toolchain/toolchain.env
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake
+
+      - name: Build target
+        run: |
+          cmake --build build --target hqc${{ matrix.level }}_${{ matrix.impl }} -j$(nproc)
+
+      - name: Run KAT under QEMU
+        run: |
+          ./tests/kat/run_kat.sh build/hqc${{ matrix.level }}_${{ matrix.impl }}.elf
+
+      - name: Upload KAT report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kat-report-${{ matrix.impl }}-${{ matrix.level }}
+          path: tests/kat/vectors/*.rsp

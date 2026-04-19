@@ -1,0 +1,6 @@
+# .gitmodules
+# Submodules are not yet registered.
+# Future candidates:
+#   - analysis/ct_verify/dudect  → https://github.com/oreparaz/dudect
+#   - analysis/ct_verify/binsec  → https://github.com/binsec/binsec
+# Add with: git submodule add <url> <path>

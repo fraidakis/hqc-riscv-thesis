@@ -1,0 +1,57 @@
+name: Opcode Verification
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'src/vector_zvbc/**'
+      - 'src/scalar_zbc/**'
+      - 'toolchain/**'
+      - 'scripts/ci/check_opcodes.sh'
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify-opcodes:
+    name: Verify vclmul / clmul opcodes
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build
+
+      - name: Restore toolchain cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Thesis/installed-tools
+          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+
+      - name: Build vector_zvbc target
+        run: |
+          source toolchain/toolchain.env
+          cmake -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake
+          cmake --build build --target hqc128_vector_zvbc -j$(nproc)
+
+      - name: Check vclmul opcodes present
+        run: |
+          bash scripts/ci/check_opcodes.sh \
+            "$HOME/Thesis/installed-tools/bin/llvm-objdump" \
+            build/hqc128_vector_zvbc.elf
+
+      - name: Check ISA string in ELF
+        run: |
+          bash scripts/ci/check_isa_string.sh \
+            build/hqc128_vector_zvbc.elf
+
+      - name: Upload objdump log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: objdump-opcodes
+          path: build/*.objdump.txt

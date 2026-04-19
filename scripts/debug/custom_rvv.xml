@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<!--
+  scripts/debug/custom_rvv.xml
+  GDB target description for RISC-V V-extension vector registers (v0–v31).
+
+  Usage in .gdbinit:
+    set tdesc filename scripts/debug/custom_rvv.xml
+  Or pass to GDB:
+    gdb -ex "set tdesc filename scripts/debug/custom_rvv.xml" ...
+
+  Register width matches VLEN=512 bits (64 bytes) used on Ara/Marian.
+  Adjust the size attribute (in bits) if targeting a different VLEN.
+-->
+<!DOCTYPE target SYSTEM "gdb-target.dtd">
+<target version="1.0">
+  <architecture>riscv:rv64</architecture>
+
+  <feature name="org.gnu.gdb.riscv.vector">
+    <!-- Each vN register is VLEN bits wide. Default VLEN=512 for Ara/Marian.
+         Change bitsize to 128/256/512/1024 to match your target's VLEN. -->
+    <vector id="v_elem_u8"  type="uint8"   count="64"/>
+    <vector id="v_elem_u16" type="uint16"  count="32"/>
+    <vector id="v_elem_u32" type="uint32"  count="16"/>
+    <vector id="v_elem_u64" type="uint64"  count="8"/>
+
+    <union id="vreg_union">
+      <field name="u8"  type="v_elem_u8"/>
+      <field name="u16" type="v_elem_u16"/>
+      <field name="u32" type="v_elem_u32"/>
+      <field name="u64" type="v_elem_u64"/>
+    </union>
+
+    <reg name="v0"  bitsize="512" type="vreg_union" regnum="96"  group="vector"/>
+    <reg name="v1"  bitsize="512" type="vreg_union" regnum="97"  group="vector"/>
+    <reg name="v2"  bitsize="512" type="vreg_union" regnum="98"  group="vector"/>
+    <reg name="v3"  bitsize="512" type="vreg_union" regnum="99"  group="vector"/>
+    <reg name="v4"  bitsize="512" type="vreg_union" regnum="100" group="vector"/>
+    <reg name="v5"  bitsize="512" type="vreg_union" regnum="101" group="vector"/>
+    <reg name="v6"  bitsize="512" type="vreg_union" regnum="102" group="vector"/>
+    <reg name="v7"  bitsize="512" type="vreg_union" regnum="103" group="vector"/>
+    <reg name="v8"  bitsize="512" type="vreg_union" regnum="104" group="vector"/>
+    <reg name="v9"  bitsize="512" type="vreg_union" regnum="105" group="vector"/>
+    <reg name="v10" bitsize="512" type="vreg_union" regnum="106" group="vector"/>
+    <reg name="v11" bitsize="512" type="vreg_union" regnum="107" group="vector"/>
+    <reg name="v12" bitsize="512" type="vreg_union" regnum="108" group="vector"/>
+    <reg name="v13" bitsize="512" type="vreg_union" regnum="109" group="vector"/>
+    <reg name="v14" bitsize="512" type="vreg_union" regnum="110" group="vector"/>
+    <reg name="v15" bitsize="512" type="vreg_union" regnum="111" group="vector"/>
+    <reg name="v16" bitsize="512" type="vreg_union" regnum="112" group="vector"/>
+    <reg name="v17" bitsize="512" type="vreg_union" regnum="113" group="vector"/>
+    <reg name="v18" bitsize="512" type="vreg_union" regnum="114" group="vector"/>
+    <reg name="v19" bitsize="512" type="vreg_union" regnum="115" group="vector"/>
+    <reg name="v20" bitsize="512" type="vreg_union" regnum="116" group="vector"/>
+    <reg name="v21" bitsize="512" type="vreg_union" regnum="117" group="vector"/>
+    <reg name="v22" bitsize="512" type="vreg_union" regnum="118" group="vector"/>
+    <reg name="v23" bitsize="512" type="vreg_union" regnum="119" group="vector"/>
+    <reg name="v24" bitsize="512" type="vreg_union" regnum="120" group="vector"/>
+    <reg name="v25" bitsize="512" type="vreg_union" regnum="121" group="vector"/>
+    <reg name="v26" bitsize="512" type="vreg_union" regnum="122" group="vector"/>
+    <reg name="v27" bitsize="512" type="vreg_union" regnum="123" group="vector"/>
+    <reg name="v28" bitsize="512" type="vreg_union" regnum="124" group="vector"/>
+    <reg name="v29" bitsize="512" type="vreg_union" regnum="125" group="vector"/>
+    <reg name="v30" bitsize="512" type="vreg_union" regnum="126" group="vector"/>
+    <reg name="v31" bitsize="512" type="vreg_union" regnum="127" group="vector"/>
+  </feature>
+</target>
