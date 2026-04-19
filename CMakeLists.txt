@@ -45,7 +45,6 @@ foreach(IMPL ${IMPLEMENTATIONS})
             set(IMPL_SOURCES
                 src/baseline/kem.c
                 src/baseline/reed_muller.c
-                src/baseline/fips202.c
                 src/common/randombytes.c
                 src/vector_zvbc/fips202_rvv.c
                 src/vector_zvbc/hqc${LEVEL}/poly_mul_${LEVEL}.c
@@ -64,7 +63,11 @@ foreach(IMPL ${IMPLEMENTATIONS})
 
         set_target_properties(${TARGET_NAME} PROPERTIES
             SUFFIX ".elf"
-            LINK_FLAGS "-T${LINKER_SCRIPT} -Wl,-Map=${TARGET_NAME}.map"
+            LINK_DEPENDS "${LINKER_SCRIPT}"
+        )
+        target_link_options(${TARGET_NAME} PRIVATE
+            "-T${LINKER_SCRIPT}"
+            "-Wl,-Map=${CMAKE_BINARY_DIR}/${TARGET_NAME}.map"
         )
 
         # Register with CTest (runs under QEMU)

@@ -24,6 +24,7 @@ CLANGFLAGS := --target=$(TARGET) $(CFLAGS) \
               -menable-experimental-extensions
 
 LDFLAGS   := -T$(ROOT)/sim/common/link.ld \
+             -fuse-ld=lld \
              -Wl,--gc-sections \
              -nostartfiles -nostdlib
 

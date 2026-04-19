@@ -34,7 +34,12 @@ jobs:
           key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
 
       - name: Source toolchain environment
-        run: source toolchain/toolchain.env
+        run: |
+          source toolchain/toolchain.env
+          echo "RISCV=$RISCV" >> "$GITHUB_ENV"
+          echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
+          echo "SPIKE=$RISCV/bin/spike" >> "$GITHUB_ENV"
+          echo "QEMU=$RISCV/bin/qemu-system-riscv64" >> "$GITHUB_ENV"
 
       - name: Configure CMake
         run: |

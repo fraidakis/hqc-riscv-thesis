@@ -34,6 +34,9 @@ jobs:
       - name: Build vector_zvbc target
         run: |
           source toolchain/toolchain.env
+          echo "RISCV=$RISCV" >> "$GITHUB_ENV"
+          echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
+          echo "QEMU=$RISCV/bin/qemu-system-riscv64" >> "$GITHUB_ENV"
           cmake -B build -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake
           cmake --build build --target hqc128_vector_zvbc -j$(nproc)
