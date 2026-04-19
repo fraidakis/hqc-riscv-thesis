@@ -18,6 +18,18 @@ set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/sim/common/link.ld)
 include(cmake/options.cmake)
 include(cmake/hqc_core.cmake)
 
+# ── Simulator backend ─────────────────────────────────────────────────────────
+# HQC_SIM=qemu  (default) — UART output + test-finisher (for qemu-system-riscv64 virt)
+# HQC_SIM=spike           — HTIF tohost/fromhost output  (for Spike ISS)
+set(HQC_SIM "qemu" CACHE STRING "Simulator backend: qemu or spike")
+message(STATUS "Simulator backend: ${HQC_SIM}")
+
+if(HQC_SIM STREQUAL "spike")
+    set(SIM_DEFINES "")       # Spike HTIF is the default in bench.c
+else()
+    set(SIM_DEFINES "HQC_SIM_QEMU=1")
+endif()
+
 # ── Upstream vendor root (registered as git submodule in Phase 0a) ────────────
 set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 
@@ -86,6 +98,7 @@ set(LOCAL_COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/common/rng/aes_ctr_drbg.c
     ${CMAKE_SOURCE_DIR}/src/common/rng/tiny_aes.c
     ${CMAKE_SOURCE_DIR}/src/common/bench.c
+    ${CMAKE_SOURCE_DIR}/sim/common/mem.c        # bare-metal memcpy/memset/memcmp
 )
 
 # ── Target matrix: LEVEL × POLYMUL ───────────────────────────────────────────
@@ -140,13 +153,18 @@ foreach(LEVEL ${SECURITY_LEVELS})
             $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
         target_include_directories(${KAT_TARGET} BEFORE PRIVATE
             ${HQC_REF}/src/common/${VARIANT}
+            ${HQC_REF}/src/common
             ${HQC_REF}/src/ref/${VARIANT}
             ${HQC_REF}/src/ref
             ${HQC_REF}/lib/fips202
+            ${CMAKE_SOURCE_DIR}/src/common
             ${CMAKE_SOURCE_DIR}/tests/kat
         )
         target_compile_definitions(${KAT_TARGET} PRIVATE
-            HQC_RANDOMBYTES_MODE_KAT=1
+            HQC_KAT_MODE=1
+            SECURITY_LEVEL=${LEVEL}
+            HQC_${LEVEL}
+            ${SIM_DEFINES}
         )
         if(POLYMUL STREQUAL "fafft_zvbc")
             # fafft_zvbc requires --isa=rv64gcv_zvbc on Spike at runtime.
@@ -170,8 +188,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
                     $<TARGET_FILE:${KAT_TARGET}> ${LEVEL} ${POLYMUL}
         )
 
-        # ── BENCH target  (bench_hqc${LEVEL}_${POLYMUL}) ─────────────────────
-        # Identical sources, but compiled with HQC_RANDOMBYTES_MODE_BENCH=1
+        # BENCH target  (bench_hqc${LEVEL}_${POLYMUL}) ─────────────────────
+        # Identical sources, but compiled with HQC_BENCH_MODE=1
         # so that AES-CTR DRBG overhead does not pollute rdcycle measurements.
         # Built with EXCLUDE_FROM_ALL — must be explicitly requested:
         #   cmake --build build --target bench_hqc128_karatsuba_ref
@@ -190,12 +208,17 @@ foreach(LEVEL ${SECURITY_LEVELS})
             $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
         target_include_directories(${BENCH_TARGET} BEFORE PRIVATE
             ${HQC_REF}/src/common/${VARIANT}
+            ${HQC_REF}/src/common
             ${HQC_REF}/src/ref/${VARIANT}
             ${HQC_REF}/src/ref
             ${HQC_REF}/lib/fips202
+            ${CMAKE_SOURCE_DIR}/src/common
         )
         target_compile_definitions(${BENCH_TARGET} PRIVATE
-            HQC_RANDOMBYTES_MODE_BENCH=1
+            HQC_BENCH_MODE=1
+            SECURITY_LEVEL=${LEVEL}
+            HQC_${LEVEL}
+            ${SIM_DEFINES}
         )
         if(POLYMUL STREQUAL "fafft_zvbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
@@ -231,8 +254,8 @@ if(OBJDUMP_BIN)
     add_custom_target(verify_vclmul
         COMMAND ${CMAKE_SOURCE_DIR}/scripts/ci/check_opcodes.sh
                 ${OBJDUMP_BIN}
-                "$<TARGET_FILE:hqc128_vector_zvbc>"
-        DEPENDS hqc128_vector_zvbc
-        COMMENT "Verifying vclmul opcodes in hqc128_vector_zvbc"
+                "$<TARGET_FILE:hqc128_fafft_zvbc>"
+        DEPENDS hqc128_fafft_zvbc
+        COMMENT "Verifying vclmul opcodes in hqc128_fafft_zvbc"
     )
 endif()

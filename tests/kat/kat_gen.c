@@ -8,7 +8,7 @@
  *        (produced by gen_kat_seeds.py from the official .rsp file).
  *     2. Call crypto_kem_keypair, crypto_kem_enc, crypto_kem_dec.
  *     3. Verify ss_enc == ss_dec (shared-secret match).
- *     4. Emit the shared secret as 64 hex bytes on a single HTIF line:
+ *     4. Emit the shared secret as 32 hex bytes on a single HTIF line:
  *          "ss: <hex>\n"
  *        This line format is parsed by kat_check.py.
  *   After all 100 vectors: emit "PASS <n>/100\n" or "FAIL at vector <k>\n"
@@ -22,7 +22,7 @@
  *   tests/kat/generated/kat_seeds_<SECURITY_LEVEL>.h
  * and provides:
  *   static const uint8_t kat_seeds[100][48];  — one 48-byte entropy seed per vector
- *   static const uint8_t kat_ss[100][64];     — expected shared secrets (from .rsp)
+ *   static const uint8_t kat_ss[100][32];     — expected shared secrets (from .rsp)
  */
 
 #include <stdint.h>
@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "api.h"
-#include "randombytes.h"
+#include "symmetric.h"  /* prng_init, prng_get_bytes */
 #include "bench.h"   /* hqc_htif_puts, hqc_htif_putu64, hqc_htif_exit */
 #include "parameters.h"
 
@@ -75,8 +75,10 @@ int main(void)
     int failures = 0;
 
     for (int i = 0; i < KAT_COUNT; i++) {
-        /* Re-seed the DRBG for this vector */
-        randombytes_init(kat_seeds[i]);
+        /* Seed the vendor SHAKE-256 PRNG for this KAT vector.
+         * crypto_kem_keypair/enc/dec call prng_get_bytes() internally;
+         * they do NOT use randombytes()/AES-CTR-DRBG. */
+        prng_init((uint8_t *)kat_seeds[i], NULL, 48, 0);
 
         /* KeyGen */
         if (crypto_kem_keypair(pk, sk) != 0) {

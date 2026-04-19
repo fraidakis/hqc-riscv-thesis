@@ -6,7 +6,7 @@
 #   git commit -m "chore: add vendor/hqc-ref submodule at v5.0.0"
 [submodule "vendor/hqc-ref"]
 	path = vendor/hqc-ref
-	url  = https://gitlab.com/pqc-hqc/hqc.git
+	url = https://gitlab.com/pqc-hqc/hqc.git
 
 # ── Future submodule candidates ───────────────────────────────────────────────
 #   - analysis/ct_verify/dudect  → https://github.com/oreparaz/dudect

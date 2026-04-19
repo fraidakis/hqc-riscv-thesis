@@ -61,7 +61,8 @@ SECTIONS
     /* ── Stack (grows downward) ─────────────────────────────────── */
     .stack (NOLOAD) : ALIGN(16) {
         _stack_bottom = .;
-        . += 64K;
+        . += 512K;     /* 512 KB: vect_mul alone needs ~40 KB tmp_buffer; */
+                       /* full keygen/enc/dec call chain needs ~70 KB.     */
         _stack_top = .;
     } > RAM
 

@@ -1,23 +1,26 @@
 /* src/common/bench.c
  *
- * Minimal cycle-counter and HTIF helper for bare-metal benchmarking on Spike.
+ * Cycle-counter and console I/O helper for bare-metal simulation.
  *
- * Two entry points:
- *   hqc_rdcycle()  — read the mcycle CSR directly (no syscall overhead)
- *   hqc_htif_exit(int code) — signal Spike to halt and return an exit code
+ * Two simulator backends, selected at compile time:
+ *   HQC_SIM_QEMU=1  — QEMU virt: UART (ns16550a at 0x10000000) for output,
+ *                      test-finisher at 0x100000 for halt/exit.
+ *   (default)        — Spike:    HTIF tohost/fromhost for output and exit.
  *
- * Used by tests/bench/bench_kem.c to wrap KeyGen / Encaps / Decaps.
+ * Public API (declared in bench.h):
+ *   hqc_rdcycle()          — read mcycle CSR
+ *   hqc_htif_puts(s)       — print NUL-terminated string
+ *   hqc_htif_putu64(v)     — print uint64_t as decimal
+ *   hqc_htif_exit(code)    — halt the simulator with an exit code
  *
  * Constant-time note: rdcycle is a covert channel; its use here is strictly
- * confined to BENCH mode builds (HQC_BENCH_MODE=1).  KAT builds never call
- * these functions.
+ * confined to BENCH mode builds (HQC_BENCH_MODE=1).
  */
 
 #include "bench.h"
 #include <stdint.h>
 
-/* Read the machine-cycle counter.
- * On Spike, mcycle increments once per simulated cycle. */
+/* ── Cycle counter (shared by both backends) ─────────────────────────────── */
 uint64_t hqc_rdcycle(void)
 {
     uint64_t cycles;
@@ -25,48 +28,76 @@ uint64_t hqc_rdcycle(void)
     return cycles;
 }
 
-/* Request a clean halt via the RISC-V Front-End Server (HTIF).
+/* ══════════════════════════════════════════════════════════════════════════ */
+#if defined(HQC_SIM_QEMU)
+/* ── QEMU virt backend ───────────────────────────────────────────────────── */
+/*
+ * QEMU virt UART: ns16550a mapped at 0x10000000.
+ *   Offset 0x00 — THR (Transmit Holding Register): write byte to output
+ *   Offset 0x05 — LSR (Line Status Register): bit 5 = THRE (TX ready)
  *
- * Spike polls the tohost symbol.  The convention used by libfemto / riscv-pk:
- *   write (code << 1 | 1) to tohost → Spike exits with code.
+ * QEMU virt test-finisher: mapped at 0x100000.
+ *   Write 0x5555 → PASS (exit 0)
+ *   Write 0x3333 → FAIL (exit non-zero)
+ */
+#define UART_BASE    ((volatile uint8_t *)0x10000000UL)
+#define UART_THR     (UART_BASE + 0)
+#define UART_LSR     (UART_BASE + 5)
+#define UART_THRE    (1u << 5)
+
+#define QEMU_FINISHER ((volatile uint32_t *)0x100000UL)
+#define QEMU_PASS    0x5555u
+#define QEMU_FAIL    0x3333u
+
+static void _putchar(char c)
+{
+    while (!(*UART_LSR & UART_THRE)) {}
+    *UART_THR = (uint8_t)c;
+}
+
+void hqc_htif_exit(int code)
+{
+    *QEMU_FINISHER = (code == 0) ? QEMU_PASS : QEMU_FAIL;
+    while (1) { __asm__ volatile ("wfi"); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+#else
+/* ── Spike / HTIF backend ────────────────────────────────────────────────── */
+/*
+ * Spike HTIF console device 1:
+ *   tohost = (1ULL << 56) | (1ULL << 48) | char   → emit character
  *
- * The symbol is weakly defined in sim/common/startup.S; tests that provide
- * their own startup may override it.
+ * Spike HTIF exit device 0:
+ *   tohost = (code << 1) | 1                       → exit with code
+ *
+ * Note: do NOT spin-wait on fromhost for console output — Spike updates
+ * it asynchronously and the spin can cause a deadlock with fast code.
  */
 extern volatile uint64_t tohost   __attribute__((weak));
 extern volatile uint64_t fromhost __attribute__((weak));
 
-void hqc_htif_exit(int code)
-{
-    /* If tohost is not available (e.g. native host build), just return. */
-    if (&tohost == (volatile uint64_t *)0) return;
-
-    tohost = ((uint64_t)(unsigned int)code << 1) | 1ULL;
-    /* Spin until Spike acknowledges. */
-    while (1) {
-        __asm__ volatile ("wfi");
-    }
-}
-
-/* Formatted integer output over HTIF device 1 (console).
- *
- * Spike's HTIF console device: write a character c by setting
- *   tohost = (1ULL << 56) | (1ULL << 48) | c
- * and waiting for fromhost == 0.
- *
- * This avoids linking a full printf implementation.
- */
-static void htif_putchar(char c)
+static void _putchar(char c)
 {
     if (&tohost == (volatile uint64_t *)0) return;
     tohost = (1ULL << 56) | (1ULL << 48) | (uint8_t)c;
-    while (fromhost == 0) { /* wait for echo */ }
-    fromhost = 0;
 }
+
+void hqc_htif_exit(int code)
+{
+    if (&tohost == (volatile uint64_t *)0) return;
+    tohost = ((uint64_t)(unsigned int)code << 1) | 1ULL;
+    while (1) { __asm__ volatile ("wfi"); }
+}
+
+#endif /* HQC_SIM_QEMU */
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared string/integer output (uses _putchar from selected backend) ──── */
 
 void hqc_htif_puts(const char *s)
 {
-    while (*s) htif_putchar(*s++);
+    while (*s) _putchar(*s++);
 }
 
 /* Print uint64_t as decimal string (no heap / no printf). */
@@ -75,7 +106,7 @@ void hqc_htif_putu64(uint64_t v)
     char buf[21];  /* max 20 decimal digits + NUL */
     int  pos = 20;
     buf[20] = '\0';
-    if (v == 0) { htif_putchar('0'); return; }
+    if (v == 0) { _putchar('0'); return; }
     while (v > 0) {
         buf[--pos] = (char)('0' + (v % 10));
         v /= 10;

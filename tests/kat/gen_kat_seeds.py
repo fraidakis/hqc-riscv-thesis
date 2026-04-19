@@ -74,8 +74,8 @@ def main():
             print(f"ERROR: vector {i} seed length {len(v.get('seed', b''))}, expected 48",
                   file=sys.stderr)
             sys.exit(1)
-        if len(v.get("ss", b"")) != 64:
-            print(f"ERROR: vector {i} ss length {len(v.get('ss', b''))}, expected 64",
+        if len(v.get("ss", b"")) != 32:
+            print(f"ERROR: vector {i} ss length {len(v.get('ss', b''))}, expected 32",
                   file=sys.stderr)
             sys.exit(1)
 
@@ -98,8 +98,8 @@ def main():
             out.write(f"    {{ {bytes_to_c_array_row(v['seed'])} }},\n")
         out.write(f"}};\n\n")
 
-        out.write(f"/* Expected shared secrets — 100 × 64 bytes */\n")
-        out.write(f"static const uint8_t kat_ss[100][64] = {{\n")
+        out.write(f"/* Expected shared secrets — 100 × 32 bytes (CRYPTO_BYTES=32 for all levels) */\n")
+        out.write(f"static const uint8_t kat_ss[100][32] = {{\n")
         for v in vectors:
             out.write(f"    {{ {bytes_to_c_array_row(v['ss'])} }},\n")
         out.write(f"}};\n\n")

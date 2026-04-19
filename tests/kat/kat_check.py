@@ -16,7 +16,7 @@ Exit codes:
     2 — usage error
 
 The "actual" file should contain lines of the form:
-    ss: <128-char hex string>
+    ss: <64-char hex string>
 exactly 100 such lines, interspersed with other diagnostic output which is
 silently ignored.
 """
@@ -32,7 +32,7 @@ def parse_actual(path: str):
     src = sys.stdin if path == "-" else open(path)
     with src as f:
         for line in f:
-            m = re.match(r"^ss:\s*([0-9a-fA-F]{128})\s*$", line)
+            m = re.match(r"^ss:\s*([0-9a-fA-F]{64})\s*$", line)
             if m:
                 ss_list.append(bytes.fromhex(m.group(1)))
     return ss_list
