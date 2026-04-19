@@ -1,6 +1,14 @@
-# .gitmodules
-# Submodules are not yet registered.
-# Future candidates:
+# ── HQC reference implementation (NIST PQC Submission v5.0) ──────────────────
+# Phase 0a: initialise with:
+#   git submodule add https://gitlab.com/pqc-hqc/hqc.git vendor/hqc-ref
+#   git -C vendor/hqc-ref checkout v5.0.0
+#   git add .gitmodules vendor/hqc-ref
+#   git commit -m "chore: add vendor/hqc-ref submodule at v5.0.0"
+[submodule "vendor/hqc-ref"]
+	path = vendor/hqc-ref
+	url  = https://gitlab.com/pqc-hqc/hqc.git
+
+# ── Future submodule candidates ───────────────────────────────────────────────
 #   - analysis/ct_verify/dudect  → https://github.com/oreparaz/dudect
 #   - analysis/ct_verify/binsec  → https://github.com/binsec/binsec
 # Add with: git submodule add <url> <path>

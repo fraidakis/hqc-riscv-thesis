@@ -3,29 +3,59 @@ name: KAT Vectors
 on:
   push:
     branches: [main, dev]
+    # Only run when sources that affect correctness change.
+    # Benchmark scripts, docs, and analysis outputs are excluded.
+    paths:
+      - 'src/**'
+      - 'vendor/**'
+      - 'tests/kat/**'
+      - 'tests/unit/**'
+      - 'include/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - 'toolchain/**'
+      - 'sim/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'vendor/**'
+      - 'tests/kat/**'
+      - 'tests/unit/**'
+      - 'include/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - 'toolchain/**'
+      - 'sim/**'
 
 jobs:
+  # ── QEMU KAT — scalar polymul variants (karatsuba_ref excluded: needs Phase 0a) ──
   kat:
-    name: Known-Answer Tests (${{ matrix.impl }} / HQC-${{ matrix.level }})
+    name: KAT (${{ matrix.polymul }} / HQC-${{ matrix.level }})
     runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
       matrix:
-        impl:  [baseline, scalar_zbc, vector_zvbc]
-        level: [128, 192, 256]
+        # fafft_zvbc excluded: needs Zvbc ISA which QEMU does not implement.
+        # Run fafft_zvbc KAT on Spike only (see spike-kat job below).
+        # karatsuba_ref is Phase 0 denominator and is always built to verify
+        # that the vendor sources link correctly; it is excluded here until
+        # the vendor submodule (vendor/hqc-ref) is initialised (Phase 0a).
+        polymul: [karatsuba_zbc, fafft_zbc, hybrid_zbc]
+        level:   [128, 192, 256]
 
     steps:
-      - name: Checkout
+      - name: Checkout (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install system deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y cmake ninja-build device-tree-compiler \
-            libboost-regex-dev libboost-system-dev
+            python3 libboost-regex-dev libboost-system-dev
 
       - name: Restore toolchain cache
         uses: actions/cache@v4
@@ -36,27 +66,106 @@ jobs:
       - name: Source toolchain environment
         run: |
           source toolchain/toolchain.env
-          echo "RISCV=$RISCV" >> "$GITHUB_ENV"
+          echo "RISCV=$RISCV"          >> "$GITHUB_ENV"
           echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
-          echo "SPIKE=$RISCV/bin/spike" >> "$GITHUB_ENV"
           echo "QEMU=$RISCV/bin/qemu-system-riscv64" >> "$GITHUB_ENV"
 
-      - name: Configure CMake
+      - name: Configure CMake (KAT mode, ref keccak + ref decoder)
         run: |
           cmake -B build -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DHQC_KECCAK_IMPL=ref \
+            -DHQC_DECODE_IMPL=ref
 
-      - name: Build target
+      - name: Build KAT target
         run: |
-          cmake --build build --target hqc${{ matrix.level }}_${{ matrix.impl }} -j$(nproc)
+          cmake --build build \
+            --target hqc${{ matrix.level }}_${{ matrix.polymul }} \
+            -j$(nproc)
 
       - name: Run KAT under QEMU
         run: |
-          ./tests/kat/run_kat.sh build/hqc${{ matrix.level }}_${{ matrix.impl }}.elf
+          RSP="vendor/hqc-ref/KAT/hqc-${{ matrix.level }}/PQCkemKAT_$(
+            case ${{ matrix.level }} in
+              128) echo 2249;;
+              192) echo 4481;;
+              256) echo 7245;;
+            esac).rsp"
+          chmod +x tests/kat/run_kat.sh
+          tests/kat/run_kat.sh \
+            build/hqc${{ matrix.level }}_${{ matrix.polymul }} \
+            "$RSP" \
+            "$QEMU"
 
-      - name: Upload KAT report
-        if: always()
+      - name: Upload QEMU console log on failure
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: kat-report-${{ matrix.impl }}-${{ matrix.level }}
-          path: tests/kat/vectors/*.rsp
+          name: kat-log-${{ matrix.polymul }}-${{ matrix.level }}
+          path: /tmp/hqc_kat_*.log
+
+  # ── Spike KAT — fafft_zvbc (Zvbc upper-bound tier, Spike only) ─────────────
+  kat-spike-zvbc:
+    name: KAT-Spike (fafft_zvbc / HQC-${{ matrix.level }})
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        level: [128, 192, 256]
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build device-tree-compiler python3
+
+      - name: Restore toolchain cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Thesis/installed-tools
+          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+
+      - name: Source toolchain environment
+        run: |
+          source toolchain/toolchain.env
+          echo "RISCV=$RISCV"          >> "$GITHUB_ENV"
+          echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
+          echo "SPIKE=$RISCV/bin/spike" >> "$GITHUB_ENV"
+
+      - name: Configure CMake (KAT mode)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DHQC_KECCAK_IMPL=ref \
+            -DHQC_DECODE_IMPL=ref
+
+      - name: Build KAT target (fafft_zvbc)
+        run: |
+          cmake --build build \
+            --target hqc${{ matrix.level }}_fafft_zvbc \
+            -j$(nproc)
+
+      - name: Run KAT under Spike (--isa with Zvbc)
+        run: |
+          RSP="vendor/hqc-ref/KAT/hqc-${{ matrix.level }}/PQCkemKAT_$(
+            case ${{ matrix.level }} in
+              128) echo 2249;;
+              192) echo 4481;;
+              256) echo 7245;;
+            esac).rsp"
+          LOG=$(mktemp /tmp/hqc_spike_kat_XXXXXX.log)
+          "$SPIKE" \
+            --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
+            --log-commits \
+            build/hqc${{ matrix.level }}_fafft_zvbc \
+            > "$LOG" 2>&1 || true
+          python3 tests/kat/kat_check.py \
+            --actual "$LOG" \
+            --rsp    "$RSP"  \
+            --level  ${{ matrix.level }}
