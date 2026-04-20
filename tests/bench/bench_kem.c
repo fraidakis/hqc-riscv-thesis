@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "api.h"
-#include "randombytes.h"
+#include "symmetric.h"  /* prng_init — vendor KEM uses prng_get_bytes internally */
 #include "bench.h"
 #include "parameters.h"
 
@@ -90,9 +90,18 @@ static void emit_csv_row(const char *op)
 /* ── main ────────────────────────────────────────────────────────────────── */
 int main(void)
 {
-    /* Seed the (bench-mode) PRNG — no-op but keeps source compatibility */
+    /* Seed the vendor SHAKE-256 PRNG. crypto_kem_keypair/enc/dec call
+     * prng_get_bytes() internally; they do NOT use randombytes()/AES-CTR.
+     * A zero seed is fine for benchmarking — we only care about cycle counts. */
     static const uint8_t dummy_seed[48] = { 0 };
-    randombytes_init(dummy_seed);
+    prng_init((uint8_t *)dummy_seed, NULL, 48, 0);
+
+    /* Emit metadata so the CSV file is self-describing. */
+    hqc_htif_puts("# level=");
+    hqc_htif_putu64(SECURITY_LEVEL);
+    hqc_htif_puts(",polymul=karatsuba_ref,n_iter=");
+    hqc_htif_putu64(N_ITER);
+    hqc_htif_puts("\n");
 
     /* ── KeyGen ────────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {

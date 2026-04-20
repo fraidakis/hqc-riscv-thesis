@@ -9,8 +9,9 @@ ELF="${1:?Usage: $0 <elf>}"
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 QEMU="$RISCV/bin/qemu-system-riscv64"
 
-BIOS="$RISCV/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin"
-[[ -f "$BIOS" ]] || BIOS="none"
+# The bare-metal ELF loads at 0x80000000; OpenSBI also loads there → collision.
+# Always use -bios none so QEMU starts the ELF directly as the "kernel".
+BIOS="none"
 
 echo "[run_kat] Running: $ELF"
 "$QEMU" \

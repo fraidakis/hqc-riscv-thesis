@@ -30,6 +30,12 @@ else()
     set(SIM_DEFINES "HQC_SIM_QEMU=1")
 endif()
 
+# ── Benchmark iteration count ────────────────────────────────────────────────
+# Controls N_ITER in bench_kem.c / bench_poly_mul.c.
+# Use a small value (e.g. 1) for a quick probe run; 10 for final results.
+set(BENCH_N_ITER 10 CACHE STRING "Iterations per benchmark operation (N_ITER)")
+message(STATUS "Benchmark N_ITER: ${BENCH_N_ITER}")
+
 # ── Upstream vendor root (registered as git submodule in Phase 0a) ────────────
 set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 
@@ -93,12 +99,19 @@ set(VENDOR_INVARIANT_SOURCES
 )
 
 # ── Our own common sources ────────────────────────────────────────────────────
+# KAT mode: include AES-CTR DRBG for NIST-compatible random byte generation.
 set(LOCAL_COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/common/randombytes.c
     ${CMAKE_SOURCE_DIR}/src/common/rng/aes_ctr_drbg.c
     ${CMAKE_SOURCE_DIR}/src/common/rng/tiny_aes.c
     ${CMAKE_SOURCE_DIR}/src/common/bench.c
     ${CMAKE_SOURCE_DIR}/sim/common/mem.c        # bare-metal memcpy/memset/memcmp
+)
+# Bench mode: randombytes.c provides its own stub; no AES overhead needed.
+set(LOCAL_BENCH_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/common/randombytes.c
+    ${CMAKE_SOURCE_DIR}/src/common/bench.c
+    ${CMAKE_SOURCE_DIR}/sim/common/mem.c
 )
 
 # ── Target matrix: LEVEL × POLYMUL ───────────────────────────────────────────
@@ -202,7 +215,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${KECCAK_SOURCES}
             ${DECODE_SOURCES}
             ${VENDOR_INVARIANT_SOURCES}
-            ${LOCAL_COMMON_SOURCES}
+            ${LOCAL_BENCH_SOURCES}
         )
         target_link_libraries(${BENCH_TARGET} PRIVATE
             $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
@@ -219,6 +232,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             SECURITY_LEVEL=${LEVEL}
             HQC_${LEVEL}
             ${SIM_DEFINES}
+            N_ITER=${BENCH_N_ITER}
         )
         if(POLYMUL STREQUAL "fafft_zvbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
