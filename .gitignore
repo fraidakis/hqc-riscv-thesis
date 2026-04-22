@@ -3,6 +3,7 @@ docs/BASELINE.md
 
 # Build outputs
 build/
+build-*/
 *.o
 *.a
 *.elf

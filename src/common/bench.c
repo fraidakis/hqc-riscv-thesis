@@ -71,8 +71,14 @@ void hqc_htif_exit(int code)
  * Spike HTIF exit device 0:
  *   tohost = (code << 1) | 1                       → exit with code
  *
- * Note: do NOT spin-wait on fromhost for console output — Spike updates
- * it asynchronously and the spin can cause a deadlock with fast code.
+ * Each _putchar write must wait for Spike to clear tohost back to 0
+ * before the next write.  Without this wait, consecutive tohost writes
+ * overwrite each other before Spike ticks HTIF, and only the last
+ * character of any burst survives.
+ *
+ * Spike clears tohost to 0 after processing (fesvr/htif.cc line ~304)
+ * but does NOT set fromhost for BCD (character) commands — do not
+ * spin-wait on fromhost.
  */
 extern volatile uint64_t tohost   __attribute__((weak));
 extern volatile uint64_t fromhost __attribute__((weak));
@@ -81,6 +87,7 @@ static void _putchar(char c)
 {
     if (&tohost == (volatile uint64_t *)0) return;
     tohost = (1ULL << 56) | (1ULL << 48) | (uint8_t)c;
+    while (tohost) {}   /* wait for Spike to clear tohost after processing */
 }
 
 void hqc_htif_exit(int code)
