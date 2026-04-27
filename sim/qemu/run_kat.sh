@@ -23,7 +23,6 @@ echo "[run_kat] Running: $ELF"
     -kernel "$ELF" \
     -serial mon:stdio \
     -no-reboot \
-    -plugin "$RISCV/bin/libinsn.so" \
     2>&1
 
 echo "[run_kat] Done."
