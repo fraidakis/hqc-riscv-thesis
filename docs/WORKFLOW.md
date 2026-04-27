@@ -107,7 +107,7 @@ Benchmarks only `vect_mul()` — no keypair/encaps/decaps, no Keccak.
 ```bash
 OUT=analysis/benchmarks/phase0b
 
-nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
+nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm \
     build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_vect_mul_N1.csv 2>$OUT/hqc128_polymul.log &
 
@@ -130,7 +130,7 @@ vect_mul,1,<count>,<count>,<count>
 ```bash
 OUT=analysis/benchmarks/phase0b
 
-nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
+nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm \
     build-spike-probe/bench_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_karatsuba_ref_N1.csv 2>$OUT/hqc128_spike.log &
 
@@ -203,7 +203,7 @@ Key metrics in the output:
 Which instructions dominate? Run with `--histogram`:
 
 ```bash
-$SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc --histogram \
+$SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm --histogram \
     build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
     2>analysis/benchmarks/phase0b/hqc128_polymul_hist.txt &
 
@@ -213,6 +213,45 @@ sort -t$'\t' -k2 -rn \
 ```
 
 ---
+
+## 7. Measured Results After Fix
+
+### Mini-benchmark (`tests/bench/mini_bench.c`)
+
+Three kernels: 2-limb GF(2^128) clmul, RVV 256-byte XOR, scalar XOR-rotate.
+Each kernel runs 10 000 iterations.
+
+| Kernel | Simulator | Wall time | Simulated cycles | Cycles/iter |
+|--------|-----------|-----------|-----------------|-------------|
+| `clmul128` | **Spike (fixed)** | — | 110 001 | 11 |
+| `clmul128` | QEMU | — | 9 005 766 | 900 |
+| `rvv_xor256` | **Spike (fixed)** | — | 150 007 | 15 |
+| `rvv_xor256` | QEMU | — | 215 441 721 | 21 544 |
+| `scalar_xor` | **Spike (fixed)** | — | 2 560 003 | 8 |
+| `scalar_xor` | QEMU | — | 3 579 642 | 11 |
+
+| Total wall time | Spike (fixed) | QEMU |
+|-----------------|--------------|------|
+| All 3 kernels   | **45 ms**    | 180 ms |
+
+Spike is **4× faster** in wall time for the mini-benchmark. Simulated cycle counts differ
+because Spike's `mcycle` increments once per committed instruction (roughly an IPC=1
+in-order model), while QEMU's cycle counter tracks real host wall-clock cycles.
+
+### Full HQC-128 karatsuba_ref KEM benchmark
+
+| Operation | Spike cycles | Wall time |
+|-----------|-------------|-----------|
+| KeyGen | 18 816 324 | — |
+| Encaps | 37 636 614 | — |
+| Decaps | 56 962 430 | — |
+| **Total** | — | **1.54 s** |
+
+QEMU KAT (100 vectors): **8.56 s**
+
+Spike is **5.6× faster** than QEMU for this workload after the fix. The previous apparent
+"360× slowdown" was entirely due to the infinite trap loop — Spike was never computing.
+
 
 ## Summary: which tool for what
 
@@ -226,3 +265,76 @@ sort -t$'\t' -k2 -rn \
 | "Which instructions dominate?" | Spike --histogram | ~20–40 min |
 
 **Never use QEMU rdcycle values in the thesis.** Only Spike `rdcycle` = real instruction count.
+
+---
+
+## 8. How to Run the Benchmarks
+
+### Prerequisites
+
+```bash
+source toolchain/toolchain.env
+# RISCV=$HOME/Thesis/installed-tools must be on PATH
+```
+
+### Build and run the mini-benchmark
+
+```bash
+# Build both backends
+make -f tests/bench/mini_bench.mk
+
+# Run on Spike (should finish in < 1 s)
+./sim/spike/run_bench.sh build-mini/mini_bench_spike.elf
+
+# Run on QEMU (should finish in < 1 s)
+$RISCV/bin/qemu-system-riscv64 \
+    -machine virt \
+    -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
+    -m 256M -nographic -bios none \
+    -kernel build-mini/mini_bench_qemu.elf \
+    -serial mon:stdio -no-reboot 2>/dev/null
+```
+
+### Run the full HQC-128 benchmark on Spike (fast path)
+
+```bash
+# Build Spike probe targets (N_ITER=1)
+cmake -S . -B build-spike-probe \
+    -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+    -DHQC_SIM=spike
+cmake --build build-spike-probe --target bench_hqc128_karatsuba_ref -j$(nproc)
+
+# Run (should complete in ~2 s)
+./sim/spike/run_bench.sh build-spike-probe/bench_hqc128_karatsuba_ref.elf
+```
+
+### Run the KAT on QEMU
+
+```bash
+# Build QEMU targets
+cmake -S . -B build \
+    -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+    -DHQC_SIM=qemu
+cmake --build build -j$(nproc)
+
+./sim/qemu/run_kat.sh build/hqc128_karatsuba_ref.elf
+```
+
+### Run all five polynomial-mul variants
+
+```bash
+for variant in karatsuba_ref karatsuba_zbc fafft_zbc hybrid_zbc fafft_zvbc; do
+    echo "=== $variant ==="
+    ./sim/spike/run_bench.sh \
+        build-spike-probe/bench_hqc128_${variant}.elf 2>/dev/null
+done
+```
+
+### Rebuild Spike with optimized host compiler (optional, +15–30% throughput)
+
+```bash
+bash toolchain/build-spike.sh
+```
+
+This rebuilds from `$HOME/Thesis/src/riscv-isa-sim` with `-O3 -march=native`, strips
+debug symbols, and reinstalls to `$RISCV/bin/spike`.

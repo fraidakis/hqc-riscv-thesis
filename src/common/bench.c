@@ -21,10 +21,21 @@
 #include <stdint.h>
 
 /* ── Cycle counter (shared by both backends) ─────────────────────────────── */
+/*
+ * Read mcycle (CSR 0xb00) directly instead of the rdcycle pseudoinstruction.
+ *
+ * rdcycle emits `csrrs rd, 0xc00, x0` (user-mode cycle alias, Zicntr).
+ * Spike 1.1.1-dev enforces Zicntr gating: without _zicntr in the ISA string
+ * the instruction traps as illegal, the bare-metal mtvec=0x0 is unmapped, and
+ * the machine spins forever in a trap_instruction_access_fault loop.
+ *
+ * mcycle (0xb00) is the M-mode cycle CSR, always readable in machine mode
+ * regardless of Zicntr, making this implementation simulator-agnostic.
+ */
 uint64_t hqc_rdcycle(void)
 {
     uint64_t cycles;
-    __asm__ volatile ("rdcycle %0" : "=r"(cycles));
+    __asm__ volatile ("csrr %0, 0xb00" : "=r"(cycles));   /* mcycle */
     return cycles;
 }
 
