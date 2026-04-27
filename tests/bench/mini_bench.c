@@ -30,15 +30,9 @@
 
 /*
  * Read the machine cycle counter via CSR 0xb00 (mcycle).
- *
- * bench.h's hqc_rdcycle() uses `rdcycle` which reads CSR 0xc00 (cycle),
- * a user-mode alias that requires the Zicntr extension.  Without _zicntr in
- * the Spike ISA string, rdcycle traps as an illegal instruction and the
- * bare-metal exception vector at mtvec=0x0 spins forever — the actual cause
- * of the multi-hour Spike runtimes observed in this project.
- *
- * mcycle (0xb00) is always readable in M-mode regardless of Zicntr; this
- * override ensures mini_bench works even if _zicntr is accidentally omitted.
+ * mcycle is always accessible in M-mode; no ISA extension required.
+ * bench.h exposes the same value through hqc_rdcycle() after the bench.c fix,
+ * but we keep a local alias here so this file compiles standalone.
  */
 static inline uint64_t read_mcycle(void)
 {

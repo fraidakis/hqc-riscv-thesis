@@ -107,7 +107,7 @@ Benchmarks only `vect_mul()` — no keypair/encaps/decaps, no Keccak.
 ```bash
 OUT=analysis/benchmarks/phase0b
 
-nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm \
+nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_vect_mul_N1.csv 2>$OUT/hqc128_polymul.log &
 
@@ -130,7 +130,7 @@ vect_mul,1,<count>,<count>,<count>
 ```bash
 OUT=analysis/benchmarks/phase0b
 
-nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm \
+nohup $SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build-spike-probe/bench_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_karatsuba_ref_N1.csv 2>$OUT/hqc128_spike.log &
 
@@ -203,7 +203,7 @@ Key metrics in the output:
 Which instructions dominate? Run with `--histogram`:
 
 ```bash
-$SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm --histogram \
+$SPIKE --isa=rv64gcv_zbc_zbb_zbkb_zvbc --histogram \
     build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
     2>analysis/benchmarks/phase0b/hqc128_polymul_hist.txt &
 

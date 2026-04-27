@@ -28,8 +28,12 @@ mkdir -p "$SRCDIR/build"
     CFLAGS="-O3 -march=native" \
     "$SRCDIR/configure" \
         --prefix="$PREFIX" \
-        --enable-commitlog \
         2>&1 | tail -5)
+
+# Clean object files so that the new CXXFLAGS are actually applied.
+# Without this, make is a no-op when sources are unchanged.
+echo "[build-spike] Cleaning stale object files ..."
+make clean -C "$SRCDIR/build" 2>&1 | tail -2
 
 echo "[build-spike] Building ..."
 make -j"$(nproc)" -C "$SRCDIR/build" 2>&1 | tail -5

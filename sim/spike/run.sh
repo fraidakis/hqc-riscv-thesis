@@ -20,10 +20,9 @@ shift
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="$RISCV/bin/spike"
 
-# _zicntr is required for rdcycle (CSR 0xc00). Without it, rdcycle traps as
-# an illegal instruction and the bare-metal exception vector (mtvec=0x0) is
-# unmapped, spinning forever — the real cause of the multi-hour "slowdowns".
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
+# The bench harness reads mcycle (CSR 0xb00), always accessible in M-mode.
+# _zicntr/_zihpm are not needed.
+ISA="rv64gcv_zbc_zbb_zbkb_zvbc"
 
 echo "[spike/run] ELF: $ELF"                                        >&2
 echo "[spike/run] ISA: $ISA"                                        >&2
