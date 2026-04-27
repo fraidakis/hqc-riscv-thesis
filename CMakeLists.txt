@@ -246,8 +246,50 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${BENCH_TARGET}.map"
         )
 
+        # POLYMUL MICRO-BENCH target  (bench_polymul_hqc${LEVEL}_${POLYMUL}) ──
+        # Benchmarks only vect_mul() — no keypair/encaps/decaps, no Keccak.
+        # Use for fast iteration on Spike (~20-60 min vs ~2-20 h for full KEM).
+        #   cmake --build build-spike-probe \
+        #         --target bench_polymul_hqc128_karatsuba_ref
+        set(POLYMUL_BENCH_TARGET "bench_polymul_hqc${LEVEL}_${POLYMUL}")
+
+        add_executable(${POLYMUL_BENCH_TARGET} EXCLUDE_FROM_ALL
+            ${STARTUP_S}
+            ${CMAKE_SOURCE_DIR}/tests/bench/bench_poly_mul.c
+            ${CMAKE_SOURCE_DIR}/src/common/bench.c
+            ${POLYMUL_SOURCES}
+            ${CMAKE_SOURCE_DIR}/sim/common/mem.c
+        )
+        target_include_directories(${POLYMUL_BENCH_TARGET} BEFORE PRIVATE
+            ${HQC_REF}/src/common/${VARIANT}
+            ${HQC_REF}/src/common
+            ${HQC_REF}/src/ref/${VARIANT}
+            ${HQC_REF}/src/ref
+            ${CMAKE_SOURCE_DIR}/src/common
+        )
+        target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
+            HQC_BENCH_MODE=1
+            SECURITY_LEVEL=${LEVEL}
+            HQC_${LEVEL}
+            ${SIM_DEFINES}
+            N_ITER=${BENCH_N_ITER}
+            POLYMUL_NAME="${POLYMUL}"
+        )
+        if(POLYMUL STREQUAL "fafft_zvbc")
+            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+        endif()
+        set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
+            SUFFIX ".elf"
+            LINK_DEPENDS "${LINKER_SCRIPT}"
+        )
+        target_link_options(${POLYMUL_BENCH_TARGET} PRIVATE
+            "-T${LINKER_SCRIPT}"
+            "-Wl,-Map=${CMAKE_BINARY_DIR}/${POLYMUL_BENCH_TARGET}.map"
+        )
+
     endforeach()  # POLYMUL
 endforeach()  # LEVEL
+
 
 # ── Symlink compile_commands.json to project root ─────────────────────────────
 add_custom_target(symlink_compile_commands ALL

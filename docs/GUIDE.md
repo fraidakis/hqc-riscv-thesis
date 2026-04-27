@@ -12,6 +12,7 @@ the HQC post-quantum KEM on bare-metal RISC-V.
 3. [Toolchain Setup](#3-toolchain-setup)
 4. [Configuration & CMake Build](#4-configuration--cmake-build)
 5. [Running KAT Tests (QEMU)](#5-running-kat-tests-qemu)
+   - [5.5 QEMU vs Spike — choosing the right tool](#55-qemu-vs-spike--choosing-the-right-tool)
 6. [KAT Seed Generation (one-time)](#6-kat-seed-generation-one-time)
 7. [Running Benchmarks (Spike)](#7-running-benchmarks-spike)
 8. [Extracting Results](#8-extracting-results)
@@ -174,7 +175,7 @@ QEMU runs the bare-metal ELF, which prints `ss: <hex>` for each of the 100 vecto
 LEVEL=128
 ELF=build/hqc${LEVEL}_karatsuba_ref.elf
 LOG=/tmp/hqc${LEVEL}_kat.log
-TIMEOUT=120  # seconds (use 350 for 192, 500 for 256)
+TIMEOUT=30   # seconds (use 90 for HQC-192, 180 for HQC-256)
 
 timeout $TIMEOUT \
   qemu-system-riscv64 \
@@ -199,13 +200,18 @@ exception loop at 99.9% CPU with zero serial output. Always include:
 the installed-tools tree but loads at 0x80000000, colliding with the bare-metal
 ELF which also starts at 0x80000000. QEMU will refuse to run with both.
 
-### 5.3 Expected runtimes under QEMU (vlen=256)
+### 5.3 Measured runtimes under QEMU (vlen=256, `karatsuba_ref`)
 
-| Level | Approx. time for 100 vectors |
-|-------|-------------------------------|
-| HQC-128 | ~30 s |
-| HQC-192 | ~270 s |
-| HQC-256 | ~450 s |
+These are wall-clock times measured on an IdeaPad 5 Pro (AMD Ryzen 7 5600H):
+
+| Level | Time for 100 KAT vectors | Suggested `timeout` |
+|-------|--------------------------|---------------------|
+| HQC-128 | **~10 s** | 30 s |
+| HQC-192 | **~29 s** | 90 s |
+| HQC-256 | **~68 s** | 180 s |
+
+These are short enough to run after every code change. See §5.5 for guidance
+on when to use QEMU versus Spike.
 
 ### 5.4 Verify against NIST reference vectors
 
@@ -224,6 +230,53 @@ Reference `.rsp` file map:
 | HQC-256 | `vendor/hqc-ref/kats/ref/hqc-5/PQCkemKAT_7333.rsp` |
 
 Exit code 0 means `PASS [HQC]: 100/100 vectors matched`.
+
+### 5.5 QEMU vs Spike — choosing the right tool
+
+| Task | Tool | Why |
+|------|------|-----|
+| Verify correctness after every change | **QEMU KAT** | Fast (~10–68 s for all three levels combined). Checks all 100 NIST vectors. |
+| Measure instruction counts for thesis results | **Spike bench** | Spike ISS `rdcycle` = exact retired-instruction count. QEMU `rdcycle` is **not** instruction count — it is a software counter incremented by a fixed amount per basic block, unrelated to pipeline latency. |
+| Debug output / trace a specific operation | **QEMU** | Fast iteration. Use `--log-commits` on Spike only when you need per-instruction data. |
+
+**Workflow for iterative development:**
+
+```
+[edit code] → cmake --build → QEMU KAT (30–180 s) → correctness OK
+                                                      ↓ (only at phase milestones)
+                                              Spike bench overnight → instruction counts
+```
+
+**Full QEMU KAT command (run from `hqc-riscv/`):**
+
+```bash
+RISCV=~/Thesis/installed-tools
+QEMU=$RISCV/bin/qemu-system-riscv64
+CPU="rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true"
+
+for LEVEL in 128 192 256; do
+  echo -n "HQC-$LEVEL KAT: "
+  time timeout 180 $QEMU -machine virt -cpu $CPU -m 256M \
+    -nographic -bios none -serial mon:stdio -no-reboot \
+    -kernel build/hqc${LEVEL}_karatsuba_ref.elf 2>/dev/null \
+    | grep -c "^ss:"
+done
+```
+
+Expected output:
+```
+HQC-128 KAT: 100    real 0m10s
+HQC-192 KAT: 100    real 0m29s
+HQC-256 KAT: 100    real 1m08s
+```
+
+**Why QEMU rdcycle is useless for benchmarking:**
+QEMU is a dynamic binary translator (DBT). It translates guest RISC-V basic
+blocks into host x86 micro-ops and executes them natively. There is no pipeline
+model, no cache simulation, and no cycle counter. The guest `rdcycle` CSR is
+implemented by incrementing a host counter by a fixed constant per translated
+block — the value is arbitrary and changes between QEMU versions. Use Spike for
+all instruction-count measurements.
 
 ---
 
@@ -315,47 +368,112 @@ consequences:
   sufficient: `min == median == max` in every run.  Use
   `-DBENCH_N_ITER=1` when configuring the spike bench build.
 
-Build the bench ELFs with N_ITER=1:
+### 7.4 Spike is slow — three-tier iteration strategy
+
+Spike interprets ~1–5 M RISC-V instructions per second.  QEMU (DBT/JIT)
+executes the same code at near-native x86 speed (~500–3000 M eff. insn/s).
+The observed ratio for HQC workloads is **10,000–100,000×** — not just 100×:
+
+| Simulator | HQC-128 one KEM op | Why |
+|-----------|-------------------|-----|
+| QEMU (DBT) | ~0.1 s | Translates RISC-V to host x86 JIT; runs near-native |
+| Spike (ISS) | ~2–5 h | Interprets every instruction in C++; no JIT |
+
+This is well-documented: the Spike README and Chipyard docs explicitly state
+Spike is intended as an ISA reference, not a fast simulator.
+
+**Do not wait 5 hours for every change.** Use this three-tier strategy:
+
+| Tier | Tool | Time | When to use |
+|------|------|------|-------------|
+| 1 — Correctness | QEMU KAT | 10–68 s | After every single change |
+| 2 — Quick instruction count | Spike polymul micro-bench | ~20–60 min | After a QEMU-confirmed change, to verify instruction count improved |
+| 3 — Full baseline | Spike KEM bench | 2–20 h | Once per phase milestone only |
+
+**Tier 2: polymul micro-benchmark** — benchmarks only `vect_mul()` (the
+dominant cost, >90% of HQC runtime).  No keypair/encaps/decaps, no Keccak:
 
 ```bash
-cmake -S . -B build-spike-bench \
-      -G Ninja \
+SPIKE=~/Thesis/installed-tools/bin/spike
+ISA=rv64gcv_zbc_zbb_zbkb_zvbc
+OUT=analysis/benchmarks/phase0b
+
+# Build the micro-bench (build-spike-probe already configured for Spike)
+cmake --build build-spike-probe \
+      --target bench_polymul_hqc128_karatsuba_ref \
+      -j$(nproc)
+
+# Run in background
+nohup $SPIKE --isa=$ISA \
+    build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
+    > $OUT/hqc128_vect_mul_N1.csv 2>$OUT/hqc128_polymul.log &
+
+# Monitor
+cat $OUT/hqc128_vect_mul_N1.csv
+```
+
+Expected output:
+```
+# level=128,polymul=karatsuba_ref,n_iter=1
+op,iterations,min_cycles,median_cycles,max_cycles
+vect_mul,1,<count>,<count>,<count>
+```
+
+### 7.5 Can Spike use multiple CPU cores?
+
+**No.** Spike is a single-threaded interpreter.  It simulates one RISC-V
+hart sequentially — there is no JIT, no parallel dispatch, no way to split
+one simulation across cores.
+
+What you *can* do is run multiple independent Spike instances simultaneously,
+one per security level.  Since each level is a separate ELF they use separate
+cores transparently:
+
+```bash
+# Launch all three levels at once — uses 3 of your CPU cores in parallel
+nohup $SPIKE --isa=$ISA build-spike-probe/bench_hqc128_karatsuba_ref.elf \
+    > $OUT/hqc128_karatsuba_ref_N1.csv 2>$OUT/hqc128_spike.log &
+nohup $SPIKE --isa=$ISA build-spike-probe/bench_hqc192_karatsuba_ref.elf \
+    > $OUT/hqc192_karatsuba_ref_N1.csv 2>$OUT/hqc192_spike.log &
+nohup $SPIKE --isa=$ISA build-spike-probe/bench_hqc256_karatsuba_ref.elf \
+    > $OUT/hqc256_karatsuba_ref_N1.csv 2>$OUT/hqc256_spike.log &
+
+echo "Monitor: wc -c $OUT/hqc{128,192,256}_karatsuba_ref_N1.csv"
+```
+
+Running all three in parallel does **not** speed up any individual run — it
+just avoids serial waiting when you need results from all three levels.
+
+Build the bench ELFs (also rebuilds polymul micro-bench targets):
+
+```bash
+cmake -S . -B build-spike-probe \
       -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
       -DHQC_SIM=spike \
       -DBENCH_N_ITER=1
 
-cmake --build build-spike-bench --target \
+cmake --build build-spike-probe --target \
       bench_hqc128_karatsuba_ref \
       bench_hqc192_karatsuba_ref \
       bench_hqc256_karatsuba_ref \
+      bench_polymul_hqc128_karatsuba_ref \
+      bench_polymul_hqc192_karatsuba_ref \
+      bench_polymul_hqc256_karatsuba_ref \
       -j$(nproc)
 ```
 
-**Wall-clock timing warning:** Spike interprets ~1-5 M instructions/second
-on a modern laptop.  A single HQC-128 KEM operation takes > 10 minutes of
-wall-clock time.  Always run as a background job and capture output:
+Approximate wall-clock times (4-core laptop, Spike single-threaded):
 
-```bash
-OUT=analysis/benchmarks/phase0b
-mkdir -p $OUT
+| Level | Full KEM bench | `vect_mul` micro-bench |
+|-------|---------------|------------------------|
+| HQC-128 | **2–5 h** | **~20–40 min** |
+| HQC-192 | **5–12 h** | **~40–90 min** |
+| HQC-256 | **10–20 h** | **~60–150 min** |
 
-nohup $SPIKE --isa=$ISA build-spike-bench/bench_hqc128_karatsuba_ref.elf \
-  > $OUT/hqc128_karatsuba_ref_N1.csv 2>$OUT/hqc128.log &
-
-nohup $SPIKE --isa=$ISA build-spike-bench/bench_hqc192_karatsuba_ref.elf \
-  > $OUT/hqc192_karatsuba_ref_N1.csv 2>$OUT/hqc192.log &
-
-nohup $SPIKE --isa=$ISA build-spike-bench/bench_hqc256_karatsuba_ref.elf \
-  > $OUT/hqc256_karatsuba_ref_N1.csv 2>$OUT/hqc256.log &
-```
-
-Approximate wall-clock time per level (on a 4-core laptop, Spike single-threaded):
-
-| Level | Estimated wall-clock |
-|-------|---------------------|
-| HQC-128 | ~15–30 min |
-| HQC-192 | ~45–90 min |
-| HQC-256 | ~75–150 min |
+> **Use Spike only for final phase baselines.** For everyday correctness
+> checks use QEMU KAT (§5.5).  For quick iteration on a new polymul
+> implementation use the Tier 2 micro-bench.  Only run the full KEM bench
+> once per phase to record the numbers for the thesis tables.
 
 `bench_kem.c` uses the `rdcycle` CSR and emits CSV to the HTIF console:
 
@@ -464,7 +582,7 @@ llvm-objdump -d build/hqc128_karatsuba_ref.elf | awk '/^[0-9a-f]+ </{fn=$0} /^\s
 |---------|-------------|-----|
 | QEMU at 99.9% CPU, zero serial output | Missing `zbkb=true` CPU flag; `packh` raises illegal-instruction trap | Add `zbkb=true,zbc=true,zvbc=true` to `-cpu` string |
 | All 100 KAT ss values WRONG | `randombytes_init` called instead of `prng_init` | Use `prng_init(seed, NULL, 48, 0)` in `kat_gen.c` |
-| QEMU timeout (exit 124) for 192/256 | Insufficient timeout | Use 350 s for HQC-192, 500 s for HQC-256 |
+| QEMU timeout (exit 124) for 192/256 | Insufficient timeout | Use 90 s for HQC-192, 180 s for HQC-256 (measured: ~29 s and ~68 s respectively) |
 | Link error: `undefined reference to memcpy` | Building without libc and `sim/common/mem.c` not included | Add `${CMAKE_SOURCE_DIR}/sim/common/mem.c` to source list |
 | `packh` in disassembly without `-zbkb` march | Clang -O3 auto-generates Zbkb instructions from Keccak bitmanip | march must include `zbkb` and QEMU CPU must too |
 | Spike exits immediately with `tohost` error | Wrong simulator backend compiled in (QEMU UART code hits Spike) | Rebuild with `-DHQC_SIM=spike` |
