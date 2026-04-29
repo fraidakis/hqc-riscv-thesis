@@ -29,20 +29,66 @@ on:
       - 'sim/**'
 
 jobs:
-  # ── QEMU KAT — scalar polymul variants (karatsuba_ref excluded: needs Phase 0a) ──
+  # ── Determine which variants are implemented ──────────────────────────────
+  # Reads scripts/implemented_variants.txt as the single source of truth.
+  # Add a variant name there once it is ready; CI picks it up automatically.
+  #
+  # Routing rules (applied here, not scattered across jobs):
+  #   karatsuba_ref  → QEMU, but only after vendor submodule is initialised
+  #                    (Phase 0a); excluded until then.
+  #   fafft_zvbc     → Spike only (QEMU does not implement Zvbc).
+  #   everything else → QEMU.
+  setup:
+    name: Detect implemented variants
+    runs-on: ubuntu-24.04
+    outputs:
+      qemu-polymul:       ${{ steps.gen.outputs.qemu-polymul }}
+      has-qemu-variants:  ${{ steps.gen.outputs.has-qemu-variants }}
+      run-spike-zvbc:     ${{ steps.gen.outputs.run-spike-zvbc }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate variant lists
+        id: gen
+        run: |
+          mapfile -t all < <(grep -v '^\s*#\|^\s*$' scripts/implemented_variants.txt)
+
+          qemu=()
+          spike_zvbc=false
+
+          for v in "${all[@]}"; do
+            case "$v" in
+              fafft_zvbc)   spike_zvbc=true ;;
+              karatsuba_ref) ;;   # excluded until Phase 0a (vendor submodule)
+              *)            qemu+=("$v") ;;
+            esac
+          done
+
+          if [ ${#qemu[@]} -eq 0 ]; then
+            json="[]"
+            has=false
+          else
+            csv=$(printf '"%s",' "${qemu[@]}"); csv="${csv%,}"
+            json="[$csv]"
+            has=true
+          fi
+
+          echo "qemu-polymul=$json"      >> "$GITHUB_OUTPUT"
+          echo "has-qemu-variants=$has"  >> "$GITHUB_OUTPUT"
+          echo "run-spike-zvbc=$spike_zvbc" >> "$GITHUB_OUTPUT"
+
+  # ── QEMU KAT — all QEMU-compatible implemented variants ───────────────────
   kat:
     name: KAT (${{ matrix.polymul }} / HQC-${{ matrix.level }})
     runs-on: ubuntu-24.04
+    needs: setup
+    if: needs.setup.outputs.has-qemu-variants == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        # fafft_zvbc excluded: needs Zvbc ISA which QEMU does not implement.
-        # Run fafft_zvbc KAT on Spike only (see spike-kat job below).
-        # karatsuba_ref is Phase 0 denominator and is always built to verify
-        # that the vendor sources link correctly; it is excluded here until
-        # the vendor submodule (vendor/hqc-ref) is initialised (Phase 0a).
-        polymul: [karatsuba_zbc, fafft_zbc, hybrid_zbc]
+        polymul: ${{ fromJSON(needs.setup.outputs.qemu-polymul) }}
         level:   [128, 192, 256]
 
     steps:
@@ -108,6 +154,8 @@ jobs:
   kat-spike-zvbc:
     name: KAT-Spike (fafft_zvbc / HQC-${{ matrix.level }})
     runs-on: ubuntu-24.04
+    needs: setup
+    if: needs.setup.outputs.run-spike-zvbc == 'true'
 
     strategy:
       fail-fast: false

@@ -5,56 +5,73 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'tests/ct/**'
       - 'analysis/ct_verify/**'
       - 'scripts/ci/check_ct.sh'
+      - 'scripts/implemented_variants.txt'
   pull_request:
     branches: [main]
 
 jobs:
-  ctgrind:
-    name: CT check — ctgrind (Valgrind)
+  # ── Read the single source of truth for implemented variants ───────────────
+  prepare:
+    name: Read implemented variants
     runs-on: ubuntu-24.04
+    outputs:
+      variants: ${{ steps.read.outputs.variants }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse implemented_variants.txt → JSON array
+        id: read
+        run: |
+          variants=$(grep -v '^#' scripts/implemented_variants.txt \
+                     | grep -v '^[[:space:]]*$' \
+                     | jq -Rnc '[inputs]')
+          echo "variants=$variants" >> "$GITHUB_OUTPUT"
+
+  # ── ctgrind: native Valgrind Memcheck for each (level × variant) ───────────
+  # RISC-V-specific variants are automatically skipped by check_ct.sh (exit 0).
+  ctgrind:
+    name: "ctgrind — HQC-${{ matrix.level }} / ${{ matrix.variant }}"
+    needs: prepare
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false   # surface all failures, not just the first
+      matrix:
+        level: [128, 192, 256]
+        variant: ${{ fromJson(needs.prepare.outputs.variants) }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install Valgrind
-        run: sudo apt-get update -qq && sudo apt-get install -y valgrind
+        run: sudo apt-get update -qq && sudo apt-get install -y valgrind libvalgrind-dev
 
-      - name: Restore toolchain cache
-        uses: actions/cache@v4
-        with:
-          path: ~/Thesis/installed-tools
-          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
-
-      - name: Run ctgrind check (builds fresh internally)
-        run: bash scripts/ci/check_ct.sh 128
+      - name: Run ctgrind check
+        run: bash scripts/ci/check_ct.sh ${{ matrix.level }} ${{ matrix.variant }}
 
       - name: Upload ctgrind report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ctgrind-report
-          path: analysis/ct_verify/ctgrind/
+          name: "ctgrind-hqc${{ matrix.level }}-${{ matrix.variant }}"
+          path: analysis/ct_verify/ctgrind/ct_hqc${{ matrix.level }}_${{ matrix.variant }}_valgrind.xml
+          if-no-files-found: ignore   # SKIP variants produce no report file
 
+  # ── dudect: statistical CT test (not yet integrated) ───────────────────────
   dudect:
     name: CT check — dudect (statistical)
+    if: false   # TODO: add dudect submodule to analysis/ct_verify/dudect/
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install deps
         run: sudo apt-get update -qq && sudo apt-get install -y gcc make
 
       - name: Build & run dudect harness
-        run: |
-          # Placeholder: dudect integration builds a host-native harness
-          echo "dudect: not yet integrated — placeholder step"
-        # TODO: add dudect submodule to analysis/ct_verify/dudect/
-        # and build the harness here.
+        run: cmake --build build --target ct_dudect
 
       - name: Upload dudect results
         if: always()
