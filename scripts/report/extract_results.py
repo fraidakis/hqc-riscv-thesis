@@ -37,6 +37,8 @@ import argparse
 import csv
 import os
 import re
+import shutil
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -392,26 +394,66 @@ def categorize_instruction(insn: str) -> str:
     return "other"
 
 
-def parse_histogram_file(path: Path) -> dict[str, int]:
-    """Parse a Spike --histogram output file.  Returns {insn: count}."""
+def build_pc_mnemonic_map(elf_path: Path) -> dict[str, str]:
+    """Run objdump on elf_path and return {hex_pc: mnemonic}.
+
+    Tries, in order: $RISCV/bin/riscv64-unknown-elf-objdump, the default
+    installed-tools location, then whatever is on PATH.  Returns {} on failure.
+    """
+    candidates = [
+        os.path.join(os.environ.get("RISCV", ""), "bin", "riscv64-unknown-elf-objdump"),
+        str(Path.home() / "Thesis" / "installed-tools" / "bin" / "riscv64-unknown-elf-objdump"),
+    ]
+    found = shutil.which("riscv64-unknown-elf-objdump")
+    if found:
+        candidates.append(found)
+
+    objdump = next((c for c in candidates if c and Path(c).is_file()), None)
+    if objdump is None or not elf_path.is_file():
+        return {}
+
+    try:
+        result = subprocess.run(
+            [objdump, "-d", str(elf_path)],
+            capture_output=True, text=True, timeout=60,
+        )
+        pc_map: dict[str, str] = {}
+        for line in result.stdout.splitlines():
+            m = re.match(r'^\s+([0-9a-f]+):\s+[0-9a-f]+\s+(\S+)', line)
+            if m:
+                pc_map[m.group(1)] = m.group(2)
+        return pc_map
+    except Exception:
+        return {}
+
+
+def parse_histogram_file(path: Path, pc_map: dict[str, str] | None = None) -> dict[str, int]:
+    """Parse a Spike -g histogram file.  Returns {mnemonic_or_pc: count}.
+
+    Spike -g writes space-separated "pc count" lines prefixed by a
+    "PC Histogram size:N" header.  If pc_map is provided, each PC is resolved
+    to its instruction mnemonic so the returned keys match MIX_CATEGORIES.
+    """
     counts: dict[str, int] = {}
     try:
         with path.open() as fh:
             for line in fh:
                 line = line.strip()
-                if not line or line.startswith("#"):
+                if not line or line.startswith("PC Histogram"):
                     continue
-                parts = line.split("\t")
+                parts = line.split()
                 if len(parts) >= 2:
-                    insn  = parts[0].strip()
+                    pc = parts[0]
                     try:
-                        count = int(parts[1].strip())
-                        counts[insn] = counts.get(insn, 0) + count
+                        count = int(parts[1])
+                        key = pc_map.get(pc, pc) if pc_map else pc
+                        counts[key] = counts.get(key, 0) + count
                     except ValueError:
                         pass
     except OSError as e:
         print(f"[extract] WARNING: cannot read {path}: {e}", file=sys.stderr)
     return counts
+
 
 
 def aggregate_mix(counts: dict[str, int]) -> dict[str, int]:
@@ -429,6 +471,7 @@ def print_mix_table(
     levels: list[int],
     variants: list[str],
     as_latex: bool,
+    build_dir: Path | None = None,
 ) -> None:
     print("\n## Instruction mix breakdown\n")
 
@@ -440,7 +483,13 @@ def print_mix_table(
                 hist_path = bench_dir / phase / f"hqc{level}_{variant}_hist.txt"
                 if not hist_path.exists():
                     continue
-                counts = parse_histogram_file(hist_path)
+
+                pc_map: dict[str, str] | None = None
+                if build_dir is not None:
+                    elf = build_dir / f"bench_polymul_hqc{level}_{variant}.elf"
+                    pc_map = build_pc_mnemonic_map(elf) or None
+
+                counts = parse_histogram_file(hist_path, pc_map)
                 if not counts:
                     continue
                 agg   = aggregate_mix(counts)
@@ -486,6 +535,7 @@ def write_summary_csvs(
     levels: list[int],
     variants: list[str],
     ops: list[str],
+    build_dir: Path | None = None,
 ) -> None:
     """
     Write cycle_counts.csv and instruction_mix.csv in the format expected by
@@ -535,7 +585,13 @@ def write_summary_csvs(
                 hist_path = bench_dir / phase / f"hqc{level}_{variant}_hist.txt"
                 if not hist_path.exists():
                     continue
-                counts = parse_histogram_file(hist_path)
+
+                pc_map: dict[str, str] | None = None
+                if build_dir is not None:
+                    elf = build_dir / f"bench_polymul_hqc{level}_{variant}.elf"
+                    pc_map = build_pc_mnemonic_map(elf) or None
+
+                counts = parse_histogram_file(hist_path, pc_map)
                 if not counts:
                     continue
                 agg   = aggregate_mix(counts)
@@ -571,6 +627,10 @@ def main() -> None:
     )
     parser.add_argument("--bench-dir", type=Path, default=DEFAULT_BENCH_DIR,
                         help="Root of benchmark directories")
+    parser.add_argument("--build-dir", type=Path,
+                        default=REPO_ROOT / "build-spike-probe",
+                        help="Directory containing bench_polymul*.elf files for PC→mnemonic "
+                             "resolution (default: build-spike-probe)")
     parser.add_argument("--phase", nargs="+", metavar="PHASE",
                         help="Phase(s) to include, e.g. phase0b phase1a")
     parser.add_argument("--level", nargs="+", type=int, choices=[128, 192, 256],
@@ -597,6 +657,10 @@ def main() -> None:
     args = parser.parse_args()
 
     bench_dir: Path = args.bench_dir
+    build_dir: Path | None = args.build_dir if args.build_dir.is_dir() else None
+    if args.build_dir and not args.build_dir.is_dir():
+        print(f"[extract] NOTE: --build-dir not found: {args.build_dir} — PC resolution disabled",
+              file=sys.stderr)
 
     # Discover available phases from directory names
     if args.phase:
@@ -637,10 +701,12 @@ def main() -> None:
         print_codesize_table(code_sizes, phases, levels, variants, as_latex=args.latex)
 
     if args.mix:
-        print_mix_table(bench_dir, phases, levels, variants, as_latex=args.latex)
+        print_mix_table(bench_dir, phases, levels, variants, as_latex=args.latex,
+                        build_dir=build_dir)
 
     if args.write_summary_csv:
-        write_summary_csvs(results, bench_dir, args.baseline, phases, levels, variants, ops)
+        write_summary_csvs(results, bench_dir, args.baseline, phases, levels, variants, ops,
+                           build_dir=build_dir)
 
 if __name__ == "__main__":
     main()
