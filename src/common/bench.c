@@ -33,6 +33,18 @@ uint64_t hqc_rdcycle(void)
     return cycles;
 }
 
+/*
+ * Read minstret (CSR 0xb02) — retired instruction count, always accessible
+ * in M-mode.  On default Spike (no pipeline/cache modelling) this is nearly
+ * identical to mcycle; the two together cross-validate measurements.
+ */
+uint64_t hqc_rdinstret(void)
+{
+    uint64_t instret;
+    __asm__ volatile ("csrr %0, 0xb02" : "=r"(instret));  /* minstret */
+    return instret;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════ */
 #if defined(HQC_SIM_QEMU)
 /* ── QEMU virt backend ───────────────────────────────────────────────────── */

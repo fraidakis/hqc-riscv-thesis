@@ -3,26 +3,31 @@
  * Cycle-count benchmark harness for HQC KEM on bare-metal RISC-V.
  *
  * Runs N_ITER iterations of each of the three KEM operations (KeyGen,
- * Encaps, Decaps), measures rdcycle before and after each, and emits
- * a CSV summary to the HTIF console.
+ * Encaps, Decaps), measures rdcycle and minstret before and after each,
+ * and emits a CSV summary to the HTIF console.
  *
- * Output format (one header line + one data line per operation):
- *   op,iterations,min_cycles,median_cycles,max_cycles
- *   keypair,<N>,<min>,<median>,<max>
- *   encaps,<N>,<min>,<median>,<max>
- *   decaps,<N>,<min>,<median>,<max>
+ * Output format (one header comment + one CSV header + one data row per op):
+ *   # level=<L>,polymul=<P>,n_iter=<N>,codesize_text=<bytes>
+ *   op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
+ *   keypair,<N>,<min_c>,<med_c>,<max_c>,<min_i>,<med_i>,<max_i>
+ *   encaps,<N>,...
+ *   decaps,<N>,...
  *
- * This is parsed by scripts/bench/collect_results.py (to be written)
- * to produce the thesis performance tables.
+ * Parsed by scripts/report/extract_results.py to produce thesis tables.
  *
  * Compile-time knobs (set by CMakeLists.txt):
  *   SECURITY_LEVEL    128 | 192 | 256
+ *   POLYMUL_NAME      string literal, e.g. "karatsuba_zbc"
  *   HQC_BENCH_MODE=1  ensures AES-free randombytes()
  *   N_ITER            (optional, default 10)
  *
+ * Warmup: a single non-timed pass of all three operations is run before
+ * the timed N_ITER passes.  On Spike (deterministic ISS, no cache), one
+ * call is enough to prime the PRNG state and confirm correctness.
+ * For future real-hardware runs it also primes the i-cache.
+ *
  * Note: only use on Spike for cycle-accurate measurements.  QEMU cycle
- * counts are unreliable (QEMU does not model the pipeline; rdcycle is a
- * software counter that does not reflect real latency).
+ * counts are unreliable (QEMU does not model the pipeline).
  */
 
 #include <stdint.h>
@@ -30,13 +35,22 @@
 #include <string.h>
 
 #include "api.h"
-#include "symmetric.h"  /* prng_init — vendor KEM uses prng_get_bytes internally */
+#include "symmetric.h"  /* prng_init */
 #include "bench.h"
 #include "parameters.h"
 
 #ifndef N_ITER
 #  define N_ITER 10
 #endif
+
+#ifndef POLYMUL_NAME
+#  define POLYMUL_NAME "unknown"
+#endif
+
+/* Linker symbols bracketing .text.startup + .text (defined in sim/common/link.ld).
+ * The difference gives the executable code size in bytes. */
+extern char _text_start[];
+extern char _text_end[];
 
 /* ── Static buffers ──────────────────────────────────────────────────────── */
 static uint8_t pk[CRYPTO_PUBLICKEYBYTES];
@@ -46,120 +60,124 @@ static uint8_t ss_enc[CRYPTO_BYTES];
 static uint8_t ss_dec[CRYPTO_BYTES];
 
 /* ── Timing sample storage ───────────────────────────────────────────────── */
-static uint64_t samples[N_ITER];
+static uint64_t samples_cyc[N_ITER];
+static uint64_t samples_ins[N_ITER];
 
-/* Simple insertion-sort (N_ITER <= 100, not performance-critical) */
-static void sort_samples(void)
+/* Insertion sort (N_ITER <= 100, not performance-critical) */
+static void sort_u64(uint64_t *arr, int n)
 {
-    for (int i = 1; i < N_ITER; i++) {
-        uint64_t key = samples[i];
+    for (int i = 1; i < n; i++) {
+        uint64_t key = arr[i];
         int j = i - 1;
-        while (j >= 0 && samples[j] > key) {
-            samples[j + 1] = samples[j];
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
             j--;
         }
-        samples[j + 1] = key;
+        arr[j + 1] = key;
     }
 }
 
-static uint64_t min_sample(void)  { return samples[0]; }
-static uint64_t max_sample(void)  { return samples[N_ITER - 1]; }
-static uint64_t median_sample(void)
+static uint64_t median_u64(const uint64_t *sorted, int n)
 {
-    if (N_ITER % 2 == 1)
-        return samples[N_ITER / 2];
-    return (samples[N_ITER / 2 - 1] + samples[N_ITER / 2]) / 2;
+    if (n % 2 == 1)
+        return sorted[n / 2];
+    return (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
 }
 
-/* ── CSV emit helpers ────────────────────────────────────────────────────── */
+/* ── CSV emit helper ─────────────────────────────────────────────────────── */
 static void emit_csv_row(const char *op)
 {
-    sort_samples();
+    sort_u64(samples_cyc, N_ITER);
+    sort_u64(samples_ins, N_ITER);
+
     hqc_htif_puts(op);
     hqc_htif_puts(",");
     hqc_htif_putu64(N_ITER);
+    /* cycles */
     hqc_htif_puts(",");
-    hqc_htif_putu64(min_sample());
+    hqc_htif_putu64(samples_cyc[0]);
     hqc_htif_puts(",");
-    hqc_htif_putu64(median_sample());
+    hqc_htif_putu64(median_u64(samples_cyc, N_ITER));
     hqc_htif_puts(",");
-    hqc_htif_putu64(max_sample());
+    hqc_htif_putu64(samples_cyc[N_ITER - 1]);
+    /* instret */
+    hqc_htif_puts(",");
+    hqc_htif_putu64(samples_ins[0]);
+    hqc_htif_puts(",");
+    hqc_htif_putu64(median_u64(samples_ins, N_ITER));
+    hqc_htif_puts(",");
+    hqc_htif_putu64(samples_ins[N_ITER - 1]);
     hqc_htif_puts("\n");
 }
 
 /* ── main ────────────────────────────────────────────────────────────────── */
 int main(void)
 {
-    /* Seed the vendor SHAKE-256 PRNG. crypto_kem_keypair/enc/dec call
-     * prng_get_bytes() internally; they do NOT use randombytes()/AES-CTR.
-     * A zero seed is fine for benchmarking — we only care about cycle counts. */
+    /* Seed the vendor SHAKE-256 PRNG with a zero seed.
+     * We only care about cycle counts; key values are irrelevant. */
     static const uint8_t dummy_seed[48] = { 0 };
     prng_init((uint8_t *)dummy_seed, NULL, 48, 0);
 
-    /* Emit metadata so the CSV file is self-describing. */
-    hqc_htif_puts("# level=");
-    hqc_htif_putu64(SECURITY_LEVEL);
-    hqc_htif_puts(",polymul=karatsuba_ref,n_iter=");
-    hqc_htif_putu64(N_ITER);
-    hqc_htif_puts("\n");
-
-    /* ── KeyGen ────────────────────────────────────────────────────────── */
-    for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0 = hqc_rdcycle();
-        crypto_kem_keypair(pk, sk);
-        uint64_t t1 = hqc_rdcycle();
-        samples[i] = t1 - t0;
-    }
-
-    /* ── Encaps ────────────────────────────────────────────────────────── */
-    /* Use key from last keypair iteration (any valid key will do) */
-    for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0 = hqc_rdcycle();
-        crypto_kem_enc(ct, ss_enc, pk);
-        uint64_t t1 = hqc_rdcycle();
-        samples[i] = t1 - t0;
-    }
-
-    /* ── Decaps ────────────────────────────────────────────────────────── */
-    /* Use ct from last enc iteration */
-    for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0 = hqc_rdcycle();
-        crypto_kem_dec(ss_dec, ct, sk);
-        uint64_t t1 = hqc_rdcycle();
-        samples[i] = t1 - t0;
-    }
-
-    /* ── Verify correctness (sanity check, not a KAT) ─────────────────── */
+    /* ── Single warm-up pass (also serves as correctness check) ───────── */
+    /* One call primes the PRNG state and (on real hardware) the i-cache.
+     * On Spike there are no caches, so this is purely the correctness gate. */
+    crypto_kem_keypair(pk, sk);
+    crypto_kem_enc(ct, ss_enc, pk);
+    crypto_kem_dec(ss_dec, ct, sk);
     if (memcmp(ss_enc, ss_dec, CRYPTO_BYTES) != 0) {
         hqc_htif_puts("ERROR: ss_enc != ss_dec — decaps failure!\n");
         hqc_htif_exit(1);
     }
 
-    /* ── Emit CSV ──────────────────────────────────────────────────────── */
-    hqc_htif_puts("op,iterations,min_cycles,median_cycles,max_cycles\n");
+    /* ── Emit self-describing metadata header ─────────────────────────── */
+    uint64_t text_size = (uint64_t)(_text_end - _text_start);
+    hqc_htif_puts("# level=");
+    hqc_htif_putu64(SECURITY_LEVEL);
+    hqc_htif_puts(",polymul=" POLYMUL_NAME ",n_iter=");
+    hqc_htif_putu64(N_ITER);
+    hqc_htif_puts(",codesize_text=");
+    hqc_htif_putu64(text_size);
+    hqc_htif_puts("\n");
 
-    /* Re-run timed passes now that warm-up is done — re-use sample arrays */
+    /* ── CSV header ───────────────────────────────────────────────────── */
+    hqc_htif_puts("op,iterations,min_cycles,median_cycles,max_cycles,"
+                  "min_instret,median_instret,max_instret\n");
+
+    /* ── KeyGen ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0 = hqc_rdcycle();
+        uint64_t t0_cyc = hqc_rdcycle();
+        uint64_t t0_ins = hqc_rdinstret();
         crypto_kem_keypair(pk, sk);
-        uint64_t t1 = hqc_rdcycle();
-        samples[i] = t1 - t0;
+        uint64_t t1_cyc = hqc_rdcycle();
+        uint64_t t1_ins = hqc_rdinstret();
+        samples_cyc[i] = t1_cyc - t0_cyc;
+        samples_ins[i] = t1_ins - t0_ins;
     }
     emit_csv_row("keypair");
 
+    /* ── Encaps ───────────────────────────────────────────────────────── */
+    /* Use pk from last keypair iteration */
     for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0 = hqc_rdcycle();
+        uint64_t t0_cyc = hqc_rdcycle();
+        uint64_t t0_ins = hqc_rdinstret();
         crypto_kem_enc(ct, ss_enc, pk);
-        uint64_t t1 = hqc_rdcycle();
-        samples[i] = t1 - t0;
+        uint64_t t1_cyc = hqc_rdcycle();
+        uint64_t t1_ins = hqc_rdinstret();
+        samples_cyc[i] = t1_cyc - t0_cyc;
+        samples_ins[i] = t1_ins - t0_ins;
     }
     emit_csv_row("encaps");
 
+    /* ── Decaps ───────────────────────────────────────────────────────── */
+    /* Use ct from last encaps iteration */
     for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0 = hqc_rdcycle();
+        uint64_t t0_cyc = hqc_rdcycle();
+        uint64_t t0_ins = hqc_rdinstret();
         crypto_kem_dec(ss_dec, ct, sk);
-        uint64_t t1 = hqc_rdcycle();
-        samples[i] = t1 - t0;
+        uint64_t t1_cyc = hqc_rdcycle();
+        uint64_t t1_ins = hqc_rdinstret();
+        samples_cyc[i] = t1_cyc - t0_cyc;
+        samples_ins[i] = t1_ins - t0_ins;
     }
     emit_csv_row("decaps");
 

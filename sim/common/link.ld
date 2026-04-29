@@ -20,6 +20,7 @@ SECTIONS
     . = ORIGIN(RAM);
 
     /* ── Startup code first ─────────────────────────────────────── */
+    _text_start = .;
     .text.startup : {
         KEEP(*(.text.startup))
     } > RAM
@@ -29,6 +30,7 @@ SECTIONS
         *(.text .text.*)
         *(.gnu.linkonce.t.*)
     } > RAM
+    _text_end = .;
 
     /* ── Read-only data ──────────────────────────────────────────── */
     .rodata : {
