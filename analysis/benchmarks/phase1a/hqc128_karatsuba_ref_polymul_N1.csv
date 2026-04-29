@@ -1,3 +1,0 @@
-# level=128,polymul=karatsuba_ref,n_iter=1
-op,iterations,min_cycles,median_cycles,max_cycles
-vect_mul,1,18578004,18578004,18578004
