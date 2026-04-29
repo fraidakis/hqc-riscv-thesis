@@ -63,7 +63,7 @@ else
     LEVEL=""
 fi
 
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc"
+ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
 
 # Estimated time based on level (very rough, assumes fafft_zvbc speedup)
 case "$LEVEL" in

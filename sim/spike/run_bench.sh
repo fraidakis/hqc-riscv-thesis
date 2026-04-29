@@ -41,9 +41,11 @@ if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
 fi
 unset _BUILD_DIR _TARGET
 
-# The bench harness reads mcycle (CSR 0xb00), which is always accessible in
-# M-mode and requires no ISA extension.  _zicntr/_zihpm are not needed.
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc"
+# The bench harness reads mcycle (CSR 0xb00), always accessible in M-mode.
+# _zicntr/_zihpm are added defensively: without them, any ELF that still uses
+# the rdcycle pseudoinstruction (CSR 0xc00) would trap → infinite loop at
+# mtvec=0 → apparent hang (observed as >500x slowdown for HQC-192/256).
+ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
 
 echo "[spike/bench] ELF : $ELF"  >&2
 echo "[spike/bench] ISA : $ISA"  >&2

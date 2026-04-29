@@ -30,8 +30,9 @@ fi
 unset _BUILD_DIR _TARGET
 
 # The bench harness reads mcycle (CSR 0xb00), always accessible in M-mode.
-# _zicntr/_zihpm are not needed.
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc"
+# _zicntr/_zihpm are added defensively so that any ELF still using the
+# rdcycle pseudoinstruction (CSR 0xc00) does not trap → hang.
+ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
 
 echo "[spike/run] ELF: $ELF"                                        >&2
 echo "[spike/run] ISA: $ISA"                                        >&2
