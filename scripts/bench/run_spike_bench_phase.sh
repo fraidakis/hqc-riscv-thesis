@@ -25,6 +25,8 @@
 #                              e.g. "karatsuba_zbc" or "fafft_zbc|hybrid_zbc"
 #   --full                     Also launch full KEM benchmarks (keypair/encaps/decaps)
 #   --no-polymul               Skip polymul micro-benchmarks (requires --full)
+#   --iter <N>                 Number of iterations baked into the ELF (default: 1)
+#                              Used to name output CSVs as _N{N}.csv
 #
 # Examples:
 #   scripts/bench/run_spike_bench_phase.sh phase0
@@ -34,12 +36,11 @@
 #   scripts/bench/run_spike_bench_phase.sh phase1a --variant "karatsuba_zbc|karatsuba_ref"
 #
 # Output files written to analysis/benchmarks/<phase>/:
-#   hqc{level}_{variant}_polymul_N1.csv   polymul micro-bench CSV
-#   hqc{level}_{variant}_polymul.log      Spike stderr (errors/warnings)
-#   hqc{level}_{variant}_N1.csv           full KEM bench CSV (--full only)
-#   hqc{level}_{variant}_spike.log        full KEM Spike stderr (--full only)
-#   pids.txt                              PID log for all launched jobs
-#   timing.txt                            Wall-clock start/end/elapsed per job
+#   hqc{level}_{variant}_polymul_N{N}.csv  polymul micro-bench CSV
+#   hqc{level}_{variant}_polymul.log       Spike stderr (errors/warnings)
+#   hqc{level}_{variant}_N{N}.csv          full KEM bench CSV (--full only)
+#   hqc{level}_{variant}_spike.log         full KEM Spike stderr (--full only)
+#   run_events.log                         unified START/END event log (PID + timing)
 
 set -uo pipefail
 
@@ -52,7 +53,7 @@ mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt
 
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc"
+ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
 BUILD_DIR="${REPO_ROOT}/build-spike-probe"
 
 LEVELS=(128 192 256)
@@ -81,6 +82,7 @@ shift
 VARIANT_FILTER=""
 DO_FULL=0
 DO_POLYMUL=1
+ITER=1
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -95,6 +97,14 @@ while [[ $# -gt 0 ]]; do
         --no-polymul)
             DO_POLYMUL=0
             shift
+            ;;
+        --iter)
+            ITER="$2"
+            if ! [[ "$ITER" =~ ^[1-9][0-9]*$ ]]; then
+                echo "ERROR: --iter requires a positive integer, got: $ITER" >&2
+                exit 2
+            fi
+            shift 2
             ;;
         *)
             echo "ERROR: Unknown option: $1" >&2
@@ -131,8 +141,7 @@ fi
 OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${PHASE}"
 mkdir -p "$OUT_DIR"
 
-PID_FILE="${OUT_DIR}/pids.txt"
-TIMING_FILE="${OUT_DIR}/timing.txt"
+EVENTS_LOG="${OUT_DIR}/run_events.log"
 
 # ── Helper: apply variant filter ─────────────────────────────────────────────
 variant_matches() {
@@ -144,29 +153,34 @@ variant_matches() {
 }
 
 # ── Helper: launch a timed Spike job in the background ───────────────────────
-# Records wall-clock start, end, and elapsed seconds to timing.txt.
+# The main script synchronously writes the START event with the job PID.
+# The background subshell calculates elapsed time and uses flock to safely
+# append the END event, preventing race conditions from concurrent writes.
 # Usage: launch_timed_job <elf> <csv> <log> <label>
 launch_timed_job() {
     local elf="$1" csv="$2" log="$3" label="$4"
 
     # Capture variables needed inside the subshell by value.
-    local spike="$SPIKE" isa="$ISA" timing_file="$TIMING_FILE"
+    local spike="$SPIKE" isa="$ISA" events_log="$EVENTS_LOG"
 
     nohup bash -c "
         start=\$(date +%s)
-        echo \"\$(date '+%Y-%m-%dT%H:%M:%S') START  ${label}\" >> \"${timing_file}\"
         \"${spike}\" --isa=\"${isa}\" \"${elf}\"
         exit_code=\$?
         end=\$(date +%s)
         elapsed=\$(( end - start ))
         mins=\$(( elapsed / 60 ))
         secs=\$(( elapsed % 60 ))
-        status=\"OK\"
+        status=OK
         [[ \$exit_code -ne 0 ]] && status=\"FAIL(exit=\${exit_code})\"
-        echo \"\$(date '+%Y-%m-%dT%H:%M:%S') END    ${label}  elapsed=\${mins}m\${secs}s  status=\${status}\" >> \"${timing_file}\"
+        msg=\"\$(date '+%Y-%m-%dT%H:%M:%S') END    ${label}  elapsed=\${mins}m\${secs}s  status=\${status}\"
+        ( flock -x 9; printf '%s\n' \"\${msg}\" >&9 ) 9>>\"${events_log}\"
     " > "$csv" 2> "$log" &
 
-    echo $!
+    local pid=$!
+    printf '%s START  pid=%-6s %s\n' \
+        "$(date '+%Y-%m-%dT%H:%M:%S')" "$pid" "$label" >> "$EVENTS_LOG"
+    echo "$pid"
 }
 
 # ── Launch jobs ───────────────────────────────────────────────────────────────
@@ -182,25 +196,24 @@ for LEVEL in "${LEVELS[@]}"; do
             ELF="${BUILD_DIR}/bench_polymul_hqc${LEVEL}_${VARIANT}.elf"
             TARGET="bench_polymul_hqc${LEVEL}_${VARIANT}"
             PREFIX="hqc${LEVEL}_${VARIANT}"
-            CSV="${OUT_DIR}/${PREFIX}_polymul_N1.csv"
+            CSV="${OUT_DIR}/${PREFIX}_polymul_N${ITER}.csv"
             LOG="${OUT_DIR}/${PREFIX}_polymul.log"
 
+            # Always do an incremental cmake build before running — no-op if nothing
+            # changed, but catches stale ELFs when sources (e.g. bench.c) are updated.
+            if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
+                cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
+                    echo "[bench] BUILD FAIL ${TARGET}" >&2; continue
+                }
+            fi
             if [[ ! -f "$ELF" ]]; then
-                if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-                    echo "[bench] BUILD ${TARGET}: ELF not found, building..." >&2
-                    cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
-                        echo "[bench] BUILD FAIL ${TARGET}" >&2; continue
-                    }
-                else
-                    echo "[bench] SKIP  ${TARGET}: build dir not configured" >&2
-                    echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
-                    continue
-                fi
+                echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
+                echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+                continue
             fi
 
             LABEL="polymul_hqc${LEVEL}_${VARIANT}"
             PID=$(launch_timed_job "$ELF" "$CSV" "$LOG" "$LABEL")
-            echo "$(date '+%Y-%m-%dT%H:%M:%S') PID=$PID ${LABEL}" >> "$PID_FILE"
             JOB_LINES+=("  PID ${PID}  ${LABEL}  ->  $(basename "$CSV")")
             LAUNCHED=$((LAUNCHED + 1))
         fi
@@ -210,25 +223,24 @@ for LEVEL in "${LEVELS[@]}"; do
             ELF="${BUILD_DIR}/bench_hqc${LEVEL}_${VARIANT}.elf"
             TARGET="bench_hqc${LEVEL}_${VARIANT}"
             PREFIX="hqc${LEVEL}_${VARIANT}"
-            CSV="${OUT_DIR}/${PREFIX}_N1.csv"
+            CSV="${OUT_DIR}/${PREFIX}_N${ITER}.csv"
             LOG="${OUT_DIR}/${PREFIX}_spike.log"
 
+            # Always do an incremental cmake build before running — no-op if nothing
+            # changed, but catches stale ELFs when sources (e.g. bench.c) are updated.
+            if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
+                cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
+                    echo "[bench] BUILD FAIL ${TARGET}" >&2; continue
+                }
+            fi
             if [[ ! -f "$ELF" ]]; then
-                if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-                    echo "[bench] BUILD ${TARGET}: ELF not found, building..." >&2
-                    cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
-                        echo "[bench] BUILD FAIL ${TARGET}" >&2; continue
-                    }
-                else
-                    echo "[bench] SKIP  ${TARGET}: build dir not configured" >&2
-                    echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
-                    continue
-                fi
+                echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
+                echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+                continue
             fi
 
             LABEL="kem_hqc${LEVEL}_${VARIANT}"
             PID=$(launch_timed_job "$ELF" "$CSV" "$LOG" "$LABEL")
-            echo "$(date '+%Y-%m-%dT%H:%M:%S') PID=$PID ${LABEL}" >> "$PID_FILE"
             JOB_LINES+=("  PID ${PID}  ${LABEL}  ->  $(basename "$CSV")")
             LAUNCHED=$((LAUNCHED + 1))
         fi
@@ -239,7 +251,7 @@ done
 echo ""
 if [[ $LAUNCHED -eq 0 ]]; then
     echo "[bench] No jobs launched. Check that ELFs are built in ${BUILD_DIR}/"
-    echo "        cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1"
+    echo "        cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}"
     echo "        cmake --build build-spike-probe -j\$(nproc)"
 else
     echo "[bench] Launched ${LAUNCHED} Spike job(s) for ${PHASE}:"
@@ -250,7 +262,7 @@ else
     echo "Monitor:"
     echo "  watch -n 30 \"wc -c ${OUT_DIR}/*.csv\""
     echo "  ps aux | grep '[s]pike.*bench'"
-    echo "  tail -f ${TIMING_FILE}"
+    echo "  tail -f ${EVENTS_LOG}"
     echo ""
     echo "When done, extract results:"
     echo "  python3 scripts/report/extract_results.py --phase ${PHASE}"

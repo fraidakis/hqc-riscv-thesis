@@ -160,7 +160,7 @@ def collect_results(
     ops: list[str] | None,
     metric: str = "cycles",
 ) -> tuple[Results, CodeSizes]:
-    """Walk bench_dir, parse all *_N1.csv files, return (Results, CodeSizes).
+    """Walk bench_dir, parse all *_N*.csv files, return (Results, CodeSizes).
 
     metric: "cycles" (default) or "instret" — selects the median value stored
     in Results.  Old CSV files without instret columns return None for instret.
@@ -172,7 +172,7 @@ def collect_results(
         print(f"[extract] ERROR: bench directory not found: {bench_dir}", file=sys.stderr)
         sys.exit(1)
 
-    csv_files = list(bench_dir.glob("phase*/*_N1.csv"))
+    csv_files = list(bench_dir.glob("phase*/*_N*.csv"))
     if not csv_files:
         print(f"[extract] No CSV files found in {bench_dir}/phase*/", file=sys.stderr)
         return results, code_sizes
