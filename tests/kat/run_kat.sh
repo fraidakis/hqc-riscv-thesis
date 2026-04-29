@@ -40,6 +40,15 @@ ELF="$1"
 RSP="$2"
 QEMU="${3:-}"
 
+# ── Auto-build: rebuild the specific ELF target before running ────────────────
+_BUILD_DIR="$(dirname "$ELF")"
+_TARGET="$(basename "$ELF" .elf)"
+if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
+    echo "[kat/run_kat] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
+    cmake --build "$_BUILD_DIR" --target "$_TARGET" -j"$(nproc)" >&2
+fi
+unset _BUILD_DIR _TARGET
+
 if [[ -z "$QEMU" ]]; then
     if command -v qemu-system-riscv64 &>/dev/null; then
         QEMU="qemu-system-riscv64"
@@ -69,7 +78,7 @@ trap 'rm -f "$LOG"' EXIT
 echo "Running: $ELF under QEMU..."
 timeout 120 "$QEMU" \
     -machine virt       \
-    -cpu rv64           \
+    -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
     -m 256M             \
     -nographic          \
     -bios none          \

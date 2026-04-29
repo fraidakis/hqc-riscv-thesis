@@ -20,6 +20,15 @@ shift
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="$RISCV/bin/spike"
 
+# ── Auto-build: rebuild the specific ELF target before running ────────────────
+_BUILD_DIR="$(dirname "$ELF")"
+_TARGET="$(basename "$ELF" .elf)"
+if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
+    echo "[spike/run] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
+    cmake --build "$_BUILD_DIR" --target "$_TARGET" -j"$(nproc)" >&2
+fi
+unset _BUILD_DIR _TARGET
+
 # The bench harness reads mcycle (CSR 0xb00), always accessible in M-mode.
 # _zicntr/_zihpm are not needed.
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc"

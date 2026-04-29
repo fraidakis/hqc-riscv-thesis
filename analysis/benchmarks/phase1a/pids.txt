@@ -1,0 +1,5 @@
+2026-04-27T15:21:31 PID=37583 bench_polymul_hqc128_karatsuba_ref
+2026-04-27T15:21:50 PID=37645 bench_polymul_hqc128_karatsuba_ref
+2026-04-27T15:24:42 PID=38097 bench_polymul_hqc128_karatsuba_ref
+2026-04-27T15:24:42 PID=38102 bench_polymul_hqc192_karatsuba_ref
+2026-04-27T15:24:42 PID=38105 bench_polymul_hqc256_karatsuba_ref

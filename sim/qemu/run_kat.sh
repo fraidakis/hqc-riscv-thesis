@@ -9,6 +9,15 @@ ELF="${1:?Usage: $0 <elf>}"
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 QEMU="$RISCV/bin/qemu-system-riscv64"
 
+# ── Auto-build: rebuild the specific ELF target before running ────────────────
+_BUILD_DIR="$(dirname "$ELF")"
+_TARGET="$(basename "$ELF" .elf)"
+if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
+    echo "[qemu/run_kat] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
+    cmake --build "$_BUILD_DIR" --target "$_TARGET" -j"$(nproc)" >&2
+fi
+unset _BUILD_DIR _TARGET
+
 # The bare-metal ELF loads at 0x80000000; OpenSBI also loads there → collision.
 # Always use -bios none so QEMU starts the ELF directly as the "kernel".
 BIOS="none"

@@ -1,0 +1,3 @@
+impl,hqc128,hqc192,hqc256
+phase0b/karatsuba_ref,18578004,56469317,139077899
+phase1a/karatsuba_ref,18578004,56469317,139077899
