@@ -33,12 +33,15 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# Implemented variants come from scripts/implemented_variants.txt — the same
+# file CMakeLists.txt reads, so CMake and scripts are always in sync.
+mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt"
+
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc"
 BUILD_DIR="${REPO_ROOT}/build-spike-probe"
 
-VARIANTS=(karatsuba_ref karatsuba_zbc fafft_zbc hybrid_zbc fafft_zvbc)
 LEVELS=(128 192 256)
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
@@ -97,7 +100,7 @@ if [[ "$MODE" == "report" ]]; then
 
     FOUND=0
     for LEVEL in "${LEVELS[@]}"; do
-        for VARIANT in "${VARIANTS[@]}"; do
+        for VARIANT in "${IMPLEMENTED_VARIANTS[@]}"; do
             variant_matches "$VARIANT" || continue
 
             HIST="${OUT_DIR}/hqc${LEVEL}_${VARIANT}_hist.txt"
@@ -144,17 +147,26 @@ LAUNCHED=0
 declare -a JOB_LINES=()
 
 for LEVEL in "${LEVELS[@]}"; do
-    for VARIANT in "${VARIANTS[@]}"; do
+    for VARIANT in "${IMPLEMENTED_VARIANTS[@]}"; do
         variant_matches "$VARIANT" || continue
 
         ELF="${BUILD_DIR}/bench_polymul_hqc${LEVEL}_${VARIANT}.elf"
+        TARGET="bench_polymul_hqc${LEVEL}_${VARIANT}"
         PREFIX="hqc${LEVEL}_${VARIANT}"
         CSV="${OUT_DIR}/${PREFIX}_polymul_N1.csv"
         HIST="${OUT_DIR}/${PREFIX}_hist.txt"
 
         if [[ ! -f "$ELF" ]]; then
-            echo "[histogram] SKIP  bench_polymul_hqc${LEVEL}_${VARIANT}: ELF not found" >&2
-            continue
+            if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
+                echo "[histogram] BUILD ${TARGET}: ELF not found, building..." >&2
+                cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
+                    echo "[histogram] BUILD FAIL ${TARGET}" >&2; continue
+                }
+            else
+                echo "[histogram] SKIP  ${TARGET}: build dir not configured" >&2
+                echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
+                continue
+            fi
         fi
 
         # Spike --histogram: stdout → CSV, stderr → histogram text
