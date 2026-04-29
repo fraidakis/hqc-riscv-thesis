@@ -54,7 +54,7 @@ mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
-BUILD_DIR="${REPO_ROOT}/build-spike-probe"
+BUILD_DIR="${REPO_ROOT}/build-spike"
 
 LEVELS=(128 192 256)
 
@@ -208,7 +208,7 @@ for LEVEL in "${LEVELS[@]}"; do
             fi
             if [[ ! -f "$ELF" ]]; then
                 echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-                echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+                echo "              cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
                 continue
             fi
 
@@ -235,7 +235,7 @@ for LEVEL in "${LEVELS[@]}"; do
             fi
             if [[ ! -f "$ELF" ]]; then
                 echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-                echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+                echo "              cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
                 continue
             fi
 
@@ -251,8 +251,8 @@ done
 echo ""
 if [[ $LAUNCHED -eq 0 ]]; then
     echo "[bench] No jobs launched. Check that ELFs are built in ${BUILD_DIR}/"
-    echo "        cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}"
-    echo "        cmake --build build-spike-probe -j\$(nproc)"
+    echo "        cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}"
+    echo "        cmake --build build-spike -j\$(nproc)"
 else
     echo "[bench] Launched ${LAUNCHED} Spike job(s) for ${PHASE}:"
     for line in "${JOB_LINES[@]}"; do

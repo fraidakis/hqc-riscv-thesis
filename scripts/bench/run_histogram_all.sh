@@ -50,7 +50,7 @@ RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 OBJDUMP="${RISCV}/bin/riscv64-unknown-elf-objdump"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
-BUILD_DIR="${REPO_ROOT}/build-spike-probe"
+BUILD_DIR="${REPO_ROOT}/build-spike"
 
 LEVELS=(128 192 256)
 
@@ -211,7 +211,7 @@ print_hist_report() {
 show_context() {
     local hist="$1" elf="$2"
     if [[ ! -f "$elf" ]]; then
-        echo "  (ELF not available for context — build-spike-probe may be stale)"
+        echo "  (ELF not available for context — build-spike may be stale)"
         return
     fi
 
@@ -333,7 +333,7 @@ for LEVEL in "${LEVELS[@]}"; do
         fi
         if [[ ! -f "$ELF" ]]; then
             echo "[histogram] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-            echo "              cmake -S . -B build-spike-probe -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
+            echo "              cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
             continue
         fi
 
@@ -354,7 +354,7 @@ done
 echo ""
 if [[ $LAUNCHED -eq 0 ]]; then
     echo "[histogram] No jobs launched. Check that polymul ELFs are built in ${BUILD_DIR}/"
-    echo "            cmake --build build-spike-probe -j\$(nproc)"
+    echo "            cmake --build build-spike -j\$(nproc)"
 else
     echo "[histogram] Launched ${LAUNCHED} Spike -g job(s) for ${PHASE}:"
     for line in "${JOB_LINES[@]}"; do

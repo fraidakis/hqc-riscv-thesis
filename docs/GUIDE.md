@@ -146,12 +146,12 @@ Examples: `hqc128_karatsuba_ref.elf`, `hqc192_karatsuba_zbc.elf`, `hqc256_fafft_
 ### 4.3 Reconfigure for Spike benchmarks
 
 ```bash
-cmake -S . -B build-spike \
+cmake -S . -B build-spike-bench \
       -G Ninja \
       -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
       -DHQC_SIM=spike
 
-cmake --build build-spike --target hqc128_karatsuba_ref -j$(nproc)
+cmake --build build-spike-bench --target hqc128_karatsuba_ref -j$(nproc)
 ```
 
 ---
@@ -322,10 +322,10 @@ emit per-instruction commit logs for profiling.
 
 ```bash
 # Build the bench target against the Spike backend
-cmake --build build-spike --target hqc128_karatsuba_ref -j$(nproc)
+cmake --build build-spike-bench --target hqc128_karatsuba_ref -j$(nproc)
 
 # Run (commit log written next to the ELF)
-./sim/spike/run.sh build-spike/hqc128_karatsuba_ref.elf
+./sim/spike/run.sh build-spike-bench/hqc128_karatsuba_ref.elf
 ```
 
 The `run.sh` script:
@@ -338,7 +338,7 @@ The `run.sh` script:
 ```bash
 SPIKE=$RISCV/bin/spike
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc
-ELF=build-spike/hqc128_karatsuba_ref.elf
+ELF=build-spike-bench/hqc128_karatsuba_ref.elf
 
 # Minimal run (HTIF I/O only, no logging)
 $SPIKE --isa=$ISA $ELF
@@ -398,14 +398,14 @@ SPIKE=~/Thesis/installed-tools/bin/spike
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc
 OUT=analysis/benchmarks/phase0b
 
-# Build the micro-bench (build-spike-probe already configured for Spike)
-cmake --build build-spike-probe \
+# Build the micro-bench (build-spike already configured for Spike)
+cmake --build build-spike \
       --target bench_polymul_hqc128_karatsuba_ref \
       -j$(nproc)
 
 # Run in background
 nohup $SPIKE --isa=$ISA \
-    build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
+    build-spike/bench_polymul_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_vect_mul_N1.csv 2>$OUT/hqc128_polymul.log &
 
 # Monitor
@@ -431,11 +431,12 @@ cores transparently:
 
 ```bash
 # Launch all three levels at once — uses 3 of your CPU cores in parallel
-nohup $SPIKE --isa=$ISA build-spike-probe/bench_hqc128_karatsuba_ref.elf \
+nohup $SPIKE --isa=$ISA \
+    build-spike/bench_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_karatsuba_ref_N1.csv 2>$OUT/hqc128_spike.log &
-nohup $SPIKE --isa=$ISA build-spike-probe/bench_hqc192_karatsuba_ref.elf \
+nohup $SPIKE --isa=$ISA build-spike/bench_hqc192_karatsuba_ref.elf \
     > $OUT/hqc192_karatsuba_ref_N1.csv 2>$OUT/hqc192_spike.log &
-nohup $SPIKE --isa=$ISA build-spike-probe/bench_hqc256_karatsuba_ref.elf \
+nohup $SPIKE --isa=$ISA build-spike/bench_hqc256_karatsuba_ref.elf \
     > $OUT/hqc256_karatsuba_ref_N1.csv 2>$OUT/hqc256_spike.log &
 
 echo "Monitor: wc -c $OUT/hqc{128,192,256}_karatsuba_ref_N1.csv"
@@ -447,12 +448,12 @@ just avoids serial waiting when you need results from all three levels.
 Build the bench ELFs (also rebuilds polymul micro-bench targets):
 
 ```bash
-cmake -S . -B build-spike-probe \
+cmake -S . -B build-spike \
       -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
       -DHQC_SIM=spike \
       -DBENCH_N_ITER=1
 
-cmake --build build-spike-probe --target \
+cmake --build build-spike --target \
       bench_hqc128_karatsuba_ref \
       bench_hqc192_karatsuba_ref \
       bench_hqc256_karatsuba_ref \
@@ -496,7 +497,7 @@ With `N_ITER=1` the three columns are identical (ISS is deterministic).
 Capture Spike's HTIF stdout to a file and parse the CSV:
 
 ```bash
-$SPIKE --isa=$ISA build-spike/hqc128_karatsuba_ref.elf > /tmp/bench128.csv 2>/dev/null
+$SPIKE --isa=$ISA build-spike-bench/hqc128_karatsuba_ref.elf > /tmp/bench128.csv 2>/dev/null
 
 # Inspect
 cat /tmp/bench128.csv
@@ -513,7 +514,7 @@ decaps,10,17123456,17198723,17321098
 ### 8.2 Instruction histogram from Spike
 
 ```bash
-$SPIKE --isa=$ISA --histogram build-spike/hqc128_karatsuba_ref.elf 2>hist.txt
+$SPIKE --isa=$ISA --histogram build-spike-bench/hqc128_karatsuba_ref.elf 2>hist.txt
 # Top instructions by frequency:
 sort -t',' -k2 -rn hist.txt | head -20
 ```

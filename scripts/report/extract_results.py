@@ -628,9 +628,9 @@ def main() -> None:
     parser.add_argument("--bench-dir", type=Path, default=DEFAULT_BENCH_DIR,
                         help="Root of benchmark directories")
     parser.add_argument("--build-dir", type=Path,
-                        default=REPO_ROOT / "build-spike-probe",
+                        default=REPO_ROOT / "build-spike",
                         help="Directory containing bench_polymul*.elf files for PC→mnemonic "
-                             "resolution (default: build-spike-probe)")
+                             "resolution (default: build-spike)")
     parser.add_argument("--phase", nargs="+", metavar="PHASE",
                         help="Phase(s) to include, e.g. phase0b phase1a")
     parser.add_argument("--level", nargs="+", type=int, choices=[128, 192, 256],

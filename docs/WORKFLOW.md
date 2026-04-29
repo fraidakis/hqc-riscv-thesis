@@ -58,7 +58,7 @@ source toolchain/toolchain.env
 cmake --build build --target hqc128_karatsuba_ref -j$(nproc)
 
 # Spike bench build (Spike backend — for instruction counts)
-cmake --build build-spike-probe \
+cmake --build build-spike \
       --target bench_hqc128_karatsuba_ref \
                 bench_polymul_hqc128_karatsuba_ref \
       -j$(nproc)
@@ -73,7 +73,7 @@ cmake -S . -B build \
       -DHQC_SIM=qemu
 
 # Spike bench build (N_ITER=1 probe)
-cmake -S . -B build-spike-probe \
+cmake -S . -B build-spike \
       -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
       -DHQC_SIM=spike \
       -DBENCH_N_ITER=1
@@ -158,7 +158,7 @@ Benchmarks only `vect_mul()` — no keypair/encaps/decaps overhead, no Keccak.
 OUT=analysis/benchmarks/phase0b
 
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
-    build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
+    build-spike/bench_polymul_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_karatsuba_ref_polymul_N1.csv \
     2>$OUT/hqc128_karatsuba_ref_polymul.log &
 
@@ -189,7 +189,7 @@ This run takes 2–20 h depending on level — launch before leaving for the day
 OUT=analysis/benchmarks/phase0b
 
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
-    build-spike-probe/bench_hqc128_karatsuba_ref.elf \
+    build-spike/bench_hqc128_karatsuba_ref.elf \
     > $OUT/hqc128_karatsuba_ref_N1.csv \
     2>$OUT/hqc128_karatsuba_ref_spike.log &
 
@@ -266,7 +266,7 @@ $RISCV/bin/llvm-mca \
 
 ```bash
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc --histogram \
-    build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
+    build-spike/bench_polymul_hqc128_karatsuba_ref.elf \
     > analysis/benchmarks/phase0b/hqc128_karatsuba_ref_polymul_N1.csv \
     2>analysis/benchmarks/phase0b/hqc128_karatsuba_ref_hist.txt &
 
@@ -371,12 +371,12 @@ $RISCV/bin/qemu-system-riscv64 \
 ### Run the full HQC-128 benchmark on Spike
 
 ```bash
-cmake -S . -B build-spike-probe \
+cmake -S . -B build-spike \
     -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
     -DHQC_SIM=spike
-cmake --build build-spike-probe --target bench_hqc128_karatsuba_ref -j$(nproc)
+cmake --build build-spike --target bench_hqc128_karatsuba_ref -j$(nproc)
 
-./sim/spike/run_bench.sh build-spike-probe/bench_hqc128_karatsuba_ref.elf
+./sim/spike/run_bench.sh build-spike/bench_hqc128_karatsuba_ref.elf
 ```
 
 ### Run the KAT on QEMU
@@ -397,7 +397,7 @@ cmake --build build -j$(nproc)
 for variant in karatsuba_ref karatsuba_zbc fafft_zbc hybrid_zbc fafft_zvbc; do
     echo "=== $variant ==="
     ./sim/spike/run_bench.sh \
-        build-spike-probe/bench_hqc128_${variant}.elf 2>/dev/null
+        build-spike/bench_hqc128_${variant}.elf 2>/dev/null
 done
 ```
 
@@ -604,12 +604,12 @@ error message).
 cd ~/Thesis/hqc-riscv
 source toolchain/toolchain.env
 
-cmake -S . -B build-spike-probe \
+cmake -S . -B build-spike \
       -G Ninja \
       -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
       -DHQC_SIM=spike \
       -DBENCH_N_ITER=1
-cmake --build build-spike-probe -j$(nproc)
+cmake --build build-spike -j$(nproc)
 
 # Launch all three levels in background
 scripts/bench/run_spike_bench_phase.sh phase0b --variant karatsuba_ref
@@ -739,7 +739,7 @@ reduction translates to cycle reduction on a real in-order pipeline.
 | Build directory | Content | Used for |
 |---|---|---|
 | `build/` | KAT ELFs (`hqc{128,192,256}_<variant>.elf`) | QEMU correctness gate |
-| `build-spike-probe/` | Bench ELFs (`bench_*.elf`, `bench_polymul_*.elf`) | Spike instruction counts |
+| `build-spike/` | Bench ELFs (`bench_*.elf`, `bench_polymul_*.elf`) | Spike instruction counts |
 | `build-mini/` | Mini-bench ELFs (built via `make -f tests/bench/mini_bench.mk`) | Quick smoke test |
 
 ### Benchmark results
