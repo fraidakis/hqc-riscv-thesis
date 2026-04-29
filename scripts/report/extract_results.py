@@ -15,6 +15,8 @@ Options:
     --variant V [...]    Restrict to variant name(s)
     --op OP [...]        Restrict to operation(s): keypair encaps decaps vect_mul
     --baseline V         Variant used as speedup baseline (default: karatsuba_ref)
+    --metric {cycles,instret}  Primary metric to display (default: cycles)
+    --codesize           Print a code-size table (bytes of .text)
     --latex              Output LaTeX tabular instead of Markdown
     --mix                Also parse *_hist.txt files and print instruction-mix table
     --write-summary-csv  Write cycle_counts.csv + instruction_mix.csv for plot.py
@@ -22,6 +24,8 @@ Options:
 Examples:
     python3 scripts/report/extract_results.py
     python3 scripts/report/extract_results.py --phase phase1a --level 128
+    python3 scripts/report/extract_results.py --metric instret
+    python3 scripts/report/extract_results.py --codesize
     python3 scripts/report/extract_results.py --latex > analysis/report/table_results.tex
     python3 scripts/report/extract_results.py --mix --phase phase0b phase1a
     python3 scripts/report/extract_results.py --write-summary-csv
@@ -64,8 +68,10 @@ MIX_CATEGORIES: list[tuple[str, str]] = [
 ]
 
 # ── Data structures ───────────────────────────────────────────────────────────
-# Key: (phase, level, variant, op) → median_cycles (int or None)
+# Key: (phase, level, variant, op) → median_cycles or median_instret (int or None)
 Results = dict[tuple[str, int, str, str], int | None]
+# Key: (phase, level, variant) → codesize_text in bytes (int or None)
+CodeSizes = dict[tuple[str, int, str], int | None]
 
 # ── CSV parsing ───────────────────────────────────────────────────────────────
 
@@ -127,14 +133,16 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
         for row in reader:
             try:
                 rows.append({
-                    "phase":         phase,
-                    "level":         level,
-                    "variant":       variant,
-                    "op":            row["op"].strip(),
-                    "iterations":    int(row.get("iterations", 1)),
-                    "min_cycles":    int(row["min_cycles"]),
-                    "median_cycles": int(row["median_cycles"]),
-                    "max_cycles":    int(row["max_cycles"]),
+                    "phase":           phase,
+                    "level":           level,
+                    "variant":         variant,
+                    "op":              row["op"].strip(),
+                    "iterations":      int(row.get("iterations", 1)),
+                    "min_cycles":      int(row["min_cycles"]),
+                    "median_cycles":   int(row["median_cycles"]),
+                    "max_cycles":      int(row["max_cycles"]),
+                    "median_instret":  int(row["median_instret"]) if "median_instret" in row else None,
+                    "codesize_text":   int(meta["codesize_text"]) if "codesize_text" in meta else None,
                 })
             except (KeyError, ValueError) as e:
                 print(f"[extract] WARNING: skipping row in {path}: {e}", file=sys.stderr)
@@ -150,9 +158,15 @@ def collect_results(
     levels: list[int] | None,
     variants: list[str] | None,
     ops: list[str] | None,
-) -> Results:
-    """Walk bench_dir, parse all *_N1.csv files, return filtered Results dict."""
+    metric: str = "cycles",
+) -> tuple[Results, CodeSizes]:
+    """Walk bench_dir, parse all *_N1.csv files, return (Results, CodeSizes).
+
+    metric: "cycles" (default) or "instret" — selects the median value stored
+    in Results.  Old CSV files without instret columns return None for instret.
+    """
     results: Results = {}
+    code_sizes: CodeSizes = {}
 
     if not bench_dir.is_dir():
         print(f"[extract] ERROR: bench directory not found: {bench_dir}", file=sys.stderr)
@@ -161,7 +175,7 @@ def collect_results(
     csv_files = list(bench_dir.glob("phase*/*_N1.csv"))
     if not csv_files:
         print(f"[extract] No CSV files found in {bench_dir}/phase*/", file=sys.stderr)
-        return results
+        return results, code_sizes
 
     for csv_path in sorted(csv_files):
         for row in parse_csv_file(csv_path):
@@ -171,9 +185,17 @@ def collect_results(
             if ops      and row["op"]      not in ops:      continue
 
             key = (row["phase"], row["level"], row["variant"], row["op"])
-            results[key] = row["median_cycles"]
+            if metric == "instret":
+                results[key] = row["median_instret"]
+            else:
+                results[key] = row["median_cycles"]
 
-    return results
+            # Store codesize keyed by (phase, level, variant) — same for all ops
+            sz_key = (row["phase"], row["level"], row["variant"])
+            if sz_key not in code_sizes:
+                code_sizes[sz_key] = row["codesize_text"]
+
+    return results, code_sizes
 
 
 # ── Speedup computation ───────────────────────────────────────────────────────
@@ -208,7 +230,9 @@ def print_markdown_table(
     levels: list[int],
     variants: list[str],
     ops: list[str],
+    metric: str = "cycles",
 ) -> None:
+    metric_label = "retired instructions" if metric == "instret" else "cycle counts"
     for op in ops:
         for level in levels:
             # Collect phases that have any data for this level/op
@@ -219,7 +243,7 @@ def print_markdown_table(
             if not active_phases:
                 continue
 
-            print(f"\n## `{op}` instruction counts — HQC-{level}\n")
+            print(f"\n## `{op}` {metric_label} — HQC-{level}\n")
             header  = "| Phase    | " + " | ".join(f"{v:>15}" for v in variants) + " |"
             divider = "|----------|" + "|".join("-" * 17 for _ in variants) + "|"
             print(header)
@@ -252,6 +276,7 @@ def print_latex_table(
     levels: list[int],
     variants: list[str],
     ops: list[str],
+    metric: str = "cycles",
 ) -> None:
     # Short variant names for LaTeX column headers (to fit in table)
     SHORT = {
@@ -263,10 +288,11 @@ def print_latex_table(
     }
 
     for op in ops:
-        print(f"\n% {op} instruction counts (Spike ISS, retired instructions)")
+        print(f"\n% {op} {metric} (Spike ISS, VLEN=256)")
         print(f"\\begin{{table}}[h]")
         print(f"  \\centering")
-        print(f"  \\caption{{HQC \\texttt{{{op}}} instruction counts (Spike ISS, VLEN=256)}}")
+        metric_label = "retired instructions" if metric == "instret" else "cycle counts"
+        print(f"  \\caption{{HQC \\texttt{{{op}}} {metric_label} (Spike ISS, VLEN=256)}}")
         print(f"  \\label{{tab:{op}_counts}}")
         col_spec = "l" + "r" * len(variants)
         print(f"  \\begin{{tabular}}{{{col_spec}}}")
@@ -304,6 +330,57 @@ def print_latex_table(
         print(f"    \\bottomrule")
         print(f"  \\end{{tabular}}")
         print(f"\\end{{table}}")
+
+
+# ── Code-size table ───────────────────────────────────────────────────────────
+
+def print_codesize_table(
+    code_sizes: CodeSizes,
+    phases: list[str],
+    levels: list[int],
+    variants: list[str],
+    as_latex: bool,
+) -> None:
+    """Print a table of .text section sizes (bytes) per (phase, level, variant)."""
+    if as_latex:
+        print("\n% Code size (.text section, bytes)")
+        col_spec = "ll" + "r" * len(variants)
+        print(f"\\begin{{tabular}}{{{col_spec}}}")
+        print("  \\toprule")
+        print("  Phase & Level & " + " & ".join(variants) + r" \\")
+        print("  \\midrule")
+        for phase in phases:
+            for level in levels:
+                cells = [phase, str(level)]
+                any_data = False
+                for v in variants:
+                    sz = code_sizes.get((phase, level, v))
+                    cells.append(f"{sz:,}" if sz is not None else "—")
+                    if sz is not None:
+                        any_data = True
+                if any_data:
+                    print("  " + " & ".join(cells) + r" \\")
+        print("  \\bottomrule")
+        print("\\end{tabular}")
+    else:
+        print("\n## Code size (.text section, bytes)\n")
+        header  = "| Phase    | Level | " + " | ".join(f"{v:>15}" for v in variants) + " |"
+        divider = "|----------|-------|" + "|".join("-" * 17 for _ in variants) + "|"
+        print(header)
+        print(divider)
+        for phase in phases:
+            for level in levels:
+                cells: list[str] = []
+                any_data = False
+                for v in variants:
+                    sz = code_sizes.get((phase, level, v))
+                    cells.append(f"{sz:,}" if sz is not None else "—")
+                    if sz is not None:
+                        any_data = True
+                if any_data:
+                    row_str = "| " + f"{phase:<8}" + " | " + f"{level:<5}" + " | "
+                    row_str += " | ".join(f"{c:>15}" for c in cells) + " |"
+                    print(row_str)
 
 
 # ── Histogram / instruction-mix parsing ──────────────────────────────────────
@@ -507,6 +584,10 @@ def main() -> None:
                         help="Operation(s) to include")
     parser.add_argument("--baseline", default="karatsuba_ref",
                         help="Variant used as speedup baseline (default: karatsuba_ref)")
+    parser.add_argument("--metric", choices=["cycles", "instret"], default="cycles",
+                        help="Primary metric: cycles (default) or instret (retired instructions)")
+    parser.add_argument("--codesize", action="store_true",
+                        help="Print a code-size (.text bytes) table")
     parser.add_argument("--latex", action="store_true",
                         help="Output LaTeX tabular instead of Markdown")
     parser.add_argument("--mix", action="store_true",
@@ -537,7 +618,8 @@ def main() -> None:
         print("[extract] No phase directories found. Run Spike benchmarks first.", file=sys.stderr)
         sys.exit(0)
 
-    results = collect_results(bench_dir, phases, levels, variants, ops)
+    results, code_sizes = collect_results(bench_dir, phases, levels, variants, ops,
+                                           metric=args.metric)
 
     if not results:
         print("[extract] No benchmark data found. Check that Spike runs have completed.", file=sys.stderr)
@@ -545,16 +627,20 @@ def main() -> None:
 
     # ── Output tables ──────────────────────────────────────────────────────────
     if args.latex:
-        print_latex_table(results, args.baseline, phases, levels, variants, ops)
+        print_latex_table(results, args.baseline, phases, levels, variants, ops,
+                          metric=args.metric)
     else:
-        print_markdown_table(results, args.baseline, phases, levels, variants, ops)
+        print_markdown_table(results, args.baseline, phases, levels, variants, ops,
+                             metric=args.metric)
+
+    if args.codesize:
+        print_codesize_table(code_sizes, phases, levels, variants, as_latex=args.latex)
 
     if args.mix:
         print_mix_table(bench_dir, phases, levels, variants, as_latex=args.latex)
 
     if args.write_summary_csv:
         write_summary_csvs(results, bench_dir, args.baseline, phases, levels, variants, ops)
-
 
 if __name__ == "__main__":
     main()
