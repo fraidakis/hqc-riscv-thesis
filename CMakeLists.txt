@@ -40,10 +40,11 @@ message(STATUS "Benchmark N_ITER: ${BENCH_N_ITER}")
 set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 
 # ── Polynomial multiplication variants ───────────────────────────────────────
-# All five are built in every configure — head-to-head comparison is a core
-# thesis deliverable.  Different CMake builds (different build dirs) control
-# which Keccak/Decode implementation is linked via HQC_KECCAK_IMPL /
-# HQC_DECODE_IMPL (set in cmake/options.cmake).
+# All targets are declared but marked EXCLUDE_FROM_ALL — build explicitly:
+#   cmake --build build --target hqc128_karatsuba_ref -j$(nproc)
+# Scripts (run_kat_all.sh, run_spike_bench_phase.sh) auto-skip missing ELFs.
+# Different CMake build dirs control Keccak/Decode implementation via
+# HQC_KECCAK_IMPL / HQC_DECODE_IMPL (set in cmake/options.cmake).
 #
 #   Phase 0  — karatsuba_ref : vendor Karatsuba, unmodified (performance denominator)
 #   Phase 1a — karatsuba_zbc : clmul base-case + lazy reduction + depth sweep
@@ -57,6 +58,14 @@ set(POLYMUL_VARIANTS
     hybrid_zbc
     fafft_zvbc
 )
+
+# Variants with a real implementation (not __builtin_trap stubs).
+# KAT targets for variants NOT listed here get EXCLUDE_FROM_ALL so the default
+# build only produces ELFs for working code.  "All" scripts auto-build and run
+# only these variants.
+# Edit scripts/implemented_variants.txt (one variant per line) — loaded here
+# and by scripts/variants.sh so both stay in sync automatically.
+file(STRINGS "${CMAKE_SOURCE_DIR}/scripts/implemented_variants.txt" IMPLEMENTED_VARIANTS)
 
 set(SECURITY_LEVELS 128 192 256)
 
@@ -153,7 +162,13 @@ foreach(LEVEL ${SECURITY_LEVELS})
         # Compiled with HQC_RANDOMBYTES_MODE_KAT=1 (AES-CTR DRBG for KAT vectors).
         set(KAT_TARGET "hqc${LEVEL}_${POLYMUL}")
 
-        add_executable(${KAT_TARGET}
+        if(NOT POLYMUL IN_LIST IMPLEMENTED_VARIANTS)
+            set(KAT_EXCLUDE EXCLUDE_FROM_ALL)
+        else()
+            set(KAT_EXCLUDE "")
+        endif()
+
+        add_executable(${KAT_TARGET} ${KAT_EXCLUDE}
             ${STARTUP_S}
             ${CMAKE_SOURCE_DIR}/tests/kat/kat_gen.c
             ${POLYMUL_SOURCES}
@@ -233,6 +248,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             HQC_${LEVEL}
             ${SIM_DEFINES}
             N_ITER=${BENCH_N_ITER}
+            POLYMUL_NAME="${POLYMUL}"
         )
         if(POLYMUL STREQUAL "fafft_zvbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
