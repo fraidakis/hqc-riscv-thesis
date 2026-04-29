@@ -1,0 +1,5 @@
+# level=128,polymul=karatsuba_ref,n_iter=1
+op,iterations,min_cycles,median_cycles,max_cycles
+keypair,1,18816324,18816324,18816324
+encaps,1,37636614,37636614,37636614
+decaps,1,56962430,56962430,56962430
