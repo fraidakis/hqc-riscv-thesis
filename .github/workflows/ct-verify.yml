@@ -28,18 +28,8 @@ jobs:
           path: ~/Thesis/installed-tools
           key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
 
-      - name: Build baseline (x86 host, for Valgrind)
-        run: |
-          gcc -O2 -DSECURITY_LEVEL=128 -DHQC_128 \
-              -Iinclude \
-              src/baseline/kem.c src/baseline/poly.c \
-              src/baseline/reed_muller.c src/baseline/fips202.c \
-              src/common/randombytes.c \
-              -o build/hqc128_ct_test
-        # Note: for a real ctgrind run, link with ctgrind.h annotations
-
-      - name: Run ctgrind check
-        run: bash scripts/ci/check_ct.sh build/hqc128_ct_test
+      - name: Run ctgrind check (builds fresh internally)
+        run: bash scripts/ci/check_ct.sh 128
 
       - name: Upload ctgrind report
         if: always()
