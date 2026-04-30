@@ -1,0 +1,6 @@
+2026-05-01T00:13:51 START  pid=22316  polymul_hqc128_karatsuba_zbc
+2026-05-01T00:13:51 START  pid=22337  polymul_hqc192_karatsuba_zbc
+2026-05-01T00:13:51 END    polymul_hqc128_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T00:13:51 START  pid=22362  polymul_hqc256_karatsuba_zbc
+2026-05-01T00:13:51 END    polymul_hqc192_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T00:13:51 END    polymul_hqc256_karatsuba_zbc  elapsed=0m0s  status=OK
