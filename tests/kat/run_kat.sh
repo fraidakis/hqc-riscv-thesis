@@ -49,15 +49,9 @@ if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
 fi
 unset _BUILD_DIR _TARGET
 
-if [[ -z "$QEMU" ]]; then
-    if command -v qemu-system-riscv64 &>/dev/null; then
-        QEMU="qemu-system-riscv64"
-    elif [[ -x "${REPO_ROOT}/installed-tools/bin/qemu-system-riscv64" ]]; then
-        QEMU="${REPO_ROOT}/installed-tools/bin/qemu-system-riscv64"
-    else
-        echo "ERROR: qemu-system-riscv64 not found. Pass it as 3rd argument." >&2
-        exit 2
-    fi
+if [[ ! -x "${REPO_ROOT}/sim/qemu/run_kat.sh" ]]; then
+    echo "ERROR: sim/qemu/run_kat.sh not found or not executable" >&2
+    exit 2
 fi
 
 # ── Derive level from binary name (hqc128_*, hqc192_*, hqc256_*) ─────────────
@@ -74,18 +68,13 @@ fi
 LOG="$(mktemp /tmp/hqc_kat_XXXXXX.log)"
 trap 'rm -f "$LOG"' EXIT
 
-# ── Run under QEMU ────────────────────────────────────────────────────────────
+# ── Run under QEMU (via sim/qemu wrapper) ───────────────────────────────────
 echo "Running: $ELF under QEMU..."
-timeout 120 "$QEMU" \
-    -machine virt       \
-    -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
-    -m 256M             \
-    -nographic          \
-    -bios none          \
-    -kernel "$ELF"      \
-    -serial "file:${LOG}" \
-    -no-reboot          \
-    2>/dev/null || true   # QEMU may exit non-zero on guest halt — ignore
+# Optional third argument is kept for backward-compatible CLI shape.
+if [[ -n "$QEMU" ]]; then
+    echo "[kat/run_kat] NOTE: custom qemu argument is ignored; using sim/qemu/run_kat.sh" >&2
+fi
+"${REPO_ROOT}/sim/qemu/run_kat.sh" "$ELF" > "$LOG" 2>&1 || true
 
 # ── Check captured output ─────────────────────────────────────────────────────
 if [[ ! -s "$LOG" ]]; then

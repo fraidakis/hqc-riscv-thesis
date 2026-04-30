@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # scripts/bench/run_kat_all.sh
 #
-# Run KAT for all implemented QEMU-compatible polymul variants × 3 security
-# levels.  Delegates to tests/kat/run_kat.sh (handles QEMU flags, timeout,
-# kat_check.py).
+# Run KAT for all implemented QEMU-compatible polymul variants x 3 security
+# levels. Uses sim/qemu/run_kat.sh to execute each ELF and tests/kat/kat_check.py
+# to compare captured shared-secret lines against the reference RSP vectors.
 #
 # Implemented variants and build gate come from scripts/implemented_variants.txt.
 # Missing ELFs for implemented variants are auto-built before running.
@@ -26,7 +26,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt"
 
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
-RUN_KAT="${REPO_ROOT}/tests/kat/run_kat.sh"
+RUN_QEMU_KAT="${REPO_ROOT}/sim/qemu/run_kat.sh"
+KAT_CHECK="${REPO_ROOT}/tests/kat/kat_check.py"
 BUILD_DIR="${REPO_ROOT}/build"
 
 # Reference .rsp files (NIST KAT vectors)
@@ -45,8 +46,13 @@ for rsp in "$RSP_128" "$RSP_192" "$RSP_256"; do
     fi
 done
 
-if [[ ! -x "$RUN_KAT" ]]; then
-    echo "ERROR: tests/kat/run_kat.sh not found or not executable" >&2
+if [[ ! -x "$RUN_QEMU_KAT" ]]; then
+    echo "ERROR: sim/qemu/run_kat.sh not found or not executable" >&2
+    exit 2
+fi
+
+if [[ ! -f "$KAT_CHECK" ]]; then
+    echo "ERROR: tests/kat/kat_check.py not found" >&2
     exit 2
 fi
 
@@ -88,12 +94,16 @@ for LEVEL in "${LEVELS[@]}"; do
         fi
 
         echo "[run_kat_all] Running ${KAT_TARGET} ..." >&2
-        if bash "$RUN_KAT" "$ELF" "$RSP" 2>/dev/null; then
+
+        LOG="$(mktemp /tmp/hqc_kat_all_XXXXXX.log)"
+        "$RUN_QEMU_KAT" "$ELF" >"$LOG" 2>&1 || true
+        if python3 "$KAT_CHECK" --actual "$LOG" --rsp "$RSP" --level "$LEVEL" >/dev/null 2>&1; then
             RESULTS["$KEY"]="PASS"
         else
             RESULTS["$KEY"]="FAIL"
             OVERALL_RC=1
         fi
+        rm -f "$LOG"
     done
 done
 

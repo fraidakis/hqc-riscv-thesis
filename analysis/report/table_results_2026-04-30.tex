@@ -1,0 +1,82 @@
+
+% keypair cycles (Spike ISS, VLEN=256)
+\begin{table}[h]
+  \centering
+  \caption{HQC \texttt{keypair} cycle counts (Spike ISS, VLEN=256)}
+  \label{tab:keypair_counts}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Phase & kara\textsubscript{ref} & kara\textsubscript{zbc} & fafft\textsubscript{zbc} & hybrid\textsubscript{zbc} & fafft\textsubscript{zvbc} \\
+    \midrule
+    \multicolumn{6}{l}{\textit{HQC-128}} \\
+    phase0 & 18.8 M & — & — & — & — \\
+    phase0b & 18.8 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-192}} \\
+    phase0 & 57.0 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-256}} \\
+    phase0 & 140.1 M & — & — & — & — \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% encaps cycles (Spike ISS, VLEN=256)
+\begin{table}[h]
+  \centering
+  \caption{HQC \texttt{encaps} cycle counts (Spike ISS, VLEN=256)}
+  \label{tab:encaps_counts}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Phase & kara\textsubscript{ref} & kara\textsubscript{zbc} & fafft\textsubscript{zbc} & hybrid\textsubscript{zbc} & fafft\textsubscript{zvbc} \\
+    \midrule
+    \multicolumn{6}{l}{\textit{HQC-128}} \\
+    phase0 & 37.6 M & — & — & — & — \\
+    phase0b & 37.6 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-192}} \\
+    phase0 & 114.0 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-256}} \\
+    phase0 & 280.0 M & — & — & — & — \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% decaps cycles (Spike ISS, VLEN=256)
+\begin{table}[h]
+  \centering
+  \caption{HQC \texttt{decaps} cycle counts (Spike ISS, VLEN=256)}
+  \label{tab:decaps_counts}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Phase & kara\textsubscript{ref} & kara\textsubscript{zbc} & fafft\textsubscript{zbc} & hybrid\textsubscript{zbc} & fafft\textsubscript{zvbc} \\
+    \midrule
+    \multicolumn{6}{l}{\textit{HQC-128}} \\
+    phase0 & 57.0 M & — & — & — & — \\
+    phase0b & 57.0 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-192}} \\
+    phase0 & 171.7 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-256}} \\
+    phase0 & 421.3 M & — & — & — & — \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% vect_mul cycles (Spike ISS, VLEN=256)
+\begin{table}[h]
+  \centering
+  \caption{HQC \texttt{vect_mul} cycle counts (Spike ISS, VLEN=256)}
+  \label{tab:vect_mul_counts}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Phase & kara\textsubscript{ref} & kara\textsubscript{zbc} & fafft\textsubscript{zbc} & hybrid\textsubscript{zbc} & fafft\textsubscript{zvbc} \\
+    \midrule
+    \multicolumn{6}{l}{\textit{HQC-128}} \\
+    phase0 & 18.6 M & — & — & — & — \\
+    phase1a & 18.6 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-192}} \\
+    phase0 & 56.5 M & — & — & — & — \\
+    phase1a & 56.5 M & — & — & — & — \\
+    \multicolumn{6}{l}{\textit{HQC-256}} \\
+    phase0 & 139.1 M & — & — & — & — \\
+    phase1a & 139.1 M & — & — & — & — \\
+    \bottomrule
+  \end{tabular}
+\end{table}

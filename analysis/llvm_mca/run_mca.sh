@@ -58,6 +58,7 @@ echo "[llvm-mca] Running MCA on: $ASM_FILE"
     -mcpu=sifive-u74 \
     --timeline \
     --iterations=10 \
+    --skip-unsupported-instructions=lack-sched \
     "$@" \
     "$ASM_FILE" > "$REPORT"
 
