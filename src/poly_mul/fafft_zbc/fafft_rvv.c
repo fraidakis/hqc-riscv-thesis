@@ -25,6 +25,7 @@
  */
 
 #include <stdint.h>
+#include <stddef.h>
 #include <riscv_vector.h>
 #include "parameters.h"
 
@@ -37,7 +38,13 @@ void hqc_vxor_words(uint64_t * restrict o,
                     const uint64_t * restrict a,
                     size_t n_words)
 {
-    /* TODO: Phase 1b Axis 1 implementation */
-    (void)o; (void)a; (void)n_words;
-    __builtin_trap();
+    size_t i = 0;
+    while (i < n_words) {
+        size_t vl = __riscv_vsetvl_e64m4(n_words - i);
+        vuint64m4_t vo = __riscv_vle64_v_u64m4(o + i, vl);
+        vuint64m4_t va = __riscv_vle64_v_u64m4(a + i, vl);
+        vo = __riscv_vxor_vv_u64m4(vo, va, vl);
+        __riscv_vse64_v_u64m4(o + i, vo, vl);
+        i += vl;
+    }
 }

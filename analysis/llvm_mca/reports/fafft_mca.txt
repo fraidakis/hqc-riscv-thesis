@@ -1,0 +1,1359 @@
+Iterations:        10
+Instructions:      4290
+Total Cycles:      12324
+Total uOps:        4350
+
+Dispatch Width:    2
+uOps Per Cycle:    0.35
+IPC:               0.35
+Block RThroughput: 217.5
+
+
+Instruction Info:
+[1]: #uOps
+[2]: Latency
+[3]: RThroughput
+[4]: MayLoad
+[5]: MayStore
+[6]: HasSideEffects (U)
+
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      3     0.50                        addi	sp, sp, -496
+ 1      1     1.00           *            sd	ra, 488(sp)
+ 1      1     1.00           *            sd	s0, 480(sp)
+ 1      1     1.00           *            sd	s1, 472(sp)
+ 1      3     0.50                        lui	a3, 10
+ 1      3     0.50                        addi	a3, a3, -1536
+ 1      3     0.50                        sub	sp, sp, a3
+ 1      3     0.50                        mv	s0, a0
+ 1      3     0.50                        lui	a0, 9
+ 1      3     0.50                        addi	a0, a0, -1400
+ 1      3     0.50                        add	a0, a0, sp
+ 1      3     0.50                        li	a3, 277
+ 1      3     0.50                        addi	a4, sp, 8
+ 1      3     0.50                        lui	a5, 9
+ 1      3     0.50                        addi	a5, a5, -1400
+ 1      3     0.50                        add	s1, sp, a5
+ 2      3     1.00                        call	karatsuba_clmul
+ 1      1     1.00                  U     csrr	a1, vlenb
+ 1      3     0.50                        srli	a2, a1, 3
+ 1      3     0.50                        li	a0, 138
+ 1      3     1.00                        bgeu	a0, a2, .LBB0_2
+ 1      3     0.50                        li	a6, 0
+ 1      3     1.00                        j	.LBB0_4
+ 1      3     0.50                        srli	a3, a1, 2
+ 1      3     0.50                        negw	a0, a3
+ 1      3     0.50                        andi	a6, a0, 276
+ 1      3     0.50                        sub	a4, a6, a3
+ 1      66    65.00                       divu	a3, a4, a3
+ 1      3     0.50                        slli	a1, a1, 1
+ 1      3     0.50                        slli	a3, a3, 4
+ 1      3     0.50                        addi	a3, a3, 16
+ 1      3     1.00                        mul	a2, a3, a2
+ 1      3     0.50                        add	a2, a2, s0
+ 1      3     0.50                        li	a3, 59
+ 1      3     0.50                        mv	a4, s0
+ 1      3     1.00                  U     vsetvli	a5, zero, e64, m2, ta, ma
+ 1      3     0.50                        addi	a5, s1, 2047
+ 1      3     0.50                        addi	a0, a5, 161
+ 1      3     0.50                        addi	a5, a5, 169
+ 1      4     4.00    *                   vl2re64.v	v8, (a0)
+ 1      4     4.00    *                   vl2re64.v	v10, (a5)
+ 1      4     4.00    *                   vl2re64.v	v12, (s1)
+ 1      8     4.00                        vsrl.vi	v8, v8, 5
+ 1      8     4.00                        vsll.vx	v10, v10, a3
+ 1      4     4.00                        vxor.vv	v8, v12, v8
+ 1      4     4.00                        vxor.vv	v8, v8, v10
+ 1      1     4.00           *            vs2r.v	v8, (a4)
+ 1      3     0.50                        add	a4, a4, a1
+ 1      3     0.50                        add	s1, s1, a1
+ 1      3     1.00                        bne	a4, a2, .LBB0_3
+ 1      3     0.50                        slli	a1, a6, 3
+ 1      3     0.50                        lui	a0, 9
+ 1      3     0.50                        addi	a0, a0, -1400
+ 1      3     0.50                        add	a2, sp, a0
+ 1      3     0.50                        addi	a0, s0, 2047
+ 1      3     0.50                        add	s0, s0, a1
+ 1      3     0.50                        add	a1, a1, a2
+ 1      3     0.50                        addi	a2, a0, 169
+ 1      3     0.50                        addi	a3, a1, 2047
+ 1      3     1.00    *                   ld	a4, 161(a3)
+ 1      3     1.00    *                   ld	a3, 169(a3)
+ 1      3     1.00    *                   ld	a5, 0(a1)
+ 1      3     0.50                        srli	a4, a4, 5
+ 1      3     0.50                        slli	a3, a3, 59
+ 1      3     0.50                        xor	a4, a4, a5
+ 1      3     0.50                        xor	a3, a3, a4
+ 1      1     1.00           *            sd	a3, 0(s0)
+ 1      3     0.50                        addi	s0, s0, 8
+ 1      3     0.50                        addi	a1, a1, 8
+ 1      3     1.00                        bne	s0, a2, .LBB0_5
+ 1      3     1.00    *                   ld	a1, 161(a0)
+ 1      3     0.50                        andi	a1, a1, 31
+ 1      1     1.00           *            sd	a1, 161(a0)
+ 1      3     0.50                        lui	a0, 10
+ 1      3     0.50                        addi	a0, a0, -1536
+ 1      3     0.50                        add	sp, sp, a0
+ 1      3     1.00    *                   ld	ra, 488(sp)
+ 1      3     1.00    *                   ld	s0, 480(sp)
+ 1      3     1.00    *                   ld	s1, 472(sp)
+ 1      3     0.50                        addi	sp, sp, 496
+ 1      3     1.00                        ret
+ 1      3     0.50                        addi	sp, sp, -160
+ 1      1     1.00           *            sd	ra, 152(sp)
+ 1      1     1.00           *            sd	s0, 144(sp)
+ 1      1     1.00           *            sd	s1, 136(sp)
+ 1      1     1.00           *            sd	s2, 128(sp)
+ 1      1     1.00           *            sd	s3, 120(sp)
+ 1      1     1.00           *            sd	s4, 112(sp)
+ 1      1     1.00           *            sd	s5, 104(sp)
+ 1      1     1.00           *            sd	s6, 96(sp)
+ 1      1     1.00           *            sd	s7, 88(sp)
+ 1      1     1.00           *            sd	s8, 80(sp)
+ 1      1     1.00           *            sd	s9, 72(sp)
+ 1      1     1.00           *            sd	s10, 64(sp)
+ 1      1     1.00           *            sd	s11, 56(sp)
+ 1      3     0.50                        mv	s5, a3
+ 1      3     0.50                        mv	s9, a2
+ 1      3     0.50                        mv	s7, a1
+ 1      3     0.50                        li	a1, 16
+ 1      3     0.50                        mv	s4, a0
+ 1      3     1.00                        bltu	a1, a3, .LBB1_6
+ 1      3     0.50                        slli	a2, s5, 4
+ 1      3     0.50                        mv	a0, s4
+ 1      3     0.50                        li	a1, 0
+ 2      3     1.00                        call	memset
+ 1      3     1.00                        beqz	s5, .LBB1_39
+ 1      3     0.50                        li	a0, 0
+ 1      3     0.50                        slli	a6, s5, 3
+ 1      3     0.50                        mv	s1, s4
+ 1      3     0.50                        slli	a2, a0, 3
+ 1      3     0.50                        add	a3, s7, a2
+ 1      3     1.00    *                   ld	a3, 0(a3)
+ 1      3     0.50                        add	a2, a2, a6
+ 1      3     0.50                        add	a4, s4, a2
+ 1      3     0.50                        mv	a5, s9
+ 1      3     0.50                        mv	a2, s1
+ 1      3     1.00    *                   ld	s0, 0(a5)
+ 1      3     1.00                  U     vsetivli	zero, 2, e64, m1, ta, ma
+ 1      4     16.00   *                   vle64.v	v8, (a2)
+ 1      4     2.00                        vmv.v.x	v9, a1
+ 1      4     2.00                        vslide1down.vx	v9, v9, s0
+ 1      4     2.00                        vxor.vv	v8, v8, v9
+ 1      1     2.00           *            vse64.v	v8, (a2)
+ 1      3     0.50                        addi	a2, a2, 8
+ 1      3     0.50                        addi	a5, a5, 8
+ 1      3     1.00                        bne	a2, a4, .LBB1_4
+ 1      3     0.50                        addi	a0, a0, 1
+ 1      3     0.50                        addi	s1, s1, 8
+ 1      3     1.00                        bne	a0, s5, .LBB1_3
+ 1      3     1.00                        j	.LBB1_39
+ 1      3     0.50                        srli	s8, s5, 1
+ 1      3     0.50                        slli	s3, s5, 4
+ 1      3     0.50                        slli	s10, s5, 3
+ 1      3     0.50                        slli	s1, s5, 6
+ 1      3     0.50                        sub	s0, s5, s8
+ 1      3     0.50                        add	s2, a4, s3
+ 1      3     0.50                        add	a0, s2, s3
+ 1      1     1.00           *            sd	a0, 8(sp)
+ 1      3     0.50                        add	a0, a0, s3
+ 1      1     1.00           *            sd	a0, 24(sp)
+ 1      3     0.50                        add	a0, a0, s10
+ 1      1     1.00           *            sd	a0, 16(sp)
+ 1      1     1.00           *            sd	s1, 0(sp)
+ 1      3     0.50                        add	s1, s1, a4
+ 1      1     1.00           *            sd	a4, 48(sp)
+ 1      3     0.50                        mv	a0, a4
+ 1      3     0.50                        mv	a1, s7
+ 1      3     0.50                        mv	a2, s9
+ 1      3     0.50                        mv	a3, s8
+ 1      3     0.50                        mv	a4, s1
+ 2      3     1.00                        call	karatsuba_clmul
+ 1      3     0.50                        slli	a2, s8, 3
+ 1      3     0.50                        add	a1, s7, a2
+ 1      1     1.00           *            sd	a2, 32(sp)
+ 1      3     0.50                        add	a2, a2, s9
+ 1      3     0.50                        mv	a0, s2
+ 1      3     0.50                        mv	a3, s0
+ 1      3     0.50                        mv	s6, s1
+ 1      3     0.50                        mv	a4, s1
+ 2      3     1.00                        call	karatsuba_clmul
+ 1      3     0.50                        li	a0, 1
+ 1      1     1.00                  U     csrr	a2, vlenb
+ 1      3     0.50                        srli	s11, a2, 2
+ 1      3     0.50                        li	a1, 8
+ 1      3     1.00                        maxu	a1, s11, a1
+ 1      3     1.00                        maxu	a6, s0, a0
+ 1      1     1.00           *            sd	a2, 40(sp)
+ 1      3     0.50                        mv	t1, s0
+ 1      3     1.00                        bgeu	s0, a1, .LBB1_8
+ 1      3     0.50                        li	t4, 0
+ 1      3     0.50                        mv	a4, s6
+ 1      3     1.00    *                   ld	a0, 8(sp)
+ 1      3     1.00    *                   ld	a3, 32(sp)
+ 1      3     1.00    *                   ld	a1, 24(sp)
+ 1      3     1.00    *                   ld	a2, 16(sp)
+ 1      3     0.50                        mv	t5, s10
+ 1      3     0.50                        mv	s10, a3
+ 1      3     1.00                        j	.LBB1_16
+ 1      3     0.50                        slli	a7, a2, 1
+ 1      3     0.50                        mv	a4, s6
+ 1      3     1.00    *                   ld	a0, 8(sp)
+ 1      3     0.50                        mv	t5, s10
+ 1      3     1.00                        bgeu	s10, a7, .LBB1_10
+ 1      3     0.50                        li	t4, 0
+ 1      3     1.00    *                   ld	s10, 32(sp)
+ 1      3     1.00    *                   ld	a1, 24(sp)
+ 1      3     1.00    *                   ld	a2, 16(sp)
+ 1      3     1.00                        j	.LBB1_16
+ 1      3     0.50                        neg	a1, s11
+ 1      3     1.00                  U     vsetvli	a2, zero, e64, m2, ta, ma
+ 1      4     2.00                        vid.v	v10
+ 1      3     0.50                        and	t4, a6, a1
+ 1      4     4.00                        vmv.v.x	v12, s8
+ 1      4     4.00                        vmv.v.i	v14, 0
+ 1      3     0.50                        mv	a3, s7
+ 1      3     0.50                        mv	t0, s8
+ 1      3     0.50                        mv	t2, s9
+ 1      3     1.00    *                   ld	a1, 24(sp)
+ 1      3     0.50                        mv	t3, a1
+ 1      3     1.00    *                   ld	a2, 16(sp)
+ 1      3     0.50                        mv	s1, a2
+ 1      3     0.50                        mv	s0, t4
+ 1      3     1.00    *                   ld	s10, 32(sp)
+ 1      3     1.00                  U     vsetvli	zero, zero, e64, m2, ta, ma
+ 1      7     4.00                        vmsltu.vx	v8, v10, s8
+ 1      7     4.00                        vmsleu.vv	v0, v12, v10
+ 1      3     0.50                        add	a5, a3, s10
+ 1      4     4.00                        vmv2r.v	v16, v14
+ 1      4     4.00    *                   vle64.v	v18, (a5), v0.t
+ 1      4     2.00                        vmv1r.v	v0, v8
+ 1      4     4.00    *                   vle64.v	v20, (a3), v0.t
+ 1      4     4.00    *                   vle64.v	v22, (a5), v0.t
+ 1      3     0.50                        slli	a5, t0, 3
+ 1      4     4.00                        vadd.vx	v10, v10, s11
+ 1      3     0.50                        sub	s0, s0, s11
+ 1      3     0.50                        add	a5, a5, s9
+ 1      3     1.00                  U     vsetvli	zero, zero, e64, m2, ta, mu
+ 1      4     4.00    *                   vle64.v	v16, (t2), v0.t
+ 1      4     4.00                        vxor.vv	v18, v22, v20, v0.t
+ 1      4     4.00    *                   vl2re64.v	v8, (a5)
+ 1      3     0.50                        add	t0, t0, s11
+ 1      3     0.50                        add	t2, t2, a7
+ 1      1     4.00           *            vs2r.v	v18, (t3)
+ 1      4     4.00                        vxor.vv	v8, v8, v16
+ 1      3     0.50                        add	t3, t3, a7
+ 1      1     4.00           *            vs2r.v	v8, (s1)
+ 1      3     0.50                        add	s1, s1, a7
+ 1      3     0.50                        add	a3, a3, a7
+ 1      3     1.00                        bnez	s0, .LBB1_11
+ 1      3     1.00                        bne	a6, t4, .LBB1_16
+ 1      3     0.50                        mv	s6, t1
+ 1      3     0.50                        mv	a3, t1
+ 2      3     1.00                        call	karatsuba_clmul
+ 1      3     0.50                        mv	a0, s4
+ 1      3     0.50                        li	a1, 0
+ 1      3     0.50                        mv	a2, s3
+ 2      3     1.00                        call	memset
+ 1      3     0.50                        andi	a0, s5, -2
+ 1      3     1.00    *                   ld	a6, 48(sp)
+ 1      3     1.00    *                   ld	s0, 40(sp)
+ 1      3     1.00                        beqz	a0, .LBB1_26
+ 1      3     1.00                        bgeu	a0, s11, .LBB1_21
+ 1      3     0.50                        li	a1, 0
+ 1      3     1.00                        j	.LBB1_24
+ 1      3     0.50                        li	s1, 0
+ 1      3     1.00    *                   ld	a5, 0(sp)
+ 1      3     0.50                        sub	a7, a5, s3
+ 1      3     0.50                        slli	a3, t4, 3
+ 1      3     0.50                        sub	s0, a5, t5
+ 1      3     0.50                        add	a5, t4, s8
+ 1      3     0.50                        add	t2, a7, a3
+ 1      3     0.50                        add	s0, s0, a3
+ 1      3     0.50                        slli	a5, a5, 3
+ 1      3     0.50                        add	a7, s7, a3
+ 1      3     0.50                        add	t0, s9, a3
+ 1      3     0.50                        add	s9, s9, a5
+ 1      3     0.50                        add	s7, s7, a5
+ 1      3     1.00    *                   ld	a5, 48(sp)
+ 1      3     0.50                        add	t2, t2, a5
+ 1      3     0.50                        add	t3, a5, s0
+ 1      3     1.00                        j	.LBB1_19
+ 1      3     0.50                        add	a5, a7, s1
+ 1      3     1.00    *                   ld	a3, 0(a3)
+ 1      3     1.00    *                   ld	s0, 0(a5)
+ 1      3     0.50                        add	a5, t0, s1
+ 1      3     1.00    *                   ld	t5, 0(a5)
+ 1      3     0.50                        xor	s0, s0, a3
+ 1      3     0.50                        add	a5, t2, s1
+ 1      3     0.50                        add	a3, s9, s1
+ 1      3     1.00    *                   ld	a3, 0(a3)
+ 1      1     1.00           *            sd	s0, 0(a5)
+ 1      3     0.50                        add	a5, t3, s1
+ 1      3     0.50                        addi	t4, t4, 1
+ 1      3     0.50                        xor	a3, a3, t5
+ 1      1     1.00           *            sd	a3, 0(a5)
+ 1      3     0.50                        addi	s1, s1, 8
+ 1      3     1.00                        beq	a6, t4, .LBB1_13
+ 1      3     0.50                        add	a3, s7, s1
+ 1      3     1.00                        bltu	t4, s8, .LBB1_17
+ 1      3     1.00    *                   ld	s0, 0(a3)
+ 1      3     0.50                        li	t5, 0
+ 1      3     1.00                        j	.LBB1_18
+ 1      3     0.50                        neg	a1, s11
+ 1      3     0.50                        and	a1, s5, a1
+ 1      3     0.50                        sub	a2, a1, s11
+ 1      66    65.00                       divu	a3, a2, s11
+ 1      3     0.50                        srli	a4, s0, 3
+ 1      3     0.50                        slli	a2, a4, 4
+ 1      3     0.50                        slli	a3, a3, 4
+ 1      3     0.50                        addi	a3, a3, 16
+ 1      3     1.00                        mul	a3, a3, a4
+ 1      3     0.50                        add	a3, a3, s4
+ 1      3     0.50                        mv	a4, a6
+ 1      3     0.50                        mv	a5, s4
+ 1      3     1.00                  U     vsetvli	s1, zero, e64, m2, ta, ma
+ 1      4     4.00    *                   vl2re64.v	v8, (a4)
+ 1      4     4.00    *                   vl2re64.v	v10, (a5)
+ 1      4     4.00                        vxor.vv	v8, v10, v8
+ 1      1     4.00           *            vs2r.v	v8, (a5)
+ 1      3     0.50                        add	a5, a5, a2
+ 1      3     0.50                        add	a4, a4, a2
+ 1      3     1.00                        bne	a5, a3, .LBB1_22
+ 1      3     1.00                        beq	a0, a1, .LBB1_26
+ 1      3     0.50                        slli	a2, a1, 3
+ 1      3     0.50                        slli	a3, s8, 4
+ 1      3     0.50                        add	a1, s4, a2
+ 1      3     0.50                        add	a2, a2, a6
+ 1      3     0.50                        add	a3, a3, s4
+ 1      3     1.00    *                   ld	a4, 0(a2)
+ 1      3     1.00    *                   ld	a5, 0(a1)
+ 1      3     0.50                        xor	a4, a4, a5
+ 1      1     1.00           *            sd	a4, 0(a1)
+ 1      3     0.50                        addi	a1, a1, 8
+ 1      3     0.50                        addi	a2, a2, 8
+ 1      3     1.00                        bne	a1, a3, .LBB1_25
+ 1      3     0.50                        slli	s6, s6, 1
+ 1      3     1.00                        beqz	s6, .LBB1_39
+ 1      3     0.50                        srli	a2, s0, 3
+ 1      3     0.50                        slli	s5, s5, 5
+ 1      3     1.00                        bgeu	s6, s11, .LBB1_29
+ 1      3     0.50                        li	a1, 0
+ 1      3     1.00                        j	.LBB1_32
+ 1      3     0.50                        slli	a3, a0, 3
+ 1      3     0.50                        neg	a1, s11
+ 1      3     0.50                        add	a3, a3, s4
+ 1      3     0.50                        and	a1, s6, a1
+ 1      3     0.50                        slli	a4, a2, 4
+ 1      3     0.50                        mv	a5, a1
+ 1      3     1.00                  U     vsetvli	s1, zero, e64, m2, ta, ma
+ 1      4     4.00    *                   vl2re64.v	v8, (s2)
+ 1      4     4.00    *                   vl2re64.v	v10, (a3)
+ 1      3     0.50                        sub	a5, a5, s11
+ 1      4     4.00                        vxor.vv	v8, v10, v8
+ 1      1     4.00           *            vs2r.v	v8, (a3)
+ 1      3     0.50                        add	a3, a3, a4
+ 1      3     0.50                        add	s2, s2, a4
+ 1      3     1.00                        bnez	a5, .LBB1_30
+ 1      3     1.00                        beq	s6, a1, .LBB1_34
+ 1      3     0.50                        slli	a1, a1, 3
+ 1      3     0.50                        slli	s8, s8, 4
+ 1      3     0.50                        add	a3, s3, a1
+ 1      3     0.50                        add	a4, s8, a1
+ 1      3     0.50                        sub	a5, s5, s8
+ 1      3     0.50                        add	a1, a6, a3
+ 1      3     0.50                        add	a3, s4, a4
+ 1      3     0.50                        add	a4, a6, a5
+ 1      3     1.00    *                   ld	a5, 0(a1)
+ 1      3     1.00    *                   ld	s1, 0(a3)
+ 1      3     0.50                        addi	a1, a1, 8
+ 1      3     0.50                        xor	a5, a5, s1
+ 1      1     1.00           *            sd	a5, 0(a3)
+ 1      3     0.50                        addi	a3, a3, 8
+ 1      3     1.00                        bne	a1, a4, .LBB1_33
+ 1      3     1.00                        bgeu	s6, s11, .LBB1_36
+ 1      3     0.50                        li	a1, 0
+ 1      3     1.00                        j	.LBB1_40
+ 1      3     0.50                        neg	a1, s11
+ 1      3     0.50                        and	a1, s6, a1
+ 1      3     0.50                        sub	a3, a1, s11
+ 1      66    65.00                       divu	a5, a3, s11
+ 1      3     0.50                        add	a3, s4, s10
+ 1      3     1.00                  U     vsetvli	a4, zero, e64, m2, ta, ma
+ 1      4     4.00                        vid.v	v8
+ 1      3     0.50                        slli	s0, a2, 4
+ 1      3     0.50                        slli	a5, a5, 4
+ 1      3     0.50                        addi	a5, a5, 16
+ 1      3     1.00                        mul	a2, a5, a2
+ 1      3     0.50                        add	a2, a2, a6
+ 1      4     4.00                        vmv.v.i	v10, 0
+ 1      3     0.50                        mv	a4, a6
+ 1      3     1.00                  U     vsetvli	zero, zero, e64, m2, ta, mu
+ 1      7     4.00                        vmsltu.vx	v0, v8, a0
+ 1      4     4.00                        vmv2r.v	v12, v10
+ 1      3     0.50                        add	s1, a4, s5
+ 1      4     4.00    *                   vle64.v	v12, (a4), v0.t
+ 1      4     4.00    *                   vl2re64.v	v14, (s1)
+ 1      3     0.50                        add	a5, a4, s3
+ 1      4     4.00    *                   vl2re64.v	v16, (a5)
+ 1      4     4.00                        vxor.vv	v12, v14, v12
+ 1      4     4.00    *                   vl2re64.v	v14, (a3)
+ 1      4     4.00                        vxor.vv	v12, v12, v16
+ 1      4     4.00                        vadd.vx	v8, v8, s11
+ 1      3     0.50                        add	a4, a4, s0
+ 1      4     4.00                        vxor.vv	v12, v12, v14
+ 1      1     4.00           *            vs2r.v	v12, (a3)
+ 1      3     0.50                        add	a3, a3, s0
+ 1      3     1.00                        bne	a4, a2, .LBB1_37
+ 1      3     1.00                        bne	s6, a1, .LBB1_40
+ 1      3     1.00    *                   ld	ra, 152(sp)
+ 1      3     1.00    *                   ld	s0, 144(sp)
+ 1      3     1.00    *                   ld	s1, 136(sp)
+ 1      3     1.00    *                   ld	s2, 128(sp)
+ 1      3     1.00    *                   ld	s3, 120(sp)
+ 1      3     1.00    *                   ld	s4, 112(sp)
+ 1      3     1.00    *                   ld	s5, 104(sp)
+ 1      3     1.00    *                   ld	s6, 96(sp)
+ 1      3     1.00    *                   ld	s7, 88(sp)
+ 1      3     1.00    *                   ld	s8, 80(sp)
+ 1      3     1.00    *                   ld	s9, 72(sp)
+ 1      3     1.00    *                   ld	s10, 64(sp)
+ 1      3     1.00    *                   ld	s11, 56(sp)
+ 1      3     0.50                        addi	sp, sp, 160
+ 1      3     1.00                        ret
+ 1      3     0.50                        slli	a2, a1, 3
+ 1      3     0.50                        add	a3, s3, a2
+ 1      3     0.50                        add	a4, s5, a2
+ 1      3     0.50                        add	s10, s10, a2
+ 1      3     0.50                        add	a2, a2, a6
+ 1      3     0.50                        add	a3, a3, a6
+ 1      3     0.50                        add	a4, a4, a6
+ 1      3     0.50                        add	s4, s4, s10
+ 1      3     1.00                        j	.LBB1_43
+ 1      3     1.00    *                   ld	a5, 0(a2)
+ 1      3     1.00    *                   ld	s1, 0(a4)
+ 1      3     1.00    *                   ld	s0, 0(a3)
+ 1      3     0.50                        xor	a5, a5, s1
+ 1      3     1.00    *                   ld	s1, 0(s4)
+ 1      3     0.50                        addi	a1, a1, 1
+ 1      3     0.50                        addi	a3, a3, 8
+ 1      3     0.50                        addi	a4, a4, 8
+ 1      3     0.50                        addi	a2, a2, 8
+ 1      3     0.50                        xor	s0, s0, s1
+ 1      3     0.50                        xor	a5, a5, s0
+ 1      1     1.00           *            sd	a5, 0(s4)
+ 1      3     0.50                        addi	s4, s4, 8
+ 1      3     1.00                        beq	s6, a1, .LBB1_39
+ 1      3     1.00                        bltu	a1, a0, .LBB1_41
+ 1      3     0.50                        li	a5, 0
+ 1      3     1.00                        j	.LBB1_42
+
+
+Resources:
+[0]   - VLEN512SiFive7FDiv
+[1]   - VLEN512SiFive7IDiv
+[2]   - VLEN512SiFive7PipeA
+[3]   - VLEN512SiFive7PipeB
+[4]   - VLEN512SiFive7VA
+[5]   - VLEN512SiFive7VCQ
+[6]   - VLEN512SiFive7VL
+[7]   - VLEN512SiFive7VS
+
+
+Resource pressure per iteration:
+[0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    
+ -     195.00 205.90 178.10 127.00 51.00  83.00  33.00  
+
+Resource pressure by instruction:
+[0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    Instructions:
+ -      -     0.90   0.10    -      -      -      -     addi	sp, sp, -496
+ -      -     1.00    -      -      -      -      -     sd	ra, 488(sp)
+ -      -     1.00    -      -      -      -      -     sd	s0, 480(sp)
+ -      -     1.00    -      -      -      -      -     sd	s1, 472(sp)
+ -      -      -     1.00    -      -      -      -     lui	a3, 10
+ -      -      -     1.00    -      -      -      -     addi	a3, a3, -1536
+ -      -     1.00    -      -      -      -      -     sub	sp, sp, a3
+ -      -      -     1.00    -      -      -      -     mv	s0, a0
+ -      -     1.00    -      -      -      -      -     lui	a0, 9
+ -      -      -     1.00    -      -      -      -     addi	a0, a0, -1400
+ -      -     1.00    -      -      -      -      -     add	a0, a0, sp
+ -      -      -     1.00    -      -      -      -     li	a3, 277
+ -      -     1.00    -      -      -      -      -     addi	a4, sp, 8
+ -      -      -     1.00    -      -      -      -     lui	a5, 9
+ -      -     1.00    -      -      -      -      -     addi	a5, a5, -1400
+ -      -      -     1.00    -      -      -      -     add	s1, sp, a5
+ -      -     1.00   1.00    -      -      -      -     call	karatsuba_clmul
+ -      -      -     1.00    -      -      -      -     csrr	a1, vlenb
+ -      -     1.00    -      -      -      -      -     srli	a2, a1, 3
+ -      -      -     1.00    -      -      -      -     li	a0, 138
+ -      -      -     1.00    -      -      -      -     bgeu	a0, a2, .LBB0_2
+ -      -     1.00    -      -      -      -      -     li	a6, 0
+ -      -      -     1.00    -      -      -      -     j	.LBB0_4
+ -      -     1.00    -      -      -      -      -     srli	a3, a1, 2
+ -      -     1.00    -      -      -      -      -     negw	a0, a3
+ -      -      -     1.00    -      -      -      -     andi	a6, a0, 276
+ -      -     1.00    -      -      -      -      -     sub	a4, a6, a3
+ -     65.00   -     1.00    -      -      -      -     divu	a3, a4, a3
+ -      -     1.00    -      -      -      -      -     slli	a1, a1, 1
+ -      -      -     1.00    -      -      -      -     slli	a3, a3, 4
+ -      -     1.00    -      -      -      -      -     addi	a3, a3, 16
+ -      -      -     1.00    -      -      -      -     mul	a2, a3, a2
+ -      -     1.00    -      -      -      -      -     add	a2, a2, s0
+ -      -      -     1.00    -      -      -      -     li	a3, 59
+ -      -     1.00    -      -      -      -      -     mv	a4, s0
+ -      -     1.00    -      -      -      -      -     vsetvli	a5, zero, e64, m2, ta, ma
+ -      -      -     1.00    -      -      -      -     addi	a5, s1, 2047
+ -      -      -     1.00    -      -      -      -     addi	a0, a5, 161
+ -      -     1.00    -      -      -      -      -     addi	a5, a5, 169
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v8, (a0)
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v10, (a5)
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v12, (s1)
+ -      -      -      -     5.00   1.00    -      -     vsrl.vi	v8, v8, 5
+ -      -      -      -     5.00   1.00    -      -     vsll.vx	v10, v10, a3
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v8, v12, v8
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v8, v8, v10
+ -      -      -      -      -     1.00    -     5.00   vs2r.v	v8, (a4)
+ -      -      -     1.00    -      -      -      -     add	a4, a4, a1
+ -      -     1.00    -      -      -      -      -     add	s1, s1, a1
+ -      -      -     1.00    -      -      -      -     bne	a4, a2, .LBB0_3
+ -      -     1.00    -      -      -      -      -     slli	a1, a6, 3
+ -      -      -     1.00    -      -      -      -     lui	a0, 9
+ -      -     1.00    -      -      -      -      -     addi	a0, a0, -1400
+ -      -      -     1.00    -      -      -      -     add	a2, sp, a0
+ -      -     1.00    -      -      -      -      -     addi	a0, s0, 2047
+ -      -      -     1.00    -      -      -      -     add	s0, s0, a1
+ -      -     1.00    -      -      -      -      -     add	a1, a1, a2
+ -      -      -     1.00    -      -      -      -     addi	a2, a0, 169
+ -      -     1.00    -      -      -      -      -     addi	a3, a1, 2047
+ -      -     1.00    -      -      -      -      -     ld	a4, 161(a3)
+ -      -     1.00    -      -      -      -      -     ld	a3, 169(a3)
+ -      -     1.00    -      -      -      -      -     ld	a5, 0(a1)
+ -      -      -     1.00    -      -      -      -     srli	a4, a4, 5
+ -      -      -     1.00    -      -      -      -     slli	a3, a3, 59
+ -      -     1.00    -      -      -      -      -     xor	a4, a4, a5
+ -      -      -     1.00    -      -      -      -     xor	a3, a3, a4
+ -      -     1.00    -      -      -      -      -     sd	a3, 0(s0)
+ -      -      -     1.00    -      -      -      -     addi	s0, s0, 8
+ -      -     1.00    -      -      -      -      -     addi	a1, a1, 8
+ -      -      -     1.00    -      -      -      -     bne	s0, a2, .LBB0_5
+ -      -     1.00    -      -      -      -      -     ld	a1, 161(a0)
+ -      -      -     1.00    -      -      -      -     andi	a1, a1, 31
+ -      -     1.00    -      -      -      -      -     sd	a1, 161(a0)
+ -      -      -     1.00    -      -      -      -     lui	a0, 10
+ -      -     1.00    -      -      -      -      -     addi	a0, a0, -1536
+ -      -      -     1.00    -      -      -      -     add	sp, sp, a0
+ -      -     1.00    -      -      -      -      -     ld	ra, 488(sp)
+ -      -     1.00    -      -      -      -      -     ld	s0, 480(sp)
+ -      -     1.00    -      -      -      -      -     ld	s1, 472(sp)
+ -      -      -     1.00    -      -      -      -     addi	sp, sp, 496
+ -      -      -     1.00    -      -      -      -     ret
+ -      -     1.00    -      -      -      -      -     addi	sp, sp, -160
+ -      -     1.00    -      -      -      -      -     sd	ra, 152(sp)
+ -      -     1.00    -      -      -      -      -     sd	s0, 144(sp)
+ -      -     1.00    -      -      -      -      -     sd	s1, 136(sp)
+ -      -     1.00    -      -      -      -      -     sd	s2, 128(sp)
+ -      -     1.00    -      -      -      -      -     sd	s3, 120(sp)
+ -      -     1.00    -      -      -      -      -     sd	s4, 112(sp)
+ -      -     1.00    -      -      -      -      -     sd	s5, 104(sp)
+ -      -     1.00    -      -      -      -      -     sd	s6, 96(sp)
+ -      -     1.00    -      -      -      -      -     sd	s7, 88(sp)
+ -      -     1.00    -      -      -      -      -     sd	s8, 80(sp)
+ -      -     1.00    -      -      -      -      -     sd	s9, 72(sp)
+ -      -     1.00    -      -      -      -      -     sd	s10, 64(sp)
+ -      -     1.00    -      -      -      -      -     sd	s11, 56(sp)
+ -      -      -     1.00    -      -      -      -     mv	s5, a3
+ -      -      -     1.00    -      -      -      -     mv	s9, a2
+ -      -     1.00    -      -      -      -      -     mv	s7, a1
+ -      -      -     1.00    -      -      -      -     li	a1, 16
+ -      -     1.00    -      -      -      -      -     mv	s4, a0
+ -      -      -     1.00    -      -      -      -     bltu	a1, a3, .LBB1_6
+ -      -     1.00    -      -      -      -      -     slli	a2, s5, 4
+ -      -      -     1.00    -      -      -      -     mv	a0, s4
+ -      -     1.00    -      -      -      -      -     li	a1, 0
+ -      -     1.00   1.00    -      -      -      -     call	memset
+ -      -      -     1.00    -      -      -      -     beqz	s5, .LBB1_39
+ -      -     1.00    -      -      -      -      -     li	a0, 0
+ -      -      -     1.00    -      -      -      -     slli	a6, s5, 3
+ -      -     1.00    -      -      -      -      -     mv	s1, s4
+ -      -      -     1.00    -      -      -      -     slli	a2, a0, 3
+ -      -     1.00    -      -      -      -      -     add	a3, s7, a2
+ -      -     1.00    -      -      -      -      -     ld	a3, 0(a3)
+ -      -      -     1.00    -      -      -      -     add	a2, a2, a6
+ -      -      -     1.00    -      -      -      -     add	a4, s4, a2
+ -      -     1.00    -      -      -      -      -     mv	a5, s9
+ -      -      -     1.00    -      -      -      -     mv	a2, s1
+ -      -     1.00    -      -      -      -      -     ld	s0, 0(a5)
+ -      -     1.00    -      -      -      -      -     vsetivli	zero, 2, e64, m1, ta, ma
+ -      -      -      -      -     1.00   3.00    -     vle64.v	v8, (a2)
+ -      -      -      -     3.00   1.00    -      -     vmv.v.x	v9, a1
+ -      -      -      -     3.00   1.00    -      -     vslide1down.vx	v9, v9, s0
+ -      -      -      -     3.00   1.00    -      -     vxor.vv	v8, v8, v9
+ -      -      -      -      -     1.00    -     3.00   vse64.v	v8, (a2)
+ -      -      -     1.00    -      -      -      -     addi	a2, a2, 8
+ -      -      -     1.00    -      -      -      -     addi	a5, a5, 8
+ -      -      -     1.00    -      -      -      -     bne	a2, a4, .LBB1_4
+ -      -     1.00    -      -      -      -      -     addi	a0, a0, 1
+ -      -     1.00    -      -      -      -      -     addi	s1, s1, 8
+ -      -      -     1.00    -      -      -      -     bne	a0, s5, .LBB1_3
+ -      -      -     1.00    -      -      -      -     j	.LBB1_39
+ -      -     1.00    -      -      -      -      -     srli	s8, s5, 1
+ -      -     1.00    -      -      -      -      -     slli	s3, s5, 4
+ -      -      -     1.00    -      -      -      -     slli	s10, s5, 3
+ -      -     1.00    -      -      -      -      -     slli	s1, s5, 6
+ -      -      -     1.00    -      -      -      -     sub	s0, s5, s8
+ -      -     1.00    -      -      -      -      -     add	s2, a4, s3
+ -      -      -     1.00    -      -      -      -     add	a0, s2, s3
+ -      -     1.00    -      -      -      -      -     sd	a0, 8(sp)
+ -      -      -     1.00    -      -      -      -     add	a0, a0, s3
+ -      -     1.00    -      -      -      -      -     sd	a0, 24(sp)
+ -      -      -     1.00    -      -      -      -     add	a0, a0, s10
+ -      -     1.00    -      -      -      -      -     sd	a0, 16(sp)
+ -      -     1.00    -      -      -      -      -     sd	s1, 0(sp)
+ -      -      -     1.00    -      -      -      -     add	s1, s1, a4
+ -      -     1.00    -      -      -      -      -     sd	a4, 48(sp)
+ -      -      -     1.00    -      -      -      -     mv	a0, a4
+ -      -      -     1.00    -      -      -      -     mv	a1, s7
+ -      -     1.00    -      -      -      -      -     mv	a2, s9
+ -      -      -     1.00    -      -      -      -     mv	a3, s8
+ -      -     1.00    -      -      -      -      -     mv	a4, s1
+ -      -     1.00   1.00    -      -      -      -     call	karatsuba_clmul
+ -      -      -     1.00    -      -      -      -     slli	a2, s8, 3
+ -      -     1.00    -      -      -      -      -     add	a1, s7, a2
+ -      -     1.00    -      -      -      -      -     sd	a2, 32(sp)
+ -      -      -     1.00    -      -      -      -     add	a2, a2, s9
+ -      -      -     1.00    -      -      -      -     mv	a0, s2
+ -      -     1.00    -      -      -      -      -     mv	a3, s0
+ -      -      -     1.00    -      -      -      -     mv	s6, s1
+ -      -     1.00    -      -      -      -      -     mv	a4, s1
+ -      -     1.00   1.00    -      -      -      -     call	karatsuba_clmul
+ -      -      -     1.00    -      -      -      -     li	a0, 1
+ -      -      -     1.00    -      -      -      -     csrr	a2, vlenb
+ -      -     1.00    -      -      -      -      -     srli	s11, a2, 2
+ -      -      -     1.00    -      -      -      -     li	a1, 8
+ -      -      -     1.00    -      -      -      -     maxu	a1, s11, a1
+ -      -      -     1.00    -      -      -      -     maxu	a6, s0, a0
+ -      -     1.00    -      -      -      -      -     sd	a2, 40(sp)
+ -      -      -     1.00    -      -      -      -     mv	t1, s0
+ -      -      -     1.00    -      -      -      -     bgeu	s0, a1, .LBB1_8
+ -      -     1.00    -      -      -      -      -     li	t4, 0
+ -      -     1.00    -      -      -      -      -     mv	a4, s6
+ -      -     1.00    -      -      -      -      -     ld	a0, 8(sp)
+ -      -     1.00    -      -      -      -      -     ld	a3, 32(sp)
+ -      -     1.00    -      -      -      -      -     ld	a1, 24(sp)
+ -      -     1.00    -      -      -      -      -     ld	a2, 16(sp)
+ -      -      -     1.00    -      -      -      -     mv	t5, s10
+ -      -      -     1.00    -      -      -      -     mv	s10, a3
+ -      -      -     1.00    -      -      -      -     j	.LBB1_16
+ -      -     1.00    -      -      -      -      -     slli	a7, a2, 1
+ -      -     1.00    -      -      -      -      -     mv	a4, s6
+ -      -     1.00    -      -      -      -      -     ld	a0, 8(sp)
+ -      -      -     1.00    -      -      -      -     mv	t5, s10
+ -      -      -     1.00    -      -      -      -     bgeu	s10, a7, .LBB1_10
+ -      -     1.00    -      -      -      -      -     li	t4, 0
+ -      -     1.00    -      -      -      -      -     ld	s10, 32(sp)
+ -      -     1.00    -      -      -      -      -     ld	a1, 24(sp)
+ -      -     1.00    -      -      -      -      -     ld	a2, 16(sp)
+ -      -      -     1.00    -      -      -      -     j	.LBB1_16
+ -      -      -     1.00    -      -      -      -     neg	a1, s11
+ -      -     1.00    -      -      -      -      -     vsetvli	a2, zero, e64, m2, ta, ma
+ -      -      -      -     5.00   1.00    -      -     vid.v	v10
+ -      -      -     1.00    -      -      -      -     and	t4, a6, a1
+ -      -      -      -     5.00   1.00    -      -     vmv.v.x	v12, s8
+ -      -      -      -     5.00   1.00    -      -     vmv.v.i	v14, 0
+ -      -     1.00    -      -      -      -      -     mv	a3, s7
+ -      -      -     1.00    -      -      -      -     mv	t0, s8
+ -      -     1.00    -      -      -      -      -     mv	t2, s9
+ -      -     1.00    -      -      -      -      -     ld	a1, 24(sp)
+ -      -      -     1.00    -      -      -      -     mv	t3, a1
+ -      -     1.00    -      -      -      -      -     ld	a2, 16(sp)
+ -      -      -     1.00    -      -      -      -     mv	s1, a2
+ -      -     1.00    -      -      -      -      -     mv	s0, t4
+ -      -     1.00    -      -      -      -      -     ld	s10, 32(sp)
+ -      -     1.00    -      -      -      -      -     vsetvli	zero, zero, e64, m2, ta, ma
+ -      -      -      -     5.00   1.00    -      -     vmsltu.vx	v8, v10, s8
+ -      -      -      -     5.00   1.00    -      -     vmsleu.vv	v0, v12, v10
+ -      -      -     1.00    -      -      -      -     add	a5, a3, s10
+ -      -      -      -     5.00   1.00    -      -     vmv2r.v	v16, v14
+ -      -      -      -      -     1.00   5.00    -     vle64.v	v18, (a5), v0.t
+ -      -      -      -     3.00   1.00    -      -     vmv1r.v	v0, v8
+ -      -      -      -      -     1.00   5.00    -     vle64.v	v20, (a3), v0.t
+ -      -      -      -      -     1.00   5.00    -     vle64.v	v22, (a5), v0.t
+ -      -      -     1.00    -      -      -      -     slli	a5, t0, 3
+ -      -      -      -     5.00   1.00    -      -     vadd.vx	v10, v10, s11
+ -      -     1.00    -      -      -      -      -     sub	s0, s0, s11
+ -      -      -     1.00    -      -      -      -     add	a5, a5, s9
+ -      -     1.00    -      -      -      -      -     vsetvli	zero, zero, e64, m2, ta, mu
+ -      -      -      -      -     1.00   5.00    -     vle64.v	v16, (t2), v0.t
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v18, v22, v20, v0.t
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v8, (a5)
+ -      -      -     1.00    -      -      -      -     add	t0, t0, s11
+ -      -     1.00    -      -      -      -      -     add	t2, t2, a7
+ -      -      -      -      -     1.00    -     5.00   vs2r.v	v18, (t3)
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v8, v8, v16
+ -      -      -     1.00    -      -      -      -     add	t3, t3, a7
+ -      -      -      -      -     1.00    -     5.00   vs2r.v	v8, (s1)
+ -      -     1.00    -      -      -      -      -     add	s1, s1, a7
+ -      -      -     1.00    -      -      -      -     add	a3, a3, a7
+ -      -      -     1.00    -      -      -      -     bnez	s0, .LBB1_11
+ -      -      -     1.00    -      -      -      -     bne	a6, t4, .LBB1_16
+ -      -     1.00    -      -      -      -      -     mv	s6, t1
+ -      -     1.00    -      -      -      -      -     mv	a3, t1
+ -      -     1.00   1.00    -      -      -      -     call	karatsuba_clmul
+ -      -      -     1.00    -      -      -      -     mv	a0, s4
+ -      -     1.00    -      -      -      -      -     li	a1, 0
+ -      -      -     1.00    -      -      -      -     mv	a2, s3
+ -      -     1.00   1.00    -      -      -      -     call	memset
+ -      -     1.00    -      -      -      -      -     andi	a0, s5, -2
+ -      -     1.00    -      -      -      -      -     ld	a6, 48(sp)
+ -      -     1.00    -      -      -      -      -     ld	s0, 40(sp)
+ -      -      -     1.00    -      -      -      -     beqz	a0, .LBB1_26
+ -      -      -     1.00    -      -      -      -     bgeu	a0, s11, .LBB1_21
+ -      -     1.00    -      -      -      -      -     li	a1, 0
+ -      -      -     1.00    -      -      -      -     j	.LBB1_24
+ -      -     1.00    -      -      -      -      -     li	s1, 0
+ -      -     1.00    -      -      -      -      -     ld	a5, 0(sp)
+ -      -      -     1.00    -      -      -      -     sub	a7, a5, s3
+ -      -     1.00    -      -      -      -      -     slli	a3, t4, 3
+ -      -      -     1.00    -      -      -      -     sub	s0, a5, t5
+ -      -     1.00    -      -      -      -      -     add	a5, t4, s8
+ -      -      -     1.00    -      -      -      -     add	t2, a7, a3
+ -      -     1.00    -      -      -      -      -     add	s0, s0, a3
+ -      -      -     1.00    -      -      -      -     slli	a5, a5, 3
+ -      -     1.00    -      -      -      -      -     add	a7, s7, a3
+ -      -      -     1.00    -      -      -      -     add	t0, s9, a3
+ -      -     1.00    -      -      -      -      -     add	s9, s9, a5
+ -      -      -     1.00    -      -      -      -     add	s7, s7, a5
+ -      -     1.00    -      -      -      -      -     ld	a5, 48(sp)
+ -      -      -     1.00    -      -      -      -     add	t2, t2, a5
+ -      -     1.00    -      -      -      -      -     add	t3, a5, s0
+ -      -      -     1.00    -      -      -      -     j	.LBB1_19
+ -      -     1.00    -      -      -      -      -     add	a5, a7, s1
+ -      -     1.00    -      -      -      -      -     ld	a3, 0(a3)
+ -      -     1.00    -      -      -      -      -     ld	s0, 0(a5)
+ -      -      -     1.00    -      -      -      -     add	a5, t0, s1
+ -      -     1.00    -      -      -      -      -     ld	t5, 0(a5)
+ -      -      -     1.00    -      -      -      -     xor	s0, s0, a3
+ -      -      -     1.00    -      -      -      -     add	a5, t2, s1
+ -      -     1.00    -      -      -      -      -     add	a3, s9, s1
+ -      -     1.00    -      -      -      -      -     ld	a3, 0(a3)
+ -      -     1.00    -      -      -      -      -     sd	s0, 0(a5)
+ -      -      -     1.00    -      -      -      -     add	a5, t3, s1
+ -      -      -     1.00    -      -      -      -     addi	t4, t4, 1
+ -      -     1.00    -      -      -      -      -     xor	a3, a3, t5
+ -      -     1.00    -      -      -      -      -     sd	a3, 0(a5)
+ -      -      -     1.00    -      -      -      -     addi	s1, s1, 8
+ -      -      -     1.00    -      -      -      -     beq	a6, t4, .LBB1_13
+ -      -     1.00    -      -      -      -      -     add	a3, s7, s1
+ -      -      -     1.00    -      -      -      -     bltu	t4, s8, .LBB1_17
+ -      -     1.00    -      -      -      -      -     ld	s0, 0(a3)
+ -      -      -     1.00    -      -      -      -     li	t5, 0
+ -      -      -     1.00    -      -      -      -     j	.LBB1_18
+ -      -     1.00    -      -      -      -      -     neg	a1, s11
+ -      -     1.00    -      -      -      -      -     and	a1, s5, a1
+ -      -      -     1.00    -      -      -      -     sub	a2, a1, s11
+ -     65.00   -     1.00    -      -      -      -     divu	a3, a2, s11
+ -      -     1.00    -      -      -      -      -     srli	a4, s0, 3
+ -      -     1.00    -      -      -      -      -     slli	a2, a4, 4
+ -      -      -     1.00    -      -      -      -     slli	a3, a3, 4
+ -      -     1.00    -      -      -      -      -     addi	a3, a3, 16
+ -      -      -     1.00    -      -      -      -     mul	a3, a3, a4
+ -      -     1.00    -      -      -      -      -     add	a3, a3, s4
+ -      -      -     1.00    -      -      -      -     mv	a4, a6
+ -      -     1.00    -      -      -      -      -     mv	a5, s4
+ -      -     1.00    -      -      -      -      -     vsetvli	s1, zero, e64, m2, ta, ma
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v8, (a4)
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v10, (a5)
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v8, v10, v8
+ -      -      -      -      -     1.00    -     5.00   vs2r.v	v8, (a5)
+ -      -      -     1.00    -      -      -      -     add	a5, a5, a2
+ -      -      -     1.00    -      -      -      -     add	a4, a4, a2
+ -      -      -     1.00    -      -      -      -     bne	a5, a3, .LBB1_22
+ -      -      -     1.00    -      -      -      -     beq	a0, a1, .LBB1_26
+ -      -     1.00    -      -      -      -      -     slli	a2, a1, 3
+ -      -     1.00    -      -      -      -      -     slli	a3, s8, 4
+ -      -      -     1.00    -      -      -      -     add	a1, s4, a2
+ -      -     1.00    -      -      -      -      -     add	a2, a2, a6
+ -      -      -     1.00    -      -      -      -     add	a3, a3, s4
+ -      -     1.00    -      -      -      -      -     ld	a4, 0(a2)
+ -      -     1.00    -      -      -      -      -     ld	a5, 0(a1)
+ -      -      -     1.00    -      -      -      -     xor	a4, a4, a5
+ -      -     1.00    -      -      -      -      -     sd	a4, 0(a1)
+ -      -      -     1.00    -      -      -      -     addi	a1, a1, 8
+ -      -      -     1.00    -      -      -      -     addi	a2, a2, 8
+ -      -      -     1.00    -      -      -      -     bne	a1, a3, .LBB1_25
+ -      -     1.00    -      -      -      -      -     slli	s6, s6, 1
+ -      -      -     1.00    -      -      -      -     beqz	s6, .LBB1_39
+ -      -     1.00    -      -      -      -      -     srli	a2, s0, 3
+ -      -     1.00    -      -      -      -      -     slli	s5, s5, 5
+ -      -      -     1.00    -      -      -      -     bgeu	s6, s11, .LBB1_29
+ -      -     1.00    -      -      -      -      -     li	a1, 0
+ -      -      -     1.00    -      -      -      -     j	.LBB1_32
+ -      -     1.00    -      -      -      -      -     slli	a3, a0, 3
+ -      -      -     1.00    -      -      -      -     neg	a1, s11
+ -      -     1.00    -      -      -      -      -     add	a3, a3, s4
+ -      -      -     1.00    -      -      -      -     and	a1, s6, a1
+ -      -     1.00    -      -      -      -      -     slli	a4, a2, 4
+ -      -      -     1.00    -      -      -      -     mv	a5, a1
+ -      -     1.00    -      -      -      -      -     vsetvli	s1, zero, e64, m2, ta, ma
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v8, (s2)
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v10, (a3)
+ -      -      -     1.00    -      -      -      -     sub	a5, a5, s11
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v8, v10, v8
+ -      -      -      -      -     1.00    -     5.00   vs2r.v	v8, (a3)
+ -      -     1.00    -      -      -      -      -     add	a3, a3, a4
+ -      -      -     1.00    -      -      -      -     add	s2, s2, a4
+ -      -      -     1.00    -      -      -      -     bnez	a5, .LBB1_30
+ -      -      -     1.00    -      -      -      -     beq	s6, a1, .LBB1_34
+ -      -     1.00    -      -      -      -      -     slli	a1, a1, 3
+ -      -     1.00    -      -      -      -      -     slli	s8, s8, 4
+ -      -      -     1.00    -      -      -      -     add	a3, s3, a1
+ -      -     1.00    -      -      -      -      -     add	a4, s8, a1
+ -      -      -     1.00    -      -      -      -     sub	a5, s5, s8
+ -      -     1.00    -      -      -      -      -     add	a1, a6, a3
+ -      -      -     1.00    -      -      -      -     add	a3, s4, a4
+ -      -     1.00    -      -      -      -      -     add	a4, a6, a5
+ -      -     1.00    -      -      -      -      -     ld	a5, 0(a1)
+ -      -     1.00    -      -      -      -      -     ld	s1, 0(a3)
+ -      -      -     1.00    -      -      -      -     addi	a1, a1, 8
+ -      -      -     1.00    -      -      -      -     xor	a5, a5, s1
+ -      -     1.00    -      -      -      -      -     sd	a5, 0(a3)
+ -      -      -     1.00    -      -      -      -     addi	a3, a3, 8
+ -      -      -     1.00    -      -      -      -     bne	a1, a4, .LBB1_33
+ -      -      -     1.00    -      -      -      -     bgeu	s6, s11, .LBB1_36
+ -      -     1.00    -      -      -      -      -     li	a1, 0
+ -      -      -     1.00    -      -      -      -     j	.LBB1_40
+ -      -     1.00    -      -      -      -      -     neg	a1, s11
+ -      -     1.00    -      -      -      -      -     and	a1, s6, a1
+ -      -      -     1.00    -      -      -      -     sub	a3, a1, s11
+ -     65.00   -     1.00    -      -      -      -     divu	a5, a3, s11
+ -      -     1.00    -      -      -      -      -     add	a3, s4, s10
+ -      -     1.00    -      -      -      -      -     vsetvli	a4, zero, e64, m2, ta, ma
+ -      -      -      -     5.00   1.00    -      -     vid.v	v8
+ -      -      -     1.00    -      -      -      -     slli	s0, a2, 4
+ -      -     1.00    -      -      -      -      -     slli	a5, a5, 4
+ -      -      -     1.00    -      -      -      -     addi	a5, a5, 16
+ -      -      -     1.00    -      -      -      -     mul	a2, a5, a2
+ -      -     1.00    -      -      -      -      -     add	a2, a2, a6
+ -      -      -      -     5.00   1.00    -      -     vmv.v.i	v10, 0
+ -      -     1.00    -      -      -      -      -     mv	a4, a6
+ -      -     1.00    -      -      -      -      -     vsetvli	zero, zero, e64, m2, ta, mu
+ -      -      -      -     5.00   1.00    -      -     vmsltu.vx	v0, v8, a0
+ -      -      -      -     5.00   1.00    -      -     vmv2r.v	v12, v10
+ -      -      -     1.00    -      -      -      -     add	s1, a4, s5
+ -      -      -      -      -     1.00   5.00    -     vle64.v	v12, (a4), v0.t
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v14, (s1)
+ -      -      -     1.00    -      -      -      -     add	a5, a4, s3
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v16, (a5)
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v12, v14, v12
+ -      -      -      -      -     1.00   5.00    -     vl2re64.v	v14, (a3)
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v12, v12, v16
+ -      -      -      -     5.00   1.00    -      -     vadd.vx	v8, v8, s11
+ -      -     1.00    -      -      -      -      -     add	a4, a4, s0
+ -      -      -      -     5.00   1.00    -      -     vxor.vv	v12, v12, v14
+ -      -      -      -      -     1.00    -     5.00   vs2r.v	v12, (a3)
+ -      -      -     1.00    -      -      -      -     add	a3, a3, s0
+ -      -      -     1.00    -      -      -      -     bne	a4, a2, .LBB1_37
+ -      -      -     1.00    -      -      -      -     bne	s6, a1, .LBB1_40
+ -      -     1.00    -      -      -      -      -     ld	ra, 152(sp)
+ -      -     1.00    -      -      -      -      -     ld	s0, 144(sp)
+ -      -     1.00    -      -      -      -      -     ld	s1, 136(sp)
+ -      -     1.00    -      -      -      -      -     ld	s2, 128(sp)
+ -      -     1.00    -      -      -      -      -     ld	s3, 120(sp)
+ -      -     1.00    -      -      -      -      -     ld	s4, 112(sp)
+ -      -     1.00    -      -      -      -      -     ld	s5, 104(sp)
+ -      -     1.00    -      -      -      -      -     ld	s6, 96(sp)
+ -      -     1.00    -      -      -      -      -     ld	s7, 88(sp)
+ -      -     1.00    -      -      -      -      -     ld	s8, 80(sp)
+ -      -     1.00    -      -      -      -      -     ld	s9, 72(sp)
+ -      -     1.00    -      -      -      -      -     ld	s10, 64(sp)
+ -      -     1.00    -      -      -      -      -     ld	s11, 56(sp)
+ -      -      -     1.00    -      -      -      -     addi	sp, sp, 160
+ -      -      -     1.00    -      -      -      -     ret
+ -      -     1.00    -      -      -      -      -     slli	a2, a1, 3
+ -      -      -     1.00    -      -      -      -     add	a3, s3, a2
+ -      -     1.00    -      -      -      -      -     add	a4, s5, a2
+ -      -      -     1.00    -      -      -      -     add	s10, s10, a2
+ -      -     1.00    -      -      -      -      -     add	a2, a2, a6
+ -      -      -     1.00    -      -      -      -     add	a3, a3, a6
+ -      -     1.00    -      -      -      -      -     add	a4, a4, a6
+ -      -      -     1.00    -      -      -      -     add	s4, s4, s10
+ -      -      -     1.00    -      -      -      -     j	.LBB1_43
+ -      -     1.00    -      -      -      -      -     ld	a5, 0(a2)
+ -      -     1.00    -      -      -      -      -     ld	s1, 0(a4)
+ -      -     1.00    -      -      -      -      -     ld	s0, 0(a3)
+ -      -      -     1.00    -      -      -      -     xor	a5, a5, s1
+ -      -     1.00    -      -      -      -      -     ld	s1, 0(s4)
+ -      -      -     1.00    -      -      -      -     addi	a1, a1, 1
+ -      -      -     1.00    -      -      -      -     addi	a3, a3, 8
+ -      -     1.00    -      -      -      -      -     addi	a4, a4, 8
+ -      -      -     1.00    -      -      -      -     addi	a2, a2, 8
+ -      -     1.00    -      -      -      -      -     xor	s0, s0, s1
+ -      -      -     1.00    -      -      -      -     xor	a5, a5, s0
+ -      -     1.00    -      -      -      -      -     sd	a5, 0(s4)
+ -      -      -     1.00    -      -      -      -     addi	s4, s4, 8
+ -      -      -     1.00    -      -      -      -     beq	s6, a1, .LBB1_39
+ -      -      -     1.00    -      -      -      -     bltu	a1, a0, .LBB1_41
+ -      -     1.00    -      -      -      -      -     li	a5, 0
+ -      -      -     1.00    -      -      -      -     j	.LBB1_42
+
+
+Timeline view:
+                    0123456
+Index     0123456789       
+
+[0,0]     DeeE .    .    ..   addi	sp, sp, -496
+[0,1]     .  DE.    .    ..   sd	ra, 488(sp)
+[0,2]     .   DE    .    ..   sd	s0, 480(sp)
+[0,3]     .    DE   .    ..   sd	s1, 472(sp)
+[0,4]     .    DeeE .    ..   lui	a3, 10
+[0,5]     .    .DeeE.    ..   addi	a3, a3, -1536
+[0,6]     .    . DeeE    ..   sub	sp, sp, a3
+[0,7]     .    . DeeE    ..   mv	s0, a0
+[0,8]     .    .  DeeE   ..   lui	a0, 9
+[0,9]     .    .   DeeE  ..   addi	a0, a0, -1400
+[0,10]    .    .    DeeE ..   add	a0, a0, sp
+[0,11]    .    .    DeeE ..   li	a3, 277
+[0,12]    .    .    .DeeE..   addi	a4, sp, 8
+[0,13]    .    .    .DeeE..   lui	a5, 9
+[0,14]    .    .    . DeeE.   addi	a5, a5, -1400
+[0,15]    .    .    .  DeeE   add	s1, sp, a5
+Truncated display due to cycle limit
+
+
+Average Wait times (based on the timeline view):
+[0]: Executions
+[1]: Average time spent waiting in a scheduler's queue
+[2]: Average time spent waiting in a scheduler's queue while ready
+[3]: Average time elapsed from WB until retire stage
+
+      [0]    [1]    [2]    [3]
+0.     10    0.0    0.0    0.0       addi	sp, sp, -496
+1.     10    0.0    0.0    0.0       sd	ra, 488(sp)
+2.     10    0.0    0.0    0.0       sd	s0, 480(sp)
+3.     10    0.0    0.0    0.0       sd	s1, 472(sp)
+4.     10    0.0    0.0    0.0       lui	a3, 10
+5.     10    0.0    0.0    0.0       addi	a3, a3, -1536
+6.     10    0.0    0.0    0.0       sub	sp, sp, a3
+7.     10    0.0    0.0    0.0       mv	s0, a0
+8.     10    0.0    0.0    0.0       lui	a0, 9
+9.     10    0.0    0.0    0.0       addi	a0, a0, -1400
+10.    10    0.0    0.0    0.0       add	a0, a0, sp
+11.    10    0.0    0.0    0.0       li	a3, 277
+12.    10    0.0    0.0    0.0       addi	a4, sp, 8
+13.    10    0.0    0.0    0.0       lui	a5, 9
+14.    10    0.0    0.0    0.0       addi	a5, a5, -1400
+15.    10    0.0    0.0    0.0       add	s1, sp, a5
+16.    10    0.0    0.0    0.0       call	karatsuba_clmul
+17.    10    0.0    0.0    0.0       csrr	a1, vlenb
+18.    10    0.0    0.0    0.0       srli	a2, a1, 3
+19.    10    0.0    0.0    0.0       li	a0, 138
+20.    10    0.0    0.0    0.0       bgeu	a0, a2, .LBB0_2
+21.    10    0.0    0.0    0.0       li	a6, 0
+22.    10    0.0    0.0    0.0       j	.LBB0_4
+23.    10    0.0    0.0    0.0       srli	a3, a1, 2
+24.    10    0.0    0.0    0.0       negw	a0, a3
+25.    10    0.0    0.0    0.0       andi	a6, a0, 276
+26.    10    0.0    0.0    0.0       sub	a4, a6, a3
+27.    10    0.0    0.0    0.0       divu	a3, a4, a3
+28.    10    0.0    0.0    0.0       slli	a1, a1, 1
+29.    10    0.0    0.0    0.0       slli	a3, a3, 4
+30.    10    0.0    0.0    0.0       addi	a3, a3, 16
+31.    10    0.0    0.0    0.0       mul	a2, a3, a2
+32.    10    0.0    0.0    0.0       add	a2, a2, s0
+33.    10    0.0    0.0    0.0       li	a3, 59
+34.    10    0.0    0.0    0.0       mv	a4, s0
+35.    10    0.0    0.0    0.0       vsetvli	a5, zero, e64, m2, ta, ma
+36.    10    0.0    0.0    0.0       addi	a5, s1, 2047
+37.    10    0.0    0.0    0.0       addi	a0, a5, 161
+38.    10    0.0    0.0    0.0       addi	a5, a5, 169
+39.    10    0.0    0.0    0.0       vl2re64.v	v8, (a0)
+40.    10    0.0    0.0    0.0       vl2re64.v	v10, (a5)
+41.    10    0.0    0.0    0.0       vl2re64.v	v12, (s1)
+42.    10    0.0    0.0    0.0       vsrl.vi	v8, v8, 5
+43.    10    0.0    0.0    0.0       vsll.vx	v10, v10, a3
+44.    10    0.0    0.0    0.0       vxor.vv	v8, v12, v8
+45.    10    0.0    0.0    0.0       vxor.vv	v8, v8, v10
+46.    10    0.0    0.0    0.0       vs2r.v	v8, (a4)
+47.    10    0.0    0.0    0.0       add	a4, a4, a1
+48.    10    0.0    0.0    0.0       add	s1, s1, a1
+49.    10    0.0    0.0    0.0       bne	a4, a2, .LBB0_3
+50.    10    0.0    0.0    0.0       slli	a1, a6, 3
+51.    10    0.0    0.0    0.0       lui	a0, 9
+52.    10    0.0    0.0    0.0       addi	a0, a0, -1400
+53.    10    0.0    0.0    0.0       add	a2, sp, a0
+54.    10    0.0    0.0    0.0       addi	a0, s0, 2047
+55.    10    0.0    0.0    0.0       add	s0, s0, a1
+56.    10    0.0    0.0    0.0       add	a1, a1, a2
+57.    10    0.0    0.0    0.0       addi	a2, a0, 169
+58.    10    0.0    0.0    0.0       addi	a3, a1, 2047
+59.    10    0.0    0.0    0.0       ld	a4, 161(a3)
+60.    10    0.0    0.0    0.0       ld	a3, 169(a3)
+61.    10    0.0    0.0    0.0       ld	a5, 0(a1)
+62.    10    0.0    0.0    0.0       srli	a4, a4, 5
+63.    10    0.0    0.0    0.0       slli	a3, a3, 59
+64.    10    0.0    0.0    0.0       xor	a4, a4, a5
+65.    10    0.0    0.0    0.0       xor	a3, a3, a4
+66.    10    0.0    0.0    0.0       sd	a3, 0(s0)
+67.    10    0.0    0.0    0.0       addi	s0, s0, 8
+68.    10    0.0    0.0    0.0       addi	a1, a1, 8
+69.    10    0.0    0.0    0.0       bne	s0, a2, .LBB0_5
+70.    10    0.0    0.0    0.0       ld	a1, 161(a0)
+71.    10    0.0    0.0    0.0       andi	a1, a1, 31
+72.    10    0.0    0.0    0.0       sd	a1, 161(a0)
+73.    10    0.0    0.0    0.0       lui	a0, 10
+74.    10    0.0    0.0    0.0       addi	a0, a0, -1536
+75.    10    0.0    0.0    0.0       add	sp, sp, a0
+76.    10    0.0    0.0    0.0       ld	ra, 488(sp)
+77.    10    0.0    0.0    0.0       ld	s0, 480(sp)
+78.    10    0.0    0.0    0.0       ld	s1, 472(sp)
+79.    10    0.0    0.0    0.0       addi	sp, sp, 496
+80.    10    0.0    0.0    0.0       ret
+81.    10    0.0    0.0    0.0       addi	sp, sp, -160
+82.    10    0.0    0.0    0.0       sd	ra, 152(sp)
+83.    10    0.0    0.0    0.0       sd	s0, 144(sp)
+84.    10    0.0    0.0    0.0       sd	s1, 136(sp)
+85.    10    0.0    0.0    0.0       sd	s2, 128(sp)
+86.    10    0.0    0.0    0.0       sd	s3, 120(sp)
+87.    10    0.0    0.0    0.0       sd	s4, 112(sp)
+88.    10    0.0    0.0    0.0       sd	s5, 104(sp)
+89.    10    0.0    0.0    0.0       sd	s6, 96(sp)
+90.    10    0.0    0.0    0.0       sd	s7, 88(sp)
+91.    10    0.0    0.0    0.0       sd	s8, 80(sp)
+92.    10    0.0    0.0    0.0       sd	s9, 72(sp)
+93.    10    0.0    0.0    0.0       sd	s10, 64(sp)
+94.    10    0.0    0.0    0.0       sd	s11, 56(sp)
+95.    10    0.0    0.0    0.0       mv	s5, a3
+96.    10    0.0    0.0    0.0       mv	s9, a2
+97.    10    0.0    0.0    0.0       mv	s7, a1
+98.    10    0.0    0.0    0.0       li	a1, 16
+99.    10    0.0    0.0    0.0       mv	s4, a0
+100.   10    0.0    0.0    0.0       bltu	a1, a3, .LBB1_6
+101.   10    0.0    0.0    0.0       slli	a2, s5, 4
+102.   10    0.0    0.0    0.0       mv	a0, s4
+103.   10    0.0    0.0    0.0       li	a1, 0
+104.   10    0.0    0.0    0.0       call	memset
+105.   10    0.0    0.0    0.0       beqz	s5, .LBB1_39
+106.   10    0.0    0.0    0.0       li	a0, 0
+107.   10    0.0    0.0    0.0       slli	a6, s5, 3
+108.   10    0.0    0.0    0.0       mv	s1, s4
+109.   10    0.0    0.0    0.0       slli	a2, a0, 3
+110.   10    0.0    0.0    0.0       add	a3, s7, a2
+111.   10    0.0    0.0    0.0       ld	a3, 0(a3)
+112.   10    0.0    0.0    0.0       add	a2, a2, a6
+113.   10    0.0    0.0    0.0       add	a4, s4, a2
+114.   10    0.0    0.0    0.0       mv	a5, s9
+115.   10    0.0    0.0    0.0       mv	a2, s1
+116.   10    0.0    0.0    0.0       ld	s0, 0(a5)
+117.   10    0.0    0.0    0.0       vsetivli	zero, 2, e64, m1, ta, ma
+118.   10    0.0    0.0    0.0       vle64.v	v8, (a2)
+119.   10    0.0    0.0    0.0       vmv.v.x	v9, a1
+120.   10    0.0    0.0    0.0       vslide1down.vx	v9, v9, s0
+121.   10    0.0    0.0    0.0       vxor.vv	v8, v8, v9
+122.   10    0.0    0.0    0.0       vse64.v	v8, (a2)
+123.   10    0.0    0.0    0.0       addi	a2, a2, 8
+124.   10    0.0    0.0    0.0       addi	a5, a5, 8
+125.   10    0.0    0.0    0.0       bne	a2, a4, .LBB1_4
+126.   10    0.0    0.0    0.0       addi	a0, a0, 1
+127.   10    0.0    0.0    0.0       addi	s1, s1, 8
+128.   10    0.0    0.0    0.0       bne	a0, s5, .LBB1_3
+129.   10    0.0    0.0    0.0       j	.LBB1_39
+130.   10    0.0    0.0    0.0       srli	s8, s5, 1
+131.   10    0.0    0.0    0.0       slli	s3, s5, 4
+132.   10    0.0    0.0    0.0       slli	s10, s5, 3
+133.   10    0.0    0.0    0.0       slli	s1, s5, 6
+134.   10    0.0    0.0    0.0       sub	s0, s5, s8
+135.   10    0.0    0.0    0.0       add	s2, a4, s3
+136.   10    0.0    0.0    0.0       add	a0, s2, s3
+137.   10    0.0    0.0    0.0       sd	a0, 8(sp)
+138.   10    0.0    0.0    0.0       add	a0, a0, s3
+139.   10    0.0    0.0    0.0       sd	a0, 24(sp)
+140.   10    0.0    0.0    0.0       add	a0, a0, s10
+141.   10    0.0    0.0    0.0       sd	a0, 16(sp)
+142.   10    0.0    0.0    0.0       sd	s1, 0(sp)
+143.   10    0.0    0.0    0.0       add	s1, s1, a4
+144.   10    0.0    0.0    0.0       sd	a4, 48(sp)
+145.   10    0.0    0.0    0.0       mv	a0, a4
+146.   10    0.0    0.0    0.0       mv	a1, s7
+147.   10    0.0    0.0    0.0       mv	a2, s9
+148.   10    0.0    0.0    0.0       mv	a3, s8
+149.   10    0.0    0.0    0.0       mv	a4, s1
+150.   10    0.0    0.0    0.0       call	karatsuba_clmul
+151.   10    0.0    0.0    0.0       slli	a2, s8, 3
+152.   10    0.0    0.0    0.0       add	a1, s7, a2
+153.   10    0.0    0.0    0.0       sd	a2, 32(sp)
+154.   10    0.0    0.0    0.0       add	a2, a2, s9
+155.   10    0.0    0.0    0.0       mv	a0, s2
+156.   10    0.0    0.0    0.0       mv	a3, s0
+157.   10    0.0    0.0    0.0       mv	s6, s1
+158.   10    0.0    0.0    0.0       mv	a4, s1
+159.   10    0.0    0.0    0.0       call	karatsuba_clmul
+160.   10    0.0    0.0    0.0       li	a0, 1
+161.   10    0.0    0.0    0.0       csrr	a2, vlenb
+162.   10    0.0    0.0    0.0       srli	s11, a2, 2
+163.   10    0.0    0.0    0.0       li	a1, 8
+164.   10    0.0    0.0    0.0       maxu	a1, s11, a1
+165.   10    0.0    0.0    0.0       maxu	a6, s0, a0
+166.   10    0.0    0.0    0.0       sd	a2, 40(sp)
+167.   10    0.0    0.0    0.0       mv	t1, s0
+168.   10    0.0    0.0    0.0       bgeu	s0, a1, .LBB1_8
+169.   10    0.0    0.0    0.0       li	t4, 0
+170.   10    0.0    0.0    0.0       mv	a4, s6
+171.   10    0.0    0.0    0.0       ld	a0, 8(sp)
+172.   10    0.0    0.0    0.0       ld	a3, 32(sp)
+173.   10    0.0    0.0    0.0       ld	a1, 24(sp)
+174.   10    0.0    0.0    0.0       ld	a2, 16(sp)
+175.   10    0.0    0.0    0.0       mv	t5, s10
+176.   10    0.0    0.0    0.0       mv	s10, a3
+177.   10    0.0    0.0    0.0       j	.LBB1_16
+178.   10    0.0    0.0    0.0       slli	a7, a2, 1
+179.   10    0.0    0.0    0.0       mv	a4, s6
+180.   10    0.0    0.0    0.0       ld	a0, 8(sp)
+181.   10    0.0    0.0    0.0       mv	t5, s10
+182.   10    0.0    0.0    0.0       bgeu	s10, a7, .LBB1_10
+183.   10    0.0    0.0    0.0       li	t4, 0
+184.   10    0.0    0.0    0.0       ld	s10, 32(sp)
+185.   10    0.0    0.0    0.0       ld	a1, 24(sp)
+186.   10    0.0    0.0    0.0       ld	a2, 16(sp)
+187.   10    0.0    0.0    0.0       j	.LBB1_16
+188.   10    0.0    0.0    0.0       neg	a1, s11
+189.   10    0.0    0.0    0.0       vsetvli	a2, zero, e64, m2, ta, ma
+190.   10    0.0    0.0    0.0       vid.v	v10
+191.   10    0.0    0.0    0.0       and	t4, a6, a1
+192.   10    0.0    0.0    0.0       vmv.v.x	v12, s8
+193.   10    0.0    0.0    0.0       vmv.v.i	v14, 0
+194.   10    0.0    0.0    0.0       mv	a3, s7
+195.   10    0.0    0.0    0.0       mv	t0, s8
+196.   10    0.0    0.0    0.0       mv	t2, s9
+197.   10    0.0    0.0    0.0       ld	a1, 24(sp)
+198.   10    0.0    0.0    0.0       mv	t3, a1
+199.   10    0.0    0.0    0.0       ld	a2, 16(sp)
+200.   10    0.0    0.0    0.0       mv	s1, a2
+201.   10    0.0    0.0    0.0       mv	s0, t4
+202.   10    0.0    0.0    0.0       ld	s10, 32(sp)
+203.   10    0.0    0.0    0.0       vsetvli	zero, zero, e64, m2, ta, ma
+204.   10    0.0    0.0    0.0       vmsltu.vx	v8, v10, s8
+205.   10    0.0    0.0    0.0       vmsleu.vv	v0, v12, v10
+206.   10    0.0    0.0    0.0       add	a5, a3, s10
+207.   10    0.0    0.0    0.0       vmv2r.v	v16, v14
+208.   10    0.0    0.0    0.0       vle64.v	v18, (a5), v0.t
+209.   10    0.0    0.0    0.0       vmv1r.v	v0, v8
+210.   10    0.0    0.0    0.0       vle64.v	v20, (a3), v0.t
+211.   10    0.0    0.0    0.0       vle64.v	v22, (a5), v0.t
+212.   10    0.0    0.0    0.0       slli	a5, t0, 3
+213.   10    0.0    0.0    0.0       vadd.vx	v10, v10, s11
+214.   10    0.0    0.0    0.0       sub	s0, s0, s11
+215.   10    0.0    0.0    0.0       add	a5, a5, s9
+216.   10    0.0    0.0    0.0       vsetvli	zero, zero, e64, m2, ta, mu
+217.   10    0.0    0.0    0.0       vle64.v	v16, (t2), v0.t
+218.   10    0.0    0.0    0.0       vxor.vv	v18, v22, v20, v0.t
+219.   10    0.0    0.0    0.0       vl2re64.v	v8, (a5)
+220.   10    0.0    0.0    0.0       add	t0, t0, s11
+221.   10    0.0    0.0    0.0       add	t2, t2, a7
+222.   10    0.0    0.0    0.0       vs2r.v	v18, (t3)
+223.   10    0.0    0.0    0.0       vxor.vv	v8, v8, v16
+224.   10    0.0    0.0    0.0       add	t3, t3, a7
+225.   10    0.0    0.0    0.0       vs2r.v	v8, (s1)
+226.   10    0.0    0.0    0.0       add	s1, s1, a7
+227.   10    0.0    0.0    0.0       add	a3, a3, a7
+228.   10    0.0    0.0    0.0       bnez	s0, .LBB1_11
+229.   10    0.0    0.0    0.0       bne	a6, t4, .LBB1_16
+230.   10    0.0    0.0    0.0       mv	s6, t1
+231.   10    0.0    0.0    0.0       mv	a3, t1
+232.   10    0.0    0.0    0.0       call	karatsuba_clmul
+233.   10    0.0    0.0    0.0       mv	a0, s4
+234.   10    0.0    0.0    0.0       li	a1, 0
+235.   10    0.0    0.0    0.0       mv	a2, s3
+236.   10    0.0    0.0    0.0       call	memset
+237.   10    0.0    0.0    0.0       andi	a0, s5, -2
+238.   10    0.0    0.0    0.0       ld	a6, 48(sp)
+239.   10    0.0    0.0    0.0       ld	s0, 40(sp)
+240.   10    0.0    0.0    0.0       beqz	a0, .LBB1_26
+241.   10    0.0    0.0    0.0       bgeu	a0, s11, .LBB1_21
+242.   10    0.0    0.0    0.0       li	a1, 0
+243.   10    0.0    0.0    0.0       j	.LBB1_24
+244.   10    0.0    0.0    0.0       li	s1, 0
+245.   10    0.0    0.0    0.0       ld	a5, 0(sp)
+246.   10    0.0    0.0    0.0       sub	a7, a5, s3
+247.   10    0.0    0.0    0.0       slli	a3, t4, 3
+248.   10    0.0    0.0    0.0       sub	s0, a5, t5
+249.   10    0.0    0.0    0.0       add	a5, t4, s8
+250.   10    0.0    0.0    0.0       add	t2, a7, a3
+251.   10    0.0    0.0    0.0       add	s0, s0, a3
+252.   10    0.0    0.0    0.0       slli	a5, a5, 3
+253.   10    0.0    0.0    0.0       add	a7, s7, a3
+254.   10    0.0    0.0    0.0       add	t0, s9, a3
+255.   10    0.0    0.0    0.0       add	s9, s9, a5
+256.   10    0.0    0.0    0.0       add	s7, s7, a5
+257.   10    0.0    0.0    0.0       ld	a5, 48(sp)
+258.   10    0.0    0.0    0.0       add	t2, t2, a5
+259.   10    0.0    0.0    0.0       add	t3, a5, s0
+260.   10    0.0    0.0    0.0       j	.LBB1_19
+261.   10    0.0    0.0    0.0       add	a5, a7, s1
+262.   10    0.0    0.0    0.0       ld	a3, 0(a3)
+263.   10    0.0    0.0    0.0       ld	s0, 0(a5)
+264.   10    0.0    0.0    0.0       add	a5, t0, s1
+265.   10    0.0    0.0    0.0       ld	t5, 0(a5)
+266.   10    0.0    0.0    0.0       xor	s0, s0, a3
+267.   10    0.0    0.0    0.0       add	a5, t2, s1
+268.   10    0.0    0.0    0.0       add	a3, s9, s1
+269.   10    0.0    0.0    0.0       ld	a3, 0(a3)
+270.   10    0.0    0.0    0.0       sd	s0, 0(a5)
+271.   10    0.0    0.0    0.0       add	a5, t3, s1
+272.   10    0.0    0.0    0.0       addi	t4, t4, 1
+273.   10    0.0    0.0    0.0       xor	a3, a3, t5
+274.   10    0.0    0.0    0.0       sd	a3, 0(a5)
+275.   10    0.0    0.0    0.0       addi	s1, s1, 8
+276.   10    0.0    0.0    0.0       beq	a6, t4, .LBB1_13
+277.   10    0.0    0.0    0.0       add	a3, s7, s1
+278.   10    0.0    0.0    0.0       bltu	t4, s8, .LBB1_17
+279.   10    0.0    0.0    0.0       ld	s0, 0(a3)
+280.   10    0.0    0.0    0.0       li	t5, 0
+281.   10    0.0    0.0    0.0       j	.LBB1_18
+282.   10    0.0    0.0    0.0       neg	a1, s11
+283.   10    0.0    0.0    0.0       and	a1, s5, a1
+284.   10    0.0    0.0    0.0       sub	a2, a1, s11
+285.   10    0.0    0.0    0.0       divu	a3, a2, s11
+286.   10    0.0    0.0    0.0       srli	a4, s0, 3
+287.   10    0.0    0.0    0.0       slli	a2, a4, 4
+288.   10    0.0    0.0    0.0       slli	a3, a3, 4
+289.   10    0.0    0.0    0.0       addi	a3, a3, 16
+290.   10    0.0    0.0    0.0       mul	a3, a3, a4
+291.   10    0.0    0.0    0.0       add	a3, a3, s4
+292.   10    0.0    0.0    0.0       mv	a4, a6
+293.   10    0.0    0.0    0.0       mv	a5, s4
+294.   10    0.0    0.0    0.0       vsetvli	s1, zero, e64, m2, ta, ma
+295.   10    0.0    0.0    0.0       vl2re64.v	v8, (a4)
+296.   10    0.0    0.0    0.0       vl2re64.v	v10, (a5)
+297.   10    0.0    0.0    0.0       vxor.vv	v8, v10, v8
+298.   10    0.0    0.0    0.0       vs2r.v	v8, (a5)
+299.   10    0.0    0.0    0.0       add	a5, a5, a2
+300.   10    0.0    0.0    0.0       add	a4, a4, a2
+301.   10    0.0    0.0    0.0       bne	a5, a3, .LBB1_22
+302.   10    0.0    0.0    0.0       beq	a0, a1, .LBB1_26
+303.   10    0.0    0.0    0.0       slli	a2, a1, 3
+304.   10    0.0    0.0    0.0       slli	a3, s8, 4
+305.   10    0.0    0.0    0.0       add	a1, s4, a2
+306.   10    0.0    0.0    0.0       add	a2, a2, a6
+307.   10    0.0    0.0    0.0       add	a3, a3, s4
+308.   10    0.0    0.0    0.0       ld	a4, 0(a2)
+309.   10    0.0    0.0    0.0       ld	a5, 0(a1)
+310.   10    0.0    0.0    0.0       xor	a4, a4, a5
+311.   10    0.0    0.0    0.0       sd	a4, 0(a1)
+312.   10    0.0    0.0    0.0       addi	a1, a1, 8
+313.   10    0.0    0.0    0.0       addi	a2, a2, 8
+314.   10    0.0    0.0    0.0       bne	a1, a3, .LBB1_25
+315.   10    0.0    0.0    0.0       slli	s6, s6, 1
+316.   10    0.0    0.0    0.0       beqz	s6, .LBB1_39
+317.   10    0.0    0.0    0.0       srli	a2, s0, 3
+318.   10    0.0    0.0    0.0       slli	s5, s5, 5
+319.   10    0.0    0.0    0.0       bgeu	s6, s11, .LBB1_29
+320.   10    0.0    0.0    0.0       li	a1, 0
+321.   10    0.0    0.0    0.0       j	.LBB1_32
+322.   10    0.0    0.0    0.0       slli	a3, a0, 3
+323.   10    0.0    0.0    0.0       neg	a1, s11
+324.   10    0.0    0.0    0.0       add	a3, a3, s4
+325.   10    0.0    0.0    0.0       and	a1, s6, a1
+326.   10    0.0    0.0    0.0       slli	a4, a2, 4
+327.   10    0.0    0.0    0.0       mv	a5, a1
+328.   10    0.0    0.0    0.0       vsetvli	s1, zero, e64, m2, ta, ma
+329.   10    0.0    0.0    0.0       vl2re64.v	v8, (s2)
+330.   10    0.0    0.0    0.0       vl2re64.v	v10, (a3)
+331.   10    0.0    0.0    0.0       sub	a5, a5, s11
+332.   10    0.0    0.0    0.0       vxor.vv	v8, v10, v8
+333.   10    0.0    0.0    0.0       vs2r.v	v8, (a3)
+334.   10    0.0    0.0    0.0       add	a3, a3, a4
+335.   10    0.0    0.0    0.0       add	s2, s2, a4
+336.   10    0.0    0.0    0.0       bnez	a5, .LBB1_30
+337.   10    0.0    0.0    0.0       beq	s6, a1, .LBB1_34
+338.   10    0.0    0.0    0.0       slli	a1, a1, 3
+339.   10    0.0    0.0    0.0       slli	s8, s8, 4
+340.   10    0.0    0.0    0.0       add	a3, s3, a1
+341.   10    0.0    0.0    0.0       add	a4, s8, a1
+342.   10    0.0    0.0    0.0       sub	a5, s5, s8
+343.   10    0.0    0.0    0.0       add	a1, a6, a3
+344.   10    0.0    0.0    0.0       add	a3, s4, a4
+345.   10    0.0    0.0    0.0       add	a4, a6, a5
+346.   10    0.0    0.0    0.0       ld	a5, 0(a1)
+347.   10    0.0    0.0    0.0       ld	s1, 0(a3)
+348.   10    0.0    0.0    0.0       addi	a1, a1, 8
+349.   10    0.0    0.0    0.0       xor	a5, a5, s1
+350.   10    0.0    0.0    0.0       sd	a5, 0(a3)
+351.   10    0.0    0.0    0.0       addi	a3, a3, 8
+352.   10    0.0    0.0    0.0       bne	a1, a4, .LBB1_33
+353.   10    0.0    0.0    0.0       bgeu	s6, s11, .LBB1_36
+354.   10    0.0    0.0    0.0       li	a1, 0
+355.   10    0.0    0.0    0.0       j	.LBB1_40
+356.   10    0.0    0.0    0.0       neg	a1, s11
+357.   10    0.0    0.0    0.0       and	a1, s6, a1
+358.   10    0.0    0.0    0.0       sub	a3, a1, s11
+359.   10    0.0    0.0    0.0       divu	a5, a3, s11
+360.   10    0.0    0.0    0.0       add	a3, s4, s10
+361.   10    0.0    0.0    0.0       vsetvli	a4, zero, e64, m2, ta, ma
+362.   10    0.0    0.0    0.0       vid.v	v8
+363.   10    0.0    0.0    0.0       slli	s0, a2, 4
+364.   10    0.0    0.0    0.0       slli	a5, a5, 4
+365.   10    0.0    0.0    0.0       addi	a5, a5, 16
+366.   10    0.0    0.0    0.0       mul	a2, a5, a2
+367.   10    0.0    0.0    0.0       add	a2, a2, a6
+368.   10    0.0    0.0    0.0       vmv.v.i	v10, 0
+369.   10    0.0    0.0    0.0       mv	a4, a6
+370.   10    0.0    0.0    0.0       vsetvli	zero, zero, e64, m2, ta, mu
+371.   10    0.0    0.0    0.0       vmsltu.vx	v0, v8, a0
+372.   10    0.0    0.0    0.0       vmv2r.v	v12, v10
+373.   10    0.0    0.0    0.0       add	s1, a4, s5
+374.   10    0.0    0.0    0.0       vle64.v	v12, (a4), v0.t
+375.   10    0.0    0.0    0.0       vl2re64.v	v14, (s1)
+376.   10    0.0    0.0    0.0       add	a5, a4, s3
+377.   10    0.0    0.0    0.0       vl2re64.v	v16, (a5)
+378.   10    0.0    0.0    0.0       vxor.vv	v12, v14, v12
+379.   10    0.0    0.0    0.0       vl2re64.v	v14, (a3)
+380.   10    0.0    0.0    0.0       vxor.vv	v12, v12, v16
+381.   10    0.0    0.0    0.0       vadd.vx	v8, v8, s11
+382.   10    0.0    0.0    0.0       add	a4, a4, s0
+383.   10    0.0    0.0    0.0       vxor.vv	v12, v12, v14
+384.   10    0.0    0.0    0.0       vs2r.v	v12, (a3)
+385.   10    0.0    0.0    0.0       add	a3, a3, s0
+386.   10    0.0    0.0    0.0       bne	a4, a2, .LBB1_37
+387.   10    0.0    0.0    0.0       bne	s6, a1, .LBB1_40
+388.   10    0.0    0.0    0.0       ld	ra, 152(sp)
+389.   10    0.0    0.0    0.0       ld	s0, 144(sp)
+390.   10    0.0    0.0    0.0       ld	s1, 136(sp)
+391.   10    0.0    0.0    0.0       ld	s2, 128(sp)
+392.   10    0.0    0.0    0.0       ld	s3, 120(sp)
+393.   10    0.0    0.0    0.0       ld	s4, 112(sp)
+394.   10    0.0    0.0    0.0       ld	s5, 104(sp)
+395.   10    0.0    0.0    0.0       ld	s6, 96(sp)
+396.   10    0.0    0.0    0.0       ld	s7, 88(sp)
+397.   10    0.0    0.0    0.0       ld	s8, 80(sp)
+398.   10    0.0    0.0    0.0       ld	s9, 72(sp)
+399.   10    0.0    0.0    0.0       ld	s10, 64(sp)
+400.   10    0.0    0.0    0.0       ld	s11, 56(sp)
+401.   10    0.0    0.0    0.0       addi	sp, sp, 160
+402.   10    0.0    0.0    0.0       ret
+403.   10    0.0    0.0    0.0       slli	a2, a1, 3
+404.   10    0.0    0.0    0.0       add	a3, s3, a2
+405.   10    0.0    0.0    0.0       add	a4, s5, a2
+406.   10    0.0    0.0    0.0       add	s10, s10, a2
+407.   10    0.0    0.0    0.0       add	a2, a2, a6
+408.   10    0.0    0.0    0.0       add	a3, a3, a6
+409.   10    0.0    0.0    0.0       add	a4, a4, a6
+410.   10    0.0    0.0    0.0       add	s4, s4, s10
+411.   10    0.0    0.0    0.0       j	.LBB1_43
+412.   10    0.0    0.0    0.0       ld	a5, 0(a2)
+413.   10    0.0    0.0    0.0       ld	s1, 0(a4)
+414.   10    0.0    0.0    0.0       ld	s0, 0(a3)
+415.   10    0.0    0.0    0.0       xor	a5, a5, s1
+416.   10    0.0    0.0    0.0       ld	s1, 0(s4)
+417.   10    0.0    0.0    0.0       addi	a1, a1, 1
+418.   10    0.0    0.0    0.0       addi	a3, a3, 8
+419.   10    0.0    0.0    0.0       addi	a4, a4, 8
+420.   10    0.0    0.0    0.0       addi	a2, a2, 8
+421.   10    0.0    0.0    0.0       xor	s0, s0, s1
+422.   10    0.0    0.0    0.0       xor	a5, a5, s0
+423.   10    0.0    0.0    0.0       sd	a5, 0(s4)
+424.   10    0.0    0.0    0.0       addi	s4, s4, 8
+425.   10    0.0    0.0    0.0       beq	s6, a1, .LBB1_39
+426.   10    0.0    0.0    0.0       bltu	a1, a0, .LBB1_41
+427.   10    0.0    0.0    0.0       li	a5, 0
+428.   10    0.0    0.0    0.0       j	.LBB1_42
+       10    0.0    0.0    0.0       <total>
