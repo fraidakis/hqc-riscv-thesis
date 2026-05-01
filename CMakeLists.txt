@@ -36,6 +36,13 @@ endif()
 set(BENCH_N_ITER 10 CACHE STRING "Iterations per benchmark operation (N_ITER)")
 message(STATUS "Benchmark N_ITER: ${BENCH_N_ITER}")
 
+# ── Hybrid Karatsuba depth (Phase 1c sweep) ───────────────────────────────────
+# Sets HYBRID_KARATSUBA_DEPTH for all hybrid_zbc targets.
+# 0 = pure FAFFT, 1 = one Karatsuba outer level (default), etc.
+# Override at configure time: cmake -DHYBRID_KARATSUBA_DEPTH=2 ..
+set(HYBRID_KARATSUBA_DEPTH 0 CACHE STRING "Karatsuba outer levels for hybrid_zbc (0=pure FAFFT, empirically optimal at HQC sizes)")
+message(STATUS "Hybrid Karatsuba depth: ${HYBRID_KARATSUBA_DEPTH}")
+
 # ── Upstream vendor root (registered as git submodule in Phase 0a) ────────────
 set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 
@@ -159,7 +166,16 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gft_mul_vi.c)
         elseif(POLYMUL STREQUAL "hybrid_zbc")
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc/hybrid.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc/hybrid.c
+                # FAFFT kernel sources reused from fafft_zbc
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/fafft_rvv.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/reduce.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gfmul_fft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/bitconversion.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_consts_gft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_ffft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/encode.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gft_mul_vi.c)
         elseif(POLYMUL STREQUAL "fafft_zvbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zvbc/fafft_vclmul.c)
@@ -206,6 +222,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
             # fafft_zvbc requires --isa=rv64gcv_zvbc on Spike at runtime.
             # run_kat.sh detects this compile-time definition and adjusts accordingly.
             target_compile_definitions(${KAT_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+        endif()
+        if(POLYMUL STREQUAL "hybrid_zbc")
+            target_compile_definitions(${KAT_TARGET} PRIVATE
+                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH})
         endif()
         set_target_properties(${KAT_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -261,6 +281,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "fafft_zvbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
         endif()
+        if(POLYMUL STREQUAL "hybrid_zbc")
+            target_compile_definitions(${BENCH_TARGET} PRIVATE
+                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH})
+        endif()
         set_target_properties(${BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
             LINK_DEPENDS "${LINKER_SCRIPT}"
@@ -301,6 +325,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         )
         if(POLYMUL STREQUAL "fafft_zvbc")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+        endif()
+        if(POLYMUL STREQUAL "hybrid_zbc")
+            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
+                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH})
         endif()
         set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
