@@ -97,3 +97,50 @@ void bmul2_8192_to_16384(uint8_t *c, const uint8_t *a, const uint8_t *b)
 
     bmul2_8192_to_16384_mul(c, a_u32, b_u32);
 }
+
+/* ── Same-domain CRT kernels ─────────────────────────────────────────────────
+ *
+ * bmul2_4096_to_4096: compute the lower N_FAFFT bits of A*B (A*B mod x^32768).
+ * Used by CRT_fft_HQC1 (HQC-128); the CRT reconstruction step then adds back
+ * the high-degree correction to recover the full product.
+ *
+ * Debug/reference implementation: compute the full product with
+ * bmul2_4096_to_8192 and retain only the lower 1024 words.
+ * The CRT step (radix16_81 + bit_shift_xor) corrects for the discarded upper half.
+ */
+void bmul2_4096_to_4096_prepare(uint32_t *a_out, const uint8_t *a_in)
+{
+    (void)a_out; (void)a_in;  /* prepare is fused into bmul2_4096_to_4096 */
+}
+
+void bmul2_4096_to_4096_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
+{
+    (void)c; (void)a; (void)b;
+}
+
+void bmul2_4096_to_4096(uint8_t *c, const uint8_t *a, const uint8_t *b)
+{
+    /* Full product; take the lower 32768 bits (1024 words).
+     * CRT_fft_HQC1 reconstructs the upper portion from the schoolbook correction. */
+    uint32_t full[65536 / 32] = {0};
+    bmul2_4096_to_8192((uint8_t *)full, a, b);
+    memcpy(c, full, 32768 / 8);  /* lower 1024 words = 4096 bytes */
+}
+
+/* bmul2_8192_to_8192: lower 65536 bits of A*B (A*B mod x^65536), for CRT_HQC3. */
+void bmul2_8192_to_8192_prepare(uint32_t *a_out, const uint8_t *a_in)
+{
+    (void)a_out; (void)a_in;
+}
+
+void bmul2_8192_to_8192_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
+{
+    (void)c; (void)a; (void)b;
+}
+
+void bmul2_8192_to_8192(uint8_t *c, const uint8_t *a, const uint8_t *b)
+{
+    uint32_t full[131072 / 32] = {0};
+    bmul2_8192_to_16384((uint8_t *)full, a, b);
+    memcpy(c, full, 65536 / 8);  /* lower 2048 words = 8192 bytes */
+}

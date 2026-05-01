@@ -48,10 +48,45 @@ additive butterfly overhead; expected to cross over at degree > 2^15 or with CRT
 (est. = bench run completed but exact CSV median not yet extracted; will be updated when
 CRT path activates and fafft_zbc reaches its final configuration)
 
-## Notes
+## CRT Decomposition Attempt (Phase 1b post-benchmark investigation)
 
-- This replaces the previous bootstrap path with a true FAFFT kernel path for polynomial multiplication.
-- CRT decomposition sources were imported and partially adapted, but are not active in `vect_mul` yet; next iteration should re-enable CRT path with correctness checks against current FAFFT baseline.
+The `CRT_fft_hqc1.c` / `CRT_fft_hqc3.c` files from Jang et al. were imported and
+build infrastructure wired up.  The CRT approach splits the ring product using:
+  - FAFFT ring product A*B mod φ_FAFFT  (smaller FFT domain: 32768-element for HQC-128)
+  - Schoolbook low-degree part via `radix16_81` / `radix16_193`
+  - CRT reconstruction via precomputed `p_inv` and sparse `bit_shift_xor` step
+
+**Why it failed to activate:**  The required kernel `bmul2_4096_to_4096` (used by
+`CRT_fft_HQC1`) performs the ring product in the 32768-element FAFFT domain.  In
+the existing bc_1/encode/btfy infrastructure, the forward path for the 32768-element
+domain requires bc_1_16384 (512-word input), but HQC-128's PARAM_N=17669 bits
+occupies 553 words > 512.  The kernel cannot be derived from existing bc_1 functions
+without the original authors' pre-reduction step or a different encoder.  Three
+variants were tested (encode + btfy_32768; direct bc_1_32768 + btfy_32768; full-product
+lower-half truncation) — all produced KAT failures (0/100).
+
+**Root cause:** HQC-128's PARAM_N (17669 bits) exceeds N_FAFFT/2 (16384 bits), the
+threshold at which the CRT's smaller FFT domain fits.  The CRT was designed for this
+case by Jang et al. but their implementation of bmul2_4096_to_4096 was not included
+in the imported sources.
+
+**Status:** `fafft.c` reverted to full-product path (bmul2_4096_to_8192 / bmul2_8192_to_16384).
+CRT and radix16 files remain in the repo as future reference.  Bench results unchanged.
+
+## Local Optimum Declaration
+
+After 1 CRT attempt (KAT failure) and analysis of remaining options:
+- RVV vectorization of btfy inner XOR loops: feasible, estimated ≤25% speedup
+  on the butterfly portion → ≤15% total vect_mul speedup.  Would still leave
+  fafft_zbc ~3-4× slower than karatsuba_zbc at HQC sizes.
+- prepare/mul amortization (one prepare reuse across two calls): feasible,
+  ~16% saving on double-vect_mul encaps path only.
+- Both insufficient to close the 4× gap vs karatsuba_zbc (354K instret).
+
+**Conclusion:** Pure FAFFT is structurally disadvantaged at HQC-128/192/256 sizes
+(degree ~17K-57K).  The FAFFT O(n log²n) advantage over Karatsuba only materialises
+at degree ≫ 2^15.  Further optimization of fafft_zbc alone cannot close the gap.
+Phase 1c (hybrid Karatsuba-FAFFT) is the correct next step.
 
 ## Produced/Updated Artifacts
 
