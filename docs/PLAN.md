@@ -22,6 +22,8 @@ For detailed literature review and five research proposals, see [`../HQC/1_Liter
 - [Phase 1a — Scalar Zbc Karatsuba (Weeks 2–4)](#phase-1a--scalar-zbc-karatsuba-weeks-24)
 - [Phase 1b — FAFFT with Zbc (Weeks 5–7)](#phase-1b--fafft-with-zbc-weeks-57)
 - [Phase 1c — Hybrid Zbc (Week 8)](#phase-1c--hybrid-zbc-week-8)
+- [Phase 1c — Hybrid Zbc (Week 8)](#phase-1c--hybrid-zbc-week-8)
+- [Phase 1d — Scalar Zbc Advanced Hybrid (2026 SotA)](#phase-1d--scalar-zbc-advanced-hybrid-2026-sota)
 - [Phase 1+ — Vectorised FAFFT with Zvbc (Weeks 9–10)](#phase-1--vectorised-fafft-with-zvbc-weeks-910)
 - [Phase 2 — RVV Keccak (Weeks 7–8 or as secondary branch)](#phase-2--rvv-keccak-weeks-7-8-or-as-secondary-branch)
 - [Phase 3 — RVV RM/RS Decoder (Weeks 8–9 or as secondary branch)](#phase-3--rvv-rmrs-decoder-weeks-8-9-or-as-secondary-branch)
@@ -146,6 +148,7 @@ Step 8: Benchmark all configurations on Spike + gem5
 | 1a | `karatsuba_zbc` | ≥ 2× on `vect_mul` | 0 | 600–800 | planned |
 | 1b | `fafft_zbc` | ≥ 3× over 1a | 1a | 1000–1200 | planned |
 | 1c | `hybrid_zbc` | crossover optimum | 1a+1b | 400–600 | planned |
+| 1d | `hybrid_zbc` (2-way split) | 2-way FAFFT-Karat hybrid | 1a+1b | ~300 | ✅ complete |
 | 1+ | `fafft_zvbc` | ≥ 4× over 1b | 1b | 500–700 | planned |
 | 2  | `*_rvv_keccak` | ≥ 2× Keccak throughput | 0b | 300–400 (reuse) | planned |
 | 3a | `*_rvv_rs_table` | ≥ 2× RS throughput | 0b | 200–300 (reuse) | planned |
@@ -277,9 +280,62 @@ Full KEM Spike benchmarks only at phase completion (add `--full`); runs in secon
 
 **Why it matters:** Jang et al. (Ref. 3.1) demonstrated that the CRT decomposition in Phase 1b eliminates padding overhead, making FAFFT competitive even for odd polynomial sizes. However, the outer-level Karatsuba overhead (5 XOR additions per level) is small with `clmul` base-case, so a **hybrid strategy** may outperform both pure algorithms. This phase confirms or refutes that hypothesis empirically on RISC-V.
 
+**Phase 1c Scoreboard (Spike ISS, N=1):**
+
+| Level   | FAFFT d=0 | Hybrid d=1 | Hybrid d=2 | Finding |
+|---------|-----------|------------|------------|---------|
+| HQC-128 | 1,463,531 | 4,390,073  | 13,160,159 | Monotonic degradation — each Karatsuba level triples FAFFT calls with no domain shrinkage |
+
+**Phase 1c Root Cause:** The 3-way recursive Karatsuba creates 3^d sub-problems each of size n/2^d, but the FAFFT kernel `bmul2_4096_to_8192` always processes the full-domain buffer (memcpy reads VEC_N_SIZE_64 words, bc runs over the full domain). Sub-problems do not shrink the FAFFT domain. Phase 1d fixes this.
+
 ---
 
-## Phase 1+ — Vectorised FAFFT with Zvbc (Weeks 9–10)
+## Phase 1d — Scalar Zbc Advanced Hybrid (2026 SotA)
+
+**Status: ✅ complete.** KAT passes 100/100 for all three levels. Benchmarks in `analysis/benchmarks/phase1d/`.
+
+**Goal:** Implement the 2026 state-of-the-art 2-way FAFFT-Karatsuba split from Jang et al. (2026), which mathematically eliminates the domain-padding overhead by using a half-domain FAFFT kernel with exactly the right size for the split sub-problems.
+
+**Algorithm — 2-Way FAFFT-Karatsuba Split:**
+
+Split f = f_lo + x^(2^d) * f_hi at the largest power-of-2 boundary:
+- HQC-128: d=14, SPLIT=256 words (16384 bits), HI=21 words
+- HQC-192: d=15, SPLIT=512 words (32768 bits), HI=49 words
+- HQC-256: d=15, SPLIT=512 words (32768 bits), HI=389 words
+
+Half-domain kernel (`bmul2_half`): built from existing bc/btfy primitives:
+- HQC-128: bc_1_16384 + btfy_32768 → ~50% cost of bmul2_4096_to_8192
+- HQC-192/256: bc_1_32768 + btfy_65536 → ~50% cost of bmul2_8192_to_16384
+
+Karatsuba middle term `(f_lo^f_hi)*(g_lo^g_hi)` also uses half-domain FAFFT.
+Residual `f_hi*g_hi` uses scalar Karatsuba+clmul (tiny sub-problem).
+
+**Why Iter 2 (CRT) was not implemented:** The CRT approach (Jang/Chen 2026) requires `bmul2_4096_to_4096` (same-domain ring product), which was attempted in Phase 1b but is not derivable from the current `bc_1/btfy` infrastructure (HQC-128 has 553 words, exceeding the 512-word limit of `bc_1_16384`). The CRT kernels in `gfmul_fft.c` exist as debug stubs only. This remains future work requiring the original Jang et al. source.
+
+**Why Iter 3 (Key Caching) was deferred:** Caching FFT-transformed keys requires exposing internal FAFFT state through the KEM framework (keypair/encaps/decaps). This is a significant API refactor beyond Phase 1d scope. It is noted in the thesis as a straightforward engineering task that can save one full FAFFT forward-transform per KEM operation.
+
+**Phase 1d Scoreboard (Spike ISS, N=1, vect_mul instret):**
+
+| Level   | Ph 1a Karatsuba+Zbc | Ph 1c FAFFT d=0 | Ph 1d 2-Way Split | Verdict |
+|---------|---------------------|-----------------|-------------------|---------|
+| HQC-128 | **354,187**         | 1,463,531       | 1,304,473         | Karatsuba wins by 3.68× |
+| HQC-192 | **1,078,641**       | 3,256,399       | 2,950,035         | Karatsuba wins by 2.73× |
+| HQC-256 | **2,257,476**       | 3,258,453       | 3,523,625         | Karatsuba wins by 1.56× |
+
+**Phase 1d Root Cause Analysis:**
+
+The 2-way split with half-domain FAFFT achieves ~10–11% improvement over pure FAFFT for HQC-128 and HQC-192, but **still loses to Karatsuba+Zbc by 2.7–3.7×**. The fundamental bottleneck is not the polynomial splitting strategy but the base-case cost:
+
+- Karatsuba+Zbc leaf multiply: `clmul+clmulh` = 2 instructions per 64×64-bit partial product
+- FAFFT half-domain kernel: btfy_32768 butterfly still processes ~1024 uint32_t elements of GFT constants, plus bc_1_16384 and encode/decode passes
+
+For HQC-256, the 2-way split is actually slightly slower (3.52M vs 3.26M) because the larger HI (389 words) makes the scalar karatsuba for C2 expensive.
+
+**Key finding:** On RISC-V with the Zbc extension, the `clmul` instruction reduces the Karatsuba base-case cost to 2 cycles per 64-bit word pair. This shifts the Karatsuba/FAFFT crossover point far to the right — FAFFT-based approaches only win for polynomials significantly larger than HQC's parameters (n ≲ 90K bits). For the thesis's conclusion, **Karatsuba+Zbc is the optimal pure-scalar strategy for all HQC parameter sets**.
+
+---
+
+ (Weeks 9–10)
 
 **Goal:** Replace scalar `clmul` butterflies with `vclmul.vv` (Zvbc extension),
 targeting ≥ 4× over `fafft_zbc` (≥ 14× over baseline). This is the upper-bound contribution for pure-software, standard-extension HQC.
@@ -514,4 +570,4 @@ After completing each phase:
 
 ---
 
-*Last updated: 2026-04-30. Phase 0 complete (KAT + Spike baselines committed). Phase 1a next.*
+*Last updated: 2026-05-01. Phase 1d complete (2-way FAFFT-Karatsuba split, KAT 100/100, Spike benchmarks committed). Finding: Karatsuba+Zbc outperforms all FAFFT-based approaches by 1.56–3.68× for HQC parameters on RISC-V with Zbc.*
