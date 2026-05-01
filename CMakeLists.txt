@@ -84,10 +84,11 @@ endif()
 # Phase 3 replaces these.  The code.c / fft.c wrappers remain vendor-sourced
 # regardless; only the leaf decode functions change.
 if(HQC_DECODE_IMPL STREQUAL "rvv")
-    # Phase 3: RVV FHT decoder + vluxei8.v RS syndrome computation
+    # Phase 3a: RVV RM FHT decoder while keeping scalar RS for correctness.
+    # Phase 3b can replace reed_solomon.c with src/decode/rvv/reed_solomon_rvv.c.
     set(DECODE_SOURCES
         ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
-        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_solomon_rvv.c
+        ${HQC_REF}/src/ref/reed_solomon.c
     )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon
@@ -148,7 +149,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "fafft_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/fafft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/fafft_rvv.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/fafft_rvv.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/reduce.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gfmul_fft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/bitconversion.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_consts_gft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_ffft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/encode.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gft_mul_vi.c)
         elseif(POLYMUL STREQUAL "hybrid_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc/hybrid.c)
