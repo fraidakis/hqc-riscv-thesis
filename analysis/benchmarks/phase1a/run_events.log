@@ -4,3 +4,27 @@
 2026-05-01T00:13:51 START  pid=22362  polymul_hqc256_karatsuba_zbc
 2026-05-01T00:13:51 END    polymul_hqc192_karatsuba_zbc  elapsed=0m0s  status=OK
 2026-05-01T00:13:51 END    polymul_hqc256_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T01:31:57 START  pid=44946  polymul_hqc128_karatsuba_zbc
+2026-05-01T01:31:57 START  pid=44957  kem_hqc128_karatsuba_zbc
+2026-05-01T01:31:57 END    polymul_hqc128_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T01:31:57 START  pid=44978  polymul_hqc192_karatsuba_zbc
+2026-05-01T01:31:57 START  pid=44989  kem_hqc192_karatsuba_zbc
+2026-05-01T01:31:57 START  pid=45006  polymul_hqc256_karatsuba_zbc
+2026-05-01T01:31:57 START  pid=45017  kem_hqc256_karatsuba_zbc
+2026-05-01T01:31:57 END    polymul_hqc192_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T01:31:57 END    polymul_hqc256_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T01:31:57 END    kem_hqc128_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T01:31:58 END    kem_hqc192_karatsuba_zbc  elapsed=0m1s  status=OK
+2026-05-01T01:31:58 END    kem_hqc256_karatsuba_zbc  elapsed=0m1s  status=OK
+2026-05-01T01:33:56 START  pid=46814  polymul_hqc128_karatsuba_zbc
+2026-05-01T01:33:56 START  pid=46831  kem_hqc128_karatsuba_zbc
+2026-05-01T01:33:56 END    polymul_hqc128_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T01:33:56 START  pid=46852  polymul_hqc192_karatsuba_zbc
+2026-05-01T01:33:56 START  pid=46863  kem_hqc192_karatsuba_zbc
+2026-05-01T01:33:56 START  pid=46880  polymul_hqc256_karatsuba_zbc
+2026-05-01T01:33:56 START  pid=46891  kem_hqc256_karatsuba_zbc
+2026-05-01T01:33:56 END    polymul_hqc192_karatsuba_zbc  elapsed=0m0s  status=OK
+2026-05-01T01:33:57 END    kem_hqc128_karatsuba_zbc  elapsed=0m1s  status=OK
+2026-05-01T01:33:57 END    polymul_hqc256_karatsuba_zbc  elapsed=0m1s  status=OK
+2026-05-01T01:33:57 END    kem_hqc192_karatsuba_zbc  elapsed=0m1s  status=OK
+2026-05-01T01:33:58 END    kem_hqc256_karatsuba_zbc  elapsed=0m2s  status=OK
