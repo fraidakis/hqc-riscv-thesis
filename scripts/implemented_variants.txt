@@ -2,3 +2,5 @@ karatsuba_ref
 karatsuba_zbc
 fafft_zbc
 hybrid_zbc
+fafft_zvbc
+karatsuba_zvbc

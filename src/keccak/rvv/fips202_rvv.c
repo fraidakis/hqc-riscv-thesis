@@ -1,32 +1,24 @@
 /* src/keccak/rvv/fips202_rvv.c
  *
- * Phase 2 — RVV-vectorised Keccak-f[1600] and HQC-specific SHAKE-256 wrappers.
+ * Phase 2 — RVV-vectorised Keccak-f[1600] and full fips202.h drop-in.
  *
- * This file replaces vendor/hqc-ref/lib/fips202/fips202.c when
- * HQC_KECCAK_IMPL=rvv is selected (cmake -DHQC_KECCAK_IMPL=rvv).
+ * Design:
+ *   ─ All single-stream API functions (shake256, sha3_256, etc.) use a clean
+ *     scalar Keccak-f[1600] that is bit-for-bit identical to the PQClean ref.
+ *   ─ shake256_x4() uses 4-way interleaved RVV Keccak-f for batch processing
+ *     of 4 independent SHAKE-256 instances in parallel (VLEN=256, SEW=64,
+ *     LMUL=1: exactly 4 lanes per vector register).
  *
- * Source of the RVV Keccak core:
- *   Zhang et al., "Keccak on RVV" (ePrint 2023/xxx).
- *   Multi-instance vectorised Keccak-f[1600] with 4-way interleaving.
+ * 4-way state layout (AoS→SoA):
+ *   vuint64m1_t st[25]  — st[i] holds lane i of all 4 concurrent instances.
+ *   With vl=4, every vector instruction processes all 4 instances at once.
  *
- * HQC-specific observations that make RVV Keccak attractive here:
- *   1. seed_expand() (PRF for sparse vector generation) calls SHAKE-256 with a
- *      fresh 32-byte seed + 1-byte domain separator, producing 32–64 bytes of
- *      output per call.  This pattern repeats ≥2×(HQC_N / 8) times per KEM
- *      operation — ideal for 4-way interleaving (4 seeds processed in parallel
- *      across the vector lanes of one logical Keccak-f[1600] evaluation).
- *   2. prng_update() calls SHA3-256 for DRBG reseed — single-call, not in a hot
- *      loop; RVV overhead here is noise.
- *
- * This file provides:
- *   shake256()              — same signature as fips202.h
- *   shake256_4way()         — 4-instance interleaved entry point for seed_expand
- *
- * To be included: Zhang et al.'s Keccak-f[1600] RVV round function and the
- * theta/rho/pi/chi/iota step assembly or C-with-builtins port.
- *
- * TODO: import Zhang et al. core, adapt to HQC API (shake256 must match
- *       fips202.h exactly), add 4-way wrapper for seed_expand.
+ * Round structure (one Keccak-f round, 4-way):
+ *   θ: C[x] = XOR of column x across 5 rows; D[x] = C[x-1] ^ ROL(C[x+1],1)
+ *             processed as 5 separate vuint64m1_t operations (vl=4 throughout)
+ *   ρ+π combined: temp[π(i)] = ROL(st[i], ρ_offset[i]) with fixed amounts
+ *   χ:  st[5y+x] ^= (~temp[5y+(x+1)%5]) & temp[5y+(x+2)%5]
+ *   ι:  st[0] ^= round_constant  (vxor.vx)
  */
 
 #include <stdint.h>
@@ -35,9 +27,631 @@
 #include <riscv_vector.h>
 #include "fips202.h"
 
-void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Section 1 — Scalar Keccak-f[1600]  (used by all single-stream functions)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+#define NROUNDS 24
+#define ROL(a, offset) (((a) << (offset)) ^ ((a) >> (64 - (offset))))
+
+static const uint64_t keccak_round_constants[NROUNDS] = {
+    0x0000000000000001ULL, 0x0000000000008082ULL,
+    0x800000000000808aULL, 0x8000000080008000ULL,
+    0x000000000000808bULL, 0x0000000080000001ULL,
+    0x8000000080008081ULL, 0x8000000000008009ULL,
+    0x000000000000008aULL, 0x0000000000000088ULL,
+    0x0000000080008009ULL, 0x000000008000000aULL,
+    0x000000008000808bULL, 0x800000000000008bULL,
+    0x8000000000008089ULL, 0x8000000000008003ULL,
+    0x8000000000008002ULL, 0x8000000000000080ULL,
+    0x000000000000800aULL, 0x800000008000000aULL,
+    0x8000000080008081ULL, 0x8000000000008080ULL,
+    0x0000000080000001ULL, 0x8000000080008008ULL
+};
+
+/* Scalar Keccak-f[1600] permutation — unrolled 2-round loop, PQClean style */
+static void KeccakF1600_StatePermute(uint64_t *state)
 {
-    (void)out; (void)outlen; (void)in; (void)inlen;
-    /* TODO: Phase 2 implementation */
-    __builtin_trap();
+    int round;
+    uint64_t Aba, Abe, Abi, Abo, Abu;
+    uint64_t Aga, Age, Agi, Ago, Agu;
+    uint64_t Aka, Ake, Aki, Ako, Aku;
+    uint64_t Ama, Ame, Ami, Amo, Amu;
+    uint64_t Asa, Ase, Asi, Aso, Asu;
+    uint64_t BCa, BCe, BCi, BCo, BCu;
+    uint64_t Da, De, Di, Do, Du;
+    uint64_t Eba, Ebe, Ebi, Ebo, Ebu;
+    uint64_t Ega, Ege, Egi, Ego, Egu;
+    uint64_t Eka, Eke, Eki, Eko, Eku;
+    uint64_t Ema, Eme, Emi, Emo, Emu;
+    uint64_t Esa, Ese, Esi, Eso, Esu;
+
+    Aba = state[0];  Abe = state[1];  Abi = state[2];  Abo = state[3];  Abu = state[4];
+    Aga = state[5];  Age = state[6];  Agi = state[7];  Ago = state[8];  Agu = state[9];
+    Aka = state[10]; Ake = state[11]; Aki = state[12]; Ako = state[13]; Aku = state[14];
+    Ama = state[15]; Ame = state[16]; Ami = state[17]; Amo = state[18]; Amu = state[19];
+    Asa = state[20]; Ase = state[21]; Asi = state[22]; Aso = state[23]; Asu = state[24];
+
+    for (round = 0; round < NROUNDS; round += 2) {
+        BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
+        BCe = Abe ^ Age ^ Ake ^ Ame ^ Ase;
+        BCi = Abi ^ Agi ^ Aki ^ Ami ^ Asi;
+        BCo = Abo ^ Ago ^ Ako ^ Amo ^ Aso;
+        BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
+
+        Da = BCu ^ ROL(BCe, 1); De = BCa ^ ROL(BCi, 1);
+        Di = BCe ^ ROL(BCo, 1); Do = BCi ^ ROL(BCu, 1); Du = BCo ^ ROL(BCa, 1);
+
+        Aba ^= Da; BCa = Aba;
+        Age ^= De; BCe = ROL(Age, 44);
+        Aki ^= Di; BCi = ROL(Aki, 43);
+        Amo ^= Do; BCo = ROL(Amo, 21);
+        Asu ^= Du; BCu = ROL(Asu, 14);
+        Eba = BCa ^ ((~BCe) & BCi); Eba ^= keccak_round_constants[round];
+        Ebe = BCe ^ ((~BCi) & BCo);
+        Ebi = BCi ^ ((~BCo) & BCu);
+        Ebo = BCo ^ ((~BCu) & BCa);
+        Ebu = BCu ^ ((~BCa) & BCe);
+
+        Abo ^= Do; BCa = ROL(Abo, 28);
+        Agu ^= Du; BCe = ROL(Agu, 20);
+        Aka ^= Da; BCi = ROL(Aka, 3);
+        Ame ^= De; BCo = ROL(Ame, 45);
+        Asi ^= Di; BCu = ROL(Asi, 61);
+        Ega = BCa ^ ((~BCe) & BCi);
+        Ege = BCe ^ ((~BCi) & BCo);
+        Egi = BCi ^ ((~BCo) & BCu);
+        Ego = BCo ^ ((~BCu) & BCa);
+        Egu = BCu ^ ((~BCa) & BCe);
+
+        Abe ^= De; BCa = ROL(Abe, 1);
+        Agi ^= Di; BCe = ROL(Agi, 6);
+        Ako ^= Do; BCi = ROL(Ako, 25);
+        Amu ^= Du; BCo = ROL(Amu, 8);
+        Asa ^= Da; BCu = ROL(Asa, 18);
+        Eka = BCa ^ ((~BCe) & BCi);
+        Eke = BCe ^ ((~BCi) & BCo);
+        Eki = BCi ^ ((~BCo) & BCu);
+        Eko = BCo ^ ((~BCu) & BCa);
+        Eku = BCu ^ ((~BCa) & BCe);
+
+        Abu ^= Du; BCa = ROL(Abu, 27);
+        Aga ^= Da; BCe = ROL(Aga, 36);
+        Ake ^= De; BCi = ROL(Ake, 10);
+        Ami ^= Di; BCo = ROL(Ami, 15);
+        Aso ^= Do; BCu = ROL(Aso, 56);
+        Ema = BCa ^ ((~BCe) & BCi);
+        Eme = BCe ^ ((~BCi) & BCo);
+        Emi = BCi ^ ((~BCo) & BCu);
+        Emo = BCo ^ ((~BCu) & BCa);
+        Emu = BCu ^ ((~BCa) & BCe);
+
+        Abi ^= Di; BCa = ROL(Abi, 62);
+        Ago ^= Do; BCe = ROL(Ago, 55);
+        Aku ^= Du; BCi = ROL(Aku, 39);
+        Ama ^= Da; BCo = ROL(Ama, 41);
+        Ase ^= De; BCu = ROL(Ase, 2);
+        Esa = BCa ^ ((~BCe) & BCi);
+        Ese = BCe ^ ((~BCi) & BCo);
+        Esi = BCi ^ ((~BCo) & BCu);
+        Eso = BCo ^ ((~BCu) & BCa);
+        Esu = BCu ^ ((~BCa) & BCe);
+
+        /* Round + 1 */
+        BCa = Eba ^ Ega ^ Eka ^ Ema ^ Esa;
+        BCe = Ebe ^ Ege ^ Eke ^ Eme ^ Ese;
+        BCi = Ebi ^ Egi ^ Eki ^ Emi ^ Esi;
+        BCo = Ebo ^ Ego ^ Eko ^ Emo ^ Eso;
+        BCu = Ebu ^ Egu ^ Eku ^ Emu ^ Esu;
+
+        Da = BCu ^ ROL(BCe, 1); De = BCa ^ ROL(BCi, 1);
+        Di = BCe ^ ROL(BCo, 1); Do = BCi ^ ROL(BCu, 1); Du = BCo ^ ROL(BCa, 1);
+
+        Eba ^= Da; BCa = Eba;
+        Ege ^= De; BCe = ROL(Ege, 44);
+        Eki ^= Di; BCi = ROL(Eki, 43);
+        Emo ^= Do; BCo = ROL(Emo, 21);
+        Esu ^= Du; BCu = ROL(Esu, 14);
+        Aba = BCa ^ ((~BCe) & BCi); Aba ^= keccak_round_constants[round + 1];
+        Abe = BCe ^ ((~BCi) & BCo);
+        Abi = BCi ^ ((~BCo) & BCu);
+        Abo = BCo ^ ((~BCu) & BCa);
+        Abu = BCu ^ ((~BCa) & BCe);
+
+        Ebo ^= Do; BCa = ROL(Ebo, 28);
+        Egu ^= Du; BCe = ROL(Egu, 20);
+        Eka ^= Da; BCi = ROL(Eka, 3);
+        Eme ^= De; BCo = ROL(Eme, 45);
+        Esi ^= Di; BCu = ROL(Esi, 61);
+        Aga = BCa ^ ((~BCe) & BCi);
+        Age = BCe ^ ((~BCi) & BCo);
+        Agi = BCi ^ ((~BCo) & BCu);
+        Ago = BCo ^ ((~BCu) & BCa);
+        Agu = BCu ^ ((~BCa) & BCe);
+
+        Ebe ^= De; BCa = ROL(Ebe, 1);
+        Egi ^= Di; BCe = ROL(Egi, 6);
+        Eko ^= Do; BCi = ROL(Eko, 25);
+        Emu ^= Du; BCo = ROL(Emu, 8);
+        Esa ^= Da; BCu = ROL(Esa, 18);
+        Aka = BCa ^ ((~BCe) & BCi);
+        Ake = BCe ^ ((~BCi) & BCo);
+        Aki = BCi ^ ((~BCo) & BCu);
+        Ako = BCo ^ ((~BCu) & BCa);
+        Aku = BCu ^ ((~BCa) & BCe);
+
+        Ebu ^= Du; BCa = ROL(Ebu, 27);
+        Ega ^= Da; BCe = ROL(Ega, 36);
+        Eke ^= De; BCi = ROL(Eke, 10);
+        Emi ^= Di; BCo = ROL(Emi, 15);
+        Eso ^= Do; BCu = ROL(Eso, 56);
+        Ama = BCa ^ ((~BCe) & BCi);
+        Ame = BCe ^ ((~BCi) & BCo);
+        Ami = BCi ^ ((~BCo) & BCu);
+        Amo = BCo ^ ((~BCu) & BCa);
+        Amu = BCu ^ ((~BCa) & BCe);
+
+        Ebi ^= Di; BCa = ROL(Ebi, 62);
+        Ego ^= Do; BCe = ROL(Ego, 55);
+        Eku ^= Du; BCi = ROL(Eku, 39);
+        Ema ^= Da; BCo = ROL(Ema, 41);
+        Ese ^= De; BCu = ROL(Ese, 2);
+        Asa = BCa ^ ((~BCe) & BCi);
+        Ase = BCe ^ ((~BCi) & BCo);
+        Asi = BCi ^ ((~BCo) & BCu);
+        Aso = BCo ^ ((~BCu) & BCa);
+        Asu = BCu ^ ((~BCa) & BCe);
+    }
+
+    state[0]  = Aba; state[1]  = Abe; state[2]  = Abi; state[3]  = Abo; state[4]  = Abu;
+    state[5]  = Aga; state[6]  = Age; state[7]  = Agi; state[8]  = Ago; state[9]  = Agu;
+    state[10] = Aka; state[11] = Ake; state[12] = Aki; state[13] = Ako; state[14] = Aku;
+    state[15] = Ama; state[16] = Ame; state[17] = Ami; state[18] = Amo; state[19] = Amu;
+    state[20] = Asa; state[21] = Ase; state[22] = Asi; state[23] = Aso; state[24] = Asu;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Section 2 — Helper: load/store 64-bit words in little-endian order
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+static inline uint64_t load64_le(const uint8_t *x)
+{
+    uint64_t r = 0;
+    for (size_t i = 0; i < 8; i++)
+        r |= (uint64_t)x[i] << (8 * i);
+    return r;
+}
+
+static inline void store64_le(uint8_t *x, uint64_t u)
+{
+    for (size_t i = 0; i < 8; i++)
+        x[i] = (uint8_t)(u >> (8 * i));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Section 3 — Scalar absorb / squeeze helpers
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+static void keccak_absorb(uint64_t *s, uint32_t r, const uint8_t *m, size_t mlen, uint8_t p)
+{
+    size_t i;
+    uint8_t t[200];
+
+    for (i = 0; i < 25; i++)
+        s[i] = 0;
+
+    while (mlen >= r) {
+        for (i = 0; i < r / 8; i++)
+            s[i] ^= load64_le(m + 8 * i);
+        KeccakF1600_StatePermute(s);
+        mlen -= r;
+        m += r;
+    }
+
+    for (i = 0; i < r; i++)
+        t[i] = 0;
+    for (i = 0; i < mlen; i++)
+        t[i] = m[i];
+    t[i] = p;
+    t[r - 1] |= 128;
+    for (i = 0; i < r / 8; i++)
+        s[i] ^= load64_le(t + 8 * i);
+}
+
+static void keccak_squeezeblocks(uint8_t *h, size_t nblocks, uint64_t *s, uint32_t r)
+{
+    while (nblocks > 0) {
+        KeccakF1600_StatePermute(s);
+        for (size_t i = 0; i < (r >> 3); i++)
+            store64_le(h + 8 * i, s[i]);
+        h += r;
+        nblocks--;
+    }
+}
+
+static void keccak_inc_init(uint64_t *s_inc)
+{
+    for (size_t i = 0; i < 25; i++)
+        s_inc[i] = 0;
+    s_inc[25] = 0;
+}
+
+static void keccak_inc_absorb(uint64_t *s_inc, uint32_t r, const uint8_t *m, size_t mlen)
+{
+    size_t i;
+    while (mlen + s_inc[25] >= r) {
+        for (i = 0; i < r - (uint32_t)s_inc[25]; i++)
+            s_inc[(s_inc[25] + i) >> 3] ^= (uint64_t)m[i] << (8 * ((s_inc[25] + i) & 0x07));
+        mlen -= (size_t)(r - s_inc[25]);
+        m += r - s_inc[25];
+        s_inc[25] = 0;
+        KeccakF1600_StatePermute(s_inc);
+    }
+    for (i = 0; i < mlen; i++)
+        s_inc[(s_inc[25] + i) >> 3] ^= (uint64_t)m[i] << (8 * ((s_inc[25] + i) & 0x07));
+    s_inc[25] += mlen;
+}
+
+static void keccak_inc_finalize(uint64_t *s_inc, uint32_t r, uint8_t p)
+{
+    s_inc[s_inc[25] >> 3] ^= (uint64_t)p << (8 * (s_inc[25] & 0x07));
+    s_inc[(r - 1) >> 3] ^= (uint64_t)128 << (8 * ((r - 1) & 0x07));
+    s_inc[25] = 0;
+}
+
+static void keccak_inc_squeeze(uint8_t *h, size_t outlen, uint64_t *s_inc, uint32_t r)
+{
+    size_t i;
+    for (i = 0; i < outlen && i < s_inc[25]; i++)
+        h[i] = (uint8_t)(s_inc[(r - s_inc[25] + i) >> 3] >> (8 * ((r - s_inc[25] + i) & 0x07)));
+    h += i;
+    outlen -= i;
+    s_inc[25] -= i;
+
+    while (outlen > 0) {
+        KeccakF1600_StatePermute(s_inc);
+        for (i = 0; i < outlen && i < r; i++)
+            h[i] = (uint8_t)(s_inc[i >> 3] >> (8 * (i & 0x07)));
+        h += i;
+        outlen -= i;
+        s_inc[25] = r - i;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Section 4 — Public single-stream API (drop-in for fips202.h)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+void shake128_absorb(shake128ctx *state, const uint8_t *input, size_t inlen)
+{
+    keccak_absorb(state->ctx, SHAKE128_RATE, input, inlen, 0x1F);
+}
+
+void shake128_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state)
+{
+    keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE128_RATE);
+}
+
+void shake128_inc_init(shake128incctx *state)    { keccak_inc_init(state->ctx); }
+void shake128_inc_absorb(shake128incctx *state, const uint8_t *input, size_t inlen)
+    { keccak_inc_absorb(state->ctx, SHAKE128_RATE, input, inlen); }
+void shake128_inc_finalize(shake128incctx *state) { keccak_inc_finalize(state->ctx, SHAKE128_RATE, 0x1F); }
+void shake128_inc_squeeze(uint8_t *output, size_t outlen, shake128incctx *state)
+    { keccak_inc_squeeze(output, outlen, state->ctx, SHAKE128_RATE); }
+
+void shake256_absorb(shake256ctx *state, const uint8_t *input, size_t inlen)
+{
+    keccak_absorb(state->ctx, SHAKE256_RATE, input, inlen, 0x1F);
+}
+
+void shake256_squeezeblocks(uint8_t *output, size_t nblocks, shake256ctx *state)
+{
+    keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE256_RATE);
+}
+
+void shake256_inc_init(shake256incctx *state)    { keccak_inc_init(state->ctx); }
+void shake256_inc_absorb(shake256incctx *state, const uint8_t *input, size_t inlen)
+    { keccak_inc_absorb(state->ctx, SHAKE256_RATE, input, inlen); }
+void shake256_inc_finalize(shake256incctx *state) { keccak_inc_finalize(state->ctx, SHAKE256_RATE, 0x1F); }
+void shake256_inc_squeeze(uint8_t *output, size_t outlen, shake256incctx *state)
+    { keccak_inc_squeeze(output, outlen, state->ctx, SHAKE256_RATE); }
+
+void shake128(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen)
+{
+    size_t nblocks = outlen / SHAKE128_RATE;
+    uint8_t t[SHAKE128_RATE];
+    shake128ctx s;
+    shake128_absorb(&s, input, inlen);
+    shake128_squeezeblocks(output, nblocks, &s);
+    output += nblocks * SHAKE128_RATE;
+    outlen -= nblocks * SHAKE128_RATE;
+    if (outlen) {
+        shake128_squeezeblocks(t, 1, &s);
+        for (size_t i = 0; i < outlen; i++)
+            output[i] = t[i];
+    }
+}
+
+void shake256(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen)
+{
+    size_t nblocks = outlen / SHAKE256_RATE;
+    uint8_t t[SHAKE256_RATE];
+    shake256ctx s;
+    shake256_absorb(&s, input, inlen);
+    shake256_squeezeblocks(output, nblocks, &s);
+    output += nblocks * SHAKE256_RATE;
+    outlen -= nblocks * SHAKE256_RATE;
+    if (outlen) {
+        shake256_squeezeblocks(t, 1, &s);
+        for (size_t i = 0; i < outlen; i++)
+            output[i] = t[i];
+    }
+}
+
+void sha3_256_inc_init(sha3_256incctx *state)    { keccak_inc_init(state->ctx); }
+void sha3_256_inc_absorb(sha3_256incctx *state, const uint8_t *input, size_t inlen)
+    { keccak_inc_absorb(state->ctx, SHA3_256_RATE, input, inlen); }
+void sha3_256_inc_finalize(uint8_t *output, sha3_256incctx *state)
+{
+    uint8_t t[SHA3_256_RATE];
+    keccak_inc_finalize(state->ctx, SHA3_256_RATE, 0x06);
+    keccak_squeezeblocks(t, 1, state->ctx, SHA3_256_RATE);
+    for (size_t i = 0; i < 32; i++)
+        output[i] = t[i];
+}
+
+void sha3_256(uint8_t *output, const uint8_t *input, size_t inlen)
+{
+    uint64_t s[25];
+    uint8_t t[SHA3_256_RATE];
+    keccak_absorb(s, SHA3_256_RATE, input, inlen, 0x06);
+    keccak_squeezeblocks(t, 1, s, SHA3_256_RATE);
+    for (size_t i = 0; i < 32; i++)
+        output[i] = t[i];
+}
+
+void sha3_384_inc_init(sha3_384incctx *state)    { keccak_inc_init(state->ctx); }
+void sha3_384_inc_absorb(sha3_384incctx *state, const uint8_t *input, size_t inlen)
+    { keccak_inc_absorb(state->ctx, SHA3_384_RATE, input, inlen); }
+void sha3_384_inc_finalize(uint8_t *output, sha3_384incctx *state)
+{
+    uint8_t t[SHA3_384_RATE];
+    keccak_inc_finalize(state->ctx, SHA3_384_RATE, 0x06);
+    keccak_squeezeblocks(t, 1, state->ctx, SHA3_384_RATE);
+    for (size_t i = 0; i < 48; i++)
+        output[i] = t[i];
+}
+
+void sha3_384(uint8_t *output, const uint8_t *input, size_t inlen)
+{
+    uint64_t s[25];
+    uint8_t t[SHA3_384_RATE];
+    keccak_absorb(s, SHA3_384_RATE, input, inlen, 0x06);
+    keccak_squeezeblocks(t, 1, s, SHA3_384_RATE);
+    for (size_t i = 0; i < 48; i++)
+        output[i] = t[i];
+}
+
+void sha3_512_inc_init(sha3_512incctx *state)    { keccak_inc_init(state->ctx); }
+void sha3_512_inc_absorb(sha3_512incctx *state, const uint8_t *input, size_t inlen)
+    { keccak_inc_absorb(state->ctx, SHA3_512_RATE, input, inlen); }
+void sha3_512_inc_finalize(uint8_t *output, sha3_512incctx *state)
+{
+    uint8_t t[SHA3_512_RATE];
+    keccak_inc_finalize(state->ctx, SHA3_512_RATE, 0x06);
+    keccak_squeezeblocks(t, 1, state->ctx, SHA3_512_RATE);
+    for (size_t i = 0; i < 64; i++)
+        output[i] = t[i];
+}
+
+void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen)
+{
+    uint64_t s[25];
+    uint8_t t[SHA3_512_RATE];
+    keccak_absorb(s, SHA3_512_RATE, input, inlen, 0x06);
+    keccak_squeezeblocks(t, 1, s, SHA3_512_RATE);
+    for (size_t i = 0; i < 64; i++)
+        output[i] = t[i];
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Section 5 — 4-way interleaved RVV Keccak-f[1600]
+ *
+ * Layout: vuint64m1_t st[25] — st[i] = lane i for all 4 instances.
+ * VLEN=256, SEW=64, LMUL=1 → vl = 4 exactly.
+ *
+ * π inverse permutation (pi_src[dest] = src):
+ *   {0,6,12,18,24, 3,9,10,16,22, 1,7,13,19,20, 4,5,11,17,23, 2,8,14,15,21}
+ *
+ * Combined ρ+π rotation amounts (rho_pi_rot[dest] = rho[pi_src[dest]]):
+ *   { 0,44,43,21,14, 28,20, 3,45,61,  1, 6,25, 8,18, 27,36,10,15,56, 62,55,39,41, 2}
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Helper: rotate-left each 64-bit element by a compile-time constant */
+#define VROL(v, off, vl) \
+    __riscv_vor_vv_u64m1( \
+        __riscv_vsll_vx_u64m1((v), (off), (vl)), \
+        __riscv_vsrl_vx_u64m1((v), (uint64_t)(64-(off)), (vl)), \
+        (vl))
+
+/* 4-way Keccak-f[1600] round function operating on SoA state st[25] */
+static void keccak_f1600_x4_rvv(vuint64m1_t st[25], size_t vl)
+{
+    vuint64m1_t C0, C1, C2, C3, C4;
+    vuint64m1_t D0, D1, D2, D3, D4;
+    vuint64m1_t B[25];
+
+    for (int round = 0; round < NROUNDS; round++) {
+        /* ── θ ── */
+        C0 = __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[0], st[5], vl),
+             __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[10], st[15], vl), st[20], vl), vl);
+        C1 = __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[1], st[6], vl),
+             __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[11], st[16], vl), st[21], vl), vl);
+        C2 = __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[2], st[7], vl),
+             __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[12], st[17], vl), st[22], vl), vl);
+        C3 = __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[3], st[8], vl),
+             __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[13], st[18], vl), st[23], vl), vl);
+        C4 = __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[4], st[9], vl),
+             __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(st[14], st[19], vl), st[24], vl), vl);
+
+        D0 = __riscv_vxor_vv_u64m1(C4, VROL(C1, 1, vl), vl);
+        D1 = __riscv_vxor_vv_u64m1(C0, VROL(C2, 1, vl), vl);
+        D2 = __riscv_vxor_vv_u64m1(C1, VROL(C3, 1, vl), vl);
+        D3 = __riscv_vxor_vv_u64m1(C2, VROL(C4, 1, vl), vl);
+        D4 = __riscv_vxor_vv_u64m1(C3, VROL(C0, 1, vl), vl);
+
+        for (int x = 0; x < 5; x++) {
+            st[x]      = __riscv_vxor_vv_u64m1(st[x],      D0, vl);
+            st[x +  5] = __riscv_vxor_vv_u64m1(st[x +  5], D1, vl);
+            st[x + 10] = __riscv_vxor_vv_u64m1(st[x + 10], D2, vl);
+            st[x + 15] = __riscv_vxor_vv_u64m1(st[x + 15], D3, vl);
+            st[x + 20] = __riscv_vxor_vv_u64m1(st[x + 20], D4, vl);
+        }
+
+        /* ── ρ + π combined ──
+         * B[dest] = VROL(st[pi_src[dest]], rho_pi_rot[dest])
+         * pi_src  = {0,6,12,18,24, 3,9,10,16,22, 1,7,13,19,20, 4,5,11,17,23, 2,8,14,15,21}
+         * rho_rot = {0,44,43,21,14,28,20, 3,45,61, 1, 6,25, 8,18,27,36,10,15,56,62,55,39,41, 2}
+         */
+        B[0]  = st[0];                    /* rot=0  */
+        B[1]  = VROL(st[6],  44, vl);
+        B[2]  = VROL(st[12], 43, vl);
+        B[3]  = VROL(st[18], 21, vl);
+        B[4]  = VROL(st[24], 14, vl);
+        B[5]  = VROL(st[3],  28, vl);
+        B[6]  = VROL(st[9],  20, vl);
+        B[7]  = VROL(st[10],  3, vl);
+        B[8]  = VROL(st[16], 45, vl);
+        B[9]  = VROL(st[22], 61, vl);
+        B[10] = VROL(st[1],   1, vl);
+        B[11] = VROL(st[7],   6, vl);
+        B[12] = VROL(st[13], 25, vl);
+        B[13] = VROL(st[19],  8, vl);
+        B[14] = VROL(st[20], 18, vl);
+        B[15] = VROL(st[4],  27, vl);
+        B[16] = VROL(st[5],  36, vl);
+        B[17] = VROL(st[11], 10, vl);
+        B[18] = VROL(st[17], 15, vl);
+        B[19] = VROL(st[23], 56, vl);
+        B[20] = VROL(st[2],  62, vl);
+        B[21] = VROL(st[8],  55, vl);
+        B[22] = VROL(st[14], 39, vl);
+        B[23] = VROL(st[15], 41, vl);
+        B[24] = VROL(st[21],  2, vl);
+
+        /* ── χ ──  st[5y+x] = B[5y+x] ^ (~B[5y+(x+1)%5]) & B[5y+(x+2)%5] */
+#define CHI_ROW(base) \
+        st[base+0] = __riscv_vxor_vv_u64m1(B[base+0], \
+            __riscv_vand_vv_u64m1(__riscv_vnot_v_u64m1(B[base+1], vl), B[base+2], vl), vl); \
+        st[base+1] = __riscv_vxor_vv_u64m1(B[base+1], \
+            __riscv_vand_vv_u64m1(__riscv_vnot_v_u64m1(B[base+2], vl), B[base+3], vl), vl); \
+        st[base+2] = __riscv_vxor_vv_u64m1(B[base+2], \
+            __riscv_vand_vv_u64m1(__riscv_vnot_v_u64m1(B[base+3], vl), B[base+4], vl), vl); \
+        st[base+3] = __riscv_vxor_vv_u64m1(B[base+3], \
+            __riscv_vand_vv_u64m1(__riscv_vnot_v_u64m1(B[base+4], vl), B[base+0], vl), vl); \
+        st[base+4] = __riscv_vxor_vv_u64m1(B[base+4], \
+            __riscv_vand_vv_u64m1(__riscv_vnot_v_u64m1(B[base+0], vl), B[base+1], vl), vl)
+
+        CHI_ROW(0);
+        CHI_ROW(5);
+        CHI_ROW(10);
+        CHI_ROW(15);
+        CHI_ROW(20);
+#undef CHI_ROW
+
+        /* ── ι ── */
+        st[0] = __riscv_vxor_vx_u64m1(st[0], keccak_round_constants[round], vl);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Section 6 — 4-way SHAKE-256 public API
+ *
+ * shake256_x4(): absorb 4 independent inputs and produce 4 independent outputs
+ * in one pass using the 4-way interleaved permutation.
+ *
+ * Inputs/outputs are provided as arrays of 4 pointers. All 4 inputs must
+ * have the same length (inlen); all 4 outputs must have the same length (outlen).
+ * (HQC's seed expansion satisfies this: same seed size for every stream.)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+void shake256_x4(uint8_t *out0, uint8_t *out1, uint8_t *out2, uint8_t *out3,
+                 size_t outlen,
+                 const uint8_t *in0, const uint8_t *in1,
+                 const uint8_t *in2, const uint8_t *in3,
+                 size_t inlen)
+{
+    const size_t RATE = SHAKE256_RATE; /* 136 bytes */
+
+    /* vl = min(4, VLMAX).  With VLEN=256 and LMUL=1 this is 4. */
+    size_t vl = __riscv_vsetvl_e64m1(4);
+
+    /* SoA state: st[i] = lane i of all 4 instances, as a 4-element u64 vector */
+    vuint64m1_t st[25];
+    for (int i = 0; i < 25; i++)
+        st[i] = __riscv_vmv_v_x_u64m1(0, vl);
+
+    /* ── absorb ── */
+    const uint8_t *in[4] = {in0, in1, in2, in3};
+    size_t rem = inlen;
+
+    /* Full-rate blocks */
+    while (rem >= RATE) {
+        for (size_t w = 0; w < RATE / 8; w++) {
+            uint64_t lane[4];
+            for (int j = 0; j < 4; j++)
+                lane[j] = load64_le(in[j] + 8 * w);
+            st[w] = __riscv_vxor_vv_u64m1(st[w], __riscv_vle64_v_u64m1(lane, vl), vl);
+        }
+        keccak_f1600_x4_rvv(st, vl);
+        for (int j = 0; j < 4; j++)
+            in[j] += RATE;
+        rem -= RATE;
+    }
+
+    /* Final partial block + padding (0x1F suffix, 0x80 at byte rate-1) */
+    {
+        uint8_t pad[4][200] = {{0}};
+        for (int j = 0; j < 4; j++) {
+            for (size_t b = 0; b < rem; b++)
+                pad[j][b] = in[j][b];
+            pad[j][rem] = 0x1F;
+            pad[j][RATE - 1] |= 0x80;
+        }
+        for (size_t w = 0; w < RATE / 8; w++) {
+            uint64_t lane[4];
+            for (int j = 0; j < 4; j++)
+                lane[j] = load64_le(pad[j] + 8 * w);
+            st[w] = __riscv_vxor_vv_u64m1(st[w], __riscv_vle64_v_u64m1(lane, vl), vl);
+        }
+    }
+
+    /* ── squeeze ── */
+    uint8_t *outp[4] = {out0, out1, out2, out3};
+    size_t left = outlen;
+
+    while (left > 0) {
+        keccak_f1600_x4_rvv(st, vl);
+
+        size_t take = (left < RATE) ? left : RATE;
+        /* Extract RATE bytes per instance */
+        for (size_t w = 0; w < (take + 7) / 8; w++) {
+            /* Store lane w of all 4 instances to a temp array then scatter */
+            uint64_t lane[4];
+            __riscv_vse64_v_u64m1(lane, st[w], vl);
+            size_t byte_off = 8 * w;
+            for (int j = 0; j < 4; j++) {
+                size_t copy = (take - byte_off < 8) ? (take - byte_off) : 8;
+                if (byte_off < take) {
+                    uint8_t tmp[8];
+                    store64_le(tmp, lane[j]);
+                    for (size_t b = 0; b < copy; b++)
+                        outp[j][byte_off + b] = tmp[b];
+                }
+            }
+        }
+        for (int j = 0; j < 4; j++)
+            outp[j] += take;
+        left -= take;
+    }
 }
