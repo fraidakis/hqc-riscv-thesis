@@ -164,7 +164,12 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_consts_gft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_ffft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/encode.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gft_mul_vi.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gft_mul_vi.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/CRT_fft_hqc1.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/CRT_fft_hqc3.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/radix16_base.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/radix16_81.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/radix16_193.c)
         elseif(POLYMUL STREQUAL "hybrid_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc/hybrid.c

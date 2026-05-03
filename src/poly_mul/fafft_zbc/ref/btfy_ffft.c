@@ -6,6 +6,7 @@
 
 #include "gft_mul_vi.h"
 
+#include "btfy_rvv.h"
 
 static
 void (* gft_mul_vi [12]) (uint32_t * x, const uint32_t * y);
@@ -30,46 +31,32 @@ void btfy_layer( uint32_t* data, int datalen , int si )
   int k=0;
   {
     // count = 0;
-    //si_a = 0;
     uint32_t *data_k = data+k;
     for(int i=0;i<len;i+=32) {
-      //gf232v_mulscalar_gf16(temp,&data_k[len+i],si_a);
-      // temp = 0;
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) {
-        data_k[i+j] ^= temp2[j];
-        data_k[len+i+j] ^= data_k[i+j];
-      }
+      rvv_btf_xor32_1src(data_k+i, data_k+len+i, temp2);
     }
     k += blk_size;
     count++;
   }
   if(k<datalen) {
     // count = 1;
-    //si_a = 2;
     uint32_t *data_k = data+k;
     for(int i=0;i<len;i+=32) {
       gf232v_mul_0x2(temp,&data_k[len+i]);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) {
-        data_k[i+j] ^= temp[j]^temp2[j];
-        data_k[len+i+j] ^= data_k[i+j];
-      }
+      rvv_btf_xor32_2src(data_k+i, data_k+len+i, temp, temp2);
     }
     k += blk_size;
     count++;
   }
   if(k<datalen) {
     // count = 2;
-    //si_a = 5;
     uint32_t *data_k = data+k;
     for(int i=0;i<len;i+=32) {
       gf232v_mul_0x5(temp,&data_k[len+i]);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) {
-        data_k[i+j] ^= temp[j]^temp2[j];
-        data_k[len+i+j] ^= data_k[i+j];
-      }
+      rvv_btf_xor32_2src(data_k+i, data_k+len+i, temp, temp2);
     }
     k += blk_size;
     count++;
@@ -81,19 +68,13 @@ void btfy_layer( uint32_t* data, int datalen , int si )
     for(int i=0;i<len;i+=32) {
       gf232v_mulscalar_gf16(temp,&data_k[len+i],si_a);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) {
-        data_k[i+j] ^= temp[j]^temp2[j];
-        data_k[len+i+j] ^= data_k[i+j];
-      }
+      rvv_btf_xor32_2src(data_k+i, data_k+len+i, temp, temp2);
     }
     else // if (256 > si_a )
     for(int i=0;i<len;i+=32) {
       gf232v_mulscalar_gf256(temp,&data_k[len+i],si_a);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) {
-        data_k[i+j] ^= temp[j]^temp2[j];
-        data_k[len+i+j] ^= data_k[i+j];
-      }
+      rvv_btf_xor32_2src(data_k+i, data_k+len+i, temp, temp2);
     }
   }
 
@@ -110,7 +91,6 @@ void btfy_layer_s4( uint32_t*data, int datalen )
 {
   uint32_t tmp[32];
   uint32_t tmp2[32];
-  uint32_t temp;
 
   const uint32_t *ptr;
   int pi;
@@ -119,16 +99,11 @@ void btfy_layer_s4( uint32_t*data, int datalen )
   ptr = s4_gf16_vec;
   pi = 0;
   while(i<datalen) {
-    // reorder data
-    for(int j=0;j<32;j++) {
-      SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0000ffff, 16, temp);
-    }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0000ffff, 16);
     gf232v_mul_gf16( tmp , data+i+32 , ptr+(pi<<2) );
     (*gft_mul_vi[4])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     if( (++pi) >= S4_GF16_NUMX32 ) break;
   }
@@ -136,17 +111,11 @@ void btfy_layer_s4( uint32_t*data, int datalen )
   ptr = s4_gf256_vec;
   pi = 0;
   while(i<datalen) {
-	  
-    // reorder data
-    for(int j=0;j<32;j++) {
-  	  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0000ffff, 16, temp);
-  }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0000ffff, 16);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[4])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     ++pi;
   }
@@ -159,8 +128,6 @@ void btfy_layer_s3( uint32_t*data, int datalen )
 {
 	uint32_t tmp[32];
 	uint32_t tmp2[32];
-  
-	uint32_t temp;
 
 	const uint32_t *ptr;
 	int pi;
@@ -169,16 +136,11 @@ void btfy_layer_s3( uint32_t*data, int datalen )
 	ptr = s3_gf256_vec;
 	pi = 0;
 	while (i < datalen) {
-		// reorder data
-		for (int j = 0; j < 32; j++) {
-			SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x00ff00ff, 8, temp);
-		}
+		// reorder data (Iter 3: RVV SWAPMOVE)
+		RVV_SWAPMOVE32(data+i, data+i+32, 0x00ff00ff, 8);
 		gf232v_mul_gf256(tmp, data + i + 32, ptr + (pi << 3));
 		(*gft_mul_vi[3])(tmp2, data + i + 32);
-		for (int j = 0; j < 32; j++) {
-			data[i + j] ^= tmp[j] ^ tmp2[j];
-			data[i + 32 + j] ^= data[i + j];
-		}
+		rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
 		i += 64;
 		if ((++pi) >= S3_GF256_NUMX32) break;
 	}
@@ -186,44 +148,14 @@ void btfy_layer_s3( uint32_t*data, int datalen )
 	ptr = s3_gf216_vec;
 	pi = 0;
 	while (i < datalen) {
-
-		// reorder data
-		for (int j = 0; j < 32; j++) {
-			SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x00ff00ff, 8, temp);
-		}
+		// reorder data (Iter 3: RVV SWAPMOVE)
+		RVV_SWAPMOVE32(data+i, data+i+32, 0x00ff00ff, 8);
 		gf232v_mul_gf216(tmp, data + i + 32, ptr + (pi << 4));
 		(*gft_mul_vi[3])(tmp2, data + i + 32);
-		for (int j = 0; j < 32; j++) {
-			data[i + j] ^= tmp[j] ^ tmp2[j];
-			data[i + 32 + j] ^= data[i + j];
-		}
+		rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
 		i += 64;
 		++pi;
 	}
-	//const uint32_t *ptr = s3_gf256_vec;
-	//uint32_t tmp[32];
-	//uint32_t tmp2[32];
-	////new code block
-	//uint32_t temp;
-
-	//for (int i = 0; i < datalen; i += 64) {
-	//	// reorder data
-	//	for (int j = 0; j < 32; j++) {
-	//		//uint32_t data_l = (data[i+j]&~MASK_S3)|((data[i+32+j]&~MASK_S3)<<8);
-	//		//uint32_t data_h = ((data[i+j]&MASK_S3)>>8)|(data[i+32+j]&MASK_S3);
-	//		//data[i+j] = data_l;
-	//		//data[i+32+j] = data_h;
-	//		  //new code block
-	//		SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x00ff00ff, 8, temp);
-	//	}
-	//	gf232v_mul_gf256(tmp, data + i + 32, ptr + (i >> 3));  // (i>>1)*S4_WIDTH/32
-	//	(*gft_mul_vi[3])(tmp2, data + i + 32);
-
-	//	for (int j = 0; j < 32; j++) {
-	//		data[i + j] ^= tmp[j] ^ tmp2[j];
-	//		data[i + 32 + j] ^= data[i + j];
-	//	}
-	//}
 }
 
 
@@ -234,9 +166,6 @@ void btfy_layer_s2( uint32_t*data, int datalen )
   uint32_t tmp[32];
   uint32_t tmp2[32];
 
-  //new code block
-  uint32_t temp;
-
   const uint32_t *ptr;
   int pi;
 
@@ -244,16 +173,11 @@ void btfy_layer_s2( uint32_t*data, int datalen )
   ptr = s2_gf256_vec;
   pi = 0;
   while(i<datalen) {
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0f0f0f0f, 4, temp);
-    }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0f0f0f0f, 4);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[2])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     if( (++pi) >= S2_GF256_NUMX32 ) break;
   }
@@ -261,17 +185,11 @@ void btfy_layer_s2( uint32_t*data, int datalen )
   ptr = s2_gf216_vec;
   pi = 0;
   while(i<datalen) {
-	  
-    // reorder data
-    for(int j=0;j<32;j++) {
-      SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0f0f0f0f, 4, temp);
-    }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0f0f0f0f, 4);
     gf232v_mul_gf216( tmp , data+i+32 , ptr+(pi<<4) );
     (*gft_mul_vi[2])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     ++pi;
   }
@@ -285,8 +203,6 @@ void btfy_layer_s1( uint32_t*data, int datalen )
 {
   uint32_t tmp[32];
   uint32_t tmp2[32];
-  //new code block
-  uint32_t temp;
 
   const uint32_t *ptr;
   int pi;
@@ -295,16 +211,11 @@ void btfy_layer_s1( uint32_t*data, int datalen )
   ptr = s1_gf256_vec;
   pi = 0;
   while(i<datalen) {
-    // reorder data
-    for(int j=0;j<32;j++) {
-      SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x33333333, 2, temp);
-    }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x33333333, 2);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[1])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     if( (++pi) >= S1_GF256_NUMX32 ) break;
   }
@@ -312,16 +223,11 @@ void btfy_layer_s1( uint32_t*data, int datalen )
   ptr = s1_gf216_vec;
   pi = 0;
   while(i<datalen) {
-    // reorder data
-    for(int j=0;j<32;j++) {
-      SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x33333333, 2, temp);
-	  }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x33333333, 2);
     gf232v_mul_gf216( tmp , data+i+32 , ptr+(pi<<4) );
     (*gft_mul_vi[1])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     ++pi;
   }
@@ -335,8 +241,6 @@ void btfy_layer_s0( uint32_t*data, int datalen )
 {
   uint32_t tmp[32];
   uint32_t tmp2[32];
-  //new code block
-  uint32_t temp;
 
   const uint32_t *ptr;
   int pi;
@@ -345,16 +249,11 @@ void btfy_layer_s0( uint32_t*data, int datalen )
   ptr = s0_gf256_vec;
   pi = 0;
   while(i<datalen) {
-    // reorder data
-    for(int j=0;j<32;j++) {
-	    SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x55555555, 1, temp);
-    }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x55555555, 1);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[0])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     if( (++pi) >= S0_GF256_NUMX32 ) break;
   }
@@ -362,16 +261,11 @@ void btfy_layer_s0( uint32_t*data, int datalen )
   ptr = s0_gf216_vec;
   pi = 0;
   while(i<datalen) {
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x55555555, 1, temp);
-    }
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x55555555, 1);
     gf232v_mul_gf216( tmp , data+i+32 , ptr+(pi<<4) );
     (*gft_mul_vi[0])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) {
-      data[i+j] ^= tmp[j]^tmp2[j];
-      data[i+32+j] ^= data[i+j];
-    }
+    rvv_btf_xor32_2src(data+i, data+i+32, tmp, tmp2);
     i+=64;
     ++pi;
   }
@@ -497,40 +391,35 @@ void ibtfy_layer( uint32_t* data, int datalen , int si )
   int k=0;
   {
     // count = 0;
-    //si_a = 0;
     uint32_t *data_k = data+k;
     for(int i=0;i<len;i+=32) {
-      for(int j=0;j<32;j++) { data_k[len+i+j] ^= data_k[i+j]; }
-      //gf232v_mulscalar_gf16(temp,&data_k[len+i],si_a);
-      // temp = 0;
+      rvv_ibtf_xor32_hi(data_k+i, data_k+len+i);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) { data_k[i+j] ^= temp2[j]; }
+      rvv_ibtf_xor32_lo_1src(data_k+i, temp2);
     }
     k += blk_size;
     count++;
   }
   if(k<datalen) {
     // count = 1;
-    //si_a = 2;
     uint32_t *data_k = data+k;
     for(int i=0;i<len;i+=32) {
-      for(int j=0;j<32;j++) { data_k[len+i+j] ^= data_k[i+j]; }
+      rvv_ibtf_xor32_hi(data_k+i, data_k+len+i);
       gf232v_mul_0x2(temp,&data_k[len+i]);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) { data_k[i+j] ^= temp[j]^temp2[j]; }
+      rvv_ibtf_xor32_lo_2src(data_k+i, temp, temp2);
     }
     k += blk_size;
     count++;
   }
   if(k<datalen) {
     // count = 2;
-    //si_a = 5;
     uint32_t *data_k = data+k;
     for(int i=0;i<len;i+=32) {
-      for(int j=0;j<32;j++) { data_k[len+i+j] ^= data_k[i+j]; }
+      rvv_ibtf_xor32_hi(data_k+i, data_k+len+i);
       gf232v_mul_0x5(temp,&data_k[len+i]);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) { data_k[i+j] ^= temp[j]^temp2[j]; }
+      rvv_ibtf_xor32_lo_2src(data_k+i, temp, temp2);
     }
     k += blk_size;
     count++;
@@ -542,17 +431,17 @@ void ibtfy_layer( uint32_t* data, int datalen , int si )
     uint32_t *data_k = data+k;
     if( 16 > si_a )
     for(int i=0;i<len;i+=32) {
-      for(int j=0;j<32;j++) { data_k[len+i+j] ^= data_k[i+j]; }
+      rvv_ibtf_xor32_hi(data_k+i, data_k+len+i);
       gf232v_mulscalar_gf16(temp,&data_k[len+i],si_a);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) { data_k[i+j] ^= temp[j]^temp2[j]; }
+      rvv_ibtf_xor32_lo_2src(data_k+i, temp, temp2);
     }
     else // if (256 > si_a )
     for(int i=0;i<len;i+=32) {
-      for(int j=0;j<32;j++) { data_k[len+i+j] ^= data_k[i+j]; }
+      rvv_ibtf_xor32_hi(data_k+i, data_k+len+i);
       gf232v_mulscalar_gf256(temp,&data_k[len+i],si_a);
       (*gft_mul_vi[si])( temp2 , &data_k[len+i] );
-      for(int j=0;j<32;j++) { data_k[i+j] ^= temp[j]^temp2[j]; }
+      rvv_ibtf_xor32_lo_2src(data_k+i, temp, temp2);
     }
   }
  
@@ -569,8 +458,6 @@ void ibtfy_layer_s4( uint32_t*data, int datalen )
 {
   uint32_t tmp[32];
   uint32_t tmp2[32];
-  //new code block
-  uint32_t temp;
 
   const uint32_t *ptr;
   int pi;
@@ -579,16 +466,12 @@ void ibtfy_layer_s4( uint32_t*data, int datalen )
   ptr = s4_gf16_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf16( tmp , data+i+32 , ptr+(pi<<2) );
     (*gft_mul_vi[4])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0000ffff, 16, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0000ffff, 16);
     i+=64;
     if( (++pi) >= S4_GF16_NUMX32 ) break;
   }
@@ -596,16 +479,12 @@ void ibtfy_layer_s4( uint32_t*data, int datalen )
   ptr = s4_gf256_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[4])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0000ffff, 16, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0000ffff, 16);
     i+=64;
     ++pi;
   }
@@ -618,8 +497,6 @@ void ibtfy_layer_s3( uint32_t*data, int datalen )
 {
 	uint32_t tmp[32];
 	uint32_t tmp2[32];
-	//new code block
-	uint32_t temp;
 
 	const uint32_t *ptr;
 	int pi;
@@ -628,16 +505,12 @@ void ibtfy_layer_s3( uint32_t*data, int datalen )
 	ptr = s3_gf256_vec;
 	pi = 0;
 	while (i < datalen) {
-		for (int j = 0; j < 32; j++) { data[i + 32 + j] ^= data[i + j]; }
+		rvv_ibtf_xor32_hi(data+i, data+i+32);
 		gf232v_mul_gf256(tmp, data + i + 32, ptr + (pi << 3));
 		(*gft_mul_vi[3])(tmp2, data + i + 32);
-		for (int j = 0; j < 32; j++) { data[i + j] ^= tmp[j] ^ tmp2[j]; }
-
-		// reorder data
-		for (int j = 0; j < 32; j++) {
-			SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x00ff00ff, 8, temp);
-		}
-
+		rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+		// reorder data (Iter 3: RVV SWAPMOVE)
+		RVV_SWAPMOVE32(data+i, data+i+32, 0x00ff00ff, 8);
 		i += 64;
 		if ((++pi) >= S3_GF256_NUMX32) break;
 	}
@@ -645,42 +518,15 @@ void ibtfy_layer_s3( uint32_t*data, int datalen )
 	ptr = s3_gf216_vec;
 	pi = 0;
 	while (i < datalen) {
-		for (int j = 0; j < 32; j++) { data[i + 32 + j] ^= data[i + j]; }
+		rvv_ibtf_xor32_hi(data+i, data+i+32);
 		gf232v_mul_gf216(tmp, data + i + 32, ptr + (pi << 4));
 		(*gft_mul_vi[3])(tmp2, data + i + 32);
-		for (int j = 0; j < 32; j++) { data[i + j] ^= tmp[j] ^ tmp2[j]; }
-
-		// reorder data
-		for (int j = 0; j < 32; j++) {
-			SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x00ff00ff, 8, temp);
-		}
-
+		rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+		// reorder data (Iter 3: RVV SWAPMOVE)
+		RVV_SWAPMOVE32(data+i, data+i+32, 0x00ff00ff, 8);
 		i += 64;
 		++pi;
 	}
-	//const uint32_t *ptr = s3_gf256_vec;
-	//uint32_t tmp[32];
-	//uint32_t tmp2[32];
-	////new code block
-	//uint32_t temp;
-
-	//for (int i = 0; i < datalen; i += 64) {
-	//	for (int j = 0; j < 32; j++) { data[i + 32 + j] ^= data[i + j]; }
-	//	gf232v_mul_gf256(tmp, data + i + 32, ptr + (i >> 3));  // (i>>1)*S4_WIDTH/32
-	//	(*gft_mul_vi[3])(tmp2, data + i + 32);
-
-	//	for (int j = 0; j < 32; j++) { data[i + j] ^= tmp[j] ^ tmp2[j]; }
-
-	//	// reorder data
-	//	for (int j = 0; j < 32; j++) {
-	//		//uint32_t data_l = (data[i+j]&~MASK_S3)|((data[i+32+j]&~MASK_S3)<<8);
-	//		//uint32_t data_h = ((data[i+j]&MASK_S3)>>8)|(data[i+32+j]&MASK_S3);
-	//		//data[i+j] = data_l;
-	//		//data[i+32+j] = data_h;
-	//		  //new code block
-	//		SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x00ff00ff, 8, temp);
-	//	}
-	//}
 }
 
 
@@ -691,8 +537,6 @@ void ibtfy_layer_s2( uint32_t*data, int datalen )
 {
   uint32_t tmp[32];
   uint32_t tmp2[32];
-  //new code block
-  uint32_t temp;
 
   const uint32_t *ptr;
   int pi;
@@ -701,16 +545,12 @@ void ibtfy_layer_s2( uint32_t*data, int datalen )
   ptr = s2_gf256_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[2])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0f0f0f0f, 4, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0f0f0f0f, 4);
     i+=64;
     if( (++pi) >= S2_GF256_NUMX32 ) break;
   }
@@ -718,16 +558,12 @@ void ibtfy_layer_s2( uint32_t*data, int datalen )
   ptr = s2_gf216_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf216( tmp , data+i+32 , ptr+(pi<<4) );
     (*gft_mul_vi[2])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-	    SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x0f0f0f0f, 4, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x0f0f0f0f, 4);
     i+=64;
     ++pi;
   }
@@ -741,8 +577,6 @@ void ibtfy_layer_s1( uint32_t*data, int datalen )
 {
   uint32_t tmp[32];
   uint32_t tmp2[32];
-  //new code block
-  uint32_t temp;
 
   const uint32_t *ptr;
   int pi;
@@ -751,16 +585,12 @@ void ibtfy_layer_s1( uint32_t*data, int datalen )
   ptr = s1_gf256_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[1])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x33333333, 2, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x33333333, 2);
     i+=64;
     if( (++pi) >= S1_GF256_NUMX32 ) break;
   }
@@ -768,16 +598,12 @@ void ibtfy_layer_s1( uint32_t*data, int datalen )
   ptr = s1_gf216_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf216( tmp , data+i+32 , ptr+(pi<<4) );
     (*gft_mul_vi[1])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x33333333, 2, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x33333333, 2);
     i+=64;
     ++pi;
   }
@@ -791,8 +617,6 @@ void ibtfy_layer_s0( uint32_t*data, int datalen )
 {
   uint32_t tmp[32];
   uint32_t tmp2[32];
-  //new code block
-  uint32_t temp;
 
   const uint32_t *ptr;
   int pi;
@@ -801,16 +625,12 @@ void ibtfy_layer_s0( uint32_t*data, int datalen )
   ptr = s0_gf256_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf256( tmp , data+i+32 , ptr+(pi<<3) );
     (*gft_mul_vi[0])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-		  SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x55555555, 1, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x55555555, 1);
     i+=64;
     if( (++pi) >= S0_GF256_NUMX32 ) break;
   }
@@ -818,16 +638,12 @@ void ibtfy_layer_s0( uint32_t*data, int datalen )
   ptr = s0_gf216_vec;
   pi = 0;
   while(i<datalen) {
-    for(int j=0;j<32;j++) { data[i+32+j] ^= data[i+j]; }
+    rvv_ibtf_xor32_hi(data+i, data+i+32);
     gf232v_mul_gf216( tmp , data+i+32 , ptr+(pi<<4) );
     (*gft_mul_vi[0])( tmp2 , data+i+32 );
-    for(int j=0;j<32;j++) { data[i+j] ^= tmp[j]^tmp2[j]; }
-
-    // reorder data
-    for(int j=0;j<32;j++) {
-	    SWAPMOVE_ASM(data[i + j], data[i + 32 + j], 0x55555555, 1, temp);
-    }
-
+    rvv_ibtf_xor32_lo_2src(data+i, tmp, tmp2);
+    // reorder data (Iter 3: RVV SWAPMOVE)
+    RVV_SWAPMOVE32(data+i, data+i+32, 0x55555555, 1);
     i+=64;
     ++pi;
   }
