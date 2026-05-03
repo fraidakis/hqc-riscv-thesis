@@ -1,3 +1,5 @@
+add_compile_options(-pg)
+add_link_options(-pg)
 cmake_minimum_required(VERSION 3.21)
 project(hqc-riscv C ASM)
 
@@ -171,12 +173,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/radix16_81.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/radix16_193.c)
         elseif(POLYMUL STREQUAL "hybrid_zbc")
+            # Phase 1b-3: Jang et al. 2026 2-way FAFFT-Karatsuba split.
+            # hybrid_v2.c: split at 2^14 bits for HQC-128 (SPLIT_WORDS=256),
+            # C0/C_mid via half-domain FAFFT (btfy_32768), C2 via scalar clmul.
+            # Inherits all phase1b RVV optimisations (bc_1_256 block-parallel,
+            # gf232v_mul LMUL=2 accumulation) from shared fafft_zbc/ref/ sources.
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc/hybrid.c
-                # FAFFT kernel sources reused from fafft_zbc
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/fafft_rvv.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/reduce.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gfmul_fft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc/hybrid_v2.c
+                # FAFFT half-domain kernel sources (subset of fafft_zbc)
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/bitconversion.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_consts_gft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/btfy_ffft.c
@@ -251,7 +255,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
         endif()
         if(POLYMUL STREQUAL "hybrid_zbc")
             target_compile_definitions(${KAT_TARGET} PRIVATE
-                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH})
+                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
+                HQC_POLYMUL_HYBRID_KEYCACHE=1)
+            # vect_mul_keycache.h is included by hqc.c via #ifdef guard
+            target_include_directories(${KAT_TARGET} BEFORE PRIVATE
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc)
         endif()
         set_target_properties(${KAT_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -313,7 +321,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         endif()
         if(POLYMUL STREQUAL "hybrid_zbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE
-                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH})
+                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
+                HQC_POLYMUL_HYBRID_KEYCACHE=1)
+            target_include_directories(${BENCH_TARGET} BEFORE PRIVATE
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc)
         endif()
         set_target_properties(${BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -362,7 +373,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         endif()
         if(POLYMUL STREQUAL "hybrid_zbc")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
-                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH})
+                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
+                HQC_POLYMUL_HYBRID_KEYCACHE=1)
+            target_include_directories(${POLYMUL_BENCH_TARGET} BEFORE PRIVATE
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc)
         endif()
         set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"

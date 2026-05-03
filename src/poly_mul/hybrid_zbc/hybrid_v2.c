@@ -437,3 +437,108 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
 }
 
 #endif /* USE_LEGACY_HYBRID */
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Iter 3 — Key Caching: shared r2 forward transform
+ * ═══════════════════════════════════════════════════════════════════════
+ * In hqc_pke_encrypt, r2 is multiplied with BOTH h and s:
+ *   u   = r2*h  (for ciphertext u)
+ *   tmp = r2*s  (for ciphertext v)
+ *
+ * Each vect_mul call invokes half_prepare(r2_lo) + half_prepare(r2_mid).
+ * This function computes both products in one call, sharing the two
+ * forward transforms of r2 — saving 2 × half_prepare.
+ *
+ * Stack budget (HQC-128): ~45 KB peak (well within 512 KB limit).
+ */
+#ifdef HQC_POLYMUL_HYBRID_KEYCACHE
+void vect_mul_r2_keycached(
+        uint64_t * __restrict__ u,      /* output: r2 * h (reduced mod x^N-1) */
+        uint64_t * __restrict__ v,      /* output: r2 * s (reduced mod x^N-1) */
+        const uint64_t *r2,
+        const uint64_t *h,
+        const uint64_t *s)
+{
+    /* ── Pre-prepare r2 halves (computed ONCE, reused for both h and s) */
+    uint64_t r2_mid[SPLIT_WORDS];
+    memcpy(r2_mid, r2, SPLIT_WORDS * sizeof(uint64_t));
+    for (size_t i = 0; i < HI_WORDS; i++)
+        r2_mid[i] ^= r2[SPLIT_WORDS + i];
+
+    uint32_t r2_lo_prep[HALF_OUT_U32];
+    uint32_t r2_mid_prep[HALF_OUT_U32];
+    half_prepare(r2_lo_prep, (const uint8_t *)r2);
+    half_prepare(r2_mid_prep, (const uint8_t *)r2_mid);
+
+    /* Temporary prepare buffer — reused in each step to reduce peak stack */
+    uint32_t tmp_prep[HALF_OUT_U32];
+
+    /* ── Inner helper: assemble Karatsuba and reduce ─────────────────── */
+#define KEYCACHE_ASSEMBLE_REDUCE(out, C0b, Cmidb, C2a)                     \
+    do {                                                                     \
+        uint64_t unreduced[2 * VEC_N_SIZE_64];                              \
+        memset(unreduced, 0, sizeof(unreduced));                             \
+        const uint64_t *_C0   = (const uint64_t *)(C0b);                   \
+        const uint64_t *_Cmid = (const uint64_t *)(Cmidb);                 \
+        for (size_t _i = 0; _i < 2 * SPLIT_WORDS; _i++)                    \
+            unreduced[_i] ^= _C0[_i];                                       \
+        for (size_t _i = 0; _i < 2 * HI_WORDS; _i++)                       \
+            unreduced[2 * SPLIT_WORDS + _i] ^= (C2a)[_i];                  \
+        size_t _ml = 2 * VEC_N_SIZE_64 - SPLIT_WORDS;                      \
+        if (_ml > 2 * SPLIT_WORDS) _ml = 2 * SPLIT_WORDS;                  \
+        for (size_t _i = 0; _i < _ml; _i++) {                              \
+            uint64_t _t = _C0[_i] ^ _Cmid[_i];                             \
+            if (_i < 2 * HI_WORDS) _t ^= (C2a)[_i];                        \
+            unreduced[SPLIT_WORDS + _i] ^= _t;                              \
+        }                                                                    \
+        reduce((out), unreduced);                                            \
+    } while (0)
+
+    /* ── Compute u = r2 * h ─────────────────────────────────────────── */
+    {
+        /* C0_u = r2_lo_prep · h_lo_prep */
+        uint8_t C0_bytes[HALF_OUTPUT_BYTES];
+        half_prepare(tmp_prep, (const uint8_t *)h);
+        half_mul_acc(C0_bytes, r2_lo_prep, tmp_prep);
+
+        /* Cmid_u = r2_mid_prep · h_mid_prep */
+        uint8_t Cmid_bytes[HALF_OUTPUT_BYTES];
+        uint64_t h_mid[SPLIT_WORDS];
+        memcpy(h_mid, h, SPLIT_WORDS * sizeof(uint64_t));
+        for (size_t i = 0; i < HI_WORDS; i++) h_mid[i] ^= h[SPLIT_WORDS + i];
+        half_prepare(tmp_prep, (const uint8_t *)h_mid);
+        half_mul_acc(Cmid_bytes, r2_mid_prep, tmp_prep);
+
+        /* C2_u = r2_hi * h_hi (scalar Karatsuba) */
+        uint64_t C2[2 * HI_WORDS];
+        uint64_t kara_tmp[16 * HI_WORDS];
+        memset(C2, 0, sizeof(C2));
+        karatsuba_clmul(C2, r2 + SPLIT_WORDS, h + SPLIT_WORDS, HI_WORDS, kara_tmp);
+
+        KEYCACHE_ASSEMBLE_REDUCE(u, C0_bytes, Cmid_bytes, C2);
+    }
+
+    /* ── Compute v = r2 * s (r2 preps reused) ──────────────────────── */
+    {
+        uint8_t C0_bytes[HALF_OUTPUT_BYTES];
+        half_prepare(tmp_prep, (const uint8_t *)s);
+        half_mul_acc(C0_bytes, r2_lo_prep, tmp_prep);
+
+        uint8_t Cmid_bytes[HALF_OUTPUT_BYTES];
+        uint64_t s_mid[SPLIT_WORDS];
+        memcpy(s_mid, s, SPLIT_WORDS * sizeof(uint64_t));
+        for (size_t i = 0; i < HI_WORDS; i++) s_mid[i] ^= s[SPLIT_WORDS + i];
+        half_prepare(tmp_prep, (const uint8_t *)s_mid);
+        half_mul_acc(Cmid_bytes, r2_mid_prep, tmp_prep);
+
+        uint64_t C2[2 * HI_WORDS];
+        uint64_t kara_tmp[16 * HI_WORDS];
+        memset(C2, 0, sizeof(C2));
+        karatsuba_clmul(C2, r2 + SPLIT_WORDS, s + SPLIT_WORDS, HI_WORDS, kara_tmp);
+
+        KEYCACHE_ASSEMBLE_REDUCE(v, C0_bytes, Cmid_bytes, C2);
+    }
+
+#undef KEYCACHE_ASSEMBLE_REDUCE
+}
+#endif /* HQC_POLYMUL_HYBRID_KEYCACHE */
