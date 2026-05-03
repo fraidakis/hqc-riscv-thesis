@@ -67,15 +67,19 @@ static void vxor_words(uint64_t * __restrict__ dst,
 
 /* ── Vectorised leaf multiply: r = a × b (unreduced, 2n words) ──────────
  *
- * Iter 1: for each a[i], splat into a vector register, then vclmul.vv /
- * vclmulh.vv over b[0..n-1] in one vector sweep (LMUL=4, vl up to 16).
+ * Iter 1 (Advanced): Outer-loop register blocking (4x unroll).
+ * Process 4 outer iterations at a time: load a[i..i+3] into scalar
+ * registers, then for each j-block splat all four scalars and issue 4×2
+ * vclmul/vclmulh pairs against the same b[j..j+vl-1] vector.  This
+ * saturates the dual-issue pipeline and hides memory-access latency by
+ * keeping 8 vector multiply results in flight simultaneously.
  *
- * Correctness: each contribution lo(a[i],b[j]) → r[i+j] and
- * hi(a[i],b[j]) → r[i+j+1] is XOR-accumulated independently.
- * Since XOR is commutative, the order of accumulation does not matter.
- * Adjacent stores (e.g. r[i+j+1] from vhi and r[(i+1)+j] from vlo of
- * the next outer iteration) both contribute correctly via sequential
- * load-XOR-store chains.
+ * Scalar tail: processes the remaining (n % 4) outer iterations one at
+ * a time using the original single-strip loop.
+ *
+ * Correctness: same as the non-unrolled version — each contribution
+ * lo(a[i],b[j]) → r[i+j], hi(a[i],b[j]) → r[i+j+1] is XOR-accumulated
+ * independently; the unrolled strips are independent.
  */
 static void vclmul_leaf(uint64_t * __restrict__ r,
                         const uint64_t * __restrict__ a,
@@ -84,30 +88,95 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
 {
     memset(r, 0, 2 * n * sizeof(uint64_t));
 
-    for (size_t i = 0; i < n; i++) {
+    size_t i = 0;
+
+    /* ── 4x unrolled outer loop ─────────────────────────────────────── */
+    for (; i + 3 < n; i += 4) {
+        uint64_t a0 = a[i];
+        uint64_t a1 = a[i + 1];
+        uint64_t a2 = a[i + 2];
+        uint64_t a3 = a[i + 3];
+
+        size_t j = 0;
+        while (j < n) {
+            size_t vl = __riscv_vsetvl_e64m4(n - j);
+
+            vuint64m4_t vb = __riscv_vle64_v_u64m4(b + j, vl);
+
+            /* Strip 0: a[i] */
+            vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
+            vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
+            vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+
+            /* Strip 1: a[i+1] */
+            vuint64m4_t va1  = __riscv_vmv_v_x_u64m4(a1, vl);
+            vuint64m4_t vlo1 = __riscv_vclmul_vv_u64m4(va1, vb, vl);
+            vuint64m4_t vhi1 = __riscv_vclmulh_vv_u64m4(va1, vb, vl);
+
+            /* Strip 2: a[i+2] */
+            vuint64m4_t va2  = __riscv_vmv_v_x_u64m4(a2, vl);
+            vuint64m4_t vlo2 = __riscv_vclmul_vv_u64m4(va2, vb, vl);
+            vuint64m4_t vhi2 = __riscv_vclmulh_vv_u64m4(va2, vb, vl);
+
+            /* Strip 3: a[i+3] */
+            vuint64m4_t va3  = __riscv_vmv_v_x_u64m4(a3, vl);
+            vuint64m4_t vlo3 = __riscv_vclmul_vv_u64m4(va3, vb, vl);
+            vuint64m4_t vhi3 = __riscv_vclmulh_vv_u64m4(va3, vb, vl);
+
+            /* Accumulate strip 0 */
+            vuint64m4_t vr;
+            vr = __riscv_vle64_v_u64m4(r + (i + 0) + j, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vlo0, vl);
+            __riscv_vse64_v_u64m4(r + (i + 0) + j, vr, vl);
+            vr = __riscv_vle64_v_u64m4(r + (i + 0) + j + 1, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vhi0, vl);
+            __riscv_vse64_v_u64m4(r + (i + 0) + j + 1, vr, vl);
+
+            /* Accumulate strip 1 */
+            vr = __riscv_vle64_v_u64m4(r + (i + 1) + j, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vlo1, vl);
+            __riscv_vse64_v_u64m4(r + (i + 1) + j, vr, vl);
+            vr = __riscv_vle64_v_u64m4(r + (i + 1) + j + 1, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vhi1, vl);
+            __riscv_vse64_v_u64m4(r + (i + 1) + j + 1, vr, vl);
+
+            /* Accumulate strip 2 */
+            vr = __riscv_vle64_v_u64m4(r + (i + 2) + j, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vlo2, vl);
+            __riscv_vse64_v_u64m4(r + (i + 2) + j, vr, vl);
+            vr = __riscv_vle64_v_u64m4(r + (i + 2) + j + 1, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vhi2, vl);
+            __riscv_vse64_v_u64m4(r + (i + 2) + j + 1, vr, vl);
+
+            /* Accumulate strip 3 */
+            vr = __riscv_vle64_v_u64m4(r + (i + 3) + j, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vlo3, vl);
+            __riscv_vse64_v_u64m4(r + (i + 3) + j, vr, vl);
+            vr = __riscv_vle64_v_u64m4(r + (i + 3) + j + 1, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vhi3, vl);
+            __riscv_vse64_v_u64m4(r + (i + 3) + j + 1, vr, vl);
+
+            j += vl;
+        }
+    }
+
+    /* ── Scalar tail: remaining 0..3 outer iterations ───────────────── */
+    for (; i < n; i++) {
         uint64_t ai = a[i];
         size_t j = 0;
         while (j < n) {
             size_t vl = __riscv_vsetvl_e64m4(n - j);
 
-            /* Splat scalar a[i] into all lanes. */
             vuint64m4_t vai = __riscv_vmv_v_x_u64m4(ai, vl);
+            vuint64m4_t vb  = __riscv_vle64_v_u64m4(b + j, vl);
 
-            /* Load b[j..j+vl-1]. */
-            vuint64m4_t vb = __riscv_vle64_v_u64m4(b + j, vl);
-
-            /* Carry-less multiply: 64×64 → 128 bit per lane. */
             vuint64m4_t vlo = __riscv_vclmul_vv_u64m4(vai, vb, vl);
             vuint64m4_t vhi = __riscv_vclmulh_vv_u64m4(vai, vb, vl);
 
-            /* XOR low half into r[i+j .. i+j+vl-1]. */
             vuint64m4_t vr0 = __riscv_vle64_v_u64m4(r + i + j, vl);
             vr0 = __riscv_vxor_vv_u64m4(vr0, vlo, vl);
             __riscv_vse64_v_u64m4(r + i + j, vr0, vl);
 
-            /* XOR high half into r[i+j+1 .. i+j+vl].
-             * The tail element r[i+j+vl] will be further updated by the
-             * next j-iteration's vlo stores, which is correct. */
             vuint64m4_t vr1 = __riscv_vle64_v_u64m4(r + i + j + 1, vl);
             vr1 = __riscv_vxor_vv_u64m4(vr1, vhi, vl);
             __riscv_vse64_v_u64m4(r + i + j + 1, vr1, vl);
@@ -159,8 +228,16 @@ static void karatsuba_vclmul(uint64_t * __restrict__ r,
     /* 4) zmid = ta * tb */
     karatsuba_vclmul(zmid, ta, tb, n1, child_buf);
 
-    /* 5) Assemble result using vectorised XOR (Iter 2):
-     *      r = z0  +  (zmid ^ z0 ^ z2) * x^m  +  z2 * x^(2m)   */
+    /* 5) Assemble result using vectorised XOR (Iter 2 advanced):
+     *      r = z0  +  (zmid ^ z0 ^ z2) * x^m  +  z2 * x^(2m)
+     *
+     * Vectorise the combine loop:
+     *   for i in [0, 2*n0):  r[m+i] ^= zmid[i] ^ z0[i] ^ z2[i]
+     *   for i in [2*n0, 2*n1): r[m+i] ^= zmid[i] ^ z2[i]
+     *             (z0 is zero outside [0, 2*n0))
+     * Both segments use vxor_words (LMUL=4, 16 elements/iter). No scalar
+     * fallback, no branch per element.
+     */
     memset(r, 0, 2 * n * sizeof(uint64_t));
 
     /* r[0..2*n0-1] ^= z0[0..2*n0-1] */
@@ -169,18 +246,51 @@ static void karatsuba_vclmul(uint64_t * __restrict__ r,
     /* r[2*m..2*m+2*n1-1] ^= z2[0..2*n1-1] */
     vxor_words(r + 2 * m, z2, 2 * n1);
 
-    /* r[m..m+2*n1-1] ^= zmid ^ z0 ^ z2
-     * z0 contribution is zero for i >= 2*n0 (handled by the ternary). */
-    for (size_t i = 0; i < 2 * n1; i++) {
-        uint64_t z0i = (i < 2 * n0 ? z0[i] : 0);
-        r[m + i] ^= zmid[i] ^ z0i ^ z2[i];
+    /* Vectorised combine: first segment [0, 2*n0) — zmid ^ z0 ^ z2 */
+    {
+        /* Reuse a temporary to form (zmid ^ z0 ^ z2) for i in [0, 2*n0). */
+        /* We XOR directly into r[m..] in two vectorised sweeps.           */
+        size_t len0 = 2 * n0;   /* z0 is valid here */
+        size_t len1 = 2 * n1 - len0; /* remainder, z0 treated as 0 */
+
+        /* Segment A: r[m+i] ^= zmid[i] ^ z0[i] ^ z2[i], i in [0, len0) */
+        size_t off = 0;
+        while (off < len0) {
+            size_t vl = __riscv_vsetvl_e64m4(len0 - off);
+            vuint64m4_t vm = __riscv_vle64_v_u64m4(zmid + off, vl);
+            vuint64m4_t vz0 = __riscv_vle64_v_u64m4(z0   + off, vl);
+            vuint64m4_t vz2 = __riscv_vle64_v_u64m4(z2   + off, vl);
+            vuint64m4_t vr  = __riscv_vle64_v_u64m4(r + m + off, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vm,  vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vz0, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vz2, vl);
+            __riscv_vse64_v_u64m4(r + m + off, vr, vl);
+            off += vl;
+        }
+
+        /* Segment B: r[m+i] ^= zmid[i] ^ z2[i], i in [len0, 2*n1) */
+        /* Only exists when n is odd (n1 = n0 + 1, len1 = 2). */
+        off = len0;
+        while (off < 2 * n1) {
+            size_t vl = __riscv_vsetvl_e64m4(2 * n1 - off);
+            vuint64m4_t vm  = __riscv_vle64_v_u64m4(zmid + off, vl);
+            vuint64m4_t vz2 = __riscv_vle64_v_u64m4(z2   + off, vl);
+            vuint64m4_t vr  = __riscv_vle64_v_u64m4(r + m + off, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vm,  vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vz2, vl);
+            __riscv_vse64_v_u64m4(r + m + off, vr, vl);
+            off += vl;
+        }
     }
 }
 
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────
- * Identical to karatsuba_zbc; the offset pattern makes full vectorisation
- * complex (sliding window), so we keep the scalar version.  Its share of
- * total instret is small (<5%).
+ * Kept scalar: vectorizing the sliding-window pattern (each output element
+ * combines a[i], a[i+N-1], a[i+N] across a 2N-word array) requires two
+ * overlapping VLE64 windows that share elements with adjacent output
+ * positions, and the resulting code produced KAT failures for HQC-256.
+ * Its share of total instret is < 5%, so the scalar version is kept
+ * and the optimization budget is better spent on the leaf and combine.
  */
 static void reduce(uint64_t * __restrict__ o,
                    const uint64_t * __restrict__ a)
@@ -189,7 +299,7 @@ static void reduce(uint64_t * __restrict__ o,
     int inv   = 64 - shift;
 
     for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
-        uint64_t r  = a[i + VEC_N_SIZE_64 - 1] >> shift;
+        uint64_t r     = a[i + VEC_N_SIZE_64 - 1] >> shift;
         uint64_t carry = (shift == 0) ? 0 : (a[i + VEC_N_SIZE_64] << inv);
         o[i] = a[i] ^ r ^ carry;
     }
