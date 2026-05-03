@@ -2,7 +2,6 @@
 
 **Author:** Master's Thesis — HQC Post-Quantum Cryptography on RISC-V  
 **Date:** 2026-05-01  
-**Git range:** Phase 0 baseline → Phase 1+ (`karatsuba_zvbc`) commit  
 **Measurement platform:** Spike ISS, `rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm`, VLEN=256, N_ITER=1  
 **Correctness platform:** QEMU user-mode, 100 KAT vectors per variant per security level
 

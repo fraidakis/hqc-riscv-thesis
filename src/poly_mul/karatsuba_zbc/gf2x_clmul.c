@@ -9,12 +9,10 @@
  * Optimisation axes applied:
  *   1. clmul + clmulh base case: 128-bit carry-less product in 2 instructions
  *      (replaces the schoolbook shift-and-XOR loop, ~320 instr → 2 instr).
- *   2. KARATSUBA_THRESHOLD sweep: compile-time tunable cutoff (default = 8 words
+ *   2. KARATSUBA_THRESHOLD sweep: compile-time tunable cutoff (default = 16 words
  *      based on empirical sweep for HQC-128; override via -DKARATSUBA_THRESHOLD=N).
  *   3. Lazy reduction: multiplication result kept in 2*n unreduced buffer;
  *      reduction mod x^PARAM_N-1 done once at the end (matches reference).
- *
- * Verification: KAT vectors must pass after every change (run_kat.sh).
  */
 
 #include <stdint.h>
@@ -48,6 +46,7 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
  *   T=1: 1,809,335   T=2: 1,094,119   T=4: 677,836
  *   T=8:   450,644   T=12-16: 354,187 (optimal, ≡ for this recursion tree)
  *   T=18:  360,287   T=32:    360,287
+ * 
  * T=16 gives the optimal balance of Karatsuba reduce and leaf clmul cost.
  * Override at compile time: -DKARATSUBA_THRESHOLD=N
  */
@@ -71,10 +70,7 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
  * On real OoO hardware the 2-wide form would win via ILP; for this simulator
  * baseline the sequential version is retained.
  */
-static void clmul_leaf(uint64_t * __restrict__ r,
-                       const uint64_t * __restrict__ a,
-                       const uint64_t * __restrict__ b,
-                       size_t n)
+static void clmul_leaf(uint64_t * __restrict__ r, const uint64_t * __restrict__ a, const uint64_t * __restrict__ b, size_t n)
 {
     memset(r, 0, 2 * n * sizeof(uint64_t));
     for (size_t i = 0; i < n; i++) {
@@ -143,8 +139,7 @@ static void karatsuba_clmul(uint64_t * __restrict__ r,
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────
  * Identical to reference: folds the high half back into the low half.
  */
-static void reduce(uint64_t * __restrict__ o,
-                   const uint64_t * __restrict__ a)
+static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
 {
     int shift = PARAM_N & 0x3F;
     int inv   = 64 - shift;
