@@ -11,7 +11,8 @@
 void bmul2_4096_to_8192_prepare(uint32_t *a_out, const uint8_t *a_in)
 {
     uint32_t a0[32768 / 32] = {0};
-    memcpy(a0, a_in, 2216);
+    memset(a_out, 0, (65536 / 32) * sizeof(uint32_t));
+    memcpy(a0, a_in, VEC_N_SIZE_64 * sizeof(uint64_t));
     bc_1_32768(a0);
 
     uint32_t temp[16];
@@ -24,8 +25,9 @@ void bmul2_4096_to_8192_prepare(uint32_t *a_out, const uint8_t *a_in)
 
 void bmul2_4096_to_8192_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 {
-    uint32_t a0[65536 / 32];
+    uint32_t a0[65536 / 32] = {0};
     uint32_t *c32 = (uint32_t *)c;
+    memset(c, 0, 65536 / 8);
 
     for (int i = 0; i < (65536 / 32); i += 32) {
         gf232v_mul(a0 + i, a + i, b + i);
@@ -56,6 +58,7 @@ void bmul2_4096_to_8192(uint8_t *c, const uint8_t *a, const uint8_t *b)
 void bmul2_8192_to_16384_prepare(uint32_t *a_out, const uint8_t *a_in)
 {
     uint32_t a0[65536 / 32] = {0};
+    memset(a_out, 0, (131072 / 32) * sizeof(uint32_t));
     memcpy(a0, a_in, VEC_N_SIZE_64 * 8);
     bc_1_65536(a0);
 
@@ -69,8 +72,9 @@ void bmul2_8192_to_16384_prepare(uint32_t *a_out, const uint8_t *a_in)
 
 void bmul2_8192_to_16384_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 {
-    uint32_t a0[131072 / 32];
+    uint32_t a0[131072 / 32] = {0};
     uint32_t *c32 = (uint32_t *)c;
+    memset(c, 0, 131072 / 8);
 
     for (int i = 0; i < (131072 / 32); i += 32) {
         gf232v_mul(a0 + i, a + i, b + i);

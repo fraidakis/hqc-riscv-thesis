@@ -10,6 +10,14 @@
 #define VEC_N_SIZE_32 ((PARAM_N + 31) / 32)
 #endif
 
+static inline void reduce_strict_u32(uint32_t *o, const uint32_t *a)
+{
+    reduce(o, a);
+    o[VEC_N_SIZE_32 - 1] &= ((PARAM_N & 0x1F) == 0)
+                           ? 0xFFFFFFFFu
+                           : ((1u << (PARAM_N & 0x1F)) - 1u);
+}
+
 /*
  * vect_mul — HQC polynomial multiplication in GF(2)[x]/(x^PARAM_N + 1).
  *
@@ -31,10 +39,10 @@ void vect_mul(uint64_t *o, const uint64_t *v1, const uint64_t *v2)
 #if defined(HQC_128)
     uint32_t prod[65536 / 32] = {0};
     bmul2_4096_to_8192((uint8_t *)prod, (const uint8_t *)v1, (const uint8_t *)v2);
-    reduce((uint32_t *)o, prod);
+    reduce_strict_u32((uint32_t *)o, prod);
 #else
     uint32_t prod[131072 / 32] = {0};
     bmul2_8192_to_16384((uint8_t *)prod, (const uint8_t *)v1, (const uint8_t *)v2);
-    reduce((uint32_t *)o, prod);
+    reduce_strict_u32((uint32_t *)o, prod);
 #endif
 }

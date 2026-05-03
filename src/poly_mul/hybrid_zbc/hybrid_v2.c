@@ -205,6 +205,7 @@ static void half_prepare(uint32_t *a_out, const uint8_t *a_in)
     /* HALF_IN_U32 = SPLIT_WORDS * 2 elements (for bc_half) */
     uint32_t a0[HALF_IN_U32];
     memset(a0, 0, sizeof(a0));
+    memset(a_out, 0, HALF_OUT_U32 * sizeof(uint32_t));
     memcpy(a0, a_in, HALF_INPUT_BYTES);
     bc_half(a0);   /* bit-conversion into evaluation basis */
 
@@ -226,6 +227,8 @@ static void half_mul_acc(uint8_t *c,
 {
     uint32_t a0[HALF_OUT_U32];
     uint32_t *c32 = (uint32_t *)c;
+    memset(a0, 0, sizeof(a0));
+    memset(c, 0, HALF_OUTPUT_BYTES);
 
     /* Pointwise GF(2^32) multiply */
     for (int i = 0; i < HALF_OUT_U32; i += 32)

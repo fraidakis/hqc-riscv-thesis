@@ -25,13 +25,18 @@ static __attribute__((always_inline)) inline
 void rvv_btf_xor32_1src(uint32_t * restrict lo, uint32_t * restrict hi,
                          const uint32_t * restrict t)
 {
-    size_t vl = __riscv_vsetvlmax_e32m4();
-    vuint32m4_t vlo = __riscv_vle32_v_u32m4(lo, vl);
-    vlo = __riscv_vxor_vv_u32m4(vlo, __riscv_vle32_v_u32m4(t, vl), vl);
-    __riscv_vse32_v_u32m4(lo, vlo, vl);
-    vuint32m4_t vhi = __riscv_vle32_v_u32m4(hi, vl);
-    vhi = __riscv_vxor_vv_u32m4(vhi, vlo, vl);
-    __riscv_vse32_v_u32m4(hi, vhi, vl);
+    size_t i = 0;
+    while (i < 32) {
+        size_t vl = __riscv_vsetvl_e32m1(32 - i);
+        vuint32m1_t vlo = __riscv_vle32_v_u32m1(lo + i, vl);
+        vuint32m1_t vt = __riscv_vle32_v_u32m1(t + i, vl);
+        vlo = __riscv_vxor_vv_u32m1(vlo, vt, vl);
+        __riscv_vse32_v_u32m1(lo + i, vlo, vl);
+        vuint32m1_t vhi = __riscv_vle32_v_u32m1(hi + i, vl);
+        vhi = __riscv_vxor_vv_u32m1(vhi, vlo, vl);
+        __riscv_vse32_v_u32m1(hi + i, vhi, vl);
+        i += vl;
+    }
 }
 
 /*
@@ -44,15 +49,20 @@ void rvv_btf_xor32_2src(uint32_t * restrict lo, uint32_t * restrict hi,
                           const uint32_t * restrict t1,
                           const uint32_t * restrict t2)
 {
-    size_t vl = __riscv_vsetvlmax_e32m4();
-    vuint32m4_t vlo = __riscv_vle32_v_u32m4(lo, vl);
-    vuint32m4_t vt  = __riscv_vxor_vv_u32m4(__riscv_vle32_v_u32m4(t1, vl),
-                                              __riscv_vle32_v_u32m4(t2, vl), vl);
-    vlo = __riscv_vxor_vv_u32m4(vlo, vt, vl);
-    __riscv_vse32_v_u32m4(lo, vlo, vl);
-    vuint32m4_t vhi = __riscv_vle32_v_u32m4(hi, vl);
-    vhi = __riscv_vxor_vv_u32m4(vhi, vlo, vl);
-    __riscv_vse32_v_u32m4(hi, vhi, vl);
+    size_t i = 0;
+    while (i < 32) {
+        size_t vl = __riscv_vsetvl_e32m1(32 - i);
+        vuint32m1_t vlo = __riscv_vle32_v_u32m1(lo + i, vl);
+        vuint32m1_t vt1 = __riscv_vle32_v_u32m1(t1 + i, vl);
+        vuint32m1_t vt2 = __riscv_vle32_v_u32m1(t2 + i, vl);
+        vuint32m1_t vt  = __riscv_vxor_vv_u32m1(vt1, vt2, vl);
+        vlo = __riscv_vxor_vv_u32m1(vlo, vt, vl);
+        __riscv_vse32_v_u32m1(lo + i, vlo, vl);
+        vuint32m1_t vhi = __riscv_vle32_v_u32m1(hi + i, vl);
+        vhi = __riscv_vxor_vv_u32m1(vhi, vlo, vl);
+        __riscv_vse32_v_u32m1(hi + i, vhi, vl);
+        i += vl;
+    }
 }
 
 /*
@@ -61,10 +71,15 @@ void rvv_btf_xor32_2src(uint32_t * restrict lo, uint32_t * restrict hi,
 static __attribute__((always_inline)) inline
 void rvv_ibtf_xor32_hi(const uint32_t * restrict lo, uint32_t * restrict hi)
 {
-    size_t vl = __riscv_vsetvlmax_e32m4();
-    vuint32m4_t vhi = __riscv_vle32_v_u32m4(hi, vl);
-    vhi = __riscv_vxor_vv_u32m4(vhi, __riscv_vle32_v_u32m4(lo, vl), vl);
-    __riscv_vse32_v_u32m4(hi, vhi, vl);
+    size_t i = 0;
+    while (i < 32) {
+        size_t vl = __riscv_vsetvl_e32m1(32 - i);
+        vuint32m1_t vhi = __riscv_vle32_v_u32m1(hi + i, vl);
+        vuint32m1_t vlo = __riscv_vle32_v_u32m1(lo + i, vl);
+        vhi = __riscv_vxor_vv_u32m1(vhi, vlo, vl);
+        __riscv_vse32_v_u32m1(hi + i, vhi, vl);
+        i += vl;
+    }
 }
 
 /*
@@ -74,10 +89,15 @@ static __attribute__((always_inline)) inline
 void rvv_ibtf_xor32_lo_1src(uint32_t * restrict lo,
                               const uint32_t * restrict t)
 {
-    size_t vl = __riscv_vsetvlmax_e32m4();
-    vuint32m4_t vlo = __riscv_vle32_v_u32m4(lo, vl);
-    vlo = __riscv_vxor_vv_u32m4(vlo, __riscv_vle32_v_u32m4(t, vl), vl);
-    __riscv_vse32_v_u32m4(lo, vlo, vl);
+    size_t i = 0;
+    while (i < 32) {
+        size_t vl = __riscv_vsetvl_e32m1(32 - i);
+        vuint32m1_t vlo = __riscv_vle32_v_u32m1(lo + i, vl);
+        vuint32m1_t vt = __riscv_vle32_v_u32m1(t + i, vl);
+        vlo = __riscv_vxor_vv_u32m1(vlo, vt, vl);
+        __riscv_vse32_v_u32m1(lo + i, vlo, vl);
+        i += vl;
+    }
 }
 
 /*
@@ -88,12 +108,17 @@ void rvv_ibtf_xor32_lo_2src(uint32_t * restrict lo,
                               const uint32_t * restrict t1,
                               const uint32_t * restrict t2)
 {
-    size_t vl = __riscv_vsetvlmax_e32m4();
-    vuint32m4_t vlo = __riscv_vle32_v_u32m4(lo, vl);
-    vlo = __riscv_vxor_vv_u32m4(vlo,
-        __riscv_vxor_vv_u32m4(__riscv_vle32_v_u32m4(t1, vl),
-                               __riscv_vle32_v_u32m4(t2, vl), vl), vl);
-    __riscv_vse32_v_u32m4(lo, vlo, vl);
+    size_t i = 0;
+    while (i < 32) {
+        size_t vl = __riscv_vsetvl_e32m1(32 - i);
+        vuint32m1_t vlo = __riscv_vle32_v_u32m1(lo + i, vl);
+        vuint32m1_t vt1 = __riscv_vle32_v_u32m1(t1 + i, vl);
+        vuint32m1_t vt2 = __riscv_vle32_v_u32m1(t2 + i, vl);
+        vuint32m1_t vt = __riscv_vxor_vv_u32m1(vt1, vt2, vl);
+        vlo = __riscv_vxor_vv_u32m1(vlo, vt, vl);
+        __riscv_vse32_v_u32m1(lo + i, vlo, vl);
+        i += vl;
+    }
 }
 
 /* ── Iter 3: SWAPMOVE permutation helpers ───────────────────────────────── */
@@ -113,18 +138,22 @@ void rvv_ibtf_xor32_lo_2src(uint32_t * restrict lo,
  * Spike ISS: replaces 32×5 = 160 scalar instructions with 9 vector instructions.
  */
 #define RVV_SWAPMOVE32(a_ptr, b_ptr, mask_val, shift_val) do { \
-    size_t _vl = __riscv_vsetvlmax_e32m4(); \
-    vuint32m4_t _va = __riscv_vle32_v_u32m4((a_ptr), _vl); \
-    vuint32m4_t _vb = __riscv_vle32_v_u32m4((b_ptr), _vl); \
-    vuint32m4_t _vt = __riscv_vand_vx_u32m4( \
-        __riscv_vxor_vv_u32m4(_vb, \
-            __riscv_vsrl_vx_u32m4(_va, (uint32_t)(shift_val), _vl), _vl), \
-        (uint32_t)(mask_val), _vl); \
-    _vb = __riscv_vxor_vv_u32m4(_vb, _vt, _vl); \
-    _va = __riscv_vxor_vv_u32m4(_va, \
-        __riscv_vsll_vx_u32m4(_vt, (uint32_t)(shift_val), _vl), _vl); \
-    __riscv_vse32_v_u32m4((a_ptr), _va, _vl); \
-    __riscv_vse32_v_u32m4((b_ptr), _vb, _vl); \
+    size_t _i = 0; \
+    while (_i < 32) { \
+        size_t _vl = __riscv_vsetvl_e32m1(32 - _i); \
+        vuint32m1_t _va = __riscv_vle32_v_u32m1((a_ptr) + _i, _vl); \
+        vuint32m1_t _vb = __riscv_vle32_v_u32m1((b_ptr) + _i, _vl); \
+        vuint32m1_t _vt = __riscv_vand_vx_u32m1( \
+            __riscv_vxor_vv_u32m1(_vb, \
+                __riscv_vsrl_vx_u32m1(_va, (uint32_t)(shift_val), _vl), _vl), \
+            (uint32_t)(mask_val), _vl); \
+        _vb = __riscv_vxor_vv_u32m1(_vb, _vt, _vl); \
+        _va = __riscv_vxor_vv_u32m1(_va, \
+            __riscv_vsll_vx_u32m1(_vt, (uint32_t)(shift_val), _vl), _vl); \
+        __riscv_vse32_v_u32m1((a_ptr) + _i, _va, _vl); \
+        __riscv_vse32_v_u32m1((b_ptr) + _i, _vb, _vl); \
+        _i += _vl; \
+    } \
 } while(0)
 
 #endif /* BTFY_RVV_H */

@@ -4,6 +4,35 @@
 #include <stdint.h>
 #ifdef __riscv_vector
 #include <riscv_vector.h>
+
+static inline void gfvt_xor_u32(uint32_t *dst,
+                const uint32_t *lhs,
+                const uint32_t *rhs,
+                size_t n)
+{
+  size_t i = 0;
+  while (i < n) {
+    size_t vl = __riscv_vsetvl_e32m1(n - i);
+    vuint32m1_t va = __riscv_vle32_v_u32m1(lhs + i, vl);
+    vuint32m1_t vb = __riscv_vle32_v_u32m1(rhs + i, vl);
+    __riscv_vse32_v_u32m1(dst + i, __riscv_vxor_vv_u32m1(va, vb, vl), vl);
+    i += vl;
+  }
+}
+
+static inline void gfvt_xoreq_u32(uint32_t *dst,
+                  const uint32_t *rhs,
+                  size_t n)
+{
+  size_t i = 0;
+  while (i < n) {
+    size_t vl = __riscv_vsetvl_e32m1(n - i);
+    vuint32m1_t vd = __riscv_vle32_v_u32m1(dst + i, vl);
+    vuint32m1_t vr = __riscv_vle32_v_u32m1(rhs + i, vl);
+    __riscv_vse32_v_u32m1(dst + i, __riscv_vxor_vv_u32m1(vd, vr, vl), vl);
+    i += vl;
+  }
+}
 #endif
 
 #include "parameters.h"
@@ -203,16 +232,8 @@ static inline void gf256v_mul_0x80( sto_t *c, const sto_t *a ) {
 static inline void gf216v_mul( sto_t *c, const sto_t *a , const sto_t *b ) {
   sto_t c1[8], c2[8];
 #ifdef __riscv_vector
-  /* c1 = a_lo ^ a_hi,  c2 = b_lo ^ b_hi  (8 elements, LMUL=1) */
-  const size_t _vl8 = __riscv_vsetvlmax_e32m1(); /* == 8 for VLEN=256 */
-  __riscv_vse32_v_u32m1(c1,
-    __riscv_vxor_vv_u32m1(
-      __riscv_vle32_v_u32m1(a,     _vl8),
-      __riscv_vle32_v_u32m1(a + 8, _vl8), _vl8), _vl8);
-  __riscv_vse32_v_u32m1(c2,
-    __riscv_vxor_vv_u32m1(
-      __riscv_vle32_v_u32m1(b,     _vl8),
-      __riscv_vle32_v_u32m1(b + 8, _vl8), _vl8), _vl8);
+  gfvt_xor_u32(c1, a, a + 8, 8);
+  gfvt_xor_u32(c2, b, b + 8, 8);
 #else
   for(int i=0;i<8;i++) c1[i] = a[i]^a[8+i];
   for(int i=0;i<8;i++) c2[i] = b[i]^b[8+i];
@@ -223,11 +244,7 @@ static inline void gf216v_mul( sto_t *c, const sto_t *a , const sto_t *b ) {
   gf256v_mul( c2 , a+8 , b+8 );
 
 #ifdef __riscv_vector
-  /* c[8..15] ^= c[0..7] */
-  __riscv_vse32_v_u32m1(c + 8,
-    __riscv_vxor_vv_u32m1(
-      __riscv_vle32_v_u32m1(c + 8, _vl8),
-      __riscv_vle32_v_u32m1(c,     _vl8), _vl8), _vl8);
+  gfvt_xoreq_u32(c + 8, c, 8);
 #else
   for( int i=0;i<8;i++) c[8+i] ^= c[i];
 #endif
@@ -235,11 +252,7 @@ static inline void gf216v_mul( sto_t *c, const sto_t *a , const sto_t *b ) {
   gf256v_mul_0x80( c1 , c2 );
 
 #ifdef __riscv_vector
-  /* c[0..7] ^= c1[0..7] */
-  __riscv_vse32_v_u32m1(c,
-    __riscv_vxor_vv_u32m1(
-      __riscv_vle32_v_u32m1(c,  _vl8),
-      __riscv_vle32_v_u32m1(c1, _vl8), _vl8), _vl8);
+  gfvt_xoreq_u32(c, c1, 8);
 #else
   for( int i=0;i<8;i++) c[i] ^= c1[i];
 #endif
@@ -251,12 +264,7 @@ static inline void gf216v_mul_0x8000( sto_t *c, const sto_t *a ) {
   gf256v_mul_0x80( c2 , a+8 );
 
 #ifdef __riscv_vector
-  /* c[8..15] ^= c2[0..7] */
-  const size_t _vl8 = __riscv_vsetvlmax_e32m1();
-  __riscv_vse32_v_u32m1(c + 8,
-    __riscv_vxor_vv_u32m1(
-      __riscv_vle32_v_u32m1(c + 8, _vl8),
-      __riscv_vle32_v_u32m1(c2,    _vl8), _vl8), _vl8);
+  gfvt_xoreq_u32(c + 8, c2, 8);
 #else
   for(int i=0;i<8;i++) c[8+i]^= c2[i];
 #endif
@@ -275,16 +283,8 @@ static inline void gf216v_mul_0x8000( sto_t *c, const sto_t *a ) {
 static inline void gf232v_mul( sto_t *c, const sto_t *a , const sto_t *b ) {
   sto_t c1[16], c2[16];
 #ifdef __riscv_vector
-  /* c1 = a_lo ^ a_hi,  c2 = b_lo ^ b_hi  (16 elements, LMUL=2) */
-  const size_t _vl16 = __riscv_vsetvlmax_e32m2(); /* == 16 for VLEN=256 */
-  __riscv_vse32_v_u32m2(c1,
-    __riscv_vxor_vv_u32m2(
-      __riscv_vle32_v_u32m2(a,      _vl16),
-      __riscv_vle32_v_u32m2(a + 16, _vl16), _vl16), _vl16);
-  __riscv_vse32_v_u32m2(c2,
-    __riscv_vxor_vv_u32m2(
-      __riscv_vle32_v_u32m2(b,      _vl16),
-      __riscv_vle32_v_u32m2(b + 16, _vl16), _vl16), _vl16);
+  gfvt_xor_u32(c1, a, a + 16, 16);
+  gfvt_xor_u32(c2, b, b + 16, 16);
 #else
   for(int i=0;i<16;i++) c1[i] = a[i]^a[16+i];
   for(int i=0;i<16;i++) c2[i] = b[i]^b[16+i];
@@ -295,11 +295,7 @@ static inline void gf232v_mul( sto_t *c, const sto_t *a , const sto_t *b ) {
   gf216v_mul( c2 , a+16 , b+16 );
 
 #ifdef __riscv_vector
-  /* c[16..31] ^= c[0..15] */
-  __riscv_vse32_v_u32m2(c + 16,
-    __riscv_vxor_vv_u32m2(
-      __riscv_vle32_v_u32m2(c + 16, _vl16),
-      __riscv_vle32_v_u32m2(c,      _vl16), _vl16), _vl16);
+  gfvt_xoreq_u32(c + 16, c, 16);
 #else
   for( int i=0;i<16;i++) c[16+i] ^= c[i];
 #endif
@@ -307,11 +303,7 @@ static inline void gf232v_mul( sto_t *c, const sto_t *a , const sto_t *b ) {
   gf216v_mul_0x8000( c1 , c2 );
 
 #ifdef __riscv_vector
-  /* c[0..15] ^= c1[0..15] */
-  __riscv_vse32_v_u32m2(c,
-    __riscv_vxor_vv_u32m2(
-      __riscv_vle32_v_u32m2(c,  _vl16),
-      __riscv_vle32_v_u32m2(c1, _vl16), _vl16), _vl16);
+  gfvt_xoreq_u32(c, c1, 16);
 #else
   for( int i=0;i<16;i++) c[i] ^= c1[i];
 #endif
