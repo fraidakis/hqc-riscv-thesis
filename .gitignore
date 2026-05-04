@@ -50,6 +50,7 @@ __pycache__/
 # Analysis outputs
 analysis/llvm_mca/reports/*.txt
 analysis/benchmarks/*.png
+analysis/benchmarks/**/profile/spike_trace.log
 analysis/ct_verify/ctgrind/*.xml
 analysis/ct_verify/dudect/*
 analysis/ct_verify/binsec/*

@@ -43,7 +43,7 @@ set(RISCV_COMMON_FLAGS
   "-menable-experimental-extensions"
   "-mcmodel=medany"
   "-O3"
-  "-flto"
+  "-fno-lto"
   "-mno-relax"
   "-ffreestanding"
   "-fno-tree-vectorize"

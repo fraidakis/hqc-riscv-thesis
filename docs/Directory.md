@@ -4,19 +4,19 @@
 
 `hqc-riscv` is a bare-metal RISC-V evaluation framework for HQC (Hamming Quasi-Cyclic), a post-quantum KEM finalist. It benchmarks hardware acceleration strategies using RVV (RISC-V Vector) and carry-less multiply extensions (Zbc/Zvbc) on RISC-V simulators (Spike ISS and QEMU).
 
-The project is structured around a **phase roadmap**:
+The project is structured around descriptive optimization tracks:
 
-| Phase | Component | Strategy |
+| Track | Component | Strategy |
 |-------|-----------|----------|
-| 0 (baseline) | Polynomial multiply | Vendor Karatsuba (`karatsuba_ref`) |
-| 1a | Polynomial multiply | Zbc `clmul/clmulh` base-case Karatsuba (`karatsuba_zbc`) |
-| 1b | Polynomial multiply | FAFFT + Zbc butterflies + RVV XOR (`fafft_zbc`) |
-| 1c | Polynomial multiply | Karatsuba outer + FAFFT inner hybrid (`hybrid_zbc`) |
-| 1+ | Polynomial multiply | `vclmul.vv` vectorized FAFFT — Spike Zvbc only (`fafft_zvbc`) |
-| 2 | Keccak/SHAKE-256 | RVV Keccak-f[1600] 4-way interleaved (`fips202_rvv.c`) |
-| 3 | RM/RS decoder | RVV FHT + `vluxei8.v` syndrome (`reed_muller_rvv.c`, `reed_solomon_rvv.c`) |
+| `baseline_ref` | Polynomial multiply | Vendor Karatsuba (`karatsuba_ref`) |
+| `polymul_zbc` | Polynomial multiply | Zbc `clmul/clmulh` base-case Karatsuba (`karatsuba_zbc`) |
+| `fafft_zbc` | Polynomial multiply | FAFFT + Zbc butterflies + RVV XOR |
+| `hybrid_zbc` | Polynomial multiply | Karatsuba outer + FAFFT inner hybrid |
+| `polymul_zvbc` | Polynomial multiply | vector carry-less multiply track (`karatsuba_zvbc`) |
+| `keccak_rvv` | Keccak/SHAKE-256 | RVV Keccak-f[1600] 4-way interleaved (`fips202_rvv.c`) |
+| `reed_muller_rvv` / `reed_solomon_rvv` | RM/RS decoder | RVV FHT + table-driven syndrome path |
 
-All five polynomial multiply variants are compiled in every build, enabling head-to-head comparison. Phases 2 and 3 are toggled via CMake flags.
+All polynomial multiply variants are compiled in every build, enabling head-to-head comparison. The Keccak and decoder tracks are toggled via CMake flags.
 
 ---
 
@@ -60,21 +60,21 @@ hqc-riscv/
 │   │       └── tiny_aes.h
 │   ├── poly_mul/
 │   │   ├── karatsuba_zbc/
-│   │   │   └── gf2x_clmul.c       (Phase 1a — in development)
+│   │   │   └── gf2x_clmul.c       (`polymul_zbc` — implemented)
 │   │   ├── fafft_zbc/
-│   │   │   ├── fafft.c            (Phase 1b — in development)
-│   │   │   └── fafft_rvv.c        (Phase 1b RVV axes — in development)
+│   │   │   ├── fafft.c            (`fafft_zbc` — implemented)
+│   │   │   └── fafft_rvv.c        (`fafft_zbc` RVV helper axes)
 │   │   ├── hybrid_zbc/
-│   │   │   └── hybrid.c           (Phase 1c — in development)
+│   │   │   └── hybrid.c           (`hybrid_zbc` — implemented)
 │   │   └── fafft_zvbc/
-│   │       └── fafft_vclmul.c     (Phase 1+ — in development)
+│   │       └── fafft_vclmul.c     (`polymul_zvbc` / `polymul_zvbc_v2` vector work)
 │   ├── keccak/
 │   │   └── rvv/
-│   │       └── fips202_rvv.c      (Phase 2 — in development)
+│   │       └── fips202_rvv.c      (`keccak_rvv` — planned)
 │   └── decode/
 │       └── rvv/
-│           ├── reed_muller_rvv.c  (Phase 3 — in development)
-│           └── reed_solomon_rvv.c (Phase 3 — in development)
+│           ├── reed_muller_rvv.c  (`reed_muller_rvv` — planned)
+│           └── reed_solomon_rvv.c (`reed_solomon_rvv` — planned)
 │
 ├── sim/
 │   ├── common/
@@ -315,27 +315,27 @@ hqc-riscv/
 
 All five variants implement the same interface: `void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)` declared in `vendor/hqc-ref/src/ref/gf2x.h`. Exactly one variant is linked into each executable target.
 
-#### `src/poly_mul/karatsuba_zbc/gf2x_clmul.c` *(Phase 1a — in development)*
+#### `src/poly_mul/karatsuba_zbc/gf2x_clmul.c` *(`polymul_zbc` — implemented)*
 - **Usage**: Replaces the vendor Karatsuba `gf2x.c` with a Zbc carry-less multiply (`clmul`/`clmulh`) base case. Uses `clmul`/`clmulh` to compute a 128-bit product in 2 instructions instead of the 64-bit schoolbook loop, then applies lazy Barrett reduction and a depth sweep to find the optimal Karatsuba recursion depth.
 - **Why**: `clmul` eliminates the inner-loop data-dependent branches in polynomial multiplication, directly reducing the dominant cost of the HQC KEM (>90% of runtime).
 - **Where**: Selected by `POLYMUL=karatsuba_zbc` in `CMakeLists.txt`. Compiled into `hqc{128,192,256}_karatsuba_zbc.elf` and corresponding bench/polymul-bench targets.
 
-#### `src/poly_mul/fafft_zbc/fafft.c` *(Phase 1b — in development)*
+#### `src/poly_mul/fafft_zbc/fafft.c` *(`fafft_zbc` — implemented)*
 - **Usage**: Frobenius Additive FFT (FAFFT) polynomial multiplication for GF(2)[x]. Implements the Cantor basis conversion, CRT decomposition, and Zbc `clmul`/`clmulh` butterfly multiplications with Barrett reduction. Precomputed 256-byte lookup tables handle small-field (m ≤ 8) arithmetic.
-- **Why**: FAFFT achieves O(n log²n) complexity vs Karatsuba's O(n^1.585). For HQC's large field sizes (n ≈ 17669–57637), this asymptotic advantage becomes measurable and is the thesis' main Phase 1b hypothesis.
+- **Why**: FAFFT achieves O(n log²n) complexity vs Karatsuba's O(n^1.585). For HQC's large field sizes (n ≈ 17669–57637), this asymptotic advantage was the main `fafft_zbc` hypothesis that the benchmarks then tested against `polymul_zbc`.
 - **Where**: Selected by `POLYMUL=fafft_zbc`. Always compiled together with `fafft_rvv.c`.
 
-#### `src/poly_mul/fafft_zbc/fafft_rvv.c` *(Phase 1b RVV axes — in development)*
+#### `src/poly_mul/fafft_zbc/fafft_rvv.c` *(`fafft_zbc` RVV helper axes)*
 - **Usage**: RVV-vectorized helper routines for FAFFT. Implements three vectorization axes: bulk XOR combine (`vxor.vv` LMUL=4), tower-field table lookup (`vluxei8.v` for 32 simultaneous GF(2^8) multiplications), and butterfly-order memory permutation (`vrgatherei16.v`). Key exported function: `hqc_vxor_words()`.
 - **Why**: The FAFFT XOR-combine phase is the widest bottleneck (purely data-parallel). RVV's `vxor.vv` with LMUL=4 processes 256 bytes per instruction, providing throughput independent of scalar loop overhead.
 - **Where**: Compiled alongside `fafft.c` for the `fafft_zbc` variant. Requires `-march=rv64gcv_zbc` (RVV present, but Zvbc not needed here).
 
-#### `src/poly_mul/hybrid_zbc/hybrid.c` *(Phase 1c — in development)*
+#### `src/poly_mul/hybrid_zbc/hybrid.c` *(`hybrid_zbc` — implemented)*
 - **Usage**: Hybrid Karatsuba-FAFFT polynomial multiplier. Applies 1–2 outer Karatsuba levels to reduce the problem to 3–9 sub-multiplications of smaller polynomials, then delegates each sub-multiplication to the FAFFT implementation. This eliminates FAFFT's padding waste (HQC-1 pads 17669 → 32768).
 - **Why**: Pure FAFFT wastes ~46% of work on zero padding; pure Karatsuba is suboptimal at large sizes. The hybrid combines Karatsuba's tight fit to problem size with FAFFT's algorithmic efficiency.
-- **Where**: Selected by `POLYMUL=hybrid_zbc`. Internally calls `fafft_zbc`'s `vect_mul` after Phase 1b benchmarking establishes its performance.
+- **Where**: Selected by `POLYMUL=hybrid_zbc`. Internally calls `fafft_zbc`'s `vect_mul` after the `fafft_zbc` benchmark set establishes its performance.
 
-#### `src/poly_mul/fafft_zvbc/fafft_vclmul.c` *(Phase 1+ upper-bound — in development)*
+#### `src/poly_mul/fafft_zvbc/fafft_vclmul.c` *(`polymul_zvbc` upper-bound vector work)*
 - **Usage**: FAFFT using `vclmul.vv`/`vclmulh.vv` (Zvbc vector carry-less multiply) for vectorized butterfly multiplications. Processes VLEN/64 butterfly multiplications per instruction (4 per instruction at VLEN=256). Gated by `HQC_POLYMUL_ZVBC=1`.
 - **Why**: Zvbc is ratified but not yet in production silicon. This variant quantifies the incentive for processor vendors to ship Zvbc support for post-quantum workloads, which is a key thesis claim. Can only be run on Spike with `--isa=rv64gcv_zvbc`.
 - **Where**: Selected by `POLYMUL=fafft_zvbc`. The CI job `kat-spike-zvbc` in `.github/workflows/kat.yml` runs this variant exclusively on Spike.
@@ -344,21 +344,21 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 
 ### `src/keccak/rvv/`
 
-#### `src/keccak/rvv/fips202_rvv.c` *(Phase 2 — in development)*
+#### `src/keccak/rvv/fips202_rvv.c` *(`keccak_rvv` — planned)*
 - **Usage**: RVV-vectorized Keccak-f[1600] and HQC-specific SHAKE-256 wrappers. Based on Zhang et al. (ePrint 2023) with 4-way multi-instance interleaving for `seed_expand()` (the PRF for sparse vector generation). Exports `shake256()` (standard FIPS 202 signature) and `shake256_4way()`.
-- **Why**: `seed_expand()` calls SHAKE-256 at least 2×(N/8) times per KEM operation. RVV interleaving processes 4 independent Keccak instances simultaneously, amortizing the θ/ρ/π/χ/ι step overhead across instances. This is the Phase 2 speedup target.
+- **Why**: `seed_expand()` calls SHAKE-256 at least 2×(N/8) times per KEM operation. RVV interleaving processes 4 independent Keccak instances simultaneously, amortizing the θ/ρ/π/χ/ι step overhead across instances. This is the `keccak_rvv` speedup target.
 - **Where**: Selected when `HQC_KECCAK_IMPL=rvv` in CMake. Replaces `vendor/hqc-ref/lib/fips202/fips202.c` at link time.
 
 ---
 
 ### `src/decode/rvv/`
 
-#### `src/decode/rvv/reed_muller_rvv.c` *(Phase 3 — in development)*
+#### `src/decode/rvv/reed_muller_rvv.c` *(`reed_muller_rvv` — planned)*
 - **Usage**: RVV-vectorized 128-point Fast Hadamard Transform (FHT) for Reed-Muller decoding. Implements the 7-stage butterfly structure using `vadd.vv`/`vsub.vv` with LMUL=4 (32 butterfly pairs per iteration). Replaces `vendor/hqc-ref/src/ref/reed_muller.c` when `HQC_DECODE_IMPL=rvv`.
 - **Why**: The RM decoder's FHT is a perfectly regular 7-stage butterfly, ideal for RVV with large LMUL. All 128 butterflies in the innermost stage are independent and data-parallel.
 - **Where**: Selected when `HQC_DECODE_IMPL=rvv`. Called from `vendor/hqc-ref/src/common/code.c` via the `reed_muller_decode()` symbol.
 
-#### `src/decode/rvv/reed_solomon_rvv.c` *(Phase 3 — in development)*
+#### `src/decode/rvv/reed_solomon_rvv.c` *(`reed_solomon_rvv` — planned)*
 - **Usage**: RVV-accelerated Reed-Solomon decoder. Vectorizes the syndrome computation stage (`vluxei8.v` for 32 simultaneous GF(2^8) multiplications) and the Chien search stage (256 independent polynomial evaluations). The Berlekamp-Massey step remains scalar (sequential data dependency).
 - **Why**: RS syndrome computation and Chien search are the most expensive parts of RS decoding, and both have data-parallel structure. GF(2^8) CLMUL via `vluxei8.v` vectorizes the field multiplications without Zvbc.
 - **Where**: Selected when `HQC_DECODE_IMPL=rvv`. Called from `vendor/hqc-ref/src/common/code.c` via the `reed_solomon_decode()` symbol.
@@ -469,7 +469,7 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 - **Where**: Invoked with `make -f tests/bench/mini_bench.mk SIM=spike`.
 
 #### `tests/unit/`
-- **Usage**: Reserved empty directory. Will contain unit tests for GF(2^m) arithmetic, polynomial multiplication correctness, and Reed-Muller/Solomon decoding once Phase 1b and Phase 3 implementations are complete.
+- **Usage**: Reserved empty directory. Will contain unit tests for GF(2^m) arithmetic, polynomial multiplication correctness, and Reed-Muller/Solomon decoding once `fafft_zbc` and the decoder tracks are complete.
 - **Why**: Unit tests at the algorithm level (not just KAT) allow faster feedback during development of individual math components without running the full 100-vector KAT suite.
 - **Where**: Not referenced in the build system yet.
 
@@ -561,7 +561,7 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 
 #### `analysis/benchmarks/amdahl.py`
 - **Usage**: Computes Amdahl's Law speedup projections. Takes the fraction of runtime spent in each HQC component (polymul, Keccak, decoder) and models the maximum speedup achievable by optimizing each phase independently and together.
-- **Why**: Guides prioritization: if Phase 2 (Keccak) only accounts for 8% of runtime, Phase 3 optimization has limited impact. Amdahl analysis is part of the thesis motivation.
+- **Why**: Guides prioritization: if `keccak_rvv` only accounts for a small runtime share after polymul acceleration, the decoder tracks have limited impact. Amdahl analysis is part of the thesis motivation.
 - **Where**: Run manually: `python3 analysis/benchmarks/amdahl.py`. Inputs from `cycle_counts.csv`.
 
 #### `analysis/benchmarks/plot.py`
@@ -589,7 +589,7 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 
 #### `analysis/llvm_mca/reports/gf2x_ref.s`
 - **Usage**: RISC-V assembly dump of the vendor Karatsuba `vect_mul()` function, used as LLVM-MCA input.
-- **Why**: MCA requires assembly input. This is the baseline (Phase 0) for static throughput comparison against Phase 1 implementations.
+- **Why**: MCA requires assembly input. This is the `baseline_ref` reference point for static throughput comparison against the polymul implementation tracks.
 - **Where**: Input to `analysis/llvm_mca/run_mca.sh`. Generated from `vendor/hqc-ref/src/ref/gf2x.c` via `llvm-objdump -d`.
 
 #### `analysis/llvm_mca/reports/gf2x_ref_mca.txt`, `gf2x_mca.txt`, `gf2x_clmul_mca.txt`
@@ -654,11 +654,11 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
   - `src/ref/hqc.c` — PKE encrypt/decrypt
   - `src/common/code.c`, `fft.c` — Error correction wrappers
   - `src/common/symmetric.c` — SHAKE-256 wrappers
-  - `lib/fips202/fips202.c` — Reference Keccak (replaced in Phase 2)
-  - `src/ref/gf2x.c` — Reference Karatsuba (replaced in all Phase 1 variants)
-  - `src/ref/reed_muller.c`, `reed_solomon.c` — Reference decoders (replaced in Phase 3)
+  - `lib/fips202/fips202.c` — Reference Keccak (replaced by `keccak_rvv`)
+  - `src/ref/gf2x.c` — Reference Karatsuba (replaced in the polymul tracks)
+  - `src/ref/reed_muller.c`, `reed_solomon.c` — Reference decoders (replaced in the decoder tracks)
   - `KAT/hqc-{1,3,5}/PQCkemKAT_*.rsp` — NIST KAT vector files
-- **Why**: Provides the unmodified baseline for performance comparison (Phase 0) and the invariant code that is not the optimization target. Using a submodule ensures the exact upstream version is tracked.
+- **Why**: Provides the unmodified `baseline_ref` denominator and the invariant code that is not the optimisation target. Using a submodule ensures the exact upstream version is tracked.
 - **Where**: Paths under `vendor/hqc-ref/` are referenced directly in `CMakeLists.txt` and `cmake/hqc_core.cmake` for include directories and source files.
 
 ---

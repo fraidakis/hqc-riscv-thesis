@@ -118,8 +118,8 @@ scripts/bench/run_histogram_all.sh baseline_ref --report
 | Phase | `xor`/`slli`/`srli` | `clmul`/`clmulh` | `vclmul.vv`/`vclmulh.vv` | Total insns | Speedup |
 |---|---|---|---|---|---|
 | 0 (ref) | 2,400 M | 0 | 0 | 2,600 M | 1.0× |
-| 1a (zbc) | ~0 | 180 M | 0 | 210 M | ~12× |
-| 1+ (zvbc) | ~0 | ~0 | 45 M | 55 M | ~47× |
+| `polymul_zbc` | ~0 | 180 M | 0 | 210 M | ~12× |
+| `polymul_zvbc` | ~0 | ~0 | 45 M | 55 M | ~47× |
 
 *(Numbers are illustrative — actual values from Spike runs.)*
 
@@ -127,7 +127,7 @@ This table is the **single most powerful piece of evidence** in the paper.
 
 ### 12.4 The throughput-bound argument for vclmul
 
-For Phase 1+ specifically, we make an explicit throughput-bound argument:
+For the `polymul_zvbc`-class vector carry-less multiply tracks specifically, we make an explicit throughput-bound argument:
 
 **Preconditions (verifiable in code):**
 1. `vclmul.vv` processes VLEN/SEW = 256/64 = **4 carry-less products simultaneously**.

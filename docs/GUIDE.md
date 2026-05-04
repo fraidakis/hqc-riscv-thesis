@@ -49,9 +49,9 @@ All pre-built tools live under `~/Thesis/installed-tools/`:
 hqc-riscv/
 ├── vendor/hqc-ref/          # HQC v5.0.0 upstream (git submodule)
 ├── src/
-│   ├── baseline/            # Phase 0: vendor gf2x (unmodified)
-│   ├── scalar_zbc/          # Phase 1: clmul-based poly-mul
-│   └── vector_zvbc/         # Phase 1+: vclmul.vv vectorised
+│   ├── baseline/            # baseline_ref support / vendor gf2x (unmodified)
+│   ├── scalar_zbc/          # legacy helper area for polymul_zbc-era scalar work
+│   └── vector_zvbc/         # legacy helper area for polymul_zvbc-era vector work
 ├── tests/
 │   ├── kat/
 │   │   ├── kat_gen.c        # Bare-metal KAT runner (main entry point)
@@ -130,8 +130,8 @@ Key CMake options:
 | Option | Values | Default | Effect |
 |--------|--------|---------|--------|
 | `HQC_SIM` | `qemu` / `spike` | `qemu` | Selects the UART I/O backend compiled into the ELF |
-| `HQC_KECCAK_IMPL` | `ref` / `rvv` | `ref` | Scalar vendor Keccak or RVV Keccak (Phase 2) |
-| `HQC_DECODE_IMPL` | `ref` / `rvv` | `ref` | Scalar vendor RM/RS decoder or RVV decoder (Phase 3) |
+| `HQC_KECCAK_IMPL` | `ref` / `rvv` | `ref` | Scalar vendor Keccak or the `keccak_rvv` track |
+| `HQC_DECODE_IMPL` | `ref` / `rvv` | `ref` | Scalar vendor RM/RS decoder or the RVV decoder tracks |
 | `BENCH_N_ITER` | integer | `10` | Number of benchmark iterations (`1` for Spike ISS — deterministic) |
 | `RISCV` | path | `~/Thesis/installed-tools` | Override toolchain root |
 
@@ -339,7 +339,7 @@ These are actual measured times on an AMD Ryzen 7 5600H:
 > `sim/spike/run_bench.sh` or the bare `spike --isa=...` invocation without
 > logging flags.
 
-Instruction counts (Phase 0b baseline, `karatsuba_ref`, N_ITER=1):
+Instruction counts (`baseline_ref`, `karatsuba_ref`, N_ITER=1):
 
 | Level | Operation | Retired instructions |
 |-------|-----------|---------------------|
@@ -362,7 +362,7 @@ This confirms `vect_mul` is the dominant cost and the right target for optimizat
 Run commands:
 
 ```bash
-OUT=analysis/benchmarks/phase0b
+OUT=analysis/benchmarks/baseline_ref
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 
 # Full KEM bench (~0.7–5 s per level)
