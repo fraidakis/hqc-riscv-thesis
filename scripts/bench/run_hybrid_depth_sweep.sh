@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # scripts/bench/run_hybrid_depth_sweep.sh
 #
-# Phase 1c — Hybrid Karatsuba-FAFFT depth sweep.
+# Hybrid Karatsuba-FAFFT depth sweep.
 #
 # Builds bench_polymul_hqc{128,192,256}_hybrid_zbc for each Karatsuba depth
 # d in {0,1,2,3,4} using the existing build-spike directory, then runs Spike
-# and saves CSVs to analysis/benchmarks/phase1c/.
+# and saves CSVs to analysis/benchmarks/hybrid_zbc/.
 #
 # Usage:
 #   scripts/bench/run_hybrid_depth_sweep.sh [--depths "0 1 2 3 4"] [--levels "128 192 256"]
 #
 # Output:
-#   analysis/benchmarks/phase1c/hqc{LEVEL}_hybrid_d{D}_zbc_polymul_N1.csv
+#   analysis/benchmarks/hybrid_zbc/hqc{LEVEL}_hybrid_d{D}_zbc_polymul_N1.csv
 #
 # The script reconfigures the build-spike CMake cache for each depth (only
 # the HYBRID_KARATSUBA_DEPTH cache variable changes; all other flags are
@@ -26,7 +26,7 @@ RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
 BUILD_DIR="${REPO_ROOT}/build-spike"
-OUT_DIR="${REPO_ROOT}/analysis/benchmarks/phase1c"
+OUT_DIR="${REPO_ROOT}/analysis/benchmarks/hybrid_zbc"
 
 DEPTHS="0 1 2 3 4"
 LEVELS="128 192 256"

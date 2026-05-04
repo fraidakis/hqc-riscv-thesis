@@ -1,2 +1,4 @@
 impl,hqc128,hqc192,hqc256
-phase0b/karatsuba_ref,18578004,56469317,139077899
+baseline_ref/karatsuba_ref,37636615,113992185,279984371
+fafft_zbc/fafft_zbc,3404944,7566155,8345515
+polymul_zbc/karatsuba_zbc,1188975,3210827,6343519

@@ -11,7 +11,7 @@
 #   scripts/report/gen_report.sh [options]
 #
 # Options:
-#   --phase PHASE    Restrict extract_results.py to one phase (e.g. phase1a)
+#   --bench-set NAME Restrict extract_results.py to one benchmark set
 #   --fraction N     vect_mul fraction of runtime for Amdahl sweep (default: 0.90)
 #
 # Output:
@@ -30,13 +30,13 @@ PLOT_PY="${REPO_ROOT}/analysis/benchmarks/plot.py"
 AMDAHL_PY="${REPO_ROOT}/analysis/benchmarks/amdahl.py"
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
-PHASE_ARG=""
+BENCH_SET_ARG=""
 FRACTION="0.90"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --phase)
-            PHASE_ARG="--phase $2"
+        --bench-set)
+            BENCH_SET_ARG="--bench-set $2"
             shift 2
             ;;
         --fraction)
@@ -61,7 +61,7 @@ REPORT="${REPORT_DIR}/report_${DATE}.md"
 
 GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo 'no-git')"
 
-PHASES_FOUND="$(ls -d "${BENCH_DIR}"/phase* 2>/dev/null | xargs -r -n1 basename | sort | tr '\n' ' ' || echo 'none')"
+BENCH_SETS_FOUND="$(find "${BENCH_DIR}" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort | tr '\n' ' ' || echo 'none')"
 
 echo "[gen_report] Generating report: $REPORT" >&2
 
@@ -71,7 +71,7 @@ TMP_LATEX="$(mktemp /tmp/hqc_results_XXXXXX.tex)"
 trap 'rm -f "$TMP_MD" "$TMP_LATEX"' EXIT
 
 EXTRACT_STATUS=""
-if python3 "$EXTRACT_PY" $PHASE_ARG --write-summary-csv > "$TMP_MD" 2>&1; then
+if python3 "$EXTRACT_PY" $BENCH_SET_ARG --write-summary-csv > "$TMP_MD" 2>&1; then
     EXTRACT_STATUS="OK"
     echo "[gen_report] extract_results.py: OK" >&2
 else
@@ -81,7 +81,7 @@ fi
 
 # Also generate LaTeX table
 LATEX_STATUS=""
-if python3 "$EXTRACT_PY" $PHASE_ARG --latex > "$TMP_LATEX" 2>/dev/null; then
+if python3 "$EXTRACT_PY" $BENCH_SET_ARG --latex > "$TMP_LATEX" 2>/dev/null; then
     LATEX_OUT="${REPORT_DIR}/table_results_${DATE}.tex"
     cp "$TMP_LATEX" "$LATEX_OUT"
     LATEX_STATUS="OK — written to $(basename "$LATEX_OUT")"
@@ -120,7 +120,7 @@ cat > "$REPORT" << REPORT_EOF
 
 **Date:** ${DATE}
 **Git SHA:** ${GIT_SHA}
-**Phases found:** ${PHASES_FOUND}
+**Benchmark sets found:** ${BENCH_SETS_FOUND}
 
 ---
 
@@ -185,10 +185,10 @@ Use \`--fraction\` to adjust: e.g. \`scripts/report/gen_report.sh --fraction 0.8
 ## Next Steps
 
 - [ ] Verify all KAT pass: \`scripts/bench/run_kat_all.sh\`
-- [ ] Run polymul micro-benches for next phase: \`scripts/bench/run_spike_bench_phase.sh <phase>\`
-- [ ] Run histogram analysis: \`scripts/bench/run_histogram_all.sh <phase>\`
-- [ ] Commit results: \`git add analysis/benchmarks/<phase>/ && git commit\`
-- [ ] Generate updated report: \`scripts/report/gen_report.sh --phase <phase>\`
+- [ ] Run polymul micro-benches for next benchmark set: \`scripts/bench/run_spike_bench_variant.sh <bench_set>\`
+- [ ] Run histogram analysis: \`scripts/bench/run_histogram_all.sh <bench_set>\`
+- [ ] Commit results: \`git add analysis/benchmarks/<bench_set>/ && git commit\`
+- [ ] Generate updated report: \`scripts/report/gen_report.sh --bench-set <bench_set>\`
 
 ---
 

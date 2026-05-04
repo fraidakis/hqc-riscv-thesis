@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """scripts/report/extract_results.py
 
-Parse Spike benchmark CSV files across all phase directories, compute speedups
-vs. a baseline variant, and print comparison tables in Markdown or LaTeX format.
+Parse Spike benchmark CSV files across all benchmark-set directories, compute
+speedups vs. a baseline variant, and print comparison tables in Markdown or
+LaTeX format.
 Optionally parse Spike --histogram files to produce instruction-mix breakdowns.
 
 Usage:
@@ -10,7 +11,7 @@ Usage:
 
 Options:
     --bench-dir DIR      Root of benchmark directories (default: analysis/benchmarks)
-    --phase PHASE [...]  Restrict to named phase(s), e.g. phase0b phase1a
+    --bench-set NAME [...]  Restrict to named benchmark set(s)
     --level {128,192,256} [...]  Restrict to security level(s)
     --variant V [...]    Restrict to variant name(s)
     --op OP [...]        Restrict to operation(s): keypair encaps decaps vect_mul
@@ -23,11 +24,11 @@ Options:
 
 Examples:
     python3 scripts/report/extract_results.py
-    python3 scripts/report/extract_results.py --phase phase1a --level 128
+    python3 scripts/report/extract_results.py --bench-set polymul_zbc --level 128
     python3 scripts/report/extract_results.py --metric instret
     python3 scripts/report/extract_results.py --codesize
     python3 scripts/report/extract_results.py --latex > analysis/report/table_results.tex
-    python3 scripts/report/extract_results.py --mix --phase phase0b phase1a
+    python3 scripts/report/extract_results.py --mix --bench-set baseline_ref polymul_zbc
     python3 scripts/report/extract_results.py --write-summary-csv
 """
 
@@ -54,6 +55,7 @@ ALL_VARIANTS = [
     "karatsuba_zbc",
     "fafft_zbc",
     "hybrid_zbc",
+    "karatsuba_zvbc",
     "fafft_zvbc",
 ]
 ALL_LEVELS  = [128, 192, 256]
@@ -70,9 +72,9 @@ MIX_CATEGORIES: list[tuple[str, str]] = [
 ]
 
 # ── Data structures ───────────────────────────────────────────────────────────
-# Key: (phase, level, variant, op) → median_cycles or median_instret (int or None)
+# Key: (bench_set, level, variant, op) → median_cycles or median_instret (int or None)
 Results = dict[tuple[str, int, str, str], int | None]
-# Key: (phase, level, variant) → codesize_text in bytes (int or None)
+# Key: (bench_set, level, variant) → codesize_text in bytes (int or None)
 CodeSizes = dict[tuple[str, int, str], int | None]
 
 # ── CSV parsing ───────────────────────────────────────────────────────────────
@@ -91,7 +93,7 @@ def parse_metadata_comment(line: str) -> dict[str, str]:
 def parse_csv_file(path: Path) -> list[dict[str, Any]]:
     """
     Parse a Spike bench CSV file.  Returns a list of row dicts with keys:
-      phase, level, variant, op, iterations, min_cycles, median_cycles, max_cycles
+    bench_set, level, variant, op, iterations, min_cycles, median_cycles, max_cycles
     Returns [] on error (logs a warning).
     """
     rows: list[dict[str, Any]] = []
@@ -126,8 +128,7 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
         print(f"[extract] WARNING: bad metadata in {path}: {meta}", file=sys.stderr)
         return rows
 
-    # Derive phase from parent directory name (e.g. "phase0b")
-    phase = path.parent.name
+    bench_set = path.parent.name
 
     # Parse CSV body
     try:
@@ -135,7 +136,7 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
         for row in reader:
             try:
                 rows.append({
-                    "phase":           phase,
+                    "bench_set":       bench_set,
                     "level":           level,
                     "variant":         variant,
                     "op":              row["op"].strip(),
@@ -156,7 +157,7 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
 
 def collect_results(
     bench_dir: Path,
-    phases: list[str] | None,
+    bench_sets: list[str] | None,
     levels: list[int] | None,
     variants: list[str] | None,
     ops: list[str] | None,
@@ -174,26 +175,28 @@ def collect_results(
         print(f"[extract] ERROR: bench directory not found: {bench_dir}", file=sys.stderr)
         sys.exit(1)
 
-    csv_files = list(bench_dir.glob("phase*/*_N*.csv"))
+    csv_files = [
+        path for path in bench_dir.glob("*/*_N*.csv")
+        if path.parent.is_dir()
+    ]
     if not csv_files:
-        print(f"[extract] No CSV files found in {bench_dir}/phase*/", file=sys.stderr)
+        print(f"[extract] No CSV files found in subdirectories of {bench_dir}", file=sys.stderr)
         return results, code_sizes
 
     for csv_path in sorted(csv_files):
         for row in parse_csv_file(csv_path):
-            if phases   and row["phase"]   not in phases:   continue
+            if bench_sets and row["bench_set"] not in bench_sets: continue
             if levels   and row["level"]   not in levels:   continue
             if variants and row["variant"] not in variants: continue
             if ops      and row["op"]      not in ops:      continue
 
-            key = (row["phase"], row["level"], row["variant"], row["op"])
+            key = (row["bench_set"], row["level"], row["variant"], row["op"])
             if metric == "instret":
                 results[key] = row["median_instret"]
             else:
                 results[key] = row["median_cycles"]
 
-            # Store codesize keyed by (phase, level, variant) — same for all ops
-            sz_key = (row["phase"], row["level"], row["variant"])
+            sz_key = (row["bench_set"], row["level"], row["variant"])
             if sz_key not in code_sizes:
                 code_sizes[sz_key] = row["codesize_text"]
 
@@ -223,12 +226,26 @@ def fmt_cycles(n: int | None) -> str:
     return str(n)
 
 
+def resolve_baseline_value(
+    results: Results,
+    baseline_variant: str,
+    bench_sets: list[str],
+    level: int,
+    op: str,
+) -> int | None:
+    for bench_set in bench_sets:
+        value = results.get((bench_set, level, baseline_variant, op))
+        if value is not None:
+            return value
+    return None
+
+
 # ── Markdown table output ─────────────────────────────────────────────────────
 
 def print_markdown_table(
     results: Results,
     baseline_variant: str,
-    phases: list[str],
+    bench_sets: list[str],
     levels: list[int],
     variants: list[str],
     ops: list[str],
@@ -237,25 +254,26 @@ def print_markdown_table(
     metric_label = "retired instructions" if metric == "instret" else "cycle counts"
     for op in ops:
         for level in levels:
-            # Collect phases that have any data for this level/op
-            active_phases = [
-                ph for ph in phases
-                if any(results.get((ph, level, v, op)) is not None for v in variants)
+            active_bench_sets = [
+                bench_set for bench_set in bench_sets
+                if any(results.get((bench_set, level, v, op)) is not None for v in variants)
             ]
-            if not active_phases:
+            if not active_bench_sets:
                 continue
 
             print(f"\n## `{op}` {metric_label} — HQC-{level}\n")
-            header  = "| Phase    | " + " | ".join(f"{v:>15}" for v in variants) + " |"
+            header  = "| Benchmark Set | " + " | ".join(f"{v:>15}" for v in variants) + " |"
             divider = "|----------|" + "|".join("-" * 17 for _ in variants) + "|"
             print(header)
             print(divider)
 
-            for phase in active_phases:
-                baseline_val = results.get((phase, level, baseline_variant, op))
+            for bench_set in active_bench_sets:
+                baseline_val = resolve_baseline_value(
+                    results, baseline_variant, bench_sets, level, op
+                )
                 cells: list[str] = []
                 for v in variants:
-                    val = results.get((phase, level, v, op))
+                    val = results.get((bench_set, level, v, op))
                     if val is None:
                         cells.append("—")
                     elif v == baseline_variant:
@@ -263,7 +281,7 @@ def print_markdown_table(
                     else:
                         speedup = compute_speedup(baseline_val, val)
                         cells.append(f"{fmt_cycles(val)} ({speedup})")
-                row_str = "| " + f"{phase:<8}" + " | " + " | ".join(f"{c:>15}" for c in cells) + " |"
+                row_str = "| " + f"{bench_set:<13}" + " | " + " | ".join(f"{c:>15}" for c in cells) + " |"
                 print(row_str)
 
         print()
@@ -274,7 +292,7 @@ def print_markdown_table(
 def print_latex_table(
     results: Results,
     baseline_variant: str,
-    phases: list[str],
+    bench_sets: list[str],
     levels: list[int],
     variants: list[str],
     ops: list[str],
@@ -286,6 +304,7 @@ def print_latex_table(
         "karatsuba_zbc": "kara\\textsubscript{zbc}",
         "fafft_zbc":     "fafft\\textsubscript{zbc}",
         "hybrid_zbc":    "hybrid\\textsubscript{zbc}",
+        "karatsuba_zvbc": "kara\\textsubscript{zvbc}",
         "fafft_zvbc":    "fafft\\textsubscript{zvbc}",
     }
 
@@ -301,25 +320,27 @@ def print_latex_table(
         print(f"    \\toprule")
 
         # Header row
-        header_cells = ["Phase"] + [SHORT.get(v, v) for v in variants]
+        header_cells = ["Benchmark Set"] + [SHORT.get(v, v) for v in variants]
         print(f"    " + " & ".join(header_cells) + r" \\")
         print(f"    \\midrule")
 
         for level in levels:
-            active_phases = [
-                ph for ph in phases
-                if any(results.get((ph, level, v, op)) is not None for v in variants)
+            active_bench_sets = [
+                bench_set for bench_set in bench_sets
+                if any(results.get((bench_set, level, v, op)) is not None for v in variants)
             ]
-            if not active_phases:
+            if not active_bench_sets:
                 continue
 
             print(f"    \\multicolumn{{{len(variants) + 1}}}{{l}}{{\\textit{{HQC-{level}}}}}" + r" \\")
 
-            for phase in active_phases:
-                baseline_val = results.get((phase, level, baseline_variant, op))
-                cells: list[str] = [phase]
+            for bench_set in active_bench_sets:
+                baseline_val = resolve_baseline_value(
+                    results, baseline_variant, bench_sets, level, op
+                )
+                cells: list[str] = [bench_set]
                 for v in variants:
-                    val = results.get((phase, level, v, op))
+                    val = results.get((bench_set, level, v, op))
                     if val is None:
                         cells.append("—")
                     elif v == baseline_variant:
@@ -338,25 +359,25 @@ def print_latex_table(
 
 def print_codesize_table(
     code_sizes: CodeSizes,
-    phases: list[str],
+    bench_sets: list[str],
     levels: list[int],
     variants: list[str],
     as_latex: bool,
 ) -> None:
-    """Print a table of .text section sizes (bytes) per (phase, level, variant)."""
+    """Print a table of .text section sizes (bytes) per (benchmark set, level, variant)."""
     if as_latex:
         print("\n% Code size (.text section, bytes)")
         col_spec = "ll" + "r" * len(variants)
         print(f"\\begin{{tabular}}{{{col_spec}}}")
         print("  \\toprule")
-        print("  Phase & Level & " + " & ".join(variants) + r" \\")
+        print("  Benchmark Set & Level & " + " & ".join(variants) + r" \\")
         print("  \\midrule")
-        for phase in phases:
+        for bench_set in bench_sets:
             for level in levels:
-                cells = [phase, str(level)]
+                cells = [bench_set, str(level)]
                 any_data = False
                 for v in variants:
-                    sz = code_sizes.get((phase, level, v))
+                    sz = code_sizes.get((bench_set, level, v))
                     cells.append(f"{sz:,}" if sz is not None else "—")
                     if sz is not None:
                         any_data = True
@@ -366,21 +387,21 @@ def print_codesize_table(
         print("\\end{tabular}")
     else:
         print("\n## Code size (.text section, bytes)\n")
-        header  = "| Phase    | Level | " + " | ".join(f"{v:>15}" for v in variants) + " |"
+        header  = "| Benchmark Set | Level | " + " | ".join(f"{v:>15}" for v in variants) + " |"
         divider = "|----------|-------|" + "|".join("-" * 17 for _ in variants) + "|"
         print(header)
         print(divider)
-        for phase in phases:
+        for bench_set in bench_sets:
             for level in levels:
                 cells: list[str] = []
                 any_data = False
                 for v in variants:
-                    sz = code_sizes.get((phase, level, v))
+                    sz = code_sizes.get((bench_set, level, v))
                     cells.append(f"{sz:,}" if sz is not None else "—")
                     if sz is not None:
                         any_data = True
                 if any_data:
-                    row_str = "| " + f"{phase:<8}" + " | " + f"{level:<5}" + " | "
+                    row_str = "| " + f"{bench_set:<13}" + " | " + f"{level:<5}" + " | "
                     row_str += " | ".join(f"{c:>15}" for c in cells) + " |"
                     print(row_str)
 
@@ -467,7 +488,7 @@ def aggregate_mix(counts: dict[str, int]) -> dict[str, int]:
 
 def print_mix_table(
     bench_dir: Path,
-    phases: list[str],
+    bench_sets: list[str],
     levels: list[int],
     variants: list[str],
     as_latex: bool,
@@ -475,12 +496,12 @@ def print_mix_table(
 ) -> None:
     print("\n## Instruction mix breakdown\n")
 
-    for phase in phases:
+    for bench_set in bench_sets:
         for level in levels:
             row_data: dict[str, dict[str, float]] = {}  # variant → {category: pct}
 
             for variant in variants:
-                hist_path = bench_dir / phase / f"hqc{level}_{variant}_hist.txt"
+                hist_path = bench_dir / bench_set / f"hqc{level}_{variant}_hist.txt"
                 if not hist_path.exists():
                     continue
 
@@ -503,7 +524,7 @@ def print_mix_table(
             active_variants = [v for v in variants if v in row_data]
 
             if as_latex:
-                print(f"\n% Instruction mix — {phase}, HQC-{level}")
+                print(f"\n% Instruction mix — {bench_set}, HQC-{level}")
                 col_spec = "l" + "r" * len(active_variants)
                 print(f"\\begin{{tabular}}{{{col_spec}}}")
                 print("  \\toprule")
@@ -515,7 +536,7 @@ def print_mix_table(
                 print("  \\bottomrule")
                 print("\\end{tabular}")
             else:
-                print(f"\n### {phase} — HQC-{level}")
+                print(f"\n### {bench_set} — HQC-{level}")
                 header  = "| Category            | " + " | ".join(f"{v:>15}" for v in active_variants) + " |"
                 divider = "|---------------------|" + "|".join("-" * 17 for _ in active_variants) + "|"
                 print(header)
@@ -531,7 +552,7 @@ def write_summary_csvs(
     results: Results,
     bench_dir: Path,
     baseline_variant: str,
-    phases: list[str],
+    bench_sets: list[str],
     levels: list[int],
     variants: list[str],
     ops: list[str],
@@ -542,7 +563,7 @@ def write_summary_csvs(
     analysis/benchmarks/plot.py.
 
     cycle_counts.csv columns: impl, hqc128, hqc192, hqc256
-    Each row represents one (phase, variant, op) combination.
+    Each row represents one (benchmark set, variant, op) combination.
     We use the encaps op as the representative KEM operation for the cycle plot.
     """
     cycle_csv = bench_dir / "cycle_counts.csv"
@@ -552,12 +573,12 @@ def write_summary_csvs(
     rep_op = "encaps" if "encaps" in ops else (ops[0] if ops else "encaps")
 
     rows_out: list[dict[str, str]] = []
-    for phase in phases:
+    for bench_set in bench_sets:
         for variant in variants:
-            row: dict[str, str] = {"impl": f"{phase}/{variant}"}
+            row: dict[str, str] = {"impl": f"{bench_set}/{variant}"}
             any_data = False
             for level in levels:
-                val = results.get((phase, level, variant, rep_op))
+                val = results.get((bench_set, level, variant, rep_op))
                 row[f"hqc{level}"] = str(val) if val is not None else ""
                 if val is not None:
                     any_data = True
@@ -574,15 +595,15 @@ def write_summary_csvs(
         print(f"[extract] No data for cycle_counts.csv (run Spike benches first)", file=sys.stderr)
 
     # ── instruction_mix.csv ───────────────────────────────────────────────────
-    # Collect mix data across all phase/level/variant combinations
+    # Collect mix data across all benchmark-set/level/variant combinations
     mix_rows: list[dict[str, str]] = []
     category_names: list[str] = []
     seen_mix: dict[str, dict[str, float]] = {}
 
-    for phase in phases:
+    for bench_set in bench_sets:
         for level in levels:
             for variant in variants:
-                hist_path = bench_dir / phase / f"hqc{level}_{variant}_hist.txt"
+                hist_path = bench_dir / bench_set / f"hqc{level}_{variant}_hist.txt"
                 if not hist_path.exists():
                     continue
 
@@ -596,7 +617,7 @@ def write_summary_csvs(
                     continue
                 agg   = aggregate_mix(counts)
                 total = sum(agg.values()) or 1
-                key   = f"{phase}/{variant}/{level}"
+                key   = f"{bench_set}/{variant}/{level}"
                 seen_mix[key] = {cat: 100.0 * n / total for cat, n in agg.items()}
                 for cat in agg:
                     if cat not in category_names:
@@ -631,8 +652,8 @@ def main() -> None:
                         default=REPO_ROOT / "build-spike",
                         help="Directory containing bench_polymul*.elf files for PC→mnemonic "
                              "resolution (default: build-spike)")
-    parser.add_argument("--phase", nargs="+", metavar="PHASE",
-                        help="Phase(s) to include, e.g. phase0b phase1a")
+    parser.add_argument("--bench-set", nargs="+", metavar="NAME",
+                        help="Benchmark set(s) to include, e.g. baseline_ref polymul_zbc")
     parser.add_argument("--level", nargs="+", type=int, choices=[128, 192, 256],
                         metavar="{128,192,256}",
                         help="Security level(s) to include")
@@ -662,27 +683,26 @@ def main() -> None:
         print(f"[extract] NOTE: --build-dir not found: {args.build_dir} — PC resolution disabled",
               file=sys.stderr)
 
-    # Discover available phases from directory names
-    if args.phase:
-        phases = args.phase
+    if args.bench_set:
+        bench_sets = args.bench_set
     else:
         if bench_dir.is_dir():
-            phases = sorted(
+            bench_sets = sorted(
                 d.name for d in bench_dir.iterdir()
-                if d.is_dir() and d.name.startswith("phase")
+                if d.is_dir()
             )
         else:
-            phases = []
+            bench_sets = []
 
     levels   = args.level   or ALL_LEVELS
     variants = args.variant or ALL_VARIANTS
     ops      = args.op      or ALL_OPS
 
-    if not phases:
-        print("[extract] No phase directories found. Run Spike benchmarks first.", file=sys.stderr)
+    if not bench_sets:
+        print("[extract] No benchmark-set directories found. Run Spike benchmarks first.", file=sys.stderr)
         sys.exit(0)
 
-    results, code_sizes = collect_results(bench_dir, phases, levels, variants, ops,
+    results, code_sizes = collect_results(bench_dir, bench_sets, levels, variants, ops,
                                            metric=args.metric)
 
     if not results:
@@ -691,21 +711,21 @@ def main() -> None:
 
     # ── Output tables ──────────────────────────────────────────────────────────
     if args.latex:
-        print_latex_table(results, args.baseline, phases, levels, variants, ops,
+        print_latex_table(results, args.baseline, bench_sets, levels, variants, ops,
                           metric=args.metric)
     else:
-        print_markdown_table(results, args.baseline, phases, levels, variants, ops,
+        print_markdown_table(results, args.baseline, bench_sets, levels, variants, ops,
                              metric=args.metric)
 
     if args.codesize:
-        print_codesize_table(code_sizes, phases, levels, variants, as_latex=args.latex)
+        print_codesize_table(code_sizes, bench_sets, levels, variants, as_latex=args.latex)
 
     if args.mix:
-        print_mix_table(bench_dir, phases, levels, variants, as_latex=args.latex,
+        print_mix_table(bench_dir, bench_sets, levels, variants, as_latex=args.latex,
                         build_dir=build_dir)
 
     if args.write_summary_csv:
-        write_summary_csvs(results, bench_dir, args.baseline, phases, levels, variants, ops,
+        write_summary_csvs(results, bench_dir, args.baseline, bench_sets, levels, variants, ops,
                            build_dir=build_dir)
 
 if __name__ == "__main__":

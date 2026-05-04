@@ -7,7 +7,7 @@ Each 64x64 carry-less product takes exactly 2 instructions instead of ~64 shift-
 
 ## vect_mul Results (median_instret, N=1 iteration, Spike simulation)
 
-| Level   | phase0 (karatsuba_ref) | T=8 instret | T=8 speedup | T=16 instret | T=16 speedup |
+| Level   | baseline_ref (karatsuba_ref) | T=8 instret | T=8 speedup | T=16 instret | T=16 speedup |
 |---------|------------------------|-------------|-------------|--------------|--------------|
 | HQC-128 |             18,578,007 |     450,644 |       41.2x |      354,187 |       52.5x  |
 | HQC-192 |             56,469,320 |   1,389,629 |       40.6x |    1,078,641 |       52.4x  |
@@ -18,9 +18,9 @@ Target: >=2x speedup -> ACHIEVED (52-62x at T=16)
 
 ## Full KEM Results (median_instret, N=1 iteration, Spike simulation)
 
-Baseline: phase0 karatsuba_ref; karatsuba_zbc at KARATSUBA_THRESHOLD=16.
+Baseline: baseline_ref karatsuba_ref; karatsuba_zbc at KARATSUBA_THRESHOLD=16.
 
-| Level   | Op      | karatsuba_ref (phase0) | karatsuba_zbc (phase1a) | speedup |
+| Level   | Op      | karatsuba_ref (baseline_ref) | karatsuba_zbc (polymul_zbc) | speedup |
 |---------|---------|------------------------|-------------------------|---------|
 | HQC-128 | keypair |             18,816,325 |                 592,505 |  31.8x  |
 | HQC-128 | encaps  |             37,636,615 |               1,188,975 |  31.7x  |
@@ -68,7 +68,7 @@ vmv.v.x=5.3%, clmulh=5.3%, clmul=5.3%, add=3.4%
 ## Artifacts
 
 - src/poly_mul/karatsuba_zbc/gf2x_clmul.c  (KARATSUBA_THRESHOLD=16)
-- analysis/benchmarks/phase1a/hqc{128,192,256}_karatsuba_zbc_polymul_N1.csv
-- analysis/benchmarks/phase1a/hqc{128,192,256}_karatsuba_zbc_N1.csv
-- analysis/benchmarks/phase1a/hqc{128,192,256}_karatsuba_zbc_hist.txt
+- analysis/benchmarks/polymul_zbc/hqc{128,192,256}_karatsuba_zbc_polymul_N1.csv
+- analysis/benchmarks/polymul_zbc/hqc{128,192,256}_karatsuba_zbc_N1.csv
+- analysis/benchmarks/polymul_zbc/hqc{128,192,256}_karatsuba_zbc_hist.txt
 - analysis/llvm_mca/reports/gf2x_clmul_mca.txt

@@ -105,12 +105,12 @@ meant to accelerate, where the baseline implements it as a loop of shifts and XO
 # Spike --histogram gives instruction frequency table
 $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc --histogram \
     build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
-    > analysis/benchmarks/phase0b/hqc128_karatsuba_ref_polymul_N1.csv \
-    2> analysis/benchmarks/phase0b/hqc128_karatsuba_ref_hist.txt
+    > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv \
+    2> analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_hist.txt
 
 # Or batch:
-scripts/bench/run_histogram_all.sh phase0b
-scripts/bench/run_histogram_all.sh phase0b --report
+scripts/bench/run_histogram_all.sh baseline_ref
+scripts/bench/run_histogram_all.sh baseline_ref --report
 ```
 
 **Paper table target:**
@@ -190,18 +190,18 @@ analogue data as a conservative lower bound.
 # Polymul micro-bench (20–40 min for HQC-128)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
-    > analysis/benchmarks/phase0b/hqc128_karatsuba_ref_polymul_N1.csv &
+    > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv &
 
 # Full KEM bench (2–5 h, run at phase milestones)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build-spike-probe/bench_hqc128_karatsuba_ref.elf \
-    > analysis/benchmarks/phase0b/hqc128_karatsuba_ref_N1.csv &
+    > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_N1.csv &
 
 # Instruction histogram (same run as bench, free with --histogram)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc --histogram \
     build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
-    > analysis/benchmarks/phase0b/hqc128_karatsuba_ref_polymul_N1.csv \
-    2> analysis/benchmarks/phase0b/hqc128_karatsuba_ref_hist.txt &
+    > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv \
+    2> analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_hist.txt &
 ```
 
 ### 13.2 llvm-mca — rank 2 (static throughput)

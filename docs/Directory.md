@@ -115,7 +115,7 @@ hqc-riscv/
 │   ├── bench/
 │   │   ├── run_histogram_all.sh
 │   │   ├── run_kat_all.sh
-│   │   ├── run_spike_bench_phase.sh
+│   │   ├── run_spike_bench_variant.sh
 │   │   └── spike_kat.sh
 │   ├── ci/
 │   │   ├── check_ct.sh
@@ -136,13 +136,13 @@ hqc-riscv/
 │   │   ├── cycle_counts.csv
 │   │   ├── instruction_mix.csv
 │   │   ├── plot.py
-│   │   ├── phase0b/
+│   │   ├── baseline_ref/
 │   │   │   ├── hqc{128,192,256}_karatsuba_ref_N1.csv
 │   │   │   ├── hqc{128,192,256}_karatsuba_ref_polymul_N1.csv
 │   │   │   ├── hqc{128,192,256}_karatsuba_ref_polymul.log
 │   │   │   ├── hqc{128,192,256}_spike.log
 │   │   │   └── pids.txt
-│   │   └── phase1a/
+│   │   └── polymul_zbc/
 │   │       ├── hqc{128,192,256}_karatsuba_ref_polymul_N1.csv
 │   │       ├── hqc{128,192,256}_karatsuba_ref_polymul.log
 │   │       └── pids.txt
@@ -397,7 +397,7 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 #### `sim/spike/run_bench.sh`
 - **Usage**: Runs an ELF on Spike with no logging flags. Records wall-clock time and captures the CSV output (cycle counts from `rdcycle`) emitted by the benchmark harness.
 - **Why**: Spike without logging is the primary timing environment. `rdcycle` on Spike counts retired instructions (CPI=1 for in-order model), giving a reproducible, hardware-agnostic performance metric. QEMU's `rdcycle` is a software counter and unreliable for timing.
-- **Where**: Called by `scripts/bench/run_spike_bench_phase.sh` and manually for ad-hoc benchmarking.
+- **Where**: Called by `scripts/bench/run_spike_bench_variant.sh` and manually for ad-hoc benchmarking.
 
 #### `sim/spike/parse_commits.py`
 - **Usage**: Parses Spike `--log-commits` trace output. Extracts instruction opcode frequencies, identifies hot loops, and generates instruction-mix histograms.
@@ -456,7 +456,7 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 #### `tests/bench/bench_poly_mul.c`
 - **Usage**: `vect_mul()`-only micro-benchmark. Benchmarks the polynomial multiply function in isolation (no keypair/encaps/decaps, no Keccak). Emits CSV with min/median/max cycle counts. Compiled with `HQC_BENCH_MODE=1` and `N_ITER=1` for Spike.
 - **Why**: `vect_mul()` accounts for >90% of total KEM runtime. Isolating it reduces Spike benchmark time from 2–20 hours (full KEM) to 20–60 minutes, enabling rapid iteration on polymul implementations.
-- **Where**: Compiled into all 15 POLYMUL_BENCH targets (`bench_polymul_hqc{128,192,256}_{variant}.elf`). Run via `scripts/bench/run_spike_bench_phase.sh`.
+- **Where**: Compiled into all 15 POLYMUL_BENCH targets (`bench_polymul_hqc{128,192,256}_{variant}.elf`). Run via `scripts/bench/run_spike_bench_variant.sh`.
 
 #### `tests/bench/mini_bench.c`
 - **Usage**: Minimal standalone benchmark for three HQC-relevant micro-kernels: (1) scalar GF(2^128) multiply via `clmul`/`clmulh`, (2) RVV-accelerated 256-byte XOR (`vxor.vv` e64/m4), (3) scalar XOR-rotate control baseline. Emits one CSV line per kernel.
@@ -482,10 +482,10 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 - **Why**: Allows a single command to verify correctness of the entire 3×5 target matrix before committing results.
 - **Where**: Run manually before declaring a phase complete. Also used as a pre-merge check.
 
-#### `scripts/bench/run_spike_bench_phase.sh`
+#### `scripts/bench/run_spike_bench_variant.sh`
 - **Usage**: Runs all polymul micro-benchmarks for a given phase on Spike in background processes, logging PIDs to `analysis/benchmarks/phase<N>/pids.txt`.
 - **Why**: Spike benchmarks take 20–60 minutes per target. Launching all 15 in background and tracking PIDs allows asynchronous execution without blocking the terminal.
-- **Where**: Called once per phase: `./scripts/bench/run_spike_bench_phase.sh phase1a`.
+- **Where**: Called once per phase: `./scripts/bench/run_spike_bench_variant.sh polymul_zbc`.
 
 #### `scripts/bench/run_histogram_all.sh`
 - **Usage**: Runs all targets on Spike with `--log-commits` to collect instruction histograms, then calls `sim/spike/parse_commits.py` to aggregate opcode frequency data.
@@ -569,10 +569,10 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 - **Why**: Visual presentation of performance results for the thesis document.
 - **Where**: Run manually: `python3 analysis/benchmarks/plot.py`. Outputs `docs/figures/cycle_counts.pdf` and `docs/figures/instruction_mix.pdf`.
 
-#### `analysis/benchmarks/phase0b/` and `analysis/benchmarks/phase1a/`
+#### `analysis/benchmarks/baseline_ref/` and `analysis/benchmarks/polymul_zbc/`
 - **Usage**: Per-phase benchmark data directories. Each contains: `hqc{128,192,256}_karatsuba_ref_N1.csv` (full KEM cycle counts), `hqc{128,192,256}_karatsuba_ref_polymul_N1.csv` (polymul micro-bench counts), `*.log` (Spike output logs), and `pids.txt` (background job PID log).
 - **Why**: Preserves raw benchmark data for reproducibility and for comparing across phases. The `pids.txt` files track which background Spike processes were launched, allowing them to be waited on or killed.
-- **Where**: Written by `scripts/bench/run_spike_bench_phase.sh`. Read by `scripts/report/extract_results.py`.
+- **Where**: Written by `scripts/bench/run_spike_bench_variant.sh`. Read by `scripts/report/extract_results.py`.
 
 #### `analysis/ct_verify/binsec/`, `ctgrind/`, `dudect/`
 - **Usage**: Reserved directories (`.gitkeep` only) for constant-time verification tool outputs.

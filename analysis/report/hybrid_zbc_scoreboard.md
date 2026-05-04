@@ -42,9 +42,9 @@ Ratios (d=2/d=1 per level):
 
 | Iter | Technique                          | HQC-128 instret | Δ vs Phase 1a | Δ vs Phase 1b | Verdict   |
 |------|------------------------------------|-----------------|---------------|---------------|-----------|
-| —    | phase0 ref (karatsuba_ref)         | 18,578,007      | ref0          | —             | baseline  |
-| —    | phase1a (karatsuba_zbc)            | 354,187         | **52.4×**     | ref1a         | ✓ best    |
-| —    | phase1b (fafft_zbc)                | 1,462,167       | 4.1× slower   | ref1b         | ✓ done    |
+| —    | baseline_ref ref (karatsuba_ref)         | 18,578,007      | ref0          | —             | baseline  |
+| —    | polymul_zbc (karatsuba_zbc)            | 354,187         | **52.4×**     | ref1a         | ✓ best    |
+| —    | fafft_zbc (fafft_zbc)                | 1,462,167       | 4.1× slower   | ref1b         | ✓ done    |
 | 0    | hybrid d=0 (= pure FAFFT)          | 1,463,531       | 4.1× slower   | +0.1%         | =fafft_zbc |
 | 1    | hybrid d=1                         | 4,390,073       | 12.4× slower  | 3.0× worse    | drop      |
 | 2    | hybrid d=2 (adaptive kernel 192/256)| 13,160,160     | 37.2× slower  | 9.0× worse    | drop      |
@@ -85,7 +85,7 @@ Root cause of the missing crossover:
 
 ## Conclusion
 
-**Phase 1c local optimum:** karatsuba_zbc (phase1a) is the global optimum for
+**Phase 1c local optimum:** karatsuba_zbc (polymul_zbc) is the global optimum for
 HQC polynomial multiplication on Zbc-equipped RISC-V hardware.
 
 | Algorithm     | HQC-128    | HQC-192    | HQC-256    | vs Phase 0   |

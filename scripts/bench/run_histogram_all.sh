@@ -10,7 +10,7 @@
 # single Spike run, so you get both metrics simultaneously.
 #
 # Usage:
-#   scripts/bench/run_histogram_all.sh <phase> [options]
+#   scripts/bench/run_histogram_all.sh <bench_set> [options]
 #
 # Options:
 #   --variant <grep-pattern>   Filter variants (e.g. "karatsuba_zbc")
@@ -18,21 +18,21 @@
 #   --wait                     Launch jobs, block until complete, then report
 #   --report                   Print mnemonic table from existing hist files
 #   --top <N>                  Show top N entries in report (default: 20)
-#   --compare-phase <phase>    Side-by-side delta vs another phase in report
+#   --compare-with <bench_set> Side-by-side delta vs another benchmark set in report
 #   --context                  Show disassembly context for 3 hottest PCs
 #
 # Examples:
-#   scripts/bench/run_histogram_all.sh phase0b
-#   scripts/bench/run_histogram_all.sh phase1a --wait
-#   scripts/bench/run_histogram_all.sh phase1a --report
-#   scripts/bench/run_histogram_all.sh phase1a --report --top 30
-#   scripts/bench/run_histogram_all.sh phase1a --report --compare-phase phase0
-#   scripts/bench/run_histogram_all.sh phase1a --report --context
-#   scripts/bench/run_histogram_all.sh phase1a --variant karatsuba_zbc --report
+#   scripts/bench/run_histogram_all.sh baseline_ref
+#   scripts/bench/run_histogram_all.sh polymul_zbc --wait
+#   scripts/bench/run_histogram_all.sh polymul_zbc --report
+#   scripts/bench/run_histogram_all.sh polymul_zbc --report --top 30
+#   scripts/bench/run_histogram_all.sh polymul_zbc --report --compare-with baseline_ref
+#   scripts/bench/run_histogram_all.sh polymul_zbc --report --context
+#   scripts/bench/run_histogram_all.sh polymul_zbc --variant karatsuba_zbc --report
 #
 # Output files (--launch/--wait mode):
-#   analysis/benchmarks/<phase>/hqc{level}_{variant}_polymul_N1.csv
-#   analysis/benchmarks/<phase>/hqc{level}_{variant}_hist.txt
+#   analysis/benchmarks/<bench_set>/hqc{level}_{variant}_polymul_N1.csv
+#   analysis/benchmarks/<bench_set>/hqc{level}_{variant}_hist.txt
 #
 # Note: -g (PC histogram) adds negligible overhead vs. a plain bench run.
 #       The CSV output is usable for extract_results.py just like regular bench output.
@@ -56,18 +56,18 @@ LEVELS=(128 192 256)
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <phase> [--variant <pattern>] [--launch|--report|--wait]" >&2
-    echo "       [--top N] [--compare-phase PHASE] [--context]" >&2
+    echo "Usage: $0 <bench_set> [--variant <pattern>] [--launch|--report|--wait]" >&2
+    echo "       [--top N] [--compare-with BENCH_SET] [--context]" >&2
     exit 2
 fi
 
-PHASE="$1"
+BENCH_SET="$1"
 shift
 
 VARIANT_FILTER=""
 MODE="launch"
 TOP_N=20
-COMPARE_PHASE=""
+COMPARE_WITH=""
 SHOW_CONTEXT=0
 
 while [[ $# -gt 0 ]]; do
@@ -82,8 +82,8 @@ while [[ $# -gt 0 ]]; do
             MODE="wait"; shift ;;
         --top)
             TOP_N="$2"; shift 2 ;;
-        --compare-phase)
-            COMPARE_PHASE="$2"; shift 2 ;;
+        --compare-with)
+            COMPARE_WITH="$2"; shift 2 ;;
         --context)
             SHOW_CONTEXT=1; shift ;;
         *)
@@ -91,7 +91,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${PHASE}"
+OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
 
 # ── Helper: apply variant filter ──────────────────────────────────────────────
 variant_matches() {
@@ -177,7 +177,7 @@ print_hist_report() {
         ctotal=$(awk '{ s += $2 } END { print s+0 }' "$tmp_cdata")
 
         printf "  %-28s  %12s  %6s  |  %12s  %6s  %8s\n" \
-            "mnemonic" "${PHASE}" "%" "${compare_label}" "%" "Δ%"
+            "mnemonic" "${BENCH_SET}" "%" "${compare_label}" "%" "Δ%"
         printf "  %-28s  %12s  %6s  |  %12s  %6s  %8s\n" \
             "--------" "-------" "---" "-------" "---" "---"
 
@@ -237,7 +237,7 @@ show_context() {
 # ─────────────────────────────────────────────────────────────────────────────
 run_report() {
     if [[ ! -d "$OUT_DIR" ]]; then
-        echo "[histogram] No phase directory found: $OUT_DIR" >&2
+        echo "[histogram] No benchmark-set directory found: $OUT_DIR" >&2
         echo "            Run --launch first to generate histogram files." >&2
         return 0
     fi
@@ -255,7 +255,7 @@ run_report() {
 
             found=$((found + 1))
             echo ""
-            echo "=== hqc${LEVEL}_${VARIANT} (${PHASE}) ==="
+            echo "=== hqc${LEVEL}_${VARIANT} (${BENCH_SET}) ==="
 
             local elf="${BUILD_DIR}/bench_polymul_hqc${LEVEL}_${VARIANT}.elf"
             local map_file
@@ -265,15 +265,15 @@ run_report() {
             fi
 
             local compare_hist=""
-            if [[ -n "$COMPARE_PHASE" ]]; then
-                compare_hist="${REPO_ROOT}/analysis/benchmarks/${COMPARE_PHASE}/hqc${LEVEL}_${VARIANT}_hist.txt"
+            if [[ -n "$COMPARE_WITH" ]]; then
+                compare_hist="${REPO_ROOT}/analysis/benchmarks/${COMPARE_WITH}/hqc${LEVEL}_${VARIANT}_hist.txt"
                 if [[ ! -f "$compare_hist" ]]; then
-                    echo "  [compare: no hist for ${COMPARE_PHASE} — skipping delta]" >&2
+                    echo "  [compare: no hist for ${COMPARE_WITH} — skipping delta]" >&2
                     compare_hist=""
                 fi
             fi
 
-            print_hist_report "$hist" "${map_file:-}" "$TOP_N" "$compare_hist" "$COMPARE_PHASE"
+            print_hist_report "$hist" "${map_file:-}" "$TOP_N" "$compare_hist" "$COMPARE_WITH"
 
             if [[ "$SHOW_CONTEXT" -eq 1 ]]; then
                 show_context "$hist" "$elf"
@@ -286,7 +286,7 @@ run_report() {
     if [[ $found -eq 0 ]]; then
         echo ""
         echo "[histogram] No histogram files found in ${OUT_DIR}/"
-        echo "            Run: $0 ${PHASE} --launch"
+        echo "            Run: $0 ${BENCH_SET} --launch"
     fi
 }
 
@@ -356,7 +356,7 @@ if [[ $LAUNCHED -eq 0 ]]; then
     echo "[histogram] No jobs launched. Check that polymul ELFs are built in ${BUILD_DIR}/"
     echo "            cmake --build build-spike -j\$(nproc)"
 else
-    echo "[histogram] Launched ${LAUNCHED} Spike -g job(s) for ${PHASE}:"
+    echo "[histogram] Launched ${LAUNCHED} Spike -g job(s) for ${BENCH_SET}:"
     for line in "${JOB_LINES[@]}"; do
         echo "$line"
     done
@@ -375,8 +375,8 @@ else
         echo "  watch -n 30 \"wc -c ${OUT_DIR}/*_hist.txt\""
         echo ""
         echo "When done, view top mnemonics:"
-        echo "  $0 ${PHASE} --report"
-        echo "  $0 ${PHASE} --report --context"
-        echo "  $0 ${PHASE} --report --compare-phase <other_phase>"
+        echo "  $0 ${BENCH_SET} --report"
+        echo "  $0 ${BENCH_SET} --report --context"
+        echo "  $0 ${BENCH_SET} --report --compare-with <other_bench_set>"
     fi
 fi

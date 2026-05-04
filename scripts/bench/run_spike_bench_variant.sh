@@ -1,24 +1,27 @@
 #!/usr/bin/env bash
-# scripts/bench/run_spike_bench_phase.sh
+# scripts/bench/run_spike_bench_variant.sh
 #
 # Launch Spike benchmark jobs in the background (nohup) for all polymul
-# variants of a given phase.  Prints PIDs and monitoring hints, then exits.
+# variants of a given benchmark set. Prints PIDs and monitoring hints, then exits.
 #
 # Default: polymul micro-bench only (~20-150 min each).
-# Use --full at phase milestones to also launch full KEM benches.
+# Use --full at benchmark milestones to also launch full KEM benches.
 #
-# Known phases and their canonical variants:
-#   phase0      -> karatsuba_ref   (vendor baseline, unmodified)
-#   phase1a     -> karatsuba_zbc   (clmul base-case + lazy reduction)
-#   phase1b     -> fafft_zbc       (FAFFT with clmul GF(2^m) butterflies + RVV XOR)
-#   phase1c     -> hybrid_zbc      (Karatsuba outer levels -> FAFFT inner, CRT-based)
-#   phase1plus  -> fafft_zvbc      (vclmul.vv vectorised butterflies, Spike only)
+# Canonical benchmark sets and their default variants:
+#   baseline_ref     -> karatsuba_ref
+#   polymul_zbc      -> karatsuba_zbc
+#   fafft_zbc        -> fafft_zbc
+#   hybrid_zbc       -> hybrid_zbc
+#   hybrid_zbc_v2    -> hybrid_zbc
+#   hybrid_2way_zbc  -> hybrid_zbc
+#   polymul_zvbc     -> karatsuba_zvbc
+#   polymul_zvbc_v2  -> fafft_zvbc
 #
-# Passing a known phase automatically restricts benchmarks to its canonical
-# variant.  Use --variant to override (e.g. for cross-phase comparisons).
+# Passing a known benchmark set automatically restricts benchmarks to its
+# canonical variant. Use --variant to override for ad-hoc comparisons.
 #
 # Usage:
-#   scripts/bench/run_spike_bench_phase.sh <phase> [options]
+#   scripts/bench/run_spike_bench_variant.sh <bench_set> [options]
 #
 # Options:
 #   --variant <grep-pattern>   Override the canonical variant filter
@@ -29,13 +32,13 @@
 #                              Used to name output CSVs as _N{N}.csv
 #
 # Examples:
-#   scripts/bench/run_spike_bench_phase.sh phase0
-#   scripts/bench/run_spike_bench_phase.sh phase1a
-#   scripts/bench/run_spike_bench_phase.sh phase1a --full
-#   scripts/bench/run_spike_bench_phase.sh phase1plus --full
-#   scripts/bench/run_spike_bench_phase.sh phase1a --variant "karatsuba_zbc|karatsuba_ref"
+#   scripts/bench/run_spike_bench_variant.sh baseline_ref
+#   scripts/bench/run_spike_bench_variant.sh polymul_zbc
+#   scripts/bench/run_spike_bench_variant.sh polymul_zbc --full
+#   scripts/bench/run_spike_bench_variant.sh polymul_zvbc --full
+#   scripts/bench/run_spike_bench_variant.sh polymul_zbc --variant "karatsuba_zbc|karatsuba_ref"
 #
-# Output files written to analysis/benchmarks/<phase>/:
+# Output files written to analysis/benchmarks/<bench_set>/:
 #   hqc{level}_{variant}_polymul_N{N}.csv  polymul micro-bench CSV
 #   hqc{level}_{variant}_polymul.log       Spike stderr (errors/warnings)
 #   hqc{level}_{variant}_N{N}.csv          full KEM bench CSV (--full only)
@@ -58,25 +61,26 @@ BUILD_DIR="${REPO_ROOT}/build-spike"
 
 LEVELS=(128 192 256)
 
-# ── Phase -> canonical variant mapping ───────────────────────────────────────
-# Each phase has exactly one canonical polymul variant.  This table is the
-# single source of truth; update it whenever a new phase lands.
-declare -A PHASE_VARIANT_MAP
-PHASE_VARIANT_MAP=(
-    [phase0]="karatsuba_ref"
-    [phase1a]="karatsuba_zbc"
-    [phase1b]="fafft_zbc"
-    [phase1c]="hybrid_zbc"
-    [phase1plus]="fafft_zvbc"
+# ── Benchmark set -> canonical variant mapping ───────────────────────────────
+declare -A BENCH_SET_VARIANT_MAP
+BENCH_SET_VARIANT_MAP=(
+    [baseline_ref]="karatsuba_ref"
+    [polymul_zbc]="karatsuba_zbc"
+    [fafft_zbc]="fafft_zbc"
+    [hybrid_zbc]="hybrid_zbc"
+    [hybrid_zbc_v2]="hybrid_zbc"
+    [hybrid_2way_zbc]="hybrid_zbc"
+    [polymul_zvbc]="karatsuba_zvbc"
+    [polymul_zvbc_v2]="fafft_zvbc"
 )
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <phase> [--variant <pattern>] [--full] [--no-polymul]" >&2
+    echo "Usage: $0 <bench_set> [--variant <pattern>] [--full] [--no-polymul]" >&2
     exit 2
 fi
 
-PHASE="$1"
+BENCH_SET="$1"
 shift
 
 VARIANT_FILTER=""
@@ -120,15 +124,15 @@ fi
 
 # Resolve variant filter: explicit --variant overrides the canonical mapping.
 if [[ -z "$VARIANT_FILTER" ]]; then
-    if [[ -v PHASE_VARIANT_MAP["$PHASE"] ]]; then
-        VARIANT_FILTER="${PHASE_VARIANT_MAP[$PHASE]}"
-        echo "[bench] Phase '${PHASE}' -> canonical variant '${VARIANT_FILTER}'"
+    if [[ -v BENCH_SET_VARIANT_MAP["$BENCH_SET"] ]]; then
+        VARIANT_FILTER="${BENCH_SET_VARIANT_MAP[$BENCH_SET]}"
+        echo "[bench] Benchmark set '${BENCH_SET}' -> canonical variant '${VARIANT_FILTER}'"
     else
-        echo "WARNING: Unknown phase '${PHASE}' -- no canonical variant; running all implemented variants." >&2
-        echo "         Known phases: ${!PHASE_VARIANT_MAP[*]}" >&2
+        echo "WARNING: Unknown benchmark set '${BENCH_SET}' -- no canonical variant; running all implemented variants." >&2
+        echo "         Known benchmark sets: ${!BENCH_SET_VARIANT_MAP[*]}" >&2
     fi
 else
-    echo "[bench] Phase '${PHASE}' -> variant override '${VARIANT_FILTER}'"
+    echo "[bench] Benchmark set '${BENCH_SET}' -> variant override '${VARIANT_FILTER}'"
 fi
 
 # ── Preflight checks ──────────────────────────────────────────────────────────
@@ -138,7 +142,7 @@ if [[ ! -x "$SPIKE" ]]; then
     exit 2
 fi
 
-OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${PHASE}"
+OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
 mkdir -p "$OUT_DIR"
 
 EVENTS_LOG="${OUT_DIR}/run_events.log"
@@ -254,7 +258,7 @@ if [[ $LAUNCHED -eq 0 ]]; then
     echo "        cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}"
     echo "        cmake --build build-spike -j\$(nproc)"
 else
-    echo "[bench] Launched ${LAUNCHED} Spike job(s) for ${PHASE}:"
+    echo "[bench] Launched ${LAUNCHED} Spike job(s) for ${BENCH_SET}:"
     for line in "${JOB_LINES[@]}"; do
         echo "$line"
     done
@@ -265,5 +269,5 @@ else
     echo "  tail -f ${EVENTS_LOG}"
     echo ""
     echo "When done, extract results:"
-    echo "  python3 scripts/report/extract_results.py --phase ${PHASE}"
+    echo "  python3 scripts/report/extract_results.py --bench-set ${BENCH_SET}"
 fi

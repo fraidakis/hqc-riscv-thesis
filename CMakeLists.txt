@@ -51,7 +51,7 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 # ── Polynomial multiplication variants ───────────────────────────────────────
 # All targets are declared but marked EXCLUDE_FROM_ALL — build explicitly:
 #   cmake --build build --target hqc128_karatsuba_ref -j$(nproc)
-# Scripts (run_kat_all.sh, run_spike_bench_phase.sh) auto-skip missing ELFs.
+# Scripts (run_kat_all.sh, run_spike_bench_variant.sh) auto-skip missing ELFs.
 # Different CMake build dirs control Keccak/Decode implementation via
 # HQC_KECCAK_IMPL / HQC_DECODE_IMPL (set in cmake/options.cmake).
 #
@@ -176,7 +176,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             # Phase 1b-3: Jang et al. 2026 2-way FAFFT-Karatsuba split.
             # hybrid_v2.c: split at 2^14 bits for HQC-128 (SPLIT_WORDS=256),
             # C0/C_mid via half-domain FAFFT (btfy_32768), C2 via scalar clmul.
-            # Inherits all phase1b RVV optimisations (bc_1_256 block-parallel,
+            # Inherits all fafft_zbc RVV optimisations (bc_1_256 block-parallel,
             # gf232v_mul LMUL=2 accumulation) from shared fafft_zbc/ref/ sources.
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/hybrid_zbc/hybrid_v2.c

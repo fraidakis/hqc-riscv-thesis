@@ -8,7 +8,7 @@ Current state:
 
 - `hqc{128,192,256}_fafft_zbc.elf` builds
 - KAT PASS for HQC-128/192/256
-- phase1b polymul/full-KEM CSVs regenerated
+- fafft_zbc polymul/full-KEM CSVs regenerated
 - llvm-mca report regenerated for `src/poly_mul/fafft_zbc/fafft.c`
 
 Implementation detail:
@@ -17,23 +17,23 @@ Implementation detail:
 - HQC-192/256: `bmul2_8192_to_16384` + `reduce`
 - RVV XOR helper remains available in `fafft_rvv.c`
 
-## Bench Snapshot (`analysis/benchmarks/phase1b`, Spike N=1)
+## Bench Snapshot (`analysis/benchmarks/fafft_zbc`, Spike N=1)
 
 ### Polymul (`vect_mul`) — absolute instret
 
-| Level   | karatsuba_ref (phase0) | karatsuba_zbc (phase1a) | fafft_zbc (phase1b) |
+| Level   | karatsuba_ref (baseline_ref) | karatsuba_zbc (polymul_zbc) | fafft_zbc (fafft_zbc) |
 |---------|------------------------|-------------------------|---------------------|
 | HQC-128 |             18,578,007 |                 354,186 |           1,462,166 |
 | HQC-192 |             56,469,320 |               1,078,640 |           3,256,399 |
 | HQC-256 |            139,077,901 |               2,257,476 |           3,258,453 |
 
-fafft_zbc vs phase0: 12.7x / 17.3x / 42.7x speedup
+fafft_zbc vs baseline_ref: 12.7x / 17.3x / 42.7x speedup
 fafft_zbc vs karatsuba_zbc: 0.24x / 0.33x / 0.69x (FAFFT currently slower at these sizes due to
 additive butterfly overhead; expected to cross over at degree > 2^15 or with CRT path activation)
 
 ### Full KEM — absolute instret
 
-| Level   | Op      | karatsuba_ref (phase0) | karatsuba_zbc (phase1a) | fafft_zbc (phase1b) |
+| Level   | Op      | karatsuba_ref (baseline_ref) | karatsuba_zbc (polymul_zbc) | fafft_zbc (fafft_zbc) |
 |---------|---------|------------------------|-------------------------|---------------------|
 | HQC-128 | keypair |             18,816,325 |                 592,505 |           1,700,492 |
 | HQC-128 | encaps  |             37,636,615 |               1,188,975 |           3,404,944 |
@@ -90,10 +90,10 @@ Phase 1c (hybrid Karatsuba-FAFFT) is the correct next step.
 
 ## Produced/Updated Artifacts
 
-- `analysis/benchmarks/phase1b/hqc128_fafft_zbc_polymul_N1.csv`
-- `analysis/benchmarks/phase1b/hqc192_fafft_zbc_polymul_N1.csv`
-- `analysis/benchmarks/phase1b/hqc256_fafft_zbc_polymul_N1.csv`
-- `analysis/benchmarks/phase1b/hqc128_fafft_zbc_N1.csv`
-- `analysis/benchmarks/phase1b/hqc192_fafft_zbc_N1.csv`
-- `analysis/benchmarks/phase1b/hqc256_fafft_zbc_N1.csv`
+- `analysis/benchmarks/fafft_zbc/hqc128_fafft_zbc_polymul_N1.csv`
+- `analysis/benchmarks/fafft_zbc/hqc192_fafft_zbc_polymul_N1.csv`
+- `analysis/benchmarks/fafft_zbc/hqc256_fafft_zbc_polymul_N1.csv`
+- `analysis/benchmarks/fafft_zbc/hqc128_fafft_zbc_N1.csv`
+- `analysis/benchmarks/fafft_zbc/hqc192_fafft_zbc_N1.csv`
+- `analysis/benchmarks/fafft_zbc/hqc256_fafft_zbc_N1.csv`
 - `analysis/llvm_mca/reports/fafft_mca.txt`

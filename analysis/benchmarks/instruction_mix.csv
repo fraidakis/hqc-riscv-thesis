@@ -1,0 +1,6 @@
+category,baseline_ref/karatsuba_ref/128,baseline_ref/karatsuba_ref/192,baseline_ref/karatsuba_ref/256,fafft_zbc/fafft_zbc/128,fafft_zbc/fafft_zbc/192,fafft_zbc/fafft_zbc/256,polymul_zbc/karatsuba_zbc/128,polymul_zbc/karatsuba_zbc/192,polymul_zbc/karatsuba_zbc/256
+branch/jump,0.0,0.0,0.0,1.2,4.2,4.1,0.0,0.0,0.0
+load_store,0.0,0.0,0.0,4.6,5.2,4.9,0.0,0.0,0.0
+other,100.0,100.0,100.0,90.4,85.9,86.4,100.0,100.0,100.0
+scalar_alu,0.0,0.0,0.0,3.4,3.9,3.8,0.0,0.0,0.0
+vxor,0.0,0.0,0.0,0.4,0.8,0.7,0.0,0.0,0.0

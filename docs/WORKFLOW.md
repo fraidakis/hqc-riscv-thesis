@@ -145,7 +145,7 @@ Expected:
 This targets `vect_mul`, the dominant hotspot.
 
 ```bash
-OUT=analysis/benchmarks/phase0b
+OUT=analysis/benchmarks/baseline_ref
 mkdir -p "$OUT"
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 
@@ -157,7 +157,7 @@ cat "$OUT/hqc128_karatsuba_ref_polymul_N1.csv"
 ```
 
 Output file:
-- analysis/benchmarks/phase0b/hqc128_karatsuba_ref_polymul_N1.csv
+- analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv
 
 Interpretation:
 - use `median_instret` as primary metric
@@ -170,7 +170,7 @@ Interpretation:
 Use at phase checkpoints to measure keypair/encaps/decaps end-to-end.
 
 ```bash
-OUT=analysis/benchmarks/phase0b
+OUT=analysis/benchmarks/baseline_ref
 mkdir -p "$OUT"
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 
@@ -182,7 +182,7 @@ cat "$OUT/hqc128_karatsuba_ref_N1.csv"
 ```
 
 Output file:
-- analysis/benchmarks/phase0b/hqc128_karatsuba_ref_N1.csv
+- analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_N1.csv
 
 Interpretation:
 - rows are keypair, encaps, decaps
@@ -242,18 +242,18 @@ Important update:
 ### 7.1 Launch and wait for histogram generation
 
 ```bash
-scripts/bench/run_histogram_all.sh phase1a --variant karatsuba_ref --wait
+scripts/bench/run_histogram_all.sh polymul_zbc --variant karatsuba_ref --wait
 ```
 
 ### 7.2 Report top instructions from existing histogram files
 
 ```bash
-scripts/bench/run_histogram_all.sh phase1a --report --variant karatsuba_ref --top 20
+scripts/bench/run_histogram_all.sh polymul_zbc --report --variant karatsuba_ref --top 20
 ```
 
 Output files:
-- analysis/benchmarks/<phase>/hqc{128,192,256}_<variant>_polymul_N1.csv
-- analysis/benchmarks/<phase>/hqc{128,192,256}_<variant>_hist.txt
+- analysis/benchmarks/<bench_set>/hqc{128,192,256}_<variant>_polymul_N1.csv
+- analysis/benchmarks/<bench_set>/hqc{128,192,256}_<variant>_hist.txt
 
 Interpretation:
 - report mode prints mnemonic frequency and percentage
@@ -264,34 +264,34 @@ Interpretation:
 ## 8. Batch Spike benchmarking (phase orchestration)
 
 Script:
-- scripts/bench/run_spike_bench_phase.sh
+- scripts/bench/run_spike_bench_variant.sh
 
 ### 8.1 Polymul-only launch (default)
 
 ```bash
-scripts/bench/run_spike_bench_phase.sh phase1a
+scripts/bench/run_spike_bench_variant.sh polymul_zbc
 ```
 
 ### 8.2 Variant filter
 
 ```bash
-scripts/bench/run_spike_bench_phase.sh phase1a --variant karatsuba_zbc
+scripts/bench/run_spike_bench_variant.sh polymul_zbc --variant karatsuba_zbc
 ```
 
 ### 8.3 Full KEM launch
 
 ```bash
-scripts/bench/run_spike_bench_phase.sh phase1a --full
+scripts/bench/run_spike_bench_variant.sh polymul_zbc --full
 ```
 
 ### 8.4 Full KEM only (no polymul)
 
 ```bash
-scripts/bench/run_spike_bench_phase.sh phase1a --full --no-polymul
+scripts/bench/run_spike_bench_variant.sh polymul_zbc --full --no-polymul
 ```
 
 Outputs written under:
-- analysis/benchmarks/<phase>/
+- analysis/benchmarks/<bench_set>/
 
 Key files:
 - hqc{128,192,256}_{variant}_polymul_N1.csv
@@ -302,9 +302,9 @@ Key files:
 Monitoring:
 
 ```bash
-watch -n 30 "wc -c analysis/benchmarks/phase1a/*.csv"
+watch -n 30 "wc -c analysis/benchmarks/polymul_zbc/*.csv"
 ps aux | grep '[s]pike.*bench'
-tail -f analysis/benchmarks/phase1a/run_events.log
+tail -f analysis/benchmarks/polymul_zbc/run_events.log
 ```
 
 ---
@@ -315,7 +315,7 @@ tail -f analysis/benchmarks/phase1a/run_events.log
 
 ```bash
 /usr/bin/python3 scripts/report/extract_results.py
-/usr/bin/python3 scripts/report/extract_results.py --phase phase1a
+/usr/bin/python3 scripts/report/extract_results.py --bench-set polymul_zbc
 ```
 
 ### 9.2 LaTeX table for thesis
@@ -328,7 +328,7 @@ tail -f analysis/benchmarks/phase1a/run_events.log
 ### 9.3 Include instruction mix and write summary CSVs
 
 ```bash
-/usr/bin/python3 scripts/report/extract_results.py --mix --phase phase1a
+/usr/bin/python3 scripts/report/extract_results.py --mix --bench-set polymul_zbc
 /usr/bin/python3 scripts/report/extract_results.py --write-summary-csv
 ```
 
@@ -340,7 +340,7 @@ Generated summary files:
 
 ```bash
 scripts/report/gen_report.sh
-scripts/report/gen_report.sh --phase phase1a
+scripts/report/gen_report.sh --bench-set polymul_zbc
 scripts/report/gen_report.sh --fraction 0.85
 ```
 
@@ -383,7 +383,7 @@ Validated working commands in this runbook:
 - tier 2 and tier 3 Spike bench commands
 - tier 4 helper and manual llvm-mca commands (on vendor/hqc-ref/src/ref/gf2x.c)
 - tier 5 run_histogram_all.sh launch/report flow
-- run_spike_bench_phase.sh polymul/full modes
+- run_spike_bench_variant.sh polymul/full modes
 - extract_results.py and gen_report.sh commands
 
 Known caveats retained in this file:
