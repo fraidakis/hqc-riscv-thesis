@@ -159,6 +159,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "fafft_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/fafft.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/v3/fafft_zvc_v3.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/fafft_rvv.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/reduce.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/fafft_zbc/ref/gfmul_fft.c

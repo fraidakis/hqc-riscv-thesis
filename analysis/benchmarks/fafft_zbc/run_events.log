@@ -66,3 +66,21 @@
 2026-05-04T13:49:20 START  pid=33753  polymul_hqc256_fafft_zbc
 2026-05-04T13:49:21 END    polymul_hqc192_fafft_zbc  elapsed=0m1s  status=OK
 2026-05-04T13:49:21 END    polymul_hqc256_fafft_zbc  elapsed=0m1s  status=OK
+2026-05-04T19:49:32 START  pid=59911  polymul_hqc128_fafft_zbc
+2026-05-04T19:49:33 END    polymul_hqc128_fafft_zbc  elapsed=0m1s  status=OK
+2026-05-04T19:49:33 START  pid=59976  polymul_hqc192_fafft_zbc
+2026-05-04T19:49:33 START  pid=60037  polymul_hqc256_fafft_zbc
+2026-05-04T19:49:33 END    polymul_hqc192_fafft_zbc  elapsed=0m0s  status=OK
+2026-05-04T19:49:34 END    polymul_hqc256_fafft_zbc  elapsed=0m1s  status=OK
+2026-05-04T19:53:29 START  pid=60607  polymul_hqc128_fafft_zbc
+2026-05-04T19:53:29 END    polymul_hqc128_fafft_zbc  elapsed=0m0s  status=OK
+2026-05-04T19:53:29 START  pid=60666  kem_hqc128_fafft_zbc
+2026-05-04T19:53:29 START  pid=60703  polymul_hqc192_fafft_zbc
+2026-05-04T19:53:29 END    polymul_hqc192_fafft_zbc  elapsed=0m0s  status=OK
+2026-05-04T19:53:30 END    kem_hqc128_fafft_zbc  elapsed=0m1s  status=OK
+2026-05-04T19:53:30 START  pid=60796  kem_hqc192_fafft_zbc
+2026-05-04T19:53:30 START  pid=60833  polymul_hqc256_fafft_zbc
+2026-05-04T19:53:31 END    polymul_hqc256_fafft_zbc  elapsed=0m1s  status=OK
+2026-05-04T19:53:31 START  pid=60920  kem_hqc256_fafft_zbc
+2026-05-04T19:53:33 END    kem_hqc192_fafft_zbc  elapsed=0m3s  status=OK
+2026-05-04T19:53:36 END    kem_hqc256_fafft_zbc  elapsed=0m5s  status=OK
