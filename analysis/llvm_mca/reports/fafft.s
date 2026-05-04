@@ -15,20 +15,24 @@ vect_mul:                               # @vect_mul
 	lui	a3, 2
 	addi	a3, a3, -448
 	sub	sp, sp, a3
-	mv	s0, a2
+	mv	s2, a2
 	mv	s1, a1
-	mv	s2, a0
+	mv	s0, a0
 	addi	a0, sp, 16
 	lui	a2, 2
 	li	a1, 0
 	call	memset
 	addi	a0, sp, 16
 	mv	a1, s1
-	mv	a2, s0
+	mv	a2, s2
 	call	bmul2_4096_to_8192
 	addi	a1, sp, 16
-	mv	a0, s2
+	mv	a0, s0
 	call	reduce
+	addi	a0, s0, 2047
+	lwu	a1, 161(a0)
+	andi	a1, a1, 31
+	sw	a1, 161(a0)
 	lui	a0, 2
 	addi	a0, a0, -448
 	add	sp, sp, a0

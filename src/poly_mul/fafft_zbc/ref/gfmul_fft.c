@@ -108,9 +108,13 @@ void bmul2_8192_to_16384(uint8_t *c, const uint8_t *a, const uint8_t *b)
  * Used by CRT_fft_HQC1 (HQC-128); the CRT reconstruction step then adds back
  * the high-degree correction to recover the full product.
  *
- * Debug/reference implementation: compute the full product with
- * bmul2_4096_to_8192 and retain only the lower 1024 words.
- * The CRT step (radix16_81 + bit_shift_xor) corrects for the discarded upper half.
+ * IMPLEMENTATION CONSTRAINT (HQC-128):  The FAFFT half-domain kernel that
+ * would make this fast is bc_1_16384 + btfy_32768.  However, bc_1_16384
+ * accepts at most 512-word inputs, and HQC-128 polynomials have 553 words.
+ * bc_1_16384 cannot be swapped for bc_1_32768 because the valid bc/btfy
+ * pairing is bc_1_N → encode → btfy_2N (bc_1_32768 pairs with btfy_65536).
+ * Without a full-input bc_1_16384 the CRT correction cannot recover A*B;
+ * therefore CRT_fft_HQC1 is not active and this function is a stub.
  */
 void bmul2_4096_to_4096_prepare(uint32_t *a_out, const uint8_t *a_in)
 {
@@ -124,8 +128,7 @@ void bmul2_4096_to_4096_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 
 void bmul2_4096_to_4096(uint8_t *c, const uint8_t *a, const uint8_t *b)
 {
-    /* Full product; take the lower 32768 bits (1024 words).
-     * CRT_fft_HQC1 reconstructs the upper portion from the schoolbook correction. */
+    /* Full product; take the lower 32768 bits (1024 words). */
     uint32_t full[65536 / 32] = {0};
     bmul2_4096_to_8192((uint8_t *)full, a, b);
     memcpy(c, full, 32768 / 8);  /* lower 1024 words = 4096 bytes */

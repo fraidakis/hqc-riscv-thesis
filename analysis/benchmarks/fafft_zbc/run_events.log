@@ -60,3 +60,9 @@
 2026-05-04T00:04:08 END    polymul_hqc192_fafft_zbc  elapsed=0m1s  status=OK
 2026-05-04T00:04:09 START  pid=66673  polymul_hqc256_fafft_zbc
 2026-05-04T00:04:10 END    polymul_hqc256_fafft_zbc  elapsed=0m1s  status=OK
+2026-05-04T13:49:20 START  pid=33627  polymul_hqc128_fafft_zbc
+2026-05-04T13:49:20 START  pid=33688  polymul_hqc192_fafft_zbc
+2026-05-04T13:49:20 END    polymul_hqc128_fafft_zbc  elapsed=0m0s  status=OK
+2026-05-04T13:49:20 START  pid=33753  polymul_hqc256_fafft_zbc
+2026-05-04T13:49:21 END    polymul_hqc192_fafft_zbc  elapsed=0m1s  status=OK
+2026-05-04T13:49:21 END    polymul_hqc256_fafft_zbc  elapsed=0m1s  status=OK

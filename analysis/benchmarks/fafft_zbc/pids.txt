@@ -4,3 +4,6 @@
 2026-05-03T18:56:32 PID=30987 bench_polymul_hqc128_fafft_zbc (histogram)
 2026-05-03T18:56:32 PID=31008 bench_polymul_hqc192_fafft_zbc (histogram)
 2026-05-03T18:56:32 PID=31029 bench_polymul_hqc256_fafft_zbc (histogram)
+2026-05-04T13:13:06 PID=29930 bench_polymul_hqc128_fafft_zbc (histogram)
+2026-05-04T13:13:07 PID=30009 bench_polymul_hqc192_fafft_zbc (histogram)
+2026-05-04T13:13:08 PID=30095 bench_polymul_hqc256_fafft_zbc (histogram)

@@ -1,12 +1,12 @@
 Iterations:        10
-Instructions:      310
-Total Cycles:      3164
-Total uOps:        340
+Instructions:      350
+Total Cycles:      3224
+Total uOps:        380
 
 Dispatch Width:    2
-uOps Per Cycle:    0.11
-IPC:               0.10
-Block RThroughput: 17.0
+uOps Per Cycle:    0.12
+IPC:               0.11
+Block RThroughput: 19.0
 
 
 Instruction Info:
@@ -26,20 +26,24 @@ Instruction Info:
  1      3     0.50                        lui	a3, 2
  1      3     0.50                        addi	a3, a3, -448
  1      3     0.50                        sub	sp, sp, a3
- 1      3     0.50                        mv	s0, a2
+ 1      3     0.50                        mv	s2, a2
  1      3     0.50                        mv	s1, a1
- 1      3     0.50                        mv	s2, a0
+ 1      3     0.50                        mv	s0, a0
  1      3     0.50                        addi	a0, sp, 16
  1      3     0.50                        lui	a2, 2
  1      3     0.50                        li	a1, 0
  2      3     1.00                        call	memset
  1      3     0.50                        addi	a0, sp, 16
  1      3     0.50                        mv	a1, s1
- 1      3     0.50                        mv	a2, s0
+ 1      3     0.50                        mv	a2, s2
  2      3     1.00                        call	bmul2_4096_to_8192
  1      3     0.50                        addi	a1, sp, 16
- 1      3     0.50                        mv	a0, s2
+ 1      3     0.50                        mv	a0, s0
  2      3     1.00                        call	reduce
+ 1      3     0.50                        addi	a0, s0, 2047
+ 1      3     1.00    *                   lwu	a1, 161(a0)
+ 1      3     0.50                        andi	a1, a1, 31
+ 1      1     1.00           *            sw	a1, 161(a0)
  1      3     0.50                        lui	a0, 2
  1      3     0.50                        addi	a0, a0, -448
  1      3     0.50                        add	sp, sp, a0
@@ -64,7 +68,7 @@ Resources:
 
 Resource pressure per iteration:
 [0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    
- -      -     19.90  14.10   -      -      -      -     
+ -      -     21.90  16.10   -      -      -      -     
 
 Resource pressure by instruction:
 [0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    Instructions:
@@ -76,21 +80,25 @@ Resource pressure by instruction:
  -      -      -     1.00    -      -      -      -     lui	a3, 2
  -      -      -     1.00    -      -      -      -     addi	a3, a3, -448
  -      -     1.00    -      -      -      -      -     sub	sp, sp, a3
- -      -      -     1.00    -      -      -      -     mv	s0, a2
+ -      -      -     1.00    -      -      -      -     mv	s2, a2
  -      -     1.00    -      -      -      -      -     mv	s1, a1
- -      -      -     1.00    -      -      -      -     mv	s2, a0
+ -      -      -     1.00    -      -      -      -     mv	s0, a0
  -      -     1.00    -      -      -      -      -     addi	a0, sp, 16
  -      -      -     1.00    -      -      -      -     lui	a2, 2
  -      -     1.00    -      -      -      -      -     li	a1, 0
  -      -     1.00   1.00    -      -      -      -     call	memset
  -      -      -     1.00    -      -      -      -     addi	a0, sp, 16
  -      -     1.00    -      -      -      -      -     mv	a1, s1
- -      -      -     1.00    -      -      -      -     mv	a2, s0
+ -      -      -     1.00    -      -      -      -     mv	a2, s2
  -      -     1.00   1.00    -      -      -      -     call	bmul2_4096_to_8192
  -      -     1.00    -      -      -      -      -     addi	a1, sp, 16
- -      -      -     1.00    -      -      -      -     mv	a0, s2
+ -      -      -     1.00    -      -      -      -     mv	a0, s0
  -      -     1.00   1.00    -      -      -      -     call	reduce
- -      -     1.00    -      -      -      -      -     lui	a0, 2
+ -      -     1.00    -      -      -      -      -     addi	a0, s0, 2047
+ -      -     1.00    -      -      -      -      -     lwu	a1, 161(a0)
+ -      -      -     1.00    -      -      -      -     andi	a1, a1, 31
+ -      -     1.00    -      -      -      -      -     sw	a1, 161(a0)
+ -      -      -     1.00    -      -      -      -     lui	a0, 2
  -      -      -     1.00    -      -      -      -     addi	a0, a0, -448
  -      -     1.00    -      -      -      -      -     add	sp, sp, a0
  -      -     1.00    -      -      -      -      -     ld	ra, 488(sp)
@@ -113,9 +121,9 @@ Index     0123456789
 [0,5]     .    .DeeE.    .   lui	a3, 2
 [0,6]     .    . DeeE    .   addi	a3, a3, -448
 [0,7]     .    .  DeeE   .   sub	sp, sp, a3
-[0,8]     .    .  DeeE   .   mv	s0, a2
+[0,8]     .    .  DeeE   .   mv	s2, a2
 [0,9]     .    .   DeeE  .   mv	s1, a1
-[0,10]    .    .   DeeE  .   mv	s2, a0
+[0,10]    .    .   DeeE  .   mv	s0, a0
 [0,11]    .    .    .DeeE.   addi	a0, sp, 16
 [0,12]    .    .    .DeeE.   lui	a2, 2
 [0,13]    .    .    . DeeE   li	a1, 0
@@ -137,27 +145,31 @@ Average Wait times (based on the timeline view):
 5.     10    0.0    0.0    0.0       lui	a3, 2
 6.     10    0.0    0.0    0.0       addi	a3, a3, -448
 7.     10    0.0    0.0    0.0       sub	sp, sp, a3
-8.     10    0.0    0.0    0.0       mv	s0, a2
+8.     10    0.0    0.0    0.0       mv	s2, a2
 9.     10    0.0    0.0    0.0       mv	s1, a1
-10.    10    0.0    0.0    0.0       mv	s2, a0
+10.    10    0.0    0.0    0.0       mv	s0, a0
 11.    10    0.0    0.0    0.0       addi	a0, sp, 16
 12.    10    0.0    0.0    0.0       lui	a2, 2
 13.    10    0.0    0.0    0.0       li	a1, 0
 14.    10    0.0    0.0    0.0       call	memset
 15.    10    0.0    0.0    0.0       addi	a0, sp, 16
 16.    10    0.0    0.0    0.0       mv	a1, s1
-17.    10    0.0    0.0    0.0       mv	a2, s0
+17.    10    0.0    0.0    0.0       mv	a2, s2
 18.    10    0.0    0.0    0.0       call	bmul2_4096_to_8192
 19.    10    0.0    0.0    0.0       addi	a1, sp, 16
-20.    10    0.0    0.0    0.0       mv	a0, s2
+20.    10    0.0    0.0    0.0       mv	a0, s0
 21.    10    0.0    0.0    0.0       call	reduce
-22.    10    0.0    0.0    0.0       lui	a0, 2
-23.    10    0.0    0.0    0.0       addi	a0, a0, -448
-24.    10    0.0    0.0    0.0       add	sp, sp, a0
-25.    10    0.0    0.0    0.0       ld	ra, 488(sp)
-26.    10    0.0    0.0    0.0       ld	s0, 480(sp)
-27.    10    0.0    0.0    0.0       ld	s1, 472(sp)
-28.    10    0.0    0.0    0.0       ld	s2, 464(sp)
-29.    10    0.0    0.0    0.0       addi	sp, sp, 496
-30.    10    0.0    0.0    0.0       ret
+22.    10    0.0    0.0    0.0       addi	a0, s0, 2047
+23.    10    0.0    0.0    0.0       lwu	a1, 161(a0)
+24.    10    0.0    0.0    0.0       andi	a1, a1, 31
+25.    10    0.0    0.0    0.0       sw	a1, 161(a0)
+26.    10    0.0    0.0    0.0       lui	a0, 2
+27.    10    0.0    0.0    0.0       addi	a0, a0, -448
+28.    10    0.0    0.0    0.0       add	sp, sp, a0
+29.    10    0.0    0.0    0.0       ld	ra, 488(sp)
+30.    10    0.0    0.0    0.0       ld	s0, 480(sp)
+31.    10    0.0    0.0    0.0       ld	s1, 472(sp)
+32.    10    0.0    0.0    0.0       ld	s2, 464(sp)
+33.    10    0.0    0.0    0.0       addi	sp, sp, 496
+34.    10    0.0    0.0    0.0       ret
        10    0.0    0.0    0.0       <total>
