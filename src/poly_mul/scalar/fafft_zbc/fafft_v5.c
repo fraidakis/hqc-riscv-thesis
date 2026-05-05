@@ -6,7 +6,7 @@
 
 #include <riscv_vector.h>
 
-#include "parameters.h"
+#include "hqc_parameters.h"
 #include "ref/reduce.h"
 
 #ifndef VEC_N_SIZE_64
@@ -122,7 +122,7 @@ static void v5_reduce64(uint64_t * __restrict__ o,
 #if PARAM_N == 17669
 
 /* Split dimensions (64-bit words): */
-#define V5_N_L  256u   /* lower split size: 256 × 64 bits = 16384 bits */
+#define V5_N_L  HQC_FAFFT_HQC128_SPLIT_WORDS_64
 #define V5_N_H  (VEC_N_SIZE_64 - V5_N_L)   /* 21 upper words          */
 
 static void v5_mul_hqc128(uint64_t *o, const uint64_t *a, const uint64_t *b)

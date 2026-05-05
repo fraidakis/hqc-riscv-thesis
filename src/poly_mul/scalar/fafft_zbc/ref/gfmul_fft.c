@@ -1,4 +1,4 @@
-#include "parameters.h"
+#include "hqc_parameters.h"
 #include <stddef.h>
 #include <stdint.h>
 #include "encode.h"
@@ -10,35 +10,43 @@
 
 void bmul2_4096_to_8192_prepare(uint32_t *a_out, const uint8_t *a_in)
 {
-    uint32_t a0[32768 / 32] = {0};
-    memset(a_out, 0, (65536 / 32) * sizeof(uint32_t));
-    memcpy(a0, a_in, VEC_N_SIZE_64 * sizeof(uint64_t));
+    const size_t fft_words = HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_65536);
+    const size_t fft_blocks = fft_words / HQC_FAFFT_VECTOR_CHUNK_U32;
+    uint32_t a0[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_32768)] = {0};
+    memset(a_out, 0, fft_words * sizeof(uint32_t));
+    memcpy(a0, a_in, HQC_VEC_N_SIZE_64 * sizeof(uint64_t));
     bc_1_32768(a0);
 
-    uint32_t temp[16];
-    for (int i = 0; i < ((65536 / 32) / 32); i++) {
-        for (int j = 0; j < 16; j++) temp[j] = a0[((65536 / 32) / 32) * j + i];
-        encode_trunc_fft(a_out + i * 32, temp);
+    uint32_t temp[HQC_FAFFT_TRUNC_FFT_LANES];
+    for (size_t i = 0; i < fft_blocks; i++) {
+        for (size_t j = 0; j < HQC_FAFFT_TRUNC_FFT_LANES; j++) {
+            temp[j] = a0[fft_blocks * j + i];
+        }
+        encode_trunc_fft(a_out + i * HQC_FAFFT_VECTOR_CHUNK_U32, temp);
     }
     btfy_65536(a_out);
 }
 
 void bmul2_4096_to_8192_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 {
-    uint32_t a0[65536 / 32] = {0};
+    const size_t fft_words = HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_65536);
+    const size_t fft_blocks = fft_words / HQC_FAFFT_VECTOR_CHUNK_U32;
+    uint32_t a0[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_65536)] = {0};
     uint32_t *c32 = (uint32_t *)c;
-    memset(c, 0, 65536 / 8);
+    memset(c, 0, HQC_BITS_TO_BYTES(HQC_FAFFT_BITS_65536));
 
-    for (int i = 0; i < (65536 / 32); i += 32) {
+    for (size_t i = 0; i < fft_words; i += HQC_FAFFT_VECTOR_CHUNK_U32) {
         gf232v_mul(a0 + i, a + i, b + i);
     }
 
     ibtfy_65536(a0);
 
-    uint32_t temp[32];
-    for (int i = 0; i < (65536 / 32); i += 32) {
+    uint32_t temp[HQC_FAFFT_VECTOR_CHUNK_U32];
+    for (size_t i = 0; i < fft_words; i += HQC_FAFFT_VECTOR_CHUNK_U32) {
         decode_trunc_fft(temp, a0 + i);
-        for (int j = 0; j < 32; j++) c32[((65536 / 32) / 32) * j + i / 32] = temp[j];
+        for (size_t j = 0; j < HQC_FAFFT_VECTOR_CHUNK_U32; j++) {
+            c32[fft_blocks * j + i / HQC_FAFFT_VECTOR_CHUNK_U32] = temp[j];
+        }
     }
 
     ibc_1_65536(c32);
@@ -46,8 +54,8 @@ void bmul2_4096_to_8192_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 
 void bmul2_4096_to_8192(uint8_t *c, const uint8_t *a, const uint8_t *b)
 {
-    uint32_t a_u32[65536 / 32];
-    uint32_t b_u32[65536 / 32];
+    uint32_t a_u32[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_65536)];
+    uint32_t b_u32[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_65536)];
 
     bmul2_4096_to_8192_prepare(a_u32, a);
     bmul2_4096_to_8192_prepare(b_u32, b);
@@ -57,35 +65,43 @@ void bmul2_4096_to_8192(uint8_t *c, const uint8_t *a, const uint8_t *b)
 
 void bmul2_8192_to_16384_prepare(uint32_t *a_out, const uint8_t *a_in)
 {
-    uint32_t a0[65536 / 32] = {0};
-    memset(a_out, 0, (131072 / 32) * sizeof(uint32_t));
-    memcpy(a0, a_in, VEC_N_SIZE_64 * 8);
+    const size_t fft_words = HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_131072);
+    const size_t fft_blocks = fft_words / HQC_FAFFT_VECTOR_CHUNK_U32;
+    uint32_t a0[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_65536)] = {0};
+    memset(a_out, 0, fft_words * sizeof(uint32_t));
+    memcpy(a0, a_in, HQC_VEC_N_SIZE_64 * sizeof(uint64_t));
     bc_1_65536(a0);
 
-    uint32_t temp[16];
-    for (int i = 0; i < ((131072 / 32) / 32); i++) {
-        for (int j = 0; j < 16; j++) temp[j] = a0[((131072 / 32) / 32) * j + i];
-        encode_trunc_fft(a_out + i * 32, temp);
+    uint32_t temp[HQC_FAFFT_TRUNC_FFT_LANES];
+    for (size_t i = 0; i < fft_blocks; i++) {
+        for (size_t j = 0; j < HQC_FAFFT_TRUNC_FFT_LANES; j++) {
+            temp[j] = a0[fft_blocks * j + i];
+        }
+        encode_trunc_fft(a_out + i * HQC_FAFFT_VECTOR_CHUNK_U32, temp);
     }
     btfy_131072(a_out);
 }
 
 void bmul2_8192_to_16384_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 {
-    uint32_t a0[131072 / 32] = {0};
+    const size_t fft_words = HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_131072);
+    const size_t fft_blocks = fft_words / HQC_FAFFT_VECTOR_CHUNK_U32;
+    uint32_t a0[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_131072)] = {0};
     uint32_t *c32 = (uint32_t *)c;
-    memset(c, 0, 131072 / 8);
+    memset(c, 0, HQC_BITS_TO_BYTES(HQC_FAFFT_BITS_131072));
 
-    for (int i = 0; i < (131072 / 32); i += 32) {
+    for (size_t i = 0; i < fft_words; i += HQC_FAFFT_VECTOR_CHUNK_U32) {
         gf232v_mul(a0 + i, a + i, b + i);
     }
 
     ibtfy_131072(a0);
 
-    uint32_t temp[32];
-    for (int i = 0; i < (131072 / 32); i += 32) {
+    uint32_t temp[HQC_FAFFT_VECTOR_CHUNK_U32];
+    for (size_t i = 0; i < fft_words; i += HQC_FAFFT_VECTOR_CHUNK_U32) {
         decode_trunc_fft(temp, a0 + i);
-        for (int j = 0; j < 32; j++) c32[((131072 / 32) / 32) * j + i / 32] = temp[j];
+        for (size_t j = 0; j < HQC_FAFFT_VECTOR_CHUNK_U32; j++) {
+            c32[fft_blocks * j + i / HQC_FAFFT_VECTOR_CHUNK_U32] = temp[j];
+        }
     }
 
     ibc_1_131072(c32);
@@ -93,8 +109,8 @@ void bmul2_8192_to_16384_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 
 void bmul2_8192_to_16384(uint8_t *c, const uint8_t *a, const uint8_t *b)
 {
-    uint32_t a_u32[131072 / 32];
-    uint32_t b_u32[131072 / 32];
+    uint32_t a_u32[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_131072)];
+    uint32_t b_u32[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_131072)];
 
     bmul2_8192_to_16384_prepare(a_u32, a);
     bmul2_8192_to_16384_prepare(b_u32, b);
@@ -128,10 +144,9 @@ void bmul2_4096_to_4096_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 
 void bmul2_4096_to_4096(uint8_t *c, const uint8_t *a, const uint8_t *b)
 {
-    /* Full product; take the lower 32768 bits (1024 words). */
-    uint32_t full[65536 / 32] = {0};
+    uint32_t full[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_65536)] = {0};
     bmul2_4096_to_8192((uint8_t *)full, a, b);
-    memcpy(c, full, 32768 / 8);  /* lower 1024 words = 4096 bytes */
+    memcpy(c, full, HQC_BITS_TO_BYTES(HQC_FAFFT_BITS_32768));
 }
 
 /* bmul2_8192_to_8192: lower 65536 bits of A*B (A*B mod x^65536), for CRT_HQC3. */
@@ -147,7 +162,7 @@ void bmul2_8192_to_8192_mul(uint8_t *c, const uint32_t *a, const uint32_t *b)
 
 void bmul2_8192_to_8192(uint8_t *c, const uint8_t *a, const uint8_t *b)
 {
-    uint32_t full[131072 / 32] = {0};
+    uint32_t full[HQC_BITS_TO_U32_WORDS(HQC_FAFFT_BITS_131072)] = {0};
     bmul2_8192_to_16384((uint8_t *)full, a, b);
-    memcpy(c, full, 65536 / 8);  /* lower 2048 words = 8192 bytes */
+    memcpy(c, full, HQC_BITS_TO_BYTES(HQC_FAFFT_BITS_65536));
 }

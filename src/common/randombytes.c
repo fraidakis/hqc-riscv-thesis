@@ -3,15 +3,18 @@
  * Mode-switch wrapper for randombytes().
  *
  * HQC_KAT_MODE=1 (default):
- *   randombytes() delegates to the AES-CTR DRBG (aes_ctr_drbg.c).
+ *   randombytes() delegates only to the AES-CTR DRBG (aes_ctr_drbg.c).
  *   randombytes_init(seed) must be called before the first randombytes() call.
- *   This mode produces KAT-compatible output identical to the NIST rng.c.
+ *   This is the only cryptographically valid path in this wrapper and it
+ *   produces KAT-compatible output identical to the NIST rng.c.
  *
  * HQC_BENCH_MODE=1:
  *   randombytes_init() is a no-op.
  *   randombytes() fills output with a fixed repeating pattern seeded from
  *   BENCH_SEED (default 0xAB).  No AES overhead — the benchmark measures only
- *   the KEM arithmetic, not entropy generation.
+ *   the KEM arithmetic, not entropy generation. This path is deliberately not
+ *   a CSPRNG and must never be used for KATs, tests that assert cryptographic
+ *   behavior, or any production/security-sensitive build.
  *
  * Exactly one of HQC_KAT_MODE or HQC_BENCH_MODE must be defined by the build
  * system; CMakeLists.txt ensures this via target_compile_definitions().
@@ -29,15 +32,16 @@
 #  error "Define exactly one of HQC_KAT_MODE or HQC_BENCH_MODE"
 #endif
 
-/* ── KAT mode: delegate to AES-CTR DRBG ──────────────────────────────────── */
+/* ── KAT mode: route exclusively to the AES-CTR DRBG CSPRNG ──────────────── */
 #if defined(HQC_KAT_MODE)
 
 #include "rng/aes_ctr_drbg.h"
 
-/* randombytes_init is provided directly by aes_ctr_drbg.c via aes_ctr_drbg.h
- * and declared in randombytes.h — no forwarding wrapper needed. */
+/* randombytes_init/randombytes are provided directly by aes_ctr_drbg.c via
+ * aes_ctr_drbg.h. Keeping KAT mode as a direct include prevents accidental
+ * fallthrough to the non-cryptographic bench stub. */
 
-/* ── BENCH mode: fixed-pattern fill ──────────────────────────────────────── */
+/* ── BENCH mode: non-cryptographic fixed-pattern fill for throughput only ── */
 #elif defined(HQC_BENCH_MODE)
 
 #ifndef BENCH_SEED

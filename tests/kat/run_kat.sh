@@ -6,10 +6,14 @@
 #
 # Usage:
 #   run_kat.sh <elf-binary> <rsp-file> [<qemu-binary>]
+#   run_kat.sh <elf-binary> <level> <polymul>
 #
 # Arguments:
 #   elf-binary   Path to the compiled hqc<LEVEL>_<POLYMUL> ELF (KAT mode).
 #   rsp-file     Path to the reference PQCkemKAT_*.rsp file.
+#   level        Security level used by the current CTest wiring (128/192/256).
+#   polymul      Polymul variant label, ignored here but accepted for
+#                compatibility with the add_test() signature in CMake.
 #   qemu-binary  (optional) Path to qemu-system-riscv64.
 #                Defaults to: qemu-system-riscv64 on PATH, or
 #                             ../../../installed-tools/bin/qemu-system-riscv64.
@@ -33,12 +37,25 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # ── Argument parsing ──────────────────────────────────────────────────────────
 if [[ $# -lt 2 ]]; then
     echo "Usage: run_kat.sh <elf> <rsp> [qemu-system-riscv64]" >&2
+    echo "   or: run_kat.sh <elf> <level> <polymul>" >&2
     exit 2
 fi
 
 ELF="$1"
-RSP="$2"
-QEMU="${3:-}"
+ARG2="$2"
+ARG3="${3:-}"
+QEMU=""
+
+if [[ "$ARG2" =~ ^(128|192|256)$ ]]; then
+    LEVEL="$ARG2"
+    POLYMUL="${ARG3:-}"
+    RSP="${REPO_ROOT}/tests/kat/PQCkemKAT_${LEVEL}.rsp"
+else
+    RSP="$ARG2"
+    QEMU="$ARG3"
+    POLYMUL=""
+    LEVEL=""
+fi
 
 # ── Auto-build: rebuild the specific ELF target before running ────────────────
 _BUILD_DIR="$(dirname "$ELF")"
@@ -54,14 +71,21 @@ if [[ ! -x "${REPO_ROOT}/sim/qemu/run_kat.sh" ]]; then
     exit 2
 fi
 
-# ── Derive level from binary name (hqc128_*, hqc192_*, hqc256_*) ─────────────
+# ── Derive level from binary name when not provided explicitly ───────────────
 BASENAME="$(basename "$ELF")"
-if [[ "$BASENAME" == hqc128_* ]]; then LEVEL=128
-elif [[ "$BASENAME" == hqc192_* ]]; then LEVEL=192
-elif [[ "$BASENAME" == hqc256_* ]]; then LEVEL=256
-else
-    echo "WARNING: cannot infer level from binary name '$BASENAME'; omitting level label" >&2
-    LEVEL=""
+if [[ -z "$LEVEL" ]]; then
+    if [[ "$BASENAME" == hqc128_* ]]; then LEVEL=128
+    elif [[ "$BASENAME" == hqc192_* ]]; then LEVEL=192
+    elif [[ "$BASENAME" == hqc256_* ]]; then LEVEL=256
+    else
+        echo "WARNING: cannot infer level from binary name '$BASENAME'; omitting level label" >&2
+        LEVEL=""
+    fi
+fi
+
+if [[ ! -f "$RSP" ]]; then
+    echo "ERROR: reference RSP file '$RSP' not found" >&2
+    exit 2
 fi
 
 # ── Temp file for QEMU serial output ─────────────────────────────────────────
