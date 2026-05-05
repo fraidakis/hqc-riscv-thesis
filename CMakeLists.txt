@@ -168,9 +168,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "fafft_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/v3/fafft_zvc_v3.c
-                   ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/v4/fafft_v4.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/v5/fafft_v5.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft_v5.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft_rvv.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c
@@ -194,7 +192,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             # V3_HYBRID_THRESH sweep: cmake -DV3_HYBRID_THRESH=32/64/128
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc/hybrid.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc/v3/hybrid_v3.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c)
         elseif(POLYMUL STREQUAL "fafft_zvbc")
             # fafft_zvbc reuses all fafft_zbc ref sources, but replaces
             # gfmul_fft.c with fafft_vclmul.c which provides vect_mul +

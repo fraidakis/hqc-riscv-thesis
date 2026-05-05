@@ -5,9 +5,7 @@
 #include "ref/gfmul_fft.h"
 #include "ref/reduce.h"
 #include "ref/CRT_fft.h"
-#include "v3/fafft_zvc_v3.h"
-#include "v4/fafft_v4.h"
-#include "v5/fafft_v5.h"
+#include "fafft_v5.h"
 
 #ifndef VEC_N_SIZE_32
 #define VEC_N_SIZE_32 ((PARAM_N + 31) / 32)

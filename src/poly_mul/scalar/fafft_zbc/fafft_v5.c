@@ -7,7 +7,7 @@
 #include <riscv_vector.h>
 
 #include "parameters.h"
-#include "../ref/reduce.h"
+#include "ref/reduce.h"
 
 #ifndef VEC_N_SIZE_64
 #define VEC_N_SIZE_64 ((PARAM_N + 63) / 64)

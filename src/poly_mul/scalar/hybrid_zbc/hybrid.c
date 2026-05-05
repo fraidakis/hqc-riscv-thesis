@@ -24,7 +24,7 @@
 /* ── Active v3 path ───────────────────────────────────────────────────── */
 #ifndef USE_LEGACY_HYBRID
 
-#include "v3/hybrid_v3.h"
+#include "hybrid_v3.h"
 
 /* Public vect_mul entry point — delegates to v3 */
 void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)

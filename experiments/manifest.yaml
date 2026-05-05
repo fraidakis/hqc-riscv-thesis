@@ -1,0 +1,30 @@
+experiments:
+  - id: EXP-fafft-v3-zvc
+    date: 2026-05-05
+    hypothesis: "Evaluate early ZVC/karatsuba FAFFT integration against scalar baseline."
+    status: deprecated
+    path: experiments/EXP-fafft-v3-zvc
+
+  - id: EXP-fafft-v4-task-pipeline
+    date: 2026-05-05
+    hypothesis: "Evaluate staged task-pipeline FAFFT variants for lower instret at HQC-128."
+    status: deprecated
+    path: experiments/EXP-fafft-v4-task-pipeline
+
+  - id: EXP-fafft-v6-rvv-schoolbook
+    date: 2026-05-05
+    hypothesis: "Evaluate RVV schoolbook-oriented FAFFT path for vector acceleration."
+    status: deprecated
+    path: experiments/EXP-fafft-v6-rvv-schoolbook
+
+  - id: EXP-fafft-v5-promoted
+    date: 2026-05-05
+    hypothesis: "Promote CRT-bypass RVV v5 as stable FAFFT backend."
+    status: promoted_to_stable
+    path: src/poly_mul/scalar/fafft_zbc/fafft_v5.c
+
+  - id: EXP-hybrid-v3-promoted
+    date: 2026-05-05
+    hypothesis: "Promote scalar hybrid v3 thresholded recursion as stable hybrid backend."
+    status: promoted_to_stable
+    path: src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c
