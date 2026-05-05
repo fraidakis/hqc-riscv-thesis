@@ -411,9 +411,91 @@ foreach(LEVEL ${SECURITY_LEVELS})
             COMMENT "Running ${POLYMUL_BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
         )
 
+        # ── Per-VLEN vector-variant targets (P-02 multi-VLEN matrix) ─────────
+        # For each variant that contains RVV code, generate a distinct
+        # bench_polymul ELF per entry in VLEN_LIST.  The ELFs are compiled with
+        # -mvscale-min=M -mvscale-max=M (M = VLEN/64) so the compiler assumes
+        # a fixed register width and can constant-fold vsetvl results.
+        # All targets are EXCLUDE_FROM_ALL; build explicitly or via
+        #   cmake --build build --target vlen_matrix_hqc${LEVEL}
+        if(POLYMUL IN_LIST VECTOR_POLYMUL_VARIANTS)
+            foreach(VLEN ${VLEN_LIST})
+                set(VLEN_BENCH_TARGET "bench_polymul_hqc${LEVEL}_${POLYMUL}_vlen${VLEN}")
+
+                add_executable(${VLEN_BENCH_TARGET} EXCLUDE_FROM_ALL
+                    ${STARTUP_S}
+                    ${CMAKE_SOURCE_DIR}/tests/bench/bench_poly_mul.c
+                    ${CMAKE_SOURCE_DIR}/src/common/bench.c
+                    ${POLYMUL_SOURCES}
+                    ${CMAKE_SOURCE_DIR}/sim/common/mem.c
+                )
+                target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE
+                    ${HQC_REF}/src/common/${VARIANT}
+                    ${HQC_REF}/src/common
+                    ${HQC_REF}/src/ref/${VARIANT}
+                    ${HQC_REF}/src/ref
+                    ${CMAKE_SOURCE_DIR}/src/common
+                )
+                target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE
+                    HQC_BENCH_MODE=1
+                    SECURITY_LEVEL=${LEVEL}
+                    HQC_${LEVEL}
+                    ${SIM_DEFINES}
+                    N_ITER=${BENCH_N_ITER}
+                    POLYMUL_NAME="${POLYMUL}_vlen${VLEN}"
+                    HQC_VLEN=${VLEN}
+                )
+                target_compile_options(${VLEN_BENCH_TARGET} PRIVATE
+                    "-mrvv-vector-bits=${VLEN}"
+                )
+                if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
+                    target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+                endif()
+                if(POLYMUL STREQUAL "fafft_zvbc")
+                    target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE
+                        ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc)
+                endif()
+                if(POLYMUL STREQUAL "hybrid")
+                    target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE
+                        HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
+                        V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
+                        HQC_POLYMUL_HYBRID_KEYCACHE=1)
+                    target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE
+                        ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc)
+                endif()
+                set_target_properties(${VLEN_BENCH_TARGET} PROPERTIES
+                    SUFFIX ".elf"
+                    LINK_DEPENDS "${LINKER_SCRIPT}"
+                )
+                target_link_options(${VLEN_BENCH_TARGET} PRIVATE
+                    "-T${LINKER_SCRIPT}"
+                    "-Wl,-Map=${CMAKE_BINARY_DIR}/${VLEN_BENCH_TARGET}.map"
+                )
+                add_custom_target(run_${VLEN_BENCH_TARGET}
+                    COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${VLEN_BENCH_TARGET}>
+                    DEPENDS ${VLEN_BENCH_TARGET}
+                    USES_TERMINAL
+                    COMMENT "Running ${VLEN_BENCH_TARGET} (VLEN=${VLEN}) with HQC_SIM=${HQC_SIM}"
+                )
+            endforeach()  # VLEN
+        endif()  # POLYMUL IN VECTOR_POLYMUL_VARIANTS
+
     endforeach()  # POLYMUL
 endforeach()  # LEVEL
 
+# ── VLEN matrix umbrella targets ──────────────────────────────────────────────
+# Convenience targets to build the full VLEN matrix for all vector variants at
+# a given security level:  cmake --build build --target vlen_matrix_hqc128
+foreach(LEVEL ${SECURITY_LEVELS})
+    set(_VLEN_DEPS "")
+    foreach(POLYMUL ${VECTOR_POLYMUL_VARIANTS})
+        foreach(VLEN ${VLEN_LIST})
+            list(APPEND _VLEN_DEPS "bench_polymul_hqc${LEVEL}_${POLYMUL}_vlen${VLEN}")
+        endforeach()
+    endforeach()
+    add_custom_target(vlen_matrix_hqc${LEVEL} DEPENDS ${_VLEN_DEPS}
+        COMMENT "Building VLEN={${VLEN_LIST}} matrix for HQC-${LEVEL} vector variants")
+endforeach()
 
 # ── Symlink compile_commands.json to project root ─────────────────────────────
 add_custom_target(symlink_compile_commands ALL

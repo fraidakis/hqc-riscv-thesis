@@ -37,6 +37,22 @@ elseif(HQC_KECCAK_IMPL STREQUAL "rvv" AND HQC_DECODE_IMPL STREQUAL "rvv")
     message(STATUS "  → Full-stack build: poly-mul + RVV Keccak + RVV decoder")
 endif()
 
+# ── Multi-VLEN build matrix (P-02) ───────────────────────────────────────────
+# VLEN_LIST: semicolon-separated VLEN values for which vector-variant bench
+# targets are generated.  Each entry produces a distinct ELF compiled with
+# -mvscale-min=N -mvscale-max=N (N = VLEN/64) so the compiler can use the
+# guaranteed register width for constant-folding and vectorization decisions.
+# Non-vector variants are always built once without a VLEN suffix.
+#
+# Example:  cmake -B build -DVLEN_LIST="128;256;512"
+set(VLEN_LIST "256" CACHE STRING
+    "VLEN values for vector-variant build matrix (semicolon-separated, e.g. 128;256;512)")
+message(STATUS "  VLEN matrix: ${VLEN_LIST}")
+
+# Variants that participate in the per-VLEN matrix.  These are the polymul
+# strategies that contain RVV code whose performance is VLEN-sensitive.
+set(VECTOR_POLYMUL_VARIANTS fafft_zbc fafft_zvbc karatsuba_zvbc)
+
 # ── Validation ────────────────────────────────────────────────────────────────
 if(NOT HQC_KECCAK_IMPL STREQUAL "ref" AND NOT HQC_KECCAK_IMPL STREQUAL "rvv")
     message(FATAL_ERROR "HQC_KECCAK_IMPL must be 'ref' or 'rvv', got '${HQC_KECCAK_IMPL}'")
