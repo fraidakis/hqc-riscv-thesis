@@ -28,8 +28,12 @@ message(STATUS "Simulator backend: ${HQC_SIM}")
 
 if(HQC_SIM STREQUAL "spike")
     set(SIM_DEFINES "")       # Spike HTIF is the default in bench.c
-else()
+    set(BENCH_SIM_RUNNER "${CMAKE_SOURCE_DIR}/sim/spike/run_bench.sh")
+elseif(HQC_SIM STREQUAL "qemu")
     set(SIM_DEFINES "HQC_SIM_QEMU=1")
+    set(BENCH_SIM_RUNNER "${CMAKE_SOURCE_DIR}/sim/qemu/run_kat.sh")
+else()
+    message(FATAL_ERROR "Unsupported HQC_SIM='${HQC_SIM}'. Use 'qemu' or 'spike'.")
 endif()
 
 # ── Benchmark iteration count ────────────────────────────────────────────────
@@ -343,6 +347,12 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-T${LINKER_SCRIPT}"
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${BENCH_TARGET}.map"
         )
+        add_custom_target(run_${BENCH_TARGET}
+            COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${BENCH_TARGET}>
+            DEPENDS ${BENCH_TARGET}
+            USES_TERMINAL
+            COMMENT "Running ${BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
+        )
 
         # POLYMUL MICRO-BENCH target  (bench_polymul_hqc${LEVEL}_${POLYMUL}) ──
         # Benchmarks only vect_mul() — no keypair/encaps/decaps, no Keccak.
@@ -395,6 +405,12 @@ foreach(LEVEL ${SECURITY_LEVELS})
         target_link_options(${POLYMUL_BENCH_TARGET} PRIVATE
             "-T${LINKER_SCRIPT}"
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${POLYMUL_BENCH_TARGET}.map"
+        )
+        add_custom_target(run_${POLYMUL_BENCH_TARGET}
+            COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${POLYMUL_BENCH_TARGET}>
+            DEPENDS ${POLYMUL_BENCH_TARGET}
+            USES_TERMINAL
+            COMMENT "Running ${POLYMUL_BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
         )
 
     endforeach()  # POLYMUL
