@@ -3,7 +3,7 @@
 # Run LLVM-MCA on HQC source functions to get throughput/latency estimates.
 # Usage: run_mca.sh <source_file> [hqc_level=128|192|256] [extra_mca_flags...]
 # Example: ./analysis/llvm_mca/run_mca.sh vendor/hqc-ref/src/ref/gf2x.c 128
-#          ./analysis/llvm_mca/run_mca.sh src/poly_mul/fafft_zbc/fafft.c 128 --mattr=+zbc
+#          ./analysis/llvm_mca/run_mca.sh src/poly_mul/scalar/fafft_zbc/fafft.c 128 --mattr=+zbc
 
 set -euo pipefail
 

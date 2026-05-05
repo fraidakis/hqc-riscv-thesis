@@ -54,12 +54,16 @@ ALL_VARIANTS = [
     "karatsuba_ref",
     "karatsuba_zbc",
     "fafft_zbc",
-    "hybrid_zbc",
+    "hybrid",
     "karatsuba_zvbc",
     "fafft_zvbc",
 ]
 ALL_LEVELS  = [128, 192, 256]
 ALL_OPS     = ["keypair", "encaps", "decaps", "vect_mul"]
+
+VARIANT_ALIASES = {
+    "hybrid_zbc": "hybrid",
+}
 
 # Instruction-mix histogram categories (grep patterns → friendly name)
 MIX_CATEGORIES: list[tuple[str, str]] = [
@@ -124,6 +128,7 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
     try:
         level   = int(meta.get("level", "0"))
         variant = meta.get("polymul", "")
+        variant = VARIANT_ALIASES.get(variant, variant)
     except ValueError:
         print(f"[extract] WARNING: bad metadata in {path}: {meta}", file=sys.stderr)
         return rows
@@ -175,10 +180,13 @@ def collect_results(
         print(f"[extract] ERROR: bench directory not found: {bench_dir}", file=sys.stderr)
         sys.exit(1)
 
-    csv_files = [
-        path for path in bench_dir.glob("*/*_N*.csv")
-        if path.parent.is_dir()
-    ]
+    csv_files: list[Path] = []
+    csv_files.extend(path for path in bench_dir.glob("*/*_N*.csv") if path.parent.is_dir())
+    csv_files.extend(path for path in bench_dir.glob("scalar/*/*_N*.csv") if path.parent.is_dir())
+    csv_files.extend(path for path in bench_dir.glob("vector/*/*_N*.csv") if path.parent.is_dir())
+
+    # Keep deterministic order and avoid duplicate paths when patterns overlap.
+    csv_files = sorted(set(csv_files))
     if not csv_files:
         print(f"[extract] No CSV files found in subdirectories of {bench_dir}", file=sys.stderr)
         return results, code_sizes
@@ -303,7 +311,7 @@ def print_latex_table(
         "karatsuba_ref": "kara\\textsubscript{ref}",
         "karatsuba_zbc": "kara\\textsubscript{zbc}",
         "fafft_zbc":     "fafft\\textsubscript{zbc}",
-        "hybrid_zbc":    "hybrid\\textsubscript{zbc}",
+        "hybrid":        "hybrid",
         "karatsuba_zvbc": "kara\\textsubscript{zvbc}",
         "fafft_zvbc":    "fafft\\textsubscript{zvbc}",
     }
@@ -649,9 +657,9 @@ def main() -> None:
     parser.add_argument("--bench-dir", type=Path, default=DEFAULT_BENCH_DIR,
                         help="Root of benchmark directories")
     parser.add_argument("--build-dir", type=Path,
-                        default=REPO_ROOT / "build-spike",
+                        default=REPO_ROOT / "build/spike",
                         help="Directory containing bench_polymul*.elf files for PC→mnemonic "
-                             "resolution (default: build-spike)")
+                            "resolution (default: build/spike)")
     parser.add_argument("--bench-set", nargs="+", metavar="NAME",
                         help="Benchmark set(s) to include, e.g. baseline_ref polymul_zbc")
     parser.add_argument("--level", nargs="+", type=int, choices=[128, 192, 256],

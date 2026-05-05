@@ -1,0 +1,5 @@
+# level=192,polymul=hybrid_zbc,n_iter=1,codesize_text=22566
+op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
+keypair,1,3458722,3458722,3458722,3458722,3458722,3458722
+encaps,1,6670799,6670799,6670799,6670799,6670799,6670799
+decaps,1,11141904,11141904,11141904,11141904,11141904,11141904

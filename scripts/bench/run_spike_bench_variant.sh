@@ -4,16 +4,17 @@
 # Launch Spike benchmark jobs in the background (nohup) for all polymul
 # variants of a given benchmark set. Prints PIDs and monitoring hints, then exits.
 #
-# Default: polymul micro-bench only (~20-150 min each).
+# Default: polymul micro-bench only (Spike-first hotspot iteration loop).
 # Use --full at benchmark milestones to also launch full KEM benches.
 #
 # Canonical benchmark sets and their default variants:
 #   baseline_ref     -> karatsuba_ref
 #   polymul_zbc      -> karatsuba_zbc
 #   fafft_zbc        -> fafft_zbc
-#   hybrid_zbc       -> hybrid_zbc
-#   hybrid_zbc_v2    -> hybrid_zbc
-#   hybrid_2way_zbc  -> hybrid_zbc
+#   hybrid           -> hybrid
+#   hybrid_zbc       -> hybrid   (legacy alias)
+#   hybrid_zbc_v2    -> hybrid   (legacy alias)
+#   hybrid_2way_zbc  -> hybrid   (legacy alias)
 #   polymul_zvbc     -> karatsuba_zvbc
 #   polymul_zvbc_v2  -> fafft_zvbc
 #
@@ -25,7 +26,7 @@
 #
 # Options:
 #   --variant <grep-pattern>   Override the canonical variant filter
-#                              e.g. "karatsuba_zbc" or "fafft_zbc|hybrid_zbc"
+#                              e.g. "karatsuba_zbc" or "fafft_zbc|hybrid"
 #   --full                     Also launch full KEM benchmarks (keypair/encaps/decaps)
 #   --no-polymul               Skip polymul micro-benchmarks (requires --full)
 #   --iter <N>                 Number of iterations baked into the ELF (default: 1)
@@ -57,7 +58,7 @@ mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
-BUILD_DIR="${REPO_ROOT}/build-spike"
+BUILD_DIR="${REPO_ROOT}/build/spike"
 
 LEVELS=(128 192 256)
 
@@ -67,11 +68,26 @@ BENCH_SET_VARIANT_MAP=(
     [baseline_ref]="karatsuba_ref"
     [polymul_zbc]="karatsuba_zbc"
     [fafft_zbc]="fafft_zbc"
-    [hybrid_zbc]="hybrid_zbc"
-    [hybrid_zbc_v2]="hybrid_zbc"
-    [hybrid_2way_zbc]="hybrid_zbc"
+    [hybrid]="hybrid"
+    [hybrid_zbc]="hybrid"
+    [hybrid_zbc_v2]="hybrid"
+    [hybrid_2way_zbc]="hybrid"
     [polymul_zvbc]="karatsuba_zvbc"
     [polymul_zvbc_v2]="fafft_zvbc"
+)
+
+declare -A BENCH_SET_TRACK_MAP
+BENCH_SET_TRACK_MAP=(
+    [baseline_ref]="scalar"
+    [polymul_zbc]="scalar"
+    [fafft_zbc]="scalar"
+    [hybrid]="scalar"
+    [hybrid_zbc]="scalar"
+    [hybrid_zbc_v2]="scalar"
+    [hybrid_2way_zbc]="scalar"
+    [polymul_zvbc]="vector"
+    [polymul_zvbc_v2]="vector"
+    [fafft_zvbc]="vector"
 )
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
@@ -142,7 +158,12 @@ if [[ ! -x "$SPIKE" ]]; then
     exit 2
 fi
 
-OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
+BENCH_TRACK="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
+if [[ -n "$BENCH_TRACK" ]]; then
+    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_TRACK}/${BENCH_SET}"
+else
+    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
+fi
 mkdir -p "$OUT_DIR"
 
 EVENTS_LOG="${OUT_DIR}/run_events.log"
@@ -212,7 +233,7 @@ for LEVEL in "${LEVELS[@]}"; do
             fi
             if [[ ! -f "$ELF" ]]; then
                 echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-                echo "              cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+                echo "              cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
                 continue
             fi
 
@@ -239,7 +260,7 @@ for LEVEL in "${LEVELS[@]}"; do
             fi
             if [[ ! -f "$ELF" ]]; then
                 echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-                echo "              cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+                echo "              cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
                 continue
             fi
 
@@ -255,8 +276,8 @@ done
 echo ""
 if [[ $LAUNCHED -eq 0 ]]; then
     echo "[bench] No jobs launched. Check that ELFs are built in ${BUILD_DIR}/"
-    echo "        cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}"
-    echo "        cmake --build build-spike -j\$(nproc)"
+    echo "        cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}"
+    echo "        cmake --build build/spike -j\$(nproc)"
 else
     echo "[bench] Launched ${LAUNCHED} Spike job(s) for ${BENCH_SET}:"
     for line in "${JOB_LINES[@]}"; do

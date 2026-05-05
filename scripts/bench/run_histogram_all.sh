@@ -46,11 +46,25 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # file CMakeLists.txt reads, so CMake and scripts are always in sync.
 mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt"
 
+declare -A BENCH_SET_TRACK_MAP
+BENCH_SET_TRACK_MAP=(
+    [baseline_ref]="scalar"
+    [polymul_zbc]="scalar"
+    [fafft_zbc]="scalar"
+    [hybrid]="scalar"
+    [hybrid_zbc]="scalar"
+    [hybrid_zbc_v2]="scalar"
+    [hybrid_2way_zbc]="scalar"
+    [polymul_zvbc]="vector"
+    [polymul_zvbc_v2]="vector"
+    [fafft_zvbc]="vector"
+)
+
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 OBJDUMP="${RISCV}/bin/riscv64-unknown-elf-objdump"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
-BUILD_DIR="${REPO_ROOT}/build-spike"
+BUILD_DIR="${REPO_ROOT}/build/spike"
 
 LEVELS=(128 192 256)
 
@@ -91,7 +105,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
+BENCH_TRACK="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
+if [[ -n "$BENCH_TRACK" ]]; then
+    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_TRACK}/${BENCH_SET}"
+else
+    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
+fi
 
 # ── Helper: apply variant filter ──────────────────────────────────────────────
 variant_matches() {
@@ -211,7 +230,7 @@ print_hist_report() {
 show_context() {
     local hist="$1" elf="$2"
     if [[ ! -f "$elf" ]]; then
-        echo "  (ELF not available for context — build-spike may be stale)"
+        echo "  (ELF not available for context — build/spike may be stale)"
         return
     fi
 
@@ -266,7 +285,12 @@ run_report() {
 
             local compare_hist=""
             if [[ -n "$COMPARE_WITH" ]]; then
-                compare_hist="${REPO_ROOT}/analysis/benchmarks/${COMPARE_WITH}/hqc${LEVEL}_${VARIANT}_hist.txt"
+                local compare_track="${BENCH_SET_TRACK_MAP[$COMPARE_WITH]:-}"
+                if [[ -n "$compare_track" ]]; then
+                    compare_hist="${REPO_ROOT}/analysis/benchmarks/${compare_track}/${COMPARE_WITH}/hqc${LEVEL}_${VARIANT}_hist.txt"
+                else
+                    compare_hist="${REPO_ROOT}/analysis/benchmarks/${COMPARE_WITH}/hqc${LEVEL}_${VARIANT}_hist.txt"
+                fi
                 if [[ ! -f "$compare_hist" ]]; then
                     echo "  [compare: no hist for ${COMPARE_WITH} — skipping delta]" >&2
                     compare_hist=""
@@ -333,7 +357,7 @@ for LEVEL in "${LEVELS[@]}"; do
         fi
         if [[ ! -f "$ELF" ]]; then
             echo "[histogram] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-            echo "              cmake -S . -B build-spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
+            echo "              cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
             continue
         fi
 
@@ -354,7 +378,7 @@ done
 echo ""
 if [[ $LAUNCHED -eq 0 ]]; then
     echo "[histogram] No jobs launched. Check that polymul ELFs are built in ${BUILD_DIR}/"
-    echo "            cmake --build build-spike -j\$(nproc)"
+    echo "            cmake --build build/spike -j\$(nproc)"
 else
     echo "[histogram] Launched ${LAUNCHED} Spike -g job(s) for ${BENCH_SET}:"
     for line in "${JOB_LINES[@]}"; do

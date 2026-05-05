@@ -1,0 +1,4 @@
+kernel,iters,cycles,cyc_per_iter
+clmul128,10000,110001,11
+rvv_xor256,10000,150007,15
+scalar_xor,320000,2560003,8

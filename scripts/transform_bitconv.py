@@ -10,7 +10,7 @@ Transform bitconversion.c for Iter 2 (block-parallel basis conversion):
 
 import re, sys
 
-FILEPATH = '/home/fraidakisg/Thesis/hqc-riscv/src/poly_mul/fafft_zbc/ref/bitconversion.c'
+FILEPATH = '/home/fraidakisg/Thesis/hqc-riscv/src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c'
 
 # ────────────────────────────────────────────────────────────────────────────
 # Helper: make one vec-register XOR expression

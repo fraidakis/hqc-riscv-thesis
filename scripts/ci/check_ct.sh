@@ -20,7 +20,7 @@
 #   check_ct.sh <security_level> <variant>
 #     security_level : 128 | 192 | 256
 #     variant        : karatsuba_ref | karatsuba_zbc | fafft_zbc |
-#                      hybrid_zbc | fafft_zvbc
+#                      hybrid | fafft_zvbc
 
 set -euo pipefail
 
@@ -59,22 +59,22 @@ case "$VARIANT" in
         POLYMUL_SRCS=("${VENDOR}/src/ref/gf2x.c")
         ;;
     karatsuba_zbc)
-        POLYMUL_SRCS=("src/poly_mul/karatsuba_zbc/gf2x_clmul.c")
+        POLYMUL_SRCS=("src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c")
         RISCV_ONLY=1
         ;;
     fafft_zbc)
         POLYMUL_SRCS=(
-            "src/poly_mul/fafft_zbc/fafft.c"
-            "src/poly_mul/fafft_zbc/fafft_rvv.c"
+            "src/poly_mul/scalar/fafft_zbc/fafft.c"
+            "src/poly_mul/scalar/fafft_zbc/fafft_rvv.c"
         )
         RISCV_ONLY=1
         ;;
-    hybrid_zbc)
-        POLYMUL_SRCS=("src/poly_mul/hybrid_zbc/hybrid.c")
+    hybrid|hybrid_zbc)
+        POLYMUL_SRCS=("src/poly_mul/scalar/hybrid_zbc/hybrid.c")
         RISCV_ONLY=1
         ;;
     fafft_zvbc)
-        POLYMUL_SRCS=("src/poly_mul/fafft_zvbc/fafft_vclmul.c")
+        POLYMUL_SRCS=("src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c")
         RISCV_ONLY=1
         ;;
     *)
