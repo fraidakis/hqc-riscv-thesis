@@ -1,0 +1,14 @@
+{
+  "variant": "karatsuba_zvbc",
+  "hqc_level": 128,
+  "timestamp": "2026-05-05T21:09:05+03:00",
+  "metrics": {
+    "block_rthroughput": "266.0",
+    "total_cycles": 12424,
+    "total_uops": 4250,
+    "source_file": "gf2x_vclmul.c"
+  },
+  "analysis_tool": "llvm-mca",
+  "cpu_model": "sifive-u74",
+  "march": "rv64gcv_zbc_zbb_zbkb_zvbc"
+}
