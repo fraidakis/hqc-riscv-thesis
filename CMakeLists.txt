@@ -145,6 +145,29 @@ set(LOCAL_BENCH_SOURCES
     ${CMAKE_SOURCE_DIR}/sim/common/mem.c
 )
 
+# ── LTO + PGO helper for karatsuba_ref targets (P-06) ────────────────────────
+# Applies -flto and/or PGO flags to a named target.
+# Called for every karatsuba_ref executable (KAT, bench, polymul bench).
+function(hqc_apply_ref_lto_pgo TARGET)
+    if(HQC_REF_LTO)
+        target_compile_options(${TARGET} PRIVATE -flto)
+        target_link_options(${TARGET} PRIVATE -flto)
+    endif()
+
+    if(HQC_REF_PGO STREQUAL "generate")
+        # LLVM IR-level instrumentation (works with Clang; Spike captures the
+        # profile via the LLVM profile runtime's __llvm_profile_write_file
+        # hook, which must be wired in via sim/common/bench.c or a wrapper).
+        target_compile_options(${TARGET} PRIVATE -fprofile-instr-generate)
+        target_link_options(${TARGET} PRIVATE -fprofile-instr-generate)
+    elseif(HQC_REF_PGO STREQUAL "use")
+        target_compile_options(${TARGET} PRIVATE
+            -fprofile-instr-use=${HQC_REF_PGO_FILE})
+        target_link_options(${TARGET} PRIVATE
+            -fprofile-instr-use=${HQC_REF_PGO_FILE})
+    endif()
+endfunction()
+
 # ── Target matrix: LEVEL × POLYMUL ───────────────────────────────────────────
 foreach(LEVEL ${SECURITY_LEVELS})
     # Build the invariant core OBJECT library for this level (idempotent).
@@ -279,6 +302,9 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-T${LINKER_SCRIPT}"
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${KAT_TARGET}.map"
         )
+        if(POLYMUL STREQUAL "karatsuba_ref")
+            hqc_apply_ref_lto_pgo(${KAT_TARGET})
+        endif()
 
         # CTest KAT gate — must pass before any branch is merged.
         # run_kat.sh(elf, level, polymul) drives QEMU and diffs against .rsp
@@ -345,6 +371,9 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-T${LINKER_SCRIPT}"
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${BENCH_TARGET}.map"
         )
+        if(POLYMUL STREQUAL "karatsuba_ref")
+            hqc_apply_ref_lto_pgo(${BENCH_TARGET})
+        endif()
         add_custom_target(run_${BENCH_TARGET}
             COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${BENCH_TARGET}>
             DEPENDS ${BENCH_TARGET}
@@ -404,6 +433,9 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-T${LINKER_SCRIPT}"
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${POLYMUL_BENCH_TARGET}.map"
         )
+        if(POLYMUL STREQUAL "karatsuba_ref")
+            hqc_apply_ref_lto_pgo(${POLYMUL_BENCH_TARGET})
+        endif()
         add_custom_target(run_${POLYMUL_BENCH_TARGET}
             COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${POLYMUL_BENCH_TARGET}>
             DEPENDS ${POLYMUL_BENCH_TARGET}

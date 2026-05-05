@@ -53,6 +53,54 @@ message(STATUS "  VLEN matrix: ${VLEN_LIST}")
 # strategies that contain RVV code whose performance is VLEN-sensitive.
 set(VECTOR_POLYMUL_VARIANTS fafft_zbc fafft_zvbc karatsuba_zvbc)
 
+# ── LTO + PGO for karatsuba_ref baseline (P-06) ──────────────────────────────
+# These flags apply ONLY to karatsuba_ref targets (KAT + bench + polymul bench).
+# They do NOT affect any other variant.
+#
+# HQC_REF_LTO    : OFF (default) | ON  — enable -flto on karatsuba_ref targets
+#
+# HQC_REF_PGO    : off (default) | generate | use
+#   generate : compile with -fprofile-generate / -fprofile-instr-generate to
+#              emit raw profile data when the ELF is run on Spike.
+#              Run the ELF, convert the raw profile with llvm-profdata, then
+#              rebuild with HQC_REF_PGO=use.
+#   use      : compile with -fprofile-use / -fprofile-instr-use pointing at
+#              HQC_REF_PGO_FILE (path to the merged .profdata file).
+#
+# Example workflow:
+#   cmake -B build/qemu -DHQC_REF_LTO=ON -DHQC_REF_PGO=generate ...
+#   cmake --build build/qemu --target bench_hqc128_karatsuba_ref
+#   spike --isa=rv64gcv ... bench_hqc128_karatsuba_ref.elf   # emits default.profraw
+#   llvm-profdata merge -output=hqc_ref.profdata default.profraw
+#   cmake -B build/qemu -DHQC_REF_PGO=use -DHQC_REF_PGO_FILE=hqc_ref.profdata ...
+#   cmake --build build/qemu --target bench_hqc128_karatsuba_ref
+
+set(HQC_REF_LTO OFF CACHE BOOL
+    "Enable LTO (-flto) for karatsuba_ref scalar baseline targets")
+
+set(HQC_REF_PGO "off" CACHE STRING
+    "PGO mode for karatsuba_ref: off | generate | use")
+set_property(CACHE HQC_REF_PGO PROPERTY STRINGS "off" "generate" "use")
+
+set(HQC_REF_PGO_FILE "" CACHE FILEPATH
+    "Path to merged .profdata file (required when HQC_REF_PGO=use)")
+
+# Validate PGO settings
+if(HQC_REF_PGO STREQUAL "use" AND NOT HQC_REF_PGO_FILE)
+    message(FATAL_ERROR
+        "HQC_REF_PGO=use requires HQC_REF_PGO_FILE to point at a merged "
+        ".profdata file.  Run with HQC_REF_PGO=generate first, then collect "
+        "the profile and set HQC_REF_PGO_FILE accordingly.")
+endif()
+if(NOT HQC_REF_PGO STREQUAL "off" AND
+   NOT HQC_REF_PGO STREQUAL "generate" AND
+   NOT HQC_REF_PGO STREQUAL "use")
+    message(FATAL_ERROR "HQC_REF_PGO must be 'off', 'generate', or 'use', got '${HQC_REF_PGO}'")
+endif()
+
+message(STATUS "  karatsuba_ref LTO : ${HQC_REF_LTO}")
+message(STATUS "  karatsuba_ref PGO : ${HQC_REF_PGO}")
+
 # ── Validation ────────────────────────────────────────────────────────────────
 if(NOT HQC_KECCAK_IMPL STREQUAL "ref" AND NOT HQC_KECCAK_IMPL STREQUAL "rvv")
     message(FATAL_ERROR "HQC_KECCAK_IMPL must be 'ref' or 'rvv', got '${HQC_KECCAK_IMPL}'")
