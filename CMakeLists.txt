@@ -1,5 +1,3 @@
-add_compile_options(-pg)
-add_link_options(-pg)
 cmake_minimum_required(VERSION 3.21)
 project(hqc-riscv C ASM)
 
@@ -420,15 +418,17 @@ endforeach()  # LEVEL
 # ── Symlink compile_commands.json to project root ─────────────────────────────
 add_custom_target(symlink_compile_commands ALL
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_SOURCE_DIR}/build/qemu/compile_commands.json
+        ${CMAKE_BINARY_DIR}/compile_commands.json
         ${CMAKE_SOURCE_DIR}/compile_commands.json
-    COMMENT "Symlinking compile_commands.json to default dev tree (build/qemu)"
+    COMMENT "Symlinking compile_commands.json from build dir to project root"
 )
 
 # ── objdump target: verify vclmul opcodes ────────────────────────────────────
 find_program(OBJDUMP_BIN
     NAMES riscv64-unknown-elf-objdump llvm-objdump
-    PATHS $ENV{RISCV}/bin $ENV{HOME}/Thesis/installed-tools/bin
+    PATHS
+        $ENV{RISCV}/bin
+        "${CMAKE_SOURCE_DIR}/../toolchains/installed-tools/bin"
     NO_DEFAULT_PATH
 )
 

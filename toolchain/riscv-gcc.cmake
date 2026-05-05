@@ -12,7 +12,11 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # ── Toolchain prefix ──────────────────────────────────────────────────────────
 if(NOT DEFINED RISCV)
-  set(RISCV "$ENV{HOME}/Thesis/installed-tools")
+  # Default: toolchains/installed-tools lives two levels above this file
+  # (hqc-riscv/toolchain/ → hqc-riscv/ → Thesis/ → toolchains/installed-tools)
+  get_filename_component(_RISCV_DEFAULT
+      "${CMAKE_CURRENT_LIST_DIR}/../../toolchains/installed-tools" REALPATH)
+  set(RISCV "${_RISCV_DEFAULT}")
 endif()
 
 set(RISCV_TOOLCHAIN_PREFIX "${RISCV}/bin")
