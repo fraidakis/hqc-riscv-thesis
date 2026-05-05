@@ -10,24 +10,21 @@ This project uses five canonical variant labels in scripts, reports, and target 
 
 Notes:
 - `hybrid` is the public label used in build targets and benchmark CSV metadata.
-- Source files for `hybrid` currently live under `src/poly_mul/hybrid_zbc/` for continuity.
+- Scalar implementations are grouped under `src/poly_mul/scalar/`.
+- Vector implementations are grouped under `src/poly_mul/vector/`.
 - Legacy labels such as `hybrid_zbc`, `hybrid_zbc_v2`, and `hybrid_2way_zbc` are treated as aliases in some scripts.
 
 ## Versioning Convention
 
-Use versioned subfolders inside each variant directory:
-
-- `v0-baseline/` -> first working baseline for that variant
-- `v1/`, `v2/`, ... -> successive implementations
-- highest numbered version is the current best candidate
-
-Recommended policy:
-- Keep one stable entry file used by CMake (for example `hybrid.c`).
-- That entry file dispatches to the selected version implementation.
-- Store experiment notes/scoreboards in `analysis/report/` and run IDs in `analysis/benchmarks/runs/`.
+Stable promoted implementations live directly in each variant directory.
+Historical versioned experiments are moved to top-level `experiments/` and tracked in `experiments/manifest.yaml`.
 
 ## Current status
 
-- `fafft_zbc` already has versioned folders (`v3`, `v4`, `v5`).
-- `hybrid` currently has versioned folder `v3`.
-- `karatsuba_zbc`, `karatsuba_zvbc`, and `fafft_zvbc` currently have single active source files and can adopt `v0-baseline/` as needed.
+- Scalar:
+	- `fafft_zbc` -> `src/poly_mul/scalar/fafft_zbc/`
+	- `hybrid` -> `src/poly_mul/scalar/hybrid_zbc/`
+	- `karatsuba_zbc` -> `src/poly_mul/scalar/karatsuba_zbc/`
+- Vector:
+	- `fafft_zvbc` -> `src/poly_mul/vector/fafft_zvbc/`
+	- `karatsuba_zvbc` -> `src/poly_mul/vector/karatsuba_zvbc/`

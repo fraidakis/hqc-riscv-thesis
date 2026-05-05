@@ -14,13 +14,25 @@ three implementation strategies on a RISC-V rv64gcv target:
 
 ---
 
+## Polynomial Source Layout
+
+- Scalar variants: `src/poly_mul/scalar/`
+	- `karatsuba_zbc/`
+	- `fafft_zbc/`
+	- `hybrid_zbc/`
+- Vector variants: `src/poly_mul/vector/`
+	- `karatsuba_zvbc/`
+	- `fafft_zvbc/`
+- Archived experiments: `experiments/` (catalogued in `experiments/manifest.yaml`)
+
 ## Repository Layout
 
 ```
 hqc-riscv/
 ├── toolchain/          CMake toolchain file + build scripts
 ├── include/            Public API and algorithm headers
-├── src/                C/asm sources per implementation
+├── src/                C/asm sources (scalar + vector hierarchy)
+├── experiments/        Historical/deprecated variant branches
 ├── sim/                Simulator runners (Spike, QEMU, Marian/Verilator)
 ├── tests/              KAT vectors, unit tests, benchmarks
 ├── analysis/           LLVM-MCA reports, cycle counts, CT verification
@@ -34,14 +46,15 @@ hqc-riscv/
 # 1. Set up environment
 source toolchain/toolchain.env
 
-# 2. Configure (bare-metal Clang)
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake
+# 2. Configure QEMU and Spike build trees
+cmake -S . -B build/qemu -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=qemu
+cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1
 
 # 3. Build all targets
-cmake --build build -j$(nproc)
+cmake --build build/qemu -j$(nproc)
 
 # 4. Run KAT under QEMU
-./sim/qemu/run_kat.sh build/hqc128_vector_zvbc.elf
+./sim/qemu/run_kat.sh build/qemu/hqc128_karatsuba_ref.elf
 ```
 
 ## Simulation Targets
