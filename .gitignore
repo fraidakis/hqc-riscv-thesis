@@ -1,10 +1,10 @@
 docs/REPORT.md
 docs/BASELINE.md
 prompts/
+repo_*.txt
 
 # Build outputs
-build/
-build-*/
+build*/
 *.o
 *.a
 *.elf
@@ -51,6 +51,10 @@ __pycache__/
 analysis/llvm_mca/reports/*.txt
 analysis/benchmarks/*.png
 analysis/benchmarks/**/profile/spike_trace.log
+analysis/benchmarks/**/run_events.log
+analysis/benchmarks/**/*.log
+analysis/benchmarks/runs/**/raw/
+analysis/benchmarks/runs/**/meta/
 analysis/ct_verify/ctgrind/*.xml
 analysis/ct_verify/dudect/*
 analysis/ct_verify/binsec/*
