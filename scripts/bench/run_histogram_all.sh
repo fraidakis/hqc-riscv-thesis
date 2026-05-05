@@ -41,10 +41,11 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/lib_runner.sh"
 
 # Implemented variants come from scripts/implemented_variants.txt — the same
 # file CMakeLists.txt reads, so CMake and scripts are always in sync.
-mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt"
+bench_load_implemented_variants "$REPO_ROOT"
 
 declare -A BENCH_SET_TRACK_MAP
 BENCH_SET_TRACK_MAP=(
@@ -113,12 +114,6 @@ else
 fi
 
 # ── Helper: apply variant filter ──────────────────────────────────────────────
-variant_matches() {
-    local v="$1"
-    [[ -z "$VARIANT_FILTER" ]] && return 0
-    echo "$v" | grep -qE "$VARIANT_FILTER"
-}
-
 # ── PC resolution helpers ─────────────────────────────────────────────────────
 
 # Build a PC→mnemonic lookup file from an ELF using objdump.
@@ -264,7 +259,7 @@ run_report() {
     local found=0
     for LEVEL in "${LEVELS[@]}"; do
         for VARIANT in "${IMPLEMENTED_VARIANTS[@]}"; do
-            variant_matches "$VARIANT" || continue
+            bench_variant_matches "$VARIANT" "$VARIANT_FILTER" || continue
 
             local hist="${OUT_DIR}/hqc${LEVEL}_${VARIANT}_hist.txt"
             if [[ ! -f "$hist" ]]; then
@@ -325,8 +320,7 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 # LAUNCH / WAIT MODE: start Spike -g jobs in background
 # ─────────────────────────────────────────────────────────────────────────────
-if [[ ! -x "$SPIKE" ]]; then
-    echo "ERROR: Spike not found: $SPIKE" >&2
+if ! bench_require_executable "$SPIKE" "Spike not found"; then
     echo "       Source toolchain/toolchain.env or set RISCV" >&2
     exit 2
 fi
@@ -339,7 +333,7 @@ declare -a JOB_PIDS=()
 
 for LEVEL in "${LEVELS[@]}"; do
     for VARIANT in "${IMPLEMENTED_VARIANTS[@]}"; do
-        variant_matches "$VARIANT" || continue
+        bench_variant_matches "$VARIANT" "$VARIANT_FILTER" || continue
 
         ELF="${BUILD_DIR}/bench_polymul_hqc${LEVEL}_${VARIANT}.elf"
         TARGET="bench_polymul_hqc${LEVEL}_${VARIANT}"
@@ -349,22 +343,15 @@ for LEVEL in "${LEVELS[@]}"; do
 
         # Always do an incremental cmake build before running — no-op if nothing
         # changed, but catches stale ELFs when sources (e.g. bench.c) are updated.
-        if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-            cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
-                echo "[histogram] BUILD FAIL ${TARGET}" >&2; continue
-            }
-        fi
-        if [[ ! -f "$ELF" ]]; then
-            echo "[histogram] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-            echo "              cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" >&2
+        bench_build_target_if_configured "$BUILD_DIR" "$TARGET" "histogram" || continue
+        if ! bench_require_elf_or_hint "$ELF" "$TARGET" \
+            "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" \
+            "histogram"; then
             continue
         fi
 
         # Spike -g: stdout → CSV bench output, stderr → PC histogram text.
-        nohup "$SPIKE" --isa="$ISA" -g "$ELF" \
-            > "$CSV" \
-            2> "$HIST" &
-
+        nohup "$SPIKE" --isa="$ISA" -g "$ELF" > "$CSV" 2> "$HIST" &
         PID=$!
         JOB_PIDS+=("$PID")
         JOB_LINES+=("  PID ${PID}  ${TARGET}  →  $(basename "$CSV") + $(basename "$HIST")")

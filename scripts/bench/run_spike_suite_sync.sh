@@ -32,8 +32,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/lib_runner.sh"
 
-mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt"
+bench_load_implemented_variants "$REPO_ROOT"
 
 RISCV="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
@@ -47,16 +48,6 @@ VARIANT_FILTER=""
 PROMOTE_NAME=""
 DO_MINI=0
 BENCH_TIME=$(date +'%Y%m%d_%H%M')
-
-sanitize_label() {
-    local raw="$1"
-    raw="${raw//[^a-zA-Z0-9]/_}"
-    raw="$(echo "$raw" | sed -E 's/_+/_/g; s/^_+//; s/_+$//')"
-    if [[ -z "$raw" ]]; then
-        raw="all"
-    fi
-    echo "$raw"
-}
 
 RUN_ID_OVERRIDE=0
 
@@ -81,7 +72,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$RUN_ID_OVERRIDE" -eq 0 ]]; then
-    VARIANT_LABEL="$(sanitize_label "${VARIANT_FILTER:-all}")"
+    VARIANT_LABEL="$(bench_sanitize_label "${VARIANT_FILTER:-all}")"
     RUN_ID="${VARIANT_LABEL}_suite_${BENCH_TIME}"
 fi
 
@@ -95,8 +86,7 @@ if ! [[ "$ITER" =~ ^[1-9][0-9]*$ ]]; then
     exit 2
 fi
 
-if [[ ! -x "$SPIKE" ]]; then
-    echo "ERROR: Spike not found: $SPIKE" >&2
+if ! bench_require_executable "$SPIKE" "Spike not found"; then
     exit 2
 fi
 
@@ -107,14 +97,6 @@ mkdir -p "$RAW_DIR" "$CURATED_DIR"
 
 SUMMARY_CSV="${RUN_ROOT}/summary.csv"
 echo "level,variant,kind,op,wall_seconds,median_cycles,median_instret,csv_path" > "$SUMMARY_CSV"
-
-variant_matches() {
-    local v="$1"
-    if [[ -z "$VARIANT_FILTER" ]]; then
-        return 0
-    fi
-    echo "$v" | grep -qE "$VARIANT_FILTER"
-}
 
 extract_median_row() {
     local csv="$1" op="$2"
@@ -132,12 +114,8 @@ run_one() {
 
     cmake --build "$BUILD_DIR" --target "$target" -j"$(nproc)" >/dev/null
 
-    local t0_ns t1_ns elapsed_ms elapsed_s
-    t0_ns=$(date +%s%N)
-    "$SPIKE" --isa="$ISA" "$elf" > "$raw_out" 2> "$raw_err"
-    t1_ns=$(date +%s%N)
-    elapsed_ms=$(( (t1_ns - t0_ns) / 1000000 ))
-    elapsed_s=$(awk -v ms="$elapsed_ms" 'BEGIN { printf "%.3f", ms/1000.0 }')
+    local elapsed_s
+    elapsed_s=$(bench_run_spike_timed "$SPIKE" "$ISA" "$elf" "$raw_out" "$raw_err")
 
     # Keep only CSV/metadata lines in curated output.
     awk 'BEGIN{keep=0}
@@ -179,7 +157,7 @@ cmake -S "$REPO_ROOT" -B "$BUILD_DIR" \
 
 for level in $LEVELS; do
     for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
-        variant_matches "$variant" || continue
+        bench_variant_matches "$variant" "$VARIANT_FILTER" || continue
 
         run_one "$level" "$variant" "polymul" "bench_polymul_hqc${level}_${variant}" "vect_mul"
         run_one "$level" "$variant" "kem" "bench_hqc${level}_${variant}" "keypair"

@@ -21,6 +21,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/lib_runner.sh"
 
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
@@ -43,6 +44,11 @@ mkdir -p "${OUT_DIR}"
 LOG="${OUT_DIR}/sweep_events.log"
 echo "=== Depth sweep started: $(date) ===" | tee -a "${LOG}"
 
+if ! bench_require_executable "$SPIKE" "Spike not found"; then
+    echo "       Source toolchain/toolchain.env or set RISCV" >&2
+    exit 2
+fi
+
 for DEPTH in $DEPTHS; do
     echo ""
     echo "── Depth d=${DEPTH} ────────────────────────────────────────────────"
@@ -63,12 +69,10 @@ for DEPTH in $DEPTHS; do
 
         echo "[sweep] Running Spike for HQC-${LEVEL} d=${DEPTH}..." | tee -a "${LOG}"
         START_T=$(date +%s)
-
         "${SPIKE}" \
             --isa="${ISA}" \
             +signature="${BUILD_DIR}/${TARGET}.sig" \
             "${ELF}" >"${CSV}" 2>/dev/null
-
         END_T=$(date +%s)
         ELAPSED=$(( END_T - START_T ))
 

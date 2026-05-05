@@ -48,10 +48,11 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/lib_runner.sh"
 
 # Implemented variants come from scripts/implemented_variants.txt -- the same
 # file CMakeLists.txt reads, so CMake and scripts are always in sync.
-mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt"
+bench_load_implemented_variants "$REPO_ROOT"
 
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
@@ -103,16 +104,6 @@ DO_POLYMUL=1
 ITER=1
 BENCH_TIME=$(date +'%Y%m%d_%H%M')
 
-sanitize_label() {
-    local raw="$1"
-    raw="${raw//[^a-zA-Z0-9]/_}"
-    raw="$(echo "$raw" | sed -E 's/_+/_/g; s/^_+//; s/_+$//')"
-    if [[ -z "$raw" ]]; then
-        raw="all"
-    fi
-    echo "$raw"
-}
-
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --variant)
@@ -160,12 +151,11 @@ else
     echo "[bench] Benchmark set '${BENCH_SET}' -> variant override '${VARIANT_FILTER}'"
 fi
 
-VARIANT_LABEL="$(sanitize_label "${VARIANT_FILTER:-all}")"
+VARIANT_LABEL="$(bench_sanitize_label "${VARIANT_FILTER:-all}")"
 RUN_LABEL="${VARIANT_LABEL}_${BENCH_SET}_${BENCH_TIME}"
 
 # ── Preflight checks ──────────────────────────────────────────────────────────
-if [[ ! -x "$SPIKE" ]]; then
-    echo "ERROR: Spike not found: $SPIKE" >&2
+if ! bench_require_executable "$SPIKE" "Spike not found"; then
     echo "       Source toolchain/toolchain.env or set RISCV" >&2
     exit 2
 fi
@@ -179,32 +169,13 @@ fi
 mkdir -p "$OUT_DIR"
 
 # ── Helper: apply variant filter ─────────────────────────────────────────────
-variant_matches() {
-    local v="$1"
-    if [[ -z "$VARIANT_FILTER" ]]; then
-        return 0
-    fi
-    echo "$v" | grep -qE "$VARIANT_FILTER"
-}
-
-# ── Helper: launch a Spike job in the background ─────────────────────────────
-# Usage: launch_job <elf> <csv>
-launch_timed_job() {
-    local elf="$1" csv="$2"
-
-    nohup "$SPIKE" --isa="$ISA" "$elf" > "$csv" 2>/dev/null &
-
-    local pid=$!
-    echo "$pid"
-}
-
 # ── Launch jobs ───────────────────────────────────────────────────────────────
 LAUNCHED=0
 declare -a JOB_LINES=()
 
 for LEVEL in "${LEVELS[@]}"; do
     for VARIANT in "${IMPLEMENTED_VARIANTS[@]}"; do
-        variant_matches "$VARIANT" || continue
+        bench_variant_matches "$VARIANT" "$VARIANT_FILTER" || continue
 
         # ── Polymul micro-bench ───────────────────────────────────────────────
         if [[ $DO_POLYMUL -eq 1 ]]; then
@@ -215,19 +186,15 @@ for LEVEL in "${LEVELS[@]}"; do
 
             # Always do an incremental cmake build before running — no-op if nothing
             # changed, but catches stale ELFs when sources (e.g. bench.c) are updated.
-            if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-                cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
-                    echo "[bench] BUILD FAIL ${TARGET}" >&2; continue
-                }
-            fi
-            if [[ ! -f "$ELF" ]]; then
-                echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-                echo "              cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+            bench_build_target_if_configured "$BUILD_DIR" "$TARGET" "bench" || continue
+            if ! bench_require_elf_or_hint "$ELF" "$TARGET" \
+                "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" \
+                "bench"; then
                 continue
             fi
 
             LABEL="polymul_hqc${LEVEL}_${VARIANT}"
-            PID=$(launch_timed_job "$ELF" "$CSV")
+            PID=$(bench_launch_spike_job "$SPIKE" "$ISA" "$ELF" "$CSV")
             JOB_LINES+=("  PID ${PID}  ${LABEL}  ->  $(basename "$CSV")")
             LAUNCHED=$((LAUNCHED + 1))
         fi
@@ -241,19 +208,15 @@ for LEVEL in "${LEVELS[@]}"; do
 
             # Always do an incremental cmake build before running — no-op if nothing
             # changed, but catches stale ELFs when sources (e.g. bench.c) are updated.
-            if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-                cmake --build "$BUILD_DIR" --target "$TARGET" -j"$(nproc)" >&2 || {
-                    echo "[bench] BUILD FAIL ${TARGET}" >&2; continue
-                }
-            fi
-            if [[ ! -f "$ELF" ]]; then
-                echo "[bench] SKIP  ${TARGET}: ELF not found and build dir not configured" >&2
-                echo "              cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" >&2
+            bench_build_target_if_configured "$BUILD_DIR" "$TARGET" "bench" || continue
+            if ! bench_require_elf_or_hint "$ELF" "$TARGET" \
+                "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" \
+                "bench"; then
                 continue
             fi
 
             LABEL="kem_hqc${LEVEL}_${VARIANT}"
-            PID=$(launch_timed_job "$ELF" "$CSV")
+            PID=$(bench_launch_spike_job "$SPIKE" "$ISA" "$ELF" "$CSV")
             JOB_LINES+=("  PID ${PID}  ${LABEL}  ->  $(basename "$CSV")")
             LAUNCHED=$((LAUNCHED + 1))
         fi
