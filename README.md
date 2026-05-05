@@ -72,6 +72,19 @@ cmake --build build/qemu -j$(nproc)
 | Spike       | latest    | `~/Thesis/installed-tools/bin/spike`      |
 | QEMU        | 10.2.2    | `~/Thesis/installed-tools/bin/qemu-system-riscv64` |
 
+## Variant Index
+
+The table below mirrors `scripts/implemented_variants.txt`.
+
+| Variant | Required ISA Extensions | Status |
+|---------|-------------------------|--------|
+| `karatsuba_ref` | `rv64gc` | implemented |
+| `karatsuba_zbc` | `rv64gc + zbc + zbkb` | implemented |
+| `fafft_zbc` | `rv64gcv + zbc + zbkb` | implemented |
+| `hybrid` | `rv64gcv + zbc + zbkb` | implemented |
+| `fafft_zvbc` | `rv64gcv + zbc + zbkb + zvbc` | implemented |
+| `karatsuba_zvbc` | `rv64gcv + zbc + zbkb + zvbc` | implemented |
+
 ## Requirements
 
 - CMake ≥ 3.21

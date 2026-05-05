@@ -18,6 +18,26 @@ The project is structured around descriptive optimization tracks:
 
 All polynomial multiply variants are compiled in every build, enabling head-to-head comparison. The Keccak and decoder tracks are toggled via CMake flags.
 
+## Execution Pipeline
+
+```mermaid
+flowchart LR
+  A[Build: cmake configure + compile] --> B[Sim: Spike or QEMU run]
+  B --> C[Bench: CSV and histogram artifacts]
+  C --> D[Report: extract_results.py and analysis plots]
+
+  A1[scripts/implemented_variants.txt] --> A
+  B1[tests/kat and ctest gates] --> B
+  C1[analysis/benchmarks/runs or canonical] --> C
+  D1[analysis/report and docs] --> D
+```
+
+Pipeline intent:
+- Build stage materializes per-level and per-variant ELFs.
+- Simulation stage executes KAT or benchmark targets under the selected backend.
+- Benchmark stage stores structured CSV/histogram output for reproducible comparisons.
+- Report stage turns curated artifacts into tables, plots, and thesis-ready summaries.
+
 ---
 
 ## File Tree

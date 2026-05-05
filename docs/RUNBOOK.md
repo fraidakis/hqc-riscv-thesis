@@ -36,6 +36,17 @@ Expected:
 
 If a command is missing, fix toolchain setup before continuing.
 
+Expected terminal snippet:
+
+```text
+$ command -v cmake
+/usr/bin/cmake
+$ command -v "$RISCV/bin/spike"
+/home/.../installed-tools/bin/spike
+$ command -v "$QEMU"
+/home/.../installed-tools/bin/qemu-system-riscv64
+```
+
 ---
 
 ## 1. Tier 0 - Rebuild after code change
@@ -92,6 +103,15 @@ Expected output tail:
 Notes:
 - `sim/qemu/run_kat.sh` takes only the ELF path.
 - The older style that passed an RSP argument to this script is outdated.
+
+Expected terminal snippet:
+
+```text
+ss: <hex>
+ss: <hex>
+...
+PASS 100/100
+```
 
 ### 2.3 Batch fallback KAT across levels and implemented QEMU variants
 
@@ -220,6 +240,18 @@ Promote curated CSV to canonical versioned folder:
 scripts/bench/run_spike_suite_sync.sh --iter 1 --promote phase1_spike_n1
 ```
 
+Expected terminal snippet:
+
+```text
+[suite] run-id: all_suite_YYYYMMDD_HHMM
+[suite] build dir: /home/.../hqc-riscv/build/spike
+[suite] output: /home/.../hqc-riscv/analysis/benchmarks/runs/all_suite_YYYYMMDD_HHMM
+[suite] polymul L128 karatsuba_ref: 0.123s
+[suite] kem L128 karatsuba_ref: 0.456s
+...
+[suite] done: /home/.../summary.csv
+```
+
 ### 5.2 Benchmark folder structure (new and old)
 
 - `analysis/benchmarks/runs/<run_id>/raw/`
@@ -310,6 +342,16 @@ Output files:
 Interpretation:
 - report mode prints mnemonic frequency and percentage
 - use this for scalar->clmul->vclmul transition analysis
+
+Expected terminal snippet:
+
+```text
+=== hqc128_karatsuba_zbc (polymul_zbc) ===
+  mnemonic                            count      %
+  --------                            -----      -
+  clmul                              123456   22.1%
+  clmulh                             98765   17.7%
+```
 
 ---
 
