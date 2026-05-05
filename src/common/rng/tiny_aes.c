@@ -68,7 +68,7 @@ void aes256_key_expansion(const uint8_t key[32], uint8_t round_key[240])
     memcpy(round_key, key, 32);
     for (int i = Nk; i < Nb * (Nr + 1); i++) {
         uint8_t tmp[4];
-        memcpy(tmp, round_key + (i - 1) * 4, 4);
+        memcpy(tmp, round_key + (size_t)(i - 1) * 4, 4);
         if (i % Nk == 0) {
             /* RotWord */
             uint8_t t = tmp[0];
@@ -80,7 +80,7 @@ void aes256_key_expansion(const uint8_t key[32], uint8_t round_key[240])
             for (int j = 0; j < 4; j++) tmp[j] = sbox[tmp[j]];
         }
         for (int j = 0; j < 4; j++)
-            round_key[i * 4 + j] = round_key[(i - Nk) * 4 + j] ^ tmp[j];
+            round_key[(size_t)i * 4 + j] = round_key[(size_t)(i - Nk) * 4 + j] ^ tmp[j];
     }
 }
 
@@ -124,7 +124,7 @@ static void add_round_key(state_t s, const uint8_t *rk)
 {
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
-            s[r][c] ^= rk[c * 4 + r];
+            s[r][c] ^= rk[(size_t)c * 4 + r];
 }
 
 void aes256_ecb_encrypt(const uint8_t round_key[240],
@@ -143,12 +143,12 @@ void aes256_ecb_encrypt(const uint8_t round_key[240],
         sub_bytes(s);
         shift_rows(s);
         mix_columns(s);
-        add_round_key(s, round_key + round * 16);
+        add_round_key(s, round_key + (size_t)round * 16);
     }
     /* Final round: no MixColumns */
     sub_bytes(s);
     shift_rows(s);
-    add_round_key(s, round_key + Nr * 16);
+    add_round_key(s, round_key + (size_t)Nr * 16);
 
     /* Store state back to bytes */
     for (int c = 0; c < 4; c++)

@@ -65,3 +65,4 @@ analysis/ct_verify/binsec/*
 # KAT test vectors (generated)
 tests/kat/vectors/*.rsp
 tests/kat/vectors/*.req
+NOTES.md

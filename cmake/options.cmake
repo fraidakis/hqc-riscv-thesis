@@ -57,7 +57,7 @@ set(VECTOR_POLYMUL_VARIANTS fafft_zbc fafft_zvbc karatsuba_zvbc)
 # These flags apply ONLY to karatsuba_ref targets (KAT + bench + polymul bench).
 # They do NOT affect any other variant.
 #
-# HQC_REF_LTO    : OFF (default) | ON  — enable -flto on karatsuba_ref targets
+# HQC_REF_LTO    : ON (default) | OFF  — enable -flto on karatsuba_ref targets
 #
 # HQC_REF_PGO    : off (default) | generate | use
 #   generate : compile with -fprofile-generate / -fprofile-instr-generate to
@@ -75,7 +75,7 @@ set(VECTOR_POLYMUL_VARIANTS fafft_zbc fafft_zvbc karatsuba_zvbc)
 #   cmake -B build/qemu -DHQC_REF_PGO=use -DHQC_REF_PGO_FILE=hqc_ref.profdata ...
 #   cmake --build build/qemu --target bench_hqc128_karatsuba_ref
 
-set(HQC_REF_LTO OFF CACHE BOOL
+set(HQC_REF_LTO ON CACHE BOOL
     "Enable LTO (-flto) for karatsuba_ref scalar baseline targets")
 
 set(HQC_REF_PGO "off" CACHE STRING

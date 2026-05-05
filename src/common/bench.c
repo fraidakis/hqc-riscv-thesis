@@ -66,7 +66,7 @@ uint64_t hqc_rdinstret(void)
 #define QEMU_PASS    0x5555u
 #define QEMU_FAIL    0x3333u
 
-static void _putchar(char c)
+static void bench_putchar(char c)
 {
     while (!(*UART_LSR & UART_THRE)) {}
     *UART_THR = (uint8_t)c;
@@ -100,7 +100,7 @@ void hqc_htif_exit(int code)
 extern volatile uint64_t tohost   __attribute__((weak));
 extern volatile uint64_t fromhost __attribute__((weak));
 
-static void _putchar(char c)
+static void bench_putchar(char c)
 {
     if (&tohost == (volatile uint64_t *)0) return;
     tohost = (1ULL << 56) | (1ULL << 48) | (uint8_t)c;
@@ -121,7 +121,7 @@ void hqc_htif_exit(int code)
 
 void hqc_htif_puts(const char *s)
 {
-    while (*s) _putchar(*s++);
+    while (*s) bench_putchar(*s++);
 }
 
 /* Print uint64_t as decimal string (no heap / no printf). */
@@ -130,7 +130,7 @@ void hqc_htif_putu64(uint64_t v)
     char buf[21];  /* max 20 decimal digits + NUL */
     int  pos = 20;
     buf[20] = '\0';
-    if (v == 0) { _putchar('0'); return; }
+    if (v == 0) { bench_putchar('0'); return; }
     while (v > 0) {
         buf[--pos] = (char)('0' + (v % 10));
         v /= 10;

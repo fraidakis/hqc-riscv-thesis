@@ -17,6 +17,7 @@
 
 #include "aes_ctr_drbg.h"
 #include "tiny_aes.h"
+#include "../../../vendor/hqc-ref/src/common/crypto_memset.h"
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -48,7 +49,7 @@ static void ctr_drbg_update(const uint8_t *provided_data,
 
     for (int i = 0; i < 3; i++) {   /* generate 3 × 16 = 48 bytes */
         inc_counter(v);
-        aes256_ecb_encrypt(rk, v, tmp + i * 16);
+        aes256_ecb_encrypt(rk, v, tmp + (size_t)i * 16);
     }
 
     if (provided_data != NULL) {
@@ -75,8 +76,8 @@ static void ctr_drbg_update(const uint8_t *provided_data,
  */
 void randombytes_init(const uint8_t seed[48])
 {
-    memset(DRBG_ctx.key, 0, 32);
-    memset(DRBG_ctx.v,   0, 16);
+    memset_zero(DRBG_ctx.key, 32);
+    memset_zero(DRBG_ctx.v,   16);
     ctr_drbg_update(seed, DRBG_ctx.key, DRBG_ctx.v);
 }
 

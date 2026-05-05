@@ -90,10 +90,7 @@ jobs:
       - name: KAT regression gate (ctest)
         run: ctest --test-dir build/qemu --output-on-failure
 
-      - name: Static analysis (clang-tidy)
-        run: |
-          find src -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' \) -print0 \
-            | xargs -0 -r clang-tidy \
-              -p build/qemu \
-              --checks='bugprone-*,cert-*' \
-              --warnings-as-errors='bugprone-*,cert-*'
+      - name: Static analysis (lint.sh)
+        run: bash scripts/ci/lint.sh
+        env:
+          BUILD_DIR: build/qemu

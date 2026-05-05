@@ -448,7 +448,61 @@ Notes:
 
 ---
 
-## 10. Quick decision table
+## 10. Static analysis / linting
+
+Run the unified lint script locally before pushing to CI:
+
+```bash
+source toolchain/toolchain.env   # sets $RISCV for vector-file sysroot injection
+bash scripts/ci/lint.sh
+```
+
+**What it does:**
+
+- Reads `build/qemu/compile_commands.json` and collects every `src/**/*.c`
+  file whose compile command does **not** contain `-mrvv-vector-bits`.
+  VLEN-specific TUs (fafft_zbc, vector/, rvv/ variants) require the
+  cross-compiler and are intentionally excluded from host linting.
+- Runs `clang-tidy` (`bugprone-*`, `cert-*` checks) on all remaining files.
+- `--warnings-as-errors` enabled — any hit exits non-zero.
+- All files get `--extra-arg=-march=rv64gcv_zbc_zbb_zbkb` to strip `zvbc`
+  and other extensions that host clang-tidy (LLVM 16) cannot parse.
+
+**Suppressed checks (project-wide):**
+
+| Check | Reason suppressed |
+|---|---|
+| `bugprone-easily-swappable-parameters` | High false-positive rate on fixed-signature crypto functions |
+
+**Secure zeroization (`cert-MSC12-C` / `insecureAPI.bzero`):**
+
+Secret key material must be erased with `memset_zero(ptr, len)` (from
+`vendor/hqc-ref/src/common/crypto_memset.h`), never plain `memset`.  The macro
+routes through a `volatile` function pointer that prevents dead-store
+elimination.
+
+**Configuration knobs:**
+
+```bash
+CLANG_TIDY=/path/to/clang-tidy bash scripts/ci/lint.sh
+BUILD_DIR=build/spike bash scripts/ci/lint.sh
+```
+
+**Expected clean output:**
+
+```text
+(no warnings — script exits 0)
+```
+
+If clang-tidy is not installed, install it via your package manager:
+
+```bash
+sudo apt-get install clang-tidy    # Ubuntu / Debian
+```
+
+---
+
+## 11. Quick decision table
 
 | Question | Use | Typical output |
 |---|---|---|
