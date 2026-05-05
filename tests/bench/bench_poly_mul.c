@@ -6,9 +6,9 @@
  * overhead, no Keccak).  This is the dominant cost in HQC (>90% of
  * runtime), giving a fast iteration loop when tuning gf2x_mul:
  *
- *   QEMU KAT       — correctness, ~10-68 s total for all three levels
- *   Spike polymul  — cycle + instret counts for vect_mul alone, ~20-60 min
- *   Spike KEM      — full end-to-end baseline, used only at milestones, ~2-20 h
+ *   QEMU KAT       — optional fallback correctness check
+ *   Spike polymul  — cycle + instret counts for vect_mul alone
+ *   Spike KEM      — full end-to-end baseline for keypair/encaps/decaps
  *
  * Input polynomials:
  *   poly_a — dense pseudo-random (mimics HQC public key / h vector)

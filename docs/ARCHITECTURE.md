@@ -25,7 +25,7 @@ All polynomial multiply variants are compiled in every build, enabling head-to-h
 ```
 hqc-riscv/
 ├── CMakeLists.txt
-├── compile_commands.json          (symlink → build/compile_commands.json)
+├── compile_commands.json          (symlink → build/qemu/compile_commands.json)
 ├── README.md
 ├── bench-test.md
 │
@@ -165,8 +165,8 @@ hqc-riscv/
 │
 ├── docs/
 │   ├── GUIDE.md
-│   ├── TOOLCHAIN.md
-│   ├── WORKFLOW.md
+│   ├── METHODOLOGY.md
+│   ├── RUNBOOK.md
 │   ├── figures/
 │   │   ├── cycle_counts.pdf
 │   │   └── instruction_mix.pdf
@@ -455,7 +455,7 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 
 #### `tests/bench/bench_poly_mul.c`
 - **Usage**: `vect_mul()`-only micro-benchmark. Benchmarks the polynomial multiply function in isolation (no keypair/encaps/decaps, no Keccak). Emits CSV with min/median/max cycle counts. Compiled with `HQC_BENCH_MODE=1` and `N_ITER=1` for Spike.
-- **Why**: `vect_mul()` accounts for >90% of total KEM runtime. Isolating it reduces Spike benchmark time from 2–20 hours (full KEM) to 20–60 minutes, enabling rapid iteration on polymul implementations.
+- **Why**: `vect_mul()` accounts for >90% of total KEM runtime. Isolating it provides a faster optimization loop than full KEM runs while preserving the key hotspot signal.
 - **Where**: Compiled into all 15 POLYMUL_BENCH targets (`bench_polymul_hqc{128,192,256}_{variant}.elf`). Run via `scripts/bench/run_spike_bench_variant.sh`.
 
 #### `tests/bench/mini_bench.c`
@@ -484,7 +484,7 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 
 #### `scripts/bench/run_spike_bench_variant.sh`
 - **Usage**: Runs all polymul micro-benchmarks for a given phase on Spike in background processes, logging PIDs to `analysis/benchmarks/phase<N>/pids.txt`.
-- **Why**: Spike benchmarks take 20–60 minutes per target. Launching all 15 in background and tracking PIDs allows asynchronous execution without blocking the terminal.
+- **Why**: Spike benchmark duration is host- and variant-dependent. Launching jobs in background and tracking PIDs supports asynchronous execution without blocking the terminal.
 - **Where**: Called once per phase: `./scripts/bench/run_spike_bench_variant.sh polymul_zbc`.
 
 #### `scripts/bench/run_histogram_all.sh`
@@ -612,16 +612,16 @@ All five variants implement the same interface: `void vect_mul(uint64_t *o, cons
 ### `docs/`
 
 #### `docs/GUIDE.md`
-- **Usage**: Comprehensive development guide (677 lines). Covers: prerequisites and toolchain versions, repository layout, CMake configuration guide, QEMU KAT procedures with expected runtimes (HQC-128: ~10s, HQC-192: ~29s, HQC-256: ~68s), KAT seed generation, Spike benchmarking strategy (tier-1/2/3 for slow ISS), result extraction, common pitfalls, and the full phase roadmap.
+- **Usage**: Comprehensive development guide. Covers prerequisites and toolchain versions, repository layout, CMake configuration guide, QEMU and Spike KAT procedures, Spike benchmarking strategy, result extraction, common pitfalls, and the full phase roadmap.
 - **Why**: Central reference for any developer working on the project. Prevents repeated rediscovery of non-obvious steps (e.g., needing `_zicntr` in the ISA string, or why QEMU `rdcycle` is unreliable for timing).
 - **Where**: Read by contributors. Cross-referenced from `README.md`.
 
-#### `docs/TOOLCHAIN.md`
+#### `docs/METHODOLOGY.md`
 - **Usage**: Methodology and tool-selection rationale. Explains: why retired instruction count (not wall-clock) is the primary metric, the CPI dilemma and its resolution via instruction mix + LLVM-MCA, and the tool ranking (Spike ISS for instruction count, QEMU for functional testing, RTL for cycle-accurate results). Cites Zhang et al. (TCHES 2025) as a reference point.
 - **Why**: Documents the measurement methodology so the thesis results are reproducible and the metric choices are defensible.
 - **Where**: Read by thesis supervisors and reviewers. Referenced by `docs/GUIDE.md`.
 
-#### `docs/WORKFLOW.md`
+#### `docs/RUNBOOK.md`
 - **Usage**: Day-to-day command reference. Lists the exact commands for the most common workflows: configure CMake, run KAT, run Spike bench, extract results, generate report.
 - **Why**: Reduces friction for common operations; a quick reference for experienced contributors who do not need the full GUIDE.
 - **Where**: Used directly by developers. The authoritative copy (`docs/Workflow.md` was an exact duplicate and has been removed).

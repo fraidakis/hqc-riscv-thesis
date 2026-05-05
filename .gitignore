@@ -45,6 +45,7 @@ __pycache__/
 *~
 .idea/
 .vscode/
+.github/instructions/
 *.orig
 
 # Analysis outputs

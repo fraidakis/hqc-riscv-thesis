@@ -385,4 +385,4 @@ KAT vectors: `vendor/hqc-ref/kats/ref/hqc-{1,3,5}/PQCkemKAT_*.rsp` (NIST officia
 
 ---
 
-*Report generated: 2026-05-01. For methodology details see [docs/PLAN.md](../PLAN.md) and [docs/WORKFLOW.md](../WORKFLOW.md). For raw data files see [analysis/benchmarks/](../../analysis/benchmarks/).*
+*Report generated: 2026-05-01. For methodology details see [docs/PLAN.md](../PLAN.md) and [docs/RUNBOOK.md](../RUNBOOK.md). For raw data files see [analysis/benchmarks/](../../analysis/benchmarks/).*

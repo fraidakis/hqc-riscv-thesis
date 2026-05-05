@@ -28,7 +28,7 @@ mapfile -t IMPLEMENTED_VARIANTS < "${REPO_ROOT}/scripts/implemented_variants.txt
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 RUN_QEMU_KAT="${REPO_ROOT}/sim/qemu/run_kat.sh"
 KAT_CHECK="${REPO_ROOT}/tests/kat/kat_check.py"
-BUILD_DIR="${REPO_ROOT}/build"
+BUILD_DIR="${REPO_ROOT}/build/qemu"
 
 # Reference .rsp files (NIST KAT vectors)
 RSP_128="${REPO_ROOT}/vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp"
@@ -58,7 +58,7 @@ fi
 
 if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
     echo "ERROR: build dir not configured: ${BUILD_DIR}" >&2
-    echo "       Run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake" >&2
+    echo "       Run: cmake -S . -B build/qemu -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=qemu" >&2
     exit 2
 fi
 
@@ -136,7 +136,7 @@ done
 echo "─────────────────────────────────────────────────────────────────"
 echo ""
 echo "NOTE: fafft_zvbc requires Spike (Zvbc not supported by QEMU)."
-echo "      scripts/bench/spike_kat.sh build/hqc128_fafft_zvbc.elf \\"
+echo "      scripts/bench/spike_kat.sh build/spike/hqc128_fafft_zvbc.elf \\"
 echo "          vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp"
 echo ""
 

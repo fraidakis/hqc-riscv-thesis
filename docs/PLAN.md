@@ -12,8 +12,8 @@ ANDROMEDA platform. Jang et al. optimized FAFFT for Cortex-M4, which lacks
 pure-software RISC-V HQC implementation, while empirically comparing
 Karatsuba, FAFFT, and hybrid strategies once `clmul` is available.
 
-For day-to-day build and run commands see `WORKFLOW.md`. For toolchain and
-methodology rationale see `TOOLCHAIN.md`. For the literature review and thesis
+For day-to-day build and run commands see `RUNBOOK.md`. For toolchain and
+methodology rationale see `METHODOLOGY.md`. For the literature review and thesis
 proposals see `../HQC/1_Literature.md`, `../HQC/2_0_Proposals.md`, and
 `../HQC/3_thesisHQC.md`. Worked examples are documented in
 `../HQC/4_Zbc_example.md` and `../HQC/5_Decoding_RVV.md`.

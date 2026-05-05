@@ -4,8 +4,8 @@ End-to-end reference for configuring, building, simulating, and benchmarking
 the HQC post-quantum KEM on bare-metal RISC-V.
 
 For methodology rationale, tool rankings, and benchmarking decisions see
-[`docs/TOOLCHAIN.md`](TOOLCHAIN.md).  For day-to-day build/run commands see
-[`docs/WORKFLOW.md`](WORKFLOW.md).  For the phase-by-phase implementation plan
+[`docs/METHODOLOGY.md`](METHODOLOGY.md).  For day-to-day build/run commands see
+[`docs/RUNBOOK.md`](RUNBOOK.md).  For the phase-by-phase implementation plan
 see [`docs/PLAN.md`](PLAN.md).
 
 ---
@@ -118,7 +118,7 @@ cmake -S . -B build \
       -DHQC_SIM=qemu
 
 # Spike benchmark build (N_ITER=1 for deterministic ISS)
-cmake -S . -B build-spike \
+cmake -S . -B build/spike \
       -G Ninja \
       -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
       -DHQC_SIM=spike \
@@ -156,7 +156,7 @@ ELF names follow the pattern:
 build/hqc<LEVEL>_<POLYMUL>.elf
 ```
 
-Examples: `build/hqc128_karatsuba_ref.elf`, `build-spike/bench_hqc192_karatsuba_zbc.elf`
+Examples: `build/hqc128_karatsuba_ref.elf`, `build/spike/bench_hqc192_karatsuba_zbc.elf`
 
 ---
 
@@ -232,7 +232,7 @@ Exit code 0 means `PASS [HQC]: 100/100 vectors matched`.
 > **QEMU vs Spike for benchmarking:** QEMU is the correctness gatekeeper.
 > Never use QEMU `rdcycle` values in thesis tables — QEMU is a DBT/JIT that
 > increments a software counter per translated block, not per instruction.
-> See [TOOLCHAIN.md §13](TOOLCHAIN.md) for tool rankings and methodology.
+> See [METHODOLOGY.md §13](METHODOLOGY.md) for tool rankings and methodology.
 
 ---
 
@@ -280,10 +280,10 @@ and `--histogram` to avoid the 10–50 GB log overhead that causes the apparent
 
 ```bash
 # Build the bench target against the Spike backend
-cmake --build build-spike --target bench_hqc128_karatsuba_ref -j$(nproc)
+cmake --build build/spike --target bench_hqc128_karatsuba_ref -j$(nproc)
 
 # Run (benchmark mode — no logging)
-./sim/spike/run_bench.sh build-spike/bench_hqc128_karatsuba_ref.elf
+./sim/spike/run_bench.sh build/spike/bench_hqc128_karatsuba_ref.elf
 ```
 
 ### 7.2 Manual Spike invocation
@@ -291,7 +291,7 @@ cmake --build build-spike --target bench_hqc128_karatsuba_ref -j$(nproc)
 ```bash
 SPIKE=$RISCV/bin/spike
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
-ELF=build-spike/bench_hqc128_karatsuba_ref.elf
+ELF=build/spike/bench_hqc128_karatsuba_ref.elf
 
 # Minimal run (HTIF I/O only, no logging)
 $SPIKE --isa=$ISA $ELF
@@ -312,7 +312,7 @@ $SPIKE --isa=$ISA --log-commits -l $ELF 2>commits.log
 ### 7.3 Build all bench targets
 
 ```bash
-cmake --build build-spike --target \
+cmake --build build/spike --target \
       bench_hqc128_karatsuba_ref \
       bench_hqc192_karatsuba_ref \
       bench_hqc256_karatsuba_ref \
@@ -368,14 +368,14 @@ ISA=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 # Full KEM bench (~0.7–5 s per level)
 for LEVEL in 128 192 256; do
     $RISCV/bin/spike --isa=$ISA \
-        build-spike/bench_hqc${LEVEL}_karatsuba_ref.elf \
+        build/spike/bench_hqc${LEVEL}_karatsuba_ref.elf \
         > $OUT/hqc${LEVEL}_karatsuba_ref_N1.csv 2>/dev/null
 done
 
 # Polymul micro-bench (~0.1–0.8 s per level)
 for LEVEL in 128 192 256; do
     $RISCV/bin/spike --isa=$ISA \
-        build-spike/bench_polymul_hqc${LEVEL}_karatsuba_ref.elf \
+        build/spike/bench_polymul_hqc${LEVEL}_karatsuba_ref.elf \
         > $OUT/hqc${LEVEL}_karatsuba_ref_polymul_N1.csv 2>/dev/null
 done
 ```
@@ -390,7 +390,7 @@ Capture Spike's HTIF stdout to a file and parse the CSV:
 
 ```bash
 $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm \
-    build-spike/bench_hqc128_karatsuba_ref.elf > /tmp/bench128.csv 2>/dev/null
+    build/spike/bench_hqc128_karatsuba_ref.elf > /tmp/bench128.csv 2>/dev/null
 
 cat /tmp/bench128.csv
 ```
@@ -410,7 +410,7 @@ With `N_ITER=1` all three columns are identical (ISS is deterministic).
 
 ```bash
 $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm \
-    --histogram build-spike/bench_hqc128_karatsuba_ref.elf 2>hist.txt
+    --histogram build/spike/bench_hqc128_karatsuba_ref.elf 2>hist.txt
 
 # Top instructions by frequency:
 sort -t$'\t' -k2 -rn hist.txt | head -20

@@ -104,7 +104,7 @@ meant to accelerate, where the baseline implements it as a loop of shifts and XO
 ```bash
 # Spike --histogram gives instruction frequency table
 $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc --histogram \
-    build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
+    build/spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
     > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv \
     2> analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_hist.txt
 
@@ -189,17 +189,17 @@ analogue data as a conservative lower bound.
 ```bash
 # Polymul micro-bench (20–40 min for HQC-128)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
-    build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
+    build/spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
     > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv &
 
 # Full KEM bench (2–5 h, run at phase milestones)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
-    build-spike-probe/bench_hqc128_karatsuba_ref.elf \
+    build/spike-probe/bench_hqc128_karatsuba_ref.elf \
     > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_N1.csv &
 
 # Instruction histogram (same run as bench, free with --histogram)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc --histogram \
-    build-spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
+    build/spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
     > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv \
     2> analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_hist.txt &
 ```

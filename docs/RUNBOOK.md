@@ -11,7 +11,14 @@ source toolchain/toolchain.env
 # exports RISCV, QEMU and prepends $RISCV/bin to PATH
 ```
 
-For architectural rationale and toolchain decisions, see docs/TOOLCHAIN.md.
+For architectural rationale and toolchain decisions, see docs/METHODOLOGY.md.
+
+Canonical polymul variant labels used by build targets and reports:
+- `karatsuba_zbc`
+- `karatsuba_zvbc`
+- `fafft_zbc`
+- `fafft_zvbc`
+- `hybrid`
 
 ---
 
@@ -37,10 +44,10 @@ Use this after editing C or ASM code.
 
 ```bash
 # QEMU/KAT ELF
-cmake --build build --target hqc128_karatsuba_ref -j$(nproc)
+cmake --build build/qemu --target hqc128_karatsuba_ref -j$(nproc)
 
 # Spike benches
-cmake --build build-spike \
+cmake --build build/spike \
   --target bench_hqc128_karatsuba_ref bench_polymul_hqc128_karatsuba_ref \
   -j$(nproc)
 ```
@@ -48,11 +55,11 @@ cmake --build build-spike \
 If CMake files or source lists changed, reconfigure first:
 
 ```bash
-cmake -S . -B build \
+cmake -S . -B build/qemu \
   -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
   -DHQC_SIM=qemu
 
-cmake -S . -B build-spike \
+cmake -S . -B build/spike \
   -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
   -DHQC_SIM=spike \
   -DBENCH_N_ITER=1
@@ -60,14 +67,22 @@ cmake -S . -B build-spike \
 
 ---
 
-## 2. Tier 1 - Correctness gate (KAT)
+## 2. Tier 1 - Correctness gate (Spike-first, QEMU fallback)
 
 Run this after every change before benchmarking.
 
-### 2.1 Single KAT on QEMU
+### 2.1 Primary: Single KAT on Spike
 
 ```bash
-./sim/qemu/run_kat.sh build/hqc128_karatsuba_ref.elf
+scripts/bench/spike_kat.sh \
+  build/spike/hqc128_karatsuba_ref.elf \
+  vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp
+```
+
+### 2.2 Fallback / extra check: Single KAT on QEMU
+
+```bash
+./sim/qemu/run_kat.sh build/qemu/hqc128_karatsuba_ref.elf
 ```
 
 Expected output tail:
@@ -78,7 +93,7 @@ Notes:
 - `sim/qemu/run_kat.sh` takes only the ELF path.
 - The older style that passed an RSP argument to this script is outdated.
 
-### 2.2 Batch KAT across levels and implemented QEMU variants
+### 2.3 Batch fallback KAT across levels and implemented QEMU variants
 
 ```bash
 scripts/bench/run_kat_all.sh
@@ -105,11 +120,11 @@ RSP files used:
 - HQC-192: vendor/hqc-ref/kats/ref/hqc-3/PQCkemKAT_4602.rsp
 - HQC-256: vendor/hqc-ref/kats/ref/hqc-5/PQCkemKAT_7333.rsp
 
-### 2.3 Spike KAT for Zvbc-only variant
+### 2.4 Spike KAT for Zvbc-only variant
 
 ```bash
 scripts/bench/spike_kat.sh \
-  build-spike/hqc128_fafft_zvbc.elf \
+  build/spike/hqc128_fafft_zvbc.elf \
   vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp
 ```
 
@@ -126,11 +141,11 @@ Purpose:
 - not for thesis performance numbers
 
 ```bash
-cmake --build build --target bench_hqc128_karatsuba_ref -j$(nproc)
+cmake --build build/qemu --target bench_hqc128_karatsuba_ref -j$(nproc)
 
 CPU="rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true"
 $QEMU -machine virt -cpu "$CPU" -m 256M -nographic -bios none \
-  -kernel build/bench_hqc128_karatsuba_ref.elf \
+  -kernel build/qemu/bench_hqc128_karatsuba_ref.elf \
   -serial mon:stdio -no-reboot 2>/dev/null
 ```
 
@@ -150,7 +165,7 @@ mkdir -p "$OUT"
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 
 $RISCV/bin/spike --isa=$ISA \
-  build-spike/bench_polymul_hqc128_karatsuba_ref.elf \
+  build/spike/bench_polymul_hqc128_karatsuba_ref.elf \
   > "$OUT/hqc128_karatsuba_ref_polymul_N1.csv" 2>/dev/null
 
 cat "$OUT/hqc128_karatsuba_ref_polymul_N1.csv"
@@ -175,7 +190,7 @@ mkdir -p "$OUT"
 ISA=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 
 $RISCV/bin/spike --isa=$ISA \
-  build-spike/bench_hqc128_karatsuba_ref.elf \
+  build/spike/bench_hqc128_karatsuba_ref.elf \
   > "$OUT/hqc128_karatsuba_ref_N1.csv" 2>/dev/null
 
 cat "$OUT/hqc128_karatsuba_ref_N1.csv"
@@ -187,6 +202,43 @@ Output file:
 Interpretation:
 - rows are keypair, encaps, decaps
 - use `median_instret` for comparisons
+
+### 5.1 Reproducible all-variant run (run-id folders, raw+curated split)
+
+```bash
+scripts/bench/run_spike_suite_sync.sh --iter 1
+```
+
+Outputs:
+- `analysis/benchmarks/runs/<run_id>/raw/` (transient stdout/stderr, ignored)
+- `analysis/benchmarks/runs/<run_id>/curated/` (clean CSV for reporting)
+- `analysis/benchmarks/runs/<run_id>/summary.csv` (wall-time + medians)
+
+Promote curated CSV to canonical versioned folder:
+
+```bash
+scripts/bench/run_spike_suite_sync.sh --iter 1 --promote phase1_spike_n1
+```
+
+### 5.2 Benchmark folder structure (new and old)
+
+- `analysis/benchmarks/runs/<run_id>/raw/`
+  - transient per-run stdout/stderr and intermediate artifacts
+  - ignored by git
+- `analysis/benchmarks/runs/<run_id>/curated/`
+  - clean per-target CSV extracted from raw output
+  - suitable for promotion
+- `analysis/benchmarks/runs/<run_id>/summary.csv`
+  - single table with wall-time and median metrics
+
+- `analysis/benchmarks/canonical/<name>/`
+  - promoted curated CSV sets intended to be versioned in git
+  - stable input for reports and plotting
+
+Legacy benchmark-set folders still coexist for historical continuity:
+- `analysis/benchmarks/<bench_set>/`
+  - older phase-based outputs (for example `baseline_ref`, `phase1c`)
+  - can be kept read-only and gradually superseded by canonical run-id promotions
 
 ---
 

@@ -17,7 +17,7 @@
 #   ./sim/spike/run_bench.sh build-mini/mini_bench_spike.elf
 #
 #   # Full KEM benchmark (N_ITER=1, outputs CSV to stdout):
-#   ./sim/spike/run_bench.sh build-spike-probe/bench_hqc128_karatsuba_ref.elf
+#   ./sim/spike/run_bench.sh build/spike/bench_hqc128_karatsuba_ref.elf
 #
 #   # With a non-default VLEN:
 #   ./sim/spike/run_bench.sh build-mini/mini_bench_spike.elf --varch=vlen:512,elen:64
