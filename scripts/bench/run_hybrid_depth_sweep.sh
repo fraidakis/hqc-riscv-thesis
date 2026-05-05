@@ -57,7 +57,6 @@ for DEPTH in $DEPTHS; do
         TARGET="bench_polymul_hqc${LEVEL}_hybrid"
         ELF="${BUILD_DIR}/${TARGET}.elf"
         CSV="${OUT_DIR}/hqc${LEVEL}_hybrid_d${DEPTH}_polymul_N1.csv"
-        SPIKELOG="${OUT_DIR}/hqc${LEVEL}_hybrid_d${DEPTH}_polymul.log"
 
         echo "[sweep] Building ${TARGET}..." | tee -a "${LOG}"
         cmake --build "${BUILD_DIR}" --target "${TARGET}" -j"$(nproc)" 2>&1 | tail -3
@@ -68,7 +67,7 @@ for DEPTH in $DEPTHS; do
         "${SPIKE}" \
             --isa="${ISA}" \
             +signature="${BUILD_DIR}/${TARGET}.sig" \
-            "${ELF}" >"${CSV}" 2>"${SPIKELOG}"
+            "${ELF}" >"${CSV}" 2>/dev/null
 
         END_T=$(date +%s)
         ELAPSED=$(( END_T - START_T ))

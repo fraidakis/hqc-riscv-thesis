@@ -332,7 +332,6 @@ if [[ ! -x "$SPIKE" ]]; then
 fi
 
 mkdir -p "$OUT_DIR"
-PID_FILE="${OUT_DIR}/pids.txt"
 
 LAUNCHED=0
 declare -a JOB_LINES=()
@@ -368,7 +367,6 @@ for LEVEL in "${LEVELS[@]}"; do
 
         PID=$!
         JOB_PIDS+=("$PID")
-        echo "$(date '+%Y-%m-%dT%H:%M:%S') PID=$PID ${TARGET} (histogram)" >> "$PID_FILE"
         JOB_LINES+=("  PID ${PID}  ${TARGET}  →  $(basename "$CSV") + $(basename "$HIST")")
         LAUNCHED=$((LAUNCHED + 1))
     done

@@ -42,10 +42,7 @@
 # Output files written to analysis/benchmarks/<track>/<bench_set>/<run_label>/,
 # where run_label uses [variant]_[bench_type]_[YYYYMMDD_HHMM]:
 #   hqc{level}_{variant}_polymul_N{N}.csv  polymul micro-bench CSV
-#   hqc{level}_{variant}_polymul.log       Spike stderr (errors/warnings)
 #   hqc{level}_{variant}_N{N}.csv          full KEM bench CSV (--full only)
-#   hqc{level}_{variant}_spike.log         full KEM Spike stderr (--full only)
-#   run_events.log                         unified START/END event log (PID + timing)
 
 set -uo pipefail
 
@@ -181,8 +178,6 @@ else
 fi
 mkdir -p "$OUT_DIR"
 
-EVENTS_LOG="${OUT_DIR}/run_events.log"
-
 # ── Helper: apply variant filter ─────────────────────────────────────────────
 variant_matches() {
     local v="$1"
@@ -192,34 +187,14 @@ variant_matches() {
     echo "$v" | grep -qE "$VARIANT_FILTER"
 }
 
-# ── Helper: launch a timed Spike job in the background ───────────────────────
-# The main script synchronously writes the START event with the job PID.
-# The background subshell calculates elapsed time and uses flock to safely
-# append the END event, preventing race conditions from concurrent writes.
-# Usage: launch_timed_job <elf> <csv> <log> <label>
+# ── Helper: launch a Spike job in the background ─────────────────────────────
+# Usage: launch_job <elf> <csv>
 launch_timed_job() {
-    local elf="$1" csv="$2" log="$3" label="$4"
+    local elf="$1" csv="$2"
 
-    # Capture variables needed inside the subshell by value.
-    local spike="$SPIKE" isa="$ISA" events_log="$EVENTS_LOG"
-
-    nohup bash -c "
-        start=\$(date +%s)
-        \"${spike}\" --isa=\"${isa}\" \"${elf}\"
-        exit_code=\$?
-        end=\$(date +%s)
-        elapsed=\$(( end - start ))
-        mins=\$(( elapsed / 60 ))
-        secs=\$(( elapsed % 60 ))
-        status=OK
-        [[ \$exit_code -ne 0 ]] && status=\"FAIL(exit=\${exit_code})\"
-        msg=\"\$(date '+%Y-%m-%dT%H:%M:%S') END    ${label}  elapsed=\${mins}m\${secs}s  status=\${status}\"
-        ( flock -x 9; printf '%s\n' \"\${msg}\" >&9 ) 9>>\"${events_log}\"
-    " > "$csv" 2> "$log" &
+    nohup "$SPIKE" --isa="$ISA" "$elf" > "$csv" 2>/dev/null &
 
     local pid=$!
-    printf '%s START  pid=%-6s %s\n' \
-        "$(date '+%Y-%m-%dT%H:%M:%S')" "$pid" "$label" >> "$EVENTS_LOG"
     echo "$pid"
 }
 
@@ -237,7 +212,6 @@ for LEVEL in "${LEVELS[@]}"; do
             TARGET="bench_polymul_hqc${LEVEL}_${VARIANT}"
             PREFIX="hqc${LEVEL}_${VARIANT}"
             CSV="${OUT_DIR}/${PREFIX}_polymul_N${ITER}.csv"
-            LOG="${OUT_DIR}/${PREFIX}_polymul.log"
 
             # Always do an incremental cmake build before running — no-op if nothing
             # changed, but catches stale ELFs when sources (e.g. bench.c) are updated.
@@ -253,7 +227,7 @@ for LEVEL in "${LEVELS[@]}"; do
             fi
 
             LABEL="polymul_hqc${LEVEL}_${VARIANT}"
-            PID=$(launch_timed_job "$ELF" "$CSV" "$LOG" "$LABEL")
+            PID=$(launch_timed_job "$ELF" "$CSV")
             JOB_LINES+=("  PID ${PID}  ${LABEL}  ->  $(basename "$CSV")")
             LAUNCHED=$((LAUNCHED + 1))
         fi
@@ -264,7 +238,6 @@ for LEVEL in "${LEVELS[@]}"; do
             TARGET="bench_hqc${LEVEL}_${VARIANT}"
             PREFIX="hqc${LEVEL}_${VARIANT}"
             CSV="${OUT_DIR}/${PREFIX}_N${ITER}.csv"
-            LOG="${OUT_DIR}/${PREFIX}_spike.log"
 
             # Always do an incremental cmake build before running — no-op if nothing
             # changed, but catches stale ELFs when sources (e.g. bench.c) are updated.
@@ -280,7 +253,7 @@ for LEVEL in "${LEVELS[@]}"; do
             fi
 
             LABEL="kem_hqc${LEVEL}_${VARIANT}"
-            PID=$(launch_timed_job "$ELF" "$CSV" "$LOG" "$LABEL")
+            PID=$(launch_timed_job "$ELF" "$CSV")
             JOB_LINES+=("  PID ${PID}  ${LABEL}  ->  $(basename "$CSV")")
             LAUNCHED=$((LAUNCHED + 1))
         fi
@@ -302,7 +275,6 @@ else
     echo "Monitor:"
     echo "  watch -n 30 \"wc -c ${OUT_DIR}/*.csv\""
     echo "  ps aux | grep '[s]pike.*bench'"
-    echo "  tail -f ${EVENTS_LOG}"
     echo ""
     echo "When done, extract results:"
     echo "  python3 scripts/report/extract_results.py --bench-set ${BENCH_SET}"
