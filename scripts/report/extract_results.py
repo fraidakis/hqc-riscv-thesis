@@ -134,6 +134,9 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
         return rows
 
     bench_set = path.parent.name
+    run_label_re = re.compile(r"^[A-Za-z0-9_]+_[A-Za-z0-9_]+_[0-9]{8}_[0-9]{4}$")
+    if run_label_re.fullmatch(bench_set):
+        bench_set = path.parent.parent.name
 
     # Parse CSV body
     try:
@@ -182,8 +185,11 @@ def collect_results(
 
     csv_files: list[Path] = []
     csv_files.extend(path for path in bench_dir.glob("*/*_N*.csv") if path.parent.is_dir())
+    csv_files.extend(path for path in bench_dir.glob("*/*/*_N*.csv") if path.parent.is_dir())
     csv_files.extend(path for path in bench_dir.glob("scalar/*/*_N*.csv") if path.parent.is_dir())
+    csv_files.extend(path for path in bench_dir.glob("scalar/*/*/*_N*.csv") if path.parent.is_dir())
     csv_files.extend(path for path in bench_dir.glob("vector/*/*_N*.csv") if path.parent.is_dir())
+    csv_files.extend(path for path in bench_dir.glob("vector/*/*/*_N*.csv") if path.parent.is_dir())
 
     # Keep deterministic order and avoid duplicate paths when patterns overlap.
     csv_files = sorted(set(csv_files))

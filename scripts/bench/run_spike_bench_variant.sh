@@ -39,7 +39,8 @@
 #   scripts/bench/run_spike_bench_variant.sh polymul_zvbc --full
 #   scripts/bench/run_spike_bench_variant.sh polymul_zbc --variant "karatsuba_zbc|karatsuba_ref"
 #
-# Output files written to analysis/benchmarks/<bench_set>/:
+# Output files written to analysis/benchmarks/<track>/<bench_set>/<run_label>/,
+# where run_label uses [variant]_[bench_type]_[YYYYMMDD_HHMM]:
 #   hqc{level}_{variant}_polymul_N{N}.csv  polymul micro-bench CSV
 #   hqc{level}_{variant}_polymul.log       Spike stderr (errors/warnings)
 #   hqc{level}_{variant}_N{N}.csv          full KEM bench CSV (--full only)
@@ -103,6 +104,17 @@ VARIANT_FILTER=""
 DO_FULL=0
 DO_POLYMUL=1
 ITER=1
+BENCH_TIME=$(date +'%Y%m%d_%H%M')
+
+sanitize_label() {
+    local raw="$1"
+    raw="${raw//[^a-zA-Z0-9]/_}"
+    raw="$(echo "$raw" | sed -E 's/_+/_/g; s/^_+//; s/_+$//')"
+    if [[ -z "$raw" ]]; then
+        raw="all"
+    fi
+    echo "$raw"
+}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -151,6 +163,9 @@ else
     echo "[bench] Benchmark set '${BENCH_SET}' -> variant override '${VARIANT_FILTER}'"
 fi
 
+VARIANT_LABEL="$(sanitize_label "${VARIANT_FILTER:-all}")"
+RUN_LABEL="${VARIANT_LABEL}_${BENCH_SET}_${BENCH_TIME}"
+
 # ── Preflight checks ──────────────────────────────────────────────────────────
 if [[ ! -x "$SPIKE" ]]; then
     echo "ERROR: Spike not found: $SPIKE" >&2
@@ -160,9 +175,9 @@ fi
 
 BENCH_TRACK="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
 if [[ -n "$BENCH_TRACK" ]]; then
-    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_TRACK}/${BENCH_SET}"
+    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_TRACK}/${BENCH_SET}/${RUN_LABEL}"
 else
-    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
+    OUT_DIR="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}/${RUN_LABEL}"
 fi
 mkdir -p "$OUT_DIR"
 
