@@ -3,14 +3,22 @@ name: Constant-Time Verification
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/ct/**'
-      - 'analysis/ct_verify/**'
-      - 'scripts/ci/check_ct.sh'
-      - 'scripts/implemented_variants.txt'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'analysis/**'
+      - 'experiments/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'analysis/**'
+      - 'experiments/**'
 
 jobs:
   # ── Read the single source of truth for implemented variants ───────────────
@@ -22,13 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Parse implemented_variants.txt → JSON array
+      - uses: ./.github/actions/parse-variants
         id: read
-        run: |
-          variants=$(grep -v '^#' scripts/implemented_variants.txt \
-                     | grep -v '^[[:space:]]*$' \
-                     | jq -Rnc '[inputs]')
-          echo "variants=$variants" >> "$GITHUB_OUTPUT"
 
   # ── ctgrind: native Valgrind Memcheck for each (level × variant) ───────────
   # RISC-V-specific variants are automatically skipped by check_ct.sh (exit 0).

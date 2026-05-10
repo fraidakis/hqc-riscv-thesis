@@ -3,30 +3,22 @@ name: KAT Vectors
 on:
   push:
     branches: [main, dev]
-    # Only run when sources that affect correctness change.
-    # Benchmark scripts, docs, and analysis outputs are excluded.
-    paths:
-      - 'src/**'
-      - 'vendor/**'
-      - 'tests/kat/**'
-      - 'tests/unit/**'
-      - 'include/**'
-      - 'cmake/**'
-      - 'CMakeLists.txt'
-      - 'toolchain/**'
-      - 'sim/**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'analysis/**'
+      - 'experiments/**'
   pull_request:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'vendor/**'
-      - 'tests/kat/**'
-      - 'tests/unit/**'
-      - 'include/**'
-      - 'cmake/**'
-      - 'CMakeLists.txt'
-      - 'toolchain/**'
-      - 'sim/**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'analysis/**'
+      - 'experiments/**'
 
 jobs:
   # ── Determine which variants are implemented ──────────────────────────────

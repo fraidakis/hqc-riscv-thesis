@@ -3,11 +3,34 @@ name: Main Branch Cycle History
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'experiments/**'
 
 jobs:
-  spike-cycle-history:
-    name: Spike Cycle History (karatsuba_ref)
+  prepare:
+    name: Parse Implemented Variants
     runs-on: ubuntu-24.04
+    outputs:
+      variants: ${{ steps.variants.outputs.variants }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/parse-variants
+        id: variants
+
+  spike-cycle-history:
+    name: "Cycle History — ${{ matrix.variant }} / HQC-${{ matrix.level }}"
+    runs-on: ubuntu-24.04
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        level: [128, 192, 256]
+        variant: ${{ fromJson(needs.prepare.outputs.variants) }}
 
     steps:
       - name: Checkout
@@ -15,23 +38,13 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install system deps
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y cmake ninja-build device-tree-compiler \
-            python3 libboost-regex-dev libboost-system-dev
+      - uses: ./.github/actions/setup-riscv-env
 
-      - name: Restore toolchain cache
+      - name: Restore Spike build cache
         uses: actions/cache@v4
         with:
-          path: ~/Thesis/installed-tools
-          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
-
-      - name: Source toolchain environment
-        run: |
-          source toolchain/toolchain.env
-          echo "RISCV=$RISCV" >> "$GITHUB_ENV"
-          echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
+          path: build/spike
+          key: spike-bench-${{ runner.os }}-${{ matrix.level }}-${{ matrix.variant }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**', 'scripts/implemented_variants.txt') }}
 
       - name: Configure CMake for Spike benchmarks
         run: |
@@ -40,13 +53,10 @@ jobs:
             -DHQC_SIM=spike \
             -DBENCH_N_ITER=11
 
-      - name: Build reference polymul benchmark targets
+      - name: Build benchmark target for this variant
         run: |
           cmake --build build/spike \
-            --target \
-              bench_polymul_hqc128_karatsuba_ref \
-              bench_polymul_hqc192_karatsuba_ref \
-              bench_polymul_hqc256_karatsuba_ref \
+            --target bench_polymul_hqc${{ matrix.level }}_${{ matrix.variant }} \
             -j"$(nproc)"
 
       - name: Run Spike and collect median cycle counts
@@ -56,38 +66,38 @@ jobs:
           set -euo pipefail
           mkdir -p analysis/benchmarks/main-history
 
-          run_and_extract() {
-            local level="$1"
-            local elf="build/spike/bench_polymul_hqc${level}_karatsuba_ref.elf"
-            local out="analysis/benchmarks/main-history/hqc${level}_karatsuba_ref_${GITHUB_SHA::8}.csv"
+          elf="build/spike/bench_polymul_hqc${{ matrix.level }}_${{ matrix.variant }}.elf"
+          out="analysis/benchmarks/main-history/hqc${{ matrix.level }}_${{ matrix.variant }}_${GITHUB_SHA::8}.csv"
 
-            sim/spike/run_bench.sh "$elf" | tee "$out"
+          sim/spike/run_bench.sh "$elf" | tee "$out"
 
-            local median
-            median=$(awk -F, '$1 == "vect_mul" { print $4; exit }' "$out")
-            if [[ -z "$median" ]]; then
-              echo "Failed to parse median_cycles for HQC-${level}" >&2
-              exit 1
-            fi
-            echo "median_${level}=$median" >> "$GITHUB_OUTPUT"
-          }
-
-          run_and_extract 128
-          run_and_extract 192
-          run_and_extract 256
+          median=$(awk -F, '$1 == "vect_mul" { print $4; exit }' "$out")
+          if [[ -z "$median" ]]; then
+            echo "Failed to parse median_cycles for HQC-${{ matrix.level }} / ${{ matrix.variant }}" >&2
+            exit 1
+          fi
+          echo "median=$median" >> "$GITHUB_OUTPUT"
 
       - name: Publish cycle history in job summary
         run: |
           {
-            echo "## Main Branch Spike Cycle History"
+            echo "## Spike Cycle History — HQC-${{ matrix.level }} / ${{ matrix.variant }}"
             echo
             echo "- Commit: $GITHUB_SHA"
             echo "- Run date (UTC): $(date -u +'%Y-%m-%d %H:%M:%S')"
-            echo "- Variant: karatsuba_ref (reference scalar implementation)"
             echo
-            echo "| Security Level | Median Cycles (vect_mul) |"
+            echo "| Metric | Value |"
             echo "|---|---:|"
-            echo "| HQC-128 | ${{ steps.run-bench.outputs.median_128 }} |"
-            echo "| HQC-192 | ${{ steps.run-bench.outputs.median_192 }} |"
-            echo "| HQC-256 | ${{ steps.run-bench.outputs.median_256 }} |"
+            echo "| Variant | ${{ matrix.variant }} |"
+            echo "| Security Level | HQC-${{ matrix.level }} |"
+            echo "| Median Cycles (vect_mul) | ${{ steps.run-bench.outputs.median }} |"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "cycle-history-${{ matrix.variant }}-${{ matrix.level }}"
+          path: analysis/benchmarks/main-history/
+          if-no-files-found: warn
+

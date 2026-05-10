@@ -3,13 +3,22 @@ name: Opcode Verification
 on:
   push:
     branches: [main, dev]
-    paths:
-      - 'src/vector_zvbc/**'
-      - 'src/scalar_zbc/**'
-      - 'toolchain/**'
-      - 'scripts/ci/check_opcodes.sh'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'analysis/**'
+      - 'experiments/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'analysis/**'
+      - 'experiments/**'
 
 jobs:
   verify-opcodes:

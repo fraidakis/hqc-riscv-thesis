@@ -3,6 +3,13 @@ name: CI Matrix Build And Analysis
 on:
   push:
     branches: [main, dev]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'scripts/report/**'
+      - 'analysis/**'
+      - 'experiments/**'
   pull_request:
     branches: [main]
 
@@ -15,13 +22,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Parse implemented variants
+      - uses: ./.github/actions/parse-variants
         id: variants
-        run: |
-          variants=$(grep -v '^#' scripts/implemented_variants.txt \
-            | grep -v '^[[:space:]]*$' \
-            | jq -Rnc '[inputs]')
-          echo "variants=$variants" >> "$GITHUB_OUTPUT"
 
   build-test-analyze:
     name: CI (${{ matrix.variant }} / HQC-${{ matrix.level }})
@@ -39,17 +41,9 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y cmake ninja-build clang-tidy jq python3 device-tree-compiler \
-            libboost-regex-dev libboost-system-dev
-
-      - name: Restore toolchain cache
-        uses: actions/cache@v4
+      - uses: ./.github/actions/setup-riscv-env
         with:
-          path: ~/Thesis/installed-tools
-          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+          additional-packages: 'clang-tidy jq'
 
       - name: Restore QEMU build cache
         uses: actions/cache@v4
@@ -62,12 +56,6 @@ jobs:
         with:
           path: build/spike
           key: spike-build-${{ runner.os }}-${{ matrix.level }}-${{ matrix.variant }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**', 'scripts/implemented_variants.txt') }}
-
-      - name: Source toolchain environment
-        run: |
-          source toolchain/toolchain.env
-          echo "RISCV=$RISCV" >> "$GITHUB_ENV"
-          echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
 
       - name: Configure CMake for QEMU
         run: |
