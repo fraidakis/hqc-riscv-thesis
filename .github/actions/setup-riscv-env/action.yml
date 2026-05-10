@@ -15,12 +15,17 @@ runs:
       run: |
         sudo apt-get update -qq
         base_packages="cmake ninja-build device-tree-compiler python3 libboost-regex-dev libboost-system-dev build-essential bison flex texinfo gawk"
-        riscv_packages="clang-18 lld-18 gcc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user"
+        riscv_packages="clang-18 lld-18 gcc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user qemu-system-misc"
         additional="${{ inputs.additional-packages }}"
         if ! sudo apt-get install -y $base_packages $riscv_packages $additional; then
           echo "::warning:: libnewlib-riscv64-unknown-elf unavailable; retrying with picolibc-riscv64-unknown-elf"
-          riscv_packages_fallback="clang-18 lld-18 gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user"
+          riscv_packages_fallback="clang-18 lld-18 gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user qemu-system-misc"
           sudo apt-get install -y $base_packages $riscv_packages_fallback $additional
+        fi
+
+        if ! command -v qemu-system-riscv64 >/dev/null 2>&1; then
+          echo "::error:: qemu-system-riscv64 not found after package installation"
+          exit 1
         fi
 
     - name: Provide unversioned LLVM binary aliases

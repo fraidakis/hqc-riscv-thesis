@@ -7,7 +7,16 @@ set -euo pipefail
 
 ELF="${1:?Usage: $0 <elf>}"
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
-QEMU="$RISCV/bin/qemu-system-riscv64"
+if [[ -n "${QEMU:-}" ]]; then
+    QEMU_BIN="$QEMU"
+elif command -v qemu-system-riscv64 >/dev/null 2>&1; then
+    QEMU_BIN="$(command -v qemu-system-riscv64)"
+elif [[ -x "$RISCV/bin/qemu-system-riscv64" ]]; then
+    QEMU_BIN="$RISCV/bin/qemu-system-riscv64"
+else
+    echo "ERROR: qemu-system-riscv64 not found (PATH or RISCV/bin)." >&2
+    exit 2
+fi
 
 # ── Auto-build: rebuild the specific ELF target before running ────────────────
 _BUILD_DIR="$(dirname "$ELF")"
@@ -41,7 +50,7 @@ BIOS="none"
 # (bench.c → QEMU_FINISHER) ensure QEMU exits cleanly after every run.
 
 echo "[run_kat] Running: $ELF"
-"$QEMU" \
+"$QEMU_BIN" \
     -machine virt \
     -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
     -m 128M \
