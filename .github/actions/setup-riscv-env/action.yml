@@ -36,6 +36,58 @@ runs:
         sudo ln -sf /usr/bin/llvm-objdump-18 /usr/bin/llvm-objdump
         sudo ln -sf /usr/bin/llvm-strip-18 /usr/bin/llvm-strip
 
+    - name: Normalize bare-metal sysroot layout
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        target_sysroot="/usr/riscv64-unknown-elf"
+        sudo mkdir -p "$target_sysroot"
+
+        # Ensure include path expected by toolchain flags exists.
+        if [[ ! -f "$target_sysroot/include/string.h" ]]; then
+          include_candidates=(
+            "/usr/riscv64-unknown-elf/include"
+            "/usr/include/newlib"
+            "/usr/lib/riscv64-unknown-elf/newlib/include"
+            "/usr/lib/newlib/include"
+          )
+          for inc in "${include_candidates[@]}"; do
+            if [[ -f "$inc/string.h" ]]; then
+              sudo ln -sfn "$inc" "$target_sysroot/include"
+              break
+            fi
+          done
+        fi
+
+        # Ensure library path expected by toolchain flags exists.
+        if [[ ! -f "$target_sysroot/lib/libc.a" ]]; then
+          lib_candidates=(
+            "/usr/riscv64-unknown-elf/lib"
+            "/usr/lib/riscv64-unknown-elf/newlib"
+            "/usr/lib/riscv64-unknown-elf"
+            "/usr/lib/newlib"
+          )
+          for libdir in "${lib_candidates[@]}"; do
+            if [[ -f "$libdir/libc.a" ]]; then
+              sudo ln -sfn "$libdir" "$target_sysroot/lib"
+              break
+            fi
+          done
+        fi
+
+        if [[ ! -f "$target_sysroot/include/string.h" ]]; then
+          echo "::error:: Unable to locate bare-metal C headers (string.h) for riscv64-unknown-elf"
+          exit 1
+        fi
+        if [[ ! -f "$target_sysroot/lib/libc.a" ]]; then
+          echo "::error:: Unable to locate bare-metal C library (libc.a) for riscv64-unknown-elf"
+          exit 1
+        fi
+
+        echo "::notice:: Normalized sysroot include: $(readlink -f "$target_sysroot/include")"
+        echo "::notice:: Normalized sysroot lib: $(readlink -f "$target_sysroot/lib")"
+
     - name: Source toolchain environment and persist
       shell: bash
       run: |
