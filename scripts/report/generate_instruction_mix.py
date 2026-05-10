@@ -145,8 +145,18 @@ def write_distribution_csv(
         "other_pct": f"{(dist['other'] * 100.0 / total):.2f}" if total else "0.00",
     }
 
+    write_mode = "a"
     write_header = not output_path.exists()
-    with output_path.open("a", newline="", encoding="utf-8") as handle:
+
+    if output_path.exists():
+        with output_path.open("r", encoding="utf-8", errors="ignore") as existing:
+            first_line = existing.readline().strip()
+        expected_header = ",".join(fieldnames)
+        if first_line and first_line != expected_header:
+            write_mode = "w"
+            write_header = True
+
+    with output_path.open(write_mode, newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         if write_header:
             writer.writeheader()
