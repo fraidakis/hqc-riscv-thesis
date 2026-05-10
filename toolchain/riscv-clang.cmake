@@ -73,9 +73,6 @@ _find_riscv_tool(LLD_STRIP_BIN TOOL llvm-strip CANDIDATES llvm-strip llvm-strip-
 set(CMAKE_C_COMPILER   "${CLANG_BIN}")
 set(CMAKE_CXX_COMPILER "${CLANGXX_BIN}")
 set(CMAKE_ASM_COMPILER "${CLANG_BIN}")
-set(CMAKE_C_COMPILER_TARGET   "riscv64-unknown-elf")
-set(CMAKE_CXX_COMPILER_TARGET "riscv64-unknown-elf")
-set(CMAKE_ASM_COMPILER_TARGET "riscv64-unknown-elf")
 set(CMAKE_AR           "${LLD_AR_BIN}")
 set(CMAKE_RANLIB       "${LLD_RANLIB_BIN}")
 set(CMAKE_OBJCOPY      "${LLD_OBJCOPY_BIN}")
@@ -111,29 +108,28 @@ if(RISCV STREQUAL "/usr")
   list(APPEND RISCV_COMMON_FLAGS
     "--sysroot=${RISCV_SYSROOT}"
     "--gcc-toolchain=/usr"
-    "-isystem"
-    "/usr/riscv64-unknown-elf/include"
   )
 endif()
 
 string(JOIN " " RISCV_FLAGS_STR ${RISCV_COMMON_FLAGS})
 
-set(CMAKE_C_FLAGS_INIT   "${RISCV_FLAGS_STR}")
-set(CMAKE_CXX_FLAGS_INIT "${RISCV_FLAGS_STR} -fno-exceptions -fno-rtti")
-set(CMAKE_ASM_FLAGS_INIT "--target=${RISCV_TARGET_TRIPLE} -march=${RISCV_MARCH} -mabi=${RISCV_MABI} -menable-experimental-extensions")
-
-if(RISCV STREQUAL "/usr")
-  string(APPEND CMAKE_ASM_FLAGS_INIT " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
-  string(APPEND CMAKE_C_FLAGS " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr -isystem /usr/riscv64-unknown-elf/include")
-  string(APPEND CMAKE_CXX_FLAGS " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr -isystem /usr/riscv64-unknown-elf/include")
-  string(APPEND CMAKE_ASM_FLAGS " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
-endif()
-
-set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld -Wl,--gc-sections -nostartfiles -nostdlib")
-if(RISCV STREQUAL "/usr")
-  string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " -L/usr/riscv64-unknown-elf/lib")
-  string(APPEND CMAKE_EXE_LINKER_FLAGS " -L/usr/riscv64-unknown-elf/lib")
-endif()
+# Emergency hard-append flags: do not use *_INIT variables here because CMake's
+# compiler configuration may clobber them for cross builds.
+set(RISCV_FORCE_FLAGS
+  " --target=riscv64-unknown-elf"
+  " --sysroot=/usr/riscv64-unknown-elf"
+  " --gcc-toolchain=/usr"
+  " -isystem /usr/riscv64-unknown-elf/include"
+  " -march=rv64gcv_zbc_zbb_zbkb_zvbc"
+  " -mabi=lp64d"
+  " -menable-experimental-extensions"
+  " -mcmodel=medany"
+  " -ffreestanding"
+  " -fno-lto"
+  " -mno-relax"
+  " -fno-tree-vectorize"
+)
+string(JOIN "" RISCV_FORCE_FLAGS_STR ${RISCV_FORCE_FLAGS})
 
 # ── Find root path for libraries ──────────────────────────────────────────────
 if(NOT RISCV_SYSROOT STREQUAL "")
@@ -144,4 +140,20 @@ endif()
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+# Append required target and ABI flags at the bottom so they survive CMake
+# configuration passes and override earlier defaults.
+string(APPEND CMAKE_C_FLAGS "${RISCV_FORCE_FLAGS_STR}")
+string(APPEND CMAKE_CXX_FLAGS "${RISCV_FORCE_FLAGS_STR}")
+string(APPEND CMAKE_ASM_FLAGS "${RISCV_FORCE_FLAGS_STR}")
+string(APPEND CMAKE_CXX_FLAGS " -fno-exceptions -fno-rtti")
+
+# Explicit linker flags for bare-metal sysroot and libraries.
+string(APPEND CMAKE_EXE_LINKER_FLAGS
+  " -fuse-ld=lld"
+  " -Wl,--gc-sections"
+  " -nostartfiles"
+  " -nostdlib"
+  " --sysroot=/usr/riscv64-unknown-elf"
+  " -L/usr/riscv64-unknown-elf/lib"
+)
