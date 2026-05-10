@@ -90,7 +90,7 @@ jobs:
           cmake --build build/spike --target bench_hqc${{ matrix.level }}_${{ matrix.variant }} -j$(nproc)
 
       - name: KAT regression gate (ctest)
-        run: ctest --test-dir build/qemu --output-on-failure
+        run: ctest --test-dir build/spike --output-on-failure
 
       - name: Static analysis (lint.sh)
         run: bash scripts/ci/lint.sh
