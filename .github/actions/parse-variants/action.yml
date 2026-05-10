@@ -1,0 +1,19 @@
+name: Parse Implemented Variants
+description: Parse scripts/implemented_variants.txt and output JSON array of variants
+
+outputs:
+  variants:
+    description: 'JSON array of implemented variants'
+    value: ${{ steps.variants.outputs.variants }}
+
+runs:
+  using: composite
+  steps:
+    - name: Parse implemented variants
+      id: variants
+      shell: bash
+      run: |
+        variants=$(grep -v '^#' scripts/implemented_variants.txt \
+          | grep -v '^[[:space:]]*$' \
+          | jq -Rnc '[inputs]')
+        echo "variants=$variants" >> "$GITHUB_OUTPUT"

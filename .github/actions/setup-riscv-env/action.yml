@@ -1,0 +1,36 @@
+name: Setup RISC-V Environment
+description: Install system dependencies, restore toolchain cache, and source environment
+
+inputs:
+  cache-key-suffix:
+    description: 'Optional suffix for cache key (e.g., matrix values)'
+    required: false
+    default: ''
+  additional-packages:
+    description: 'Additional APT packages to install (space-separated)'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        base_packages="cmake ninja-build device-tree-compiler python3 libboost-regex-dev libboost-system-dev"
+        additional="${{ inputs.additional-packages }}"
+        sudo apt-get install -y $base_packages $additional
+
+    - name: Restore toolchain cache
+      uses: actions/cache@v4
+      with:
+        path: ~/Thesis/installed-tools
+        key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+
+    - name: Source toolchain environment
+      shell: bash
+      run: |
+        source toolchain/toolchain.env
+        echo "RISCV=$RISCV" >> "$GITHUB_ENV"
+        echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
