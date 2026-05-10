@@ -47,6 +47,7 @@ runs:
             echo "::info:: Cloning riscv-gnu-toolchain repository with submodules..."
             git clone --recursive --depth=1 https://github.com/riscv-collab/riscv-gnu-toolchain.git "${{ github.workspace }}/riscv-gnu-toolchain" 2>&1 | tail -10 || {
               echo "::warning:: Initial clone with --depth=1 failed; retrying without depth limit..."
+              rm -rf "${{ github.workspace }}/riscv-gnu-toolchain"
               git clone --recursive https://github.com/riscv-collab/riscv-gnu-toolchain.git "${{ github.workspace }}/riscv-gnu-toolchain" 2>&1 | tail -10
             }
           fi

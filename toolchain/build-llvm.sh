@@ -1,59 +1,37 @@
 #!/usr/bin/env bash
 # toolchain/build-llvm.sh
-# (Re-)build LLVM/Clang for the RISC-V cross toolchain.
-# This wraps the riscv-gnu-toolchain --enable-llvm make target.
-#
-# Usage:
-#   export RISCV=/path/to/install
-#   export SRCDIR=/path/to/riscv-gnu-toolchain (optional)
-#   bash toolchain/build-llvm.sh
-#
-# Environment variables:
-#   RISCV        - Installation prefix (default: $HOME/riscv-tools)
-#   SRCDIR       - Source directory for riscv-gnu-toolchain (auto-detected if not set)
-#   GITHUB_WORKSPACE - GitHub Actions workspace root (used for CI path detection)
+# Build LLVM/Clang via riscv-gnu-toolchain.
 
 set -euo pipefail
 
-# Determine installation prefix
 PREFIX="${RISCV:-$HOME/riscv-tools}"
 export RISCV="$PREFIX"
+DEFAULT_ARCH="${RISCV_ARCH:-rv64gcv}"
+DEFAULT_ABI="${RISCV_ABI:-lp64d}"
+BUILD_TARGET="${RISCV_MAKE_TARGET:-all}"
+TOOLCHAIN_URL="${RISCV_LLVM_PREBUILT_URL:-}"
+TMP_ROOT="${RUNNER_TEMP:-/tmp}"
+BUILD_LOG="$TMP_ROOT/llvm-build.log"
 
-# Determine source directory
 if [ -z "${SRCDIR:-}" ]; then
-	# Try GitHub Actions workspace first (CI environment)
 	if [ -n "${GITHUB_WORKSPACE:-}" ] && [ -d "$GITHUB_WORKSPACE/riscv-gnu-toolchain" ]; then
 		SRCDIR="$GITHUB_WORKSPACE/riscv-gnu-toolchain"
-	# Try RISCV parent directory (if RISCV is in a workspace)
 	elif [ -d "$(dirname "$PREFIX")/riscv-gnu-toolchain" ]; then
 		SRCDIR="$(dirname "$PREFIX")/riscv-gnu-toolchain"
-	# Try standard local development paths
 	elif [ -d "$HOME/riscv-tools/src/riscv-gnu-toolchain" ]; then
 		SRCDIR="$HOME/riscv-tools/src/riscv-gnu-toolchain"
 	elif [ -d "$HOME/Thesis/src/riscv-gnu-toolchain" ]; then
 		SRCDIR="$HOME/Thesis/src/riscv-gnu-toolchain"
-	# Try relative path from toolchain directory
 	elif [ -d "../src/riscv-gnu-toolchain" ]; then
 		SRCDIR="$(cd ../src/riscv-gnu-toolchain && pwd)"
-	# Try current directory as fallback
 	elif [ -f "configure" ] && [ -d "qemu" ]; then
 		SRCDIR="$(pwd)"
 	else
 		echo "[build-llvm] ERROR: Could not locate riscv-gnu-toolchain source directory" >&2
-		echo "[build-llvm] Searched:" >&2
-		echo "[build-llvm]   - \$GITHUB_WORKSPACE/riscv-gnu-toolchain" >&2
-		echo "[build-llvm]   - $(dirname "$PREFIX")/riscv-gnu-toolchain" >&2
-		echo "[build-llvm]   - \$HOME/riscv-tools/src/riscv-gnu-toolchain" >&2
-		echo "[build-llvm]   - \$HOME/Thesis/src/riscv-gnu-toolchain" >&2
-		echo "[build-llvm]   - ../src/riscv-gnu-toolchain (relative)" >&2
-		echo "[build-llvm]" >&2
-		echo "[build-llvm] Set SRCDIR environment variable to override:" >&2
-		echo "[build-llvm]   export SRCDIR=/path/to/riscv-gnu-toolchain" >&2
 		exit 1
 	fi
 fi
 
-# Verify source directory exists and has expected structure
 if [ ! -d "$SRCDIR" ]; then
 	echo "[build-llvm] ERROR: Source directory does not exist: $SRCDIR" >&2
 	exit 1
@@ -64,8 +42,94 @@ if [ ! -f "$SRCDIR/configure" ]; then
 	exit 1
 fi
 
+download_prebuilt_toolchain() {
+	local archive_dir archive_path extract_dir found_root
+	if [ -z "$TOOLCHAIN_URL" ]; then
+		echo "[build-llvm] No RISCV_LLVM_PREBUILT_URL provided; skipping prebuilt download"
+		return 1
+	fi
+
+	archive_dir="$(mktemp -d "$TMP_ROOT/riscv-prebuilt.XXXXXX")"
+	archive_path="$archive_dir/toolchain.tar.gz"
+
+	echo "[build-llvm] Attempting prebuilt toolchain download: $TOOLCHAIN_URL"
+	if ! wget -q -O "$archive_path" "$TOOLCHAIN_URL"; then
+		echo "[build-llvm] Prebuilt download failed; falling back to source build"
+		rm -rf "$archive_dir"
+		return 1
+	fi
+
+	extract_dir="$archive_dir/extract"
+	mkdir -p "$extract_dir"
+	if ! tar -xf "$archive_path" -C "$extract_dir"; then
+		echo "[build-llvm] Prebuilt archive extraction failed; falling back to source build"
+		rm -rf "$archive_dir"
+		return 1
+	fi
+
+	found_root="$(find "$extract_dir" -mindepth 1 -maxdepth 2 -type d \( -path '*/bin' -o -path '*/.content/bin' \) | head -n 1)"
+	if [ -z "$found_root" ]; then
+		echo "[build-llvm] Prebuilt archive layout was not recognized; falling back to source build"
+		rm -rf "$archive_dir"
+		return 1
+	fi
+
+	if [ "$(basename "$found_root")" = "bin" ]; then
+		found_root="$(dirname "$found_root")"
+	fi
+	if [ "$(basename "$found_root")" = ".content" ]; then
+		found_root="$found_root"
+	fi
+
+	rm -rf "$PREFIX"
+	mkdir -p "$PREFIX"
+	shopt -s dotglob
+	mv "$found_root"/* "$PREFIX"/
+	shopt -u dotglob
+	rm -rf "$archive_dir"
+
+	if [ -x "$PREFIX/bin/clang" ]; then
+		echo "[build-llvm] Using prebuilt toolchain at $PREFIX"
+		return 0
+	fi
+
+	echo "[build-llvm] Prebuilt toolchain did not provide clang at $PREFIX/bin/clang"
+	return 1
+}
+
+ensure_configured() {
+	local config_args=()
+	config_args+=("--prefix=$PREFIX")
+	config_args+=("--enable-llvm")
+	config_args+=("--disable-linux")
+	config_args+=("--with-arch=$DEFAULT_ARCH")
+	config_args+=("--with-abi=$DEFAULT_ABI")
+
+	if [ ! -f "$SRCDIR/Makefile" ] || ! grep -q -- '--enable-llvm' "$SRCDIR/config.status" 2>/dev/null; then
+		echo "[build-llvm] Configuring riscv-gnu-toolchain with LLVM enabled"
+		(cd "$SRCDIR" && ./configure "${config_args[@]}")
+	else
+		echo "[build-llvm] Reusing existing riscv-gnu-toolchain configuration"
+	fi
+}
+
 echo "[build-llvm] PREFIX=$PREFIX"
 echo "[build-llvm] SRCDIR=$SRCDIR"
+
+if [ -x "$PREFIX/bin/clang" ]; then
+	echo "[build-llvm] Existing clang found at $PREFIX/bin/clang"
+	exit 0
+fi
+
+download_prebuilt_toolchain || true
+
+if [ -x "$PREFIX/bin/clang" ]; then
+	exit 0
+fi
+
+ensure_configured
+
 cd "$SRCDIR"
-make -j"$(nproc)" build-llvm 2>&1 | tee /tmp/llvm-build.log
-echo "[build-llvm] Done. Log: /tmp/llvm-build.log"
+echo "[build-llvm] Building target '$BUILD_TARGET'"
+make -j"$(nproc)" "$BUILD_TARGET" 2>&1 | tee "$BUILD_LOG"
+echo "[build-llvm] Done. Log: $BUILD_LOG"

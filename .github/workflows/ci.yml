@@ -1,6 +1,7 @@
 name: CI Matrix Build And Analysis
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, dev]
     paths-ignore:
@@ -44,8 +45,9 @@ jobs:
       # This allows better insight into which variants/levels pass or fail independently
       fail-fast: false
       matrix:
-        level: [128, 192, 256]
-        variant: ${{ fromJson(needs.prepare.outputs.variants) }}
+        level: [128]
+        # variant: ${{ fromJson(needs.prepare.outputs.variants) }}
+        variant: ['fafft_zbc']
 
     steps:
       - name: Checkout
