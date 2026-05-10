@@ -29,23 +29,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install system deps
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y cmake ninja-build
-
-      - name: Restore toolchain cache
-        uses: actions/cache@v4
+      - name: Setup RISC-V environment and toolchain
+        uses: ./.github/actions/setup-riscv-env
         with:
-          path: ~/Thesis/installed-tools
-          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+          additional-packages: 'clang-tidy'
 
       - name: Build vector_zvbc target
         run: |
-          source toolchain/toolchain.env
-          echo "RISCV=$RISCV" >> "$GITHUB_ENV"
-          echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
-          echo "QEMU=$RISCV/bin/qemu-system-riscv64" >> "$GITHUB_ENV"
           cmake -B build -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake
           cmake --build build --target hqc128_vector_zvbc -j$(nproc)
