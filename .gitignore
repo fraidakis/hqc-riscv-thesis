@@ -61,6 +61,10 @@ analysis/ct_verify/ctgrind/*.xml
 analysis/ct_verify/dudect/*
 analysis/ct_verify/binsec/*
 !analysis/ct_verify/**/.gitkeep
+!analysis/ct_verify/dudect/run_dudect_all_variants.sh
+!analysis/ct_verify/binsec/run_binsec_variants.sh
+!analysis/ct_verify/binsec/configs/
+!analysis/ct_verify/binsec/configs/*.binsec
 
 # KAT test vectors (generated)
 tests/kat/vectors/*.rsp

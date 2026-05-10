@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "parameters.h"
+#include "hqc_parameters.h"
 
 /* ── Active v3 path ───────────────────────────────────────────────────── */
 #ifndef USE_LEGACY_HYBRID
@@ -66,11 +67,11 @@ void vect_mul_r2_keycached(
 #endif
 
 #ifndef KARATSUBA_THRESHOLD
-#define KARATSUBA_THRESHOLD 16
+#define KARATSUBA_THRESHOLD HQC_KARATSUBA_THRESHOLD_DEFAULT
 #endif
 
 /* ── Temporary buffer (covers all Karatsuba levels) ─────────────────── */
-#define TMP_BUFFER_WORDS (16 * VEC_N_SIZE_64)
+#define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
 /* ── Zbc carry-less multiply base case ──────────────────────────────── */
 static __attribute__((always_inline)) inline
@@ -162,7 +163,7 @@ static void fafft_leaf(uint64_t * __restrict__ r,
 static void reduce(uint64_t * __restrict__ o,
                    const uint64_t * __restrict__ a)
 {
-    int shift = PARAM_N & 0x3F;
+    int shift = (int)HQC_PARAM_N_MOD_64;
     int inv   = 64 - shift;
 
     for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
@@ -170,7 +171,7 @@ static void reduce(uint64_t * __restrict__ o,
         uint64_t carry = (shift == 0) ? 0 : (a[i + VEC_N_SIZE_64] << inv);
         o[i] = a[i] ^ r ^ carry;
     }
-    o[VEC_N_SIZE_64 - 1] &= BITMASK(PARAM_N, 64);
+    o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
 }
 
 /* ── Recursive hybrid multiply ───────────────────────────────────────── *

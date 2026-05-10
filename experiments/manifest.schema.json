@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hqc-riscv.local/experiments/manifest.schema.json",
+  "title": "HQC-RISCV Experiment Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "experiments"
+  ],
+  "properties": {
+    "experiments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "date",
+          "hypothesis",
+          "status",
+          "path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^EXP-[A-Za-z0-9][A-Za-z0-9-]*$"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "hypothesis": {
+            "type": "string",
+            "minLength": 10
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "active",
+              "deprecated",
+              "promoted_to_stable",
+              "archived"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^(experiments|src)/.+"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# BINSEC config for hybrid polymul path
+VARIANT=hybrid
+ENTRY_SYMBOL=vect_mul
+TARGET_PATTERN=bench_polymul_hqc{LEVEL}_hybrid.elf
+SECRET_INPUTS=v1,v2
+OBSERVABLES=timing,memory_access,branch_condition

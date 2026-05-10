@@ -101,6 +101,13 @@ endif()
 message(STATUS "  karatsuba_ref LTO : ${HQC_REF_LTO}")
 message(STATUS "  karatsuba_ref PGO : ${HQC_REF_PGO}")
 
+# ── Polly auto-vectorization toggle (P-08) ──────────────────────────────────
+# Applies only to scalar polymul variants and only when compiling with Clang.
+# Enables LLVM Polly loop optimization passes via -mllvm -polly.
+set(HQC_ENABLE_POLLY OFF CACHE BOOL
+    "Enable LLVM Polly (-mllvm -polly) for scalar polymul targets")
+message(STATUS "  scalar Polly      : ${HQC_ENABLE_POLLY}")
+
 # ── Validation ────────────────────────────────────────────────────────────────
 if(NOT HQC_KECCAK_IMPL STREQUAL "ref" AND NOT HQC_KECCAK_IMPL STREQUAL "rvv")
     message(FATAL_ERROR "HQC_KECCAK_IMPL must be 'ref' or 'rvv', got '${HQC_KECCAK_IMPL}'")

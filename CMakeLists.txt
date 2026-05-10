@@ -17,6 +17,7 @@ set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/sim/common/link.ld)
 # ── Per-phase selection flags and invariant core OBJECT library ───────────────
 include(cmake/options.cmake)
 include(cmake/hqc_core.cmake)
+include(CheckCSourceCompiles)
 
 # ── Simulator backend ─────────────────────────────────────────────────────────
 # HQC_SIM=qemu  (default) — UART output + test-finisher (for qemu-system-riscv64 virt)
@@ -168,6 +169,49 @@ function(hqc_apply_ref_lto_pgo TARGET)
     endif()
 endfunction()
 
+# ── LLVM Polly helper for scalar polymul variants (P-08) ────────────────────
+function(hqc_apply_scalar_polly TARGET POLYMUL)
+    if(NOT HQC_ENABLE_POLLY)
+        return()
+    endif()
+
+    if(NOT HQC_POLLY_AVAILABLE)
+        return()
+    endif()
+
+    if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+        message(STATUS "[polly] Skip ${TARGET}: requires Clang (got ${CMAKE_C_COMPILER_ID})")
+        return()
+    endif()
+
+    if(POLYMUL STREQUAL "karatsuba_ref" OR
+       POLYMUL STREQUAL "karatsuba_zbc" OR
+       POLYMUL STREQUAL "fafft_zbc" OR
+       POLYMUL STREQUAL "hybrid")
+        target_compile_options(${TARGET} PRIVATE -mllvm -polly)
+        message(STATUS "[polly] Enabled for ${TARGET}")
+    endif()
+endfunction()
+
+# Probe whether the active Clang supports LLVM Polly flags.
+set(HQC_POLLY_AVAILABLE OFF)
+if(HQC_ENABLE_POLLY)
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+        set(_HQC_REQUIRED_FLAGS_SAVE "${CMAKE_REQUIRED_FLAGS}")
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -mllvm -polly")
+        check_c_source_compiles("int main(void){return 0;}" HQC_POLLY_AVAILABLE)
+        set(CMAKE_REQUIRED_FLAGS "${_HQC_REQUIRED_FLAGS_SAVE}")
+
+        if(HQC_POLLY_AVAILABLE)
+            message(STATUS "[polly] LLVM Polly flags are supported")
+        else()
+            message(WARNING "[polly] Requested HQC_ENABLE_POLLY=ON but this Clang does not support -mllvm -polly; skipping Polly flags.")
+        endif()
+    else()
+        message(WARNING "[polly] Requested HQC_ENABLE_POLLY=ON but compiler is not Clang; skipping Polly flags.")
+    endif()
+endif()
+
 # ── Target matrix: LEVEL × POLYMUL ───────────────────────────────────────────
 foreach(LEVEL ${SECURITY_LEVELS})
     # Build the invariant core OBJECT library for this level (idempotent).
@@ -305,6 +349,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "karatsuba_ref")
             hqc_apply_ref_lto_pgo(${KAT_TARGET})
         endif()
+        hqc_apply_scalar_polly(${KAT_TARGET} ${POLYMUL})
 
         # CTest KAT gate — must pass before any branch is merged.
         # run_kat.sh(elf, level, polymul) drives QEMU and diffs against .rsp
@@ -374,6 +419,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "karatsuba_ref")
             hqc_apply_ref_lto_pgo(${BENCH_TARGET})
         endif()
+        hqc_apply_scalar_polly(${BENCH_TARGET} ${POLYMUL})
         add_custom_target(run_${BENCH_TARGET}
             COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${BENCH_TARGET}>
             DEPENDS ${BENCH_TARGET}
@@ -436,6 +482,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "karatsuba_ref")
             hqc_apply_ref_lto_pgo(${POLYMUL_BENCH_TARGET})
         endif()
+        hqc_apply_scalar_polly(${POLYMUL_BENCH_TARGET} ${POLYMUL})
         add_custom_target(run_${POLYMUL_BENCH_TARGET}
             COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${POLYMUL_BENCH_TARGET}>
             DEPENDS ${POLYMUL_BENCH_TARGET}
@@ -538,10 +585,13 @@ add_custom_target(symlink_compile_commands ALL
 )
 
 # ── objdump target: verify vclmul opcodes ────────────────────────────────────
+set(HQC_TOOLCHAIN_BIN_HINT "$ENV{RISCV}/bin" CACHE PATH
+    "Preferred RISC-V toolchain bin directory (defaults to $ENV{RISCV}/bin)")
+
 find_program(OBJDUMP_BIN
     NAMES riscv64-unknown-elf-objdump llvm-objdump
     PATHS
-        $ENV{RISCV}/bin
+        ${HQC_TOOLCHAIN_BIN_HINT}
         "${CMAKE_SOURCE_DIR}/../toolchains/installed-tools/bin"
     NO_DEFAULT_PATH
 )

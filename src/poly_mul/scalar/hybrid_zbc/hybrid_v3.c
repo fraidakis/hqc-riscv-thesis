@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "parameters.h"
+#include "hqc_parameters.h"
 #include "hybrid_v3.h"
 
 /* ── Dynamic crossover threshold ─────────────────────────────────────────── *
@@ -58,13 +59,13 @@
  *   T=16 is the global optimum for HQC-128 on this scalar Zbc core.
  */
 #ifndef V3_HYBRID_THRESH
-#define V3_HYBRID_THRESH 32   /* winning threshold from the sweep */
+#define V3_HYBRID_THRESH HQC_HYBRID_V3_THRESHOLD_DEFAULT   /* winning threshold from the sweep */
 #endif
 
 /* ── Temporary buffer sizing ─────────────────────────────────────────────── *
  * At each recursion level: 8*n words.  Summing across all levels: < 16*n.
  */
-#define TMP_BUFFER_WORDS (16 * VEC_N_SIZE_64)
+#define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
 /* ── RISC-V Zbc carry-less multiply ──────────────────────────────────────── *
  * Two instructions: clmul (low 64 bits) + clmulh (high 64 bits) of the
@@ -194,7 +195,7 @@ static void hybrid_v3_rec(uint64_t * __restrict__ r,
 static void reduce(uint64_t * __restrict__ o,
                    const uint64_t * __restrict__ a)
 {
-    int shift = PARAM_N & 0x3F;
+    int shift = (int)HQC_PARAM_N_MOD_64;
     int inv   = 64 - shift;
 
     for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
@@ -202,7 +203,7 @@ static void reduce(uint64_t * __restrict__ o,
         uint64_t carry  = (shift == 0) ? 0ULL : (a[i + VEC_N_SIZE_64] << inv);
         o[i] = a[i] ^ r ^ carry;
     }
-    o[VEC_N_SIZE_64 - 1] &= BITMASK(PARAM_N, 64);
+    o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
 }
 
 /* ── Public entry point ──────────────────────────────────────────────────── */

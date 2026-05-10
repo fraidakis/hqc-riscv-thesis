@@ -165,6 +165,10 @@ case "$VARIANT" in
         POLYMUL_SRCS=("src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c")
         RISCV_ONLY=1
         ;;
+    karatsuba_zvbc)
+        POLYMUL_SRCS=("src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul.c")
+        RISCV_ONLY=1
+        ;;
     *)
         echo "[check_ct] ERROR: unknown variant '$VARIANT'" >&2
         exit 1

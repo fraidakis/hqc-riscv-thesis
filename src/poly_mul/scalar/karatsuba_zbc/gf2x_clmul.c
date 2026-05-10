@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "parameters.h"
+#include "hqc_parameters.h"
 
 /* ── RISC-V Zbc carry-less multiply base case ─────────────────────────────
  * Computes the full 128-bit carry-less product of two 64-bit words.
@@ -51,13 +52,13 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
  * Override at compile time: -DKARATSUBA_THRESHOLD=N
  */
 #ifndef KARATSUBA_THRESHOLD
-#define KARATSUBA_THRESHOLD 16
+#define KARATSUBA_THRESHOLD HQC_KARATSUBA_THRESHOLD_DEFAULT
 #endif
 
 /* ── Temporary buffer sizing (same formula as reference) ─────────────────
  * At each level: 8*n words.  Summing across levels: < 16*n total.
  */
-#define TMP_BUFFER_WORDS (16 * VEC_N_SIZE_64)
+#define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
 /* ── Leaf multiply: n words × n words → 2n words using clmul ────────────
  * For small n (≤ KARATSUBA_THRESHOLD), performs a "schoolbook clmul" where
@@ -141,7 +142,7 @@ static void karatsuba_clmul(uint64_t * __restrict__ r,
  */
 static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
 {
-    int shift = PARAM_N & 0x3F;
+    int shift = (int)HQC_PARAM_N_MOD_64;
     int inv   = 64 - shift;
 
     for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
@@ -149,7 +150,7 @@ static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
         uint64_t carry = (shift == 0) ? 0 : (a[i + VEC_N_SIZE_64] << inv);
         o[i] = a[i] ^ r ^ carry;
     }
-    o[VEC_N_SIZE_64 - 1] &= BITMASK(PARAM_N, 64);
+    o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
 }
 
 /* ── Public entry point ──────────────────────────────────────────────────

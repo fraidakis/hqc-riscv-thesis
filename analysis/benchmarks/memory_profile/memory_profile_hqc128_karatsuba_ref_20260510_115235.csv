@@ -1,0 +1,2 @@
+level,variant,iter,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store,qemu_log,uart_log
+128,karatsuba_ref,1,399,320,1533,1068,24,17,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/qemu_trace_hqc128_karatsuba_ref_20260510_115235.log,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/qemu_stdout_hqc128_karatsuba_ref_20260510_115235.txt

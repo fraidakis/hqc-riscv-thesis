@@ -1,0 +1,93 @@
+name: Main Branch Cycle History
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  spike-cycle-history:
+    name: Spike Cycle History (karatsuba_ref)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build device-tree-compiler \
+            python3 libboost-regex-dev libboost-system-dev
+
+      - name: Restore toolchain cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Thesis/installed-tools
+          key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+
+      - name: Source toolchain environment
+        run: |
+          source toolchain/toolchain.env
+          echo "RISCV=$RISCV" >> "$GITHUB_ENV"
+          echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Configure CMake for Spike benchmarks
+        run: |
+          cmake -S . -B build/spike -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DHQC_SIM=spike \
+            -DBENCH_N_ITER=11
+
+      - name: Build reference polymul benchmark targets
+        run: |
+          cmake --build build/spike \
+            --target \
+              bench_polymul_hqc128_karatsuba_ref \
+              bench_polymul_hqc192_karatsuba_ref \
+              bench_polymul_hqc256_karatsuba_ref \
+            -j"$(nproc)"
+
+      - name: Run Spike and collect median cycle counts
+        id: run-bench
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p analysis/benchmarks/main-history
+
+          run_and_extract() {
+            local level="$1"
+            local elf="build/spike/bench_polymul_hqc${level}_karatsuba_ref.elf"
+            local out="analysis/benchmarks/main-history/hqc${level}_karatsuba_ref_${GITHUB_SHA::8}.csv"
+
+            sim/spike/run_bench.sh "$elf" | tee "$out"
+
+            local median
+            median=$(awk -F, '$1 == "vect_mul" { print $4; exit }' "$out")
+            if [[ -z "$median" ]]; then
+              echo "Failed to parse median_cycles for HQC-${level}" >&2
+              exit 1
+            fi
+            echo "median_${level}=$median" >> "$GITHUB_OUTPUT"
+          }
+
+          run_and_extract 128
+          run_and_extract 192
+          run_and_extract 256
+
+      - name: Publish cycle history in job summary
+        run: |
+          {
+            echo "## Main Branch Spike Cycle History"
+            echo
+            echo "- Commit: $GITHUB_SHA"
+            echo "- Run date (UTC): $(date -u +'%Y-%m-%d %H:%M:%S')"
+            echo "- Variant: karatsuba_ref (reference scalar implementation)"
+            echo
+            echo "| Security Level | Median Cycles (vect_mul) |"
+            echo "|---|---:|"
+            echo "| HQC-128 | ${{ steps.run-bench.outputs.median_128 }} |"
+            echo "| HQC-192 | ${{ steps.run-bench.outputs.median_192 }} |"
+            echo "| HQC-256 | ${{ steps.run-bench.outputs.median_256 }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
