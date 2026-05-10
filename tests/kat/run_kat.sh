@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # tests/kat/run_kat.sh
 #
-# Drive the bare-metal KAT binary under the configured simulator backend
-# (QEMU or Spike), capture output, and diff against the reference .rsp.
+# Drive the bare-metal KAT binary under QEMU system-mode emulation,
+# capture the HTIF console output, and diff against the reference .rsp.
 #
 # Usage:
-#   run_kat.sh <elf-binary> <rsp-file> [<sim-binary>]
+#   run_kat.sh <elf-binary> <rsp-file> [<qemu-binary>]
 #   run_kat.sh <elf-binary> <level> <polymul>
 #
 # Arguments:
@@ -14,13 +14,20 @@
 #   level        Security level used by the current CTest wiring (128/192/256).
 #   polymul      Polymul variant label, ignored here but accepted for
 #                compatibility with the add_test() signature in CMake.
-#   sim-binary   (optional) Backward-compatible optional argument. Ignored.
+#   qemu-binary  (optional) Path to qemu-system-riscv64.
+#                Defaults to: qemu-system-riscv64 on PATH, or
+#                             ../../../installed-tools/bin/qemu-system-riscv64.
 #
 # Output:
 #   Prints PASS/FAIL summary to stdout.
-#   Exits 0 on success, 1 on KAT failure or simulator error.
+#   Exits 0 on success, 1 on KAT failure or QEMU error.
 #
-# Timeout: 120 s per security level (higher for slower simulator backends).
+# QEMU invocation uses the virt machine with:
+#   -nographic  : serial output captured to a temp file via -serial file:...
+#   -bios none  : ELF loaded directly (no OpenSBI)
+#   -kernel     : the bare-metal ELF
+#
+# Timeout: 120 s per security level (HQC-256 KAT on QEMU may take ~90 s).
 
 set -euo pipefail
 
@@ -29,7 +36,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 if [[ $# -lt 2 ]]; then
-    echo "Usage: run_kat.sh <elf> <rsp> [sim-binary]" >&2
+    echo "Usage: run_kat.sh <elf> <rsp> [qemu-system-riscv64]" >&2
     echo "   or: run_kat.sh <elf> <level> <polymul>" >&2
     exit 2
 fi
@@ -37,7 +44,7 @@ fi
 ELF="$1"
 ARG2="$2"
 ARG3="${3:-}"
-SIM_BIN_OPT=""
+QEMU=""
 
 if [[ "$ARG2" =~ ^(128|192|256)$ ]]; then
     LEVEL="$ARG2"
@@ -45,7 +52,7 @@ if [[ "$ARG2" =~ ^(128|192|256)$ ]]; then
     RSP="${REPO_ROOT}/tests/kat/PQCkemKAT_${LEVEL}.rsp"
 else
     RSP="$ARG2"
-    SIM_BIN_OPT="$ARG3"
+    QEMU="$ARG3"
     POLYMUL=""
     LEVEL=""
 fi
@@ -59,20 +66,8 @@ if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
 fi
 unset _BUILD_DIR _TARGET
 
-SIM_BACKEND=""
-if [[ -f "$(dirname "$ELF")/CMakeCache.txt" ]]; then
-    SIM_BACKEND="$(grep -E '^HQC_SIM:STRING=' "$(dirname "$ELF")/CMakeCache.txt" | head -n1 | cut -d= -f2 || true)"
-fi
-if [[ -z "$SIM_BACKEND" ]]; then
-    case "$ELF" in
-        */build/spike/*) SIM_BACKEND="spike" ;;
-        *) SIM_BACKEND="qemu" ;;
-    esac
-fi
-
-RUNNER="${REPO_ROOT}/sim/${SIM_BACKEND}/run_kat.sh"
-if [[ ! -x "$RUNNER" ]]; then
-    echo "ERROR: simulator runner not found or not executable: $RUNNER" >&2
+if [[ ! -x "${REPO_ROOT}/sim/qemu/run_kat.sh" ]]; then
+    echo "ERROR: sim/qemu/run_kat.sh not found or not executable" >&2
     exit 2
 fi
 
@@ -93,21 +88,21 @@ if [[ ! -f "$RSP" ]]; then
     exit 2
 fi
 
-# ── Temp file for simulator output ───────────────────────────────────────────
+# ── Temp file for QEMU serial output ─────────────────────────────────────────
 LOG="$(mktemp /tmp/hqc_kat_XXXXXX.log)"
 trap 'rm -f "$LOG"' EXIT
 
-# ── Run under selected simulator backend ─────────────────────────────────────
-echo "Running: $ELF under ${SIM_BACKEND}..."
+# ── Run under QEMU (via sim/qemu wrapper) ───────────────────────────────────
+echo "Running: $ELF under QEMU..."
 # Optional third argument is kept for backward-compatible CLI shape.
-if [[ -n "$SIM_BIN_OPT" ]]; then
-    echo "[kat/run_kat] NOTE: custom simulator argument is ignored; using ${RUNNER}" >&2
+if [[ -n "$QEMU" ]]; then
+    echo "[kat/run_kat] NOTE: custom qemu argument is ignored; using sim/qemu/run_kat.sh" >&2
 fi
-"$RUNNER" "$ELF" > "$LOG" 2>&1 || true
+"${REPO_ROOT}/sim/qemu/run_kat.sh" "$ELF" > "$LOG" 2>&1 || true
 
 # ── Check captured output ─────────────────────────────────────────────────────
 if [[ ! -s "$LOG" ]]; then
-    echo "FAIL: ${SIM_BACKEND} produced no output for $BASENAME" >&2
+    echo "FAIL: QEMU produced no output for $BASENAME" >&2
     exit 1
 fi
 
