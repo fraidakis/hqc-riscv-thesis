@@ -25,12 +25,23 @@ runs:
     - name: Restore toolchain cache
       uses: actions/cache@v4
       with:
-        path: ~/Thesis/toolchains/installed-tools
+        path: ~/Thesis/installed-tools
         key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
+
+    - name: Restore toolchain cache (new layout fallback)
+      uses: actions/cache@v4
+      with:
+        path: ~/Thesis/toolchains/installed-tools
+        key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}-toolchains-layout
 
     - name: Source toolchain environment
       shell: bash
       run: |
         source toolchain/toolchain.env
+        if [[ ! -x "$RISCV/bin/clang" ]]; then
+          echo "RISC-V toolchain not found at RISCV=$RISCV" >&2
+          echo "Expected compiler: $RISCV/bin/clang" >&2
+          exit 1
+        fi
         echo "RISCV=$RISCV" >> "$GITHUB_ENV"
         echo "PATH=$RISCV/bin:$PATH" >> "$GITHUB_ENV"

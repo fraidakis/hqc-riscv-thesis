@@ -98,7 +98,7 @@ jobs:
       - name: Restore toolchain cache
         uses: actions/cache@v4
         with:
-          path: ~/Thesis/toolchains/installed-tools
+          path: ~/Thesis/installed-tools
           key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
 
       - name: Source toolchain environment
@@ -168,7 +168,7 @@ jobs:
       - name: Restore toolchain cache
         uses: actions/cache@v4
         with:
-          path: ~/Thesis/toolchains/installed-tools
+          path: ~/Thesis/installed-tools
           key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
 
       - name: Source toolchain environment

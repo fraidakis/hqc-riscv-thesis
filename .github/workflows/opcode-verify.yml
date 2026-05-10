@@ -37,7 +37,7 @@ jobs:
       - name: Restore toolchain cache
         uses: actions/cache@v4
         with:
-          path: ~/Thesis/toolchains/installed-tools
+          path: ~/Thesis/installed-tools
           key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
 
       - name: Build vector_zvbc target
@@ -53,7 +53,7 @@ jobs:
       - name: Check vclmul opcodes present
         run: |
           bash scripts/ci/check_opcodes.sh \
-            "$HOME/Thesis/toolchains/installed-tools/bin/llvm-objdump" \
+            "$RISCV/bin/llvm-objdump" \
             build/hqc128_vector_zvbc.elf
 
       - name: Check ISA string in ELF
