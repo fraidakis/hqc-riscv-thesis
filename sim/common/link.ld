@@ -77,5 +77,4 @@ SECTIONS
 
 /* ── Sanity check: catch accidental overflow at link time ────────── */
 ASSERT(_stack_top <= ORIGIN(RAM) + LENGTH(RAM),
-       "ERROR: .bss + .stack overflow the 128 MiB RAM region. "
-       "Reduce BSS size or increase LENGTH(RAM) in link.ld.")
+    "ERROR: .bss + .stack overflow the 128 MiB RAM region. Reduce BSS size or increase LENGTH(RAM) in link.ld.")
