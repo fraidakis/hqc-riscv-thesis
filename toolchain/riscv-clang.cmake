@@ -73,6 +73,9 @@ _find_riscv_tool(LLD_STRIP_BIN TOOL llvm-strip CANDIDATES llvm-strip llvm-strip-
 set(CMAKE_C_COMPILER   "${CLANG_BIN}")
 set(CMAKE_CXX_COMPILER "${CLANGXX_BIN}")
 set(CMAKE_ASM_COMPILER "${CLANG_BIN}")
+set(CMAKE_C_COMPILER_TARGET   "riscv64-unknown-elf")
+set(CMAKE_CXX_COMPILER_TARGET "riscv64-unknown-elf")
+set(CMAKE_ASM_COMPILER_TARGET "riscv64-unknown-elf")
 set(CMAKE_AR           "${LLD_AR_BIN}")
 set(CMAKE_RANLIB       "${LLD_RANLIB_BIN}")
 set(CMAKE_OBJCOPY      "${LLD_OBJCOPY_BIN}")
@@ -108,6 +111,8 @@ if(RISCV STREQUAL "/usr")
   list(APPEND RISCV_COMMON_FLAGS
     "--sysroot=${RISCV_SYSROOT}"
     "--gcc-toolchain=/usr"
+    "-isystem"
+    "/usr/riscv64-unknown-elf/include"
   )
 endif()
 
@@ -119,12 +124,16 @@ set(CMAKE_ASM_FLAGS_INIT "--target=${RISCV_TARGET_TRIPLE} -march=${RISCV_MARCH} 
 
 if(RISCV STREQUAL "/usr")
   string(APPEND CMAKE_ASM_FLAGS_INIT " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
-  set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
+  string(APPEND CMAKE_C_FLAGS " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr -isystem /usr/riscv64-unknown-elf/include")
+  string(APPEND CMAKE_CXX_FLAGS " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr -isystem /usr/riscv64-unknown-elf/include")
+  string(APPEND CMAKE_ASM_FLAGS " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
 endif()
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld -Wl,--gc-sections -nostartfiles -nostdlib")
+if(RISCV STREQUAL "/usr")
+  string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " -L/usr/riscv64-unknown-elf/lib")
+  string(APPEND CMAKE_EXE_LINKER_FLAGS " -L/usr/riscv64-unknown-elf/lib")
+endif()
 
 # ── Find root path for libraries ──────────────────────────────────────────────
 if(NOT RISCV_SYSROOT STREQUAL "")
@@ -135,3 +144,4 @@ endif()
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)

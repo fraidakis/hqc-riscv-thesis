@@ -15,17 +15,13 @@ runs:
       run: |
         sudo apt-get update -qq
         base_packages="cmake ninja-build device-tree-compiler python3 libboost-regex-dev libboost-system-dev build-essential bison flex texinfo gawk"
-        if apt-cache show libnewlib-riscv64-unknown-elf >/dev/null 2>&1; then
-          baremetal_libc_pkg="libnewlib-riscv64-unknown-elf"
-        elif apt-cache show picolibc-riscv64-unknown-elf >/dev/null 2>&1; then
-          baremetal_libc_pkg="picolibc-riscv64-unknown-elf"
-        else
-          echo "::error:: Could not find a bare-metal RISC-V libc package (libnewlib-riscv64-unknown-elf or picolibc-riscv64-unknown-elf)."
-          exit 1
-        fi
-        riscv_packages="clang-18 lld-18 gcc-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user $baremetal_libc_pkg"
+        riscv_packages="clang-18 lld-18 gcc-riscv64-unknown-elf libnewlib-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user"
         additional="${{ inputs.additional-packages }}"
-        sudo apt-get install -y $base_packages $riscv_packages $additional
+        if ! sudo apt-get install -y $base_packages $riscv_packages $additional; then
+          echo "::warning:: libnewlib-riscv64-unknown-elf unavailable; retrying with picolibc-riscv64-unknown-elf"
+          riscv_packages_fallback="clang-18 lld-18 gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user"
+          sudo apt-get install -y $base_packages $riscv_packages_fallback $additional
+        fi
 
     - name: Provide unversioned LLVM binary aliases
       shell: bash
