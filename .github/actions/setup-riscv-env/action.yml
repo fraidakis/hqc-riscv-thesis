@@ -44,6 +44,31 @@ runs:
         target_sysroot="/usr/riscv64-unknown-elf"
         sudo mkdir -p "$target_sysroot"
 
+        find_first_existing_file() {
+          local needle="$1"
+          shift
+          local candidates=("$@")
+          local d
+          for d in "${candidates[@]}"; do
+            if [[ -f "$d/$needle" ]]; then
+              printf '%s\n' "$d"
+              return 0
+            fi
+          done
+          return 1
+        }
+
+        find_dynamic_sysroot_dir() {
+          local needle="$1"
+          local found
+          found="$(find /usr -type f -name "$needle" 2>/dev/null | grep -E '/(riscv64-unknown-elf|newlib|picolibc)/' | head -n1 || true)"
+          if [[ -n "$found" ]]; then
+            dirname "$found"
+            return 0
+          fi
+          return 1
+        }
+
         # Ensure include path expected by toolchain flags exists.
         if [[ ! -f "$target_sysroot/include/string.h" ]]; then
           include_candidates=(
@@ -51,13 +76,17 @@ runs:
             "/usr/include/newlib"
             "/usr/lib/riscv64-unknown-elf/newlib/include"
             "/usr/lib/newlib/include"
+            "/usr/lib/picolibc/riscv64-unknown-elf/include"
+            "/usr/riscv64-unknown-elf/picolibc/include"
           )
-          for inc in "${include_candidates[@]}"; do
-            if [[ -f "$inc/string.h" ]]; then
-              sudo ln -sfn "$inc" "$target_sysroot/include"
-              break
-            fi
-          done
+
+          include_dir="$(find_first_existing_file string.h "${include_candidates[@]}" || true)"
+          if [[ -z "$include_dir" ]]; then
+            include_dir="$(find_dynamic_sysroot_dir string.h || true)"
+          fi
+          if [[ -n "$include_dir" ]]; then
+            sudo ln -sfn "$include_dir" "$target_sysroot/include"
+          fi
         fi
 
         # Ensure library path expected by toolchain flags exists.
@@ -67,13 +96,17 @@ runs:
             "/usr/lib/riscv64-unknown-elf/newlib"
             "/usr/lib/riscv64-unknown-elf"
             "/usr/lib/newlib"
+            "/usr/lib/picolibc/riscv64-unknown-elf/lib"
+            "/usr/riscv64-unknown-elf/picolibc/lib"
           )
-          for libdir in "${lib_candidates[@]}"; do
-            if [[ -f "$libdir/libc.a" ]]; then
-              sudo ln -sfn "$libdir" "$target_sysroot/lib"
-              break
-            fi
-          done
+
+          lib_dir="$(find_first_existing_file libc.a "${lib_candidates[@]}" || true)"
+          if [[ -z "$lib_dir" ]]; then
+            lib_dir="$(find_dynamic_sysroot_dir libc.a || true)"
+          fi
+          if [[ -n "$lib_dir" ]]; then
+            sudo ln -sfn "$lib_dir" "$target_sysroot/lib"
+          fi
         fi
 
         if [[ ! -f "$target_sysroot/include/string.h" ]]; then
