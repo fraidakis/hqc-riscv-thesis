@@ -1,0 +1,2 @@
+timestamp,level,variant,iter,dc_config,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,run_mode,elf,stdout_log,stderr_log
+20260510_145927,128,fafft_zvbc,1,512:8:64,818,156,662,33,direct,/home/fraidakisg/Thesis/hqc-riscv/build/spike_cacheprof_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/cache_spike_stdout_hqc128_fafft_zvbc_20260510_145927.log,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/cache_spike_stderr_hqc128_fafft_zvbc_20260510_145927.log

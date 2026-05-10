@@ -353,6 +353,22 @@ Expected terminal snippet:
   clmulh                             98765   17.7%
 ```
 
+### 7.3 Hardware Memory Profiling (Banana Pi)
+
+Use this to validate Spike cache-simulator trends against physical silicon for
+`zbc` variants.
+
+Command on Banana Pi:
+
+```bash
+perf stat -e L1-dcache-loads,L1-dcache-load-misses ./dudect_cross_hqc128_fafft_zbc.elf
+```
+
+Notes:
+- treat this as the authoritative measurement for native memory contention.
+- use Spike cache profiling (`scripts/bench/profile_cache_spike.sh`) as a
+  controlled simulator baseline and compare relative deltas across variants.
+
 ---
 
 ## 8. Batch Spike benchmarking (phase orchestration)

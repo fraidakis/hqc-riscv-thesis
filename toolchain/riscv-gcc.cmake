@@ -41,13 +41,11 @@ set(RISCV_MARCH "rv64gcv_zbc_zbb_zbkb_zvbc")
 set(RISCV_MABI  "lp64d")
 
 set(RISCV_COMMON_FLAGS
-  "--target=${RISCV_TARGET_TRIPLE}"
   "-march=${RISCV_MARCH}"
   "-mabi=${RISCV_MABI}"
-  "-menable-experimental-extensions"
   "-mcmodel=medany"
   "-O3"
-  "-flto"
+  "-fno-lto"
   "-mno-relax"
   "-ffreestanding"
   "-fno-tree-vectorize"
@@ -59,9 +57,9 @@ string(JOIN " " RISCV_FLAGS_STR ${RISCV_COMMON_FLAGS})
 
 set(CMAKE_C_FLAGS_INIT   "${RISCV_FLAGS_STR}")
 set(CMAKE_CXX_FLAGS_INIT "${RISCV_FLAGS_STR} -fno-exceptions -fno-rtti")
-set(CMAKE_ASM_FLAGS_INIT "--target=${RISCV_TARGET_TRIPLE} -march=${RISCV_MARCH} -mabi=${RISCV_MABI} -menable-experimental-extensions")
+set(CMAKE_ASM_FLAGS_INIT "-march=${RISCV_MARCH} -mabi=${RISCV_MABI}")
 
-set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld -Wl,--gc-sections -nostartfiles -nostdlib")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,--gc-sections -nostartfiles -nostdlib")
 
 # ── Find root path for libraries ──────────────────────────────────────────────
 set(CMAKE_FIND_ROOT_PATH "${RISCV_SYSROOT}")

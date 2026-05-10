@@ -1,0 +1,3 @@
+label,trace,total_instructions,unique_instructions,alu,memory,vector,control,system,other,alu_pct,memory_pct,vector_pct,control_pct,system_pct,other_pct
+bench_polymul_hqc192_fafft_zbc,analysis/benchmarks/hotspot_profile/bench_polymul_hqc192_fafft_zbc/spike_trace.log,2525031,59,1011730,530181,876283,106831,6,0,40.07,21.00,34.70,4.23,0.00,0.00
+bench_polymul_hqc192_fafft_zbc,analysis/benchmarks/hotspot_profile/bench_polymul_hqc192_fafft_zbc/spike_trace.log,2525031,59,1011730,530181,876283,106831,6,0,40.07,21.00,34.70,4.23,0.00,0.00

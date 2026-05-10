@@ -1,0 +1,2 @@
+timestamp,level,variant,iter,dc_config,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,run_mode,elf,stdout_log,stderr_log
+20260510_145822,128,karatsuba_zvbc,1,512:8:64,540,18,522,27,direct,/home/fraidakisg/Thesis/hqc-riscv/build/spike_cacheprof_hqc128_karatsuba_zvbc/bench_polymul_hqc128_karatsuba_zvbc.elf,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/cache_spike_stdout_hqc128_karatsuba_zvbc_20260510_145822.log,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/cache_spike_stderr_hqc128_karatsuba_zvbc_20260510_145822.log

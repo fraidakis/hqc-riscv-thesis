@@ -21,7 +21,6 @@
 #   --iter <N>              BENCH_N_ITER for both benches (default: 1)
 #   --levels "128 192 256"  Levels to run (default: all)
 #   --variant <regex>       Filter implemented variants with grep -E
-#   --mini                  Also run tests/bench/mini_bench.c on Spike
 #   --promote <name>        Copy curated CSVs to analysis/benchmarks/canonical/<name>/
 #
 # Notes:
@@ -46,7 +45,6 @@ ITER=1
 LEVELS="128 192 256"
 VARIANT_FILTER=""
 PROMOTE_NAME=""
-DO_MINI=0
 BENCH_TIME=$(date +'%Y%m%d_%H%M')
 
 RUN_ID_OVERRIDE=0
@@ -61,8 +59,6 @@ while [[ $# -gt 0 ]]; do
             LEVELS="$2"; shift 2 ;;
         --variant)
             VARIANT_FILTER="$2"; shift 2 ;;
-        --mini)
-            DO_MINI=1; shift ;;
         --promote)
             PROMOTE_NAME="$2"; shift 2 ;;
         *)
@@ -163,33 +159,6 @@ for level in $LEVELS; do
         run_one "$level" "$variant" "kem" "bench_hqc${level}_${variant}" "keypair"
     done
 done
-
-if [[ $DO_MINI -eq 1 ]]; then
-    local_base="mini_bench_spike"
-    mini_raw_out="${RAW_DIR}/${local_base}.stdout"
-    mini_raw_err="${RAW_DIR}/${local_base}.stderr"
-    mini_curated="${CURATED_DIR}/${local_base}.csv"
-
-    make -f "${REPO_ROOT}/tests/bench/mini_bench.mk" spike >/dev/null
-
-    t0_ns=$(date +%s%N)
-    "$SPIKE" --isa="$ISA" "${REPO_ROOT}/build-mini/mini_bench_spike.elf" > "$mini_raw_out" 2> "$mini_raw_err"
-    t1_ns=$(date +%s%N)
-    elapsed_ms=$(( (t1_ns - t0_ns) / 1000000 ))
-    elapsed_s=$(awk -v ms="$elapsed_ms" 'BEGIN { printf "%.3f", ms/1000.0 }')
-
-    awk 'BEGIN{keep=0}
-         /^kernel,iters,cycles,cyc_per_iter/ {print; keep=1; next}
-         keep && /^[a-z0-9_]+,[0-9]+,[0-9]+,[0-9]+/ {print}
-    ' "$mini_raw_out" > "$mini_curated"
-
-    while IFS=',' read -r kernel iters cycles cyc_per_iter; do
-        [[ "$kernel" == "kernel" ]] && continue
-        echo "mini,mini,mini,${kernel},${elapsed_s},${cyc_per_iter},${cycles},${mini_curated}" >> "$SUMMARY_CSV"
-    done < "$mini_curated"
-
-    echo "[suite] mini bench spike: ${elapsed_s}s"
-fi
 
 if [[ -n "$PROMOTE_NAME" ]]; then
     CANON_DIR="${REPO_ROOT}/analysis/benchmarks/canonical/${PROMOTE_NAME}"

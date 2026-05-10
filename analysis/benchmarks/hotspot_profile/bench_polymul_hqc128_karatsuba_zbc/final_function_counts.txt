@@ -1,0 +1,12 @@
+--- FUNCTION TOTALS ---
+karatsuba_clmul: 825816
+hqc_htif_puts: 793385
+memset: 569148
+hqc_htif_putu64: 224986
+vect_mul: 6710
+_start: 2513
+main: 2443
+?? ??:0: 1494
+hqc_htif_exit: 8
+hqc_rdcycle: 4
+hqc_rdinstret: 4

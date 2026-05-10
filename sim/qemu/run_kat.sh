@@ -22,15 +22,33 @@ unset _BUILD_DIR _TARGET
 # Always use -bios none so QEMU starts the ELF directly as the "kernel".
 BIOS="none"
 
+# Memory sizing: link.ld allocates exactly 128 MiB (ORIGIN=0x80000000, LENGTH=128M).
+# Match -m to that value so QEMU doesn't waste host RAM.
+#
+# CPU flags:
+#   vlen=256 — HQC FAFFT butterflies use LMUL=m2 over 64-bit elements; VLEN=256
+#              gives 4 elements per register group, matching the implementation's
+#              loop structure. Smaller (128) would halve throughput; larger (512)
+#              would break the fixed-width grouping without code changes.
+#   elen=64  — maximum element width; required for vd.vv 64-bit ops.
+#   vext_spec=v1.0 — ratified vector ISA; older v0.7/v0.8 drafts behave differently.
+#   zbkb/zbc/zvbc — bit-manipulation and carryless-multiply extensions used by
+#                   the polynomial-mul kernels.
+#
+# Serial: plain -serial stdio (no mon: mux) so automated capture
+# never sees QEMU monitor escape sequences in the output stream.
+# Ctrl-A X is unavailable, but -no-reboot + the test-finisher MMIO write
+# (bench.c → QEMU_FINISHER) ensure QEMU exits cleanly after every run.
+
 echo "[run_kat] Running: $ELF"
 "$QEMU" \
     -machine virt \
     -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
-    -m 256M \
+    -m 128M \
     -nographic \
     -bios "$BIOS" \
     -kernel "$ELF" \
-    -serial mon:stdio \
+    -serial stdio \
     -no-reboot \
     2>&1
 

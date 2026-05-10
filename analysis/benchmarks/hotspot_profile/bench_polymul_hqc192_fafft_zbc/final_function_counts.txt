@@ -1,0 +1,12 @@
+--- FUNCTION TOTALS ---
+vect_mul_v5: 1455334
+hqc_htif_puts: 767567
+hqc_htif_putu64: 224968
+memset: 67452
+_start: 5069
+main: 4564
+?? ??:0: 42
+hqc_rdcycle: 20
+hqc_rdinstret: 20
+vect_mul: 20
+hqc_htif_exit: 12

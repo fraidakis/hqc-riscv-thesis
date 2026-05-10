@@ -1,6 +1,0 @@
-# BINSEC config for karatsuba_zbc polymul path
-VARIANT=karatsuba_zbc
-ENTRY_SYMBOL=vect_mul
-TARGET_PATTERN=bench_polymul_hqc{LEVEL}_karatsuba_zbc.elf
-SECRET_INPUTS=v1,v2
-OBSERVABLES=timing,memory_access,branch_condition

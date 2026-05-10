@@ -1,6 +1,0 @@
-# BINSEC config for fafft_zvbc polymul path
-VARIANT=fafft_zvbc
-ENTRY_SYMBOL=vect_mul
-TARGET_PATTERN=bench_polymul_hqc{LEVEL}_fafft_zvbc.elf
-SECRET_INPUTS=v1,v2
-OBSERVABLES=timing,memory_access,branch_condition

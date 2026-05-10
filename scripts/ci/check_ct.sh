@@ -15,7 +15,6 @@
 #
 # Variants that require RISC-V Zbc / RVV intrinsics cannot be compiled on
 # x86-64.  The script skips them with exit 0 so CI remains green.
-# RISC-V binary-level CT analysis uses binsec (analysis/ct_verify/binsec/).
 #
 # Usage:
 #   check_ct.sh [--help]
@@ -99,8 +98,8 @@ Output:
   - Dudect report:   analysis/ct_verify/dudect/dudect_hqc{LEVEL}_{VARIANT}.txt
 
 Note:
-  RISC-V-only variants (with intrinsics) cannot be compiled natively and are
-  skipped with a message pointing to binary-level analysis via BINSEC.
+    RISC-V-only variants (with intrinsics) cannot be compiled natively and are
+    skipped for host-side dudect/valgrind runs.
 HELP
     exit 0
 fi
@@ -177,7 +176,7 @@ esac
 
 if [[ "$RISCV_ONLY" -eq 1 ]]; then
     echo "[check_ct] SKIP: $VARIANT uses RISC-V intrinsics — cannot compile natively."
-    echo "[check_ct]        Binary-level CT analysis for this variant: analysis/ct_verify/binsec/"
+    echo "[check_ct]        Route this variant through the hardware timing workflow."
     exit 0
 fi
 
@@ -201,7 +200,6 @@ VENDOR_INVARIANT_SRCS=(
 )
 
 # Always use reference Keccak and Decode for native CT builds.
-# Phase 2/3 RVV implementations require binary-level analysis via binsec.
 KECCAK_SRCS=("${VENDOR}/lib/fips202/fips202.c")
 DECODE_SRCS=(
     "${VENDOR}/src/ref/reed_muller.c"
