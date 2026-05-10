@@ -25,11 +25,23 @@ jobs:
       - uses: ./.github/actions/parse-variants
         id: variants
 
+      - name: Validate variant matrix JSON
+        run: |
+          variants='${{ steps.variants.outputs.variants }}'
+          if [[ -z "$variants" ]] || [[ "$variants" == "null" ]]; then
+            echo "::error:: Variant matrix is empty or invalid"
+            echo "Output was: $variants"
+            exit 1
+          fi
+          echo "::notice:: Variant matrix JSON validated: $variants"
+
   build-test-analyze:
     name: CI (${{ matrix.variant }} / HQC-${{ matrix.level }})
     runs-on: ubuntu-24.04
     needs: prepare
     strategy:
+      # fail-fast: false ensures all matrix combinations run even if some fail
+      # This allows better insight into which variants/levels pass or fail independently
       fail-fast: false
       matrix:
         level: [128, 192, 256]
