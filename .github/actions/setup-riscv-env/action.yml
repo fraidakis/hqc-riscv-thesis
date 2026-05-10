@@ -1,20 +1,11 @@
 name: Setup RISC-V Environment
-description: Install system dependencies, restore toolchain cache, build if needed, and source environment
+description: Install system dependencies and configure system-provided RISC-V toolchain
 
 inputs:
-  cache-key-suffix:
-    description: 'Optional suffix for cache key (e.g., matrix values)'
-    required: false
-    default: ''
   additional-packages:
     description: 'Additional APT packages to install (space-separated)'
     required: false
     default: ''
-
-outputs:
-  cache-hit:
-    description: 'Whether the toolchain cache was hit'
-    value: ${{ steps.restore-cache.outputs.cache-hit }}
 
 runs:
   using: composite
@@ -24,76 +15,35 @@ runs:
       run: |
         sudo apt-get update -qq
         base_packages="cmake ninja-build device-tree-compiler python3 libboost-regex-dev libboost-system-dev build-essential bison flex texinfo gawk"
+        riscv_packages="clang-18 lld-18 gcc-riscv64-unknown-elf libc6-dev-riscv64-cross qemu-user"
         additional="${{ inputs.additional-packages }}"
-        sudo apt-get install -y $base_packages $additional
+        sudo apt-get install -y $base_packages $riscv_packages $additional
 
-    - name: Restore toolchain cache
-      id: restore-cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ github.workspace }}/riscv-tools
-        key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
-
-    - name: Build LLVM toolchain from source (cache miss fallback)
+    - name: Provide unversioned LLVM binary aliases
       shell: bash
       run: |
-        if [[ "${{ steps.restore-cache.outputs.cache-hit }}" != "true" ]]; then
-          echo "::notice:: Toolchain cache miss. Building LLVM from source..."
-          export RISCV="${{ github.workspace }}/riscv-tools"
-          mkdir -p "$RISCV"
-          
-          # Clone riscv-gnu-toolchain if not present
-          if [[ ! -d "${{ github.workspace }}/riscv-gnu-toolchain" ]]; then
-            echo "::info:: Cloning riscv-gnu-toolchain repository with submodules..."
-            git clone --recursive --depth=1 https://github.com/riscv-collab/riscv-gnu-toolchain.git "${{ github.workspace }}/riscv-gnu-toolchain" 2>&1 | tail -10 || {
-              echo "::warning:: Initial clone with --depth=1 failed; retrying without depth limit..."
-              rm -rf "${{ github.workspace }}/riscv-gnu-toolchain"
-              git clone --recursive https://github.com/riscv-collab/riscv-gnu-toolchain.git "${{ github.workspace }}/riscv-gnu-toolchain" 2>&1 | tail -10
-            }
-          fi
-          
-          # Build LLVM using local build script
-          if [[ -f "toolchain/build-llvm.sh" ]]; then
-            echo "::info:: Executing toolchain/build-llvm.sh..."
-            export RISCV="${{ github.workspace }}/riscv-tools"
-            export SRCDIR="${{ github.workspace }}/riscv-gnu-toolchain"
-            bash toolchain/build-llvm.sh 2>&1 | tail -30
-          else
-            echo "::error:: Could not find toolchain/build-llvm.sh"
-            exit 1
-          fi
-          
-          # Verify build
-          if [[ ! -x "$RISCV/bin/clang" ]]; then
-            echo "::error:: LLVM build failed or clang not found at $RISCV/bin/clang"
-            ls -la "$RISCV/bin/" || echo "Install directory is empty or missing"
-            exit 1
-          fi
-          echo "::notice:: LLVM build completed successfully."
-        fi
+        sudo ln -sf /usr/bin/clang-18 /usr/bin/clang
+        sudo ln -sf /usr/bin/clang++-18 /usr/bin/clang++
+        sudo ln -sf /usr/bin/lld-18 /usr/bin/lld
+        sudo ln -sf /usr/bin/ld.lld-18 /usr/bin/ld.lld
+        sudo ln -sf /usr/bin/llvm-ar-18 /usr/bin/llvm-ar
+        sudo ln -sf /usr/bin/llvm-ranlib-18 /usr/bin/llvm-ranlib
+        sudo ln -sf /usr/bin/llvm-objcopy-18 /usr/bin/llvm-objcopy
+        sudo ln -sf /usr/bin/llvm-objdump-18 /usr/bin/llvm-objdump
+        sudo ln -sf /usr/bin/llvm-strip-18 /usr/bin/llvm-strip
 
     - name: Source toolchain environment and persist
       shell: bash
       run: |
-        # Export RISCV path for this action and subsequent steps
-        export RISCV="${{ github.workspace }}/riscv-tools"
-        
-        # If $RISCV doesn't have toolchain, try fallbacks from toolchain.env search
-        if [[ ! -x "$RISCV/bin/clang" ]] && [[ -f "toolchain/toolchain.env" ]]; then
-          echo "::debug:: Primary RISCV path not found; sourcing toolchain.env for fallback detection..."
-          source toolchain/toolchain.env
-        fi
-        
-        # Verify toolchain exists
+        export RISCV="/usr"
         if [[ ! -x "$RISCV/bin/clang" ]]; then
           echo "::error:: RISC-V toolchain not found at RISCV=$RISCV"
           echo "::error:: Expected compiler: $RISCV/bin/clang"
           exit 1
         fi
-        
-        # Persist environment variables for subsequent steps and jobs
+
         echo "RISCV=$RISCV" >> "$GITHUB_ENV"
         echo "$RISCV/bin" >> "$GITHUB_PATH"
-        
+
         echo "::notice:: RISC-V toolchain configured: RISCV=$RISCV"
         echo "::notice:: clang: $(which clang)"
