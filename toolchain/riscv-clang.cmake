@@ -36,7 +36,11 @@ if(NOT DEFINED RISCV)
 endif()
 
 set(RISCV_TOOLCHAIN_PREFIX "${RISCV}/bin")
-if(EXISTS "${RISCV}/riscv64-unknown-elf")
+if(DEFINED ENV{RISCV} AND "$ENV{RISCV}" STREQUAL "/usr")
+  set(RISCV_SYSROOT "/usr/riscv64-unknown-elf")
+elseif(RISCV STREQUAL "/usr")
+  set(RISCV_SYSROOT "/usr/riscv64-unknown-elf")
+elseif(EXISTS "${RISCV}/riscv64-unknown-elf")
   set(RISCV_SYSROOT "${RISCV}/riscv64-unknown-elf")
 else()
   set(RISCV_SYSROOT "")
@@ -100,11 +104,25 @@ set(RISCV_COMMON_FLAGS
   "-fdata-sections"
 )
 
+if(RISCV STREQUAL "/usr")
+  list(APPEND RISCV_COMMON_FLAGS
+    "--sysroot=${RISCV_SYSROOT}"
+    "--gcc-toolchain=/usr"
+  )
+endif()
+
 string(JOIN " " RISCV_FLAGS_STR ${RISCV_COMMON_FLAGS})
 
 set(CMAKE_C_FLAGS_INIT   "${RISCV_FLAGS_STR}")
 set(CMAKE_CXX_FLAGS_INIT "${RISCV_FLAGS_STR} -fno-exceptions -fno-rtti")
 set(CMAKE_ASM_FLAGS_INIT "--target=${RISCV_TARGET_TRIPLE} -march=${RISCV_MARCH} -mabi=${RISCV_MABI} -menable-experimental-extensions")
+
+if(RISCV STREQUAL "/usr")
+  string(APPEND CMAKE_ASM_FLAGS_INIT " --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
+  set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} --sysroot=${RISCV_SYSROOT} --gcc-toolchain=/usr")
+endif()
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld -Wl,--gc-sections -nostartfiles -nostdlib")
 
