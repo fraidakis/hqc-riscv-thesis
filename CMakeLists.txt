@@ -158,12 +158,14 @@ set(LOCAL_COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/common/rng/tiny_aes.c
     ${CMAKE_SOURCE_DIR}/src/common/bench.c
     ${CMAKE_SOURCE_DIR}/sim/common/mem.c        # bare-metal memcpy/memset/memcmp
+    ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
 )
 # Bench mode: randombytes.c provides its own stub; no AES overhead needed.
 set(LOCAL_BENCH_SOURCES
     ${CMAKE_SOURCE_DIR}/src/common/randombytes.c
     ${CMAKE_SOURCE_DIR}/src/common/bench.c
     ${CMAKE_SOURCE_DIR}/sim/common/mem.c
+    ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
 )
 
 # ── LTO + PGO helper for karatsuba_ref targets (P-06) ────────────────────────
