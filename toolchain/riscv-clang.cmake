@@ -12,11 +12,23 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # ── Toolchain prefix ──────────────────────────────────────────────────────────
 if(NOT DEFINED RISCV)
-  # Default: toolchains/installed-tools lives two levels above this file
-  # (hqc-riscv/toolchain/ → hqc-riscv/ → Thesis/ → toolchains/installed-tools)
-  get_filename_component(_RISCV_DEFAULT
-      "${CMAKE_CURRENT_LIST_DIR}/../../toolchains/installed-tools" REALPATH)
-  set(RISCV "${_RISCV_DEFAULT}")
+  if(DEFINED ENV{RISCV} AND EXISTS "$ENV{RISCV}/bin/clang")
+    set(RISCV "$ENV{RISCV}")
+  else()
+    # Default: toolchains/installed-tools lives two levels above this file
+    # (hqc-riscv/toolchain/ → hqc-riscv/ → Thesis/ → toolchains/installed-tools)
+    get_filename_component(_RISCV_DEFAULT
+        "${CMAKE_CURRENT_LIST_DIR}/../../toolchains/installed-tools" REALPATH)
+    if(EXISTS "${_RISCV_DEFAULT}/bin/clang")
+      set(RISCV "${_RISCV_DEFAULT}")
+    elseif(DEFINED ENV{HOME} AND EXISTS "$ENV{HOME}/Thesis/toolchains/installed-tools/bin/clang")
+      set(RISCV "$ENV{HOME}/Thesis/toolchains/installed-tools")
+    else()
+      message(FATAL_ERROR
+        "Unable to locate RISC-V LLVM toolchain. Set RISCV env var or pass -DRISCV=<toolchain-root>. "
+        "Tried: '$ENV{RISCV}', '${_RISCV_DEFAULT}', '$ENV{HOME}/Thesis/toolchains/installed-tools'.")
+    endif()
+  endif()
 endif()
 
 set(RISCV_TOOLCHAIN_PREFIX "${RISCV}/bin")

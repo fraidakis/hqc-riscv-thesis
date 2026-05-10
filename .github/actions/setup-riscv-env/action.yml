@@ -25,7 +25,7 @@ runs:
     - name: Restore toolchain cache
       uses: actions/cache@v4
       with:
-        path: ~/Thesis/installed-tools
+        path: ~/Thesis/toolchains/installed-tools
         key: riscv-toolchain-${{ runner.os }}-${{ hashFiles('toolchain/toolchain.env') }}
 
     - name: Source toolchain environment
