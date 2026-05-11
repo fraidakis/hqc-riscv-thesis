@@ -584,7 +584,7 @@ def write_summary_csvs(
 ) -> None:
     """
     Write cycle_counts.csv and instruction_mix.csv in the format expected by
-    analysis/benchmarks/plot.py.
+    scripts/report/plot.py.
 
     cycle_counts.csv columns: impl, hqc128, hqc192, hqc256
     Each row represents one (benchmark set, variant, op) combination.

@@ -26,8 +26,8 @@ BENCH_DIR="${REPO_ROOT}/analysis/benchmarks"
 FIGURE_DIR="${REPO_ROOT}/docs/figures"
 REPORT_DIR="${REPO_ROOT}/analysis/report"
 EXTRACT_PY="${SCRIPT_DIR}/extract_results.py"
-PLOT_PY="${REPO_ROOT}/analysis/benchmarks/plot.py"
-AMDAHL_PY="${REPO_ROOT}/analysis/benchmarks/amdahl.py"
+PLOT_PY="${REPO_ROOT}/scripts/report/plot.py"
+AMDAHL_PY="${REPO_ROOT}/scripts/report/amdahl.py"
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 BENCH_SET_ARG=""

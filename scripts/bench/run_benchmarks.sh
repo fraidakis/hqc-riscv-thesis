@@ -7,10 +7,10 @@
 #   --mode suite : synchronous suite mode (formerly run_spike_suite_sync.sh)
 #
 # Async usage:
-#   run_benchmarks.sh --mode async <bench_set> [--variant <regex>] [--full] [--no-polymul] [--iter N]
+#   run_benchmarks.sh --mode async [<bench_set>] [--variant <regex>] [--full] [--no-polymul]
 #
 # Suite usage:
-#   run_benchmarks.sh --mode suite [--run-id ID] [--iter N] [--levels "128 192 256"]
+#   run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
 #                     [--variant <regex>] [--promote NAME]
 
 set -euo pipefail
@@ -29,8 +29,7 @@ BUILD_DIR="${REPO_ROOT}/build/spike"
 BENCH_TIME="$(date +'%Y%m%d_%H%M')"
 
 # Shared/default flags.
-MODE=""
-ITER=1
+MODE="async"
 VARIANT_FILTER=""
 
 # Async mode flags.
@@ -75,13 +74,13 @@ BENCH_SET_TRACK_MAP=(
 usage() {
     cat <<'EOF'
 Usage:
-  run_benchmarks.sh --mode async <bench_set> [--variant <regex>] [--full] [--no-polymul] [--iter N]
-  run_benchmarks.sh --mode suite [--run-id ID] [--iter N] [--levels "128 192 256"]
+    run_benchmarks.sh --mode async [<bench_set>] [--variant <regex>] [--full] [--no-polymul]
+    run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
                     [--variant <regex>] [--promote NAME]
 
 Modes:
   async  Launch Spike jobs in background and print PIDs.
-  suite  Run polymul + KEM benchmarks synchronously and write summary.csv.
+    suite  Run polymul + KEM benchmarks synchronously and write per-op summaries.
 EOF
 }
 
@@ -94,10 +93,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --variant)
             VARIANT_FILTER="$2"
-            shift 2
-            ;;
-        --iter)
-            ITER="$2"
             shift 2
             ;;
         --full)
@@ -150,11 +145,6 @@ if [[ "$MODE" != "async" && "$MODE" != "suite" ]]; then
     exit 2
 fi
 
-if ! [[ "$ITER" =~ ^[1-9][0-9]*$ ]]; then
-    echo "ERROR: --iter must be a positive integer" >&2
-    exit 2
-fi
-
 if ! bench_require_executable "$SPIKE" "Spike not found"; then
     echo "       Source toolchain/toolchain.env or set RISCV" >&2
     exit 2
@@ -170,38 +160,49 @@ extract_median_row() {
 }
 
 run_async_mode() {
-    if [[ -z "$BENCH_SET" ]]; then
-        echo "ERROR: async mode requires <bench_set>" >&2
-        usage >&2
-        exit 2
-    fi
-
     if [[ $DO_POLYMUL -eq 0 && $DO_FULL -eq 0 ]]; then
         echo "ERROR: --no-polymul requires --full (nothing to do otherwise)" >&2
         exit 2
     fi
 
-    if [[ -z "$VARIANT_FILTER" ]]; then
-        if [[ -v BENCH_SET_VARIANT_MAP["$BENCH_SET"] ]]; then
-            VARIANT_FILTER="${BENCH_SET_VARIANT_MAP[$BENCH_SET]}"
-            echo "[bench] Benchmark set '${BENCH_SET}' -> canonical variant '${VARIANT_FILTER}'"
+    if [[ -n "$BENCH_SET" ]]; then
+        if [[ -z "$VARIANT_FILTER" ]]; then
+            if [[ -v BENCH_SET_VARIANT_MAP["$BENCH_SET"] ]]; then
+                VARIANT_FILTER="${BENCH_SET_VARIANT_MAP[$BENCH_SET]}"
+                echo "[bench] Benchmark set '${BENCH_SET}' -> canonical variant '${VARIANT_FILTER}'"
+            else
+                echo "WARNING: Unknown benchmark set '${BENCH_SET}' -- no canonical variant; running all implemented variants." >&2
+                echo "         Known benchmark sets: ${!BENCH_SET_VARIANT_MAP[*]}" >&2
+            fi
         else
-            echo "WARNING: Unknown benchmark set '${BENCH_SET}' -- no canonical variant; running all implemented variants." >&2
-            echo "         Known benchmark sets: ${!BENCH_SET_VARIANT_MAP[*]}" >&2
+            echo "[bench] Benchmark set '${BENCH_SET}' -> variant override '${VARIANT_FILTER}'"
         fi
     else
-        echo "[bench] Benchmark set '${BENCH_SET}' -> variant override '${VARIANT_FILTER}'"
+        echo "[bench] No bench set provided; running ad-hoc async mode."
+        if [[ -z "$VARIANT_FILTER" ]]; then
+            echo "[bench] Variant filter: all implemented variants"
+        else
+            echo "[bench] Variant filter: ${VARIANT_FILTER}"
+        fi
     fi
 
     local variant_label run_label bench_track out_dir
     variant_label="$(bench_sanitize_label "${VARIANT_FILTER:-all}")"
-    run_label="${variant_label}_${BENCH_SET}_${BENCH_TIME}"
+    run_label="run_${BENCH_TIME}"
 
-    bench_track="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
-    if [[ -n "$bench_track" ]]; then
-        out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${bench_track}/${BENCH_SET}/${run_label}"
+    if [[ -n "$BENCH_SET" ]]; then
+        bench_track="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
+        if [[ -n "$bench_track" ]]; then
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${bench_track}/${BENCH_SET}/${run_label}"
+        else
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${BENCH_SET}/${run_label}"
+        fi
     else
-        out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${BENCH_SET}/${run_label}"
+        if [[ "${VARIANT_FILTER,,}" == *"zvbc"* ]]; then
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/vector/${variant_label}_${run_label}"
+        else
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/scalar/${variant_label}_${run_label}"
+        fi
     fi
     mkdir -p "$out_dir"
 
@@ -217,11 +218,11 @@ run_async_mode() {
                 elf="${BUILD_DIR}/bench_polymul_hqc${level}_${variant}.elf"
                 target="bench_polymul_hqc${level}_${variant}"
                 prefix="hqc${level}_${variant}"
-                csv="${out_dir}/${prefix}_polymul_N${ITER}.csv"
+                csv="${out_dir}/${prefix}_polymul.csv"
 
                 bench_build_target_if_configured "$BUILD_DIR" "$target" "bench" || continue
                 if ! bench_require_elf_or_hint "$elf" "$target" \
-                    "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" \
+                    "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike" \
                     "bench"; then
                     continue
                 fi
@@ -238,11 +239,11 @@ run_async_mode() {
                 elf="${BUILD_DIR}/bench_hqc${level}_${variant}.elf"
                 target="bench_hqc${level}_${variant}"
                 prefix="hqc${level}_${variant}"
-                csv="${out_dir}/${prefix}_N${ITER}.csv"
+                csv="${out_dir}/${prefix}.csv"
 
                 bench_build_target_if_configured "$BUILD_DIR" "$target" "bench" || continue
                 if ! bench_require_elf_or_hint "$elf" "$target" \
-                    "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}" \
+                    "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike" \
                     "bench"; then
                     continue
                 fi
@@ -259,12 +260,16 @@ run_async_mode() {
     echo ""
     if [[ $launched -eq 0 ]]; then
         echo "[bench] No jobs launched. Check that ELFs are built in ${BUILD_DIR}/"
-        echo "        cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=${ITER}"
+        echo "        cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike"
         echo "        cmake --build build/spike -j$(nproc)"
         return
     fi
 
-    echo "[bench] Launched ${launched} Spike job(s) for ${BENCH_SET}:"
+    if [[ -n "$BENCH_SET" ]]; then
+        echo "[bench] Launched ${launched} Spike job(s) for ${BENCH_SET}:"
+    else
+        echo "[bench] Launched ${launched} Spike job(s) in ad-hoc async mode:"
+    fi
     printf "%s\n" "${job_lines[@]}"
     echo ""
     echo "Monitor:"
@@ -287,24 +292,30 @@ run_suite_mode() {
         exit 2
     fi
 
-    local run_root raw_dir curated_dir summary_csv
+    local run_root
     run_root="${REPO_ROOT}/analysis/benchmarks/suites/${RUN_ID}"
-    raw_dir="${run_root}/raw"
-    curated_dir="${run_root}/curated"
-    mkdir -p "$raw_dir" "$curated_dir"
+    mkdir -p "$run_root"
 
-    summary_csv="${run_root}/summary.csv"
-    echo "level,variant,kind,op,wall_seconds,median_cycles,median_instret,csv_path" > "$summary_csv"
+    local summary_vect_mul_csv summary_keypair_csv summary_encaps_csv summary_decaps_csv
+    summary_vect_mul_csv="${run_root}/summary_vect_mul.csv"
+    summary_keypair_csv="${run_root}/summary_keypair.csv"
+    summary_encaps_csv="${run_root}/summary_encaps.csv"
+    summary_decaps_csv="${run_root}/summary_decaps.csv"
+
+    echo "level,variant,kind,op,wall_seconds,median_cycles,median_instret,csv_path" > "$summary_vect_mul_csv"
+    echo "level,variant,kind,op,wall_seconds,median_cycles,median_instret,csv_path" > "$summary_keypair_csv"
+    echo "level,variant,kind,op,wall_seconds,median_cycles,median_instret,csv_path" > "$summary_encaps_csv"
+    echo "level,variant,kind,op,wall_seconds,median_cycles,median_instret,csv_path" > "$summary_decaps_csv"
 
     run_one_suite() {
         local level="$1" variant="$2" kind="$3" target="$4"
 
         local elf base raw_out raw_err curated_csv
         elf="${BUILD_DIR}/${target}.elf"
-        base="hqc${level}_${variant}_${kind}_N${ITER}"
-        raw_out="${raw_dir}/${base}.stdout"
-        raw_err="${raw_dir}/${base}.stderr"
-        curated_csv="${curated_dir}/${base}.csv"
+        base="hqc${level}_${variant}_${kind}"
+        raw_out="$(mktemp "${run_root}/.${base}.XXXXXX.stdout")"
+        raw_err="$(mktemp "${run_root}/.${base}.XXXXXX.stderr")"
+        curated_csv="${run_root}/${base}.csv"
 
         cmake --build "$BUILD_DIR" --target "$target" -j"$(nproc)" >/dev/null
 
@@ -320,20 +331,27 @@ run_suite_mode() {
              /^op,iterations,/ {print; keep=1; next}
              keep && /^[a-z_]+,[0-9]+,/ {print}
         ' "$raw_out" > "$curated_csv"
+        rm -f "$raw_out" "$raw_err"
 
         if [[ "$kind" == "polymul" ]]; then
             local row med_cyc med_ins
             row="$(extract_median_row "$curated_csv" "vect_mul")"
             med_cyc="${row%%,*}"
             med_ins="${row##*,}"
-            echo "${level},${variant},${kind},vect_mul,${elapsed_s},${med_cyc},${med_ins},${curated_csv}" >> "$summary_csv"
+            echo "${level},${variant},${kind},vect_mul,${elapsed_s},${med_cyc},${med_ins},${curated_csv}" >> "$summary_vect_mul_csv"
         else
             for op in keypair encaps decaps; do
                 local row med_cyc med_ins
                 row="$(extract_median_row "$curated_csv" "$op")"
                 med_cyc="${row%%,*}"
                 med_ins="${row##*,}"
-                echo "${level},${variant},${kind},${op},${elapsed_s},${med_cyc},${med_ins},${curated_csv}" >> "$summary_csv"
+                if [[ "$op" == "keypair" ]]; then
+                    echo "${level},${variant},${kind},${op},${elapsed_s},${med_cyc},${med_ins},${curated_csv}" >> "$summary_keypair_csv"
+                elif [[ "$op" == "encaps" ]]; then
+                    echo "${level},${variant},${kind},${op},${elapsed_s},${med_cyc},${med_ins},${curated_csv}" >> "$summary_encaps_csv"
+                else
+                    echo "${level},${variant},${kind},${op},${elapsed_s},${med_cyc},${med_ins},${curated_csv}" >> "$summary_decaps_csv"
+                fi
             done
         fi
 
@@ -346,8 +364,7 @@ run_suite_mode() {
 
     cmake -S "$REPO_ROOT" -B "$BUILD_DIR" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-        -DHQC_SIM=spike \
-        -DBENCH_N_ITER="$ITER" >/dev/null
+        -DHQC_SIM=spike >/dev/null
 
     local level variant
     for level in $LEVELS; do
@@ -362,12 +379,11 @@ run_suite_mode() {
         local canon_dir
         canon_dir="${REPO_ROOT}/analysis/benchmarks/canonical/${PROMOTE_NAME}"
         mkdir -p "$canon_dir"
-        cp -f "${curated_dir}"/*.csv "$canon_dir"/
-        cp -f "$summary_csv" "${canon_dir}/summary.csv"
-        echo "[suite] promoted curated outputs to ${canon_dir}"
+        cp -f "${run_root}"/*.csv "$canon_dir"/
+        echo "[suite] promoted suite outputs to ${canon_dir}"
     fi
 
-    echo "[suite] done: ${summary_csv}"
+    echo "[suite] done: ${summary_vect_mul_csv}, ${summary_keypair_csv}, ${summary_encaps_csv}, ${summary_decaps_csv}"
 }
 
 if [[ "$MODE" == "async" ]]; then

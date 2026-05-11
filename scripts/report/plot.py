@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""analysis/benchmarks/plot.py
+"""scripts/report/plot.py
 Plot cycle count comparisons from cycle_counts.csv and instruction_mix.csv.
 
 Usage:
-    python3 analysis/benchmarks/plot.py
+    python3 scripts/report/plot.py
 """
 
 import csv

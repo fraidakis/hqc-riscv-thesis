@@ -9,8 +9,8 @@
 #   --histogram  Spike PC histogram pipeline
 #
 # Examples:
-#   scripts/bench/run_profile.sh --cache --variant karatsuba_ref --level 128 --iter 1
-#   scripts/bench/run_profile.sh --memory --variant hybrid --level 192 --iter 1
+#   scripts/bench/run_profile.sh --cache --variant karatsuba_ref --level 128
+#   scripts/bench/run_profile.sh --memory --variant hybrid --level 192
 #   scripts/bench/run_profile.sh --trace --elf build/spike/bench_polymul_hqc128_karatsuba_zbc.elf
 #   scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --wait
 
@@ -23,7 +23,6 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 MODE=""
 VARIANT=""
 LEVEL="128"
-ITER="1"
 ELF=""
 BENCH_SET=""
 WAIT_FLAG=0
@@ -50,18 +49,12 @@ BENCH_SET_TRACK_MAP=(
 profile_cache_mode() {
     local variant="${VARIANT:-karatsuba_ref}"
     local level="$LEVEL"
-    local iter="$ITER"
     local dc_config="${DC_CONFIG:-512:8:64}"
 
     if ! [[ "$level" =~ ^(128|192|256)$ ]]; then
         echo "[profile_cache_spike] ERROR: level must be 128, 192, or 256" >&2
         exit 2
     fi
-    if ! [[ "$iter" =~ ^[1-9][0-9]*$ ]]; then
-        echo "[profile_cache_spike] ERROR: iter must be a positive integer" >&2
-        exit 2
-    fi
-
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local spike="${riscv}/bin/spike"
     local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm}"
@@ -78,8 +71,7 @@ profile_cache_mode() {
     cmake -S "$REPO_ROOT" -B "$build_dir" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DRISCV="$riscv" \
-        -DHQC_SIM=spike \
-        -DBENCH_N_ITER="$iter" >/dev/null
+        -DHQC_SIM=spike >/dev/null
 
     cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null
 
@@ -115,12 +107,12 @@ profile_cache_mode() {
     dc_misses=$((read_misses + write_misses))
 
     if [[ ! -f "$csv_out" ]]; then
-        echo "timestamp,level,variant,iter,dc_config,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,run_mode,elf,stdout_log,stderr_log" > "$csv_out"
+        echo "timestamp,level,variant,dc_config,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,run_mode,elf,stdout_log,stderr_log" > "$csv_out"
     fi
 
-    echo "${stamp},${level},${variant},${iter},${dc_config},${dc_misses},${read_misses},${write_misses},${writebacks},${run_mode},${elf},${raw_stdout},${raw_stderr}" >> "$csv_out"
+    echo "${stamp},${level},${variant},${dc_config},${dc_misses},${read_misses},${write_misses},${writebacks},${run_mode},${elf},${raw_stdout},${raw_stderr}" >> "$csv_out"
 
-    echo "[profile_cache_spike] variant=${variant} level=${level} iter=${iter} dc=${dc_config} run_mode=${run_mode}"
+    echo "[profile_cache_spike] variant=${variant} level=${level} dc=${dc_config} run_mode=${run_mode}"
     echo "[profile_cache_spike] D$ Misses=${dc_misses} (Read=${read_misses}, Write=${write_misses})"
     echo "[profile_cache_spike] D$ Writebacks=${writebacks}"
     echo "[profile_cache_spike] csv=${csv_out}"
@@ -130,7 +122,6 @@ profile_cache_mode() {
 profile_memory_mode() {
     local variant="${VARIANT:-karatsuba_ref}"
     local level="$LEVEL"
-    local iter="$ITER"
 
     if ! [[ "$level" =~ ^(128|192|256)$ ]]; then
         echo "[profile_memory] ERROR: level must be 128, 192, or 256" >&2
@@ -151,8 +142,7 @@ profile_memory_mode() {
 
     cmake -S "$REPO_ROOT" -B "$build_dir" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-        -DHQC_SIM=qemu \
-        -DBENCH_N_ITER="$iter" >/dev/null
+        -DHQC_SIM=qemu >/dev/null
 
     cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null
 
@@ -207,10 +197,10 @@ END{printf "%d %d %d %d", lb, sb, li, si}
     load_lines=$(( (load_bytes + 63) / 64 ))
     store_lines=$(( (store_bytes + 63) / 64 ))
 
-    echo "level,variant,iter,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store,qemu_log,uart_log" > "$csv_out"
-    echo "${level},${variant},${iter},${load_ins},${store_ins},${load_bytes},${store_bytes},${load_lines},${store_lines},${qemu_log},${uart_log}" >> "$csv_out"
+    echo "level,variant,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store,qemu_log,uart_log" > "$csv_out"
+    echo "${level},${variant},${load_ins},${store_ins},${load_bytes},${store_bytes},${load_lines},${store_lines},${qemu_log},${uart_log}" >> "$csv_out"
 
-    echo "[profile_memory] variant=${variant} level=${level} iter=${iter}"
+    echo "[profile_memory] variant=${variant} level=${level}"
     echo "[profile_memory] load_instructions=${load_ins} store_instructions=${store_ins}"
     echo "[profile_memory] load_bytes=${load_bytes} store_bytes=${store_bytes}"
     echo "[profile_memory] est_cache_lines_load=${load_lines} est_cache_lines_store=${store_lines}"
@@ -363,12 +353,12 @@ profile_histogram_mode() {
             local elf="${build_dir}/bench_polymul_hqc${level}_${variant}.elf"
             local target="bench_polymul_hqc${level}_${variant}"
             local prefix="hqc${level}_${variant}"
-            local csv="${out_dir}/${prefix}_polymul_N1.csv"
+            local csv="${out_dir}/${prefix}_polymul.csv"
             local hist="${out_dir}/${prefix}_hist.txt"
 
             bench_build_target_if_configured "$build_dir" "$target" "histogram" || continue
             if ! bench_require_elf_or_hint "$elf" "$target" \
-                "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1" \
+                "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike" \
                 "histogram"; then
                 continue
             fi
@@ -408,8 +398,8 @@ profile_histogram_mode() {
 usage() {
     cat <<'EOF'
 Usage:
-    run_profile.sh --cache [--variant V] [--level 128|192|256] [--iter N]
-    run_profile.sh --memory [--variant V] [--level 128|192|256] [--iter N]
+    run_profile.sh --cache [--variant V] [--level 128|192|256]
+    run_profile.sh --memory [--variant V] [--level 128|192|256]
     run_profile.sh --trace --elf <path-to-elf>
     run_profile.sh --histogram --bench-set <set> [--variant regex] [--wait|--report]
              [--top N] [--compare-with set] [--context]
@@ -428,10 +418,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --level)
             LEVEL="$2"
-            shift 2
-            ;;
-        --iter)
-            ITER="$2"
             shift 2
             ;;
         --elf)

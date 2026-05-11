@@ -57,7 +57,7 @@ cmake --build build/qemu --target hqc128_karatsuba_ref -j$(nproc)
 Reconfigure **only** if:
 - CMake files were edited (CMakeLists.txt, hqc_core.cmake, etc.)
 - Source file lists changed (src/*/CMakeLists.txt)
-- Build options changed (-DHQC_SIM, -DBENCH_N_ITER, etc.)
+- Build options changed (-DHQC_SIM, toolchain file, etc.)
 
 **For Spike benchmarking:**
 
@@ -150,7 +150,7 @@ Output: CSV files written to `analysis/benchmarks/isolated/scalar/polymul_zbc/`
 
 Monitoring:
 ```bash
-watch -n 10 "wc -c analysis/benchmarks/isolated/scalar/polymul_zbc/*_polymul_N1.csv"
+watch -n 10 "wc -c analysis/benchmarks/isolated/scalar/polymul_zbc/*_polymul.csv"
 ps aux | grep '[s]pike.*bench'
 ```
 
@@ -164,7 +164,6 @@ scripts/bench/run_benchmarks.sh --mode async polymul_zbc --full
 
 Options:
 - `--variant <regex>` — Filter variants by regex (default: canonical variant for bench_set)
-- `--iter N` — Iterations per operation (default: 1)
 - `--no-polymul` — Omit polymul benchmarks and measure KEM only (requires `--full`)
 
 ### Suite Mode: Synchronized Benchmarking with Promotion
@@ -172,38 +171,40 @@ Options:
 For reproducible, atomic benchmark runs with optional promotion to canonical storage:
 
 ```bash
-scripts/bench/run_benchmarks.sh --mode suite --iter 1 --promote phase1_spike_n1
+scripts/bench/run_benchmarks.sh --mode suite --promote phase1_spike_n1
 ```
 
 **What it does:**
-- Reconfigures CMake with `-DBENCH_N_ITER=<iter>`
 - Runs all levels and implemented variants sequentially
 - Organizes outputs in `analysis/benchmarks/suites/<run_id>/` (run-id auto-generated or via `--run-id`)
-- Extracts clean curated CSV and wall-time metrics into `summary.csv`
-- Optionally promotes curated results to `analysis/benchmarks/canonical/<name>/`
+- Extracts clean per-target CSV and wall-time metrics into four summary files
+- Optionally promotes suite CSV outputs to `analysis/benchmarks/canonical/<name>/`
 
 **Output structure:**
 ```
 analysis/benchmarks/suites/<run_id>/
-  raw/              — transient stdout/stderr (ignored by git)
-  curated/          — clean CSV per target (suitable for promotion)
-  summary.csv       — aggregated wall-time + median metrics
+  hqc*_polymul.csv  — clean polymul CSV per level/variant
+  hqc*_kem.csv      — clean KEM CSV per level/variant
+  summary_vect_mul.csv
+  summary_keypair.csv
+  summary_encaps.csv
+  summary_decaps.csv
 ```
 
 **Example with custom run-id:**
 
 ```bash
-scripts/bench/run_benchmarks.sh --mode suite --run-id my_optimization_attempt_v1 --iter 1
+scripts/bench/run_benchmarks.sh --mode suite --run-id my_optimization_attempt_v1
 ```
 
 ### Interpreting Benchmark Output
 
-**Polymul CSV (`*_polymul_N1.csv`):**
+**Polymul CSV (`*_polymul.csv`):**
 - Primary metric: `median_instret` (instruction count)
 - Secondary: `median_cycles` (closely tracks instret on Spike)
 - Focus: `vect_mul` row (the dominant hotspot)
 
-**Full KEM CSV (`*_N1.csv`):**
+**Full KEM CSV (`*.csv`):**
 - Rows: `keypair`, `encaps`, `decaps`
 - Metric: `median_instret` for comparison
 - Use for: End-to-end phase checkpoints
@@ -247,7 +248,7 @@ scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --report --vari
 ```
 
 Output files:
-- `analysis/profiles/histograms/<track>/<bench_set>/hqc{128,192,256}_<variant>_polymul_N1.csv` (cycle data)
+- `analysis/profiles/histograms/<track>/<bench_set>/hqc{128,192,256}_<variant>_polymul.csv` (cycle data)
 - `analysis/profiles/histograms/<track>/<bench_set>/hqc{128,192,256}_<variant>_hist.txt` (instruction frequency)
 
 **Report output example:**
@@ -485,8 +486,8 @@ It does **not** use `randombytes()` / AES-CTR DRBG. Always seed with `prng_init`
 |---|---|---|
 | Did correctness break? | `scripts/test/run_kat.sh --sim spike build/spike/hqc128_karatsuba_ref.elf tests/kat/PQCkemKAT_128.rsp` | `PASS 100/100` |
 | All variants pass KAT? | `ctest --test-dir build/spike -R kat` | All tests pass |
-| Did polymul instret improve? | `scripts/bench/run_benchmarks.sh --mode async polymul_zbc` then check `*_polymul_N1.csv` | `median_instret` value |
-| Full KEM end-to-end? | `scripts/bench/run_benchmarks.sh --mode async polymul_zbc --full` then check `*_N1.csv` | `keypair, encaps, decaps` rows |
+| Did polymul instret improve? | `scripts/bench/run_benchmarks.sh --mode async polymul_zbc` then check `*_polymul.csv` | `median_instret` value |
+| Full KEM end-to-end? | `scripts/bench/run_benchmarks.sh --mode async polymul_zbc --full` then check `*.csv` | `keypair, encaps, decaps` rows |
 | Static throughput hints? | `./scripts/verify/run_mca.sh vendor/hqc-ref/src/ref/gf2x.c 128` | `*_mca.txt` report |
 | Instruction mix by mnemonic? | `scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --report --top 20` | `*_hist.txt` + terminal report |
 | Aggregate thesis tables? | `python3 scripts/report/extract_results.py --latex` | `table_results.tex` |

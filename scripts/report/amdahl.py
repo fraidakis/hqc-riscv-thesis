@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""analysis/benchmarks/amdahl.py
+"""scripts/report/amdahl.py
 Compute projected speedup using Amdahl's law for the vectorised HQC poly_mul.
 
 Given a measured fraction of runtime in poly_mul and a measured speedup of
 the vectorised poly_mul over the baseline, estimates the overall system speedup.
 
 Usage:
-    python3 analysis/benchmarks/amdahl.py \\
+    python3 scripts/report/amdahl.py \\
         --fraction 0.75 \\
         --speedup 8.0
 """

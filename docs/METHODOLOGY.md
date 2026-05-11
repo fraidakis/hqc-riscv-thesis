@@ -32,6 +32,10 @@ contrasts real-hardware measurements with `pqriscv`'s ISS-based approach,
 noting ISS results are presented as instruction counts. Spike's `rdcycle =
 retired instruction count` (no pipeline model, no cache, no branch predictor).
 
+Because Spike is an in-order deterministic ISS with no cache or pipeline state
+carried across runs, repeated benchmark iterations are redundant for this
+workflow. The framework therefore assumes a single measurement pass per target.
+
 > **Claim to reviewers:** "We reduce the retired instruction count of
 > `vect_mul` by X× for HQC-128/192/256, which represents ≥90% of total
 > KEM runtime (verified by profiling). Under any throughput-bound execution
@@ -184,12 +188,12 @@ analogue data as a conservative lower bound.
 # Polymul micro-bench (20–40 min for HQC-128)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build/spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
-    > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul_N1.csv &
+  > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul.csv &
 
 # Full KEM bench (2–5 h, run at phase milestones)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build/spike-probe/bench_hqc128_karatsuba_ref.elf \
-    > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_N1.csv &
+  > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref.csv &
 
 # Instruction histogram (wrapper; direct spike --histogram is broken):
 scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --wait

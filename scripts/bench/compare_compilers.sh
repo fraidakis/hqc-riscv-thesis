@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compare Clang vs GCC across -O2/-O3/-Os for one variant.
-# Outputs CSV + Markdown summary under analysis/benchmarks/compiler_compare/.
+# Outputs CSV summary under analysis/benchmarks/compiler_compare/.
 
 set -euo pipefail
 
@@ -9,22 +9,16 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 VARIANT="${1:-}"
 if [[ -z "$VARIANT" ]]; then
-    echo "Usage: $0 <variant> [level] [iter]" >&2
+    echo "Usage: $0 <variant> [level]" >&2
     exit 2
 fi
 
 LEVEL="${2:-128}"
-ITER="${3:-1}"
 
 if ! [[ "$LEVEL" =~ ^(128|192|256)$ ]]; then
     echo "[compare_compilers] ERROR: level must be 128, 192, or 256" >&2
     exit 2
 fi
-if ! [[ "$ITER" =~ ^[1-9][0-9]*$ ]]; then
-    echo "[compare_compilers] ERROR: iter must be a positive integer" >&2
-    exit 2
-fi
-
 if ! grep -qx "$VARIANT" "$REPO_ROOT/scripts/implemented_variants.txt"; then
     echo "[compare_compilers] ERROR: variant '$VARIANT' not in scripts/implemented_variants.txt" >&2
     exit 2
@@ -43,7 +37,6 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 OUT_DIR="$REPO_ROOT/analysis/benchmarks/compiler_compare"
 mkdir -p "$OUT_DIR"
 CSV_OUT="$OUT_DIR/compare_hqc${LEVEL}_${VARIANT}_${STAMP}.csv"
-MD_OUT="$OUT_DIR/compare_hqc${LEVEL}_${VARIANT}_${STAMP}.md"
 
 echo "compiler,opt,level,variant,status,median_cycles,median_instret,text_bytes,elf,error" > "$CSV_OUT"
 
@@ -91,8 +84,7 @@ run_one() {
     if ! cmake -S "$REPO_ROOT" -B "$build_dir" \
         -DCMAKE_TOOLCHAIN_FILE="$toolchain_tmp" \
         -DRISCV="$RISCV" \
-        -DHQC_SIM=spike \
-        -DBENCH_N_ITER="$ITER" >/dev/null 2>&1; then
+        -DHQC_SIM=spike >/dev/null 2>&1; then
         echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,,cmake_configure_failed" >> "$CSV_OUT"
         return 1
     fi
@@ -132,20 +124,4 @@ for compiler in clang gcc; do
     done
 done
 
-    best_cycles_clang="$(awk -F',' '$1=="clang" && $5=="OK" {if(min=="" || $6<min) min=$6} END{print min}' "$CSV_OUT")"
-    best_cycles_gcc="$(awk -F',' '$1=="gcc" && $5=="OK" {if(min=="" || $6<min) min=$6} END{print min}' "$CSV_OUT")"
-
-{
-    echo "# Compiler Comparison (HQC-${LEVEL} / ${VARIANT})"
-    echo
-    echo "| Compiler | Opt | Status | Median Cycles | Median Instret | .text bytes | Error |"
-    echo "|---|---:|---|---:|---:|---:|---|"
-    awk -F',' 'NR>1 {printf("| %s | %s | %s | %s | %s | %s | %s |\n", $1, $2, $5, $6, $7, $8, $10)}' "$CSV_OUT"
-    echo
-    echo "Best cycles (clang): ${best_cycles_clang}"
-    echo
-    echo "Best cycles (gcc): ${best_cycles_gcc}"
-} > "$MD_OUT"
-
 echo "[compare_compilers] CSV: $CSV_OUT"
-echo "[compare_compilers] MD : $MD_OUT"
