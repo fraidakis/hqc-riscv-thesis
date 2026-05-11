@@ -117,9 +117,9 @@ string(JOIN " " RISCV_FLAGS_STR ${RISCV_COMMON_FLAGS})
 # compiler configuration may clobber them for cross builds.
 set(RISCV_FORCE_FLAGS
   " --target=riscv64-unknown-elf"
-  " --sysroot=/usr/riscv64-unknown-elf"
-  " --gcc-toolchain=/usr"
-  " -isystem /usr/riscv64-unknown-elf/include"
+  " --sysroot=${RISCV_SYSROOT}"
+  " --gcc-toolchain=${RISCV}"
+  " -isystem ${RISCV_SYSROOT}/include"
   " -march=rv64gcv_zbc_zbb_zbkb_zvbc"
   " -mabi=lp64d"
   " -menable-experimental-extensions"
@@ -154,6 +154,6 @@ string(APPEND CMAKE_EXE_LINKER_FLAGS
   " -Wl,--gc-sections"
   " -nostartfiles"
   " -nostdlib"
-  " --sysroot=/usr/riscv64-unknown-elf"
-  " -L/usr/riscv64-unknown-elf/lib"
+  " --sysroot=${RISCV_SYSROOT}"
+  " -L${RISCV_SYSROOT}/lib"
 )
