@@ -1,22 +1,34 @@
 #!/usr/bin/env bash
 # sim/spike/run.sh
-# Run an HQC ELF under Spike with commit log and histogram enabled.
+# Unified Spike runner for HQC ELFs.
 #
-# !! PROFILING / INSTRUCTION-MIX TOOL — NOT FOR BENCHMARKING !!
-# --log-commits  logs every committed instruction + register writes to stderr.
-# --histogram    collects per-instruction execution counts.
-# -l             dumps a disassembly trace of every decoded instruction.
+# Modes:
+#   --clean    clean run (no logging; default for timing and KATs)
+#   --profile  commit-log + histogram + disassembly trace (slow)
 #
-# These three flags together can produce 10–50 GB of log data on a full HQC
-# benchmark run and are the primary cause of the observed 360× wall-clock
-# slowdown versus QEMU.  Use sim/spike/run_bench.sh for cycle-count benchmarks.
+# Profiling mode can produce very large logs (10–50 GB on full runs).
 #
-# Usage: run.sh <elf> [extra_spike_flags...]
+# Usage:
+#   run.sh --clean <elf> [extra_spike_flags...]
+#   run.sh --profile <elf> [extra_spike_flags...]
+#   run.sh <elf> [extra_spike_flags...]         # same as --clean
 
 set -euo pipefail
 
-ELF="${1:?Usage: $0 <elf> [flags...]}"
-shift
+MODE="clean"
+if [[ "${1:-}" == "--profile" ]]; then
+    MODE="profile"
+    shift
+elif [[ "${1:-}" == "--clean" ]]; then
+    MODE="clean"
+    shift
+elif [[ "${1:-}" == "--bench" ]]; then
+    MODE="clean"
+    shift
+fi
+
+ELF="${1:?Usage: $0 [--clean|--profile] <elf> [flags...]}"
+shift || true
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="$RISCV/bin/spike"
 
@@ -36,17 +48,23 @@ ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
 
 echo "[spike/run] ELF: $ELF"                                        >&2
 echo "[spike/run] ISA: $ISA"                                        >&2
-echo "[spike/run] WARNING: --log-commits + -l active (SLOW)"        >&2
-echo "[spike/run] Use sim/spike/run_bench.sh for timing benchmarks" >&2
+echo "[spike/run] MODE: $MODE"                                      >&2
 
-# Commit log and instruction trace go to a file for post-processing.
-LOGFILE="${ELF%.elf}.commitlog"
-"$SPIKE" \
-    --isa="$ISA" \
-    --log-commits \
-    --histogram \
-    -l "$@" \
-    "$ELF" \
-    2>"$LOGFILE"
-
-echo "[spike/run] Commit log written to: $LOGFILE" >&2
+if [[ "$MODE" == "profile" ]]; then
+    # Commit log and instruction trace go to a file for post-processing.
+    LOGFILE="${ELF%.elf}.commitlog"
+    echo "[spike/run] WARNING: profiling flags enabled (slow)" >&2
+    "$SPIKE" \
+        --isa="$ISA" \
+        --log-commits \
+        --histogram \
+        -l "$@" \
+        "$ELF" \
+        2>"$LOGFILE"
+    echo "[spike/run] Commit log written to: $LOGFILE" >&2
+else
+    "$SPIKE" \
+        --isa="$ISA" \
+        "$@" \
+        "$ELF"
+fi

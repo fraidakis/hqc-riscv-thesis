@@ -1,24 +1,27 @@
 #!/usr/bin/env bash
-# analysis/llvm_mca/run_mca.sh
+# scripts/verify/run_mca.sh
 # Run LLVM-MCA on HQC source functions to get throughput/latency estimates.
 #
 # Usage (single file):
 #   run_mca.sh <source_file> [hqc_level=128|192|256] [extra_mca_flags...]
-#   Example: ./analysis/llvm_mca/run_mca.sh vendor/hqc-ref/src/ref/gf2x.c 128
-#            ./analysis/llvm_mca/run_mca.sh src/poly_mul/scalar/fafft_zbc/fafft.c 128 --mattr=+zbc
+#   Example: ./scripts/verify/run_mca.sh vendor/hqc-ref/src/ref/gf2x.c 128
+#            ./scripts/verify/run_mca.sh src/poly_mul/scalar/fafft_zbc/fafft.c 128 --mattr=+zbc
 #
 # Usage (all variants):
 #   run_mca.sh --all [hqc_level=128|192|256] [extra_mca_flags...]
-#   Example: ./analysis/llvm_mca/run_mca.sh --all 128
+#   Example: ./scripts/verify/run_mca.sh --all 128
 
 set -euo pipefail
 
 # ── Configuration ────────────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 CLANG="$RISCV/bin/clang"
 MCA="$RISCV/bin/llvm-mca"
-REPORT_DIR="analysis/llvm_mca/reports"
-VARIANTS_FILE="scripts/implemented_variants.txt"
+REPORT_DIR="$REPO_ROOT/analysis/llvm_mca/reports"
+VARIANTS_FILE="$REPO_ROOT/scripts/implemented_variants.txt"
 
 mkdir -p "$REPORT_DIR"
 

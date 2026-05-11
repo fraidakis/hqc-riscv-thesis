@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""sim/spike/zvbc_trace.py
+"""scripts/debug/zvbc_trace.py
 Filter a Spike --log-commits file for Zvbc instructions (vclmul, vclmulh)
 and report their count, arguments, and PC distribution.
 
 Usage:
-    python3 sim/spike/zvbc_trace.py run.commitlog
+    python3 scripts/debug/zvbc_trace.py run.commitlog
 """
 
 import argparse
 import re
-import sys
 from collections import Counter, defaultdict
 
 

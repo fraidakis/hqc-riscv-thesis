@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# sim/qemu/run_kat.sh
+# sim/qemu/run.sh
 # Run an HQC ELF under QEMU system-mode and check exit code.
-# Usage: run_kat.sh <elf>
+# Usage: run.sh <elf>
 
 set -euo pipefail
 
@@ -22,7 +22,7 @@ fi
 _BUILD_DIR="$(dirname "$ELF")"
 _TARGET="$(basename "$ELF" .elf)"
 if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
-    echo "[qemu/run_kat] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
+    echo "[qemu/run] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
     cmake --build "$_BUILD_DIR" --target "$_TARGET" -j"$(nproc)" >&2
 fi
 unset _BUILD_DIR _TARGET
@@ -49,16 +49,17 @@ BIOS="none"
 # Ctrl-A X is unavailable, but -no-reboot + the test-finisher MMIO write
 # (bench.c → QEMU_FINISHER) ensure QEMU exits cleanly after every run.
 
-echo "[run_kat] Running: $ELF"
+echo "[qemu/run] Running: $ELF"
 "$QEMU_BIN" \
     -machine virt \
     -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
     -m 128M \
     -nographic \
+    -monitor none \
     -bios "$BIOS" \
     -kernel "$ELF" \
     -serial stdio \
     -no-reboot \
     2>&1
 
-echo "[run_kat] Done."
+echo "[qemu/run] Done."

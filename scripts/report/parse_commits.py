@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""sim/spike/parse_commits.py
+"""scripts/report/parse_commits.py
 Parse a Spike --log-commits output and produce an instruction-mix summary.
 
 Usage:
     spike --log-commits ... 2> run.commitlog
-    python3 sim/spike/parse_commits.py run.commitlog [--csv output.csv]
+    python3 scripts/report/parse_commits.py run.commitlog [--csv output.csv]
 """
 
 import argparse
 import csv
 import re
-import sys
 from collections import Counter
 
 

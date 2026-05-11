@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# tests/kat/run_kat.sh
+# scripts/test/run_kat.sh
 #
-# Drive the bare-metal KAT binary under QEMU system-mode emulation,
-# capture the HTIF console output, and diff against the reference .rsp.
+# Drive the bare-metal KAT binary under a simulator (Spike by default, QEMU optional),
+# capture the console output, and diff against the reference .rsp.
 #
 # Usage:
-#   run_kat.sh <elf-binary> <rsp-file> [<qemu-binary>]
-#   run_kat.sh <elf-binary> <level> <polymul>
+#   run_kat.sh [--sim qemu|spike] <elf-binary> <rsp-file>
+#   run_kat.sh [--sim qemu|spike] <elf-binary> <level> <polymul>
 #
 # Arguments:
 #   elf-binary   Path to the compiled hqc<LEVEL>_<POLYMUL> ELF (KAT mode).
@@ -14,18 +14,14 @@
 #   level        Security level used by the current CTest wiring (128/192/256).
 #   polymul      Polymul variant label, ignored here but accepted for
 #                compatibility with the add_test() signature in CMake.
-#   qemu-binary  (optional) Path to qemu-system-riscv64.
-#                Defaults to: qemu-system-riscv64 on PATH, or
-#                             ../../../installed-tools/bin/qemu-system-riscv64.
+#
+# Simulator selection (defaults to Spike if not specified):
+#   --sim spike  : Run under Spike ISS (fast, deterministic)
+#   --sim qemu   : Run under QEMU system-mode emulation
 #
 # Output:
 #   Prints PASS/FAIL summary to stdout.
-#   Exits 0 on success, 1 on KAT failure or QEMU error.
-#
-# QEMU invocation uses the virt machine with:
-#   -nographic  : serial output captured to a temp file via -serial file:...
-#   -bios none  : ELF loaded directly (no OpenSBI)
-#   -kernel     : the bare-metal ELF
+#   Exits 0 on success, 1 on KAT failure or simulator error.
 #
 # Timeout: 120 s per security level (HQC-256 KAT on QEMU may take ~90 s).
 
@@ -34,17 +30,23 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# Default to Spike; can be overridden with --sim
+SIM="spike"
+if [[ "${1:-}" == "--sim" ]]; then
+    SIM="${2:-spike}"
+    shift 2 || true
+fi
+
 # ── Argument parsing ──────────────────────────────────────────────────────────
 if [[ $# -lt 2 ]]; then
-    echo "Usage: run_kat.sh <elf> <rsp> [qemu-system-riscv64]" >&2
-    echo "   or: run_kat.sh <elf> <level> <polymul>" >&2
+    echo "Usage: run_kat.sh [--sim qemu|spike] <elf> <rsp>" >&2
+    echo "   or: run_kat.sh [--sim qemu|spike] <elf> <level> <polymul>" >&2
     exit 2
 fi
 
 ELF="$1"
 ARG2="$2"
 ARG3="${3:-}"
-QEMU=""
 
 if [[ "$ARG2" =~ ^(128|192|256)$ ]]; then
     LEVEL="$ARG2"
@@ -52,7 +54,6 @@ if [[ "$ARG2" =~ ^(128|192|256)$ ]]; then
     RSP="${REPO_ROOT}/tests/kat/PQCkemKAT_${LEVEL}.rsp"
 else
     RSP="$ARG2"
-    QEMU="$ARG3"
     POLYMUL=""
     LEVEL=""
 fi
@@ -66,8 +67,17 @@ if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
 fi
 unset _BUILD_DIR _TARGET
 
-if [[ ! -x "${REPO_ROOT}/sim/qemu/run_kat.sh" ]]; then
-    echo "ERROR: sim/qemu/run_kat.sh not found or not executable" >&2
+if [[ "$SIM" != "qemu" && "$SIM" != "spike" ]]; then
+    echo "ERROR: --sim must be 'qemu' or 'spike'" >&2
+    exit 2
+fi
+
+if [[ "$SIM" == "qemu" && ! -x "${REPO_ROOT}/sim/qemu/run.sh" ]]; then
+    echo "ERROR: sim/qemu/run.sh not found or not executable" >&2
+    exit 2
+fi
+if [[ "$SIM" == "spike" && ! -x "${REPO_ROOT}/sim/spike/run.sh" ]]; then
+    echo "ERROR: sim/spike/run.sh not found or not executable" >&2
     exit 2
 fi
 
@@ -88,21 +98,22 @@ if [[ ! -f "$RSP" ]]; then
     exit 2
 fi
 
-# ── Temp file for QEMU serial output ─────────────────────────────────────────
+# ── Temp file for simulator output ────────────────────────────────────────────
 LOG="$(mktemp /tmp/hqc_kat_XXXXXX.log)"
 trap 'rm -f "$LOG"' EXIT
 
-# ── Run under QEMU (via sim/qemu wrapper) ───────────────────────────────────
-echo "Running: $ELF under QEMU..."
-# Optional third argument is kept for backward-compatible CLI shape.
-if [[ -n "$QEMU" ]]; then
-    echo "[kat/run_kat] NOTE: custom qemu argument is ignored; using sim/qemu/run_kat.sh" >&2
+# ── Run under simulator ───────────────────────────────────────────────────────
+if [[ "$SIM" == "qemu" ]]; then
+    echo "Running: $ELF under QEMU..."
+    "${REPO_ROOT}/sim/qemu/run.sh" "$ELF" > "$LOG" 2>&1 || true
+else
+    echo "Running: $ELF under Spike..."
+    "${REPO_ROOT}/sim/spike/run.sh" --clean "$ELF" > "$LOG" 2>&1 || true
 fi
-"${REPO_ROOT}/sim/qemu/run_kat.sh" "$ELF" > "$LOG" 2>&1 || true
 
 # ── Check captured output ─────────────────────────────────────────────────────
 if [[ ! -s "$LOG" ]]; then
-    echo "FAIL: QEMU produced no output for $BASENAME" >&2
+    echo "FAIL: Simulator produced no output for $BASENAME" >&2
     exit 1
 fi
 
@@ -110,7 +121,7 @@ fi
 LEVEL_ARG=""
 [[ -n "$LEVEL" ]] && LEVEL_ARG="--level $LEVEL"
 
-python3 "${SCRIPT_DIR}/kat_check.py" \
+python3 "${REPO_ROOT}/tests/kat/kat_check.py" \
     --actual "$LOG"  \
     --rsp    "$RSP"  \
     $LEVEL_ARG
