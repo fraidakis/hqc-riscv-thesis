@@ -49,6 +49,7 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).parent.resolve()
 REPO_ROOT   = SCRIPT_DIR.parent.parent
 DEFAULT_BENCH_DIR = REPO_ROOT / "analysis" / "benchmarks"
+DEFAULT_HIST_DIR = REPO_ROOT / "analysis" / "profiles" / "histograms"
 
 ALL_VARIANTS = [
     "karatsuba_ref",
@@ -138,6 +139,9 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
     if run_label_re.fullmatch(bench_set):
         bench_set = path.parent.parent.name
 
+    if path.parent.name == "curated" and len(path.parents) >= 3 and path.parents[2].name == "suites":
+        bench_set = f"suite:{path.parent.parent.name}"
+
     # Parse CSV body
     try:
         reader = csv.DictReader(data_lines)
@@ -183,13 +187,18 @@ def collect_results(
         print(f"[extract] ERROR: bench directory not found: {bench_dir}", file=sys.stderr)
         sys.exit(1)
 
+    csv_patterns = [
+        "isolated/*/*/*_N*.csv",
+        "isolated/*/*/*/*_N*.csv",
+        "isolated/*/*_N*.csv",
+        "suites/*/curated/*_N*.csv",
+        "canonical/*/*_N*.csv",
+        "canonical/*/*/*_N*.csv",
+    ]
+
     csv_files: list[Path] = []
-    csv_files.extend(path for path in bench_dir.glob("*/*_N*.csv") if path.parent.is_dir())
-    csv_files.extend(path for path in bench_dir.glob("*/*/*_N*.csv") if path.parent.is_dir())
-    csv_files.extend(path for path in bench_dir.glob("scalar/*/*_N*.csv") if path.parent.is_dir())
-    csv_files.extend(path for path in bench_dir.glob("scalar/*/*/*_N*.csv") if path.parent.is_dir())
-    csv_files.extend(path for path in bench_dir.glob("vector/*/*_N*.csv") if path.parent.is_dir())
-    csv_files.extend(path for path in bench_dir.glob("vector/*/*/*_N*.csv") if path.parent.is_dir())
+    for pattern in csv_patterns:
+        csv_files.extend(path for path in bench_dir.glob(pattern) if path.parent.is_dir())
 
     # Keep deterministic order and avoid duplicate paths when patterns overlap.
     csv_files = sorted(set(csv_files))
@@ -501,7 +510,7 @@ def aggregate_mix(counts: dict[str, int]) -> dict[str, int]:
 
 
 def print_mix_table(
-    bench_dir: Path,
+    hist_dir: Path,
     bench_sets: list[str],
     levels: list[int],
     variants: list[str],
@@ -515,7 +524,7 @@ def print_mix_table(
             row_data: dict[str, dict[str, float]] = {}  # variant → {category: pct}
 
             for variant in variants:
-                hist_path = bench_dir / bench_set / f"hqc{level}_{variant}_hist.txt"
+                hist_path = hist_dir / bench_set / f"hqc{level}_{variant}_hist.txt"
                 if not hist_path.exists():
                     continue
 
@@ -565,6 +574,7 @@ def print_mix_table(
 def write_summary_csvs(
     results: Results,
     bench_dir: Path,
+    hist_dir: Path,
     baseline_variant: str,
     bench_sets: list[str],
     levels: list[int],
@@ -617,7 +627,7 @@ def write_summary_csvs(
     for bench_set in bench_sets:
         for level in levels:
             for variant in variants:
-                hist_path = bench_dir / bench_set / f"hqc{level}_{variant}_hist.txt"
+                hist_path = hist_dir / bench_set / f"hqc{level}_{variant}_hist.txt"
                 if not hist_path.exists():
                     continue
 
@@ -662,6 +672,8 @@ def main() -> None:
     )
     parser.add_argument("--bench-dir", type=Path, default=DEFAULT_BENCH_DIR,
                         help="Root of benchmark directories")
+    parser.add_argument("--hist-dir", type=Path, default=DEFAULT_HIST_DIR,
+                        help="Root of histogram directories")
     parser.add_argument("--build-dir", type=Path,
                         default=REPO_ROOT / "build/spike",
                         help="Directory containing bench_polymul*.elf files for PC→mnemonic "
@@ -692,6 +704,7 @@ def main() -> None:
     args = parser.parse_args()
 
     bench_dir: Path = args.bench_dir
+    hist_dir: Path = args.hist_dir
     build_dir: Path | None = args.build_dir if args.build_dir.is_dir() else None
     if args.build_dir and not args.build_dir.is_dir():
         print(f"[extract] NOTE: --build-dir not found: {args.build_dir} — PC resolution disabled",
@@ -735,12 +748,12 @@ def main() -> None:
         print_codesize_table(code_sizes, bench_sets, levels, variants, as_latex=args.latex)
 
     if args.mix:
-        print_mix_table(bench_dir, bench_sets, levels, variants, as_latex=args.latex,
+        print_mix_table(hist_dir, bench_sets, levels, variants, as_latex=args.latex,
                         build_dir=build_dir)
 
     if args.write_summary_csv:
-        write_summary_csvs(results, bench_dir, args.baseline, bench_sets, levels, variants, ops,
-                           build_dir=build_dir)
+        write_summary_csvs(results, bench_dir, hist_dir, args.baseline, bench_sets, levels,
+                           variants, ops, build_dir=build_dir)
 
 if __name__ == "__main__":
     main()

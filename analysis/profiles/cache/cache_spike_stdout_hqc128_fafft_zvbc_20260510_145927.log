@@ -1,0 +1,11 @@
+# level=128,polymul=fafft_zvbc,n_iter=1,codesize_text=71204
+op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
+vect_mul,1,1731112,1731112,1731112,1731112,1731112,1731112
+D$ Bytes Read:            9766623
+D$ Bytes Written:         4246286
+D$ Read Accesses:         1815146
+D$ Write Accesses:        1011425
+D$ Read Misses:           156
+D$ Write Misses:          662
+D$ Writebacks:            33
+D$ Miss Rate:             0.029%

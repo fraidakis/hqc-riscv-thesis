@@ -83,7 +83,7 @@ profile_cache_mode() {
 
     cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null
 
-    local out_dir="$REPO_ROOT/analysis/benchmarks/memory_profile"
+    local out_dir="$REPO_ROOT/analysis/profiles/cache/${variant}"
     mkdir -p "$out_dir"
 
     local stamp="$(date +%Y%m%d_%H%M%S)"
@@ -157,7 +157,7 @@ profile_memory_mode() {
     cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null
 
     local stamp="$(date +%Y%m%d_%H%M%S)"
-    local out_dir="$REPO_ROOT/analysis/benchmarks/memory_profile"
+    local out_dir="$REPO_ROOT/analysis/profiles/memory/${variant}"
     mkdir -p "$out_dir"
     local qemu_log="$out_dir/qemu_trace_hqc${level}_${variant}_${stamp}.log"
     local uart_log="$out_dir/qemu_stdout_hqc${level}_${variant}_${stamp}.txt"
@@ -231,8 +231,8 @@ profile_trace_mode() {
     fi
 
     basename="$(basename "$elf" .elf)"
-    outdir="$REPO_ROOT/analysis/benchmarks/hotspot_profile/${basename}"
-    mix_dir="$REPO_ROOT/analysis/benchmarks/instruction_mix"
+    outdir="$REPO_ROOT/analysis/profiles/traces/hotspots/${basename}"
+    mix_dir="$REPO_ROOT/analysis/profiles/traces/instruction_mix"
 
     mix_csv="${mix_dir}/mix_${basename}.csv"
     if [[ "$basename" =~ hqc(128|192|256)_([a-zA-Z0-9_]+)$ ]]; then
@@ -306,9 +306,9 @@ profile_histogram_mode() {
     local bench_track="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
     local out_dir
     if [[ -n "$bench_track" ]]; then
-        out_dir="${REPO_ROOT}/analysis/benchmarks/${bench_track}/${BENCH_SET}"
+        out_dir="${REPO_ROOT}/analysis/profiles/histograms/${bench_track}/${BENCH_SET}"
     else
-        out_dir="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}"
+        out_dir="${REPO_ROOT}/analysis/profiles/histograms/${BENCH_SET}"
     fi
 
     # Report flow is handled directly in this unified entrypoint.

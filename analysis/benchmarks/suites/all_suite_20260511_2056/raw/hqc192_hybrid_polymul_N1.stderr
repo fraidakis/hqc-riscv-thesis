@@ -1,0 +1,5 @@
+[spike/run] Auto-build: cmake --build /home/fraidakisg/Thesis/hqc-riscv/build/spike --target bench_polymul_hqc192_hybrid
+[100%] Built target bench_polymul_hqc192_hybrid
+[spike/run] ELF: /home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_polymul_hqc192_hybrid.elf
+[spike/run] ISA: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
+[spike/run] MODE: clean

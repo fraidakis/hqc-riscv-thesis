@@ -146,11 +146,11 @@ Launch a polymul micro-benchmark for a specific variant in the background:
 scripts/bench/run_benchmarks.sh --mode async polymul_zbc --variant karatsuba_ref
 ```
 
-Output: CSV files written to `analysis/benchmarks/polymul_zbc/`
+Output: CSV files written to `analysis/benchmarks/isolated/scalar/polymul_zbc/`
 
 Monitoring:
 ```bash
-watch -n 10 "wc -c analysis/benchmarks/polymul_zbc/*_polymul_N1.csv"
+watch -n 10 "wc -c analysis/benchmarks/isolated/scalar/polymul_zbc/*_polymul_N1.csv"
 ps aux | grep '[s]pike.*bench'
 ```
 
@@ -178,13 +178,13 @@ scripts/bench/run_benchmarks.sh --mode suite --iter 1 --promote phase1_spike_n1
 **What it does:**
 - Reconfigures CMake with `-DBENCH_N_ITER=<iter>`
 - Runs all levels and implemented variants sequentially
-- Organizes outputs in `analysis/benchmarks/runs/<run_id>/` (run-id auto-generated or via `--run-id`)
+- Organizes outputs in `analysis/benchmarks/suites/<run_id>/` (run-id auto-generated or via `--run-id`)
 - Extracts clean curated CSV and wall-time metrics into `summary.csv`
 - Optionally promotes curated results to `analysis/benchmarks/canonical/<name>/`
 
 **Output structure:**
 ```
-analysis/benchmarks/runs/<run_id>/
+analysis/benchmarks/suites/<run_id>/
   raw/              — transient stdout/stderr (ignored by git)
   curated/          — clean CSV per target (suitable for promotion)
   summary.csv       — aggregated wall-time + median metrics
@@ -247,8 +247,8 @@ scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --report --vari
 ```
 
 Output files:
-- `analysis/benchmarks/<bench_set>/hqc{128,192,256}_<variant>_polymul_N1.csv` (cycle data)
-- `analysis/benchmarks/<bench_set>/hqc{128,192,256}_<variant>_hist.txt` (instruction frequency)
+- `analysis/profiles/histograms/<track>/<bench_set>/hqc{128,192,256}_<variant>_polymul_N1.csv` (cycle data)
+- `analysis/profiles/histograms/<track>/<bench_set>/hqc{128,192,256}_<variant>_hist.txt` (instruction frequency)
 
 **Report output example:**
 
@@ -316,7 +316,7 @@ python3 scripts/report/extract_results.py --write-summary-csv
 
 Generated summary files:
 - `analysis/benchmarks/cycle_counts.csv`
-- `analysis/benchmarks/instruction_mix.csv`
+- `analysis/profiles/traces/instruction_mix.csv`
 
 ### Generate Dated Report (Markdown + LaTeX)
 

@@ -1,0 +1,11 @@
+# level=128,polymul=karatsuba_zbc,n_iter=1,codesize_text=1580
+op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
+vect_mul,1,697526,697526,697526,697526,697526,697526
+D$ Bytes Read:            5701315
+D$ Bytes Written:         1133335
+D$ Read Accesses:         712863
+D$ Write Accesses:        306866
+D$ Read Misses:           23
+D$ Write Misses:          521
+D$ Writebacks:            29
+D$ Miss Rate:             0.053%

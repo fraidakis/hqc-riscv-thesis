@@ -1,0 +1,11 @@
+# level=128,polymul=hybrid,n_iter=1,codesize_text=1590
+op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
+vect_mul,1,587141,587141,587141,587141,587141,587141
+D$ Bytes Read:            5532852
+D$ Bytes Written:         1106559
+D$ Read Accesses:         691799
+D$ Write Accesses:        243319
+D$ Read Misses:           13
+D$ Write Misses:          495
+D$ Writebacks:            15
+D$ Miss Rate:             0.054%

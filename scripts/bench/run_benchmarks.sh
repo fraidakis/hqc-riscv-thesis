@@ -199,9 +199,9 @@ run_async_mode() {
 
     bench_track="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
     if [[ -n "$bench_track" ]]; then
-        out_dir="${REPO_ROOT}/analysis/benchmarks/${bench_track}/${BENCH_SET}/${run_label}"
+        out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${bench_track}/${BENCH_SET}/${run_label}"
     else
-        out_dir="${REPO_ROOT}/analysis/benchmarks/${BENCH_SET}/${run_label}"
+        out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${BENCH_SET}/${run_label}"
     fi
     mkdir -p "$out_dir"
 
@@ -288,7 +288,7 @@ run_suite_mode() {
     fi
 
     local run_root raw_dir curated_dir summary_csv
-    run_root="${REPO_ROOT}/analysis/benchmarks/runs/${RUN_ID}"
+    run_root="${REPO_ROOT}/analysis/benchmarks/suites/${RUN_ID}"
     raw_dir="${run_root}/raw"
     curated_dir="${run_root}/curated"
     mkdir -p "$raw_dir" "$curated_dir"

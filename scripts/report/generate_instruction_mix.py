@@ -5,7 +5,7 @@ Supports Spike traces captured with both:
   - spike -l  (instruction log)
   - spike -d  (debug/disassembly stream)
 
-Writes one CSV row per trace to analysis/benchmarks/instruction_mix.csv by default.
+Writes one CSV row per trace to analysis/profiles/traces/instruction_mix.csv by default.
 """
 
 from __future__ import annotations
@@ -169,8 +169,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("analysis/benchmarks/instruction_mix.csv"),
-        help="Output CSV path (default: analysis/benchmarks/instruction_mix.csv)",
+        default=Path("analysis/profiles/traces/instruction_mix.csv"),
+        help="Output CSV path (default: analysis/profiles/traces/instruction_mix.csv)",
     )
     parser.add_argument(
         "--label",

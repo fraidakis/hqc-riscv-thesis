@@ -6,7 +6,7 @@ a throughput vs VLEN plot using matplotlib.
 
 Usage:
     python plot_vlen_sweep.py <benchmark_dir> [output_png]
-    Example: python plot_vlen_sweep.py analysis/benchmarks/vector latest_vlen_sweep.png
+    Example: python plot_vlen_sweep.py analysis/benchmarks/isolated/vector latest_vlen_sweep.png
 """
 
 import sys

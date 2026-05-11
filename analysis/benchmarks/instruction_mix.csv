@@ -1,2 +1,0 @@
-label,trace,total_instructions,unique_instructions,alu,memory,vector,control,system,other,alu_pct,memory_pct,vector_pct,control_pct,system_pct,other_pct
-hqc128_karatsuba_ref_spike_d,analysis/benchmarks/spike_d_hqc128_karatsuba_ref.log,730,2,730,0,0,0,0,0,100.00,0.00,0.00,0.00,0.00,0.00
