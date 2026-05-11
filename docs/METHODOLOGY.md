@@ -102,9 +102,9 @@ meant to accelerate, where the baseline implements it as a loop of shifts and XO
 **How to generate this data:**
 
 ```bash
-# Use the histogram wrapper (direct spike --histogram is broken here):
-scripts/bench/run_histogram_all.sh baseline_ref
-scripts/bench/run_histogram_all.sh baseline_ref --report
+# Use the unified histogram mode:
+scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --wait
+scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --report
 ```
 
 **Paper table target:**
@@ -192,8 +192,8 @@ nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_N1.csv &
 
 # Instruction histogram (wrapper; direct spike --histogram is broken):
-scripts/bench/run_histogram_all.sh baseline_ref --wait
-scripts/bench/run_histogram_all.sh baseline_ref --report
+scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --wait
+scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --report
 ```
 
 ### 13.2 llvm-mca — rank 2 (static throughput)
@@ -216,7 +216,7 @@ latency=1, throughput=1). Interpret output as a **theoretical lower-bound IPC**
 
 ```bash
 # Analyse the Zvbc hot loop
-./analysis/llvm_mca/run_mca.sh src/poly_mul/fafft_zvbc/fafft_vclmul.c 128
+./scripts/verify/run_mca.sh src/poly_mul/fafft_zvbc/fafft_vclmul.c 128
 # Report: analysis/llvm_mca/reports/fafft_vclmul_mca.txt
 ```
 
@@ -234,11 +234,11 @@ Run QEMU KAT after every code change. **Never use QEMU `rdcycle` values in
 the thesis.**
 
 ```bash
-./sim/qemu/run_kat.sh build/hqc128_karatsuba_ref.elf 2>/dev/null
+./scripts/test/run_kat.sh --sim qemu build/hqc128_karatsuba_ref.elf tests/kat/PQCkemKAT_128.rsp 2>/dev/null
 # Expected: PASS [HQC-128]: 100/100 vectors matched
 ```
 
-For Zvbc KAT tracks, use Spike (`scripts/bench/spike_kat.sh`) because QEMU crashes on the experimental Zvbc extension path in this environment.
+For Zvbc KAT tracks, use Spike (default mode in `scripts/test/run_kat.sh`) because QEMU crashes on the experimental Zvbc extension path in this environment.
 
 ### 13.4 FPGA — optional rank 4 (supplementary evidence)
 

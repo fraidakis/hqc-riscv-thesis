@@ -87,7 +87,7 @@ Run this after every change before benchmarking.
 ### 2.1 Primary: Single KAT on Spike
 
 ```bash
-scripts/bench/spike_kat.sh \
+scripts/test/run_kat.sh --sim spike \
   build/spike/hqc128_fafft_zvbc.elf \
   vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp
 ```
@@ -95,7 +95,7 @@ scripts/bench/spike_kat.sh \
 ### 2.2 Fallback / extra check: Single KAT on QEMU
 
 ```bash
-./sim/qemu/run_kat.sh build/qemu/hqc128_karatsuba_ref.elf
+./scripts/test/run_kat.sh --sim qemu build/qemu/hqc128_karatsuba_ref.elf tests/kat/PQCkemKAT_128.rsp
 ```
 
 Expected output tail:
@@ -103,7 +103,7 @@ Expected output tail:
 - `PASS 100/100`
 
 Notes:
-- `sim/qemu/run_kat.sh` takes only the ELF path.
+- `sim/qemu/run.sh` takes only the ELF path.
 - The older style that passed an RSP argument to this script is outdated.
 - QEMU must not be used for Zvbc tracks; use Spike for those tracks.
 - Reason: QEMU crashes on experimental Zvbc extension paths in this project setup.
@@ -120,23 +120,22 @@ PASS 100/100
 ### 2.3 Batch KAT across levels and implemented QEMU variants
 
 ```bash
-scripts/bench/run_kat_all.sh
+ctest -R kat
 ```
 
 What it does:
-- reads implemented variants from scripts/implemented_variants.txt
-- skips `fafft_zvbc` (QEMU does not support Zvbc)
-- runs each ELF with sim/qemu/run_kat.sh
-- validates against RSP files via tests/kat/kat_check.py
+- runs the CTest KAT matrix defined in CMake
+- executes all registered `kat_*` tests using the unified `scripts/test/run_kat.sh` runner
+- preserves simulator selection and target wiring from the active CMake configuration
 
 Current expected summary shape:
 
 ```text
-KAT results   <variant columns>
-HQC-128       PASS ...
-HQC-192       PASS ...
-HQC-256       PASS ...
-OVERALL: PASS
+Test project ...
+  Start ...: kat_hqc128_...
+  Start ...: kat_hqc192_...
+  Start ...: kat_hqc256_...
+100% tests passed, 0 tests failed out of ...
 ```
 
 RSP files used:
@@ -147,7 +146,7 @@ RSP files used:
 ### 2.4 Spike KAT for Zvbc-only variant
 
 ```bash
-scripts/bench/spike_kat.sh \
+scripts/test/run_kat.sh --sim spike \
   build/spike/hqc128_fafft_zvbc.elf \
   vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp
 ```
@@ -230,7 +229,7 @@ Interpretation:
 ### 5.1 Reproducible all-variant run (run-id folders, raw+curated split)
 
 ```bash
-scripts/bench/run_spike_suite_sync.sh --iter 1
+scripts/bench/run_benchmarks.sh --mode suite --iter 1
 ```
 
 Outputs:
@@ -241,7 +240,7 @@ Outputs:
 Promote curated CSV to canonical versioned folder:
 
 ```bash
-scripts/bench/run_spike_suite_sync.sh --iter 1 --promote phase1_spike_n1
+scripts/bench/run_benchmarks.sh --mode suite --iter 1 --promote phase1_spike_n1
 ```
 
 Expected terminal snippet:
@@ -283,7 +282,7 @@ Legacy benchmark-set folders still coexist for historical continuity:
 ### 6.1 Recommended helper script (validated)
 
 ```bash
-./analysis/llvm_mca/run_mca.sh vendor/hqc-ref/src/ref/gf2x.c 128
+./scripts/verify/run_mca.sh vendor/hqc-ref/src/ref/gf2x.c 128
 ```
 
 Output file:
@@ -324,19 +323,19 @@ $RISCV/bin/llvm-mca \
 Important update:
 - direct `spike --histogram` is not supported by the current Spike binary in
   this environment.
-- use scripts/bench/run_histogram_all.sh, which uses Spike `-g` PC histogram
+- use scripts/bench/run_profile.sh --histogram, which uses Spike `-g` PC histogram
   and resolves PCs to mnemonics.
 
 ### 7.1 Launch and wait for histogram generation
 
 ```bash
-scripts/bench/run_histogram_all.sh polymul_zbc --variant karatsuba_ref --wait
+scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --variant karatsuba_ref --wait
 ```
 
 ### 7.2 Report top instructions from existing histogram files
 
 ```bash
-scripts/bench/run_histogram_all.sh polymul_zbc --report --variant karatsuba_ref --top 20
+scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --report --variant karatsuba_ref --top 20
 ```
 
 Output files:
@@ -370,7 +369,7 @@ perf stat -e L1-dcache-loads,L1-dcache-load-misses ./dudect_cross_hqc128_fafft_z
 
 Notes:
 - treat this as the authoritative measurement for native memory contention.
-- use Spike cache profiling (`scripts/bench/profile_cache_spike.sh`) as a
+- use Spike cache profiling (`scripts/bench/run_profile.sh --cache`) as a
   controlled simulator baseline and compare relative deltas across variants.
 
 ---
@@ -378,30 +377,30 @@ Notes:
 ## 8. Batch Spike benchmarking (phase orchestration)
 
 Script:
-- scripts/bench/run_spike_bench_variant.sh
+- scripts/bench/run_benchmarks.sh --mode async
 
 ### 8.1 Polymul-only launch (default)
 
 ```bash
-scripts/bench/run_spike_bench_variant.sh polymul_zbc
+scripts/bench/run_benchmarks.sh --mode async polymul_zbc
 ```
 
 ### 8.2 Variant filter
 
 ```bash
-scripts/bench/run_spike_bench_variant.sh polymul_zbc --variant karatsuba_zbc
+scripts/bench/run_benchmarks.sh --mode async polymul_zbc --variant karatsuba_zbc
 ```
 
 ### 8.3 Full KEM launch
 
 ```bash
-scripts/bench/run_spike_bench_variant.sh polymul_zbc --full
+scripts/bench/run_benchmarks.sh --mode async polymul_zbc --full
 ```
 
 ### 8.4 Full KEM only (no polymul)
 
 ```bash
-scripts/bench/run_spike_bench_variant.sh polymul_zbc --full --no-polymul
+scripts/bench/run_benchmarks.sh --mode async polymul_zbc --full --no-polymul
 ```
 
 Outputs written under:
@@ -526,9 +525,9 @@ sudo apt-get install clang-tidy    # Ubuntu / Debian
 
 | Question | Use | Typical output |
 |---|---|---|
-| Did correctness break? | `./sim/qemu/run_kat.sh <elf>` | `PASS 100/100` |
-| All QEMU-compatible variants pass? | `scripts/bench/run_kat_all.sh` | PASS/FAIL matrix |
-| Zvbc variant correctness? | `scripts/bench/spike_kat.sh <elf> <rsp>` | PASS/FAIL |
+| Did correctness break? | `./scripts/test/run_kat.sh --sim qemu <elf> <rsp>` | `PASS 100/100` |
+| All QEMU-compatible variants pass? | `scripts/test/run_kat.sh --sim qemu <elf> <level> <polymul>` | PASS/FAIL matrix |
+| Zvbc variant correctness? | `scripts/test/run_kat.sh <elf> <level> <polymul>` | PASS/FAIL |
 | Is bench CSV plumbing healthy? | Tier 1b QEMU bench | CSV rows |
 | Did `vect_mul` improve? | Tier 2 Spike polymul | `*_polymul_N1.csv` |
 | Full KEM instruction counts? | Tier 3 Spike KEM | `*_N1.csv` |
@@ -546,17 +545,17 @@ Validated working commands in this runbook:
 - setup/preflight
 - tier 0 builds
 - tier 1 single QEMU KAT
-- tier 1 batch KAT (run_kat_all.sh)
+- tier 1 batch KAT (ctest -R kat)
 - tier 1b QEMU bench sanity
 - tier 2 and tier 3 Spike bench commands
 - tier 4 helper and manual llvm-mca commands (on vendor/hqc-ref/src/ref/gf2x.c)
-- tier 5 run_histogram_all.sh launch/report flow
-- run_spike_bench_variant.sh polymul/full modes
+- tier 5 run_profile.sh histogram launch/report flow
+- run_benchmarks.sh async/suite modes
 - extract_results.py and gen_report.sh commands
 
 Known caveats retained in this file:
-- `spike --histogram` is not supported by current Spike binary; use run_histogram_all.sh.
-- `scripts/bench/spike_kat.sh` can be long-running depending on host and variant.
+- `spike --histogram` is not supported by current Spike binary; use `scripts/bench/run_profile.sh --histogram`.
+- `scripts/test/run_kat.sh` can be long-running depending on host and variant. Use `--sim qemu` for faster execution on non-Zvbc variants.
 
 ---
 
