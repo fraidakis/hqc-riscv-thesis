@@ -136,35 +136,17 @@ Benchmarks run on Spike with a standardized ISA:
 rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 ```
 
-All benchmarks output CSV format: `op,iterations,min,max,median_cycles,median_instret,...`
+All benchmarks output CSV format: `op,iterations,min,max,median_instret,...`
 
 ### Quick Run: Polymul Micro-Benchmark (Single Variant)
 
-Launch a polymul micro-benchmark for a specific variant in the background:
+Run a polymul micro-benchmark for a specific variant in the foreground:
 
 ```bash
-scripts/bench/run_benchmarks.sh --mode async polymul_zbc --variant karatsuba_ref
+scripts/bench/run_benchmarks.sh --mode isolated --variant karatsuba_ref
 ```
 
-Output: CSV files written to `analysis/benchmarks/isolated/scalar/polymul_zbc/`
-
-Monitoring:
-```bash
-watch -n 10 "wc -c analysis/benchmarks/isolated/scalar/polymul_zbc/*_polymul.csv"
-ps aux | grep '[s]pike.*bench'
-```
-
-### Full KEM Bench Launch (All Security Levels)
-
-Launch full KEM benchmarks (keypair, encaps, decaps) for all configured security levels:
-
-```bash
-scripts/bench/run_benchmarks.sh --mode async polymul_zbc --full
-```
-
-Options:
-- `--variant <regex>` — Filter variants by regex (default: canonical variant for bench_set)
-- `--no-polymul` — Omit polymul benchmarks and measure KEM only (requires `--full`)
+Output: CSV files written to `analysis/benchmarks/isolated/scalar/`
 
 ### Suite Mode: Synchronized Benchmarking with Promotion
 
@@ -183,8 +165,9 @@ scripts/bench/run_benchmarks.sh --mode suite --promote phase1_spike_n1
 **Output structure:**
 ```
 analysis/benchmarks/suites/<run_id>/
-  hqc*_polymul.csv  — clean polymul CSV per level/variant
-  hqc*_kem.csv      — clean KEM CSV per level/variant
+  details/
+    hqc*_polymul.csv  — clean polymul CSV per level/variant
+    hqc*_kem.csv      — clean KEM CSV per level/variant
   summary_vect_mul.csv
   summary_keypair.csv
   summary_encaps.csv
@@ -200,13 +183,12 @@ scripts/bench/run_benchmarks.sh --mode suite --run-id my_optimization_attempt_v1
 ### Interpreting Benchmark Output
 
 **Polymul CSV (`*_polymul.csv`):**
-- Primary metric: `median_instret` (instruction count)
-- Secondary: `median_cycles` (closely tracks instret on Spike)
+- Primary metric: `instructions` (retired instruction count)
 - Focus: `vect_mul` row (the dominant hotspot)
 
 **Full KEM CSV (`*.csv`):**
 - Rows: `keypair`, `encaps`, `decaps`
-- Metric: `median_instret` for comparison
+- Metric: `instructions` for comparison
 - Use for: End-to-end phase checkpoints
 
 ---
@@ -238,18 +220,18 @@ Output: `analysis/llvm_mca/reports/gf2x_mca.txt`
 **Generate histogram (launch and wait):**
 
 ```bash
-scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --variant karatsuba_ref --wait
+scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --wait
 ```
 
 **Report top instructions from existing histograms:**
 
 ```bash
-scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --report --variant karatsuba_ref --top 20
+scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --report --top 20
 ```
 
 Output files:
-- `analysis/profiles/histograms/<track>/<bench_set>/hqc{128,192,256}_<variant>_polymul.csv` (cycle data)
-- `analysis/profiles/histograms/<track>/<bench_set>/hqc{128,192,256}_<variant>_hist.txt` (instruction frequency)
+- `analysis/profiles/histograms/scalar/${VARIANT}_<timestamp>/hqc{128,192,256}_<variant>_hist.txt`
+- `analysis/profiles/histograms/vector/${VARIANT}_<timestamp>/hqc{128,192,256}_<variant>_hist.txt` (Zvbc variants)
 
 **Report output example:**
 
@@ -273,7 +255,7 @@ Output files:
 Analyze cache behavior on Spike's simulated cache hierarchy:
 
 ```bash
-scripts/bench/run_profile.sh --cache --bench-set polymul_zbc --variant karatsuba_ref --report
+scripts/bench/run_profile.sh --cache --variant karatsuba_ref
 ```
 
 Output: Per-level cache hit rates, miss counts, and memory stall estimates.
@@ -434,7 +416,7 @@ $QEMU -machine virt -cpu "$CPU" -m 256M -nographic -bios none \
 ```
 
 **Expected output:**
-- CSV header: `op,iterations,min,max,median_cycles,median_instret,...`
+- CSV header: `op,iterations,min,max,median_instret,...`
 - Data rows: `keypair,...`, `encaps,...`, `decaps,...`
 - Note: QEMU cycle counts are not accurate architectural instruction counts (use Spike for thesis results)
 
@@ -486,10 +468,10 @@ It does **not** use `randombytes()` / AES-CTR DRBG. Always seed with `prng_init`
 |---|---|---|
 | Did correctness break? | `scripts/test/run_kat.sh --sim spike build/spike/hqc128_karatsuba_ref.elf tests/kat/PQCkemKAT_128.rsp` | `PASS 100/100` |
 | All variants pass KAT? | `ctest --test-dir build/spike -R kat` | All tests pass |
-| Did polymul instret improve? | `scripts/bench/run_benchmarks.sh --mode async polymul_zbc` then check `*_polymul.csv` | `median_instret` value |
-| Full KEM end-to-end? | `scripts/bench/run_benchmarks.sh --mode async polymul_zbc --full` then check `*.csv` | `keypair, encaps, decaps` rows |
+| Did polymul instret improve? | `scripts/bench/run_benchmarks.sh --mode isolated polymul_zbc` then check `*_polymul.csv` | `instructions` value |
+| Full KEM end-to-end? | `scripts/bench/run_benchmarks.sh --mode suite` then check `summary_*.csv` | `keypair, encaps, decaps` rows |
 | Static throughput hints? | `./scripts/verify/run_mca.sh vendor/hqc-ref/src/ref/gf2x.c 128` | `*_mca.txt` report |
-| Instruction mix by mnemonic? | `scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --report --top 20` | `*_hist.txt` + terminal report |
+| Instruction mix by mnemonic? | `scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --report --top 20` | `*_hist.txt` + terminal report |
 | Aggregate thesis tables? | `python3 scripts/report/extract_results.py --latex` | `table_results.tex` |
 
 ---
@@ -502,14 +484,14 @@ It does **not** use `randombytes()` / AES-CTR DRBG. Always seed with `prng_init`
 - Prerequisites & setup (`source toolchain/toolchain.env`, command checks)
 - Build system: `cmake --build build/spike`, `cmake --build build/qemu`
 - Correctness gates: single KAT with standardized `tests/kat/` path, batch `ctest --test-dir build/spike -R kat`
-- Benchmarking suite: `scripts/bench/run_benchmarks.sh --mode async` and `--mode suite`
+- Benchmarking suite: `scripts/bench/run_benchmarks.sh --mode isolated` and `--mode suite`
 - Profiling & tracing: `scripts/verify/run_mca.sh`, `scripts/bench/run_profile.sh --histogram`
 - Reporting: `extract_results.py`, `gen_report.sh`
 - Static analysis: `scripts/ci/lint.sh`
 - Debugging utilities: `llvm-objdump`, `llvm-nm` examples
 
 **New features validated:**
-- `run_benchmarks.sh` `--mode async` and `--mode suite` (replaces raw Spike bash blocks)
+- `run_benchmarks.sh` `--mode isolated` and `--mode suite` (replaces raw Spike bash blocks)
 - `ctest --test-dir build/spike -R kat` (fixes "No tests were found!!!" bug)
 - Standardized RSP paths `tests/kat/PQCkemKAT_{128,192,256}.rsp` (verified as symlinks)
 - Two benchmark target explanation and use cases

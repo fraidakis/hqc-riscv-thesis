@@ -33,12 +33,12 @@ if [[ ! -x "$SPIKE" ]]; then
     exit 2
 fi
 
-STAMP="$(date +%Y%m%d_%H%M%S)"
+STAMP="$(date +'%Y-%m-%d_%H-%M')"
 OUT_DIR="$REPO_ROOT/analysis/benchmarks/compiler_compare"
 mkdir -p "$OUT_DIR"
 CSV_OUT="$OUT_DIR/compare_hqc${LEVEL}_${VARIANT}_${STAMP}.csv"
 
-echo "compiler,opt,level,variant,status,median_cycles,median_instret,text_bytes,elf,error" > "$CSV_OUT"
+echo "compiler,opt,level,variant,status,instructions,text_bytes,elf,error" > "$CSV_OUT"
 
 run_one() {
     local compiler="$1"
@@ -50,8 +50,6 @@ run_one() {
     local elf
     local run_out
     local run_err
-    local row
-    local cycles
     local instret
     local size_tool
     local text_bytes
@@ -85,13 +83,13 @@ run_one() {
         -DCMAKE_TOOLCHAIN_FILE="$toolchain_tmp" \
         -DRISCV="$RISCV" \
         -DHQC_SIM=spike >/dev/null 2>&1; then
-        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,,cmake_configure_failed" >> "$CSV_OUT"
+        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,cmake_configure_failed" >> "$CSV_OUT"
         return 1
     fi
 
     target="bench_polymul_hqc${LEVEL}_${VARIANT}"
     if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
-        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,,build_failed" >> "$CSV_OUT"
+        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,build_failed" >> "$CSV_OUT"
         return 1
     fi
 
@@ -100,12 +98,10 @@ run_one() {
     run_err="$build_dir/${target}.stderr"
 
     if ! "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2> "$run_err"; then
-        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,${elf},spike_run_failed" >> "$CSV_OUT"
+        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,${elf},spike_run_failed" >> "$CSV_OUT"
         return 1
     fi
-    row="$(awk -F',' '$1=="vect_mul" {print $4 "," $7; exit}' "$run_out")"
-    cycles="${row%%,*}"
-    instret="${row##*,}"
+    instret="$(awk -F',' '$1=="vect_mul" {print $7; exit}' "$run_out")"
 
     size_tool="$RISCV/bin/llvm-size"
     if [[ ! -x "$size_tool" ]]; then
@@ -114,7 +110,7 @@ run_one() {
     text_bytes="$($size_tool "$elf" 2>/dev/null | awk 'NR==2{print $1}')"
     text_bytes="${text_bytes:-0}"
 
-    echo "${compiler},-${opt},${LEVEL},${VARIANT},OK,${cycles},${instret},${text_bytes},${elf}," >> "$CSV_OUT"
+    echo "${compiler},-${opt},${LEVEL},${VARIANT},OK,${instret},${text_bytes},${elf}," >> "$CSV_OUT"
 }
 
 for compiler in clang gcc; do

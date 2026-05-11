@@ -36,6 +36,15 @@ Because Spike is an in-order deterministic ISS with no cache or pipeline state
 carried across runs, repeated benchmark iterations are redundant for this
 workflow. The framework therefore assumes a single measurement pass per target.
 
+> **Spike CPI = 1 (cycles ≡ instructions):** Spike enforces a strict 1:1
+> mapping between retired instructions and cycles — there is no pipeline model,
+> no cache, and no branch predictor. As a result, `rdcycle` and `rdinstret`
+> return identical values on every run. To avoid confusion and redundancy,
+> **the benchmarking framework drops `cycles` entirely from all reporting**
+> and exclusively uses the `instructions` column (renamed from `median_instret`).
+> Any summary CSV, comparison table, or report that previously contained a
+> `median_cycles` column has been removed.
+
 > **Claim to reviewers:** "We reduce the retired instruction count of
 > `vect_mul` by X× for HQC-128/192/256, which represents ≥90% of total
 > KEM runtime (verified by profiling). Under any throughput-bound execution
@@ -107,8 +116,8 @@ meant to accelerate, where the baseline implements it as a loop of shifts and XO
 
 ```bash
 # Use the unified histogram mode:
-scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --wait
-scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --report
+scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --wait
+scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --report
 ```
 
 **Paper table target:**
@@ -196,8 +205,8 @@ nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
   > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref.csv &
 
 # Instruction histogram (wrapper; direct spike --histogram is broken):
-scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --wait
-scripts/bench/run_profile.sh --histogram --bench-set baseline_ref --report
+scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --wait
+scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --report
 ```
 
 ### 13.2 llvm-mca — rank 2 (static throughput)

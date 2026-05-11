@@ -12,7 +12,7 @@
 #   scripts/bench/run_profile.sh --cache --variant karatsuba_ref --level 128
 #   scripts/bench/run_profile.sh --memory --variant hybrid --level 192
 #   scripts/bench/run_profile.sh --trace --elf build/spike/bench_polymul_hqc128_karatsuba_zbc.elf
-#   scripts/bench/run_profile.sh --histogram --bench-set polymul_zbc --wait
+#   scripts/bench/run_profile.sh --histogram --variant karatsuba_zbc --wait
 
 set -euo pipefail
 
@@ -24,27 +24,11 @@ MODE=""
 VARIANT=""
 LEVEL="128"
 ELF=""
-BENCH_SET=""
 WAIT_FLAG=0
 REPORT_FLAG=0
 TOP_N=""
 COMPARE_WITH=""
 CONTEXT_FLAG=0
-
-# Histogram bench-set -> output directory track mapping.
-declare -A BENCH_SET_TRACK_MAP
-BENCH_SET_TRACK_MAP=(
-    [baseline_ref]="scalar"
-    [polymul_zbc]="scalar"
-    [fafft_zbc]="scalar"
-    [hybrid]="scalar"
-    [hybrid_zbc]="scalar"
-    [hybrid_zbc_v2]="scalar"
-    [hybrid_2way_zbc]="scalar"
-    [polymul_zvbc]="vector"
-    [polymul_zvbc_v2]="vector"
-    [fafft_zvbc]="vector"
-)
 
 profile_cache_mode() {
     local variant="${VARIANT:-karatsuba_ref}"
@@ -146,7 +130,7 @@ profile_memory_mode() {
 
     cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null
 
-    local stamp="$(date +%Y%m%d_%H%M%S)"
+    local stamp="$(date +'%Y-%m-%d_%H-%M')"
     local out_dir="$REPO_ROOT/analysis/profiles/memory/${variant}"
     mkdir -p "$out_dir"
     local qemu_log="$out_dir/qemu_trace_hqc${level}_${variant}_${stamp}.log"
@@ -273,8 +257,8 @@ profile_trace_mode() {
 }
 
 profile_histogram_mode() {
-    if [[ -z "$BENCH_SET" ]]; then
-        echo "ERROR: --histogram requires --bench-set <set>" >&2
+    if [[ -z "$VARIANT" ]]; then
+        echo "ERROR: --histogram requires --variant <variant>" >&2
         exit 2
     fi
 
@@ -293,44 +277,39 @@ profile_histogram_mode() {
         mode="wait"
     fi
 
-    local bench_track="${BENCH_SET_TRACK_MAP[$BENCH_SET]:-}"
-    local out_dir
-    if [[ -n "$bench_track" ]]; then
-        out_dir="${REPO_ROOT}/analysis/profiles/histograms/${bench_track}/${BENCH_SET}"
+    local BENCH_TIME
+    BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
+
+    local track out_dir base_scan_dir
+    if [[ "${VARIANT,,}" == *"zvbc"* ]]; then
+        track="vector"
     else
-        out_dir="${REPO_ROOT}/analysis/profiles/histograms/${BENCH_SET}"
+        track="scalar"
     fi
+    out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${VARIANT}_${BENCH_TIME}"
+    base_scan_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}"
 
     # Report flow is handled directly in this unified entrypoint.
     if [[ "$mode" == "report" ]]; then
-        if [[ ! -d "$out_dir" ]]; then
-            echo "[histogram] No benchmark-set directory found: $out_dir" >&2
-            echo "            Run --histogram --bench-set $BENCH_SET first to generate files." >&2
+        if [[ ! -d "$base_scan_dir" ]]; then
+            echo "[histogram] No histogram directory found: $base_scan_dir" >&2
+            echo "            Run --histogram --variant $VARIANT first to generate files." >&2
             return 0
         fi
 
         local found=0
-        for level in "${levels[@]}"; do
-            for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
-                bench_variant_matches "$variant" "$VARIANT" || continue
-                local hist="${out_dir}/hqc${level}_${variant}_hist.txt"
-                if [[ ! -f "$hist" ]]; then
-                    continue
-                fi
-                found=$((found + 1))
-                echo "=== hqc${level}_${variant} (${BENCH_SET}) ==="
-                head -n "${TOP_N:-20}" "$hist" || true
-                if [[ "$CONTEXT_FLAG" -eq 1 ]]; then
-                    local elf_ctx="${build_dir}/bench_polymul_hqc${level}_${variant}.elf"
-                    if [[ -f "$elf_ctx" ]]; then
-                        echo "[histogram] context requested; run run_profile.sh --histogram --bench-set ${BENCH_SET} --report --context for full context output."
-                    fi
-                fi
-                echo ""
-            done
-        done
+        while IFS= read -r hist; do
+            [[ -f "$hist" ]] || continue
+            found=$((found + 1))
+            local dir_label
+            dir_label="$(basename "$(dirname "$hist")")"
+            echo "=== $(basename "$hist" _hist.txt) (${dir_label}) ==="
+            head -n "${TOP_N:-20}" "$hist" || true
+            echo ""
+        done < <(find "${base_scan_dir}/${VARIANT}_"* -name "*_hist.txt" 2>/dev/null | sort)
+
         if [[ "$found" -eq 0 ]]; then
-            echo "[histogram] No histogram files found in ${out_dir}/"
+            echo "[histogram] No histogram files found for variant '${VARIANT}' in ${base_scan_dir}/"
         fi
         return 0
     fi
@@ -378,7 +357,7 @@ profile_histogram_mode() {
         return 0
     fi
 
-    echo "[histogram] Launched ${launched} Spike -g job(s) for ${BENCH_SET}:"
+    echo "[histogram] Launched ${launched} Spike -g job(s) for variant '${VARIANT}':"
     printf "%s\n" "${job_lines[@]}"
     echo ""
 
@@ -401,7 +380,7 @@ Usage:
     run_profile.sh --cache [--variant V] [--level 128|192|256]
     run_profile.sh --memory [--variant V] [--level 128|192|256]
     run_profile.sh --trace --elf <path-to-elf>
-    run_profile.sh --histogram --bench-set <set> [--variant regex] [--wait|--report]
+    run_profile.sh --histogram --variant <variant> [--wait|--report]
              [--top N] [--compare-with set] [--context]
 EOF
 }
@@ -422,10 +401,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --elf)
             ELF="$2"
-            shift 2
-            ;;
-        --bench-set)
-            BENCH_SET="$2"
             shift 2
             ;;
         --wait)
