@@ -1,15 +1,15 @@
-/* src/poly_mul/hybrid_zbc/hybrid.c
+/* src/poly_mul/hybrid_zbc/hybrid_v2.c
  *
- * Phase 1d — Advanced Hybrid FAFFT-Karatsuba polynomial multiplication.
+ * Advanced hybrid FAFFT-Karatsuba polynomial multiplication.
  *
  * ═══════════════════════════════════════════════════════════════════════
  * ALGORITHM — 2-Way FAFFT-Karatsuba Split (Jang et al. 2026)
  * ═══════════════════════════════════════════════════════════════════════
- * Phase 1c showed that wrapping FAFFT sub-problems in a 3-way recursive
+ * The previous 3-way recursive design showed that wrapping FAFFT sub-problems
  * Karatsuba degrades monotonically: each Karatsuba level triples the
  * number of FAFFT calls while the fixed-size kernels do not shrink.
  *
- * Phase 1d replaces the 3-way recursive scheme with a single 2-way split
+ * This implementation replaces the 3-way recursive scheme with a single 2-way split
  * at a power-of-2 boundary X = x^(2^d), chosen so that:
  *   (a) The large sub-products (C0, C_mid) fit in a SMALLER FAFFT domain
  *       than the full polynomial, eliminating padding overhead.
@@ -34,18 +34,18 @@
  *   where C0 = f_lo*g_lo, C_mid = (f_lo^f_hi)*(g_lo^g_hi), C2 = f_hi*g_hi
  *
  * ═══════════════════════════════════════════════════════════════════════
- * Phase 1c (legacy) — 3-way recursive FAFFT-Karatsuba (HYBRID_KARATSUBA_DEPTH)
+ * Legacy path — 3-way recursive FAFFT-Karatsuba (HYBRID_KARATSUBA_DEPTH)
  * ═══════════════════════════════════════════════════════════════════════
  * Retained for reference under compile-time flag:
  *   -DUSE_LEGACY_HYBRID=1   activates the old depth-based 3-way scheme
  *   -DHYBRID_KARATSUBA_DEPTH=N   (default 0 = pure FAFFT)
  *
  * Result: depth=0→1.46M, depth=1→4.39M, depth=2→13.16M instret (HQC-128)
- * Shows monotonic degradation: phase1d new 2-way split fixes this.
+ * Shows monotonic degradation; the new 2-way split fixes this.
  *
  * Compile-time flags:
  *   -DKARATSUBA_THRESHOLD=N  base-case for scalar Karatsuba (default 16)
- *   -DUSE_LEGACY_HYBRID=1    use old phase1c 3-way scheme instead
+ *   -DUSE_LEGACY_HYBRID=1    use old 3-way scheme instead
  *   -DHYBRID_KARATSUBA_DEPTH=N (only with USE_LEGACY_HYBRID)
  */
 
@@ -275,7 +275,7 @@ static void reduce(uint64_t * __restrict__ o,
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
- * Phase 1d — 2-Way FAFFT-Karatsuba Split
+ * 2-way FAFFT-Karatsuba split
  * ═══════════════════════════════════════════════════════════════════════ */
 #ifndef USE_LEGACY_HYBRID
 
@@ -350,7 +350,7 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
- * Phase 1c legacy — 3-way recursive FAFFT-Karatsuba (reference only)
+ * Legacy 3-way recursive FAFFT-Karatsuba (reference only)
  * ═══════════════════════════════════════════════════════════════════════ */
 #else /* USE_LEGACY_HYBRID */
 

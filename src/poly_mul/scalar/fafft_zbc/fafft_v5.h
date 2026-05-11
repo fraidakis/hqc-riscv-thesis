@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 /*
- * Phase 1b v5 — Paper-Optimised CRT Bypass.
+ * Paper-optimized CRT bypass implementation.
  *
  * For HQC-128 (PARAM_N == 17669):
  *   Implements the CRT-based polynomial multiplication from the reference

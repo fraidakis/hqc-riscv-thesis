@@ -1,15 +1,21 @@
 /* src/poly_mul/hybrid_zbc/hybrid.c
  *
- * Phase 1b v3 — Scalar Hybrid Architecture entry point.
+ * Scalar hybrid architecture entry point.
  *
  * Active path (default): delegates to vect_mul_hybrid_v3() from
- *   v3/hybrid_v3.c — a recursive Karatsuba divide-and-conquer
+ *   hybrid_v3.c — a recursive Karatsuba divide-and-conquer
  *   ("FAFFT outer shell") with a tunable clmul+clmulh leaf
  *   ("Karatsuba base case") controlled by V3_HYBRID_THRESH.
  *
  * Legacy path (compile with -DUSE_LEGACY_HYBRID=1):
- *   Phase 1c depth-based Karatsuba → FAFFT scheme (requires linking
+ *   depth-based Karatsuba → FAFFT scheme (requires linking
  *   fafft_zbc/ref/gfmul_fft.c and all btfy/bc sources).
+ *
+ * Performance note (analysis/benchmarks/canonical/spike_all_impls_n1_precise_20260505,
+ * polymul instret medians): hybrid_zbc improves over karatsuba_zbc by about
+ * 16.1% (HQC-128), 15.3% (HQC-192), and 6.9% (HQC-256), but it is slower than
+ * fafft_zbc on the same runs. The earlier "15-25% over both pure strategies"
+ * claim is not supported by current canonical measurements.
  *
  * vect_mul_r2_keycached: shared-precomputation twin multiply called by
  *   vendor hqc.c when HQC_POLYMUL_HYBRID_KEYCACHE is defined.
@@ -22,12 +28,12 @@
 #include "parameters.h"
 #include "hqc_parameters.h"
 
-/* ── Active v3 path ───────────────────────────────────────────────────── */
+/* ── Active hybrid_v3 path ────────────────────────────────────────────── */
 #ifndef USE_LEGACY_HYBRID
 
 #include "hybrid_v3.h"
 
-/* Public vect_mul entry point — delegates to v3 */
+/* Public vect_mul entry point — delegates to hybrid_v3 */
 void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
 {
     vect_mul_hybrid_v3(o, a, b);
@@ -38,7 +44,7 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
 /*
  * vect_mul_r2_keycached — compute r2*h and r2*s sharing r2 precomputation.
  *
- * v3 scalar path: no shared FAFFT transform available; fall back to two
+ * Current scalar path: no shared FAFFT transform available; fall back to two
  * independent calls.  A future optimisation could precompute the Karatsuba
  * sub-trees of r2 once, but for the threshold sweep this simple form
  * gives correct results and measures the pure polynomial multiply cost.
@@ -55,7 +61,7 @@ void vect_mul_r2_keycached(
 }
 #endif /* HQC_POLYMUL_HYBRID_KEYCACHE */
 
-/* ── Legacy Phase 1c path (compile with -DUSE_LEGACY_HYBRID=1) ────────── */
+/* ── Legacy depth-based path (compile with -DUSE_LEGACY_HYBRID=1) ─────── */
 #else /* USE_LEGACY_HYBRID */
 
 /* FAFFT full-product kernels */

@@ -1,6 +1,6 @@
 /* src/poly_mul/karatsuba_zvbc/gf2x_vclmul.c
  *
- * Phase 1a-2 (1+ , Track A) — Vectorised Karatsuba with vclmul.vv / vclmulh.vv.
+ * Early vectorized Karatsuba with vclmul.vv / vclmulh.vv.
  *
  * This is the Zvbc-vectorised version of karatsuba_zbc/gf2x_clmul.c.
  * Two optimisation axes are applied:

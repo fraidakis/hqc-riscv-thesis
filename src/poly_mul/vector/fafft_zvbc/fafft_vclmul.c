@@ -1,9 +1,9 @@
 /* src/poly_mul/fafft_zvbc/fafft_vclmul.c
  *
- * Phase 1+ (Track B) — FAFFT compiled for Zvbc; RVV-vectorised where
+ * FAFFT compiled for Zvbc; RVV-vectorized where
  * applicable.
  *
- * ── Architecture decision (Phase 1+ research finding) ───────────────────
+ * ── Architecture decision ───────────────────────────────────────────────
  * The existing FAFFT (fafft_zbc) uses the Jang et al. additive-FFT kernel
  * with GF(2^32) ARITHMETIC ENCODED IN A BIT-SLICED TOWER-FIELD
  * REPRESENTATION (gf232v_mul from gfv_tower.h).  In this representation,
@@ -65,7 +65,7 @@
  * when -march includes the V extension.  The Zvbc extension itself does
  * not contribute additional speedup for this algorithm.
  *
- * Benchmarking on Spike (see analysis/benchmarks/phase1plus/) will confirm
+ * Benchmarking on Spike (see analysis/benchmarks/canonical/) confirms
  * whether the small RVV-XOR benefit is measurable vs fafft_zbc.
  */
 void vect_mul(uint64_t *o, const uint64_t *v1, const uint64_t *v2)

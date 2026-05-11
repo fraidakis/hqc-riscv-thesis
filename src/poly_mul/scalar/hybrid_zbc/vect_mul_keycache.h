@@ -1,6 +1,6 @@
 /* src/poly_mul/hybrid_zbc/vect_mul_keycache.h
  *
- * Phase 1b-3 Iter 3 — Key Caching API
+ * Hybrid key-caching API.
  *
  * Declare vect_mul_r2_keycached, which computes both r2*h and r2*s in
  * a single call, sharing the forward FAFFT transforms of r2.

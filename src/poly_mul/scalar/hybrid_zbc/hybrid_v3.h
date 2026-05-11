@@ -1,6 +1,6 @@
-/* src/poly_mul/hybrid_zbc/v3/hybrid_v3.h
+/* src/poly_mul/hybrid_zbc/hybrid_v3.h
  *
- * Phase 1b v3 — Scalar Hybrid FAFFT+Karatsuba polynomial multiplication.
+ * Scalar hybrid FAFFT+Karatsuba polynomial multiplication.
  *
  * Public API: vect_mul_hybrid_v3
  *   Computes o = a * b mod (x^PARAM_N - 1) over GF(2)[x].

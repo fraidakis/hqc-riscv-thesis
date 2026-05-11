@@ -1,6 +1,6 @@
 /* src/poly_mul/fafft_zbc/fafft_rvv.c
  *
- * Phase 1b (RVV axes) — RVV-vectorised helper routines for the FAFFT.
+ * RVV-vectorized helper routines for FAFFT.
  *
  * This file implements the three RVV vectorisation axes for the FAFFT that
  * do NOT require vclmul.vv (Zvbc).  Compiled for rv64gcv_zbc.

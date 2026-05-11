@@ -1,6 +1,6 @@
-/* src/poly_mul/hybrid_zbc/v3/hybrid_v3.c
+/* src/poly_mul/hybrid_zbc/hybrid_v3.c
  *
- * Phase 1b v3 — Scalar Hybrid Architecture: FAFFT Outer Shell + Karatsuba Base
+ * Scalar hybrid architecture: FAFFT outer shell + Karatsuba base.
  *
  * ═══════════════════════════════════════════════════════════════════════════
  * ALGORITHM
@@ -209,7 +209,7 @@ static void reduce(uint64_t * __restrict__ o,
 /* ── Public entry point ──────────────────────────────────────────────────── */
 
 /**
- * vect_mul_hybrid_v3 — Phase 1b v3 Scalar Hybrid polynomial multiplication.
+ * vect_mul_hybrid_v3 — scalar hybrid polynomial multiplication.
  *
  * Computes o = a * b mod (x^PARAM_N - 1) over GF(2)[x].
  *

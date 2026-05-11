@@ -1,6 +1,6 @@
 /* src/poly_mul/karatsuba_zbc/gf2x_clmul.c
  *
- * Phase 1a — Karatsuba polynomial multiplication over GF(2)[x]
+ * Karatsuba polynomial multiplication over GF(2)[x]
  * accelerated with the RISC-V Zbc carry-less multiply extension.
  *
  * Provides the same interface as vendor/hqc-ref/src/ref/gf2x.c:
