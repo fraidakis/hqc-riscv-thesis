@@ -31,5 +31,5 @@ Vector Karatsuba (`karatsuba_zvbc`) wins decisively:
 
 ## KAT Validation
 
-Run `tests/kat/run_kat.sh build/hqc<LEVEL>_<VARIANT>.elf <RSP>` to re-validate.
+Run `scripts/test/run_kat.sh build/hqc<LEVEL>_<VARIANT>.elf <LEVEL> <VARIANT>` to re-validate.
 Results: see kat_results.txt (generated after QEMU KAT completes).

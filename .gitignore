@@ -60,7 +60,7 @@ analysis/benchmarks/runs/**/meta/
 analysis/ct_verify/ctgrind/*.xml
 analysis/ct_verify/dudect/*
 !analysis/ct_verify/**/.gitkeep
-!analysis/ct_verify/dudect/run_dudect_all_variants.sh
+!scripts/verify/run_dudect_all_variants.sh
 
 # KAT test vectors (generated)
 tests/kat/vectors/*.rsp

@@ -47,13 +47,13 @@ cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DH
 cmake --build build/qemu -j$(nproc)
 
 # 4. Run KAT under QEMU
-./sim/qemu/run_kat.sh build/qemu/hqc128_karatsuba_ref.elf
+./scripts/test/run_kat.sh --sim qemu build/qemu/hqc128_karatsuba_ref.elf tests/kat/PQCkemKAT_128.rsp
 ```
 
 ## Simulation Targets
 
-- **Spike** — functional ISA simulation with commit log (`--log-commits`)
-- **QEMU** — system-mode emulation (`qemu-system-riscv64 -machine virt`)
+- **Spike** — functional ISA simulation with `sim/spike/run.sh` (`--clean` for timing, `--profile` for traces)
+- **QEMU** — system-mode emulation via `sim/qemu/run.sh`
 - **Marian/Ara** — RTL co-simulation (see [sim/rtl-marian/README.md](sim/rtl-marian/README.md))
 
 ## Toolchain
