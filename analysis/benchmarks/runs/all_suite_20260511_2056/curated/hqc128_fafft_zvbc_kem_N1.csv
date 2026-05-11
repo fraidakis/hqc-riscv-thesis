@@ -1,0 +1,5 @@
+# level=128,polymul=fafft_zvbc,n_iter=1,codesize_text=79628
+op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
+keypair,1,3529262,3529262,3529262,3529262,3529262,3529262
+encaps,1,6979768,6979768,6979768,6979768,6979768,6979768
+decaps,1,11461331,11461331,11461331,11461331,11461331,11461331
