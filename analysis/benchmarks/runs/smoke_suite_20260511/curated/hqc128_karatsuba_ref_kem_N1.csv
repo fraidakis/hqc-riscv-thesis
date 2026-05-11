@@ -1,0 +1,5 @@
+# level=128,polymul=karatsuba_ref,n_iter=1,codesize_text=22988
+op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
+keypair,1,19331100,19331100,19331100,19331100,19331100,19331100
+encaps,1,38577485,38577485,38577485,38577485,38577485,38577485
+decaps,1,58860976,58860976,58860976,58860976,58860976,58860976
