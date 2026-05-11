@@ -488,7 +488,7 @@ hqc-riscv/
 #### [scripts/test/run_kat.sh](../scripts/test/run_kat.sh)
 - **Usage:** Unified KAT orchestrator: runs an ELF under a simulator (Spike by default, QEMU with `--sim qemu`), captures output, pipes it through `kat_check.py` for verification, and returns pass/fail to the caller. Auto-builds the target ELF before execution to prevent stale binaries.
 - **Why:** Provides the CTest command registered in CMakeLists.txt and the CI execution primitive for automated correctness gating. Spike is the default because it's deterministic and fast; QEMU is available for cross-validation on a traditional x86-based DBT backend.
-- **Where:** Called by CTest tests, `.github/workflows/kat.yml`, and direct developer testing. Consolidates previous separate spike_kat.sh and qemu-centric runners into a single parameterized entry point.
+- **Where:** Called by CTest tests, `.github/workflows/kat.yml`, and direct developer testing. Consolidates previous separate simulator-specific KAT scripts into a single parameterized entry point.
 
 #### [tests/unit/CMakeLists.txt](../tests/unit/CMakeLists.txt)
 - **Usage:** Unit test build configuration registering individual test targets for GF(2^m) arithmetic, polynomial operations, and decoder correctness checks.
