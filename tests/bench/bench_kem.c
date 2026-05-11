@@ -19,7 +19,7 @@
  *   SECURITY_LEVEL    128 | 192 | 256
  *   POLYMUL_NAME      string literal, e.g. "karatsuba_zbc"
  *   HQC_BENCH_MODE=1  ensures AES-free randombytes()
- *   N_ITER            (optional, default 10)
+ *   N_ITER            (optional, default 1)
  *
  * Warmup: a single non-timed pass of all three operations is run before
  * the timed N_ITER passes.  On Spike (deterministic ISS, no cache), one
@@ -40,7 +40,7 @@
 #include "parameters.h"
 
 #ifndef N_ITER
-#  define N_ITER 10
+#  define N_ITER 1
 #endif
 
 #ifndef POLYMUL_NAME

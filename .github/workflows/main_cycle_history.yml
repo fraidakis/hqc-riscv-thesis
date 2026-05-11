@@ -69,7 +69,7 @@ jobs:
           elf="build/spike/bench_polymul_hqc${{ matrix.level }}_${{ matrix.variant }}.elf"
           out="analysis/benchmarks/main-history/hqc${{ matrix.level }}_${{ matrix.variant }}_${GITHUB_SHA::8}.csv"
 
-          sim/spike/run_bench.sh "$elf" | tee "$out"
+          sim/spike/run.sh --bench "$elf" | tee "$out"
 
           median=$(awk -F, '$1 == "vect_mul" { print $4; exit }' "$out")
           if [[ -z "$median" ]]; then

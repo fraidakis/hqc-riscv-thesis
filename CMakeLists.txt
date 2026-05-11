@@ -47,18 +47,21 @@ message(STATUS "Simulator backend: ${HQC_SIM}")
 
 if(HQC_SIM STREQUAL "spike")
     set(SIM_DEFINES "")       # Spike HTIF is the default in bench.c
-    set(BENCH_SIM_RUNNER "${CMAKE_SOURCE_DIR}/sim/spike/run_bench.sh")
+    set(BENCH_SIM_RUNNER "${CMAKE_SOURCE_DIR}/sim/spike/run.sh")
+    set(BENCH_SIM_ARGS "--clean")
 elseif(HQC_SIM STREQUAL "qemu")
     set(SIM_DEFINES "HQC_SIM_QEMU=1")
-    set(BENCH_SIM_RUNNER "${CMAKE_SOURCE_DIR}/sim/qemu/run_kat.sh")
+    set(BENCH_SIM_RUNNER "${CMAKE_SOURCE_DIR}/sim/qemu/run.sh")
+    set(BENCH_SIM_ARGS "")
 else()
     message(FATAL_ERROR "Unsupported HQC_SIM='${HQC_SIM}'. Use 'qemu' or 'spike'.")
 endif()
 
 # ── Benchmark iteration count ────────────────────────────────────────────────
 # Controls N_ITER in bench_kem.c / bench_poly_mul.c.
-# Use a small value (e.g. 1) for a quick probe run; 10 for final results.
-set(BENCH_N_ITER 10 CACHE STRING "Iterations per benchmark operation (N_ITER)")
+# Spike runs in this repository are deterministic, so N=1 is sufficient for
+# canonical instruction-count collection and keeps turnaround low.
+set(BENCH_N_ITER 1 CACHE STRING "Iterations per benchmark operation (N_ITER)")
 message(STATUS "Benchmark N_ITER: ${BENCH_N_ITER}")
 
 # ── Hybrid Karatsuba depth (Phase 1c sweep) ───────────────────────────────────
@@ -83,7 +86,7 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 # ── Polynomial multiplication variants ───────────────────────────────────────
 # All targets are declared but marked EXCLUDE_FROM_ALL — build explicitly:
 #   cmake --build build --target hqc128_karatsuba_ref -j$(nproc)
-# Scripts (run_kat_all.sh, run_spike_bench_variant.sh) auto-skip missing ELFs.
+# Scripts (scripts/test/run_kat.sh, scripts/bench/run_benchmarks.sh) auto-skip missing ELFs.
 # Different CMake build dirs control Keccak/Decode implementation via
 # HQC_KECCAK_IMPL / HQC_DECODE_IMPL (set in cmake/options.cmake).
 #
@@ -217,7 +220,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft_v5.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft_rvv.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/rvv_only/fafft/fafft_rvv.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c
@@ -313,9 +316,9 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
                 V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
                 HQC_POLYMUL_HYBRID_KEYCACHE=1)
-            # vect_mul_keycache.h is included by hqc.c via #ifdef guard
+            # vect_mul_keycache.h is included by hybrid.c via #ifdef guard
             target_include_directories(${KAT_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
         endif()
         set_target_properties(${KAT_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -330,10 +333,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         endif()
 
         # CTest KAT gate — must pass before any branch is merged.
-        # run_kat.sh(elf, level, polymul) drives QEMU and diffs against .rsp
+        # run_kat.sh(elf, level, polymul) drives simulator (Spike by default, QEMU with --sim) and diffs against .rsp
         add_test(
             NAME "kat_${KAT_TARGET}"
-            COMMAND ${CMAKE_SOURCE_DIR}/tests/kat/run_kat.sh
+            COMMAND ${CMAKE_SOURCE_DIR}/scripts/test/run_kat.sh
                     $<TARGET_FILE:${KAT_TARGET}> ${LEVEL} ${POLYMUL}
         )
 
@@ -384,7 +387,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
                 HQC_POLYMUL_HYBRID_KEYCACHE=1)
             target_include_directories(${BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
         endif()
         set_target_properties(${BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -398,7 +401,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             hqc_apply_ref_lto_pgo(${BENCH_TARGET})
         endif()
         add_custom_target(run_${BENCH_TARGET}
-            COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${BENCH_TARGET}>
+            COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${BENCH_TARGET}>
             DEPENDS ${BENCH_TARGET}
             USES_TERMINAL
             COMMENT "Running ${BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
@@ -446,7 +449,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
                 HQC_POLYMUL_HYBRID_KEYCACHE=1)
             target_include_directories(${POLYMUL_BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
         endif()
         set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -460,7 +463,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             hqc_apply_ref_lto_pgo(${POLYMUL_BENCH_TARGET})
         endif()
         add_custom_target(run_${POLYMUL_BENCH_TARGET}
-            COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${POLYMUL_BENCH_TARGET}>
+            COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${POLYMUL_BENCH_TARGET}>
             DEPENDS ${POLYMUL_BENCH_TARGET}
             USES_TERMINAL
             COMMENT "Running ${POLYMUL_BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
@@ -516,7 +519,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                         V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
                         HQC_POLYMUL_HYBRID_KEYCACHE=1)
                     target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE
-                        ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc)
+                        ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
                 endif()
                 set_target_properties(${VLEN_BENCH_TARGET} PROPERTIES
                     SUFFIX ".elf"
@@ -527,7 +530,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                     "-Wl,-Map=${CMAKE_BINARY_DIR}/${VLEN_BENCH_TARGET}.map"
                 )
                 add_custom_target(run_${VLEN_BENCH_TARGET}
-                    COMMAND ${BENCH_SIM_RUNNER} $<TARGET_FILE:${VLEN_BENCH_TARGET}>
+                    COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${VLEN_BENCH_TARGET}>
                     DEPENDS ${VLEN_BENCH_TARGET}
                     USES_TERMINAL
                     COMMENT "Running ${VLEN_BENCH_TARGET} (VLEN=${VLEN}) with HQC_SIM=${HQC_SIM}"

@@ -108,8 +108,8 @@ jobs:
 
       - name: Run KAT under QEMU
         run: |
-          chmod +x tests/kat/run_kat.sh
-          tests/kat/run_kat.sh \
+          chmod +x scripts/test/run_kat.sh
+          scripts/test/run_kat.sh --sim qemu \
             build/qemu/hqc${{ matrix.level }}_${{ matrix.polymul }}.elf \
             ${{ matrix.level }} \
             ${{ matrix.polymul }}
@@ -158,6 +158,6 @@ jobs:
 
       - name: Run KAT under Spike
         run: |
-          bash scripts/bench/spike_kat.sh \
+          bash scripts/test/run_kat.sh --sim spike \
             build/spike/hqc${{ matrix.level }}_fafft_zvbc.elf \
             tests/kat/PQCkemKAT_${{ matrix.level }}.rsp
