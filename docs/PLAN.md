@@ -122,7 +122,7 @@ Empirical conclusion so far:
 | Keccak-f[1600] | Zhang et al. RVV Keccak | near-drop-in reuse | adapt to HQC SHAKE wrappers |
 | RM Hadamard decoder | HQC reference + this thesis | new code | RVV `vadd.vv` / `vsub.vv` / `vslidedown.vi` |
 
-Assembly order used by the project:
+Historical sequencing used by the project:
 
 1. Fork HQC Reference C and verify KAT on the RISC-V toolchain.
 2. Integrate scalar `clmul` poly-mul work and keep KAT green.
@@ -132,8 +132,8 @@ Assembly order used by the project:
 6. Port OptHQC-style decoder ideas to RVV.
 7. Re-run Spike benchmarks and regenerate report tables.
 
-The operating rule is unchanged throughout: KAT after every change, then Spike
-micro-benchmark, then full-KEM measurement only at milestone-quality states.
+Execution details are intentionally omitted from this roadmap; command-level
+workflows are maintained only in `RUNBOOK.md`.
 
 ---
 

@@ -25,20 +25,13 @@ three implementation strategies on a RISC-V rv64gcv target:
 	- `fafft_zvbc/`
 - Archived experiments: `experiments/` (catalogued in `experiments/manifest.yaml`)
 
-## Repository Layout
+Repository layout and file-by-file documentation are maintained in:
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-```
-hqc-riscv/
-├── toolchain/          CMake toolchain file + build scripts
-├── include/            Public API and algorithm headers
-├── src/                C/asm sources (scalar + vector hierarchy)
-├── experiments/        Historical/deprecated variant branches
-├── sim/                Simulator runners (Spike, QEMU, Marian/Verilator)
-├── tests/              KAT vectors, unit tests, benchmarks
-├── analysis/           LLVM-MCA reports, cycle counts, CT verification
-├── scripts/            GDB helpers, CI checks
-└── docs/               Literature, figures, LaTeX thesis chapters
-```
+Command workflows, rationale, and roadmap are maintained in:
+- [docs/RUNBOOK.md](docs/RUNBOOK.md)
+- [docs/METHODOLOGY.md](docs/METHODOLOGY.md)
+- [docs/PLAN.md](docs/PLAN.md)
 
 ## Quick Start
 

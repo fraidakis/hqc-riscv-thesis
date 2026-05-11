@@ -24,6 +24,8 @@ Canonical polymul variant labels used by build targets and reports:
 
 ## 0. Setup and preflight
 
+Local shell (custom LLVM 21) preflight:
+
 ```bash
 source toolchain/toolchain.env
 command -v cmake
@@ -86,7 +88,7 @@ Run this after every change before benchmarking.
 
 ```bash
 scripts/bench/spike_kat.sh \
-  build/spike/hqc128_karatsuba_ref.elf \
+  build/spike/hqc128_fafft_zvbc.elf \
   vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp
 ```
 
@@ -103,6 +105,8 @@ Expected output tail:
 Notes:
 - `sim/qemu/run_kat.sh` takes only the ELF path.
 - The older style that passed an RSP argument to this script is outdated.
+- QEMU must not be used for Zvbc tracks; use Spike for those tracks.
+- Reason: QEMU crashes on experimental Zvbc extension paths in this project setup.
 
 Expected terminal snippet:
 
@@ -113,7 +117,7 @@ ss: <hex>
 PASS 100/100
 ```
 
-### 2.3 Batch fallback KAT across levels and implemented QEMU variants
+### 2.3 Batch KAT across levels and implemented QEMU variants
 
 ```bash
 scripts/bench/run_kat_all.sh
@@ -150,7 +154,7 @@ scripts/bench/spike_kat.sh \
 
 Notes:
 - this can run long depending on host and variant
-- use only for variants requiring Zvbc support
+- use Spike natively for variants requiring Zvbc support
 
 ---
 
@@ -553,4 +557,55 @@ Validated working commands in this runbook:
 Known caveats retained in this file:
 - `spike --histogram` is not supported by current Spike binary; use run_histogram_all.sh.
 - `scripts/bench/spike_kat.sh` can be long-running depending on host and variant.
+
+---
+
+## 12. KAT Seed Generation (one-time)
+
+The headers under `tests/kat/generated/` are pre-committed and should not
+need regeneration unless the upstream `.rsp` files change. To regenerate:
+
+```bash
+python3 tests/kat/gen_kat_seeds.py \
+  --rsp   vendor/hqc-ref/kats/ref/hqc-1/PQCkemKAT_2321.rsp \
+  --level 128 \
+  --out   tests/kat/generated/kat_seeds_128.h
+
+python3 tests/kat/gen_kat_seeds.py \
+  --rsp   vendor/hqc-ref/kats/ref/hqc-3/PQCkemKAT_4602.rsp \
+  --level 192 \
+  --out   tests/kat/generated/kat_seeds_192.h
+
+python3 tests/kat/gen_kat_seeds.py \
+  --rsp   vendor/hqc-ref/kats/ref/hqc-5/PQCkemKAT_7333.rsp \
+  --level 256 \
+  --out   tests/kat/generated/kat_seeds_256.h
+```
+
+Each header exports:
+- `kat_seeds[100][48]` — entropy inputs for `prng_init()`
+- `kat_ss[100][64]` — expected shared-secret values
+
+> **Important:** The vendor KEM (`crypto_kem_keypair`, `_enc`, `_dec`) uses its
+> own SHAKE-256 PRNG (`prng_get_bytes`), seeded via `prng_init(seed, NULL, 48, 0)`.
+> It does **not** use `randombytes()` / AES-CTR DRBG. Always seed with
+> `prng_init`, not `randombytes_init`.
+
+---
+
+## 13. Disassembly & Static Analysis
+
+```bash
+# Full disassembly with source interleave (if DWARF present)
+llvm-objdump -d --source build/hqc128_karatsuba_ref.elf | less
+
+# Show all defined symbols with sizes
+llvm-nm --print-size --defined-only --size-sort build/hqc128_karatsuba_ref.elf | tail -20
+
+# Check for specific instruction patterns
+llvm-objdump -d build/hqc128_karatsuba_ref.elf | grep -E "clmul|packh|vclmul"
+
+# Find functions that contain vector instructions
+llvm-objdump -d build/hqc128_karatsuba_ref.elf | awk '/^[0-9a-f]+ </{fn=$0} /^\s+v/{print fn; fn=""}'
+```
 

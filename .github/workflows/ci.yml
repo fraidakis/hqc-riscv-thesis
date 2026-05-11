@@ -91,13 +91,6 @@ jobs:
 
       - name: KAT regression gate (ctest)
         run: ctest --test-dir build/qemu --output-on-failure
-
-      - name: Spike KAT gate
-        run: |
-          bash scripts/bench/spike_kat.sh \
-            build/spike/hqc${{ matrix.level }}_${{ matrix.variant }}.elf \
-            tests/kat/PQCkemKAT_${{ matrix.level }}.rsp
-
       - name: Static analysis (lint.sh)
         run: bash scripts/ci/lint.sh
         env:

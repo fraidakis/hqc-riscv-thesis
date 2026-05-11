@@ -2,706 +2,891 @@
 
 ## Overview
 
-`hqc-riscv` is a bare-metal RISC-V evaluation framework for HQC (Hamming Quasi-Cyclic), a post-quantum KEM finalist. It benchmarks hardware acceleration strategies using RVV (RISC-V Vector) and carry-less multiply extensions (Zbc/Zvbc) on RISC-V simulators (Spike ISS and QEMU).
+hqc-riscv is a bare-metal RISC-V evaluation framework for HQC (Hamming Quasi-Cyclic) KEM. It compares scalar and vectorized polynomial multiplication variants, validates correctness with KATs, and collects benchmark, profiling, and reporting artifacts.
 
-The project is structured around descriptive optimization tracks:
+## Optimization Tracks (Current)
 
-| Track | Component | Strategy |
-|-------|-----------|----------|
-| `baseline_ref` | Polynomial multiply | Vendor Karatsuba (`karatsuba_ref`) |
-| `polymul_zbc` | Polynomial multiply | Zbc `clmul/clmulh` base-case Karatsuba (`karatsuba_zbc`) |
-| `fafft_zbc` | Polynomial multiply | FAFFT + Zbc butterflies + RVV XOR |
-| `hybrid_zbc` | Polynomial multiply | Karatsuba outer + FAFFT inner hybrid |
-| `polymul_zvbc` | Polynomial multiply | vector carry-less multiply track (`karatsuba_zvbc`) |
-| `keccak_rvv` | Keccak/SHAKE-256 | RVV Keccak-f[1600] 4-way interleaved (`fips202_rvv.c`) |
-| `reed_muller_rvv` / `reed_solomon_rvv` | RM/RS decoder | RVV FHT + table-driven syndrome path |
+| Track            | Component           | Strategy                         | Main Source                                                          |
+| ---------------- | ------------------- | -------------------------------- | -------------------------------------------------------------------- |
+| baseline_ref     | Polynomial multiply | Vendor Karatsuba reference       | [src/ref/gf2x.c](../vendor/hqc-ref/src/ref/gf2x.c)                   |
+| karatsuba_zbc    | Polynomial multiply | Scalar CLMUL/CLMULH base cases   | [gf2x_clmul.c](../src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c)    |
+| fafft_zbc        | Polynomial multiply | FAFFT + scalar Zbc + RVV helpers | [fafft.c](../src/poly_mul/scalar/fafft_zbc/fafft.c)                  |
+| hybrid           | Polynomial multiply | Karatsuba outer + FAFFT inner    | [hybrid.c](../src/poly_mul/scalar/hybrid_zbc/hybrid.c)               |
+| fafft_zvbc       | Polynomial multiply | Vector CLMUL butterflies (Zvbc)  | [fafft_vclmul.c](../src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c)   |
+| karatsuba_zvbc   | Polynomial multiply | Vectorized Karatsuba path (Zvbc) | [gf2x_vclmul.c](../src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul.c) |
+| keccak_rvv       | Keccak/SHAKE        | RVV Keccak-f[1600] path          | [fips202_rvv.c](../src/keccak/rvv/fips202_rvv.c)                     |
+| reed_muller_rvv  | Decoder             | RVV Reed-Muller path             | [reed_muller_rvv.c](../src/decode/rvv/reed_muller_rvv.c)             |
+| reed_solomon_rvv | Decoder             | RVV Reed-Solomon path            | [reed_solomon_rvv.c](../src/decode/rvv/reed_solomon_rvv.c)           |
 
-All polynomial multiply variants are compiled in every build, enabling head-to-head comparison. The Keccak and decoder tracks are toggled via CMake flags.
+Implemented polymul set is tracked in [scripts/implemented_variants.txt](../scripts/implemented_variants.txt).
 
 ## Execution Pipeline
 
 ```mermaid
 flowchart LR
-  A[Build: cmake configure + compile] --> B[Sim: Spike or QEMU run]
-  B --> C[Bench: CSV and histogram artifacts]
-  C --> D[Report: extract_results.py and analysis plots]
+  A[Configure + Build] --> B[Run: QEMU or Spike]
+  B --> C[Collect: CSV, logs, traces]
+  C --> D[Report: tables, plots, dashboards]
 
   A1[scripts/implemented_variants.txt] --> A
-  B1[tests/kat and ctest gates] --> B
-  C1[analysis/benchmarks/runs or canonical] --> C
-  D1[analysis/report and docs] --> D
+  B1[tests/kat + ctest] --> B
+  C1[analysis/benchmarks/*] --> C
+  D1[scripts/report/* + docs/figures/*] --> D
 ```
 
-Pipeline intent:
-- Build stage materializes per-level and per-variant ELFs.
-- Simulation stage executes KAT or benchmark targets under the selected backend.
-- Benchmark stage stores structured CSV/histogram output for reproducible comparisons.
-- Report stage turns curated artifacts into tables, plots, and thesis-ready summaries.
+## File Tree (Synced)
 
----
-
-## File Tree
-
-```
+```text
 hqc-riscv/
 ├── CMakeLists.txt
-├── compile_commands.json          (symlink → build/qemu/compile_commands.json)
 ├── README.md
-├── bench-test.md
+├── compile_commands.json
+├── repo_tree.txt
+├── .gitmodules
 │
-├── cmake/
+├── cmake/                           # CMake modules and option wiring
 │   ├── hqc_core.cmake
 │   └── options.cmake
 │
-├── toolchain/
+├── toolchain/                       # Cross-toolchain setup and CMake toolchain files
 │   ├── build-gcc-sysroot.sh
 │   ├── build-llvm.sh
 │   ├── build-qemu.sh
 │   ├── build-spike.sh
-│   ├── flags.mk
 │   ├── riscv-clang.cmake
+│   ├── riscv-gcc.cmake
 │   └── toolchain.env
 │
-├── include/
+├── include/                         # Project-wide compatibility/public headers
 │   ├── immintrin.h
 │   └── randombytes.h
 │
-├── src/
-│   ├── baseline/                  (reserved — .gitkeep)
-│   ├── scalar_zbc/                (reserved — empty)
+├── src/                             # Core implementation code
 │   ├── common/
 │   │   ├── bench.c
 │   │   ├── bench.h
+│   │   ├── hqc_parameters.h
 │   │   ├── randombytes.c
 │   │   └── rng/
-│   │       ├── aes_ctr_drbg.c
-│   │       ├── aes_ctr_drbg.h
-│   │       ├── tiny_aes.c
-│   │       └── tiny_aes.h
-│   ├── poly_mul/
-│   │   ├── karatsuba_zbc/
-│   │   │   └── gf2x_clmul.c       (`polymul_zbc` — implemented)
-│   │   ├── fafft_zbc/
-│   │   │   ├── fafft.c            (`fafft_zbc` — implemented)
-│   │   │   └── fafft_rvv.c        (`fafft_zbc` RVV helper axes)
-│   │   ├── hybrid_zbc/
-│   │   │   └── hybrid.c           (`hybrid_zbc` — implemented)
-│   │   └── fafft_zvbc/
-│   │       └── fafft_vclmul.c     (`polymul_zvbc` / `polymul_zvbc_v2` vector work)
+│   ├── poly_mul/                    # Scalar + vector polymul implementations
+│   │   ├── common/
+│   │   ├── scalar/
+│   │   │   ├── karatsuba_zbc/
+│   │   │   ├── fafft_zbc/
+│   │   │   └── hybrid_zbc/
+│   │   ├── vector/
+│   │   │   ├── fafft_zvbc/
+│   │   │   └── karatsuba_zvbc/
+│   │   └── VARIANT_INDEX.md
 │   ├── keccak/
 │   │   └── rvv/
-│   │       └── fips202_rvv.c      (`keccak_rvv` — planned)
 │   └── decode/
 │       └── rvv/
-│           ├── reed_muller_rvv.c  (`reed_muller_rvv` — planned)
-│           └── reed_solomon_rvv.c (`reed_solomon_rvv` — planned)
 │
-├── sim/
+├── sim/                             # Bare-metal runtime and simulator runners
 │   ├── common/
-│   │   ├── link.ld
-│   │   ├── mem.c
-│   │   └── startup.S
 │   ├── qemu/
-│   │   └── run_kat.sh
 │   ├── spike/
-│   │   ├── parse_commits.py
-│   │   ├── run_bench.sh
-│   │   ├── run.sh
-│   │   └── zvbc_trace.py
 │   └── rtl-marian/
-│       ├── README.md
-│       ├── load_binary.py
-│       └── run_verilator.sh
 │
-├── tests/
+├── tests/                           # KAT, unit, and CT harnesses
+│   ├── CMakeLists.txt
 │   ├── bench/
-│   │   ├── bench_kem.c
-│   │   ├── bench_poly_mul.c
-│   │   ├── mini_bench.c
-│   │   └── mini_bench.mk
+│   ├── ct/
 │   ├── kat/
-│   │   ├── gen_kat_seeds.py
-│   │   ├── generated/
-│   │   │   ├── kat_seeds_128.h
-│   │   │   ├── kat_seeds_192.h
-│   │   │   └── kat_seeds_256.h
-│   │   ├── kat_check.py
-│   │   ├── kat_gen.c
-│   │   ├── run_kat.sh
-│   │   └── vectors/               (reserved — empty, KAT .rsp files go here)
-│   └── unit/                      (reserved — empty, future unit tests)
+│   │   └── generated/
+│   └── unit/
 │
-├── scripts/
+├── scripts/                         # Automation for bench, CI checks, reports, helpers
+│   ├── implemented_variants.txt
+│   ├── repo_structure.sh
 │   ├── bench/
-│   │   ├── run_histogram_all.sh
-│   │   ├── run_kat_all.sh
-│   │   ├── run_spike_bench_variant.sh
-│   │   └── spike_kat.sh
 │   ├── ci/
-│   │   ├── check_ct.sh
-│   │   ├── check_isa_string.sh
-│   │   └── check_opcodes.sh
 │   ├── debug/
-│   │   ├── .gdbinit
-│   │   ├── custom_rvv.xml
-│   │   ├── hqc_pretty.py
-│   │   └── rvv_regs.py
 │   └── report/
-│       ├── extract_results.py
-│       └── gen_report.sh
 │
-├── analysis/
+├── analysis/                        # Benchmark artifacts, CT outputs, MCA reports, summaries
 │   ├── benchmarks/
-│   │   ├── amdahl.py
-│   │   ├── cycle_counts.csv
-│   │   ├── instruction_mix.csv
-│   │   ├── plot.py
-│   │   ├── baseline_ref/
-│   │   │   ├── hqc{128,192,256}_karatsuba_ref_N1.csv
-│   │   │   ├── hqc{128,192,256}_karatsuba_ref_polymul_N1.csv
-│   │   │   ├── hqc{128,192,256}_karatsuba_ref_polymul.log
-│   │   │   ├── hqc{128,192,256}_spike.log
-│   │   │   └── pids.txt
-│   │   └── polymul_zbc/
-│   │       ├── hqc{128,192,256}_karatsuba_ref_polymul_N1.csv
-│   │       ├── hqc{128,192,256}_karatsuba_ref_polymul.log
-│   │       └── pids.txt
 │   ├── ct_verify/
-│   │   ├── ctgrind/               (.gitkeep — future ctgrind output)
-│   │   └── dudect/                (.gitkeep — future dudect output)
 │   ├── llvm_mca/
-│   │   ├── reports/
-│   │   │   ├── gf2x_clmul_mca.txt
-│   │   │   ├── gf2x_mca.txt
-│   │   │   └── gf2x_ref_mca.txt
-│   │   │   └── gf2x_ref.s
-│   │   └── run_mca.sh
 │   └── report/
-│       ├── report_2026-04-27.md
-│       ├── report_2026-04-29.md
-│       ├── table_results_2026-04-27.tex
-│       └── table_results_2026-04-29.tex
 │
-├── docs/
-│   ├── GUIDE.md
+├── docs/                            # Methodology, runbook, plan, figures
+│   ├── ARCHITECTURE.md
 │   ├── METHODOLOGY.md
+│   ├── PLAN.md
 │   ├── RUNBOOK.md
 │   ├── figures/
-│   │   ├── cycle_counts.pdf
-│   │   └── instruction_mix.pdf
-│   ├── latex/                     (.gitkeep — thesis LaTeX chapters go here)
-│   └── literature/                (.gitkeep — bibliography/references go here)
+│   ├── phases/
+│   ├── prompts/
+│   ├── latex/
+│   └── literature/
 │
-├── vendor/
-│   └── hqc-ref/                   (git submodule — HQC v5.0.0 reference)
+├── experiments/                     # Experimental branches + manifest/spec for experiment catalog
+│   ├── manifest.yaml
+│   ├── manifest.schema.json
+│   ├── EXP-fafft-v3-zvc/
+│   ├── EXP-fafft-v4-task-pipeline/
+│   └── EXP-fafft-v6-rvv-schoolbook/
 │
-├── sysroot/                       (generated — cross-compilation sysroot, gitignored)
+├── vendor/                          # Upstream HQC reference submodule
+│   └── hqc-ref/
 │
-└── .github/
-    └── workflows/
-        ├── ct-verify.yml
-        ├── kat.yml
-        └── opcode-verify.yml
+├── build/                           # Generated CMake build trees and outputs
+└── .github/                         # CI workflows and reusable actions/instructions
+    ├── workflows/
+    ├── actions/
+    └── instructions/
 ```
 
----
+## Detailed Documentation (Per File)
 
-## Detailed Documentation
-
----
 
 ### Root Files
 
-#### `CMakeLists.txt`
-- **Usage**: Main CMake build script. Defines a 3×5 target matrix (3 security levels × 5 polynomial multiply variants) producing up to 45 executables per build directory: 15 KAT targets, 15 BENCH targets (EXCLUDE_FROM_ALL), and 15 POLYMUL_BENCH targets (EXCLUDE_FROM_ALL). Configures simulator backend (`HQC_SIM`), iteration count (`BENCH_N_ITER`), Keccak implementation (`HQC_KECCAK_IMPL`), and decoder implementation (`HQC_DECODE_IMPL`). Includes `cmake/options.cmake` and `cmake/hqc_core.cmake`. Registers CTest KAT gates for CI.
-- **Why**: Central orchestrator of the entire build. Without it there is no way to compile any target; it encodes the thesis' head-to-head comparison strategy.
-- **Where**: Invoked by every `cmake -B <builddir>` command. Referenced by all CI workflows.
-
-#### `compile_commands.json`
-- **Usage**: Symlink created at configure time pointing to `build/compile_commands.json`. Provides per-file compiler invocations for IDE language servers (clangd, Pylance, etc.).
-- **Why**: Enables accurate code navigation, diagnostics, and autocompletion without manual IDE setup. The symlink keeps it at the project root where tools expect it.
-- **Where**: Consumed by clangd/VS Code. Generated by `set(CMAKE_EXPORT_COMPILE_COMMANDS ON)` in `CMakeLists.txt`.
-
-#### `README.md`
-- **Usage**: Project quick-start guide. Covers prerequisites, one-command build/run for QEMU KAT and Spike benchmarking, and pointers to detailed docs.
-- **Why**: Entry point for anyone cloning the repository.
-- **Where**: Read by contributors and CI maintainers. Referenced by `docs/GUIDE.md`.
-
----
-
-### `cmake/`
-
-#### `cmake/options.cmake`
-- **Usage**: Declares three orthogonal CMake cache variables: `HQC_KECCAK_IMPL` (`ref`|`rvv`), `HQC_DECODE_IMPL` (`ref`|`rvv`), and emits diagnostic STATUS messages indicating the active build phase. Validates values and aborts with FATAL_ERROR on unknown strings.
-- **Why**: Decouples the three independently-optimizable HQC components (polynomial multiply, Keccak, decoder) so any combination can be benchmarked without source edits.
-- **Where**: Included by `CMakeLists.txt` via `include(cmake/options.cmake)` on every configure. Variables are consumed in the `CMakeLists.txt` target-matrix loop.
-
-#### `cmake/hqc_core.cmake`
-- **Usage**: Defines the CMake function `hqc_add_core(LEVEL)`. The function creates a per-security-level OBJECT library (`hqc_core_128`, `hqc_core_192`, `hqc_core_256`) containing the five truly invariant vendor files: `kem.c`, `crypto_memset.c`, `parsing.c`, `vector.c`, `gf.c`. The function is idempotent (returns early if the target already exists).
-- **Why**: Compiles invariant code only 3 times (once per security level) instead of 15 times (once per level × polymul). Keeps compilation clean: no variant-specific preprocessor symbols leak into invariant code.
-- **Where**: Included by `CMakeLists.txt`. `hqc_add_core(${LEVEL})` is called inside the level loop; each resulting OBJECT library is linked via `$<TARGET_OBJECTS:hqc_core_${LEVEL}>` into every executable.
-
----
-
-### `toolchain/`
-
-#### `toolchain/build-llvm.sh`
-- **Usage**: Shell script that clones and builds LLVM/Clang 21.1.1 from source into `~/Thesis/installed-tools/`, including the RISC-V target backend and LLD linker.
-- **Why**: The project requires a specific Clang version with `-menable-experimental-extensions` support for Zvbc. System-provided LLVM is unlikely to match this version or include the experimental RISC-V extensions.
-- **Where**: Run once during initial environment setup: `bash toolchain/build-llvm.sh`. The resulting toolchain is then used by all CMake and Make builds.
-
-#### `toolchain/build-gcc-sysroot.sh`
-- **Usage**: Builds a minimal GCC cross-compilation sysroot for `riscv64-unknown-elf` into `hqc-riscv/sysroot/`. Provides the runtime builtins (`libgcc`) needed by Clang for LTO linking.
-- **Why**: Clang's LTO linker (`lld`) requires GCC-compatible builtins for operations like 128-bit integer division that are not inlined. The sysroot is separate from the compiler itself.
-- **Where**: Run once after `build-llvm.sh`: `bash toolchain/build-gcc-sysroot.sh`. Result referenced via `--sysroot` in `toolchain/riscv-clang.cmake`.
-
-#### `toolchain/build-qemu.sh`
-- **Usage**: Builds QEMU 10.2.2 from source with the `riscv64-softmmu` target into `~/Thesis/installed-tools/`.
-- **Why**: QEMU provides fast functional simulation (~10–68s per KAT run) for correctness testing. A specific QEMU version is required to match the `virt` machine configuration used in `sim/qemu/run_kat.sh`.
-- **Where**: Run once during setup: `bash toolchain/build-qemu.sh`. The resulting `qemu-system-riscv64` binary is called by `sim/qemu/run_kat.sh` and CI workflows.
-
-#### `toolchain/build-spike.sh`
-- **Usage**: Builds the Spike RISC-V ISS (latest `master`) from source into `~/Thesis/installed-tools/`, including Zvbc extension support.
-- **Why**: Spike is the authoritative instruction-count simulator (CPI=1 in-order model). The Zvbc extension (`vclmul.vv`) is only available in recent Spike builds; the system-provided Spike typically lacks it.
-- **Where**: Run once during setup: `bash toolchain/build-spike.sh`. The resulting `spike` binary is called by `sim/spike/run_bench.sh`, `run.sh`, and CI's `kat-spike-zvbc` job.
-
-#### `toolchain/riscv-clang.cmake`
-- **Usage**: CMake toolchain file for cross-compilation. Sets `CMAKE_C_COMPILER` and `CMAKE_ASM_COMPILER` to Clang/LLVM from `~/Thesis/installed-tools/`. Configures ISA `rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm`, ABI `lp64d`, optimization flags (`-O3 -flto -ffreestanding -fno-tree-vectorize`), and linker flags (`-fuse-ld=lld --gc-sections -nostartfiles -nostdlib`).
-- **Why**: Bare-metal RISC-V cross-compilation requires a sysroot-free toolchain with explicit ISA flags. Clang is chosen over GCC for better `-menable-experimental-extensions` support (Zvbc). The `-fno-tree-vectorize` flag ensures all SIMD is hand-written, not auto-generated.
-- **Where**: Passed to CMake via `cmake -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake`. Used by all CMake build directories.
-
-#### `toolchain/flags.mk`
-- **Usage**: Shared compiler/linker flag definitions for GNU Make-based builds. Defines `CC`, `CLANG`, `MARCH`, `MABI`, `CFLAGS`, `CLANGFLAGS`, `LDFLAGS`, and `ASFLAGS`. Included by sub-Makefiles via `include $(ROOT)/toolchain/flags.mk`.
-- **Why**: Centralizes flag definitions for Makefile-based targets (`tests/bench/mini_bench.mk`) so they stay consistent with the CMake builds.
-- **Where**: Included by `tests/bench/mini_bench.mk`.
-
-#### `toolchain/toolchain.env`
-- **Usage**: Shell environment setup script. Sets `RISCV`, `PATH`, `CC`, `CXX`, and `AR` to point at the locally installed toolchain under `~/Thesis/installed-tools/`.
-- **Why**: Provides a one-command way to configure the shell for manual compilation and script execution without relying on system-installed RISC-V tools.
-- **Where**: Sourced manually: `source toolchain/toolchain.env`. Used implicitly by CI workflows that install the toolchain to the same path.
-
----
-
-### `include/`
-
-#### `include/immintrin.h`
-- **Usage**: Empty stub header that satisfies `#include <immintrin.h>` on non-x86 targets.
-- **Why**: The HQC reference implementation conditionally includes `<immintrin.h>` (an x86-only header). On RISC-V this include would fail with "only meant for x86/x64". Since no x86 SIMD types are actually used, an empty stub silences the error without touching upstream vendor code.
-- **Where**: Picked up via the global include path `-I${CMAKE_SOURCE_DIR}/include` configured in `CMakeLists.txt`. Shadows the real `immintrin.h` for all targets.
-
-#### `include/randombytes.h`
-- **Usage**: Mode-independent public API for random byte generation. Declares `randombytes_init()` and `randombytes()` with a single interface regardless of compile-time mode.
-- **Why**: HQC uses `randombytes()` throughout for key generation. Two modes are needed without changing call sites: KAT mode (deterministic AES-CTR DRBG for NIST vector reproduction) and Bench mode (fast fixed-pattern fill to avoid AES overhead in cycle counts). The header is the shared contract.
-- **Where**: Included by `src/common/randombytes.c`, `tests/kat/kat_gen.c`, and vendor sources that call `randombytes()`.
-
----
-
-### `src/`
-
-#### `src/baseline/`
-- **Usage**: Reserved directory (`.gitkeep` only). Intended for future baseline comparison sources that do not fit the existing polymul variant structure.
-- **Why**: Placeholder to establish directory structure before content is added; avoids later directory renames that would break `git log` history.
-- **Where**: Not referenced in the build system yet.
-
-#### `src/scalar_zbc/`
-- **Usage**: Reserved empty directory. Intended for standalone scalar Zbc utility routines (e.g., GF(2^128) multiply used in `tests/bench/mini_bench.c`).
-- **Why**: Separates isolated scalar Zbc helpers from the full polymul implementations under `src/poly_mul/`.
-- **Where**: Not referenced in the build system yet.
-
-#### `src/common/bench.c` / `src/common/bench.h`
-- **Usage**: Bare-metal cycle counter and console I/O. Implements `hqc_rdcycle()` (reads `mcycle` CSR), `hqc_htif_puts()`, `hqc_htif_putu64()`, and `hqc_htif_exit()`. Supports two output backends: Spike HTIF (`tohost`) and QEMU UART, selected by the `HQC_SIM_QEMU=1` compile-time flag.
-- **Why**: There is no OS or libc on the bare-metal target. All console output and cycle measurement must go through custom RISC-V CSR reads and simulator-specific exit mechanisms. This file is the only I/O layer.
-- **Where**: Compiled into every KAT, BENCH, and POLYMUL_BENCH target via `LOCAL_COMMON_SOURCES` / `LOCAL_BENCH_SOURCES` in `CMakeLists.txt`. Used directly by `tests/kat/kat_gen.c`, `tests/bench/bench_kem.c`, `tests/bench/bench_poly_mul.c`, `tests/bench/mini_bench.c`.
-
-#### `src/common/randombytes.c`
-- **Usage**: Mode-switch wrapper for `randombytes()`. When `HQC_KAT_MODE=1`, delegates to `aes_ctr_drbg.c` for bit-identical NIST vector output. When `HQC_BENCH_MODE=1`, fills with a fixed pattern (no AES overhead).
-- **Why**: KAT correctness requires NIST-compatible deterministic output; benchmark accuracy requires that AES-CTR DRBG latency does not appear in `rdcycle` measurements. A single source file with compile-time switching avoids two separate copies of every call site.
-- **Where**: Compiled into all targets via `LOCAL_COMMON_SOURCES` / `LOCAL_BENCH_SOURCES`. Implements the `randombytes` symbol required by `vendor/hqc-ref/src/common/symmetric.c` and other vendor files.
-
-#### `src/common/rng/aes_ctr_drbg.c` / `aes_ctr_drbg.h`
-- **Usage**: NIST SP 800-90A AES-256 CTR_DRBG. Provides `randombytes_init(seed[48])` and `randombytes(out, len)` producing bit-identical output to the NIST KAT reference `rng.c`.
-- **Why**: The KAT verification workflow compares bare-metal output against NIST `.rsp` files. Diverging even one byte from the NIST reference RNG would produce different ciphertext and cause false failures.
-- **Where**: Included by `src/common/randombytes.c`. Compiled into KAT targets only (excluded from BENCH targets to keep cycle counts clean).
-
-#### `src/common/rng/tiny_aes.c` / `tiny_aes.h`
-- **Usage**: Compact public-domain AES-256 ECB implementation (TinyAES by kokke). Provides `aes256_key_expansion()` and `aes256_ecb_encrypt()`.
-- **Why**: The AES-CTR DRBG (`aes_ctr_drbg.c`) requires an AES-256 ECB primitive. Using the full OpenSSL or a hardware-accelerated AES would introduce unnecessary dependencies on a bare-metal target with no OS. TinyAES is small, self-contained, and sufficient for KAT-only use (not security-critical at run time).
-- **Where**: Included and called by `src/common/rng/aes_ctr_drbg.c`.
-
----
-
-### `src/poly_mul/` — Polynomial Multiply Variants
-
-All five variants implement the same interface: `void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)` declared in `vendor/hqc-ref/src/ref/gf2x.h`. Exactly one variant is linked into each executable target.
-
-#### `src/poly_mul/karatsuba_zbc/gf2x_clmul.c` *(`polymul_zbc` — implemented)*
-- **Usage**: Replaces the vendor Karatsuba `gf2x.c` with a Zbc carry-less multiply (`clmul`/`clmulh`) base case. Uses `clmul`/`clmulh` to compute a 128-bit product in 2 instructions instead of the 64-bit schoolbook loop, then applies lazy Barrett reduction and a depth sweep to find the optimal Karatsuba recursion depth.
-- **Why**: `clmul` eliminates the inner-loop data-dependent branches in polynomial multiplication, directly reducing the dominant cost of the HQC KEM (>90% of runtime).
-- **Where**: Selected by `POLYMUL=karatsuba_zbc` in `CMakeLists.txt`. Compiled into `hqc{128,192,256}_karatsuba_zbc.elf` and corresponding bench/polymul-bench targets.
-
-#### `src/poly_mul/fafft_zbc/fafft.c` *(`fafft_zbc` — implemented)*
-- **Usage**: Frobenius Additive FFT (FAFFT) polynomial multiplication for GF(2)[x]. Implements the Cantor basis conversion, CRT decomposition, and Zbc `clmul`/`clmulh` butterfly multiplications with Barrett reduction. Precomputed 256-byte lookup tables handle small-field (m ≤ 8) arithmetic.
-- **Why**: FAFFT achieves O(n log²n) complexity vs Karatsuba's O(n^1.585). For HQC's large field sizes (n ≈ 17669–57637), this asymptotic advantage was the main `fafft_zbc` hypothesis that the benchmarks then tested against `polymul_zbc`.
-- **Where**: Selected by `POLYMUL=fafft_zbc`. Always compiled together with `fafft_rvv.c`.
-
-#### `src/poly_mul/fafft_zbc/fafft_rvv.c` *(`fafft_zbc` RVV helper axes)*
-- **Usage**: RVV-vectorized helper routines for FAFFT. Implements three vectorization axes: bulk XOR combine (`vxor.vv` LMUL=4), tower-field table lookup (`vluxei8.v` for 32 simultaneous GF(2^8) multiplications), and butterfly-order memory permutation (`vrgatherei16.v`). Key exported function: `hqc_vxor_words()`.
-- **Why**: The FAFFT XOR-combine phase is the widest bottleneck (purely data-parallel). RVV's `vxor.vv` with LMUL=4 processes 256 bytes per instruction, providing throughput independent of scalar loop overhead.
-- **Where**: Compiled alongside `fafft.c` for the `fafft_zbc` variant. Requires `-march=rv64gcv_zbc` (RVV present, but Zvbc not needed here).
-
-#### `src/poly_mul/hybrid_zbc/hybrid.c` *(`hybrid_zbc` — implemented)*
-- **Usage**: Hybrid Karatsuba-FAFFT polynomial multiplier. Applies 1–2 outer Karatsuba levels to reduce the problem to 3–9 sub-multiplications of smaller polynomials, then delegates each sub-multiplication to the FAFFT implementation. This eliminates FAFFT's padding waste (HQC-1 pads 17669 → 32768).
-- **Why**: Pure FAFFT wastes ~46% of work on zero padding; pure Karatsuba is suboptimal at large sizes. The hybrid combines Karatsuba's tight fit to problem size with FAFFT's algorithmic efficiency.
-- **Where**: Selected by `POLYMUL=hybrid_zbc`. Internally calls `fafft_zbc`'s `vect_mul` after the `fafft_zbc` benchmark set establishes its performance.
-
-#### `src/poly_mul/fafft_zvbc/fafft_vclmul.c` *(`polymul_zvbc` upper-bound vector work)*
-- **Usage**: FAFFT using `vclmul.vv`/`vclmulh.vv` (Zvbc vector carry-less multiply) for vectorized butterfly multiplications. Processes VLEN/64 butterfly multiplications per instruction (4 per instruction at VLEN=256). Gated by `HQC_POLYMUL_ZVBC=1`.
-- **Why**: Zvbc is ratified but not yet in production silicon. This variant quantifies the incentive for processor vendors to ship Zvbc support for post-quantum workloads, which is a key thesis claim. Can only be run on Spike with `--isa=rv64gcv_zvbc`.
-- **Where**: Selected by `POLYMUL=fafft_zvbc`. The CI job `kat-spike-zvbc` in `.github/workflows/kat.yml` runs this variant exclusively on Spike.
-
----
-
-### `src/keccak/rvv/`
-
-#### `src/keccak/rvv/fips202_rvv.c` *(`keccak_rvv` — planned)*
-- **Usage**: RVV-vectorized Keccak-f[1600] and HQC-specific SHAKE-256 wrappers. Based on Zhang et al. (ePrint 2023) with 4-way multi-instance interleaving for `seed_expand()` (the PRF for sparse vector generation). Exports `shake256()` (standard FIPS 202 signature) and `shake256_4way()`.
-- **Why**: `seed_expand()` calls SHAKE-256 at least 2×(N/8) times per KEM operation. RVV interleaving processes 4 independent Keccak instances simultaneously, amortizing the θ/ρ/π/χ/ι step overhead across instances. This is the `keccak_rvv` speedup target.
-- **Where**: Selected when `HQC_KECCAK_IMPL=rvv` in CMake. Replaces `vendor/hqc-ref/lib/fips202/fips202.c` at link time.
-
----
-
-### `src/decode/rvv/`
-
-#### `src/decode/rvv/reed_muller_rvv.c` *(`reed_muller_rvv` — planned)*
-- **Usage**: RVV-vectorized 128-point Fast Hadamard Transform (FHT) for Reed-Muller decoding. Implements the 7-stage butterfly structure using `vadd.vv`/`vsub.vv` with LMUL=4 (32 butterfly pairs per iteration). Replaces `vendor/hqc-ref/src/ref/reed_muller.c` when `HQC_DECODE_IMPL=rvv`.
-- **Why**: The RM decoder's FHT is a perfectly regular 7-stage butterfly, ideal for RVV with large LMUL. All 128 butterflies in the innermost stage are independent and data-parallel.
-- **Where**: Selected when `HQC_DECODE_IMPL=rvv`. Called from `vendor/hqc-ref/src/common/code.c` via the `reed_muller_decode()` symbol.
-
-#### `src/decode/rvv/reed_solomon_rvv.c` *(`reed_solomon_rvv` — planned)*
-- **Usage**: RVV-accelerated Reed-Solomon decoder. Vectorizes the syndrome computation stage (`vluxei8.v` for 32 simultaneous GF(2^8) multiplications) and the Chien search stage (256 independent polynomial evaluations). The Berlekamp-Massey step remains scalar (sequential data dependency).
-- **Why**: RS syndrome computation and Chien search are the most expensive parts of RS decoding, and both have data-parallel structure. GF(2^8) CLMUL via `vluxei8.v` vectorizes the field multiplications without Zvbc.
-- **Where**: Selected when `HQC_DECODE_IMPL=rvv`. Called from `vendor/hqc-ref/src/common/code.c` via the `reed_solomon_decode()` symbol.
-
----
-
-### `sim/`
-
-#### `sim/common/link.ld`
-- **Usage**: GNU ld linker script. Defines the memory map for bare-metal RISC-V:
-  - `DRAM`: base `0x80000000`, 128 MB
-  - Sections in order: `.text.startup` (CRT0), `.text`, `.rodata`, `.tohost` (64-byte aligned for Spike HTIF), `.data`, `.bss`, `.stack` (512 KB at top of DRAM)
-- **Why**: Without an OS or proxy kernel, the linker must explicitly place all sections at the correct physical addresses expected by Spike/QEMU. The `.tohost` section alignment is required for HTIF communication with Spike.
-- **Where**: Referenced via `LINK_DEPENDS` on every executable target in `CMakeLists.txt` and via `LDFLAGS` in `toolchain/flags.mk`.
-
-#### `sim/common/startup.S`
-- **Usage**: Bare-metal CRT0 (C Runtime 0) in RISC-V assembly. Boot sequence: (1) set `sp = _stack_top`, (2) set `mstatus.VS = Dirty` (bits [10:9] = 0b11) to enable the V extension without trapping, (3) execute `vsetvli` to initialize vector type (e64, m1, tail-agnostic, mask-agnostic), (4) zero the BSS segment, (5) call `main(0, NULL)`, (6) exit via HTIF `tohost`.
-- **Why**: Every RISC-V bare-metal binary needs a startup sequence before `main()` can run. Setting `mstatus.VS` is critical: without it, any vector instruction traps with an illegal instruction exception.
-- **Where**: Compiled into every executable target as the first source file (`${STARTUP_S}`) in `CMakeLists.txt`.
-
-#### `sim/common/mem.c`
-- **Usage**: Minimal bare-metal C runtime — provides `memcpy`, `memmove`, `memset`, `memcmp`, `strlen` for targets compiled with `-nostdlib`.
-- **Why**: `-nostdlib` excludes libc. The vendor HQC code and test harnesses depend on these standard memory functions. Compiled with full ISA flags so the auto-vectorizer can substitute RVV sequences at -O3 if it deems them optimal.
-- **Where**: Compiled into every target via `LOCAL_COMMON_SOURCES` / `LOCAL_BENCH_SOURCES` in `CMakeLists.txt`.
-
-#### `sim/qemu/run_kat.sh`
-- **Usage**: Shell script that runs a KAT ELF under `qemu-system-riscv64` with the `virt` machine, captures serial output, and returns the QEMU exit code.
-- **Why**: QEMU provides fast (~10–68s) functional correctness checking for all scalar polymul variants. Used by the CMake CTest KAT gate and CI.
-- **Where**: Called by `add_test(... COMMAND ${CMAKE_SOURCE_DIR}/tests/kat/run_kat.sh ...)` in `CMakeLists.txt`, by `scripts/bench/run_kat_all.sh`, and directly by `.github/workflows/kat.yml`.
-
-#### `sim/spike/run.sh`
-- **Usage**: Runs an ELF on Spike with full instruction logging (`--log-commits`). Produces a trace file for profiling with `sim/spike/parse_commits.py`.
-- **Why**: Spike's `--log-commits` provides the exact retired instruction sequence needed for instruction-mix analysis. This mode is intentionally slow (used only for profiling, not timing).
-- **Where**: Called manually or by `scripts/bench/run_histogram_all.sh` when instruction-level profiling is needed.
-
-#### `sim/spike/run_bench.sh`
-- **Usage**: Runs an ELF on Spike with no logging flags. Records wall-clock time and captures the CSV output (cycle counts from `rdcycle`) emitted by the benchmark harness.
-- **Why**: Spike without logging is the primary timing environment. `rdcycle` on Spike counts retired instructions (CPI=1 for in-order model), giving a reproducible, hardware-agnostic performance metric. QEMU's `rdcycle` is a software counter and unreliable for timing.
-- **Where**: Called by `scripts/bench/run_spike_bench_variant.sh` and manually for ad-hoc benchmarking.
-
-#### `sim/spike/parse_commits.py`
-- **Usage**: Parses Spike `--log-commits` trace output. Extracts instruction opcode frequencies, identifies hot loops, and generates instruction-mix histograms.
-- **Why**: Raw Spike commit logs are megabytes of per-instruction lines. This script aggregates them into opcode counts for the thesis instruction-mix analysis.
-- **Where**: Called after `sim/spike/run.sh` produces a trace. Output fed into `analysis/benchmarks/instruction_mix.csv`.
-
-#### `sim/spike/zvbc_trace.py`
-- **Usage**: Zvbc-specific instruction profiler. Filters Spike commit logs for `vclmul.vv`/`vclmulh.vv` instructions, counts their frequency relative to total instruction count, and reports utilization.
-- **Why**: Provides direct evidence for the Zvbc speedup claim: how many vector carry-less multiply instructions execute per KEM operation, and what fraction of runtime they represent.
-- **Where**: Called after running the `fafft_zvbc` variant on Spike with `--log-commits`.
-
-#### `sim/rtl-marian/README.md`
-- **Usage**: Setup guide for running HQC binaries on the PULP Ara / Marian open-source RISC-V vector processor RTL via Verilator or QuestaSim.
-- **Why**: RTL simulation is the third tier of the evaluation framework (after Spike ISS and QEMU DBT). It provides cycle-accurate results for the Zvbc upper-bound estimates, including pipeline effects not visible in Spike's in-order model.
-- **Where**: Read by developers setting up the RTL co-simulation environment. References `sim/rtl-marian/load_binary.py` and `run_verilator.sh`.
-
----
-
-### `tests/`
-
-#### `tests/kat/kat_gen.c`
-- **Usage**: Bare-metal KAT runner. For each of 100 pre-seeded vectors from `tests/kat/generated/kat_seeds_<LEVEL>.h`: initializes the AES-CTR DRBG, calls `crypto_kem_keypair` / `crypto_kem_enc` / `crypto_kem_dec`, verifies `ss_enc == ss_dec`, and emits the shared secret as hex for external diffing against NIST `.rsp` files. Compiled with `HQC_KAT_MODE=1`.
-- **Why**: NIST KAT compliance is a hard requirement for any PQC candidate implementation. This is the correctness gate that must pass before any phase is declared complete.
-- **Where**: Compiled into all 15 KAT targets (one per level × polymul) in `CMakeLists.txt`. Its output is consumed by `tests/kat/run_kat.sh` and `tests/kat/kat_check.py`.
-
-#### `tests/kat/run_kat.sh`
-- **Usage**: Orchestrates a single KAT: runs the ELF under QEMU (or Spike for `fafft_zvbc`), captures output, and diffs it against the expected shared secrets from `tests/kat/kat_check.py`.
-- **Why**: Provides the CTest command registered by `add_test()` in `CMakeLists.txt` and the CI execution primitive.
-- **Where**: Called by CTest (`ctest`), by `.github/workflows/kat.yml`, and by `scripts/bench/run_kat_all.sh`.
-
-#### `tests/kat/kat_check.py`
-- **Usage**: Python script that verifies bare-metal KAT output against the NIST `.rsp` reference files. Parses the hex shared-secret lines emitted by `kat_gen.c` and compares them against `vendor/hqc-ref/KAT/hqc-{1,3,5}/PQCkemKAT_*.rsp`.
-- **Why**: Provides a scriptable pass/fail verdict for the full 100-vector KAT suite, enabling automated CI checks.
-- **Where**: Called by `tests/kat/run_kat.sh` after QEMU/Spike execution.
-
-#### `tests/kat/gen_kat_seeds.py`
-- **Usage**: One-time generation script. Reads NIST `.rsp` files from `vendor/hqc-ref/KAT/` and generates the C header files `tests/kat/generated/kat_seeds_<LEVEL>.h` containing the 100 entropy seeds and expected shared secrets for each security level.
-- **Why**: Embedding seeds as compile-time C arrays avoids filesystem access from bare-metal code (which has no OS). The headers are committed so CI does not need to re-run this script.
-- **Where**: Run once manually: `python3 tests/kat/gen_kat_seeds.py`. Output committed to `tests/kat/generated/`.
-
-#### `tests/kat/generated/kat_seeds_128.h`, `kat_seeds_192.h`, `kat_seeds_256.h`
-- **Usage**: Auto-generated C headers. Each provides `kat_seeds[100][48]` (entropy seeds) and `kat_ss[100][32]` (expected shared secrets) for the corresponding security level.
-- **Why**: The bare-metal KAT runner (`kat_gen.c`) needs deterministic seeds at compile time; there is no filesystem to read `.rsp` files from at runtime.
-- **Where**: Included by `tests/kat/kat_gen.c` via `#include "generated/kat_seeds_<LEVEL>.h"`. The level is selected at compile time by the `SECURITY_LEVEL` preprocessor definition.
-
-#### `tests/kat/vectors/`
-- **Usage**: Reserved empty directory. Intended to hold KAT `.rsp` vector files if they are downloaded locally (they are gitignored per `.gitignore`).
-- **Why**: Keeps a well-known location for locally-cached KAT vectors without committing large binary files to the repository.
-- **Where**: Not referenced in the build system; populated manually if needed.
-
-#### `tests/bench/bench_kem.c`
-- **Usage**: Full-KEM cycle-count benchmark. Runs `N_ITER` iterations of `crypto_kem_keypair`, `crypto_kem_enc`, and `crypto_kem_dec`, measures `rdcycle` before and after each, and emits min/median/max CSV output. Compiled with `HQC_BENCH_MODE=1`.
-- **Why**: Full-KEM instruction counts are the primary thesis metric. Running all three operations measures the realistic deployment cost.
-- **Where**: Compiled into all 15 BENCH targets (`bench_hqc{128,192,256}_{variant}.elf`) in `CMakeLists.txt`. Run via `sim/spike/run_bench.sh`.
-
-#### `tests/bench/bench_poly_mul.c`
-- **Usage**: `vect_mul()`-only micro-benchmark. Benchmarks the polynomial multiply function in isolation (no keypair/encaps/decaps, no Keccak). Emits CSV with min/median/max cycle counts. Compiled with `HQC_BENCH_MODE=1` and `N_ITER=1` for Spike.
-- **Why**: `vect_mul()` accounts for >90% of total KEM runtime. Isolating it provides a faster optimization loop than full KEM runs while preserving the key hotspot signal.
-- **Where**: Compiled into all 15 POLYMUL_BENCH targets (`bench_polymul_hqc{128,192,256}_{variant}.elf`). Run via `scripts/bench/run_spike_bench_variant.sh`.
-
-#### `tests/bench/mini_bench.c`
-- **Usage**: Minimal standalone benchmark for three HQC-relevant micro-kernels: (1) scalar GF(2^128) multiply via `clmul`/`clmulh`, (2) RVV-accelerated 256-byte XOR (`vxor.vv` e64/m4), (3) scalar XOR-rotate control baseline. Emits one CSV line per kernel.
-- **Why**: Used to validate that Spike and QEMU agree on instruction counts for simple kernels, and to confirm `clmul`/RVV instructions are being compiled and executed correctly before running the full polymul suite.
-- **Where**: Built via `tests/bench/mini_bench.mk`. Referenced in `bench-test.md` as the diagnostic used to isolate the Spike `_zicntr` bug.
-
-#### `tests/bench/mini_bench.mk`
-- **Usage**: Standalone GNU Makefile for building `mini_bench.c` without CMake. Includes `toolchain/flags.mk` for consistent flags. Selects Spike or QEMU backend via `SIM=[spike|qemu]`.
-- **Why**: Provides a fast, CMake-independent build path for the mini-benchmark, useful when debugging toolchain or ISA issues before the full CMake configure is working.
-- **Where**: Invoked with `make -f tests/bench/mini_bench.mk SIM=spike`.
-
-#### `tests/unit/`
-- **Usage**: Reserved empty directory. Will contain unit tests for GF(2^m) arithmetic, polynomial multiplication correctness, and Reed-Muller/Solomon decoding once `fafft_zbc` and the decoder tracks are complete.
-- **Why**: Unit tests at the algorithm level (not just KAT) allow faster feedback during development of individual math components without running the full 100-vector KAT suite.
-- **Where**: Not referenced in the build system yet.
-
----
-
-### `scripts/`
-
-#### `scripts/bench/run_kat_all.sh`
-- **Usage**: Iterates over all 15 KAT targets and runs each via `tests/kat/run_kat.sh` on QEMU, collecting pass/fail results.
-- **Why**: Allows a single command to verify correctness of the entire 3×5 target matrix before committing results.
-- **Where**: Run manually before declaring a phase complete. Also used as a pre-merge check.
-
-#### `scripts/bench/run_spike_bench_variant.sh`
-- **Usage**: Runs all polymul micro-benchmarks for a given phase on Spike in background processes, logging PIDs to `analysis/benchmarks/phase<N>/pids.txt`.
-- **Why**: Spike benchmark duration is host- and variant-dependent. Launching jobs in background and tracking PIDs supports asynchronous execution without blocking the terminal.
-- **Where**: Called once per phase: `./scripts/bench/run_spike_bench_variant.sh polymul_zbc`.
-
-#### `scripts/bench/run_histogram_all.sh`
-- **Usage**: Runs all targets on Spike with `--log-commits` to collect instruction histograms, then calls `sim/spike/parse_commits.py` to aggregate opcode frequency data.
-- **Why**: Instruction mix analysis (which opcodes dominate) is a secondary metric that complements raw cycle counts. Required for the thesis methodology section.
-- **Where**: Called when preparing the instruction-mix CSV for `analysis/benchmarks/instruction_mix.csv`.
-
-#### `scripts/bench/spike_kat.sh`
-- **Usage**: Runs the `fafft_zvbc` KAT targets on Spike with the extended ISA string `--isa=rv64gcv_zbc_zbb_zbkb_zvbc`, which is required at Spike runtime for Zvbc instructions.
-- **Why**: `fafft_zvbc` uses `vclmul.vv` instructions that Spike only recognizes with the explicit `--isa` flag including `zvbc`. Standard QEMU KAT scripts do not pass this flag.
-- **Where**: Called by `.github/workflows/kat.yml` in the `kat-spike-zvbc` CI job.
-
-#### `scripts/ci/check_opcodes.sh`
-- **Usage**: Disassembles `hqc128_fafft_zvbc.elf` and verifies that `vclmul` and `clmul` opcode mnemonics are present in the output. Exits non-zero if not found.
-- **Why**: Ensures the compiler actually emitted the target ISA extensions rather than silently falling back to scalar code. Guards against `-menable-experimental-extensions` regression.
-- **Where**: Called by the `verify_vclmul` CMake custom target and by `.github/workflows/opcode-verify.yml`.
-
-#### `scripts/ci/check_isa_string.sh`
-- **Usage**: Reads the ELF NOTES section of a binary and verifies that the ISA attribute string includes the expected extensions (e.g., `zbc`, `zvbc`, `zicntr`).
-- **Why**: An ELF with the wrong ISA string can pass compilation but trap at runtime on Spike when it encounters an unrecognized instruction. This check catches ISA string mismatches before running tests.
-- **Where**: Called by `.github/workflows/opcode-verify.yml`.
-
-#### `scripts/ci/check_ct.sh`
-- **Usage**: Runs host-valid constant-time checks (ctgrind and/or native x86 dudect) and exits non-zero if configured checks fail.
-- **Why**: Constant-time behavior is a security requirement for any KEM implementation. Automated CI enforcement prevents regression.
-- **Where**: Called by `.github/workflows/ct-verify.yml`.
-
-#### `scripts/debug/.gdbinit`
-
-> **Note**: The `.gdbinit` file resides inside `scripts/debug/` but is loaded by GDB when launched from the project root or via `set auto-load safe-path`.
-
-- **Usage**: GDB initialization script for debugging on Spike/QEMU. Sets the remote target, loads `scripts/debug/custom_rvv.xml` for V-extension register descriptions, and configures pretty-printers.
-- **Why**: Debugging bare-metal RISC-V via GDB remote requires explicit connection setup. The V-extension registers are not in standard GDB descriptions and need the custom XML.
-- **Where**: Loaded automatically by GDB from `scripts/debug/` when the `auto-load` path is configured, or sourced manually: `gdb -x scripts/debug/.gdbinit`.
-
-#### `scripts/debug/custom_rvv.xml`
-- **Usage**: GDB target description XML file for RISC-V V-extension registers. Describes the 32 vector registers (v0–v31) and vector CSRs (`vl`, `vtype`, `vcsr`).
-- **Why**: GDB's built-in RISC-V description does not include V-extension registers. Without this file, `info registers` does not show vector state, making it impossible to debug RVV code.
-- **Where**: Loaded by GDB via `scripts/debug/.gdbinit` using `set tdesc filename`.
-
-#### `scripts/debug/hqc_pretty.py`
-- **Usage**: GDB Python pretty-printer for HQC-specific types (polynomial arrays, ciphertext structs). Formats raw byte arrays as hex or binary polynomials.
-- **Why**: HQC polynomials are 64-bit word arrays of up to ~900 words. The default GDB array display is unusable for debugging polynomial arithmetic.
-- **Where**: Auto-loaded by GDB via `scripts/debug/.gdbinit` using `source hqc_pretty.py`.
-
-#### `scripts/debug/rvv_regs.py`
-- **Usage**: GDB Python helper script that reads and displays all active vector registers in a human-readable format (decoded by element type and LMUL setting from `vtype`).
-- **Why**: The raw `v0`–`v31` register values are uninterpretable without knowing the active `vtype`. This script combines `vtype` decoding with register display.
-- **Where**: Sourced in GDB via `scripts/debug/.gdbinit` or manually: `(gdb) source scripts/debug/rvv_regs.py`.
-
-#### `scripts/report/gen_report.sh`
-- **Usage**: Master report generation script. Collects all CSV files from `analysis/benchmarks/`, calls `scripts/report/extract_results.py`, and produces both a Markdown summary and a LaTeX results table.
-- **Why**: Automates the final step of the thesis workflow: from raw benchmark data to thesis-ready tables, avoiding manual transcription errors.
-- **Where**: Run manually after benchmarks complete: `./scripts/report/gen_report.sh`. Output stored in `analysis/report/`.
-
-#### `scripts/report/extract_results.py`
-- **Usage**: Parses benchmark CSV files, computes speedup ratios relative to the `karatsuba_ref` baseline, and generates formatted Markdown and LaTeX tables.
-- **Why**: The thesis needs reproducible, automatically-generated tables that stay in sync with updated benchmark data. Manual table editing is error-prone and slow.
-- **Where**: Called by `scripts/report/gen_report.sh`.
-
----
-
-### `analysis/`
-
-#### `analysis/benchmarks/cycle_counts.csv`
-- **Usage**: Aggregated cycle-count results across all measured phases and security levels, consolidated from per-phase CSV files.
-- **Why**: Single source of truth for the thesis performance table. Consumed by `analysis/benchmarks/plot.py`.
-- **Where**: Written by `scripts/report/extract_results.py`. Read by `analysis/benchmarks/plot.py` and `analysis/benchmarks/amdahl.py`.
-
-#### `analysis/benchmarks/instruction_mix.csv`
-- **Usage**: Opcode frequency breakdown across measured phases. Contains counts of categories like `clmul`, `vxor.vv`, `load`, `store`, etc.
-- **Why**: Instruction mix is required for the thesis methodology to justify using instruction count (not wall-clock time) as the primary metric. Shows which operations dominate.
-- **Where**: Written by `sim/spike/parse_commits.py` via `scripts/bench/run_histogram_all.sh`.
-
-#### `analysis/benchmarks/amdahl.py`
-- **Usage**: Computes Amdahl's Law speedup projections. Takes the fraction of runtime spent in each HQC component (polymul, Keccak, decoder) and models the maximum speedup achievable by optimizing each phase independently and together.
-- **Why**: Guides prioritization: if `keccak_rvv` only accounts for a small runtime share after polymul acceleration, the decoder tracks have limited impact. Amdahl analysis is part of the thesis motivation.
-- **Where**: Run manually: `python3 analysis/benchmarks/amdahl.py`. Inputs from `cycle_counts.csv`.
-
-#### `analysis/benchmarks/plot.py`
-- **Usage**: Generates bar charts and line plots of cycle counts and instruction mix from the CSV files. Outputs PDFs to `docs/figures/`.
-- **Why**: Visual presentation of performance results for the thesis document.
-- **Where**: Run manually: `python3 analysis/benchmarks/plot.py`. Outputs `docs/figures/cycle_counts.pdf` and `docs/figures/instruction_mix.pdf`.
-
-#### `analysis/benchmarks/baseline_ref/` and `analysis/benchmarks/polymul_zbc/`
-- **Usage**: Per-phase benchmark data directories. Each contains: `hqc{128,192,256}_karatsuba_ref_N1.csv` (full KEM cycle counts), `hqc{128,192,256}_karatsuba_ref_polymul_N1.csv` (polymul micro-bench counts), `*.log` (Spike output logs), and `pids.txt` (background job PID log).
-- **Why**: Preserves raw benchmark data for reproducibility and for comparing across phases. The `pids.txt` files track which background Spike processes were launched, allowing them to be waited on or killed.
-- **Where**: Written by `scripts/bench/run_spike_bench_variant.sh`. Read by `scripts/report/extract_results.py`.
-
-#### `analysis/ct_verify/ctgrind/`, `dudect/`
-- **Usage**: Reserved directories (`.gitkeep` only) for constant-time verification tool outputs.
-  - `ctgrind/`: Valgrind-based ct-grind output (taint tracking).
-  - `dudect/`: DUDect statistical timing test results.
-- **Why**: Provides a well-organized place for CT verification artifacts that will be generated by `.github/workflows/ct-verify.yml` and `scripts/ci/check_ct.sh`.
-- **Where**: Written by CI when the `ct-verify` workflow runs.
-
-#### `analysis/llvm_mca/run_mca.sh`
-- **Usage**: Runs LLVM Machine Code Analyzer on assembly files in `analysis/llvm_mca/reports/` to produce static throughput and latency estimates.
-- **Why**: LLVM-MCA provides per-instruction throughput and latency estimates for out-of-order RISC-V cores, complementing Spike's in-order instruction counts with microarchitectural insight.
-- **Where**: Run manually: `./analysis/llvm_mca/run_mca.sh`. Outputs `.txt` report files in `analysis/llvm_mca/reports/`.
-
-#### `analysis/llvm_mca/reports/gf2x_ref.s`
-- **Usage**: RISC-V assembly dump of the vendor Karatsuba `vect_mul()` function, used as LLVM-MCA input.
-- **Why**: MCA requires assembly input. This is the `baseline_ref` reference point for static throughput comparison against the polymul implementation tracks.
-- **Where**: Input to `analysis/llvm_mca/run_mca.sh`. Generated from `vendor/hqc-ref/src/ref/gf2x.c` via `llvm-objdump -d`.
-
-#### `analysis/llvm_mca/reports/gf2x_ref_mca.txt`, `gf2x_mca.txt`, `gf2x_clmul_mca.txt`
-- **Usage**: LLVM-MCA static analysis output reports. Show instruction dispatch pressure, throughput bottlenecks, and resource utilization for different polymul implementations.
-- **Why**: Supports the thesis methodology section by providing static micro-architectural evidence alongside dynamic Spike instruction counts.
-- **Where**: Generated by `analysis/llvm_mca/run_mca.sh`. Referenced in thesis chapters on polymul analysis.
-
-#### `analysis/report/report_2026-04-27.md`, `report_2026-04-29.md`
-- **Usage**: Periodic benchmark summary reports in Markdown. Each records the phase, the key performance numbers (instruction counts, speedup ratios), and observations.
-- **Why**: Preserves a dated history of results so regressions or anomalies can be traced to specific dates and changes.
-- **Where**: Generated by `scripts/report/gen_report.sh`.
-
-#### `analysis/report/table_results_2026-04-27.tex`, `table_results_2026-04-29.tex`
-- **Usage**: LaTeX-formatted result tables for direct inclusion in the thesis document.
-- **Why**: Auto-generated tables eliminate manual transcription and stay in sync with the benchmark data.
-- **Where**: Generated by `scripts/report/extract_results.py`. Included in the thesis LaTeX source via `\input{...}`.
-
----
-
-### `docs/`
-
-#### `docs/GUIDE.md`
-- **Usage**: Comprehensive development guide. Covers prerequisites and toolchain versions, repository layout, CMake configuration guide, QEMU and Spike KAT procedures, Spike benchmarking strategy, result extraction, common pitfalls, and the full phase roadmap.
-- **Why**: Central reference for any developer working on the project. Prevents repeated rediscovery of non-obvious steps (e.g., needing `_zicntr` in the ISA string, or why QEMU `rdcycle` is unreliable for timing).
-- **Where**: Read by contributors. Cross-referenced from `README.md`.
-
-#### `docs/METHODOLOGY.md`
-- **Usage**: Methodology and tool-selection rationale. Explains: why retired instruction count (not wall-clock) is the primary metric, the CPI dilemma and its resolution via instruction mix + LLVM-MCA, and the tool ranking (Spike ISS for instruction count, QEMU for functional testing, RTL for cycle-accurate results). Cites Zhang et al. (TCHES 2025) as a reference point.
-- **Why**: Documents the measurement methodology so the thesis results are reproducible and the metric choices are defensible.
-- **Where**: Read by thesis supervisors and reviewers. Referenced by `docs/GUIDE.md`.
-
-#### `docs/RUNBOOK.md`
-- **Usage**: Day-to-day command reference. Lists the exact commands for the most common workflows: configure CMake, run KAT, run Spike bench, extract results, generate report.
-- **Why**: Reduces friction for common operations; a quick reference for experienced contributors who do not need the full GUIDE.
-- **Where**: Used directly by developers. The authoritative copy (`docs/Workflow.md` was an exact duplicate and has been removed).
-
-#### `docs/figures/cycle_counts.pdf`, `docs/figures/instruction_mix.pdf`
-- **Usage**: PDF plots of cycle-count comparisons and instruction-mix breakdowns across phases and security levels.
-- **Why**: Thesis figures for the performance evaluation chapter.
-- **Where**: Generated by `analysis/benchmarks/plot.py`. Included in the LaTeX thesis document via `\includegraphics{}`.
-
-#### `docs/latex/`
-- **Usage**: Reserved directory (`.gitkeep`) for thesis LaTeX chapter files.
-- **Why**: Keeps the LaTeX source co-located with the project that generates the data, allowing `\input{../../hqc-riscv/analysis/report/table_results_*.tex}` style inclusions.
-- **Where**: Will contain `.tex` chapter files once thesis writing begins.
-
-#### `docs/literature/`
-- **Usage**: Reserved directory (`.gitkeep`) for bibliography entries and reference PDFs.
-- **Why**: Centralizes literature relevant to the implementation choices (e.g., FAFFT paper, Zhang et al. Keccak RVV).
-- **Where**: Not referenced in the build system; used during thesis writing.
-
----
-
-### `vendor/hqc-ref/` (Git Submodule)
-
-- **Usage**: Official HQC v5.0.0 reference implementation (CC0 / public domain), tracked as a git submodule. Provides the invariant cryptographic skeleton:
-  - `src/common/kem.c` — FO transform (KEM wrapper)
-  - `src/common/crypto_memset.c` — Constant-time memory clear
-  - `src/ref/parsing.c` — Key/ciphertext serialization
-  - `src/ref/vector.c` — Sparse vector operations
-  - `src/ref/gf.c` — GF(2^8) base field arithmetic
-  - `src/ref/hqc.c` — PKE encrypt/decrypt
-  - `src/common/code.c`, `fft.c` — Error correction wrappers
-  - `src/common/symmetric.c` — SHAKE-256 wrappers
-  - `lib/fips202/fips202.c` — Reference Keccak (replaced by `keccak_rvv`)
-  - `src/ref/gf2x.c` — Reference Karatsuba (replaced in the polymul tracks)
-  - `src/ref/reed_muller.c`, `reed_solomon.c` — Reference decoders (replaced in the decoder tracks)
-  - `KAT/hqc-{1,3,5}/PQCkemKAT_*.rsp` — NIST KAT vector files
-- **Why**: Provides the unmodified `baseline_ref` denominator and the invariant code that is not the optimisation target. Using a submodule ensures the exact upstream version is tracked.
-- **Where**: Paths under `vendor/hqc-ref/` are referenced directly in `CMakeLists.txt` and `cmake/hqc_core.cmake` for include directories and source files.
-
----
-
-### `sysroot/`
-
-- **Usage**: Directory for the cross-compilation sysroot (GCC runtime libraries for `-nostdlib` builds). Generated by `toolchain/build-gcc-sysroot.sh`. Listed in `.gitignore`.
-- **Why**: Some low-level compiler builtins (e.g., `__udivti3` for 128-bit division) are not inlined by Clang and require a sysroot. Also needed for LTO linking.
-- **Where**: Referenced implicitly by the Clang `--sysroot` flag in `toolchain/riscv-clang.cmake`.
-
----
-
-### `.github/workflows/`
-
-#### `.github/workflows/kat.yml`
-- **Usage**: CI workflow triggered on every push/PR touching source files. Runs two jobs: (1) `kat` — QEMU KAT for all scalar polymul variants (karatsuba_zbc, fafft_zbc, hybrid_zbc) across all 3 security levels (9 matrix jobs); (2) `kat-spike-zvbc` — Spike KAT for `fafft_zvbc` across all 3 levels (requires Zvbc ISA extension at runtime).
-- **Why**: Automated KAT on every commit prevents correctness regressions from going unnoticed. The scalar variants use QEMU (fast); Zvbc requires Spike (authoritative for new ISA extensions).
-- **Where**: Triggered by GitHub Actions on push/PR. Calls `tests/kat/run_kat.sh` and `scripts/bench/spike_kat.sh`.
-
-#### `.github/workflows/opcode-verify.yml`
-- **Usage**: Verifies that the compiled `hqc128_fafft_zvbc.elf` contains actual `vclmul`/`clmul` opcodes in its disassembly and has the correct ISA attribute string in its ELF NOTES.
-- **Why**: Guards against silent compiler fallback to scalar code if the `-menable-experimental-extensions` flag or the Zvbc extension name is misspelled or unsupported by the current LLVM version.
-- **Where**: Triggered on push/PR. Calls `scripts/ci/check_opcodes.sh` and `scripts/ci/check_isa_string.sh`.
-
-#### `.github/workflows/ct-verify.yml`
-- **Usage**: Constant-time verification workflow. Runs ctgrind and dudect workflows aligned with host/hardware-valid timing methodology.
-- **Why**: Constant-time is a security-critical property of any production KEM. Automated enforcement prevents silent CT regression when implementing SIMD optimizations (which can introduce data-dependent code paths).
-- **Where**: Triggered on push/PR. Calls `scripts/ci/check_ct.sh`. Results deposited in `analysis/ct_verify/`.
+#### [CMakeLists.txt](../CMakeLists.txt#L1)
+- **Usage:** Top-level CMake orchestrator defining a 3×6 target matrix (3 security levels × 6 polymul variants) producing up to 54 executables: 18 KAT targets for correctness validation, 18 BENCH targets for full-KEM measurements, and 18 POLYMUL_BENCH targets for isolated `vect_mul()` profiling. Configures simulator backend selection via `HQC_SIM`, iteration counts, and implementation switches for `HQC_KECCAK_IMPL` and `HQC_DECODE_IMPL` to toggle between reference and RVV-accelerated paths. Calls `include(cmake/options.cmake)` and `include(cmake/hqc_core.cmake)` to wire variant selection and invariant code compilation. Registers all KAT targets with CTest for automated correctness gating.
+- **Why:** This is the central control plane for reproducible variant comparison. It ensures every optimization track is compiled under identical, explicit configuration so performance differences are attributable to algorithm and ISA use, not compiler flags or linking order.
+- **Where:** Invoked by every `cmake -S . -B build` configure step locally, in CI, and in all benchmark automation scripts.
+
+#### [README.md](../README.md#L1)
+- **Usage:** Quick-start onboarding guide providing prerequisites, toolchain version expectations, one-command build/run procedures for QEMU KAT and Spike benchmarking, and navigation links to deeper methodology and runbook documents.
+- **Why:** Minimizes setup friction and prevents operational drift between contributors, CI, and thesis-stage result collection.
+- **Where:** Read first by new contributors. Referenced by the project wiki and CI workflow startup instructions.
+
+#### [compile_commands.json](../compile_commands.json)
+- **Usage:** CMake-generated compilation database mapping every source file to its exact per-file compile flags, including RISC-V ISA extension strings and freestanding options. Automatically symlinked to the top-level directory during configure.
+- **Why:** Language servers (clangd, LSP) and static analysis tools require accurate per-file compiler flags; RISC-V ISA strings and `-ffreestanding` are non-standard, so this database is essential for IDE diagnostics and refactoring safety.
+- **Where:** Read by clangd-based editors during development. Generated via `set(CMAKE_EXPORT_COMPILE_COMMANDS ON)` in `CMakeLists.txt`.
+
+#### [repo_tree.txt](../repo_tree.txt)
+- **Usage:** Snapshot of repository structure hierarchy used as a drift detector against architecture documentation. Generated deterministically from the live working tree.
+- **Why:** As the codebase evolves, structural changes (file moves, new directories) can diverge silently from the documented ARCHITECTURE.md. Comparing snapshots catches drift and prompts timely documentation updates.
+- **Where:** Produced by [scripts/repo_structure.sh](../scripts/repo_structure.sh) and compared during documentation audits.
+
+#### [.gitmodules](../.gitmodules)
+- **Usage:** Git submodule configuration specifying the upstream HQC reference implementation (vendor/hqc-ref) pinned to a stable version.
+- **Why:** The reference code is the invariant baseline and provides the KAT vector files; pinning via submodule ensures all developers and CI use the exact same upstream revision.
+- **Where:** Used by `git submodule update --init --recursive` during initial setup and by CI clones.
+
+### CMake Module Files
+
+#### [cmake/hqc_core.cmake](../cmake/hqc_core.cmake#L1)
+- **Usage:** Defines the CMake function `hqc_add_core(LEVEL)` which creates per-security-level object libraries (e.g., `hqc_core_128`) containing the five invariant vendor files: `kem.c`, `crypto_memset.c`, `parsing.c`, `vector.c`, `gf.c`. Each object library is compiled once per level regardless of how many variant targets use it, avoiding N²-level recompilation.
+- **Why:** Invariant code is independent of the polymul algorithm choice; separating it into object libraries enforces this invariance and reduces compilation overhead in the variant matrix.
+- **Where:** Included by [CMakeLists.txt](../CMakeLists.txt). Called inside the top-level level loop via `hqc_add_core(${LEVEL})`, and resulting objects linked into every target via `$<TARGET_OBJECTS:hqc_core_${LEVEL}>`.
+
+#### [cmake/options.cmake](../cmake/options.cmake#L1)
+- **Usage:** Central declaration and validation of three build-time implementation switches: `HQC_KECCAK_IMPL` (ref|rvv), `HQC_DECODE_IMPL` (ref|rvv), and optional feature flags. Each option is documented with valid choices and results in compile-time preprocessor symbols that gate the actual implementation selection at include-time.
+- **Why:** Keeps option logic in one place and prevents invalid combinations (e.g., selecting a decoder that has not been implemented yet). Option validation at configure time is faster than runtime or test-time discovery.
+- **Where:** Included by [CMakeLists.txt](../CMakeLists.txt) on every configure. Variables are consumed in conditional `add_subdirectory()` and `target_compile_definitions()` calls.
+
+### Toolchain Files
+#### [toolchain/build-gcc-sysroot.sh](../toolchain/build-gcc-sysroot.sh)
+- **Usage:** Builds a minimal cross-compilation sysroot for `riscv64-unknown-elf` target, containing GCC runtime builtins (libgcc) needed by Clang's LLD linker when performing LTO linking. Installs into `$RISCV/riscv64-unknown-elf/`.
+- **Why:** Even in `-nostdlib` bare-metal freestanding builds, some low-level operations (e.g., `__udivti3` for 128-bit division) are not inlined by LLVM and require the GCC runtime. LTO linking particularly needs compatible builtins.
+- **Where:** Run once during toolchain bootstrap: `bash toolchain/build-gcc-sysroot.sh`. The result is referenced via `--sysroot` flag in `toolchain/riscv-clang.cmake`.
+
+#### [toolchain/build-llvm.sh](../toolchain/build-llvm.sh)
+- **Usage:** Builds LLVM/Clang from a pinned version with full RISC-V target support, including experimental extensions (Zbc, Zvbc). Installs into `$RISCV/bin/`.
+- **Why:** System-provided Clang may not support `-menable-experimental-extensions` or may have outdated RISC-V extension definitions. Building from source ensures correct Zbc/Zvbc codegen and flag parsing.
+- **Where:** Run once during environment setup: `bash toolchain/build-llvm.sh`. The resulting Clang is used by all CMake builds and scripts.
+
+#### [toolchain/build-qemu.sh](../toolchain/build-qemu.sh)
+- **Usage:** Builds QEMU `riscv64-softmmu` from source with the `virt` machine support needed for HQC KAT execution. Installs into `$RISCV/bin/`.
+- **Why:** QEMU provides the fastest functional correctness loop for scalar polymul variants (~10–60 seconds per full KAT suite). A specific QEMU version is required to match the expected UART/HTIF communication protocol.
+- **Where:** Run during simulator provisioning: `bash toolchain/build-qemu.sh`. The binary is called by `sim/qemu/run_kat.sh` and all KAT CI workflows.
+
+#### [toolchain/build-spike.sh](../toolchain/build-spike.sh)
+- **Usage:** Builds Spike ISS (RISC-V instruction set simulator) from source with recent extension support, including Zvbc (vector carry-less multiply). Installs into `$RISCV/bin/` and provides the `spike` binary used for instruction-count evaluation and trace generation. The build is intentionally separate from the rest of the toolchain so simulator capability can be updated without disturbing the compiler path.
+- **Why:** Spike is the canonical tool for instruction-count benchmarking because its in-order model gives a direct retired-instruction view of each HQC kernel. Recent Spike versions include Zvbc support, while system-provided Spike typically lacks it, so building locally avoids missing-extension failures during benchmarking. Spike with `--log-commits` is also the source of the ground-truth instruction traces used by the thesis methodology.
+- **Where:** Run during setup with `bash toolchain/build-spike.sh`. The resulting binary is used by [sim/spike/run_bench.sh](../sim/spike/run_bench.sh), [sim/spike/run.sh](../sim/spike/run.sh), and the Zvbc KAT path in [scripts/bench/spike_kat.sh](../scripts/bench/spike_kat.sh).
+
+#### [toolchain/riscv-clang.cmake](../toolchain/riscv-clang.cmake#L1)
+- **Usage:** CMake cross-toolchain file specifying the Clang compiler, ISA/ABI, and bare-metal linking contract. It sets `CMAKE_C_COMPILER` and `CMAKE_ASM_COMPILER` to the cross Clang binary, then fixes the HQC ISA string to `-march=rv64gcv_zbc_zbb_zbkb_zvbc -mabi=lp64d` so the same extension set is used for every build. The file also applies `-menable-experimental-extensions`, `-fno-tree-vectorize`, and `-fuse-ld=lld -nostartfiles -nostdlib --gc-sections` so the emitted ELF is freestanding and still capable of Zvbc code generation. The sysroot path is resolved through a fallback search that prefers the configured toolchain locations instead of hard-coded absolute paths.
+- **Why:** Bare-metal RISC-V builds need an explicit ISA/ABI contract, because the wrong extension string can silently change the generated code or cause runtime traps on Spike. Disabling auto-vectorization keeps the measurement surface honest by ensuring all SIMD in this project is handwritten. The sysroot search logic exists because different developer setups place LLVM, Spike, and GCC runtime components in different directories, and the thesis workflow needs to tolerate that variance.
+- **Where:** Passed via `-DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake` in every CMake configure invocation. It is used by all build trees, including the QEMU correctness build, the Spike benchmark build, and the CI workflows that compile the KAT and Zvbc targets.
+
+#### [toolchain/riscv-gcc.cmake](../toolchain/riscv-gcc.cmake)
+- **Usage:** Alternative CMake cross-toolchain file using GCC instead of Clang, configured for the same ISA/ABI and bare-metal options but with GCC toolchain paths and linker. Enables compiler-comparison experiments without reconfiguring the entire build system.
+- **Why:** Separates algorithmic innovation from compiler-specific code generation effects. Comparing GCC vs. Clang results helps determine whether performance differences come from the algorithm or the compiler's instruction scheduling.
+- **Where:** Selected via `-DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake` in dedicated comparison build runs and compiler-evaluation scripts.
+
+#### [toolchain/toolchain.env](../toolchain/toolchain.env)
+- **Usage:** Shell environment setup script exporting `RISCV`, `PATH`, `CC`, `CXX`, and other tool variables to point at the local cross-toolchain installation under `$HOME/Thesis/installed-tools/`.
+- **Why:** Reduces manual setup in ad-hoc terminal sessions and ensures consistent tool selection across local development, CI, and debugging workflows.
+- **Where:** Sourced by developers: `source toolchain/toolchain.env`. Also implicitly used by automated benchmark and debugging scripts that rely on `$PATH` for tool discovery.
+
+### Include Files
+#### [include/immintrin.h](../include/immintrin.h)
+- **Usage:** Stub header satisfying `#include <immintrin.h>` without providing any x86-specific SIMD types or intrinsics. Acts as a transparent compatibility shim.
+- **Why:** The HQC reference implementation conditionally includes `<immintrin.h>` for x86 optimization paths. On RISC-V, this non-existent header would cause build failures. The stub prevents this without modifying upstream code.
+- **Where:** Picked up via the global include search path. Shadowed by the real `immintrin.h` on x86 systems but used on all cross-compilation targets.
+
+#### [include/randombytes.h](../include/randombytes.h)
+- **Usage:** Public API header declaring `randombytes_init(seed[48])` and `randombytes(out, len)` with mode-independent signatures. The actual implementation switches at compile time based on `HQC_KAT_MODE` vs. `HQC_BENCH_MODE`.
+- **Why:** KAT correctness requires deterministic AES-CTR DRBG (NIST-compliant); benchmarking requires fast fixed-pattern fills without AES overhead. A single interface avoids duplicating all call sites across two implementations.
+- **Where:** Included by [src/common/randombytes.c](../src/common/randombytes.c), KAT harnesses, and vendor code calling `randombytes()`.
+
+### Source Files: Common
+#### [src/common/bench.c](../src/common/bench.c)
+- **Usage:** Bare-metal measurement primitives implementing `hqc_rdcycle()` (reads the RISC-V `mcycle` CSR), `hqc_htif_puts()`, `hqc_htif_putu64()`, and `hqc_htif_exit()`. Provides two output backends selectable at compile-time: Spike HTIF (via `tohost` memory-mapped I/O) and QEMU UART, controlled by `HQC_SIM_QEMU`.
+- **Why:** Bare-metal targets have no OS or libc. The `mcycle` CSR is the authoritative cycle counter (maps to Spike's retired instruction count); HTIF and UART are the only ways to communicate results back to the host.
+- **Where:** Compiled into every KAT, BENCH, and POLYMUL_BENCH target via `LOCAL_COMMON_SOURCES`. Called directly by [tests/kat/kat_gen.c](../tests/kat/kat_gen.c), benchmark harnesses, and mini_bench.
+
+#### [src/common/bench.h](../src/common/bench.h)
+- **Usage:** Public header exposing the timing and output API: macros and inline functions for cycle measurement, formatted I/O, and simulator exit, enabling all test and benchmark code to use a consistent timing interface.
+- **Why:** Centralizes the contract between measurement primitives and benchmark code, reducing coupling and enabling easy backend switching (Spike ↔ QEMU) at compile time.
+- **Where:** Included by all benchmark and timing-sensitive code.
+
+#### [src/common/hqc_parameters.h](../src/common/hqc_parameters.h)
+- **Usage:** Shared constants and compile-time macros defining HQC parameter-dependent values (e.g., PARAM_N, PARAM_K, PARAM_DELTA, and derived sizes like VEC_N_SIZE_BYTES). Centralizes all parameter definitions to prevent accidental divergence across levels or implementations.
+- **Why:** HQC has three security levels (128, 192, 256) with different polynomial sizes and thresholds. Centralizing definitions ensures consistency and makes level-specific parameter updates atomic.
+- **Where:** Included by polymul, decode, benchmark, and vendor-facing sources across all implementations.
+
+#### [src/common/randombytes.c](../src/common/randombytes.c)
+- **Usage:** Mode-aware RNG wrapper that delegates to `aes_ctr_drbg.c` for KAT-mode deterministic output or fills with a fixed pattern for BENCH-mode fast execution. Selection is controlled by compile-time `HQC_KAT_MODE` vs. `HQC_BENCH_MODE` preprocessor defines.
+- **Why:** KAT runs need exact NIST vector reproducibility (AES-CTR DRBG); benchmark measurements must exclude AES overhead from cycle counts. A single source file with compile-time branching avoids duplicating all callers.
+- **Where:** Compiled into all targets via `LOCAL_COMMON_SOURCES`. Provides the `randombytes` symbol required by vendor KEM code and test harnesses.
+
+#### [src/common/rng/aes_ctr_drbg.c](../src/common/rng/aes_ctr_drbg.c)
+- **Usage:** NIST SP 800-90A AES-256 CTR_DRBG implementation providing `randombytes_init(seed[48])` and `randombytes(out, len)`. Delegates to Tiny AES for the underlying ECB primitive. Produces output bit-identical to NIST reference implementations.
+- **Why:** KAT compliance requires reproducing NIST vectors exactly. Any deviation in the RNG invalidates the test. This implementation is the authoritative one used only in KAT mode.
+- **Where:** Included and called by [src/common/randombytes.c](../src/common/randombytes.c) when `HQC_KAT_MODE=1`. Not compiled into BENCH targets to keep cycle counts clean.
+
+#### [src/common/rng/aes_ctr_drbg.h](../src/common/rng/aes_ctr_drbg.h)
+- **Usage:** Header exposing the AES-CTR DRBG API: state structure and `randombytes_init`/`randombytes` declarations used by the wrapper layer.
+- **Why:** Maintains a clear API boundary between the DRBG implementation and its callers.
+- **Where:** Included by [src/common/randombytes.c](../src/common/randombytes.c) and test harnesses that directly initialize the DRBG.
+
+#### [src/common/rng/tiny_aes.c](../src/common/rng/tiny_aes.c)
+- **Usage:** Minimal AES-256 ECB implementation (TinyAES by kokke/AES-Tiny, public domain). Provides `aes256_key_expansion()` and `aes256_ecb_encrypt()` for the DRBG's cryptographic core.
+- **Why:** The DRBG needs a compact, self-contained AES implementation without external dependencies. On bare-metal with no libc, linking heavyweight crypto libraries is impractical; TinyAES is ~300 lines of portable C.
+- **Where:** Called directly by [src/common/rng/aes_ctr_drbg.c](../src/common/rng/aes_ctr_drbg.c).
+
+#### [src/common/rng/tiny_aes.h](../src/common/rng/tiny_aes.h)
+- **Usage:** Declarations for Tiny AES operations (key expansion, ECB encryption, buffer clearing).
+- **Why:** Isolates the AES interface from the DRBG and allows future AES backend swapping if needed.
+- **Where:** Included by [src/common/rng/aes_ctr_drbg.c](../src/common/rng/aes_ctr_drbg.c).
+
+### Source Files: Poly Mul Index and Shared Helpers
+#### [src/poly_mul/VARIANT_INDEX.md](../src/poly_mul/VARIANT_INDEX.md)
+- **Usage:** Human-readable catalog of polymul variants with implementation status, variant naming, CMake configuration, and which files comprise each variant. Serves as the definitive mapping between variant identifiers in scripts, reports, and source code.
+- **Why:** The 6+ polymul implementations have overlapping names and experimental versions; this catalog prevents naming confusion and documents deprecation/promotion history.
+- **Where:** Consulted by developers during variant selection, referenced by report/benchmarking scripts to disambiguate results.
+
+#### [src/poly_mul/common/poly_helpers.c](../src/poly_mul/common/poly_helpers.c)
+- **Usage:** Common utility routines for polynomial operations shared by scalar and vector variants: polynomial clearing, copying, XOR, and format conversions. Avoids duplication across the variant implementations.
+- **Why:** Multiple variant implementations need basic polynomial manipulation routines; centralizing them ensures consistent semantics and reduces maintenance burden.
+- **Where:** Compiled into all variant targets via `LOCAL_POLYMUL_COMMON_SOURCES` in CMakeLists.txt.
+
+#### [src/poly_mul/common/poly_helpers.h](../src/poly_mul/common/poly_helpers.h)
+- **Usage:** Public API for shared polynomial helper functions, exposing the stable interface for variant implementations to build on.
+- **Why:** Provides a clear contract boundary between shared infrastructure and variant-specific code.
+- **Where:** Included by all polymul variant sources and related tests.
+
+### Source Files: Scalar Polymul (karatsuba_zbc)
+
+#### [src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c](../src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c)
+- **Usage:** Scalar Karatsuba polynomial multiplier with carry-less multiply (Zbc) base cases. Implements the three-way Karatsuba recursion with `clmul`/`clmulh` leaf operations, Barrett reduction, and an empirically-tuned recursion depth sweep per security level. Exported function: `vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)`.
+- **Why:** Zbc eliminates the data-dependent branching of a scalar multiplication loop by replacing 64-bit shifts with two 2-instruction Zbc operations (`clmul` + `clmulh`), directly reducing HQC's dominant bottleneck (>90% of KEM runtime).
+- **Where:** Selected by CMake target matrix when `POLYMUL=karatsuba_zbc`. Compiled into all `hqc{128,192,256}_karatsuba_zbc_{kem|polymul}.elf` targets.
+
+### Source Files: Scalar Polymul (fafft_zbc)
+
+#### [src/poly_mul/scalar/fafft_zbc/fafft.c](../src/poly_mul/scalar/fafft_zbc/fafft.c)
+- **Usage:** Main FAFFT entry point implementing the Frobenius Additive FFT algorithm over GF(2)[x] with Zbc-accelerated GF(2^m) butterfly multiplications. It handles HQC's non-power-of-two polynomial sizes by applying CRT decomposition to map the problem into aligned rings before orchestrating Cantor encoding, butterfly layers, and final reduction. The function is the top-level transform driver for the scalar FAFFT track, so the transform structure, reduction order, and recursion boundaries all converge here. It also mediates between the active v5 branch and the reference tower-field helpers depending on compile-time selection.
+- **Why:** FAFFT gives the project an asymptotic route beyond Karatsuba for the largest HQC parameter sets. The CRT-based reshape avoids the padding waste that would otherwise dominate a naive power-of-two transform, which is why the algorithm is worth the extra integration complexity. This file therefore sits at the center of the scalar FAFFT thesis claim: it is the place where theory, padding cost, and the Zbc base cases meet.
+- **Where:** Selected by CMake when `POLYMUL=fafft_zbc`. It is always compiled together with [src/poly_mul/scalar/fafft_zbc/fafft_rvv.c](../src/poly_mul/scalar/fafft_zbc/fafft_rvv.c) and the reference butterfly/encode support hierarchy, and its build is wired through [CMakeLists.txt](../CMakeLists.txt) and the related benchmark/KAT scripts.
+
+#### [src/poly_mul/scalar/fafft_zbc/fafft_rvv.c](../src/poly_mul/scalar/fafft_zbc/fafft_rvv.c)
+- **Usage:** RVV-vectorized helper kernels for FAFFT data-parallel operations. The file implements bulk XOR combine with `vxor.vv` using LMUL=4, table-driven GF(2^8) multiply lanes through `vluxei8.v`, and butterfly-order reordering via `vrgatherei16.v`. Its exported helper routines, including `hqc_vxor_words()`, are the vectorized support layer that absorbs the regular memory movement and XOR work around the transform core. That makes the file the vector throughput companion to the scalar FAFFT driver.
+- **Why:** The FAFFT accumulation and data-shuffle phases are the cleanest RVV candidates in the project because they are wide, regular, and branch-free. Vector XOR at LMUL=4 can move 256 bytes per instruction, so the helper kernels turn a memory-heavy stage into something much closer to a pure bandwidth problem. This is why the file exists separately from `fafft.c`: it isolates the RVV work from the scalar transform logic and keeps the benchmark interpretation clean.
+- **Where:** Compiled alongside [src/poly_mul/scalar/fafft_zbc/fafft.c](../src/poly_mul/scalar/fafft_zbc/fafft.c) for the `fafft_zbc` variant. It is called by the transform orchestration code when RVV is available, and its build path is wired through [CMakeLists.txt](../CMakeLists.txt) and the FAFFT benchmark/KAT scripts.
+
+#### [src/poly_mul/scalar/fafft_zbc/fafft_v5.c](../src/poly_mul/scalar/fafft_zbc/fafft_v5.c)
+- **Usage:** Active optimized FAFFT v5 implementation with CRT-bypass strategy and revised arithmetic kernels. Replaces the original tower-field approach with direct bitsliced Zbc multiplications for small-degree tower extensions, achieving measurably better instruction count on typical RISC-V cores.
+- **Why:** Experimental iteration v5 was promoted to stable after validation showed consistent 2–5% improvement over v3/v4 variants. Preserving this branch in the codebase allows regression testing and comparative analysis.
+- **Where:** Included and called by [fafft.c](fafft.c) when `POLYMUL=fafft_zbc` is selected. The v5 implementation is the current default active path.
+
+#### [src/poly_mul/scalar/fafft_zbc/fafft_v5.h](../src/poly_mul/scalar/fafft_zbc/fafft_v5.h)
+- **Usage:** Header exposing the v5 FAFFT API: `vect_mul_v5()` entry point, internal butterfly and reduction helpers, and compile-time configuration macros for v5-specific tuning parameters.
+- **Why:** Keeps the v5 namespace and configuration explicit, making it easier to maintain alongside other FAFFT variants and to enable/disable specific v5 optimizations.
+- **Where:** Included by [fafft.c](fafft.c) when v5 is selected, and by v5-specific unit tests.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/bc_rvv.h](../src/poly_mul/scalar/fafft_zbc/ref/bc_rvv.h)
+- **Usage:** Declarations for RVV bit-conversion helper routines used in Cantor basis encoding/decoding phases. Separates vector-specific conversion contracts from scalar helper definitions.
+- **Why:** Isolates ISA-specific conversions so scalar and vector code paths have clear, testable boundaries.
+- **Where:** Included by [bitconversion.c](bitconversion.c) and RVV-assisted FAFFT code.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c](../src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c)
+- **Usage:** Bit-domain conversion routines (Cantor basis ↔ standard polynomial representation) used before and after transform stages. Implements the field isomorphism needed for FAFFT's mathematical correctness.
+- **Why:** FAFFT operates in Cantor basis representation for computational efficiency; converting between domains is required for correctness and for matching the HQC polynomial interface.
+- **Where:** Linked by all FAFFT reference support paths as part of the transform pipeline.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/bitconversion.h](../src/poly_mul/scalar/fafft_zbc/ref/bitconversion.h)
+- **Usage:** Interface header for bit-conversion function declarations.
+- **Why:** Provides a stable API for conversion operations shared across transform modules.
+- **Where:** Included by FAFFT reference implementation files.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/btfy_consts_gft.c](../src/poly_mul/scalar/fafft_zbc/ref/btfy_consts_gft.c)
+- **Usage:** Pre-computed butterfly constant tables for GFT/FAFFT stages per security level. Contains the primitive roots, twiddle factors, and field-specific reduction constants needed by the butterfly operations.
+- **Why:** Centralizing the large constant arrays prevents duplication and ensures all butterfly stages use the same constants for correctness.
+- **Where:** Linked by butterfly and multiplication kernels that require the twiddle tables.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/btfy_consts_gft.h](../src/poly_mul/scalar/fafft_zbc/ref/btfy_consts_gft.h)
+- **Usage:** Declarations exposing the butterfly constant tables to transform modules.
+- **Why:** Maintains a clear contract for accessing the twiddle factors and constants.
+- **Where:** Included by transform and multiply modules.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/btfy_ffft.c](../src/poly_mul/scalar/fafft_zbc/ref/btfy_ffft.c)
+- **Usage:** Core butterfly operation implementations for FFFT stages. Contains the low-level GF(2^m) arithmetic loops that perform the pairwise multiplications and additions during forward/inverse transform passes.
+- **Why:** Encapsulates the transform-core mechanics in dedicated kernels, making optimization and testing of individual butterfly operations independent of orchestration logic.
+- **Where:** Used by FAFFT orchestration and higher-level transform layers.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/btfy_ffft.h](../src/poly_mul/scalar/fafft_zbc/ref/btfy_ffft.h)
+- **Usage:** Public interface for butterfly kernels: `btfy_forward()`, `btfy_inverse()`, and related operations.
+- **Why:** Enables modular composition between orchestration logic and low-level transform code.
+- **Where:** Included by FAFFT drivers and transform orchestration files.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/btfy_rvv.h](../src/poly_mul/scalar/fafft_zbc/ref/btfy_rvv.h)
+- **Usage:** RVV-specific butterfly helper declarations separating vector-accelerated butterfly paths from scalar implementations.
+- **Why:** Keeps vector-specific concerns isolated and makes it easy to conditionally compile vector vs. scalar paths.
+- **Where:** Included by RVV helper implementations and reference FAFFT files that optionally use vector operations.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/CRT_fft.h](../src/poly_mul/scalar/fafft_zbc/ref/CRT_fft.h)
+- **Usage:** API declarations for CRT decomposition and FFT implementations: `crt_split()`, `crt_combine()`, `crt_fft_forward()`, `crt_fft_inverse()`. Establishes a consistent boundary for problem decomposition across HQC levels.
+- **Why:** The CRT trick requires a consistent interface to split/combine polynomials and to execute FFTs on the decomposed pieces.
+- **Where:** Included by level-specific CRT/FFT source files and the main FAFFT orchestrator.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/CRT_fft_hqc1.c](../src/poly_mul/scalar/fafft_zbc/ref/CRT_fft_hqc1.c)
+- **Usage:** HQC-128–specific CRT/FFT implementation with hardcoded parameter-dependent ring decomposition and transform sizes (n=17669 decomposes into rings of sizes 2^14 and 2^6 via CRT).
+- **Why:** Parameter-specific implementation optimizes for the exact polynomial sizes of HQC-128, avoiding generic-code overhead.
+- **Where:** Compiled in level-128 build paths via conditional include based on `SECURITY_LEVEL`.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/CRT_fft_hqc3.c](../src/poly_mul/scalar/fafft_zbc/ref/CRT_fft_hqc3.c)
+- **Usage:** HQC-192/256–specific CRT/FFT implementation with decomposition for larger polynomial sizes (192/256).
+- **Why:** Higher security levels have different n values and require separate decomposition logic optimized for their ring structures.
+- **Where:** Compiled for HQC-192 and HQC-256 target builds.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/encode.c](../src/poly_mul/scalar/fafft_zbc/ref/encode.c)
+- **Usage:** Encoding/decoding helpers for pre-transform and post-transform data representation changes (e.g., bit-slicing for field multiplications). Preserves valid polynomial representation invariants across transform boundary crossings.
+- **Why:** FAFFT internally uses representations (bit domains, tower fields) that differ from the standard polynomial format. Encoding/decoding maintains correctness without leaking representation details outside the transform.
+- **Where:** Called from FAFFT pipeline flows before and after transform stages.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/encode.h](../src/poly_mul/scalar/fafft_zbc/ref/encode.h)
+- **Usage:** Declarations for encode/decode support routines maintaining clear contracts for domain conversions.
+- **Why:** Establishes a boundary for representation-specific code, making it easier to understand and test.
+- **Where:** Included by FAFFT implementation and transform module files.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c](../src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c)
+- **Usage:** FFT-domain finite-field multiplication support routines: pointwise GF(2^m) multiply, field-specific reduction, and interleaved operations for performance tuning.
+- **Why:** Encapsulates the arithmetic kernels used during butterfly-heavy phases, enabling optimization and testing in isolation from orchestration.
+- **Where:** Linked by reference FAFFT execution paths.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.h](../src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.h)
+- **Usage:** Interface for FFT-domain multiplication helpers used by transform drivers.
+- **Why:** Decouples high-level orchestration from low-level arithmetic implementation.
+- **Where:** Included by FAFFT transform drivers.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/gft_mul_vi.c](../src/poly_mul/scalar/fafft_zbc/ref/gft_mul_vi.c)
+- **Usage:** GF tower multiplication primitives (GF(2^8) multiply via Zbc or table lookup) reused across butterfly implementations. Provides a single, optimized implementation for the innermost arithmetic loop.
+- **Why:** The GF(2^m) multiply is the hottest instruction in FAFFT butterflies. Centralizing and optimizing this primitive pays off significantly.
+- **Where:** Linked into reference FAFFT support code and called by butterfly operations.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/gft_mul_vi.h](../src/poly_mul/scalar/fafft_zbc/ref/gft_mul_vi.h)
+- **Usage:** Header for GF tower arithmetic helpers.
+- **Why:** Provides the stable interface for field-operation call sites.
+- **Where:** Included by related FAFFT modules.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/gfv_tower.h](../src/poly_mul/scalar/fafft_zbc/ref/gfv_tower.h)
+- **Usage:** GF tower type and constant declarations: tower structure definitions, element representations, and irreducible polynomial coefficients per tower level.
+- **Why:** Centralizes representation assumptions (bit widths, field orders, reduction polynomials) used by multiple kernels, preventing inconsistent constant definitions.
+- **Where:** Included throughout FAFFT reference helper files.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/radix16_193.c](../src/poly_mul/scalar/fafft_zbc/ref/radix16_193.c)
+- **Usage:** Radix-16 butterfly implementation specialization for a specific transform regime (193-point). Hardcoded constants and loop unrolling optimized for this specific size.
+- **Why:** Parameter-specific specialization reduces constant overhead and loop trip-count overhead for the exact transform sizes encountered in HQC.
+- **Where:** Compiled as part of reference FAFFT support when radix-16 passes are needed.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/radix16_81.c](../src/poly_mul/scalar/fafft_zbc/ref/radix16_81.c)
+- **Usage:** Radix-16 specialization for 81-point regimes, tuned with constants and unrolling for this smaller size.
+- **Why:** Keeps kernel cost proportional to the problem size, avoiding overhead-heavy generic paths on small regimes.
+- **Where:** Built with other radix/FAFFT helper sources.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/radix16_base.c](../src/poly_mul/scalar/fafft_zbc/ref/radix16_base.c)
+- **Usage:** Shared radix-16 core routines (branch-free butterfly steps, twiddle factor application) reused by specialized variants to avoid duplication.
+- **Why:** Base routines eliminate duplicated logic between specialization files while allowing per-size optimization.
+- **Where:** Linked across radix16 implementations.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/radix16.h](../src/poly_mul/scalar/fafft_zbc/ref/radix16.h)
+- **Usage:** Public interface for radix-16 kernels enabling modular composition with orchestration layers.
+- **Why:** Defines the callable contract for transform stages to use radix-16 operations uniformly.
+- **Where:** Included by radix/FAFFT driver files.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/reduce.c](../src/poly_mul/scalar/fafft_zbc/ref/reduce.c)
+- **Usage:** Reduction routines applied after multiplication and transform composition to restore canonical polynomial form (clearing high-order bits beyond PARAM_N).
+- **Why:** FAFFT internal operations may produce large temporary polynomials. Final reduction maps results back to the HQC polynomial ring GF(2)[x]/(x^n + 1).
+- **Where:** Called in FAFFT result normalization steps before returning to the caller.
+
+#### [src/poly_mul/scalar/fafft_zbc/ref/reduce.h](../src/poly_mul/scalar/fafft_zbc/ref/reduce.h)
+- **Usage:** Declarations for reduction helper APIs.
+- **Why:** Maintains a clear contract for post-processing operations.
+- **Where:** Included by FAFFT implementations and helper files.
+
+### Source Files: Scalar Polymul (hybrid_zbc)
+
+#### [src/poly_mul/scalar/hybrid_zbc/hybrid.c](../src/poly_mul/scalar/hybrid_zbc/hybrid.c)
+- **Usage:** Main hybrid Karatsuba-FAFFT multiplier combining outer Karatsuba recursion (1–3 levels) to reduce problem size, then switching to FAFFT for sub-multiplications. Implements crossover-depth empirical tuning: applies N Karatsuba splits to the input polynomials, recursively calls itself up to depth N, then delegates each leaf to the FAFFT implementation. Exported: `vect_mul()` with `HYBRID_DEPTH` hardcoded per security level based on benchmarking.
+- **Why:** Pure FAFFT wastes ~30% work on padding; pure Karatsuba is suboptimal at large sizes. The hybrid exploits Karatsuba's tight fit to problem size with FAFFT's algorithmic efficiency, often achieving 15–25% speedup over both pure strategies at HQC sizes.
+- **Where:** Selected by CMake when `POLYMUL=hybrid_zbc`. Compiled into `hqc{128,192,256}_hybrid_zbc_*.elf` targets.
+
+#### [src/poly_mul/scalar/hybrid_zbc/hybrid_v2.c](../src/poly_mul/scalar/hybrid_zbc/hybrid_v2.c)
+- **Usage:** Intermediate v2 hybrid variant preserving an alternative crossover threshold strategy and depth selection heuristic. Enables comparative evaluation against v1 and v3 hybrid approaches.
+- **Why:** Maintains a historical branch point for regression analysis and comparative studies of hybrid strategy variants.
+- **Where:** Built and run only in dedicated comparative experiments or v2-specific benchmark runs.
+
+#### [src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c](../src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c)
+- **Usage:** Hybrid v3 implementation with revised threshold and depth-heuristic logic, evaluated for improvements in the crossover point selection. The v3 heuristics were measured and found to provide consistent 2–3% improvement over v1 in the target size range.
+- **Why:** Experimental iteration v3 was promoted to stable as the default hybrid backend after validation showed measurable gains. Preserving v3 allows comparison and regression testing.
+- **Where:** Compiled when `POLYMUL=hybrid_zbc` if v3 is the selected default, or in v3-focused experiment runs.
+
+#### [src/poly_mul/scalar/hybrid_zbc/hybrid_v3.h](../src/poly_mul/scalar/hybrid_zbc/hybrid_v3.h)
+- **Usage:** Header exposing v3-specific interfaces, depth tuning macros (e.g., `HYBRID_V3_DEPTH_128`), and internal helper declarations.
+- **Why:** Keeps v3 API and configuration explicit and testable.
+- **Where:** Included by v3 implementation and v3-specific unit tests or experiments.
+
+#### [src/poly_mul/scalar/hybrid_zbc/vect_mul_keycache.h](../src/poly_mul/scalar/hybrid_zbc/vect_mul_keycache.h)
+- **Usage:** Declarations for key-cache-assisted vector multiplication support: macros and inline functions for caching partial polynomial products to reduce re-computation in KEM lifecycle operations (repeated `vect_mul()` calls with the same operands).
+- **Why:** In a full KEM, `vect_mul()` is called multiple times with overlapping operands. Key caching exploits this reuse to avoid redundant butterfly computations.
+- **Where:** Included by hybrid implementations that enable key-caching optimization paths.
+
+### Source Files: Vector Polymul
+#### [src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c](../src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c)
+- **Usage:** FAFFT implementation using vector carry-less multiply instructions (`vclmul.vv`/`vclmulh.vv` from the Zvbc extension). Processes VLEN/64 butterfly multiplications per instruction (typically 4 per instruction at VLEN=256), achieving 2–4× instruction reduction versus scalar Zbc butterflies. Gated by `HQC_POLYMUL_ZVBC` CMake option and requires `--isa=rv64gcv_zvbc` at Spike runtime.
+- **Why:** Zvbc is the ratified vector carry-less multiply extension for RISC-V. This variant quantifies the potential speedup from dedicated Zvbc hardware, which is a key motivation for the thesis' vector acceleration claims. Can only be run on Spike or future RISC-V hardware with Zvbc support.
+- **Where:** Selected by CMake when `POLYMUL=fafft_zvbc` and built for vector experiments. Runs only on Spike (via the `kat-spike-zvbc` CI job) or RTL simulators with Zvbc support.
+
+#### [src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul.c](../src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul.c)
+- **Usage:** Vectorized Karatsuba polynomial multiplier using Zvbc carry-less multiply operations. Implements the three-way Karatsuba recursion with `vclmul.vv`/`vclmulh.vv` leaf operations, processing multiple sub-multiplications in parallel with RVV. Provides a non-FAFFT vector baseline for algorithm vs. ISA effect separation.
+- **Why:** Enables direct comparison between vector-Karatsuba and vector-FAFFT approaches, isolating the contribution of the FFT algorithm from the Zvbc ISA feature.
+- **Where:** Compiled in `karatsuba_zvbc` targets. Available for vector-comparison benchmarks on Spike/Zvbc-capable hardware.
+
+#### [src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul-old.c](../src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul-old.c)
+- **Usage:** Archived older vector-Karatsuba implementation retained for historical diffing and regression analysis. Not compiled into default builds.
+- **Why:** Preserves implementation history and allows design-evolution tracking by comparing older vs. current vector strategies.
+- **Where:** Reference-only unless explicitly selected for comparison studies via manual compilation or experiment selection.
+
+### Source Files: Keccak and Decode RVV
+#### [src/keccak/rvv/fips202_rvv.c](../src/keccak/rvv/fips202_rvv.c)
+- **Usage:** RVV-vectorized Keccak/SHAKE-256 implementation based on multi-instance interleaving (Zhang et al., ePrint 2023). Processes 4 independent Keccak instances simultaneously using RVV wide operations, amortizing θ/ρ/π/χ/ι step overhead. Exports `shake256()` (standard FIPS 202 signature) and `shake256_4way()` for KEM use. Enabled via `HQC_KECCAK_IMPL=rvv` CMake option.
+- **Why:** The KEM's `seed_expand()` function calls SHAKE-256 O(n) times. RVV interleaving processes 4 instances per instruction cycle, reducing the per-call amortized latency. This is the post-polymul bottleneck targeting phase.
+- **Where:** Compiled into KEM targets when `HQC_KECCAK_IMPL=rvv`. Replaces `vendor/hqc-ref/lib/fips202/fips202.c` at link time via CMake target configuration.
+
+#### [src/decode/rvv/reed_muller_rvv.c](../src/decode/rvv/reed_muller_rvv.c)
+- **Usage:** RVV Reed-Muller decoder implementing the 128-point Fast Hadamard Transform (FHT) using vectorized butterfly stages (`vadd.vv`/`vsub.vv` with LMUL=4, processing 32 butterfly pairs per iteration). Replaces `vendor/hqc-ref/src/ref/reed_muller.c` when `HQC_DECODE_IMPL=rvv`.
+- **Why:** The RM decoder's FHT is a perfectly regular 7-stage butterfly structure with high data parallelism. RVV's wide vector adds/subtracts can exploit this to achieve 3–6× speedup over scalar baseline on typical RVV implementations.
+- **Where:** Compiled into decode targets when `HQC_DECODE_IMPL=rvv`. Called from vendor KEM code via `reed_muller_decode()` symbol substitution.
+
+#### [src/decode/rvv/reed_solomon_rvv.c](../src/decode/rvv/reed_solomon_rvv.c)
+- **Usage:** RVV-accelerated Reed-Solomon decoder targeting syndrome computation and Chien search parallelization. Uses `vluxei8.v` for 32 simultaneous GF(2^8) multiplications (via table lookup), and vectorizes the 256 independent polynomial evaluations in Chien search. Berlekamp-Massey step remains scalar due to sequential data dependencies.
+- **Why:** RS syndrome computation and Chien search are the most expensive parts of RS decoding and have high data parallelism. Zvbc is not needed; RVV table-driven GF(2^8) multiplies via `vluxei8.v` suffice for significant speedup.
+- **Where:** Compiled into decode targets when `HQC_DECODE_IMPL=rvv`. Replaces reference RS decoder via link-time symbol substitution.
+
+### Simulation Files
+#### [sim/common/link.ld](../sim/common/link.ld)
+- **Usage:** GNU ld linker script defining bare-metal memory layout: DRAM base at 0x80000000 (128 MB), section placement order (`.text.startup` → CRT0, `.text`, `.rodata`, `.tohost` at 64-byte alignment for Spike HTIF, `.data`, `.bss`, `.stack` at top), and entry point definition.
+- **Why:** Without an OS loader, the linker must explicitly place all sections at correct physical addresses. The `.tohost` alignment is critical for Spike HTIF communication protocol compliance.
+- **Where:** Referenced via linker flags in CMakeLists.txt and all bare-metal ELF target builds.
+
+#### [sim/common/mem.c](../sim/common/mem.c)
+- **Usage:** Freestanding memory primitive implementations: `memcpy`, `memmove`, `memset`, `memcmp`, `strlen`. Compiled with full ISA flags so the auto-vectorizer can substitute RVV sequences at -O3 if beneficial.
+- **Why:** `-nostdlib` builds exclude libc. Vendor HQC code and test harnesses depend on standard memory functions. A freestanding implementation avoids external dependencies.
+- **Where:** Compiled into every target via `LOCAL_COMMON_SOURCES`. Linked by all executables.
+
+#### [sim/common/printf_stub.c](../sim/common/printf_stub.c)
+- **Usage:** Lightweight printf-compatible stub functions (`printf`, `vprintf`, `sprintf`) that output to the simulator HTIF or UART, avoiding heavy stdio layers.
+- **Why:** Full `printf` from libc pulls in the entire stdio stack and increases binary size. The stub provides minimal formatting for benchmark output without the overhead.
+- **Where:** Linked into simulator-oriented benchmark and test targets when stdio output is needed.
+
+#### [sim/common/startup.S](../sim/common/startup.S)
+- **Usage:** CRT0 bare-metal startup sequence in RISC-V assembly: (1) set stack pointer to `_stack_top`, (2) set `mstatus.VS = Dirty` (0b11 in bits [10:9]) to enable the V extension and skip VSTATE traps, (3) execute `vsetvli` to initialize the vector type (e64, m1, tail-agnostic), (4) zero the BSS segment via `memset`, (5) call `main(0, NULL)`, (6) exit via HTIF `tohost = 1`. First object linked into every executable.
+- **Why:** Bare-metal programs need explicit initialization before C code runs. Setting `mstatus.VS` is critical; without it, any vector instruction traps with an illegal instruction exception. The `vsetvli` initializes vector context.
+- **Where:** Linked first into all executables via `${STARTUP_S}` in CMakeLists.txt.
+
+#### [sim/qemu/run_kat.sh](../sim/qemu/run_kat.sh)
+- **Usage:** Shell script orchestrating a single KAT run: invokes `qemu-system-riscv64` with the `virt` machine, passes the KAT ELF, captures serial output, and returns the exit code. Used by CTest and batch KAT scripts.
+- **Why:** QEMU provides fast (~10–60 seconds per full KAT) functional correctness checking for all scalar polymul variants. The script standardizes the invocation and output handling.
+- **Where:** Called by CTest test registration in CMakeLists.txt, by [scripts/bench/run_kat_all.sh](../scripts/bench/run_kat_all.sh), and by KAT workflows.
+
+#### [sim/rtl-marian/README.md](../sim/rtl-marian/README.md)
+- **Usage:** Integration guide for running HQC binaries on the PULP Ara / Marian open-source RISC-V vector processor RTL. Documents Verilator and QuestaSim simulation setup, binary loading procedures, and cycle-accurate result collection.
+- **Why:** RTL simulation is the third tier of the evaluation framework (after Spike ISS and QEMU DBT), providing cycle-accurate results including pipeline effects invisible to in-order ISS models. RTL serves as the upper-bound validation for Zvbc speedup claims.
+- **Where:** Read by developers setting up RTL co-simulation. References helper scripts like [sim/rtl-marian/load_binary.py](load_binary.py).
+
+#### [sim/spike/parse_commits.py](../sim/spike/parse_commits.py)
+- **Usage:** Python script parsing Spike `--log-commits` trace output into aggregated instruction statistics. Extracts opcode frequencies, identifies hot loops, and generates instruction-mix CSV files keyed by opcode category.
+- **Why:** Raw Spike commit logs are megabytes of per-instruction lines; this script aggregates them into actionable opcode counts for thesis instruction-mix analysis and bottleneck identification.
+- **Where:** Called after `sim/spike/run.sh` produces a trace. Output feeds into [analysis/benchmarks/instruction_mix.csv](../analysis/benchmarks/instruction_mix.csv) and report generation.
+
+#### [sim/spike/run_bench.sh](../sim/spike/run_bench.sh)
+- **Usage:** Runs an ELF on Spike without logging overhead. Records wall-clock time and captures CSV cycle-count output emitted by the benchmark harness. Outputs structured result lines for aggregation.
+- **Why:** Spike without logging is the primary timing environment. `rdcycle` on Spike counts retired instructions (in-order CPI=1), providing reproducible, hardware-agnostic performance metrics.
+- **Where:** Called by [scripts/bench/run_spike_bench_variant.sh](../scripts/bench/run_spike_bench_variant.sh) and manual benchmark campaigns.
+
+#### [sim/spike/run.sh](../sim/spike/run.sh)
+- **Usage:** Generic Spike runner supporting both correctness and profiling modes. Executes an ELF with full instruction logging (`--log-commits`) for trace-based analysis or without logging for fast runs.
+- **Why:** Unifies ad-hoc and scripted run entry points, supporting both high-detail profiling and fast correctness checking from a single script interface.
+- **Where:** Called manually for debugging and by profiling/histogram workflows.
+
+#### [sim/spike/zvbc_trace.py](../sim/spike/zvbc_trace.py)
+- **Usage:** Zvbc-specific instruction profiler analyzing Spike commit traces. Counts `vclmul.vv`/`vclmulh.vv` instruction frequency and reports their fraction of total runtime for vector-variant runs.
+- **Why:** Provides direct evidence for the Zvbc speedup claim: how many vector carry-less multiply instructions actually execute and their contribution to total performance.
+- **Where:** Called after running the `fafft_zvbc` or `karatsuba_zvbc` variants on Spike with `--log-commits`.
+
+### Test Files
+#### [tests/CMakeLists.txt](../tests/CMakeLists.txt)
+- **Usage:** Test build entrypoint registering test subdirectories (`bench/`, `kat/`, `unit/`, `ct/`) and wiring test target configuration. Includes per-subdirectory CMakeLists.txt files that define the actual test executables.
+- **Why:** Keeps test build logic separated from top-level orchestration, improving maintainability and making it easy to enable/disable test categories.
+- **Where:** Included by the top-level CMakeLists.txt during the CMake configuration phase.
+
+#### [tests/bench/bench_kem.c](../tests/bench/bench_kem.c)
+- **Usage:** End-to-end KEM benchmark harness measuring full `crypto_kem_keypair`, `crypto_kem_enc`, and `crypto_kem_dec` cycles. Runs N_ITER iterations (typically N_ITER=1 or 10), captures `rdcycle` before/after each operation, and emits min/median/max CSV output for result aggregation.
+- **Why:** Full-KEM instruction counts are the primary thesis metric. Running all three operations measures realistic deployment cost, not just the `vect_mul()` microbenchmark.
+- **Where:** Compiled into all 18 BENCH targets (6 variants × 3 levels). Executed via `sim/spike/run_bench.sh` by benchmark workflows.
+
+#### [tests/bench/bench_poly_mul.c](../tests/bench/bench_poly_mul.c)
+- **Usage:** Isolated `vect_mul()` micro-benchmark measuring polynomial multiply in isolation (no keypair/encaps/decaps, no Keccak overhead). Provides a tighter optimization loop than full-KEM runs.
+- **Why:** `vect_mul()` accounts for >90% of KEM runtime. Isolating it accelerates the algorithmic tuning cycle while preserving the key hotspot signal.
+- **Where:** Compiled into all 18 POLYMUL_BENCH targets. Executed by `scripts/bench/run_spike_bench_variant.sh`.
+
+#### [tests/ct/ct_harness.c](../tests/ct/ct_harness.c)
+- **Usage:** Constant-time verification harness entrypoint for side-channel analyses. Sets up test scenarios and invokes side-channel tools (ctgrind, dudect).
+- **Why:** Constant-time behavior is a security-critical property. Automated CT regression checks prevent silent CT leakage during SIMD optimization.
+- **Where:** Used by [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh) and `.github/workflows/ct-verify.yml`.
+
+#### [tests/kat/generated/.gitkeep](../tests/kat/generated/.gitkeep)
+- **Usage:** Placeholder keeping the generated KAT seed directory versioned when generated headers are not yet committed.
+- **Why:** Ensures deterministic repo layout for scripts and CI assumptions.
+- **Where:** Lives in the generated/ directory as a directory anchor.
+
+#### [tests/kat/generated/kat_seeds_128.h](../tests/kat/generated/kat_seeds_128.h)
+- **Usage:** Auto-generated C header containing embedded KAT seeds and expected shared secrets for HQC-128 (100 vector pairs). Arrays: `kat_seeds[100][48]` and `kat_ss[100][32]`.
+- **Why:** Bare-metal code cannot access the filesystem to read `.rsp` files at runtime. Embedding seeds as compile-time C arrays enables deterministic KAT runs without external I/O.
+- **Where:** Included by [tests/kat/kat_gen.c](../tests/kat/kat_gen.c) when `SECURITY_LEVEL=1` (HQC-128).
+
+#### [tests/kat/generated/kat_seeds_192.h](../tests/kat/generated/kat_seeds_192.h)
+- **Usage:** Embedded KAT data for HQC-192 (100 vectors).
+- **Why:** Maintains reproducible vector checks at security level 192.
+- **Where:** Included by KAT harness when `SECURITY_LEVEL=3`.
+
+#### [tests/kat/generated/kat_seeds_256.h](../tests/kat/generated/kat_seeds_256.h)
+- **Usage:** Embedded KAT data for HQC-256 (100 vectors).
+- **Why:** Provides compile-time vector material for level-256 correctness checks.
+- **Where:** Included by KAT harness when `SECURITY_LEVEL=5`.
+
+#### [tests/kat/gen_kat_seeds.py](../tests/kat/gen_kat_seeds.py)
+- **Usage:** One-time generation script reading NIST `.rsp` files from `vendor/hqc-ref/KAT/` and generating the C header files `kat_seeds_<LEVEL>.h` containing the vectors and expected outputs.
+- **Why:** Automates the transcription of NIST vectors into C headers, reducing manual errors and keeping generated data reproducible.
+- **Where:** Run once during setup: `python3 tests/kat/gen_kat_seeds.py`. Output committed to the repository.
+
+#### [tests/kat/kat_check.py](../tests/kat/kat_check.py)
+- **Usage:** Post-run verification script comparing KAT output to expected NIST vectors. Parses hex shared-secret lines from bare-metal output and compares against `vendor/hqc-ref/KAT/hqc-{1,3,5}/PQCkemKAT_*.rsp`.
+- **Why:** Provides a scriptable pass/fail verdict for the full 100-vector KAT suite, enabling automated CI gating.
+- **Where:** Called by [tests/kat/run_kat.sh](../tests/kat/run_kat.sh) after QEMU/Spike execution.
+
+#### [tests/kat/kat_gen.c](../tests/kat/kat_gen.c#L1)
+- **Usage:** Bare-metal KAT runner. Loops over 100 pre-seeded vectors from `tests/kat/generated/kat_seeds_<LEVEL>.h`, initializes the AES-CTR DRBG for each, calls `crypto_kem_keypair`/`crypto_kem_enc`/`crypto_kem_dec`, verifies `ss_enc == ss_dec`, and emits shared secrets as hex for external diffing against NIST vectors. Compiled with `HQC_KAT_MODE=1`.
+- **Why:** NIST KAT compliance is a hard requirement for any PQC candidate. This is the correctness gate that gates phase completion.
+- **Where:** Compiled into all 18 KAT targets (6 variants × 3 levels). Output processed by [tests/kat/run_kat.sh](../tests/kat/run_kat.sh) and [tests/kat/kat_check.py](../tests/kat/kat_check.py).
+
+#### [tests/kat/run_kat.sh](../tests/kat/run_kat.sh)
+- **Usage:** Orchestrates a single KAT: runs the ELF under QEMU or Spike, captures output, pipes it through `kat_check.py` for verification, and returns pass/fail to the caller.
+- **Why:** Provides the CTest command registered in CMakeLists.txt and the CI execution primitive for automated correctness gating.
+- **Where:** Called by CTest, `.github/workflows/kat.yml`, and [scripts/bench/run_kat_all.sh](../scripts/bench/run_kat_all.sh).
+
+#### [tests/unit/CMakeLists.txt](../tests/unit/CMakeLists.txt)
+- **Usage:** Unit test build configuration registering individual test targets for GF(2^m) arithmetic, polynomial operations, and decoder correctness checks.
+- **Why:** Isolates unit-test logic from integration/KAT builds, enabling faster feedback on algorithm components without full KEM runs.
+- **Where:** Included by [tests/CMakeLists.txt](../tests/CMakeLists.txt).
+
+#### [tests/unit/test_poly_helpers.c](../tests/unit/test_poly_helpers.c)
+- **Usage:** Unit tests for [src/poly_mul/common/poly_helpers.c](../src/poly_mul/common/poly_helpers.c) helper functions. Tests polynomial copy, XOR, clear, and format conversion correctness.
+- **Why:** Catches helper regressions before they propagate to full benchmark/KAT flows.
+- **Where:** Executed via CTest unit test pipeline.
+
+### Script Files
+#### [scripts/implemented_variants.txt](../scripts/implemented_variants.txt)
+- **Usage:** Canonical list of implemented/runnable polymul variants (e.g., `karatsuba_zbc`, `fafft_zbc`, `hybrid_zbc`, `fafft_zvbc`, etc.). Used by scripts to iterate over variant sets for batch KAT and benchmark runs.
+- **Why:** Prevents drift between CMake variant matrix, benchmarking scripts, and reporting logic. Single source of truth for which variants are enabled.
+- **Where:** Parsed by [scripts/bench/run_kat_all.sh](../scripts/bench/run_kat_all.sh), benchmark wrappers, and report aggregation scripts.
+
+#### [scripts/repo_structure.sh](../scripts/repo_structure.sh)
+- **Usage:** Regenerates repository structure snapshot for documentation sync. Produces [repo_tree.txt](../repo_tree.txt) from the live working tree.
+- **Why:** Maintains consistency between real tree and architecture documentation.
+- **Where:** Produces [repo_tree.txt](../repo_tree.txt). Used in documentation audit workflows.
+
+#### [scripts/bench/compare_compilers.sh](../scripts/bench/compare_compilers.sh)
+- **Usage:** Runs benchmark batches under different compilers (Clang vs. GCC) and aggregates outputs for compiler-effect analysis. Builds and runs variants with each toolchain in separate build directories.
+- **Why:** Separates algorithmic innovation from compiler codegen effects. Enables comparison of optimization quality between Clang and GCC.
+- **Where:** Writes comparison artifacts under [analysis/benchmarks/](../analysis/benchmarks/) for cross-compiler analysis.
+
+#### [scripts/bench/lib_runner.sh](../scripts/bench/lib_runner.sh)
+- **Usage:** Shared shell utility library containing common functions for bench orchestration: environment setup, logging, PID management, error handling.
+- **Why:** Removes duplicated scripting logic across multiple bench scripts and standardizes error handling.
+- **Where:** Sourced by scripts in [scripts/bench/](../scripts/bench/) via `. lib_runner.sh`.
+
+#### [scripts/bench/map_pcs.py](../scripts/bench/map_pcs.py)
+- **Usage:** Maps sampled program counters / traces to symbol-level context (function names, line numbers). Converts low-level profiling outputs into human-readable source-level attribution.
+- **Why:** Makes profiling data actionable for optimization by pinpointing hot functions/lines instead of raw addresses.
+- **Where:** Used in profiling/reporting workflows to enhance trace analysis output.
+
+#### [scripts/bench/profile_cache_spike.sh](../scripts/bench/profile_cache_spike.sh)
+- **Usage:** Collects memory-system profiling via Spike extensions or external simulation tools. Instruments benchmarks with cache access counters and miss rates.
+- **Why:** Adds memory-system perspective to pure instruction counts, helping identify cache-related bottlenecks.
+- **Where:** Outputs artifacts into [analysis/benchmarks/](../analysis/benchmarks/) profiling folders.
+
+#### [scripts/bench/profile_memory.sh](../scripts/bench/profile_memory.sh)
+- **Usage:** Memory behavior profiling wrapper orchestrating simulation runs with memory-instrumentation flags. Collects heap allocation patterns, stack depth, and memory footprint data.
+- **Why:** Helps attribute stalls/overhead not visible in aggregate instruction metrics.
+- **Where:** Used in profiling experiment campaigns.
+
+#### [scripts/bench/profile_spike_trace.sh](../scripts/bench/profile_spike_trace.sh)
+- **Usage:** Executes Spike with `--log-commits` for full instruction trace collection. Manages trace output, compression, and storage. Called by higher-level profiling workflows.
+- **Why:** Required for instruction-mix and hot-loop analyses. Spike traces are the ground truth for instruction-centric evaluation.
+- **Where:** Consumed by downstream report parsers like [scripts/report/generate_instruction_mix.py](../scripts/report/generate_instruction_mix.py).
+
+#### [scripts/bench/run_histogram_all.sh](../scripts/bench/run_histogram_all.sh)
+- **Usage:** Batch histogram generation script running all targets on Spike with `--log-commits`, then calling `sim/spike/parse_commits.py` to aggregate opcode frequencies per variant and security level.
+- **Why:** Produces consistent instruction-distribution datasets for thesis methodology section on instruction mix analysis.
+- **Where:** Feeds [analysis/benchmarks/instruction_mix.csv](../analysis/benchmarks/instruction_mix.csv) workflows.
+
+#### [scripts/bench/run_hybrid_depth_sweep.sh](../scripts/bench/run_hybrid_depth_sweep.sh)
+- **Usage:** Parameter sweep driver running benchmarks for hybrid recursion depth values d ∈ {0,1,2,3,4}. Collects cycle counts for each depth across all security levels, identifying the empirical crossover point.
+- **Why:** Hybrid optimization requires finding the optimal Karatsuba depth d* where switching to FAFFT balances overhead vs. algorithmic advantage. Empirical sweep answers this question.
+- **Where:** Generates depth-sweep benchmark artifacts used in hybrid optimization and reporting.
+
+#### [scripts/bench/run_kat_all.sh](../scripts/bench/run_kat_all.sh)
+- **Usage:** Runs full KAT matrix over all implemented variants and security levels. Collects pass/fail results for each of the 18 KAT targets (6 variants × 3 levels).
+- **Why:** Fast regression gate after algorithm/toolchain changes, used both locally and in CI-like pre-merge checks.
+- **Where:** Called manually before phase completion and used by CI workflows.
+
+#### [scripts/bench/run_spike_bench_variant.sh](../scripts/bench/run_spike_bench_variant.sh)
+- **Usage:** Benchmark wrapper for selected variant suites on Spike. Runs all three security levels for a given variant, capturing cycle counts and logs. Launches jobs in background with PID tracking for asynchronous execution.
+- **Why:** Standardizes benchmark execution layout and output naming, supporting both interactive and batch-oriented workflows.
+- **Where:** Produces CSV/log artifacts under [analysis/benchmarks/](../analysis/benchmarks/). Called by phase-level benchmark campaigns.
+
+#### [scripts/bench/run_spike_suite_sync.sh](../scripts/bench/run_spike_suite_sync.sh)
+- **Usage:** Synchronous suite runner for deterministic campaign execution. Runs benchmarks serially rather than in background, useful for debugging and when parallel execution is undesirable.
+- **Why:** Synchronous execution provides predictable scheduling and easier debugging.
+- **Where:** Used as a bench orchestration helper in specialized scenarios.
+
+#### [scripts/bench/spike_kat.sh](../scripts/bench/spike_kat.sh)
+- **Usage:** Spike-specific KAT runner passing the extended ISA string `--isa=rv64gcv_zbc_zbb_zbkb_zvbc` required for vector variants. Runs KAT targets that use Zvbc instructions.
+- **Why:** `fafft_zvbc` and `karatsuba_zvbc` use Zvbc opcodes that Spike only recognizes with the explicit ISA extension flag. Standard QEMU KAT scripts do not pass this flag.
+- **Where:** Called by `.github/workflows/kat.yml` in the `kat-spike-zvbc` CI job and by manual Zvbc validation workflows.
+
+#### [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh)
+- **Usage:** Entry script for constant-time verification checks. Runs ctgrind-based taint analysis or dudect statistical timing tests on KEM implementations and exits non-zero on CT violations.
+- **Why:** Constant-time behavior is a security-critical property. Automated CI enforcement prevents regressions during optimization.
+- **Where:** Used in CT verification workflows and called by `.github/workflows/ct-verify.yml`.
+
+#### [scripts/ci/check_isa_string.sh](../scripts/ci/check_isa_string.sh)
+- **Usage:** Reads the ELF NOTES section and verifies that the ISA attribute string includes expected extensions (e.g., `zbc`, `zvbc`, `zicntr`). Exits non-zero if mismatches are found.
+- **Why:** An ELF with the wrong ISA string can pass compilation but trap at runtime on Spike when encountering unrecognized instructions. This check catches ISA mismatches before test execution.
+- **Where:** Called by `.github/workflows/opcode-verify.yml`.
+
+#### [scripts/ci/check_opcodes.sh](../scripts/ci/check_opcodes.sh)
+- **Usage:** Disassembles `hqc128_fafft_zvbc.elf` and verifies presence of `vclmul` and `clmul` opcode mnemonics in the output. Exits non-zero if expected opcodes are absent.
+- **Why:** Ensures the compiler actually emitted target ISA extensions rather than silently falling back to scalar code. Guards against `-menable-experimental-extensions` regression.
+- **Where:** Called by `.github/workflows/opcode-verify.yml` and by the `verify_vclmul` CMake custom target.
+
+#### [scripts/ci/lint.sh](../scripts/ci/lint.sh)
+- **Usage:** Runs clang-tidy based static checks with project-specific check configuration. Excludes analysis on files with RVV-width-specific pragmas where host analysis is unsupported.
+- **Why:** Provides a repeatable quality gate while excluding unsupported host-analysis cases that would cause false positives.
+- **Where:** Executed in CI and local quality-check runs.
+
+#### [scripts/ci/validate_manifest.py](../scripts/ci/validate_manifest.py)
+- **Usage:** Validates [experiments/manifest.yaml](../experiments/manifest.yaml) against [experiments/manifest.schema.json](../experiments/manifest.schema.json). Falls back to a built-in validator when `jsonschema` package is unavailable, ensuring validation always succeeds.
+- **Why:** Prevents malformed experiment metadata from entering reporting and CI workflows. Schema validation is the first gate for experiment entry.
+- **Where:** Used in CI and release-quality validation checks. Called by CI jobs before experiment-related operations.
+
+#### [scripts/debug/.gdbinit](../scripts/debug/.gdbinit)
+- **Usage:** GDB startup script automating simulator-oriented debugging setup. Loads [scripts/debug/custom_rvv.xml](custom_rvv.xml) for V-extension register descriptions and loads Python pretty-printers. Sets up remote target connection.
+- **Why:** Reduces repetitive debugger setup and keeps RVV-aware debug context consistent across debugging sessions.
+- **Where:** Loaded by GDB from `scripts/debug/` when `auto-load` path is configured, or sourced manually.
+
+#### [scripts/debug/custom_rvv.xml](../scripts/debug/custom_rvv.xml)
+- **Usage:** GDB target description XML file for RISC-V V-extension registers (v0–v31, vl, vtype, vcsr). Describes vector CSRs and element types understood by GDB debugger integration.
+- **Why:** GDB's built-in RISC-V description lacks V-extension registers. Without this XML, `info registers` does not display vector state, making RVV code debugging impossible.
+- **Where:** Loaded by [scripts/debug/.gdbinit](../.gdbinit) via `set tdesc filename`.
+
+#### [scripts/debug/hqc_pretty.py](../scripts/debug/hqc_pretty.py)
+- **Usage:** GDB Python pretty-printer for HQC-specific types (polynomial arrays, ciphertext structs). Formats raw byte arrays as hex polynomials for readable inspection.
+- **Why:** HQC polynomials are 64-bit word arrays of up to ~900 words. Default GDB array display is unusable for debugging polynomial arithmetic.
+- **Where:** Auto-loaded by [scripts/debug/.gdbinit](../.gdbinit) using `source hqc_pretty.py`.
+
+#### [scripts/debug/rvv_regs.py](../scripts/debug/rvv_regs.py)
+- **Usage:** GDB Python helper script reading and displaying all active vector registers in human-readable format, decoded according to active `vtype` (element width and LMUL setting).
+- **Why:** Raw v0–v31 register values are uninterpretable without knowing `vtype`. This script combines `vtype` decoding with register display for actionable debug views.
+- **Where:** Sourced in GDB via [scripts/debug/.gdbinit](../.gdbinit) or manually during debugging sessions.
+
+#### [scripts/report/extract_results.py](../scripts/report/extract_results.py#L1)
+- **Usage:** Aggregates raw benchmark CSV files into normalized tables and summary artifacts. Computes speedup ratios relative to the `karatsuba_ref` baseline, generates formatted Markdown summaries and LaTeX tables for thesis inclusion.
+- **Why:** Converts run logs into thesis/report-ready result forms, enabling reproducible table generation from updated benchmark data.
+- **Where:** Called by [scripts/report/gen_report.sh](../scripts/report/gen_report.sh). Output stored in [analysis/report/](../analysis/report/).
+
+#### [scripts/report/generate_instruction_mix.py](../scripts/report/generate_instruction_mix.py)
+- **Usage:** Produces instruction-mix CSVs from parsed Spike trace data. Aggregates opcode counts per category (clmul, vxor, load, store, etc.) and computes percentages.
+- **Why:** Standardizes instruction-category metrics across campaigns for use in thesis methodology and bottleneck analysis.
+- **Where:** Used in [analysis/report/](../analysis/report/) instruction-mix pipelines.
+
+#### [scripts/report/gen_report.sh](../scripts/report/gen_report.sh)
+- **Usage:** End-to-end report orchestration script. Collects all benchmark CSV files from the current analysis corpus, calls `scripts/report/extract_results.py`, and produces markdown summaries and LaTeX tables.
+- **Why:** Creates reproducible markdown/latex outputs from the latest benchmark corpus without manual table editing.
+- **Where:** Run after benchmark campaigns: `./scripts/report/gen_report.sh`. Outputs written to [analysis/report/](../analysis/report/).
+
+#### [scripts/report/plot_complexity.py](../scripts/report/plot_complexity.py)
+- **Usage:** Generates complexity/performance visualizations from collected data. Plots instruction counts vs. security level, variant speedups, and algorithmic scaling curves.
+- **Why:** Makes scaling tradeoffs explicit for decision-making and reporting.
+- **Where:** Writes plot artifacts to [docs/figures/](../docs/figures/).
+
+#### [scripts/report/plot_dashboard.py](../scripts/report/plot_dashboard.py)
+- **Usage:** Builds aggregate dashboard plots from current result sets. Creates multi-panel summary figures showing performance across variants and security levels.
+- **Why:** Provides quick status snapshots across major metrics for presentation and thesis chapters.
+- **Where:** Produces [docs/figures/latest_dashboard.png](../docs/figures/latest_dashboard.png).
+
+#### [scripts/report/plot_vlen_sweep.py](../scripts/report/plot_vlen_sweep.py)
+- **Usage:** Plots VLEN sweep experiment outputs showing performance scaling with vector length. Visualizes how speedup changes as VLEN increases from 128 to 512+ bits.
+- **Why:** Quantifies vector-length sensitivity for RVV tracks, important for hardware projection and design trade-off analysis.
+- **Where:** Used in vector-analysis reporting tasks and adaptive hardware evaluation.
+
+### Documentation Files
+#### [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)
+- **Usage:** Repository map and file-by-file architecture reference for maintainers and reviewers. Documents optimization tracks, component responsibilities, file organization, and per-file usage/rationale/dependencies.
+- **Why:** Keeps structure, ownership, and pipeline roles explicit as the project evolves, reducing onboarding friction and preventing architectural drift.
+- **Where:** Consulted during onboarding and before large refactors. Referenced by developers and CI maintainers.
+
+#### [docs/METHODOLOGY.md](../docs/METHODOLOGY.md#L1)
+- **Usage:** Formal measurement methodology for benchmark tools, metrics interpretation, and statistical justification. Explains: why retired instruction count is the primary metric (not wall-clock), the CPI dilemma resolution via instruction mix + LLVM-MCA, tool ranking (Spike ISS for reference, QEMU for functional tests, RTL for cycle-accurate bounds). Cites relevant literature (Zhang et al., TCHES 2025).
+- **Why:** Defends reproducibility and correctness of thesis-level claims. Provides the methodological foundation for all performance conclusions.
+- **Where:** Referenced by analysis/report documents and thesis material. Required reading for result interpretation.
+
+#### [docs/PLAN.md](../docs/PLAN.md)
+- **Usage:** Milestone and phase roadmap with optimization priorities and progression criteria. Defines phase 0–3+ sequencing, target speedups per phase, and pass/fail gates. Links each phase to corresponding prompts in [docs/prompts/](./prompts/).
+- **Why:** Aligns implementation sequencing with thesis deliverables and bottleneck evolution. Guides prioritization across polymul, Keccak, and decoder tracks.
+- **Where:** Updated at planning checkpoints. Referenced by implementation prompts and phase-level work planning.
+
+#### [docs/RUNBOOK.md](../docs/RUNBOOK.md#L1)
+- **Usage:** Operational command cookbook for common workflows: exact commands for CMake configure, KAT runs, Spike benchmarks, result extraction, and report generation. Sole source of truth for command sequences.
+- **Why:** Reduces day-to-day friction and command drift. All documentation and automation scripts reference RUNBOOK as the authoritative command reference.
+- **Where:** Used continuously in local development. Automatically checked for consistency across workflows.
+
+#### [docs/phases/0_reference.md](../docs/phases/0_reference.md)
+- **Usage:** Baseline phase record documenting denominator setup, initial measurements, and foundational assumptions. Captures phase 0 (karatsuba_ref) performance on all three security levels.
+- **Why:** Preserves the fixed reference point required for speedup interpretation. All later-phase speedups are ratios against phase 0 baseline.
+- **Where:** Consulted when validating later-phase gains. Immutable historical record.
+
+#### [docs/phases/PHASE1.md](../docs/phases/PHASE1.md)
+- **Usage:** Phase 1 findings log documenting decisions, performance deltas, and failed/successful hypotheses across 1a (karatsuba_zbc), 1b (fafft_zbc), and 1c (hybrid_zbc) iterations.
+- **Why:** Provides historical reasoning behind current variant choices. Enables learning from experimentation and tracing evolution.
+- **Where:** Referenced during subsequent variant and report work.
+
+#### [docs/figures/.gitkeep](../docs/figures/.gitkeep)
+- **Usage:** Placeholder keeping figures directory tracked when regenerated plot artifacts are absent.
+- **Why:** Stabilizes directory structure assumptions for plotting and report scripts.
+- **Where:** Lives alongside generated PDF/PNG figures.
+
+#### [docs/figures/cycle_counts.pdf](../docs/figures/cycle_counts.pdf)
+- **Usage:** Figure artifact displaying cycle/instruction count comparisons across variants and security levels. Bar chart with speedup ratios relative to baseline.
+- **Why:** Provides thesis/report visual evidence of performance deltas and supports methodology claims.
+- **Where:** Generated by plot scripts and included in report documents via `\includegraphics{}`.
+
+#### [docs/figures/instruction_mix.pdf](../docs/figures/instruction_mix.pdf)
+- **Usage:** Figure artifact visualizing instruction category composition (clmul, vxor, load, store, etc.) across variants. Stacked bar chart or component breakdown plot.
+- **Why:** Supports methodology claims around instruction-centric analysis and bottleneck identification.
+- **Where:** Generated from trace-derived CSVs by [scripts/report/plot_complexity.py](../scripts/report/plot_complexity.py).
+
+#### [docs/figures/latest_dashboard.png](../docs/figures/latest_dashboard.png)
+- **Usage:** Latest aggregate dashboard image summarizing campaign results. Multi-panel overview showing key metrics across all variants and levels.
+- **Why:** Provides quick status snapshot without reading full tables. Used in progress reports and presentations.
+- **Where:** Produced by [scripts/report/plot_dashboard.py](../scripts/report/plot_dashboard.py).
+
+#### [docs/latex/.gitkeep](../docs/latex/.gitkeep)
+- **Usage:** Placeholder to keep latex integration directory under version control.
+- **Why:** Maintains stable path for thesis/report LaTeX source files and generated tables.
+- **Where:** Used by report/thesis generation workflows as the destination for `.tex` chapters and tables.
+
+### Experiment Files
+#### [experiments/manifest.schema.json](../experiments/manifest.schema.json)
+- **Usage:** JSON Schema (Draft 2020-12) defining the manifest metadata contract. Specifies required fields (id, date, hypothesis, status, path), value patterns (id must match `^EXP-`), date format (ISO 8601), valid status enum (planned, active, deprecated, promoted_to_stable, archived), and path restrictions (must reside under experiments/ or src/).
+- **Why:** Enforces strict metadata structure so experiment indexing and CI/report consumers stay reliable. Schema validation is the first gate for experiment metadata.
+- **Where:** Consumed by [scripts/ci/validate_manifest.py](../scripts/ci/validate_manifest.py). Used in CI validation and metadata quality checks.
+
+#### [experiments/manifest.yaml](../experiments/manifest.yaml)
+- **Usage:** Experiment catalog in YAML format containing id/date/hypothesis/status/path for tracked experimental branches. Records promotion history (EXP → stable), deprecations, and outcome metadata.
+- **Why:** Serves as single provenance index showing which experiment lines were explored, promoted, deprecated, or archived. Enables reproducible result tracing and prevents lost institutional knowledge.
+- **Where:** Read by CI validation and report/meta tooling. Parsed by [scripts/ci/validate_manifest.py](../scripts/ci/validate_manifest.py) and experiment-tracking automation.
+
+#### [experiments/EXP-fafft-v3-zvc/fafft_monomial.c](../experiments/EXP-fafft-v3-zvc/fafft_monomial.c)
+- **Usage:** Placeholder source file in the v3 experiment folder containing experimental monomial-basis transformation work. Preserved as archival record even if implementation was consolidated elsewhere.
+- **Why:** Maintains experiment layout and historical record even when code branches were merged or replaced, supporting design evolution tracking.
+- **Where:** Lives in EXP-fafft-v3-zvc archival directory, accessible for historical reference and comparative analysis.
+
+#### [experiments/EXP-fafft-v3-zvc/fafft_zvc_v3.c](../experiments/EXP-fafft-v3-zvc/fafft_zvc_v3.c)
+- **Usage:** Experimental v3 FAFFT implementation containing Zbc CLMUL-based GF(2^m) butterfly operations with hardcoded GF(2^32) reduction for specific regime (193-point), plus CRT decomposition helpers. Represents a concrete algorithmic candidate evaluated for correctness and performance.
+- **Why:** Captures a historical algorithm attempt preserving lessons learned and enabling comparative evaluation against v4/v5 iterations. Demonstrates design trade-offs explored during the FAFFT phase.
+- **Where:** Built and run only in experiment workflows (EXP-fafft-v3-zvc), not in the stable default CMake targets. Used for regression testing and comparative analysis.
+
+#### [experiments/EXP-fafft-v3-zvc/fafft_zvc_v3.h](../experiments/EXP-fafft-v3-zvc/fafft_zvc_v3.h)
+- **Usage:** Header defining v3 experiment API: `vect_mul_v3()` entry point, helper structs for CRT decomposition, and compile-time macros controlling v3-specific behavior.
+- **Why:** Defines a controlled API surface for v3 experimentation without polluting stable headers. Enables isolation and selective activation of v3 code.
+- **Where:** Included by sources in EXP-fafft-v3-zvc when building the experimental branch.
+
+#### [experiments/EXP-fafft-v4-task-pipeline/fafft_v4.c](../experiments/EXP-fafft-v4-task-pipeline/fafft_v4.c)
+- **Usage:** v4 task-pipeline implementation exploring staged FAFFT decomposition and task-level RVV acceleration opportunities. Encodes a distinct algorithmic path with revised dataflow and memory access patterns targeting pipeline-friendly task scheduling.
+- **Why:** Records v4 architectural experiments and measured outcomes as a separate branch, enabling intentional exploration of task-parallelism alternatives without disrupting main-line development.
+- **Where:** Used in EXP-fafft-v4-task-pipeline-only builds/tests. Built via conditional CMake paths for experimental branches.
+
+#### [experiments/EXP-fafft-v4-task-pipeline/fafft_v4.h](../experiments/EXP-fafft-v4-task-pipeline/fafft_v4.h)
+- **Usage:** API declarations for v4 task variants: `vect_mul_v4()`, task structure types, pipeline function pointers.
+- **Why:** Keeps experiment symbols explicit, backward-compatible, and testable for replaying runs independently.
+- **Where:** Included by v4 experimental source files.
+
+#### [experiments/EXP-fafft-v6-rvv-schoolbook](../experiments/EXP-fafft-v6-rvv-schoolbook/)
+- **Usage:** Reserved/archival directory for the v6 RVV-schoolbook experiment track. No active implementation sources, but directory maintained for manifest continuity and historical reference.
+- **Why:** Maintains experiment provenance and manifest path continuity even if no implementations remain in-tree. Enables future revival or historical study of the schoolbook approach.
+- **Where:** Referenced by [experiments/manifest.yaml](../experiments/manifest.yaml) as part of experiment lifecycle tracking.
+
+### Workflow Files
+#### [.github/workflows/ci.yml](../.github/workflows/ci.yml#L1)
+- **Usage:** Main CI orchestration workflow triggered on every push/PR. Coordinates build, static checks (lint, opcode verification, ISA string validation), KAT correctness gates, and optional profiling/report jobs. Defines job matrix for parallel execution across security levels and variants.
+- **Why:** Provides centralized automation gate for project quality, ensuring every commit passes correctness and ISA compliance checks before merge.
+- **Where:** Triggered by GitHub Actions on push/PR events. Calls CMake build, CTest KAT targets, and CI scripts.
+
+#### [.github/workflows/ct-verify.yml](../.github/workflows/ct-verify.yml)
+- **Usage:** Dedicated workflow for constant-time verification tasks. Runs ctgrind and dudect analyses on KEM implementations and reports violations or passes.
+- **Why:** Ensures side-channel checks are continuously enforced, preventing CT regressions during optimization work.
+- **Where:** Executes [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh) and stores verification outputs in [analysis/ct_verify/](../analysis/ct_verify/).
+
+#### [.github/workflows/kat.yml](../.github/workflows/kat.yml)
+- **Usage:** KAT matrix workflow spanning all levels/variants and simulator backends. Runs QEMU KAT for scalar variants (fast, broad coverage) and Spike KAT for Zvbc variants (authoritative for vector extensions). Registers CTest matrix jobs for parallel execution.
+- **Why:** Protects cryptographic correctness compatibility through automation, gating releases and major changes.
+- **Where:** Runs KAT scripts ([tests/kat/run_kat.sh](../tests/kat/run_kat.sh), [scripts/bench/spike_kat.sh](../scripts/bench/spike_kat.sh)) in CI jobs. Called on every push/PR.
+
+#### [.github/workflows/main_cycle_history.yml](../.github/workflows/main_cycle_history.yml)
+- **Usage:** Automates historical cycle/instruction result tracking over mainline evolution. Runs benchmarks on a schedule or manual trigger, commits results to a history branch, and plots trends.
+- **Why:** Preserves longitudinal performance trends for regression visibility and project health tracking.
+- **Where:** Produces history artifacts from scheduled or triggered runs. Results accumulated for trend analysis over time.
+
+#### [.github/workflows/opcode-verify.yml](../.github/workflows/opcode-verify.yml)
+- **Usage:** Verifies ISA/opcode expectations by running opcode and ISA-string validation checks on compiled binaries. Confirms intended instructions (vclmul, clmul) are emitted and targets are compiled for expected extensions.
+- **Why:** Guards against silent compiler fallback from target opcodes or ISA string mismatches that would cause runtime traps.
+- **Where:** Runs [scripts/ci/check_opcodes.sh](../scripts/ci/check_opcodes.sh) and [scripts/ci/check_isa_string.sh](../scripts/ci/check_isa_string.sh) in CI jobs.
+
+### Analysis and Vendor Notes
+- [analysis/benchmarks](../analysis/benchmarks): Generated benchmark corpus (canonical runs, scalar/vector campaigns, profiling and compiler comparisons). High-churn artifacts; per-file enumeration is avoided here. Subdirectories track results per phase (phase0/, phase1a/, phase1b/, phase1c/, phase1plus/, phase2/, phase3b/). Key files: `hqc{128,192,256}_{variant}_{polymul|kem}_N1.csv`, `*.log` output, `pids.txt` process tracking.
+- [analysis/ct_verify](../analysis/ct_verify): Constant-time verification outputs and summaries from ctgrind/dudect-style workflows. Subdirectories: `ctgrind/` (taint-tracking outputs), `dudect/` (statistical timing analysis). Artifacts produced by CI workflows and manual verification runs.
+- [analysis/llvm_mca](../analysis/llvm_mca): Static pipeline analysis scripts and generated MCA reports used to complement instruction-count results with microarchitectural throughput/latency estimates. Key files: `run_mca.sh` orchestrator, `reports/gf2x_*.s` assembly inputs, `reports/*_mca.txt` LLVM-MCA outputs.
+- [analysis/report](../analysis/report): Aggregated scoreboards, markdown summaries, and latex table artifacts produced by report scripts. Key files: `report_YYYY-MM-DD.md` dated summaries, `table_results_YYYY-MM-DD.tex` thesis-ready tables. Generated by [scripts/report/gen_report.sh](../scripts/report/gen_report.sh).
+- [vendor/hqc-ref](../vendor/hqc-ref): Upstream HQC reference implementation (git submodule pinned to v5.0.0). Provides invariant cryptographic skeleton and NIST KAT vectors. Key files: `src/common/*.c` (FO transform, memset, parsing), `src/ref/*.c` (baseline Karatsuba, Reed-Muller/Solomon reference decoders), `lib/fips202/fips202.c` (reference Keccak), `KAT/hqc-{1,3,5}/PQCkemKAT_*.rsp` (NIST vectors). Deeper internals documented upstream; local documentation focuses on integration points where variants replace baseline code.
