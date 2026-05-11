@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/bench/run_hybrid_depth_sweep.sh
+# scripts/experiments/run_hybrid_depth_sweep.sh
 #
 # Hybrid Karatsuba-FAFFT depth sweep.
 #
@@ -8,7 +8,7 @@
 # and saves CSVs to analysis/benchmarks/scalar/hybrid/.
 #
 # Usage:
-#   scripts/bench/run_hybrid_depth_sweep.sh [--depths "0 1 2 3 4"] [--levels "128 192 256"]
+#   scripts/experiments/run_hybrid_depth_sweep.sh [--depths "0 1 2 3 4"] [--levels "128 192 256"]
 #
 # Output:
 #   analysis/benchmarks/scalar/hybrid/hqc{LEVEL}_hybrid_d{D}_polymul_N1.csv
@@ -21,7 +21,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-source "${SCRIPT_DIR}/lib_runner.sh"
+source "${REPO_ROOT}/scripts/bench/lib_bench.sh"
 
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"

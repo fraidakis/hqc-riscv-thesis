@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/bench/lib_runner.sh
+# scripts/bench/lib_bench.sh
 # Shared helpers for Spike benchmark runners.
 
 bench_sanitize_label() {

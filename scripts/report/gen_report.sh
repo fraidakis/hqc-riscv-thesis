@@ -184,9 +184,9 @@ Use \`--fraction\` to adjust: e.g. \`scripts/report/gen_report.sh --fraction 0.8
 
 ## Next Steps
 
-- [ ] Verify all KAT pass: \`scripts/bench/run_kat_all.sh\`
-- [ ] Run polymul micro-benches for next benchmark set: \`scripts/bench/run_spike_bench_variant.sh <bench_set>\`
-- [ ] Run histogram analysis: \`scripts/bench/run_histogram_all.sh <bench_set>\`
+- [ ] Verify all KAT pass: \`scripts/test/run_kat.sh\`
+- [ ] Run polymul micro-benches for next benchmark set: \`scripts/bench/run_benchmarks.sh --mode async <bench_set>\`
+- [ ] Run histogram analysis: \`scripts/bench/run_profile.sh --histogram --bench-set <bench_set>\`
 - [ ] Commit results: \`git add analysis/benchmarks/<bench_set>/ && git commit\`
 - [ ] Generate updated report: \`scripts/report/gen_report.sh --bench-set <bench_set>\`
 
