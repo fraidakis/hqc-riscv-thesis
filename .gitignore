@@ -67,3 +67,16 @@ analysis/ct_verify/dudect/*
 tests/kat/vectors/*.rsp
 tests/kat/vectors/*.req
 NOTES.md
+
+# ==========================================
+# Benchmarking & Profiling Data
+# ==========================================
+# Ignore all timestamped CSV and TXT backups (Local history only)
+analysis/**/*_202*.csv
+analysis/**/*_202*.txt
+analysis/**/202*.csv
+
+# Explicitly track ONLY the "latest" state files
+!analysis/**/*_latest.csv
+!analysis/**/*_latest.txt
+!analysis/**/latest.csv
