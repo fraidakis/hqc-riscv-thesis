@@ -1,0 +1,7 @@
+# date: 2026-05-12 13:57
+# commit: d1b8bd3
+# variant: fafft_zvbc
+level,op,instructions,codesize
+256,keypair,9942690,120220
+256,encaps,19306846,120220
+256,decaps,31300333,120220

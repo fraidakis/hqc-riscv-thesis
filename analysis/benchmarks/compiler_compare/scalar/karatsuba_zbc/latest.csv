@@ -1,0 +1,9 @@
+# date: 2026-05-12 14:00
+# commit: d1b8bd3
+compiler,opt,level,variant,status,instructions,text_bytes,elf,error
+clang,-O2,128,karatsuba_zbc,OK,2837313,4016,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc128_karatsuba_zbc/bench_polymul_hqc128_karatsuba_zbc.elf,
+clang,-O3,128,karatsuba_zbc,OK,2837313,4016,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc128_karatsuba_zbc/bench_polymul_hqc128_karatsuba_zbc.elf,
+clang,-Os,128,karatsuba_zbc,OK,2837313,4016,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc128_karatsuba_zbc/bench_polymul_hqc128_karatsuba_zbc.elf,
+gcc,-O2,128,karatsuba_zbc,OK,693683,1854,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc128_karatsuba_zbc/bench_polymul_hqc128_karatsuba_zbc.elf,
+gcc,-O3,128,karatsuba_zbc,OK,684176,5658,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc128_karatsuba_zbc/bench_polymul_hqc128_karatsuba_zbc.elf,
+gcc,-Os,128,karatsuba_zbc,OK,954425,1782,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc128_karatsuba_zbc/bench_polymul_hqc128_karatsuba_zbc.elf,

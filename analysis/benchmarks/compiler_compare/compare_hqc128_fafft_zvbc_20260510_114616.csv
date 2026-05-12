@@ -1,7 +1,0 @@
-compiler,opt,level,variant,status,median_cycles,median_instret,text_bytes,elf,error
-clang,-O2,128,fafft_zvbc,OK,2083765,2083765,66020,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-clang,-O3,128,fafft_zvbc,OK,1731112,1731112,96032,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-clang,-Os,128,fafft_zvbc,OK,2516200,2516200,62462,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-gcc,-O2,128,fafft_zvbc,FAIL,,,,,build_failed
-gcc,-O3,128,fafft_zvbc,FAIL,,,,,build_failed
-gcc,-Os,128,fafft_zvbc,FAIL,,,,,build_failed

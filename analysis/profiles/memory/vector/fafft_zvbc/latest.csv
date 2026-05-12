@@ -1,0 +1,7 @@
+# date: 2026-05-12 13:59
+# commit: d1b8bd3
+# variant: fafft_zvbc
+load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
+12356,6251,89217,58791,1395,919
+13569,6812,96569,63207,1509,988
+13569,6812,96569,63207,1509,988

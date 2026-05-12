@@ -1,7 +1,0 @@
-compiler,opt,level,variant,status,median_cycles,median_instret,text_bytes,elf,error
-clang,-O2,128,karatsuba_zvbc,OK,425352,425352,2179,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc128_karatsuba_zvbc/bench_polymul_hqc128_karatsuba_zvbc.elf,
-clang,-O3,128,karatsuba_zvbc,OK,425352,425352,2173,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc128_karatsuba_zvbc/bench_polymul_hqc128_karatsuba_zvbc.elf,
-clang,-Os,128,karatsuba_zvbc,OK,426970,426970,2171,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc128_karatsuba_zvbc/bench_polymul_hqc128_karatsuba_zvbc.elf,
-gcc,-O2,128,karatsuba_zvbc,OK,420556,420556,2248,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc128_karatsuba_zvbc/bench_polymul_hqc128_karatsuba_zvbc.elf,
-gcc,-O3,128,karatsuba_zvbc,OK,419360,419360,5660,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc128_karatsuba_zvbc/bench_polymul_hqc128_karatsuba_zvbc.elf,
-gcc,-Os,128,karatsuba_zvbc,OK,626963,626965,2168,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc128_karatsuba_zvbc/bench_polymul_hqc128_karatsuba_zvbc.elf,

@@ -1,5 +1,0 @@
-# level=192,polymul=hybrid,n_iter=1,codesize_text=21962
-op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
-keypair,1,3650676,3650676,3650676,3650676,3650676,3650676
-encaps,1,7025696,7025696,7025696,7025696,7025696,7025696
-decaps,1,11682310,11682310,11682310,11682310,11682310,11682310

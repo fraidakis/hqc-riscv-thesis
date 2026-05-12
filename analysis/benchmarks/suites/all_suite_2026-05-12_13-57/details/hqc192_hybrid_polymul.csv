@@ -1,0 +1,5 @@
+# date: 2026-05-12 13:57
+# commit: d1b8bd3
+# variant: hybrid
+level,op,instructions,codesize
+192,vect_mul,1814910,3960

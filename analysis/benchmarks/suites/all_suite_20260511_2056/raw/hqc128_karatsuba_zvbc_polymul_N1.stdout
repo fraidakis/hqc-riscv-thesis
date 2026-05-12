@@ -1,3 +1,0 @@
-# level=128,polymul=karatsuba_zvbc,n_iter=1,codesize_text=5454
-op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
-vect_mul,1,419360,419360,419360,419360,419360,419360

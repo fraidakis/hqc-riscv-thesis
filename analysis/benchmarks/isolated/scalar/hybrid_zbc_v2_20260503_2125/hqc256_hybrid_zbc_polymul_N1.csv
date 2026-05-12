@@ -1,3 +1,0 @@
-# level=256,polymul=hybrid_zbc,n_iter=1,codesize_text=83212
-op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
-vect_mul,1,3146701,3146701,3146701,3146701,3146701,3146701

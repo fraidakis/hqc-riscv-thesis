@@ -1,2 +1,0 @@
-timestamp,level,variant,iter,dc_config,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,run_mode,elf,stdout_log,stderr_log
-20260510_145917,128,hybrid,1,512:8:64,508,13,495,15,direct,/home/fraidakisg/Thesis/hqc-riscv/build/spike_cacheprof_hqc128_hybrid/bench_polymul_hqc128_hybrid.elf,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/cache_spike_stdout_hqc128_hybrid_20260510_145917.log,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/memory_profile/cache_spike_stderr_hqc128_hybrid_20260510_145917.log

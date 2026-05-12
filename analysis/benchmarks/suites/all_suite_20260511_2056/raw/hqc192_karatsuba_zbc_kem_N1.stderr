@@ -1,6 +1,0 @@
-[spike/run] Auto-build: cmake --build /home/fraidakisg/Thesis/hqc-riscv/build/spike --target bench_hqc192_karatsuba_zbc
-[  0%] Built target hqc_core_192
-[100%] Built target bench_hqc192_karatsuba_zbc
-[spike/run] ELF: /home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_hqc192_karatsuba_zbc.elf
-[spike/run] ISA: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
-[spike/run] MODE: clean

@@ -1,5 +1,0 @@
-level,variant,kind,op,wall_seconds,median_cycles,median_instret,csv_path
-128,karatsuba_ref,polymul,vect_mul,0.322,18635851,18635851,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/runs/smoke_suite_20260511/curated/hqc128_karatsuba_ref_polymul_N1.csv
-128,karatsuba_ref,kem,keypair,1.831,19331100,19331100,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/runs/smoke_suite_20260511/curated/hqc128_karatsuba_ref_kem_N1.csv
-128,karatsuba_ref,kem,encaps,1.831,38577485,38577485,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/runs/smoke_suite_20260511/curated/hqc128_karatsuba_ref_kem_N1.csv
-128,karatsuba_ref,kem,decaps,1.831,58860976,58860976,/home/fraidakisg/Thesis/hqc-riscv/analysis/benchmarks/runs/smoke_suite_20260511/curated/hqc128_karatsuba_ref_kem_N1.csv

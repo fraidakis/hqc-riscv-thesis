@@ -1,3 +1,0 @@
-# level=128,polymul=fafft_zbc,n_iter=10,codesize_text=2872
-op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
-vect_mul,10,364872,364872,364872,364872,364872,364872

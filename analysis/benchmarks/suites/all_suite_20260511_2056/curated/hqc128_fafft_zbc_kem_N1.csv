@@ -1,5 +1,0 @@
-# level=128,polymul=fafft_zbc,n_iter=1,codesize_text=17848
-op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
-keypair,1,921997,921997,921997,921997,921997,921997
-encaps,1,1765238,1765238,1765238,1765238,1765238,1765238
-decaps,1,3639536,3639536,3639536,3639536,3639536,3639536

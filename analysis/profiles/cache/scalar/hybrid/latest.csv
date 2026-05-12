@@ -1,0 +1,8 @@
+# date: 2026-05-12 13:58
+# commit: d1b8bd3
+# variant: hybrid
+# cache_config: 512:8:64
+dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+518,16,502,18,18768628,5189556,2452452,754035
+1121,93,1028,133,52743460,16034948,6927434,2337228
+1774,130,1644,239,109754670,36121856,14255354,5048585
