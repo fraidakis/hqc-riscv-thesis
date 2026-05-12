@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
 VARIANT="${1:-}"
 if [[ -z "$VARIANT" ]]; then
@@ -34,11 +35,31 @@ if [[ ! -x "$SPIKE" ]]; then
 fi
 
 STAMP="$(date +'%Y-%m-%d_%H-%M')"
-OUT_DIR="$REPO_ROOT/analysis/benchmarks/compiler_compare"
+track="scalar"
+if [[ "$VARIANT" == *"zvbc"* ]]; then track="vector"; fi
+OUT_DIR="$REPO_ROOT/analysis/benchmarks/compiler_compare/${track}/${VARIANT}"
 mkdir -p "$OUT_DIR"
-CSV_OUT="$OUT_DIR/compare_hqc${LEVEL}_${VARIANT}_${STAMP}.csv"
+CSV_OUT="${OUT_DIR}/${STAMP}.csv"
 
-echo "compiler,opt,level,variant,status,instructions,text_bytes,elf,error" > "$CSV_OUT"
+echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$CSV_OUT"
+echo "# commit: ${GIT_HASH}" >> "$CSV_OUT"
+echo "compiler,opt,level,variant,status,instructions,text_bytes,elf,error" >> "$CSV_OUT"
+
+format_int() {
+    local n="${1:-0}"
+    if [[ ! "$n" =~ ^[0-9]+$ ]]; then
+        echo "$n"
+        return
+    fi
+    awk -v n="$n" 'BEGIN {
+        out = ""
+        while (n >= 1000) {
+            out = sprintf(",%03d", n % 1000) out
+            n = int(n / 1000)
+        }
+        printf "%d%s", n, out
+    }'
+}
 
 run_one() {
     local compiler="$1"
@@ -84,12 +105,14 @@ run_one() {
         -DRISCV="$RISCV" \
         -DHQC_SIM=spike >/dev/null 2>&1; then
         echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,cmake_configure_failed" >> "$CSV_OUT"
+        echo "FAIL"
         return 1
     fi
 
     target="bench_polymul_hqc${LEVEL}_${VARIANT}"
     if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
         echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,build_failed" >> "$CSV_OUT"
+        echo "FAIL"
         return 1
     fi
 
@@ -99,6 +122,7 @@ run_one() {
 
     if ! "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2> "$run_err"; then
         echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,${elf},spike_run_failed" >> "$CSV_OUT"
+        echo "FAIL"
         return 1
     fi
     instret="$(awk -F',' '$1=="vect_mul" {print $7; exit}' "$run_out")"
@@ -110,14 +134,26 @@ run_one() {
     text_bytes="$($size_tool "$elf" 2>/dev/null | awk 'NR==2{print $1}')"
     text_bytes="${text_bytes:-0}"
 
+    local fmt_ins=$(echo "$instret" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')
+    echo "${fmt_ins} instructions"
     echo "${compiler},-${opt},${LEVEL},${VARIANT},OK,${instret},${text_bytes},${elf}," >> "$CSV_OUT"
 }
 
+echo -e "\n📦 ${VARIANT} (compiler_compare)"
 for compiler in clang gcc; do
+    if [[ "$compiler" == "clang" ]]; then
+        echo " ├── ${compiler}"
+    else
+        echo " └── ${compiler}"
+    fi
     for opt in O2 O3 Os; do
-        echo "[compare_compilers] running ${compiler} -${opt} ..."
+        local_branch="├──"
+        if [[ "$opt" == "Os" ]]; then local_branch="└──"; fi
+        echo -n " │   ${local_branch} -${opt} ⋯ "
         run_one "$compiler" "$opt" || true
     done
 done
 
-echo "[compare_compilers] CSV: $CSV_OUT"
+cp -f "$CSV_OUT" "${OUT_DIR}/latest.csv"
+echo ""
+echo "✔️ Saved: $CSV_OUT"

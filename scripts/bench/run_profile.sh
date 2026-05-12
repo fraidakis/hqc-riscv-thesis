@@ -12,33 +12,45 @@
 #   scripts/bench/run_profile.sh --cache --variant karatsuba_ref --level 128
 #   scripts/bench/run_profile.sh --memory --variant hybrid --level 192
 #   scripts/bench/run_profile.sh --trace --elf build/spike/bench_polymul_hqc128_karatsuba_zbc.elf
-#   scripts/bench/run_profile.sh --histogram --variant karatsuba_zbc --wait
+#   scripts/bench/run_profile.sh --histogram --variant karatsuba_zbc --report
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${SCRIPT_DIR}/lib_bench.sh"
+bench_load_implemented_variants "$REPO_ROOT"
+GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
 MODE=""
 VARIANT=""
 LEVEL="128"
 ELF=""
-WAIT_FLAG=0
 REPORT_FLAG=0
 TOP_N=""
 COMPARE_WITH=""
 CONTEXT_FLAG=0
 
+format_int() {
+    local n="${1:-0}"
+    if [[ ! "$n" =~ ^[0-9]+$ ]]; then
+        echo "$n"
+        return
+    fi
+    awk -v n="$n" 'BEGIN {
+        out = ""
+        while (n >= 1000) {
+            out = sprintf(",%03d", n % 1000) out
+            n = int(n / 1000)
+        }
+        printf "%d%s", n, out
+    }'
+}
+
 profile_cache_mode() {
     local variant="${VARIANT:-karatsuba_ref}"
-    local level="$LEVEL"
     local dc_config="${DC_CONFIG:-512:8:64}"
 
-    if ! [[ "$level" =~ ^(128|192|256)$ ]]; then
-        echo "[profile_cache_spike] ERROR: level must be 128, 192, or 256" >&2
-        exit 2
-    fi
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local spike="${riscv}/bin/spike"
     local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm}"
@@ -48,27 +60,22 @@ profile_cache_mode() {
         exit 2
     fi
 
-    local build_dir="$REPO_ROOT/build/spike_cacheprof_hqc${level}_${variant}"
-    local target="bench_polymul_hqc${level}_${variant}"
-    local elf="$build_dir/${target}.elf"
-
-    cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-        -DRISCV="$riscv" \
-        -DHQC_SIM=spike >/dev/null
-
-    cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null
-
-    local out_dir="$REPO_ROOT/analysis/profiles/cache/${variant}"
+    local track="scalar"
+    if [[ "$variant" == *"zvbc"* ]]; then track="vector"; fi
+    local out_dir="$REPO_ROOT/analysis/profiles/cache/${track}/${variant}"
     mkdir -p "$out_dir"
 
-    local stamp="$(date +%Y%m%d_%H%M%S)"
-    local run_mode="direct"
-    local raw_stdout="$out_dir/cache_spike_stdout_hqc${level}_${variant}_${stamp}.log"
-    local raw_stderr="$out_dir/cache_spike_stderr_hqc${level}_${variant}_${stamp}.log"
-    local csv_out="$out_dir/cache_profile_hqc${level}_${variant}.csv"
+    local BENCH_TIME
+    BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
+    local csv_out="$out_dir/${BENCH_TIME}.csv"
 
-    "$spike" --dc="$dc_config" --isa="$isa" "$elf" >"$raw_stdout" 2>"$raw_stderr"
+    echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
+    echo "# commit: ${GIT_HASH}" >> "$csv_out"
+    echo "# variant: ${variant}" >> "$csv_out"
+    echo "# cache_config: ${dc_config}" >> "$csv_out"
+    echo "dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses" >> "$csv_out"
+
+    echo -e "\n📦 ${variant} (cache)"
 
     extract_metric() {
         local pattern="$1"
@@ -76,41 +83,60 @@ profile_cache_mode() {
         awk -F':' -v p="$pattern" '$1 ~ p {gsub(/[[:space:]]/, "", $2); print $2; exit}' "$file"
     }
 
-    local read_misses write_misses writebacks dc_misses
-    read_misses="$(extract_metric 'D\\$ Read Misses' "$raw_stdout")"
-    write_misses="$(extract_metric 'D\\$ Write Misses' "$raw_stdout")"
-    writebacks="$(extract_metric 'D\\$ Writebacks' "$raw_stdout")"
+    # Loop through all levels
+    for level in 128 192 256; do
+        local build_dir="$REPO_ROOT/build/spike_cacheprof_hqc${level}_${variant}"
+        local target="bench_polymul_hqc${level}_${variant}"
+        local elf="$build_dir/${target}.elf"
 
-    if [[ -z "$read_misses" || -z "$write_misses" || -z "$writebacks" ]]; then
-        echo "[profile_cache_spike] ERROR: failed to parse D$ cache metrics from $raw_stdout" >&2
-        echo "[profile_cache_spike] tail of output:" >&2
-        tail -n 40 "$raw_stdout" >&2 || true
-        exit 1
-    fi
+        cmake -S "$REPO_ROOT" -B "$build_dir" \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DRISCV="$riscv" \
+            -DHQC_SIM=spike >/dev/null 2>&1
 
-    dc_misses=$((read_misses + write_misses))
+        cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1
 
-    if [[ ! -f "$csv_out" ]]; then
-        echo "timestamp,level,variant,dc_config,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,run_mode,elf,stdout_log,stderr_log" > "$csv_out"
-    fi
+        local raw_stdout="$out_dir/cache_spike_stdout_hqc${level}_${variant}_${BENCH_TIME}.log"
+        local raw_stderr="$out_dir/cache_spike_stderr_hqc${level}_${variant}_${BENCH_TIME}.log"
 
-    echo "${stamp},${level},${variant},${dc_config},${dc_misses},${read_misses},${write_misses},${writebacks},${run_mode},${elf},${raw_stdout},${raw_stderr}" >> "$csv_out"
+        "$spike" --dc="$dc_config" --isa="$isa" "$elf" >"$raw_stdout" 2>"$raw_stderr"
 
-    echo "[profile_cache_spike] variant=${variant} level=${level} dc=${dc_config} run_mode=${run_mode}"
-    echo "[profile_cache_spike] D$ Misses=${dc_misses} (Read=${read_misses}, Write=${write_misses})"
-    echo "[profile_cache_spike] D$ Writebacks=${writebacks}"
-    echo "[profile_cache_spike] csv=${csv_out}"
-    echo "[profile_cache_spike] stdout_log=${raw_stdout}"
+        local dc_read_misses dc_write_misses dc_writebacks dc_misses
+        local dc_bytes_read dc_bytes_written dc_read_accesses dc_write_accesses
+        
+        dc_read_misses="$(extract_metric 'D\\$ Read Misses' "$raw_stdout")"
+        dc_write_misses="$(extract_metric 'D\\$ Write Misses' "$raw_stdout")"
+        dc_writebacks="$(extract_metric 'D\\$ Writebacks' "$raw_stdout")"
+        dc_bytes_read="$(extract_metric 'D\\$ Bytes Read' "$raw_stdout")"
+        dc_bytes_written="$(extract_metric 'D\\$ Bytes Written' "$raw_stdout")"
+        dc_read_accesses="$(extract_metric 'D\\$ Read Accesses' "$raw_stdout")"
+        dc_write_accesses="$(extract_metric 'D\\$ Write Accesses' "$raw_stdout")"
+
+        if [[ -z "$dc_read_misses" || -z "$dc_write_misses" || -z "$dc_writebacks" ]]; then
+            echo "[profile_cache_spike] ERROR: failed to parse D$ cache metrics from $raw_stdout" >&2
+            echo "[profile_cache_spike] tail of output:" >&2
+            tail -n 40 "$raw_stdout" >&2 || true
+            exit 1
+        fi
+
+        dc_misses=$((dc_read_misses + dc_write_misses))
+
+        echo "${dc_misses},${dc_read_misses},${dc_write_misses},${dc_writebacks},${dc_bytes_read},${dc_bytes_written},${dc_read_accesses},${dc_write_accesses}" >> "$csv_out"
+        local branch="├──"
+        if [[ "$level" == "256" ]]; then branch="└──"; fi
+        echo " ${branch} L${level} ⋯ $(format_int "$dc_misses") misses (R=$(format_int "$dc_read_misses"), W=$(format_int "$dc_write_misses")) | WB=$(format_int "$dc_writebacks")"
+
+        # Auto-delete raw log files
+        rm -f "$raw_stdout" "$raw_stderr"
+    done
+
+    cp -f "$csv_out" "${out_dir}/latest.csv"
+    echo ""
+    echo "✔️ Saved: ${csv_out}"
 }
 
 profile_memory_mode() {
     local variant="${VARIANT:-karatsuba_ref}"
-    local level="$LEVEL"
-
-    if ! [[ "$level" =~ ^(128|192|256)$ ]]; then
-        echo "[profile_memory] ERROR: level must be 128, 192, or 256" >&2
-        exit 2
-    fi
 
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local qemu="${riscv}/bin/qemu-system-riscv64"
@@ -120,37 +146,50 @@ profile_memory_mode() {
         exit 2
     fi
 
-    local build_dir="$REPO_ROOT/build/qemu_memprof_hqc${level}_${variant}"
-    local target="bench_polymul_hqc${level}_${variant}"
-    local elf="$build_dir/${target}.elf"
-
-    cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-        -DHQC_SIM=qemu >/dev/null
-
-    cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null
-
-    local stamp="$(date +'%Y-%m-%d_%H-%M')"
-    local out_dir="$REPO_ROOT/analysis/profiles/memory/${variant}"
+    local track="scalar"
+    if [[ "$variant" == *"zvbc"* ]]; then track="vector"; fi
+    local out_dir="$REPO_ROOT/analysis/profiles/memory/${track}/${variant}"
     mkdir -p "$out_dir"
-    local qemu_log="$out_dir/qemu_trace_hqc${level}_${variant}_${stamp}.log"
-    local uart_log="$out_dir/qemu_stdout_hqc${level}_${variant}_${stamp}.txt"
-    local csv_out="$out_dir/memory_profile_hqc${level}_${variant}_${stamp}.csv"
 
-    "$qemu" \
-        -machine virt \
-        -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
-        -m 256M \
-        -nographic \
-        -bios none \
-        -kernel "$elf" \
-        -serial mon:stdio \
-        -no-reboot \
-        -d in_asm,nochain \
-        -D "$qemu_log" > "$uart_log" 2>&1
+    local BENCH_TIME
+    BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
+    local csv_out="$out_dir/${BENCH_TIME}.csv"
 
-    local load_bytes store_bytes load_ins store_ins
-    read -r load_bytes store_bytes load_ins store_ins <<<"$(awk '
+    echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
+    echo "# commit: ${GIT_HASH}" >> "$csv_out"
+    echo "# variant: ${variant}" >> "$csv_out"
+    echo "load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store" >> "$csv_out"
+
+    echo -e "\n📦 ${variant} (memory)"
+
+    # Loop through all levels
+    for level in 128 192 256; do
+        local build_dir="$REPO_ROOT/build/qemu_memprof_hqc${level}_${variant}"
+        local target="bench_polymul_hqc${level}_${variant}"
+        local elf="$build_dir/${target}.elf"
+
+        cmake -S "$REPO_ROOT" -B "$build_dir" \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DHQC_SIM=qemu >/dev/null 2>&1
+
+        cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1
+
+        local qemu_log="$out_dir/qemu_trace_hqc${level}_${variant}_${BENCH_TIME}.log"
+
+        "$qemu" \
+            -machine virt \
+            -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
+            -m 256M \
+            -nographic \
+            -bios none \
+            -kernel "$elf" \
+            -serial mon:stdio \
+            -no-reboot \
+            -d in_asm,nochain \
+            -D "$qemu_log" >/dev/null 2>&1
+
+        local load_bytes store_bytes load_ins store_ins
+        read -r load_bytes store_bytes load_ins store_ins <<<"$(awk '
 function add_load(bytes){lb+=bytes;li++}
 function add_store(bytes){sb+=bytes;si++}
 {
@@ -177,18 +216,22 @@ function add_store(bytes){sb+=bytes;si++}
 END{printf "%d %d %d %d", lb, sb, li, si}
 ' "$qemu_log")"
 
-    local load_lines store_lines
-    load_lines=$(( (load_bytes + 63) / 64 ))
-    store_lines=$(( (store_bytes + 63) / 64 ))
+        local load_lines store_lines
+        load_lines=$(( (load_bytes + 63) / 64 ))
+        store_lines=$(( (store_bytes + 63) / 64 ))
 
-    echo "level,variant,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store,qemu_log,uart_log" > "$csv_out"
-    echo "${level},${variant},${load_ins},${store_ins},${load_bytes},${store_bytes},${load_lines},${store_lines},${qemu_log},${uart_log}" >> "$csv_out"
+        echo "${load_ins},${store_ins},${load_bytes},${store_bytes},${load_lines},${store_lines}" >> "$csv_out"
+        local branch="├──"
+        if [[ "$level" == "256" ]]; then branch="└──"; fi
+        echo " ${branch} L${level} ⋯ LdIns=$(format_int "$load_ins") StIns=$(format_int "$store_ins") | LdB=$(format_int "$load_bytes") StB=$(format_int "$store_bytes")"
 
-    echo "[profile_memory] variant=${variant} level=${level}"
-    echo "[profile_memory] load_instructions=${load_ins} store_instructions=${store_ins}"
-    echo "[profile_memory] load_bytes=${load_bytes} store_bytes=${store_bytes}"
-    echo "[profile_memory] est_cache_lines_load=${load_lines} est_cache_lines_store=${store_lines}"
-    echo "[profile_memory] csv=${csv_out}"
+        # Auto-delete the massive trace file
+        rm -f "$qemu_log"
+    done
+
+    cp -f "$csv_out" "${out_dir}/latest.csv"
+    echo ""
+    echo "✔️ Saved: ${csv_out}"
 }
 
 profile_trace_mode() {
@@ -269,50 +312,18 @@ profile_histogram_mode() {
     local isa="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
     local build_dir="${REPO_ROOT}/build/spike"
     local levels=(128 192 256)
-    local mode="launch"
-
-    if [[ "$REPORT_FLAG" -eq 1 ]]; then
-        mode="report"
-    elif [[ "$WAIT_FLAG" -eq 1 ]]; then
-        mode="wait"
-    fi
 
     local BENCH_TIME
     BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
-    local track out_dir base_scan_dir
+    local track
     if [[ "${VARIANT,,}" == *"zvbc"* ]]; then
         track="vector"
     else
         track="scalar"
     fi
-    out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${VARIANT}_${BENCH_TIME}"
-    base_scan_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}"
-
-    # Report flow is handled directly in this unified entrypoint.
-    if [[ "$mode" == "report" ]]; then
-        if [[ ! -d "$base_scan_dir" ]]; then
-            echo "[histogram] No histogram directory found: $base_scan_dir" >&2
-            echo "            Run --histogram --variant $VARIANT first to generate files." >&2
-            return 0
-        fi
-
-        local found=0
-        while IFS= read -r hist; do
-            [[ -f "$hist" ]] || continue
-            found=$((found + 1))
-            local dir_label
-            dir_label="$(basename "$(dirname "$hist")")"
-            echo "=== $(basename "$hist" _hist.txt) (${dir_label}) ==="
-            head -n "${TOP_N:-20}" "$hist" || true
-            echo ""
-        done < <(find "${base_scan_dir}/${VARIANT}_"* -name "*_hist.txt" 2>/dev/null | sort)
-
-        if [[ "$found" -eq 0 ]]; then
-            echo "[histogram] No histogram files found for variant '${VARIANT}' in ${base_scan_dir}/"
-        fi
-        return 0
-    fi
+    local variant="${VARIANT:-karatsuba_ref}"
+    local out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${variant}"
 
     if ! bench_require_executable "$spike" "Spike not found"; then
         echo "       Source toolchain/toolchain.env or set RISCV" >&2
@@ -321,57 +332,39 @@ profile_histogram_mode() {
 
     mkdir -p "$out_dir"
 
-    local launched=0
-    local -a job_lines=()
-    local -a job_pids=()
+    echo -e "\n📦 ${variant} (histogram)"
 
     for level in "${levels[@]}"; do
-        for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
-            bench_variant_matches "$variant" "$VARIANT" || continue
+        local target="bench_polymul_hqc${level}_${variant}"
+        bench_build_target_if_configured "$build_dir" "$target" "histogram" >/dev/null 2>&1 || true
 
-            local elf="${build_dir}/bench_polymul_hqc${level}_${variant}.elf"
-            local target="bench_polymul_hqc${level}_${variant}"
-            local prefix="hqc${level}_${variant}"
-            local csv="${out_dir}/${prefix}_polymul.csv"
-            local hist="${out_dir}/${prefix}_hist.txt"
+        local elf="${build_dir}/${target}.elf"
+        if [[ ! -f "$elf" ]]; then
+            echo "ERROR: Missing ELF $elf" >&2
+            continue
+        fi
 
-            bench_build_target_if_configured "$build_dir" "$target" "histogram" || continue
-            if ! bench_require_elf_or_hint "$elf" "$target" \
-                "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike" \
-                "histogram"; then
-                continue
-            fi
+        local hist="${out_dir}/hqc${level}_${variant}_hist.txt"
+        local mix_file="${out_dir}/hqc${level}_${BENCH_TIME}.txt"
+        local objdump_bin="${RISCV:-$HOME/Thesis/installed-tools}/bin/llvm-objdump"
 
-            nohup "$spike" --isa="$isa" -g "$elf" > "$csv" 2> "$hist" &
-            local pid=$!
-            job_pids+=("$pid")
-            job_lines+=("  PID ${pid}  ${target}  ->  $(basename "$csv") + $(basename "$hist")")
-            launched=$((launched + 1))
-        done
+        "$spike" --isa="$isa" -g "$elf" >/dev/null 2> "$hist"
+
+        # Parse mnemonics and auto-delete raw log
+        python3 "$REPO_ROOT/scripts/report/parse_histogram.py" "$hist" "$elf" "$objdump_bin" > "$mix_file"
+        rm -f "$hist"
+        cp -f "$mix_file" "${out_dir}/hqc${level}_latest.txt"
+        local prefix=" ├──"
+        if [[ "$level" == "256" ]]; then prefix=" └──"; fi
+        echo "${prefix} L${level} ⋯ $(basename "$mix_file")"
+        if [[ "$REPORT_FLAG" -eq 1 ]]; then
+            cat "$mix_file" | head -n "$(( ${TOP_N:-20} + 3 ))"
+            echo ""
+        fi
     done
 
     echo ""
-    if [[ "$launched" -eq 0 ]]; then
-        echo "[histogram] No jobs launched. Check that polymul ELFs are built in ${build_dir}/"
-        echo "            cmake --build build/spike -j$(nproc)"
-        return 0
-    fi
-
-    echo "[histogram] Launched ${launched} Spike -g job(s) for variant '${VARIANT}':"
-    printf "%s\n" "${job_lines[@]}"
-    echo ""
-
-    if [[ "$mode" == "wait" ]]; then
-        echo "[histogram] Waiting for ${launched} job(s) to complete..."
-        for pid in "${job_pids[@]}"; do
-            wait "$pid" || true
-        done
-        echo "[histogram] All jobs done."
-    else
-        echo "Monitor:"
-        echo "  ps aux | grep '[s]pike.*bench_polymul'"
-        echo "  watch -n 30 \"wc -c ${out_dir}/*_hist.txt\""
-    fi
+    echo "✔️ Saved: ${out_dir}"
 }
 
 usage() {
@@ -380,7 +373,7 @@ Usage:
     run_profile.sh --cache [--variant V] [--level 128|192|256]
     run_profile.sh --memory [--variant V] [--level 128|192|256]
     run_profile.sh --trace --elf <path-to-elf>
-    run_profile.sh --histogram --variant <variant> [--wait|--report]
+    run_profile.sh --histogram --variant <variant> [--report]
              [--top N] [--compare-with set] [--context]
 EOF
 }
@@ -402,10 +395,6 @@ while [[ $# -gt 0 ]]; do
         --elf)
             ELF="$2"
             shift 2
-            ;;
-        --wait)
-            WAIT_FLAG=1
-            shift
             ;;
         --report)
             REPORT_FLAG=1
@@ -441,17 +430,20 @@ if [[ -z "$MODE" ]]; then
     exit 2
 fi
 
-case "$MODE" in
-    cache)
-        profile_cache_mode
-        ;;
-    memory)
-        profile_memory_mode
-        ;;
-    trace)
-        profile_trace_mode
-        ;;
-    histogram)
-        profile_histogram_mode
-        ;;
-esac
+run_mode_for_variant() {
+    VARIANT="$1"
+    case "$MODE" in
+        cache)     profile_cache_mode ;;
+        memory)    profile_memory_mode ;;
+        trace)     profile_trace_mode ;;
+        histogram) profile_histogram_mode ;;
+    esac
+}
+
+if [[ "$VARIANT" == "all" ]]; then
+    for v in "${IMPLEMENTED_VARIANTS[@]}"; do
+        run_mode_for_variant "$v"
+    done
+else
+    run_mode_for_variant "${VARIANT:-karatsuba_ref}"
+fi

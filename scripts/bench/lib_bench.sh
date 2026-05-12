@@ -36,7 +36,7 @@ bench_require_executable() {
 bench_build_target_if_configured() {
     local build_dir="$1" target="$2" tag="${3:-bench}"
     if [[ -f "${build_dir}/CMakeCache.txt" ]]; then
-        if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >&2; then
+        if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
             echo "[${tag}] BUILD FAIL ${target}" >&2
             return 1
         fi
