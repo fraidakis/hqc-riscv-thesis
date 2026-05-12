@@ -1,0 +1,13 @@
+# date: 2026-05-12 16:04
+# commit: 7e3c545
+# variant: fafft_zbc
+level,op,instructions,codesize
+128,keypair,921997,22144
+128,encaps,1765238,22144
+128,decaps,3639536,22144
+192,keypair,2708238,24604
+192,encaps,5140820,24604
+192,decaps,8854996,24604
+256,keypair,5811710,29840
+256,encaps,11044886,29840
+256,decaps,18907393,29840

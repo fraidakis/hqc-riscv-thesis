@@ -68,3 +68,36 @@ bench_run_spike_timed() {
     elapsed_s=$(awk -v ms="$elapsed_ms" 'BEGIN { printf "%.3f", ms/1000.0 }')
     echo "$elapsed_s"
 }
+
+bench_strip_leading_csv_comments() {
+    local file="$1"
+    awk '
+        BEGIN { in_preamble = 1 }
+        {
+            if (in_preamble && $0 ~ /^#/) {
+                next
+            }
+            in_preamble = 0
+            print
+        }
+    ' "$file"
+}
+
+bench_csv_payload_matches() {
+    local src="$1" dst="$2"
+    if [[ ! -f "$dst" ]]; then
+        return 1
+    fi
+    cmp -s \
+        <(bench_strip_leading_csv_comments "$src") \
+        <(bench_strip_leading_csv_comments "$dst")
+}
+
+bench_refresh_tracked_csv() {
+    local src="$1" dst="$2"
+    mkdir -p "$(dirname "$dst")"
+    if bench_csv_payload_matches "$src" "$dst"; then
+        return 1
+    fi
+    cp -f "$src" "$dst"
+}

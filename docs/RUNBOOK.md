@@ -148,9 +148,19 @@ scripts/bench/run_benchmarks.sh --mode isolated --variant karatsuba_ref
 
 Output: CSV files written to `analysis/benchmarks/isolated/scalar/`
 
-### Suite Mode: Synchronized Benchmarking with Promotion
+### Full KEM Benchmark in Isolated Mode
 
-For reproducible, atomic benchmark runs with optional promotion to canonical storage:
+Run the complete KEM (keypair, encaps, decaps) instead of just the polymul micro-benchmark:
+
+```bash
+scripts/bench/run_benchmarks.sh --mode isolated --variant karatsuba_ref --kem
+```
+
+Used for: Quick end-to-end KEM performance iteration during development (faster than suite mode).
+
+### Suite Mode: Synchronized Benchmarking with Atomic Promotion
+
+For reproducible, atomic benchmark runs with optional promotion to canonical storage (full statistical measurement of all levels and variants):
 
 ```bash
 scripts/bench/run_benchmarks.sh --mode suite --promote phase1_spike_n1
@@ -221,12 +231,6 @@ Output: `analysis/llvm_mca/reports/gf2x_mca.txt`
 
 ```bash
 scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --wait
-```
-
-**Report top instructions from existing histograms:**
-
-```bash
-scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --report --top 20
 ```
 
 Output files:

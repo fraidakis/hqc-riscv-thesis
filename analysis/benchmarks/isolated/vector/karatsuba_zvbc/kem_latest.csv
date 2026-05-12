@@ -1,0 +1,13 @@
+# date: 2026-05-12 16:04
+# commit: 7e3c545
+# variant: karatsuba_zvbc
+level,op,instructions,codesize
+128,keypair,1114918,25966
+128,encaps,2151080,25966
+128,decaps,4218299,25966
+192,keypair,3144962,28872
+192,encaps,6014268,28872
+192,decaps,10165168,28872
+256,keypair,5687238,34188
+256,encaps,10795942,34188
+256,decaps,18533977,34188

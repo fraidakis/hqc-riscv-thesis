@@ -229,7 +229,6 @@ run_isolated_mode() {
     echo "# commit: ${GIT_HASH}" >> "$csv"
     echo "# variant: ${variant}" >> "$csv"
     echo "level,op,instructions,codesize" >> "$csv"
-    cp -f "$csv" "${out_dir}/${kind}_latest.csv"
 
     echo -e "\n📦 ${variant} (${kind})"
 
@@ -296,6 +295,11 @@ run_isolated_mode() {
     done
 
     echo ""
+    if bench_refresh_tracked_csv "$csv" "${out_dir}/${kind}_latest.csv"; then
+        echo "↻ Refreshed: ${out_dir}/${kind}_latest.csv"
+    else
+        echo "↻ Unchanged payload: ${out_dir}/${kind}_latest.csv"
+    fi
     echo "✔️ Saved: ${csv}"
 }
 
@@ -430,10 +434,20 @@ run_suite_mode() {
 
     if [[ -n "$PROMOTE_NAME" ]]; then
         local canon_dir
+        local promoted_count=0
         canon_dir="${REPO_ROOT}/analysis/benchmarks/canonical/${PROMOTE_NAME}"
         mkdir -p "$canon_dir"
-        cp -f "${run_root}"/*.csv "$canon_dir"/
-        echo "[suite] promoted suite outputs to ${canon_dir}"
+        local csv_file dst_file
+        for csv_file in "${run_root}"/*.csv; do
+            dst_file="${canon_dir}/$(basename "$csv_file")"
+            if bench_refresh_tracked_csv "$csv_file" "$dst_file"; then
+                promoted_count=$((promoted_count + 1))
+                echo "[suite] promoted $(basename "$csv_file")"
+            else
+                echo "[suite] skipped unchanged $(basename "$csv_file")"
+            fi
+        done
+        echo "[suite] promotion complete: ${promoted_count} file(s) updated in ${canon_dir}"
     fi
 
     echo ""

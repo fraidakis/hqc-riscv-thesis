@@ -130,7 +130,11 @@ profile_cache_mode() {
         rm -f "$raw_stdout" "$raw_stderr"
     done
 
-    cp -f "$csv_out" "${out_dir}/latest.csv"
+    if bench_refresh_tracked_csv "$csv_out" "${out_dir}/latest.csv"; then
+        echo "↻ Refreshed: ${out_dir}/latest.csv"
+    else
+        echo "↻ Unchanged payload: ${out_dir}/latest.csv"
+    fi
     echo ""
     echo "✔️ Saved: ${csv_out}"
 }
@@ -229,7 +233,11 @@ END{printf "%d %d %d %d", lb, sb, li, si}
         rm -f "$qemu_log"
     done
 
-    cp -f "$csv_out" "${out_dir}/latest.csv"
+    if bench_refresh_tracked_csv "$csv_out" "${out_dir}/latest.csv"; then
+        echo "↻ Refreshed: ${out_dir}/latest.csv"
+    else
+        echo "↻ Unchanged payload: ${out_dir}/latest.csv"
+    fi
     echo ""
     echo "✔️ Saved: ${csv_out}"
 }

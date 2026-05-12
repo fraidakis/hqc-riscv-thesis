@@ -1,4 +1,7 @@
-# date: 2026-05-12 13:56
-# commit: d1b8bd3
+# date: 2026-05-12 16:03
+# commit: 7e3c545
 # variant: fafft_zvbc
 level,op,instructions,codesize
+128,vect_mul,2833704,86236
+192,vect_mul,6291463,91898
+256,vect_mul,6326835,91896

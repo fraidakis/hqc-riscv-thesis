@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/lib_bench.sh"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
 VARIANT="${1:-}"
@@ -154,6 +155,10 @@ for compiler in clang gcc; do
     done
 done
 
-cp -f "$CSV_OUT" "${OUT_DIR}/latest.csv"
+if bench_refresh_tracked_csv "$CSV_OUT" "${OUT_DIR}/latest.csv"; then
+    echo "↻ Refreshed: ${OUT_DIR}/latest.csv"
+else
+    echo "↻ Unchanged payload: ${OUT_DIR}/latest.csv"
+fi
 echo ""
 echo "✔️ Saved: $CSV_OUT"
