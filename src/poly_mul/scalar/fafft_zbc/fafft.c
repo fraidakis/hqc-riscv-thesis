@@ -1,48 +1,99 @@
+// Scalar Karatsuba baseline (from EXP-fafft-v3-zvc)
 #include <stdint.h>
 #include <string.h>
-
 #include "parameters.h"
-#include "ref/gfmul_fft.h"
-#include "ref/reduce.h"
-#include "ref/CRT_fft.h"
-#include "fafft_v5.h"
 
-#ifndef VEC_N_SIZE_32
-#define VEC_N_SIZE_32 ((PARAM_N + 31) / 32)
+#ifndef VEC_N_SIZE_64
+#define VEC_N_SIZE_64 ((PARAM_N + 63) / 64)
 #endif
 
-static inline void reduce_strict_u32(uint32_t *o, const uint32_t *a)
+#define KARATSUBA_THRESH 16
+#define TMP_WORDS  (16u * VEC_N_SIZE_64)
+
+static __attribute__((always_inline)) inline
+void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 {
-    reduce(o, a);
-    o[VEC_N_SIZE_32 - 1] &= ((PARAM_N & 0x1F) == 0)
-                           ? 0xFFFFFFFFu
-                           : ((1u << (PARAM_N & 0x1F)) - 1u);
+    __asm__ volatile(
+        "clmul  %0, %2, %3\n\t"
+        "clmulh %1, %2, %3\n\t"
+        : "=&r"(*lo), "=r"(*hi)
+        : "r"(a), "r"(b)
+    );
 }
 
-/*
- * vect_mul — HQC polynomial multiplication in GF(2)[x]/(x^PARAM_N + 1).
- *
- * Active path: delegates to vect_mul_v5(), the current CRT-bypass FAFFT
- * implementation selected by the default build wiring.
- *
- * Original tower-field FAFFT path (preserved below for reference):
- *   bmul2_4096_to_8192 / bmul2_8192_to_16384 (bc_1_32768 / bc_1_65536 domains).
- *   Revert: comment out the vect_mul_v5 call and uncomment the #if/#else block.
- */
-void vect_mul(uint64_t *o, const uint64_t *v1, const uint64_t *v2)
+static void clmul_leaf(uint64_t * __restrict__ r,
+                       const uint64_t * __restrict__ a,
+                       const uint64_t * __restrict__ b,
+                       size_t n)
 {
-    /* Current implementation: paper-optimized CRT bypass path. */
-    vect_mul_v5(o, v1, v2);
+    memset(r, 0, 2u * n * sizeof(uint64_t));
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < n; j++) {
+            uint64_t lo, hi;
+            clmul64(a[i], b[j], &lo, &hi);
+            r[i + j]     ^= lo;
+            r[i + j + 1] ^= hi;
+        }
+    }
+}
 
-    /* Original tower-field FAFFT path (fallback — uncomment to revert):
-#if defined(HQC_128)
-    uint32_t prod[65536 / 32] = {0};
-    bmul2_4096_to_8192((uint8_t *)prod, (const uint8_t *)v1, (const uint8_t *)v2);
-    reduce_strict_u32((uint32_t *)o, prod);
-#else
-    uint32_t prod[131072 / 32] = {0};
-    bmul2_8192_to_16384((uint8_t *)prod, (const uint8_t *)v1, (const uint8_t *)v2);
-    reduce_strict_u32((uint32_t *)o, prod);
-#endif
-    */
+static void karatsuba_poly(uint64_t * __restrict__ r,
+                           const uint64_t * __restrict__ a,
+                           const uint64_t * __restrict__ b,
+                           size_t n,
+                           uint64_t * __restrict__ tmp)
+{
+    if (n <= KARATSUBA_THRESH) {
+        clmul_leaf(r, a, b, n);
+        return;
+    }
+
+    size_t m  = n >> 1;
+    size_t n0 = m;
+    size_t n1 = n - m;
+
+    uint64_t *z0    = tmp;
+    uint64_t *z2    = z0   + 2u * n;
+    uint64_t *zmid  = z2   + 2u * n;
+    uint64_t *ta    = zmid + 2u * n;
+    uint64_t *tb    = ta   + n;
+    uint64_t *child = tmp  + 8u * n;
+
+    karatsuba_poly(z0,   a,     b,     n0, child);
+    karatsuba_poly(z2,   a + m, b + m, n1, child);
+    for (size_t i = 0; i < n1; i++) {
+        ta[i] = (i < n0 ? a[i] : 0ULL) ^ a[m + i];
+        tb[i] = (i < n0 ? b[i] : 0ULL) ^ b[m + i];
+    }
+    karatsuba_poly(zmid, ta, tb, n1, child);
+
+    memset(r, 0, 2u * n * sizeof(uint64_t));
+    for (size_t i = 0; i < 2u * n0; i++) r[i]         ^= z0[i];
+    for (size_t i = 0; i < 2u * n1; i++) r[2u*m + i]  ^= z2[i];
+    for (size_t i = 0; i < 2u * n1; i++) {
+        uint64_t z0i = (i < 2u*n0 ? z0[i] : 0ULL);
+        r[m + i] ^= zmid[i] ^ z0i ^ z2[i];
+    }
+}
+
+static void reduce_poly(uint64_t * __restrict__ o,
+                        const uint64_t * __restrict__ a)
+{
+    const int shift = (int)(PARAM_N & 0x3Fu);
+    const int inv   = 64 - shift;
+    for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
+        uint64_t hi   = a[i + VEC_N_SIZE_64 - 1u] >> shift;
+        uint64_t carry = (shift == 0) ? 0ULL : (a[i + VEC_N_SIZE_64] << inv);
+        o[i] = a[i] ^ hi ^ carry;
+    }
+    const uint64_t mask = (shift == 0) ? ~0ULL : ((1ULL << shift) - 1ULL);
+    o[VEC_N_SIZE_64 - 1u] &= mask;
+}
+
+void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
+{
+    uint64_t unreduced[2u * VEC_N_SIZE_64];
+    uint64_t tmp_buf[TMP_WORDS];
+    karatsuba_poly(unreduced, a, b, VEC_N_SIZE_64, tmp_buf);
+    reduce_poly(o, unreduced);
 }

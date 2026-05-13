@@ -1,30 +1,85 @@
 experiments:
-  - id: EXP-fafft-v3-zvc
-    date: 2026-05-05
-    hypothesis: "Evaluate early ZVC/karatsuba FAFFT integration against scalar baseline."
-    status: deprecated
-    path: experiments/EXP-fafft-v3-zvc
+  # ── Scalar (fafft_zbc) losers ──────────────────────────────────────────────
 
   - id: EXP-fafft-v4-task-pipeline
     date: 2026-05-05
     hypothesis: "Evaluate staged task-pipeline FAFFT variants for lower instret at HQC-128."
-    status: deprecated
+    status: promoted_to_stable
+    verdict: "ZVBC WINNER (cache-busted): 178,007 polymul instructions at L128 with best KEM medians. Promoted to src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c."
     path: experiments/EXP-fafft-v4-task-pipeline
+    hardware_class: crypto_vector_zvbc
+    metrics:
+      level_128:
+        polymul_instructions: 178007
+        kem_keypair_instructions: 421161
+        kem_encaps_instructions: 886630
+        kem_decaps_instructions: 2131697
+      measured: 2026-05-13
+      tool: spike
+      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 
   - id: EXP-fafft-v6-rvv-schoolbook
     date: 2026-05-05
     hypothesis: "Evaluate RVV schoolbook-oriented FAFFT path for vector acceleration."
     status: deprecated
+    verdict: "Experiment directory not present in workspace — never implemented."
     path: experiments/EXP-fafft-v6-rvv-schoolbook
+    hardware_class: standard_vector_rvv_only
+    metrics:
+      level_128:
+        polymul_instructions: TODO
+        kem_keypair_instructions: TODO
+        kem_encaps_instructions: TODO
+        kem_decaps_instructions: TODO
 
   - id: EXP-fafft-v5-promoted
     date: 2026-05-05
     hypothesis: "Promote CRT-bypass RVV v5 as stable FAFFT backend."
-    status: promoted_to_stable
-    path: src/poly_mul/scalar/fafft_zbc/fafft_v5.c
+    status: deprecated
+    verdict: "Lost to EXP-fafft-v4-task-pipeline in cache-busted run (179,963 vs 178,007 polymul at L128) and higher KEM medians. Archived to experiments/EXP-fafft-zvbc-v5/."
+    path: experiments/EXP-fafft-zvbc-v5
+    hardware_class: crypto_vector_zvbc
+    metrics:
+      level_128:
+        polymul_instructions: 179963
+        kem_keypair_instructions: 423117
+        kem_encaps_instructions: 890542
+        kem_decaps_instructions: 2137565
+      measured: 2026-05-13
+      tool: spike
+      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
+
+  # ── ZVBC (fafft_zvbc) losers ───────────────────────────────────────────────
+
+  - id: EXP-fafft-zvbc-v0-towerfield
+    date: 2026-05-13
+    hypothesis: "Original fafft_zvbc using tower-field FAFFT ref/ sources with Zvbc compile flags."
+    status: deprecated
+    verdict: "ZVBC LOSER — tower-field FAFFT is semantically incompatible with vclmul.vv; 8.97x slower than v4 winner."
+    path: experiments/EXP-fafft-zvbc-v0-towerfield
+    hardware_class: crypto_vector_zvbc
+    metrics:
+      level_128:
+        polymul_instructions: 1731112
+        kem_keypair_instructions: TODO
+        kem_encaps_instructions: TODO
+        kem_decaps_instructions: TODO
+      measured: 2026-05-13
+      tool: spike
+      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
+
+  # ── Promoted scalar baseline ───────────────────────────────────────────────
 
   - id: EXP-hybrid-v3-promoted
     date: 2026-05-05
     hypothesis: "Promote scalar hybrid v3 thresholded recursion as stable hybrid backend."
     status: promoted_to_stable
     path: src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c
+
+  - id: EXP-fafft-rvv-blueprint
+    date: 2026-05-13
+    hypothesis: "Preserve RVV-only FAFFT helper blueprint as archived reference outside stable src/."
+    status: deprecated
+    verdict: "Archived for reference; removed from stable fafft_zbc build path for ZVBC-focused scope cleanup."
+    path: experiments/EXP-fafft-rvv-blueprint
+    hardware_class: standard_vector_rvv_only

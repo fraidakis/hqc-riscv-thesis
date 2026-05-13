@@ -227,20 +227,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "fafft_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft_v5.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/rvv_only/fafft/fafft_rvv.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/btfy_consts_gft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/btfy_ffft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/encode.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gft_mul_vi.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/CRT_fft_hqc1.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/CRT_fft_hqc3.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/radix16_base.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/radix16_81.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/radix16_193.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c)
         elseif(POLYMUL STREQUAL "hybrid")
             # Phase 1b v3: Scalar Hybrid Architecture.
             # hybrid.c wraps vect_mul_hybrid_v3 (v3/hybrid_v3.c):
@@ -253,19 +240,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc/hybrid.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c)
         elseif(POLYMUL STREQUAL "fafft_zvbc")
-            # fafft_zvbc reuses all fafft_zbc ref sources, but replaces
-            # gfmul_fft.c with fafft_vclmul.c which provides vect_mul +
-            # bmul2_* functions (research finding: vclmul.vv does not help
-            # tower-field FAFFT arithmetic; see fafft_vclmul.c for details).
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/btfy_consts_gft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/btfy_ffft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/encode.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gft_mul_vi.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c)
         elseif(POLYMUL STREQUAL "karatsuba_zvbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c)
@@ -312,12 +288,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
             # Zvbc variants require --isa=rv64gcv_zvbc on Spike at runtime.
             # run_kat.sh detects this compile-time definition and adjusts accordingly.
             target_compile_definitions(${KAT_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
-        endif()
-        if(POLYMUL STREQUAL "fafft_zvbc")
-            # fafft_vclmul.c uses #include "ref/gfmul_fft.h" etc.; the ref/ tree
-            # lives under fafft_zbc/, so add that directory to the search path.
-            target_include_directories(${KAT_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc)
         endif()
         if(POLYMUL STREQUAL "hybrid")
             target_compile_definitions(${KAT_TARGET} PRIVATE
@@ -385,10 +355,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
         endif()
-        if(POLYMUL STREQUAL "fafft_zvbc")
-            target_include_directories(${BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc)
-        endif()
+
         if(POLYMUL STREQUAL "hybrid")
             target_compile_definitions(${BENCH_TARGET} PRIVATE
                 HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
@@ -446,10 +413,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
         )
         if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
-        endif()
-        if(POLYMUL STREQUAL "fafft_zvbc")
-            target_include_directories(${POLYMUL_BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc)
         endif()
         if(POLYMUL STREQUAL "hybrid")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
@@ -516,10 +479,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 )
                 if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
                     target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
-                endif()
-                if(POLYMUL STREQUAL "fafft_zvbc")
-                    target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE
-                        ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc)
                 endif()
                 if(POLYMUL STREQUAL "hybrid")
                     target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE

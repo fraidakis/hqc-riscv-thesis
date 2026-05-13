@@ -1,82 +1,86 @@
-/* src/poly_mul/fafft_zvbc/fafft_vclmul.c
+/* src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c
  *
- * FAFFT compiled for Zvbc; RVV-vectorized where
- * applicable.
+ * ZVBC polynomial multiplication — promoted winner from the FAFFT showdown.
  *
- * ── Architecture decision ───────────────────────────────────────────────
- * The existing FAFFT (fafft_zbc) uses the Jang et al. additive-FFT kernel
- * with GF(2^32) ARITHMETIC ENCODED IN A BIT-SLICED TOWER-FIELD
- * REPRESENTATION (gf232v_mul from gfv_tower.h).  In this representation,
- * each uint32_t word carries ONE BIT from EACH of 32 parallel GF(2^32)
- * elements — the inner operations are AND and XOR on packed 32-bit words,
- * NOT carry-less polynomial multiplications.
+ * Algorithm: pure RVV vclmul.vv schoolbook with ring reduction.
+ * Origin:    experiments/EXP-fafft-v4-task-pipeline (task4)
+ * Promoted:  2026-05-13
  *
- * vclmul.vv computes carry-less products of 64-bit BINARY POLYNOMIALS.
- * This is semantically incompatible with the bit-sliced tower-field
- * arithmetic: applying vclmul.vv to the packed words would produce wrong
- * intermediate values and corrupt the result.
+ * L128 polymul_instructions: 193,177
+ *   vs fafft_zvbc v0 (tower-field FAFFT): 1,731,112  (8.97x faster)
+ *   vs fafft_zvbc v5 (CRT+vclmul):          198,453  (2.7% faster)
  *
- * Consequence:  vclmul.vv CANNOT replace gf232v_mul in the existing FAFFT.
- * The vectorisation axes available without restructuring the algorithm are:
+ * ── Algorithm ───────────────────────────────────────────────────────────
+ * For each 64-bit word a[i], broadcast it into a vector register
+ * (vmv.v.x) and multiply against a window of b[j..j+vl-1] using
+ * vclmul.vv (low 64 bits) and vclmulh.vv (high 64 bits).  Results are
+ * XOR-accumulated into a double-width buffer.  Final ring reduction folds
+ * the 2n-word product modulo x^PARAM_N + 1.
  *
- *   Axis A — vxor.vv (LMUL=4) for the btfy butterfly XOR combines:
- *     btfy_layer's inner `for(j=0;j<32;j++) data[i+j] ^= ...` loop → 4
- *     vector instructions instead of 32 scalar word stores.  (This axis is
- *     already present in fafft_rvv.c for fafft_zbc; fafft_zvbc inherits it
- *     via the shared ref/ sources that are compiled with RVV-capable flags.)
- *
- *   Axis B — vxor.vv for the final modular reduction (reduce.c).
- *
- * This means fafft_zvbc ≈ fafft_zbc in instruction-count, confirming the
- * thesis research finding:
- *   "For HQC-128/192/256, vclmul.vv benefits Karatsuba (direct leaf
- *    speedup) but NOT tower-field FAFFT (incompatible arithmetic model).
- *    Vector Karatsuba retains the crown."
- *
- * Detected at compile time via HQC_POLYMUL_ZVBC=1 (set by CMakeLists.txt).
- *
- * Provides the same interface as vendor/hqc-ref/src/ref/gf2x.c:
- *   void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b);
+ * Provides: void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
  */
 
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 #include <riscv_vector.h>
 #include "parameters.h"
 
-/* Ref FAFFT headers — from fafft_zbc/ref/. */
-#include "ref/gfmul_fft.h"
-#include "ref/reduce.h"
-
 #ifndef HQC_POLYMUL_ZVBC
 #  error "fafft_vclmul.c must be compiled with -DHQC_POLYMUL_ZVBC=1"
 #endif
 
-#ifndef VEC_N_SIZE_32
-#define VEC_N_SIZE_32 ((PARAM_N + 31) / 32)
+#ifndef VEC_N_SIZE_64
+#  define VEC_N_SIZE_64 ((PARAM_N + 63) / 64)
 #endif
 
-/*
- * vect_mul — HQC polynomial multiplication in GF(2)[x]/(x^PARAM_N + 1).
- *
- * Structurally identical to fafft_zbc/fafft.c.  The speedup over
- * fafft_zbc (if any) comes from the RVV-vectorised btfy_layer XOR loops
- * (Axis A above) which are compiled into btfy_ffft.c at higher SIMD width
- * when -march includes the V extension.  The Zvbc extension itself does
- * not contribute additional speedup for this algorithm.
- *
- * Benchmarking on Spike (see analysis/benchmarks/canonical/) confirms
- * whether the small RVV-XOR benefit is measurable vs fafft_zbc.
- */
-void vect_mul(uint64_t *o, const uint64_t *v1, const uint64_t *v2)
+/* Maximum supported words across all three HQC levels (256 at 64-bit packing). */
+#define VCLMUL_MAX_WORDS 1024u
+
+/* Ring reduction: fold the 2n-word unreduced product mod x^PARAM_N + 1. */
+static void vclmul_reduce(uint64_t * __restrict__ o,
+                          const uint64_t * __restrict__ a,
+                          size_t n)
 {
-#if defined(HQC_128)
-    uint32_t prod[65536 / 32] = {0};
-    bmul2_4096_to_8192((uint8_t *)prod, (const uint8_t *)v1, (const uint8_t *)v2);
-    reduce((uint32_t *)o, prod);
-#else
-    uint32_t prod[131072 / 32] = {0};
-    bmul2_8192_to_16384((uint8_t *)prod, (const uint8_t *)v1, (const uint8_t *)v2);
-    reduce((uint32_t *)o, prod);
-#endif
+    const int shift = (int)(PARAM_N & 0x3Fu);
+    const int inv   = 64 - shift;
+    for (size_t i = 0; i < n; i++) {
+        uint64_t hi    = a[i + n - 1u] >> shift;
+        uint64_t carry = (shift == 0) ? 0ULL : (a[i + n] << inv);
+        o[i] = a[i] ^ hi ^ carry;
+    }
+    const uint64_t mask = (shift == 0) ? ~0ULL : ((1ULL << shift) - 1ULL);
+    o[n - 1u] &= mask;
+}
+
+void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
+{
+    const size_t n = VEC_N_SIZE_64;
+
+    /* Double-width accumulation buffer for the unreduced product. */
+    uint64_t C[2u * VCLMUL_MAX_WORDS + 2u];
+    memset(C, 0, (2u * n + 2u) * sizeof(uint64_t));
+
+    for (size_t i = 0; i < n; i++) {
+        uint64_t ai = a[i];
+        size_t j = 0;
+        while (j < n) {
+            size_t vl = __riscv_vsetvl_e64m4(n - j);
+            vuint64m4_t vb  = __riscv_vle64_v_u64m4(b + j, vl);
+            vuint64m4_t va  = __riscv_vmv_v_x_u64m4(ai, vl);
+            vuint64m4_t vlo = __riscv_vclmul_vv_u64m4(va, vb, vl);
+            vuint64m4_t vhi = __riscv_vclmulh_vv_u64m4(va, vb, vl);
+            /* Accumulate carry-less product lo-words into C[i+j]. */
+            vuint64m4_t vc_lo = __riscv_vle64_v_u64m4(C + i + j, vl);
+            __riscv_vse64_v_u64m4(C + i + j,
+                __riscv_vxor_vv_u64m4(vc_lo, vlo, vl), vl);
+            /* Accumulate carry-less product hi-words into C[i+j+1]. */
+            vuint64m4_t vc_hi = __riscv_vle64_v_u64m4(C + i + j + 1, vl);
+            __riscv_vse64_v_u64m4(C + i + j + 1,
+                __riscv_vxor_vv_u64m4(vc_hi, vhi, vl), vl);
+            j += vl;
+        }
+    }
+
+    vclmul_reduce(o, C, n);
 }
