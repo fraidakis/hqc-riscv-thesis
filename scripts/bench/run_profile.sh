@@ -22,10 +22,12 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 bench_load_implemented_variants "$REPO_ROOT"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
+PROFILE_TMP_ROOT="$REPO_ROOT/.tmp"
 
 MODE=""
 VARIANT=""
 LEVEL="128"
+LEVEL_SET=0
 REPORT_FLAG=0
 TOP_N=""
 COMPARE_WITH=""
@@ -47,6 +49,24 @@ format_int() {
         }
         printf "%d%s", n, out
     }'
+}
+
+bench_print_variant_header() {
+    local variant="$1"
+    local mode_label="$2"
+    echo -e "\n📦 ${variant} (${mode_label})"
+}
+
+bench_print_level_branch() {
+    local level="$1"
+    local idx="$2"
+    local total_levels="$3"
+    local status="$4"
+    local branch="├──"
+    if [[ "$idx" -eq "$total_levels" ]]; then
+        branch="└──"
+    fi
+    echo " ${branch} L${level} ⋯ ${status}"
 }
 
 profile_cache_mode() {
@@ -83,7 +103,7 @@ profile_cache_mode() {
     echo "# commit: ${GIT_HASH}" >> "$csv_out"
     echo "# variant: ${variant}" >> "$csv_out"
     echo "# cache_config: ${dc_config}" >> "$csv_out"
-    echo "dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses" >> "$csv_out"
+    echo "level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses" >> "$csv_out"
 
     echo -e "\n📦 ${variant} (cache - ${profile_kind})"
 
@@ -100,7 +120,10 @@ profile_cache_mode() {
         target_levels=("$LEVEL")
     fi
 
+    local total_levels="${#target_levels[@]}"
+    local idx=0
     for level in "${target_levels[@]}"; do
+        idx=$((idx + 1))
         local build_dir="$REPO_ROOT/build/spike_cacheprof_hqc${level}_${variant}"
         local target="${target_prefix}_hqc${level}_${variant}"
         local elf="$build_dir/${target}.elf"
@@ -137,9 +160,9 @@ profile_cache_mode() {
 
         dc_misses=$((dc_read_misses + dc_write_misses))
 
-        echo "${dc_misses},${dc_read_misses},${dc_write_misses},${dc_writebacks},${dc_bytes_read},${dc_bytes_written},${dc_read_accesses},${dc_write_accesses}" >> "$csv_out"
+        echo "${level},${dc_misses},${dc_read_misses},${dc_write_misses},${dc_writebacks},${dc_bytes_read},${dc_bytes_written},${dc_read_accesses},${dc_write_accesses}" >> "$csv_out"
         local branch="├──"
-        if [[ "$level" == "256" ]]; then branch="└──"; fi
+        if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
         echo " ${branch} L${level} ⋯ $(format_int "$dc_misses") misses (R=$(format_int "$dc_read_misses"), W=$(format_int "$dc_write_misses")) | WB=$(format_int "$dc_writebacks")"
 
         # Auto-delete raw log files
@@ -181,7 +204,7 @@ profile_memory_mode() {
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
     echo "# commit: ${GIT_HASH}" >> "$csv_out"
     echo "# variant: ${variant}" >> "$csv_out"
-    echo "load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store" >> "$csv_out"
+    echo "level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store" >> "$csv_out"
 
     echo -e "\n📦 ${variant} (memory - ${profile_kind})"
 
@@ -192,7 +215,10 @@ profile_memory_mode() {
         target_levels=("$LEVEL")
     fi
 
+    local total_levels="${#target_levels[@]}"
+    local idx=0
     for level in "${target_levels[@]}"; do
+        idx=$((idx + 1))
         local build_dir="$REPO_ROOT/build/qemu_memprof_hqc${level}_${variant}"
         local target="${target_prefix}_hqc${level}_${variant}"
         local elf="$build_dir/${target}.elf"
@@ -249,9 +275,9 @@ END{printf "%d %d %d %d", lb, sb, li, si}
         load_lines=$(( (load_bytes + 63) / 64 ))
         store_lines=$(( (store_bytes + 63) / 64 ))
 
-        echo "${load_ins},${store_ins},${load_bytes},${store_bytes},${load_lines},${store_lines}" >> "$csv_out"
+        echo "${level},${load_ins},${store_ins},${load_bytes},${store_bytes},${load_lines},${store_lines}" >> "$csv_out"
         local branch="├──"
-        if [[ "$level" == "256" ]]; then branch="└──"; fi
+        if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
         echo " ${branch} L${level} ⋯ LdIns=$(format_int "$load_ins") StIns=$(format_int "$store_ins") | LdB=$(format_int "$load_bytes") StB=$(format_int "$store_bytes")"
 
         # Auto-delete the massive trace file
@@ -268,11 +294,18 @@ profile_trace_mode() {
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
+    local latest_status_tmp=""
+    local trace_tmp_dir=""
     if [[ "$PROFILE_POLYMUL" == "1" ]]; then
         profile_kind="PolyMul"
         target_prefix="bench_polymul"
         out_prefix="poly"
     fi
+    cleanup_profile_trace_mode() {
+        rm -rf "$trace_tmp_dir"
+        rmdir "$PROFILE_TMP_ROOT" 2>/dev/null || true
+        rm -f "$latest_status_tmp"
+    }
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local spike="${riscv}/bin/spike"
     local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm}"
@@ -289,6 +322,10 @@ profile_trace_mode() {
 
     local out_dir="$REPO_ROOT/analysis/profiles/traces/${track}/${variant}"
     mkdir -p "$out_dir"
+    mkdir -p "$PROFILE_TMP_ROOT"
+    trace_tmp_dir="$PROFILE_TMP_ROOT/run_profile_trace_${variant}_$$"
+    mkdir -p "$trace_tmp_dir"
+    trap cleanup_profile_trace_mode EXIT INT TERM
 
     local map_pcs_lines_arg=""
     local trace_suffix="hotspots"
@@ -312,7 +349,12 @@ profile_trace_mode() {
         target_levels=("$LEVEL")
     fi
 
+    local total_levels="${#target_levels[@]}"
+    local idx=0
+    latest_status_tmp="$(mktemp)"
+
     for level in "${target_levels[@]}"; do
+        idx=$((idx + 1))
         local target="${target_prefix}_hqc${level}_${variant}"
         bench_build_target_if_configured "$build_dir" "$target" "trace" >/dev/null 2>&1 || true
 
@@ -347,7 +389,7 @@ profile_trace_mode() {
             | awk '/core   0:/ {print $3}' \
             | sed 's/^(//' \
             | sed 's/)//' \
-            | sort \
+            | sort -T "$trace_tmp_dir" \
             | uniq -c \
             | python3 "$REPO_ROOT/scripts/report/map_pcs.py" ${map_pcs_lines_arg:+$map_pcs_lines_arg} "$elf" - >> "$csv_out"
 
@@ -355,16 +397,27 @@ profile_trace_mode() {
         local elapsed=$((end_time - start_time))
 
         local branch="├──"
-        if [[ "$level" == "256" ]]; then branch="└──"; fi
+        if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
         if [[ "$PROFILE_LINES" == "1" ]]; then
             echo " ${branch} L${level} ⋯ generated trace (lines) in ${elapsed}s"
         else
             echo " ${branch} L${level} ⋯ generated trace in ${elapsed}s"
         fi
 
-        bench_refresh_tracked_csv "$csv_out" "${out_dir}/${out_prefix}_hqc${level}_${trace_suffix}_latest.csv" || true
+        if ! bench_refresh_tracked_csv_quiet "$csv_out" "${out_dir}/${out_prefix}_hqc${level}_${trace_suffix}_latest.csv" >> "$latest_status_tmp"; then
+            true
+        fi
 
     done
+
+    echo ""
+    if grep -q '^UPDATED|' "$latest_status_tmp"; then
+        grep '^UPDATED|' "$latest_status_tmp" | tail -n 1 | cut -d'|' -f2-
+    elif [[ -s "$latest_status_tmp" ]]; then
+        tail -n 1 "$latest_status_tmp" | cut -d'|' -f2-
+    fi
+    trap - EXIT INT TERM
+    cleanup_profile_trace_mode
 }
 
 profile_histogram_mode() {
@@ -421,7 +474,13 @@ profile_histogram_mode() {
 
     echo -e "\n📦 ${variant} (histogram - ${profile_kind})"
 
+    local total_levels="${#target_levels[@]}"
+    local idx=0
+    local latest_status_tmp
+    latest_status_tmp="$(mktemp)"
+
     for level in "${target_levels[@]}"; do
+        idx=$((idx + 1))
         local target="${target_prefix}_hqc${level}_${variant}"
         bench_build_target_if_configured "$build_dir" "$target" "histogram" >/dev/null 2>&1 || true
 
@@ -452,14 +511,24 @@ profile_histogram_mode() {
         python3 "$REPO_ROOT/scripts/report/parse_histogram.py" "$hist" "$elf" "$objdump_bin" >> "$mix_file"
         rm -f "$hist"
         local prefix=" ├──"
-        if [[ "$level" == "256" ]]; then prefix=" └──"; fi
+        if [[ "$idx" -eq "$total_levels" ]]; then prefix=" └──"; fi
         echo "${prefix} L${level} ⋯ $(basename "$mix_file")"
-        bench_refresh_tracked_csv "$mix_file" "${out_dir}/${out_prefix}_hqc${level}_latest.csv" || true
+        if ! bench_refresh_tracked_csv_quiet "$mix_file" "${out_dir}/${out_prefix}_hqc${level}_latest.csv" >> "$latest_status_tmp"; then
+            true
+        fi
         if [[ "$REPORT_FLAG" -eq 1 ]]; then
             cat "$mix_file" | head -n "$(( ${TOP_N:-20} + 3 ))"
             echo ""
         fi
     done
+
+    echo ""
+    if grep -q '^UPDATED|' "$latest_status_tmp"; then
+        grep '^UPDATED|' "$latest_status_tmp" | tail -n 1 | cut -d'|' -f2-
+    elif [[ -s "$latest_status_tmp" ]]; then
+        tail -n 1 "$latest_status_tmp" | cut -d'|' -f2-
+    fi
+    rm -f "$latest_status_tmp"
 
     echo ""
     echo "✔️ Saved: ${out_dir}"
@@ -488,6 +557,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --level)
             LEVEL="$2"
+            LEVEL_SET=1
             shift 2
             ;;
         --report)
@@ -530,6 +600,10 @@ if [[ -z "$MODE" ]]; then
     echo "ERROR: one of --cache|--memory|--trace|--histogram is required" >&2
     usage >&2
     exit 2
+fi
+
+if [[ "$LEVEL_SET" -eq 0 ]] && [[ "$MODE" == "cache" || "$MODE" == "memory" ]]; then
+    LEVEL="all"
 fi
 
 run_mode_for_variant() {
@@ -583,18 +657,23 @@ else
     batch_levels=("$LEVEL")
 fi
 
-if [[ "${#batch_variants[@]}" -gt 1 || "${#batch_levels[@]}" -gt 1 ]]; then
-    profile_require_parallel
+if [[ "${#batch_variants[@]}" -gt 1 ]]; then
+    if [[ "$MODE" == "cache" || "$MODE" == "memory" ]]; then
+        for v in "${batch_variants[@]}"; do
+            VARIANT="$v"
+            run_mode_for_variant "$v"
+        done
+    else
+        profile_require_parallel
 
-    jobs="$(profile_select_parallel_jobs)"
-    declare -a cmds=()
-    v=""
-    l=""
-    cmd=""
+        jobs="$(profile_select_parallel_jobs)"
+        declare -a cmds=()
+        v=""
+        l=""
+        cmd=""
 
-    for v in "${batch_variants[@]}"; do
-        for l in "${batch_levels[@]}"; do
-            cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --variant ${v} --level ${l}"
+        for v in "${batch_variants[@]}"; do
+            cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --variant ${v} --level ${LEVEL}"
             if [[ "$REPORT_FLAG" -eq 1 ]]; then cmd+=" --report"; fi
             if [[ -n "$TOP_N" ]]; then cmd+=" --top ${TOP_N}"; fi
             if [[ -n "$COMPARE_WITH" ]]; then cmd+=" --compare-with ${COMPARE_WITH}"; fi
@@ -603,9 +682,9 @@ if [[ "${#batch_variants[@]}" -gt 1 || "${#batch_levels[@]}" -gt 1 ]]; then
             if [[ "$PROFILE_LINES" -eq 1 ]]; then cmd+=" --lines"; fi
             cmds+=("$cmd")
         done
-    done
 
-    printf '%s\n' "${cmds[@]}" | parallel --jobs "$jobs"
+        printf '%s\n' "${cmds[@]}" | parallel --jobs "$jobs"
+    fi
 else
     run_mode_for_variant "${batch_variants[0]}"
 fi

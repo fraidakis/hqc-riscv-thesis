@@ -138,21 +138,61 @@ bench_refresh_tracked_csv() {
     local target_dir
     local archive_dir
     local archived_src
+    local abs_dst
 
     target_dir="$(dirname "$dst")"
     archive_dir="${target_dir}/archive"
     archived_src="${archive_dir}/$(basename "$src")"
+
+    if command -v realpath >/dev/null 2>&1; then
+        abs_dst="$(realpath -m "$dst")"
+    elif [[ "$dst" == /* ]]; then
+        abs_dst="$dst"
+    else
+        abs_dst="$(cd "$target_dir" && pwd)/$(basename "$dst")"
+    fi
 
     mkdir -p "$target_dir"
     mkdir -p "$archive_dir"
     if bench_csv_payload_matches "$src" "$dst"; then
         mv -f "$src" "$archived_src"
         echo ""
-        echo " ⏭ Unchanged: $dst"
+        echo " ⏭ Unchanged: $abs_dst"
         return 1
     fi
     cp -f "$src" "$dst"
     mv -f "$src" "$archived_src"
     echo ""
-    echo " 🔄 Updated: $dst"
+    echo " 🔄 Updated: $abs_dst"
+}
+
+bench_refresh_tracked_csv_quiet() {
+    local src="$1" dst="$2"
+    local target_dir
+    local archive_dir
+    local archived_src
+    local abs_dst
+
+    target_dir="$(dirname "$dst")"
+    archive_dir="${target_dir}/archive"
+    archived_src="${archive_dir}/$(basename "$src")"
+
+    if command -v realpath >/dev/null 2>&1; then
+        abs_dst="$(realpath -m "$dst")"
+    elif [[ "$dst" == /* ]]; then
+        abs_dst="$dst"
+    else
+        abs_dst="$(cd "$target_dir" && pwd)/$(basename "$dst")"
+    fi
+
+    mkdir -p "$target_dir"
+    mkdir -p "$archive_dir"
+    if bench_csv_payload_matches "$src" "$dst"; then
+        mv -f "$src" "$archived_src"
+        echo "UNCHANGED| ⏭ Unchanged: $abs_dst"
+        return 1
+    fi
+    cp -f "$src" "$dst"
+    mv -f "$src" "$archived_src"
+    echo "UPDATED| 🔄 Updated: $abs_dst"
 }

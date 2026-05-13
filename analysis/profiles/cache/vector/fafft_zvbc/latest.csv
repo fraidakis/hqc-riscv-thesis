@@ -1,8 +1,0 @@
-# date: 2026-05-12 13:58
-# commit: d1b8bd3
-# variant: fafft_zvbc
-# cache_config: 512:8:64
-dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-828,149,679,35,50023640,20767574,8837252,4141671
-1834,392,1442,257,107730802,46378834,19211154,9212288
-2012,444,1568,280,108514682,46542914,19324444,9246741

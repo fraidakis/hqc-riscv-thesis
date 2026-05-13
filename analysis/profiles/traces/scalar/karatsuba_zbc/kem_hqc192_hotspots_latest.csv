@@ -1,5 +1,5 @@
-# date: 2026-05-13 11:45
-# commit: dc635a5
+# date: 2026-05-13 20:07
+# commit: a467a3d
 # variant: karatsuba_zbc
 # level: 192
 function,instructions,percentage
@@ -10,14 +10,14 @@ karatsuba_clmul,3033114,13.09
 KeccakF1600_StatePermute,1129052,4.87
 clmul64,695328,3.00
 gf_carryless_mul,573534,2.48
+keccak_inc_absorb,279123,1.20
 hadamard,276976,1.20
 memcpy,275464,1.19
-sha3_256_inc_absorb,272535,1.18
 expand_and_sum,199808,0.86
 compare_u32,193230,0.83
 keccak_inc_squeeze,187760,0.81
-vect_sample_fixed_weight2,173952,0.75
-reed_muller_decode,144018,0.62
+vect_generate_random_support2,173796,0.75
+find_peaks,128899,0.56
 gf_reduce,121806,0.53
 gf_mul,113373,0.49
 vect_generate_random_support1,111751,0.48
@@ -27,37 +27,41 @@ vect_add,35920,0.16
 ?? ??:0,21311,0.09
 compute_syndromes,18021,0.08
 gf_square,17761,0.08
+reed_muller_decode,15119,0.07
 compute_elp,12752,0.06
 reed_solomon_encode,12690,0.05
 fft_rec,11748,0.05
 compute_error_values,6986,0.03
 _start,6908,0.03
-reed_muller_encode,6566,0.03
 compute_subset_sums,5384,0.02
-shake256_inc_absorb,4580,0.02
 gf_inverse,3968,0.02
+encode,3696,0.02
 fft_retrieve_error_poly,3462,0.01
-sha3_512_inc_absorb,2689,0.01
+reed_muller_encode,2870,0.01
 barrett_reduce,2416,0.01
 fft,2161,0.01
 compute_z_poly,1529,0.01
 store64,1221,0.01
-sha3_512_inc_finalize,1092,0.00
 radix,1083,0.00
+sha3_512_inc_finalize,1056,0.00
 xof_get_bytes,664,0.00
 shake256_inc_squeeze,406,0.00
 hqc_pke_encrypt,398,0.00
 correct_errors,393,0.00
+shake256_inc_absorb,323,0.00
 crypto_kem_dec,308,0.00
 xof_init,264,0.00
+keccak_squeezeblocks,255,0.00
 keccak_inc_finalize,228,0.00
-keccak_squeezeblocks,219,0.00
 keccak_inc_init,210,0.00
 hqc_pke_keygen,188,0.00
+sha3_256_inc_absorb,182,0.00
 emit_csv_row,180,0.00
+sha3_512_inc_absorb,176,0.00
 radix_big,174,0.00
 vect_mul,168,0.00
 crypto_kem_keypair,156,0.00
+vect_sample_fixed_weight2,156,0.00
 crypto_kem_enc,151,0.00
 reed_solomon_decode,117,0.00
 vect_sample_fixed_weight1,111,0.00

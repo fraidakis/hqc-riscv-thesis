@@ -1,5 +1,7 @@
-# date: 2026-05-13 13:29
-# commit: dc635a5
+# date: 2026-05-13 17:28
+# commit: a467a3d
 # variant: hybrid
-load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-1376,1378,7877,11811,124,185
+level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
+128,1376,1378,7877,11811,124,185
+192,1479,1375,8271,12773,130,200
+256,1469,1349,8203,12642,129,198

@@ -1,5 +1,5 @@
-# date: 2026-05-13 00:48
-# commit: dc635a5
+# date: 2026-05-13 20:48
+# commit: a467a3d
 # variant: hybrid
 # level: 192
 function,instructions,percentage
@@ -19,8 +19,8 @@ hybrid_v3_rec at hybrid_v3.c:183,311016,1.47
 gf_carryless_mul at gf.c:132,280098,1.32
 hybrid_v3_rec at hybrid_v3.c:185,269856,1.27
 compare_u32 at vector.c:24,193230,0.91
-KeccakF1600_StatePermute at fips202.c:0,192238,0.91
-clmul_leaf at hybrid_v3.c:0,182436,0.86
+KeccakF1600_StatePermute at fips202.c:?,192238,0.91
+clmul_leaf at hybrid_v3.c:?,182436,0.86
 keccak_inc_absorb at fips202.c:438,178780,0.84
 expand_and_sum at reed_muller.c:132,166656,0.79
 memcpy at mem.c:18,165068,0.78
@@ -40,7 +40,7 @@ hadamard at reed_muller.c:97,76216,0.36
 vect_generate_random_support1 at vector.c:87,74570,0.35
 keccak_inc_squeeze at fips202.c:504,70034,0.33
 gf_reduce at gf.c:91,60064,0.28
-hybrid_v3_rec at hybrid_v3.c:0,57552,0.27
+hybrid_v3_rec at hybrid_v3.c:?,57552,0.27
 gf_mul at gf.c:157,53352,0.25
 gf_reduce at gf.c:90,45048,0.21
 hybrid_v3_rec at hybrid_v3.c:186,44976,0.21
@@ -68,10 +68,10 @@ KeccakF1600_StatePermute at fips202.c:229,16620,0.08
 KeccakF1600_StatePermute at fips202.c:206,16620,0.08
 KeccakF1600_StatePermute at fips202.c:207,16620,0.08
 KeccakF1600_StatePermute at fips202.c:209,16620,0.08
-vect_write_support_to_vector at vector.c:0,16149,0.08
+vect_write_support_to_vector at vector.c:?,16149,0.08
 find_peaks at reed_muller.c:156,14336,0.07
-find_peaks at reed_muller.c:0,14043,0.07
-reed_muller_decode at reed_muller.c:0,13974,0.07
+find_peaks at reed_muller.c:?,14043,0.07
+reed_muller_decode at reed_muller.c:?,13974,0.07
 reduce at hybrid_v3.c:204,13464,0.06
 gf_carryless_mul at gf.c:113,13338,0.06
 gf_carryless_mul at gf.c:117,13338,0.06
@@ -82,7 +82,7 @@ KeccakF1600_StatePermute at fips202.c:112,13296,0.06
 KeccakF1600_StatePermute at fips202.c:114,13296,0.06
 KeccakF1600_StatePermute at fips202.c:205,13296,0.06
 gf_square at gf.c:170,12585,0.06
->>>>,12564,0.06
+?? ??:0,12569,0.06
 compute_syndromes at reed_solomon.c:123,12320,0.06
 reduce at hybrid_v3.c:201,10110,0.05
 reduce at hybrid_v3.c:202,10098,0.05
@@ -166,7 +166,7 @@ vect_write_support_to_vector at vector.c:147,5067,0.02
 reed_solomon_encode at reed_solomon.c:104,4272,0.02
 gf_square at gf.c:169,4195,0.02
 KeccakF1600_StatePermute at fips202.c:326,4155,0.02
-vect_generate_random_support2 at vector.c:0,4080,0.02
+vect_generate_random_support2 at vector.c:?,4080,0.02
 vect_write_support_to_vector at vector.c:140,3966,0.02
 KeccakF1600_StatePermute at fips202.c:65,3878,0.02
 hybrid_v3_rec at hybrid_v3.c:182,3630,0.02
@@ -282,7 +282,7 @@ compute_subset_sums at fft.c:52,2667,0.01
 _start at startup.S:38,2298,0.01
 _start at startup.S:39,2298,0.01
 _start at startup.S:40,2298,0.01
-memset at mem.c:0,2298,0.01
+memset at mem.c:?,2298,0.01
 memset at mem.c:42,2298,0.01
 reed_muller_encode at reed_muller.c:184,2240,0.01
 hybrid_v3_rec at hybrid_v3.c:137,2184,0.01
@@ -292,8 +292,8 @@ vect_write_support_to_vector at vector.c:141,1968,0.01
 vect_write_support_to_vector at vector.c:143,1968,0.01
 compute_elp at reed_solomon.c:200,1880,0.01
 fft_rec at fft.c:249,1750,0.01
-vect_generate_random_support1 at vector.c:0,1561,0.01
-compute_elp at reed_solomon.c:0,1555,0.01
+vect_generate_random_support1 at vector.c:?,1561,0.01
+compute_elp at reed_solomon.c:?,1555,0.01
 hybrid_v3_rec at hybrid_v3.c:158,1452,0.01
 hybrid_v3_rec at hybrid_v3.c:161,1452,0.01
 hybrid_v3_rec at hybrid_v3.c:162,1452,0.01
@@ -305,7 +305,7 @@ store64 at fips202.c:46,1212,0.01
 vect_generate_random_support1 at vector.c:79,1212,0.01
 barrett_reduce at vector.c:41,1208,0.01
 compute_elp at reed_solomon.c:168,1176,0.01
-reed_solomon_encode at reed_solomon.c:0,1152,0.01
+reed_solomon_encode at reed_solomon.c:?,1152,0.01
 compute_elp at reed_solomon.c:199,1128,0.01
 expand_and_sum at reed_muller.c:129,1064,0.01
 fft_retrieve_error_poly at fft.c:346,1016,0.00
@@ -323,7 +323,7 @@ hybrid_v3_rec at hybrid_v3.c:152,726,0.00
 hybrid_v3_rec at hybrid_v3.c:154,726,0.00
 hybrid_v3_rec at hybrid_v3.c:159,726,0.00
 hybrid_v3_rec at hybrid_v3.c:160,726,0.00
-compute_error_values at reed_solomon.c:0,692,0.00
+compute_error_values at reed_solomon.c:?,692,0.00
 vect_generate_random_support2 at vector.c:110,684,0.00
 vect_generate_random_support2 at vector.c:121,678,0.00
 fft_rec at fft.c:222,640,0.00
@@ -338,20 +338,20 @@ KeccakF1600_StatePermute at fips202.c:304,554,0.00
 KeccakF1600_StatePermute at fips202.c:307,554,0.00
 KeccakF1600_StatePermute at fips202.c:308,554,0.00
 fft_rec at fft.c:237,544,0.00
-keccak_inc_squeeze at fips202.c:0,527,0.00
-memcpy at mem.c:0,526,0.00
+keccak_inc_squeeze at fips202.c:?,527,0.00
+memcpy at mem.c:?,526,0.00
 memcpy at mem.c:20,526,0.00
 gf_inverse at gf.c:187,512,0.00
 gf_inverse at gf.c:190,512,0.00
 gf_inverse at gf.c:195,512,0.00
 fft_retrieve_error_poly at fft.c:345,508,0.00
 fft_retrieve_error_poly at fft.c:348,508,0.00
-expand_and_sum at reed_muller.c:0,504,0.00
+expand_and_sum at reed_muller.c:?,504,0.00
 compute_elp at reed_solomon.c:196,496,0.00
 compute_elp at reed_solomon.c:163,480,0.00
 fft_rec at fft.c:198,480,0.00
 fft_rec at fft.c:239,480,0.00
-compute_subset_sums at fft.c:0,475,0.00
+compute_subset_sums at fft.c:?,475,0.00
 encode at reed_muller.c:64,448,0.00
 encode at reed_muller.c:65,448,0.00
 encode at reed_muller.c:66,448,0.00
@@ -433,11 +433,11 @@ compute_elp at reed_solomon.c:166,256,0.00
 fft_rec at fft.c:223,256,0.00
 radix at fft.c:69,238,0.00
 radix at fft.c:118,238,0.00
-fft_rec at fft.c:0,238,0.00
+fft_rec at fft.c:?,238,0.00
 reed_muller_encode at reed_muller.c:181,224,0.00
 encode at reed_muller.c:62,224,0.00
 reed_muller_decode at reed_muller.c:209,224,0.00
-compute_syndromes at reed_solomon.c:0,224,0.00
+compute_syndromes at reed_solomon.c:?,224,0.00
 correct_errors at reed_solomon.c:332,224,0.00
 shake256_inc_squeeze at fips202.c:541,203,0.00
 shake256_inc_squeeze at fips202.c:543,203,0.00
@@ -447,7 +447,7 @@ keccak_inc_squeeze at fips202.c:501,178,0.00
 compute_error_values at reed_solomon.c:280,175,0.00
 compute_error_values at reed_solomon.c:312,172,0.00
 shake256_inc_absorb at fips202.c:533,171,0.00
-keccak_inc_absorb at fips202.c:0,170,0.00
+keccak_inc_absorb at fips202.c:?,170,0.00
 correct_errors at reed_solomon.c:331,169,0.00
 find_peaks at reed_muller.c:161,168,0.00
 fft_rec at fft.c:191,160,0.00
@@ -489,7 +489,7 @@ xof_get_bytes at symmetric.c:82,99,0.00
 compute_error_values at reed_solomon.c:293,97,0.00
 compute_syndromes at reed_solomon.c:125,96,0.00
 compute_elp at reed_solomon.c:184,96,0.00
-radix at fft.c:0,96,0.00
+radix at fft.c:?,96,0.00
 compute_elp at reed_solomon.c:191,93,0.00
 sha3_256_inc_absorb at fips202.c:669,90,0.00
 sha3_512_inc_absorb at fips202.c:755,90,0.00
@@ -544,7 +544,7 @@ fft at fft.c:300,36,0.00
 vect_sample_fixed_weight2 at vector.c:194,36,0.00
 vect_generate_random_support2 at vector.c:105,36,0.00
 vect_generate_random_support2 at vector.c:107,36,0.00
-compute_z_poly at reed_solomon.c:0,33,0.00
+compute_z_poly at reed_solomon.c:?,33,0.00
 radix_big at fft.c:148,33,0.00
 compute_elp at reed_solomon.c:172,32,0.00
 compute_elp at reed_solomon.c:176,32,0.00
@@ -600,7 +600,7 @@ vect_set_random at vector.c:210,18,0.00
 keccak_inc_squeeze at fips202.c:496,17,0.00
 xof_get_bytes at symmetric.c:76,17,0.00
 xof_get_bytes at symmetric.c:79,17,0.00
-reed_muller_encode at reed_muller.c:0,16,0.00
+reed_muller_encode at reed_muller.c:?,16,0.00
 compute_error_values at reed_solomon.c:306,16,0.00
 hqc_pke_encrypt at hqc.c:119,16,0.00
 hqc_pke_encrypt at hqc.c:126,16,0.00
@@ -647,8 +647,8 @@ crypto_kem_enc at kem.c:151,13,0.00
 crypto_kem_dec at kem.c:172,13,0.00
 emit_csv_row at bench_kem.c:92,12,0.00
 vect_mul at hybrid.c:39,12,0.00
-vect_mul_hybrid_v3 at hybrid_v3.c:0,12,0.00
-sha3_256_inc_absorb at fips202.c:0,12,0.00
+vect_mul_hybrid_v3 at hybrid_v3.c:?,12,0.00
+sha3_256_inc_absorb at fips202.c:?,12,0.00
 reed_muller_decode at reed_muller.c:198,12,0.00
 reed_solomon_decode at reed_solomon.c:358,12,0.00
 compute_error_values at reed_solomon.c:266,12,0.00
@@ -667,7 +667,7 @@ hqc_c_kem_from_string at parsing.c:63,12,0.00
 hqc_c_kem_from_string at parsing.c:66,12,0.00
 vect_compare at vector.c:245,12,0.00
 reed_solomon_decode at reed_solomon.c:354,11,0.00
-reed_solomon_decode at reed_solomon.c:0,11,0.00
+reed_solomon_decode at reed_solomon.c:?,11,0.00
 hqc_pke_decrypt at hqc.c:206,11,0.00
 prng_init at symmetric.c:27,11,0.00
 hqc_c_kem_to_string at parsing.c:53,11,0.00
@@ -721,7 +721,7 @@ emit_csv_row at bench_kem.c:112,9,0.00
 shake256_inc_init at fips202.c:531,9,0.00
 shake256_inc_finalize at fips202.c:539,9,0.00
 sha3_256_inc_finalize at fips202.c:680,9,0.00
-store64 at fips202.c:0,9,0.00
+store64 at fips202.c:?,9,0.00
 hqc_pke_keygen at hqc.c:31,9,0.00
 hqc_pke_keygen at hqc.c:46,9,0.00
 hqc_pke_keygen at hqc.c:47,9,0.00
@@ -735,7 +735,7 @@ crypto_kem_keypair at kem.c:55,9,0.00
 crypto_kem_keypair at kem.c:56,9,0.00
 crypto_kem_keypair at kem.c:57,9,0.00
 crypto_kem_enc at kem.c:112,9,0.00
-crypto_kem_dec at kem.c:0,9,0.00
+crypto_kem_dec at kem.c:?,9,0.00
 vect_truncate at vector.c:268,9,0.00
 main at bench_kem.c:157,8,0.00
 reed_solomon_encode at reed_solomon.c:94,8,0.00
@@ -812,8 +812,8 @@ crypto_kem_dec at kem.c:242,7,0.00
 crypto_kem_dec at kem.c:243,7,0.00
 crypto_kem_dec at kem.c:244,7,0.00
 emit_csv_row at bench_kem.c:96,6,0.00
-keccak_inc_finalize at fips202.c:0,6,0.00
-sha3_512_inc_absorb at fips202.c:0,6,0.00
+keccak_inc_finalize at fips202.c:?,6,0.00
+sha3_512_inc_absorb at fips202.c:?,6,0.00
 compute_elp at reed_solomon.c:147,6,0.00
 compute_error_values at reed_solomon.c:285,6,0.00
 reed_solomon_decode at reed_solomon.c:448,6,0.00
@@ -829,10 +829,10 @@ fft_retrieve_error_poly at fft.c:342,6,0.00
 prng_init at symmetric.c:30,6,0.00
 prng_init at symmetric.c:31,6,0.00
 hash_i at symmetric.c:97,6,0.00
-hash_h at symmetric.c:0,6,0.00
+hash_h at symmetric.c:?,6,0.00
 hash_h at symmetric.c:115,6,0.00
 hash_g at symmetric.c:133,6,0.00
-hash_j at symmetric.c:0,6,0.00
+hash_j at symmetric.c:?,6,0.00
 hqc_rdcycle at bench.c:32,6,0.00
 hqc_rdcycle at bench.c:33,6,0.00
 hqc_rdinstret at bench.c:44,6,0.00
@@ -851,8 +851,7 @@ hqc_dk_pke_from_string at parsing.c:19,6,0.00
 hqc_dk_pke_from_string at parsing.c:25,6,0.00
 hqc_c_kem_to_string at parsing.c:52,6,0.00
 vect_set_random at vector.c:209,6,0.00
-vect_compare at vector.c:0,6,0.00
-?? at ??:0,5,0.00
+vect_compare at vector.c:?,6,0.00
 main at bench_kem.c:183,5,0.00
 reed_solomon_decode at reed_solomon.c:357,5,0.00
 reed_solomon_decode at reed_solomon.c:363,5,0.00
@@ -868,7 +867,7 @@ hqc_pke_decrypt at hqc.c:204,5,0.00
 fft at fft.c:280,5,0.00
 fft at fft.c:281,5,0.00
 fft at fft.c:309,5,0.00
-radix_big at fft.c:0,5,0.00
+radix_big at fft.c:?,5,0.00
 radix_big at fft.c:146,5,0.00
 radix_big at fft.c:156,5,0.00
 radix_big at fft.c:157,5,0.00
@@ -904,14 +903,14 @@ main at bench_kem.c:163,4,0.00
 main at bench_kem.c:176,4,0.00
 main at bench_kem.c:189,4,0.00
 compute_roots at reed_solomon.c:219,4,0.00
-hqc_pke_encrypt at hqc.c:0,4,0.00
+hqc_pke_encrypt at hqc.c:?,4,0.00
 hqc_pke_decrypt at hqc.c:199,4,0.00
 code_encode at code.c:30,4,0.00
 code_decode at code.c:49,4,0.00
 code_decode at code.c:53,4,0.00
 code_decode at code.c:62,4,0.00
 fft at fft.c:278,4,0.00
-fft at fft.c:0,4,0.00
+fft at fft.c:?,4,0.00
 radix at fft.c:87,4,0.00
 hash_i at symmetric.c:103,4,0.00
 hash_j at symmetric.c:156,4,0.00
@@ -931,7 +930,7 @@ main at bench_kem.c:182,3,0.00
 main at bench_kem.c:184,3,0.00
 main at bench_kem.c:191,3,0.00
 sha3_256_inc_init at fips202.c:667,3,0.00
-sha3_256_inc_finalize at fips202.c:0,3,0.00
+sha3_256_inc_finalize at fips202.c:?,3,0.00
 sha3_512_inc_init at fips202.c:753,3,0.00
 reed_solomon_decode at reed_solomon.c:355,3,0.00
 fft at fft.c:279,3,0.00
@@ -941,8 +940,8 @@ hash_i at symmetric.c:100,3,0.00
 hash_j at symmetric.c:153,3,0.00
 hqc_htif_exit at bench.c:112,3,0.00
 hqc_c_kem_to_string at parsing.c:51,3,0.00
-hqc_c_kem_to_string at parsing.c:0,3,0.00
-hqc_c_kem_from_string at parsing.c:0,3,0.00
+hqc_c_kem_to_string at parsing.c:?,3,0.00
+hqc_c_kem_from_string at parsing.c:?,3,0.00
 vect_truncate at vector.c:270,3,0.00
 _start at startup.S:20,2,0.00
 _start at startup.S:34,2,0.00
@@ -957,17 +956,17 @@ main at bench_kem.c:185,2,0.00
 main at bench_kem.c:186,2,0.00
 main at bench_kem.c:187,2,0.00
 compute_z_poly at reed_solomon.c:243,2,0.00
-hqc_pke_keygen at hqc.c:0,2,0.00
+hqc_pke_keygen at hqc.c:?,2,0.00
 code_decode at code.c:52,2,0.00
 fft at fft.c:312,2,0.00
 radix_big at fft.c:135,2,0.00
 radix_big at fft.c:143,2,0.00
 radix_big at fft.c:136,2,0.00
 radix_big at fft.c:137,2,0.00
-fft_retrieve_error_poly at fft.c:0,2,0.00
+fft_retrieve_error_poly at fft.c:?,2,0.00
 hash_h at symmetric.c:114,2,0.00
 hash_g at symmetric.c:132,2,0.00
-crypto_kem_keypair at kem.c:0,2,0.00
+crypto_kem_keypair at kem.c:?,2,0.00
 _start at startup.S:27,1,0.00
 _start at startup.S:28,1,0.00
 _start at startup.S:31,1,0.00
@@ -976,14 +975,14 @@ _start at startup.S:44,1,0.00
 _start at startup.S:45,1,0.00
 compute_elp at reed_solomon.c:151,1,0.00
 compute_elp at reed_solomon.c:160,1,0.00
-compute_roots at reed_solomon.c:0,1,0.00
+compute_roots at reed_solomon.c:?,1,0.00
 compute_z_poly at reed_solomon.c:236,1,0.00
 radix_big at fft.c:138,1,0.00
 fft_retrieve_error_poly at fft.c:333,1,0.00
 prng_init at symmetric.c:28,1,0.00
-hash_i at symmetric.c:0,1,0.00
+hash_i at symmetric.c:?,1,0.00
 hash_i at symmetric.c:99,1,0.00
 hash_j at symmetric.c:152,1,0.00
 hqc_htif_exit at bench.c:114,1,0.00
-crypto_kem_enc at kem.c:0,1,0.00
+crypto_kem_enc at kem.c:?,1,0.00
 crypto_kem_dec at kem.c:208,1,0.00

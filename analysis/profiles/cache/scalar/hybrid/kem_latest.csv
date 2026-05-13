@@ -1,0 +1,8 @@
+# date: 2026-05-13 17:29
+# commit: a467a3d
+# variant: hybrid
+# cache_config: 512:8:64
+level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+128,1306,101,1205,134,20336259,8783539,3022085,2074664
+192,2954,294,2660,689,52087302,24219589,7559280,5636880
+256,6947,1113,5834,3296,109248789,52869500,15641193,10779336

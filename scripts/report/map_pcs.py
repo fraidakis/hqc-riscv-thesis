@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import csv
 import os
 import shutil
@@ -8,35 +9,26 @@ import sys
 from collections import defaultdict
 
 
-def main() -> int:
-    use_lines = False
-    csv_out = ""
-    args = sys.argv[1:]
+ADDR2LINE_CHUNK_SIZE = 500
 
-    while args and args[0].startswith("--"):
-        if args[0] == "--lines":
-            use_lines = True
-            args = args[1:]
-            continue
-        if args[0] == "--csv-out":
-            if len(args) < 2:
-                print("Usage: map_pcs.py [--lines] [--csv-out <csv_file>] <elf_file> <pc_counts_file|->")
-                return 1
-            csv_out = args[1]
-            args = args[2:]
-            continue
-        print(f"Unknown option: {args[0]}", file=sys.stderr)
-        print("Usage: map_pcs.py [--lines] [--csv-out <csv_file>] <elf_file> <pc_counts_file|->")
-        return 1
 
-    if len(args) != 2:
-        print("Usage: map_pcs.py [--lines] [--csv-out <csv_file>] <elf_file> <pc_counts_file|->")
-        return 1
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Map PC histogram entries to functions using addr2line.",
+    )
+    parser.add_argument("--lines", action="store_true", help="Include source file:line in labels when available")
+    parser.add_argument("--csv-out", default="", help="Write output CSV file path")
+    parser.add_argument("--variant", default="", help="Variant label for CSV preamble")
+    parser.add_argument("--level", default="", help="Security level label for CSV preamble")
+    parser.add_argument("--commit", default="", help="Commit hash for CSV preamble")
+    parser.add_argument("--date", default="", help="Date string for CSV preamble")
+    parser.add_argument("elf_file", help="Path to ELF file")
+    parser.add_argument("pc_counts_file", help="Path to ""count pc"" histogram input file or '-' for stdin")
+    return parser.parse_args()
 
-    elf_file = args[0]
-    pc_counts_file = args[1]
 
-    counts = {}
+def load_counts(pc_counts_file: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
     use_stdin = pc_counts_file == "-" or not sys.stdin.isatty()
     if use_stdin:
         lines = sys.stdin
@@ -50,6 +42,16 @@ def main() -> int:
                 parts = line.strip().split()
                 if len(parts) == 2:
                     counts[parts[1]] = int(parts[0])
+    return counts
+
+
+def main() -> int:
+    parsed = parse_args()
+
+    elf_file = parsed.elf_file
+    pc_counts_file = parsed.pc_counts_file
+
+    counts = load_counts(pc_counts_file)
 
     if not counts:
         return 0
@@ -86,21 +88,25 @@ def main() -> int:
         )
         return 2
 
-    command = [addr2line_bin, "-e", elf_file, "-f", "-p"] + pcs
-
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=False)
-    output = result.stdout.strip().split("\n")
-
     funcs = defaultdict(int)
-    for pc, line in zip(pcs, output):
-        parts = line.split(" at ")
-        func_name = parts[0].strip()
-        if use_lines and len(parts) > 1:
-            location = parts[1].strip()
-            file_line = os.path.basename(location)
-            if file_line != "??:?":
-                func_name = f"{func_name} at {file_line}"
-        funcs[func_name] += counts[pc]
+    for index in range(0, len(pcs), ADDR2LINE_CHUNK_SIZE):
+        chunk = pcs[index : index + ADDR2LINE_CHUNK_SIZE]
+        command = [addr2line_bin, "-e", elf_file, "-f", "-p"] + chunk
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=False)
+        output = result.stdout.splitlines()
+
+        if len(output) < len(chunk):
+            output.extend(["?? at ??:?"] * (len(chunk) - len(output)))
+
+        for pc, line in zip(chunk, output):
+            parts = line.split(" at ")
+            func_name = parts[0].strip()
+            if parsed.lines and len(parts) > 1:
+                location = parts[1].strip()
+                file_line = os.path.basename(location)
+                if file_line != "??:?":
+                    func_name = f"{func_name} at {file_line}"
+            funcs[func_name] += counts[pc]
 
     total_instructions = sum(funcs.values())
     htif_total = 0
@@ -118,9 +124,14 @@ def main() -> int:
         pct = (count * 100.0 / clean_total_instructions) if clean_total_instructions else 0.0
         rows.append([func, count, f"{pct:.2f}"])
 
-    if csv_out:
-        with open(csv_out, "a", encoding="utf-8", newline="") as handle:
+    if parsed.csv_out:
+        with open(parsed.csv_out, "w", encoding="utf-8", newline="") as handle:
+            handle.write(f"# date: {parsed.date}\n")
+            handle.write(f"# commit: {parsed.commit}\n")
+            handle.write(f"# variant: {parsed.variant}\n")
+            handle.write(f"# level: {parsed.level}\n")
             writer = csv.writer(handle)
+            writer.writerow(["function", "instructions", "percentage"])
             writer.writerows(rows)
     else:
         writer = csv.writer(sys.stdout)

@@ -49,6 +49,7 @@ __pycache__/
 .vscode/
 .github/instructions/
 *.orig
+.tmp/
 
 # Analysis outputs
 analysis/llvm_mca/reports/*.txt

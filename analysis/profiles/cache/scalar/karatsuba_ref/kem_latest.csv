@@ -1,6 +1,8 @@
-# date: 2026-05-13 11:35
-# commit: dc635a5
+# date: 2026-05-13 17:28
+# commit: a467a3d
 # variant: karatsuba_ref
 # cache_config: 512:8:64
-dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-1384,101,1283,144,377904854,237706175,47637289,33434124
+level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+128,1384,101,1283,144,377904854,237706175,47637289,33434124
+192,3280,265,3015,852,1138733257,720236671,143266789,100965515
+256,7923,1161,6762,4053,2839372220,1825580070,356710694,250117321
