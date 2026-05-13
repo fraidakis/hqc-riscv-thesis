@@ -9,7 +9,7 @@
 #   --histogram  Spike PC histogram pipeline
 #
 # Examples:
-#   scripts/bench/run_profile.sh --cache --variant karatsuba_ref --level 128
+#   scripts/bench/run_profile.sh --cache --variant karatsuba_zbc --level 128
 #   scripts/bench/run_profile.sh --memory --variant hybrid --level 192
 #   scripts/bench/run_profile.sh --trace --variant karatsuba_zbc
 #   scripts/bench/run_profile.sh --histogram --variant karatsuba_zbc --report
@@ -70,7 +70,7 @@ bench_print_level_branch() {
 }
 
 profile_cache_mode() {
-    local variant="${VARIANT:-karatsuba_ref}"
+    local variant="${VARIANT:-karatsuba_zbc}"
     local dc_config="${DC_CONFIG:-512:8:64}"
     local profile_kind="KEM"
     local target_prefix="bench"
@@ -174,7 +174,7 @@ profile_cache_mode() {
 }
 
 profile_memory_mode() {
-    local variant="${VARIANT:-karatsuba_ref}"
+    local variant="${VARIANT:-karatsuba_zbc}"
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
@@ -289,7 +289,7 @@ END{printf "%d %d %d %d", lb, sb, li, si}
 }
 
 profile_trace_mode() {
-    local variant="${VARIANT:-karatsuba_ref}"
+    local variant="${VARIANT:-karatsuba_zbc}"
     local track="scalar"
     local profile_kind="KEM"
     local target_prefix="bench"
@@ -456,7 +456,7 @@ profile_histogram_mode() {
     else
         track="scalar"
     fi
-    local variant="${VARIANT:-karatsuba_ref}"
+    local variant="${VARIANT:-karatsuba_zbc}"
     local out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${variant}"
 
     if ! bench_require_executable "$spike" "Spike not found"; then
@@ -648,7 +648,7 @@ elif [[ -n "$VARIANT" ]]; then
 elif [[ "$MODE" == "histogram" ]]; then
     batch_variants=("")
 else
-    batch_variants=("karatsuba_ref")
+    batch_variants=("karatsuba_zbc")
 fi
 
 if [[ "$LEVEL" == "all" ]]; then

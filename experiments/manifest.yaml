@@ -83,3 +83,36 @@ experiments:
     verdict: "Archived for reference; removed from stable fafft_zbc build path for ZVBC-focused scope cleanup."
     path: experiments/EXP-fafft-rvv-blueprint
     hardware_class: standard_vector_rvv_only
+
+  - id: EXP-zvbc-schoolbook
+    date: 2026-05-14
+    hypothesis: "Retain the historical ZVBC schoolbook baseline in experiments after retiring it from default builds."
+    status: deprecated
+    verdict: "Defeated by Karatsuba ZVBC (156k)."
+    path: experiments/EXP-zvbc-schoolbook
+    hardware_class: crypto_vector_zvbc
+    metrics:
+      level_128:
+        polymul_instructions: 178007
+
+  - id: EXP-karatsuba-zbc-champion
+    date: 2026-05-14
+    hypothesis: "Promote scalar karatsuba_zbc as the default scalar polymul baseline."
+    status: promoted_to_stable
+    verdict: "Ultimate scalar champion baseline."
+    path: src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
+    hardware_class: scalar_zbc
+    metrics:
+      level_128:
+        polymul_instructions: 360961
+
+  - id: EXP-karatsuba-zvbc-champion
+    date: 2026-05-14
+    hypothesis: "Promote vector karatsuba_zvbc as the default ZVBC polymul baseline."
+    status: promoted_to_stable
+    verdict: "Ultimate ZVBC champion baseline."
+    path: src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c
+    hardware_class: crypto_vector_zvbc
+    metrics:
+      level_128:
+        polymul_instructions: 156770

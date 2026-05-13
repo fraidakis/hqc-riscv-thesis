@@ -55,7 +55,7 @@ BENCH_SET_VARIANT_MAP=(
     [hybrid_zbc_v2]="hybrid"
     [hybrid_2way_zbc]="hybrid"
     [polymul_zvbc]="karatsuba_zvbc"
-    [polymul_zvbc_v2]="fafft_zvbc"
+    [polymul_zvbc_v2]="karatsuba_zvbc"
 )
 
 declare -A BENCH_SET_TRACK_MAP
@@ -548,7 +548,7 @@ case "$MODE" in
 
             printf '%s\n' "${cmds[@]}" | parallel --jobs 4
         else
-            if [[ -z "${VARIANT_FILTER:-}" ]]; then VARIANT_FILTER="karatsuba_ref"; fi
+            if [[ -z "${VARIANT_FILTER:-}" ]]; then VARIANT_FILTER="karatsuba_zbc"; fi
             if [[ ! " ${IMPLEMENTED_VARIANTS[*]} " =~ " ${VARIANT_FILTER} " ]]; then
                 echo "ERROR: Variant '${VARIANT_FILTER}' is not valid." >&2
                 exit 1

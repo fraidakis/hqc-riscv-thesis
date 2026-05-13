@@ -104,12 +104,12 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 #   Phase 1c — hybrid        : Karatsuba outer levels → FAFFT inner (CRT)
 #   Phase 1+ — fafft_zvbc    : vclmul.vv vectorised butterflies (Spike Zvbc only)
 set(POLYMUL_VARIANTS
-    karatsuba_ref
     karatsuba_zbc
+    karatsuba_zvbc
+    karatsuba_ref
     fafft_zbc
     hybrid
     fafft_zvbc
-    karatsuba_zvbc
 )
 
 # Variants with a real implementation (not __builtin_trap stubs).
