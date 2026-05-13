@@ -228,7 +228,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft_v5.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/rvv_only/fafft/fafft_rvv.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/rvv_only/fafft/fafft_rvv.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c
@@ -258,7 +258,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             # bmul2_* functions (research finding: vclmul.vv does not help
             # tower-field FAFFT arithmetic; see fafft_vclmul.c for details).
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gfmul_fft.c
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/bitconversion.c
@@ -268,7 +268,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/gft_mul_vi.c)
         elseif(POLYMUL STREQUAL "karatsuba_zvbc")
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c)
         endif()
 
         # ── KAT target  (hqc${LEVEL}_${POLYMUL}) ─────────────────────────────
