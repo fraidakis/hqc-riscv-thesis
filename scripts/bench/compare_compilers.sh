@@ -7,24 +7,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${SCRIPT_DIR}/lib_bench.sh"
+bench_load_implemented_variants "$REPO_ROOT"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
-VARIANT="${1:-}"
-if [[ -z "$VARIANT" ]]; then
-    echo "Usage: $0 <variant> [level]" >&2
-    exit 2
-fi
-
-LEVEL="${2:-128}"
-
-if ! [[ "$LEVEL" =~ ^(128|192|256)$ ]]; then
-    echo "[compare_compilers] ERROR: level must be 128, 192, or 256" >&2
-    exit 2
-fi
-if ! grep -qx "$VARIANT" "$REPO_ROOT/scripts/implemented_variants.txt"; then
-    echo "[compare_compilers] ERROR: variant '$VARIANT' not in scripts/implemented_variants.txt" >&2
-    exit 2
-fi
+VARIANT=""
+LEVEL=""
 
 RISCV="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
@@ -35,16 +22,12 @@ if [[ ! -x "$SPIKE" ]]; then
     exit 2
 fi
 
-STAMP="$(date +'%Y-%m-%d_%H-%M')"
-track="scalar"
-if [[ "$VARIANT" == *"zvbc"* ]]; then track="vector"; fi
-OUT_DIR="$REPO_ROOT/analysis/benchmarks/compiler_compare/${track}/${VARIANT}"
-mkdir -p "$OUT_DIR"
-CSV_OUT="${OUT_DIR}/${STAMP}.csv"
-
-echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$CSV_OUT"
-echo "# commit: ${GIT_HASH}" >> "$CSV_OUT"
-echo "compiler,opt,level,variant,status,instructions,text_bytes,elf,error" >> "$CSV_OUT"
+usage() {
+    cat <<'EOF'
+Usage:
+    compare_compilers.sh --variant <variant|all> [--level 128|192|256]
+EOF
+}
 
 format_int() {
     local n="${1:-0}"
@@ -65,9 +48,11 @@ format_int() {
 run_one() {
     local compiler="$1"
     local opt="$2"
+    local level="$3"
+    local variant="$4"
+    local csv_out="$5"
     local toolchain
     local build_dir
-    local toolchain_tmp
     local target
     local elf
     local run_out
@@ -85,34 +70,23 @@ run_one() {
             ;;
     esac
 
-    build_dir="$REPO_ROOT/build/compare_${compiler}_${opt}_hqc${LEVEL}_${VARIANT}"
+    build_dir="$REPO_ROOT/build/compare_${compiler}_${opt}_hqc${level}_${variant}"
     rm -rf "$build_dir"
-    toolchain_tmp="$build_dir/toolchain_${compiler}_${opt}.cmake"
     mkdir -p "$build_dir"
-    cp "$REPO_ROOT/$toolchain" "$toolchain_tmp"
-
-    # Replace the default -O3 with requested optimization level in the temp toolchain.
-    sed -i "s/\"-O3\"/\"-${opt}\"/g" "$toolchain_tmp"
-
-    # GCC toolchain cannot accept several Clang-only flags in this repo snapshot.
-    if [[ "$compiler" == "gcc" ]]; then
-        sed -i 's/--target=${RISCV_TARGET_TRIPLE}//g' "$toolchain_tmp"
-        sed -i 's/-menable-experimental-extensions//g' "$toolchain_tmp"
-        sed -i 's/-fuse-ld=lld//g' "$toolchain_tmp"
-    fi
 
     if ! cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE="$toolchain_tmp" \
+        -DCMAKE_TOOLCHAIN_FILE="$REPO_ROOT/$toolchain" \
         -DRISCV="$RISCV" \
+        -DRISCV_OPT_LEVEL="-${opt}" \
         -DHQC_SIM=spike >/dev/null 2>&1; then
-        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,cmake_configure_failed" >> "$CSV_OUT"
+        echo "${compiler},-${opt},${level},${variant},FAIL,,,,cmake_configure_failed" >> "$csv_out"
         echo "FAIL"
         return 1
     fi
 
-    target="bench_polymul_hqc${LEVEL}_${VARIANT}"
+    target="bench_polymul_hqc${level}_${variant}"
     if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
-        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,,build_failed" >> "$CSV_OUT"
+        echo "${compiler},-${opt},${level},${variant},FAIL,,,,build_failed" >> "$csv_out"
         echo "FAIL"
         return 1
     fi
@@ -122,7 +96,7 @@ run_one() {
     run_err="$build_dir/${target}.stderr"
 
     if ! "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2> "$run_err"; then
-        echo "${compiler},-${opt},${LEVEL},${VARIANT},FAIL,,,${elf},spike_run_failed" >> "$CSV_OUT"
+        echo "${compiler},-${opt},${level},${variant},FAIL,,,${elf},spike_run_failed" >> "$csv_out"
         echo "FAIL"
         return 1
     fi
@@ -137,28 +111,93 @@ run_one() {
 
     local fmt_ins=$(echo "$instret" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')
     echo "${fmt_ins} instructions"
-    echo "${compiler},-${opt},${LEVEL},${VARIANT},OK,${instret},${text_bytes},${elf}," >> "$CSV_OUT"
+    echo "${compiler},-${opt},${level},${variant},OK,${instret},${text_bytes},${elf}," >> "$csv_out"
 }
 
-echo -e "\n📦 ${VARIANT} (compiler_compare)"
-for compiler in clang gcc; do
-    if [[ "$compiler" == "clang" ]]; then
-        echo " ├── ${compiler}"
-    else
-        echo " └── ${compiler}"
+run_for_variant() {
+    local variant="$1"
+    local levels=(128 192 256)
+    if [[ -n "$LEVEL" ]]; then
+        levels=("$LEVEL")
     fi
-    for opt in O2 O3 Os; do
-        local_branch="├──"
-        if [[ "$opt" == "Os" ]]; then local_branch="└──"; fi
-        echo -n " │   ${local_branch} -${opt} ⋯ "
-        run_one "$compiler" "$opt" || true
+
+    local stamp out_dir track csv_out
+    stamp="$(date +'%Y-%m-%d_%H-%M')"
+    track="scalar"
+    if [[ "$variant" == *"zvbc"* ]]; then track="vector"; fi
+    out_dir="$REPO_ROOT/analysis/benchmarks/compiler_compare/${track}/${variant}"
+    mkdir -p "$out_dir"
+    csv_out="${out_dir}/${stamp}.csv"
+
+    echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
+    echo "# commit: ${GIT_HASH}" >> "$csv_out"
+    echo "compiler,opt,level,variant,status,instructions,text_bytes,elf,error" >> "$csv_out"
+
+    echo -e "\n📦 ${variant} (compiler_compare)"
+    local last_level_index=$(( ${#levels[@]} - 1 ))
+    local last_level="${levels[$last_level_index]}"
+    for level in "${levels[@]}"; do
+        local level_branch="├──"
+        if [[ "$level" == "$last_level" ]]; then
+            level_branch="└──"
+        fi
+        echo " ${level_branch} L${level}"
+        for compiler in clang gcc; do
+            echo " │   ├── ${compiler}"
+            for opt in O2 O3 Os; do
+                local opt_branch="├──"
+                if [[ "$opt" == "Os" ]]; then opt_branch="└──"; fi
+                echo -n " │   │   ${opt_branch} -${opt} ⋯ "
+                run_one "$compiler" "$opt" "$level" "$variant" "$csv_out" || true
+            done
+        done
     done
+
+    bench_refresh_tracked_csv "$csv_out" "${out_dir}/latest.csv" || true
+    echo ""
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --variant)
+            VARIANT="$2"
+            shift 2
+            ;;
+        --level)
+            LEVEL="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "[compare_compilers] ERROR: unknown option '$1'" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
 done
 
-if bench_refresh_tracked_csv "$CSV_OUT" "${OUT_DIR}/latest.csv"; then
-    echo "↻ Refreshed: ${OUT_DIR}/latest.csv"
-else
-    echo "↻ Unchanged payload: ${OUT_DIR}/latest.csv"
+if [[ -z "$VARIANT" ]]; then
+    echo "[compare_compilers] ERROR: --variant is required" >&2
+    usage >&2
+    exit 2
 fi
-echo ""
-echo "✔️ Saved: $CSV_OUT"
+
+if [[ -n "$LEVEL" ]] && ! [[ "$LEVEL" =~ ^(128|192|256)$ ]]; then
+    echo "[compare_compilers] ERROR: level must be 128, 192, or 256" >&2
+    exit 2
+fi
+
+if [[ "$VARIANT" == "all" ]]; then
+    for v in "${IMPLEMENTED_VARIANTS[@]}"; do
+        run_for_variant "$v"
+    done
+else
+    if ! grep -qx "$VARIANT" "$REPO_ROOT/scripts/implemented_variants.txt"; then
+        echo "[compare_compilers] ERROR: variant '$VARIANT' not in scripts/implemented_variants.txt" >&2
+        exit 2
+    fi
+    run_for_variant "$VARIANT"
+fi

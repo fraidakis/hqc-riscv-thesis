@@ -1,0 +1,22 @@
+# date: 2026-05-13 13:33
+# commit: dc635a5
+# run_id: all_suite_2026-05-13_13-33
+level,variant,kind,op,wall_seconds,instructions,codesize
+128,karatsuba_ref,kem,keypair,0.849,19111604,35392
+192,karatsuba_ref,kem,keypair,2.352,57910811,37226
+256,karatsuba_ref,kem,keypair,5.492,141955411,44002
+128,karatsuba_zbc,kem,keypair,0.238,1320256,32504
+192,karatsuba_zbc,kem,keypair,0.470,3772998,33414
+256,karatsuba_zbc,kem,keypair,0.921,7223222,39594
+128,fafft_zbc,kem,keypair,0.497,821185,32476
+192,fafft_zbc,kem,keypair,2.011,2368798,33044
+256,fafft_zbc,kem,keypair,5.142,5042153,39220
+128,hybrid,kem,keypair,0.229,1209871,32566
+192,hybrid,kem,keypair,0.513,3448969,33476
+256,hybrid,kem,keypair,1.093,6950533,39656
+128,fafft_zvbc,kem,keypair,0.397,2353842,165252
+192,fafft_zvbc,kem,keypair,0.759,5454496,166164
+256,fafft_zvbc,kem,keypair,0.808,7024768,172334
+128,karatsuba_zvbc,kem,keypair,0.213,1048082,32906
+192,karatsuba_zvbc,kem,keypair,0.421,2937554,33816
+256,karatsuba_zvbc,kem,keypair,0.756,5232798,39996

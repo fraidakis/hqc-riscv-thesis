@@ -3,14 +3,14 @@
 # Unified Spike benchmark runner.
 #
 # Modes:
-#   --mode isolated : foreground polymul micro-benchmark (formerly async mode)
-#   --mode suite    : synchronous suite mode (formerly run_spike_suite_sync.sh)
+#   --isolated : foreground polymul micro-benchmark (formerly async mode)
+#   --suite    : synchronous suite mode (formerly run_spike_suite_sync.sh)
 #
 # Isolated usage:
-#   run_benchmarks.sh --mode isolated [<bench_set>] [--variant <regex>]
+#   run_benchmarks.sh --isolated [<bench_set>] [--variant <regex>]
 #
 # Suite usage:
-#   run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
+#   run_benchmarks.sh --suite [--run-id ID] [--levels "128 192 256"]
 #                     [--variant <regex>] [--promote NAME]
 
 set -euo pipefail
@@ -75,8 +75,8 @@ BENCH_SET_TRACK_MAP=(
 usage() {
     cat <<'EOF'
 Usage:
-    run_benchmarks.sh --mode isolated [<bench_set>] [--variant <regex>] [--kem]
-    run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
+    run_benchmarks.sh --isolated [<bench_set>] [--variant <regex>] [--kem]
+    run_benchmarks.sh --suite [--run-id ID] [--levels "128 192 256"]
                     [--variant <regex>] [--promote NAME]
 
 Modes:
@@ -88,9 +88,13 @@ EOF
 # Parse args.
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --mode)
-            MODE="$2"
-            shift 2
+        --isolated)
+            MODE="isolated"
+            shift 1
+            ;;
+        --suite)
+            MODE="suite"
+            shift 1
             ;;
         --variant)
             VARIANT_FILTER="$2"
@@ -143,7 +147,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$MODE" != "isolated" && "$MODE" != "suite" ]]; then
-    echo "ERROR: --mode must be 'isolated' or 'suite'" >&2
+    echo "ERROR: mode must be 'isolated' or 'suite'" >&2
     usage >&2
     exit 2
 fi
@@ -246,9 +250,12 @@ run_isolated_mode() {
         fi
 
         bench_build_target_if_configured "$BUILD_DIR" "$target" "bench" || continue
-        if ! bench_require_elf_or_hint "$elf" "$target" \
-            "cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike" \
-            "bench"; then
+        if ! bench_auto_configure_and_build "$BUILD_DIR" "$REPO_ROOT" "$target" "spike" "0" "bench"; then
+            continue
+        fi
+
+        if [[ ! -f "$elf" ]]; then
+            echo "[bench] SKIP  ${target}: ELF build failed" >&2
             continue
         fi
 
@@ -295,12 +302,7 @@ run_isolated_mode() {
     done
 
     echo ""
-    if bench_refresh_tracked_csv "$csv" "${out_dir}/${kind}_latest.csv"; then
-        echo "↻ Refreshed: ${out_dir}/${kind}_latest.csv"
-    else
-        echo "↻ Unchanged payload: ${out_dir}/${kind}_latest.csv"
-    fi
-    echo "✔️ Saved: ${csv}"
+    bench_refresh_tracked_csv "$csv" "${out_dir}/${kind}_latest.csv" || true
 }
 
 run_suite_mode() {
@@ -347,7 +349,7 @@ run_suite_mode() {
     echo "level,variant,kind,op,wall_seconds,instructions,codesize" >> "$decaps_csv"
 
     run_one_suite() {
-        local level="$1" variant="$2" kind="$3" target="$4"
+        local level="$1" variant="$2" kind="$3" target="$4" result_csv="$5"
 
         local elf base raw_log details_dir details_csv
         elf="${BUILD_DIR}/${target}.elf"
@@ -357,7 +359,11 @@ run_suite_mode() {
         mkdir -p "$details_dir"
         details_csv="${details_dir}/${base}.csv"
 
-        cmake --build "$BUILD_DIR" --target "$target" -j"$(nproc)" >/dev/null
+        if [[ ! -f "$elf" ]]; then
+            echo "[suite] ERROR missing ELF: ${elf}" >&2
+            rm -f "$raw_log"
+            return 1
+        fi
 
         local elapsed_s t0_ns t1_ns elapsed_ms
         t0_ns=$(date +%s%N)
@@ -382,23 +388,18 @@ run_suite_mode() {
         parse_spike_to_csv "$raw_log" "$details_csv" "$level" "$text_bytes"
         rm -f "$raw_log"
 
+        : > "$result_csv"
         local -a ins_arr=()
         if [[ "$kind" == "polymul" ]]; then
             local med_ins
             med_ins="$(awk -F',' '$2=="vect_mul" {print $3; exit}' "$details_csv")"
-            echo "${level},${variant},${kind},vect_mul,${elapsed_s},${med_ins},${text_bytes}" >> "$vect_mul_csv"
+            echo "${level},${variant},${kind},vect_mul,${elapsed_s},${med_ins},${text_bytes}" >> "$result_csv"
             ins_arr+=("$(echo "$med_ins" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')")
         else
             for op in keypair encaps decaps; do
                 local med_ins
                 med_ins="$(awk -F',' -v op="$op" '$2==op {print $3; exit}' "$details_csv")"
-                if [[ "$op" == "keypair" ]]; then
-                    echo "${level},${variant},${kind},${op},${elapsed_s},${med_ins},${text_bytes}" >> "$keypair_csv"
-                elif [[ "$op" == "encaps" ]]; then
-                    echo "${level},${variant},${kind},${op},${elapsed_s},${med_ins},${text_bytes}" >> "$encaps_csv"
-                else
-                    echo "${level},${variant},${kind},${op},${elapsed_s},${med_ins},${text_bytes}" >> "$decaps_csv"
-                fi
+                echo "${level},${variant},${kind},${op},${elapsed_s},${med_ins},${text_bytes}" >> "$result_csv"
                 ins_arr+=("$(echo "$med_ins" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')")
             done
         fi
@@ -418,18 +419,75 @@ run_suite_mode() {
     echo "[suite] build dir: ${BUILD_DIR}"
     echo "[suite] output: ${run_root}"
 
+    if ! command -v parallel >/dev/null 2>&1; then
+        echo "ERROR: GNU parallel is required for --suite mode" >&2
+        echo "       Install parallel and retry" >&2
+        exit 2
+    fi
+
     cmake -S "$REPO_ROOT" -B "$BUILD_DIR" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DHQC_SIM=spike >/dev/null 2>&1
 
     local level variant
+    local -a suite_targets=()
+    local suite_jobs_file job_results_dir
+    local job_idx=0
+    suite_jobs_file="$(mktemp "${run_root}/.suite_jobs.XXXXXX.tsv")"
+    job_results_dir="${run_root}/job_results"
+    mkdir -p "$job_results_dir"
+
     for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
         bench_variant_matches "$variant" "$VARIANT_FILTER" || continue
-        echo -e "\n📦 ${variant}"
         for level in $LEVELS; do
-            run_one_suite "$level" "$variant" "polymul" "bench_polymul_hqc${level}_${variant}"
-            run_one_suite "$level" "$variant" "kem" "bench_hqc${level}_${variant}"
+            local poly_target kem_target result_csv
+            poly_target="bench_polymul_hqc${level}_${variant}"
+            kem_target="bench_hqc${level}_${variant}"
+            suite_targets+=("$poly_target" "$kem_target")
+
+            job_idx=$((job_idx + 1))
+            result_csv="${job_results_dir}/$(printf '%04d' "$job_idx")_hqc${level}_${variant}_polymul.csv"
+            printf '%s\t%s\t%s\t%s\t%s\n' "$level" "$variant" "polymul" "$poly_target" "$result_csv" >> "$suite_jobs_file"
+
+            job_idx=$((job_idx + 1))
+            result_csv="${job_results_dir}/$(printf '%04d' "$job_idx")_hqc${level}_${variant}_kem.csv"
+            printf '%s\t%s\t%s\t%s\t%s\n' "$level" "$variant" "kem" "$kem_target" "$result_csv" >> "$suite_jobs_file"
         done
+    done
+
+    if [[ ! -s "$suite_jobs_file" ]]; then
+        rm -f "$suite_jobs_file"
+        echo "ERROR: No suite jobs matched current filters" >&2
+        exit 1
+    fi
+
+    cmake --build "$BUILD_DIR" --target "${suite_targets[@]}" -j"$(nproc)" >/dev/null
+
+    export BUILD_DIR SPIKE_RUNNER RISCV run_root GIT_HASH
+    export -f parse_spike_to_csv run_one_suite
+    parallel --jobs 4 --colsep '\t' \
+        'run_one_suite {1} {2} {3} {4} {5}' :::: "$suite_jobs_file"
+    rm -f "$suite_jobs_file"
+
+    local result_file
+    for result_file in "${job_results_dir}"/*.csv; do
+        [[ -f "$result_file" ]] || continue
+        while IFS=',' read -r level variant kind op wall_seconds instructions codesize; do
+            case "$op" in
+                vect_mul)
+                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$vect_mul_csv"
+                    ;;
+                keypair)
+                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$keypair_csv"
+                    ;;
+                encaps)
+                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$encaps_csv"
+                    ;;
+                decaps)
+                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$decaps_csv"
+                    ;;
+            esac
+        done < "$result_file"
     done
 
     if [[ -n "$PROMOTE_NAME" ]]; then
@@ -440,11 +498,12 @@ run_suite_mode() {
         local csv_file dst_file
         for csv_file in "${run_root}"/*.csv; do
             dst_file="${canon_dir}/$(basename "$csv_file")"
-            if bench_refresh_tracked_csv "$csv_file" "$dst_file"; then
+            if bench_csv_payload_matches "$csv_file" "$dst_file"; then
+                echo "[suite] skipped unchanged $(basename "$csv_file")"
+            else
+                cp -f "$csv_file" "$dst_file"
                 promoted_count=$((promoted_count + 1))
                 echo "[suite] promoted $(basename "$csv_file")"
-            else
-                echo "[suite] skipped unchanged $(basename "$csv_file")"
             fi
         done
         echo "[suite] promotion complete: ${promoted_count} file(s) updated in ${canon_dir}"
@@ -457,9 +516,37 @@ run_suite_mode() {
 case "$MODE" in
     isolated)
         if [[ "${VARIANT_FILTER:-}" == "all" ]]; then
+            if ! command -v parallel >/dev/null 2>&1; then
+                echo "ERROR: GNU parallel is required for --isolated --variant all" >&2
+                echo "       Install parallel and retry" >&2
+                exit 2
+            fi
+
+            declare -a cmds=()
+            v=""
+            cmd=""
+            bench_set_arg=""
+            kem_arg=""
+            if [[ -n "${BENCH_SET:-}" ]]; then
+                bench_set_arg="${BENCH_SET}"
+            fi
+            if [[ "$DO_KEM" -eq 1 ]]; then
+                kem_arg="--kem"
+            fi
+
             for v in "${IMPLEMENTED_VARIANTS[@]}"; do
-                VARIANT_FILTER="$v" run_isolated_mode
+                cmd="${SCRIPT_DIR}/run_benchmarks.sh --isolated"
+                if [[ -n "$bench_set_arg" ]]; then
+                    cmd+=" ${bench_set_arg}"
+                fi
+                if [[ -n "$kem_arg" ]]; then
+                    cmd+=" ${kem_arg}"
+                fi
+                cmd+=" --variant ${v}"
+                cmds+=("$cmd")
             done
+
+            printf '%s\n' "${cmds[@]}" | parallel --jobs 4
         else
             if [[ -z "${VARIANT_FILTER:-}" ]]; then VARIANT_FILTER="karatsuba_ref"; fi
             if [[ ! " ${IMPLEMENTED_VARIANTS[*]} " =~ " ${VARIANT_FILTER} " ]]; then

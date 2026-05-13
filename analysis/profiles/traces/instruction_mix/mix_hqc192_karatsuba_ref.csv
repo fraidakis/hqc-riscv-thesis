@@ -1,3 +1,0 @@
-label,trace,total_instructions,unique_instructions,alu,memory,vector,control,system,other,alu_pct,memory_pct,vector_pct,control_pct,system_pct,other_pct
-bench_polymul_hqc192_karatsuba_ref,analysis/benchmarks/hotspot_profile/bench_polymul_hqc192_karatsuba_ref/spike_trace.log,118000031,58,68101809,40072818,1,9825397,6,0,57.71,33.96,0.00,8.33,0.00,0.00
-bench_polymul_hqc192_karatsuba_ref,analysis/benchmarks/hotspot_profile/bench_polymul_hqc192_karatsuba_ref/spike_trace.log,118000031,58,68101809,40072818,1,9825397,6,0,57.71,33.96,0.00,8.33,0.00,0.00

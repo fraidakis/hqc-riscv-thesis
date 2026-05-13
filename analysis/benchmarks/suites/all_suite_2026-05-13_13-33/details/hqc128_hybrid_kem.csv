@@ -1,0 +1,7 @@
+# date: 2026-05-13 13:34
+# commit: dc635a5
+# variant: hybrid
+level,op,instructions,codesize
+128,keypair,1209871,32566
+128,encaps,2342070,32566
+128,decaps,4465376,32566

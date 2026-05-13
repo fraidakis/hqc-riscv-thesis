@@ -1,0 +1,17 @@
+# date: 2026-05-13 10:44
+# commit: dc635a5
+# variant: karatsuba_zbc
+# level: 128
+function,instructions,percentage
+memset,287900,40.56
+clmul_leaf,214470,30.21
+karatsuba_clmul,160330,22.59
+clmul64,38108,5.37
+reduce,3329,0.47
+_start,2513,0.35
+main,2401,0.34
+?? ??:0,757,0.11
+vect_mul,26,0.00
+hqc_htif_exit,8,0.00
+hqc_rdcycle,4,0.00
+hqc_rdinstret,4,0.00

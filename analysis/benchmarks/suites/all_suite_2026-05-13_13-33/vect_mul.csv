@@ -1,0 +1,22 @@
+# date: 2026-05-13 13:33
+# commit: dc635a5
+# run_id: all_suite_2026-05-13_13-33
+level,variant,kind,op,wall_seconds,instructions,codesize
+128,karatsuba_ref,polymul,vect_mul,0.194,18578012,3802
+192,karatsuba_ref,polymul,vect_mul,0.439,56469325,3844
+256,karatsuba_ref,polymul,vect_mul,0.982,139077907,3846
+128,karatsuba_zbc,polymul,vect_mul,0.092,697526,1638
+192,karatsuba_zbc,polymul,vect_mul,0.126,2158859,1660
+256,karatsuba_zbc,polymul,vect_mul,0.191,4074185,1650
+128,fafft_zbc,polymul,vect_mul,0.111,198455,1610
+192,fafft_zbc,polymul,vect_mul,0.223,754659,1290
+256,fafft_zbc,polymul,vect_mul,0.424,1893116,1276
+128,hybrid,polymul,vect_mul,0.094,587141,1700
+192,hybrid,polymul,vect_mul,0.129,1834830,1722
+256,hybrid,polymul,vect_mul,0.210,3801496,1712
+128,fafft_zvbc,polymul,vect_mul,0.124,1731112,134386
+192,fafft_zvbc,polymul,vect_mul,0.172,3840357,134410
+256,fafft_zvbc,polymul,vect_mul,0.175,3875731,134390
+128,karatsuba_zvbc,polymul,vect_mul,0.092,425352,2040
+192,karatsuba_zvbc,polymul,vect_mul,0.117,1323415,2062
+256,karatsuba_zvbc,polymul,vect_mul,0.156,2083761,2052

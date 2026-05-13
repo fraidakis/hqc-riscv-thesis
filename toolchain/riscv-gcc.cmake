@@ -39,12 +39,18 @@ set(RISCV_TARGET_TRIPLE "riscv64-unknown-elf")
 # ── Aggressive bare-metal compile flags ──────────────────────────────────────
 set(RISCV_MARCH "rv64gcv_zbc_zbb_zbkb_zvbc")
 set(RISCV_MABI  "lp64d")
+set(RISCV_OPT_LEVEL "-O3" CACHE STRING "Optimization flag for GCC (e.g. -O2, -O3, -Os)")
+
+if(NOT RISCV_OPT_LEVEL MATCHES "^-O([0-3]|s|z)$")
+  message(FATAL_ERROR "Invalid RISCV_OPT_LEVEL='${RISCV_OPT_LEVEL}'. Expected one of -O0/-O1/-O2/-O3/-Os/-Oz.")
+endif()
 
 set(RISCV_COMMON_FLAGS
   "-march=${RISCV_MARCH}"
   "-mabi=${RISCV_MABI}"
   "-mcmodel=medany"
-  "-O3"
+  "${RISCV_OPT_LEVEL}"
+  "-g"
   "-fno-lto"
   "-mno-relax"
   "-ffreestanding"

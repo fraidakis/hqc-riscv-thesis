@@ -1,0 +1,22 @@
+# date: 2026-05-13 13:33
+# commit: dc635a5
+# run_id: all_suite_2026-05-13_13-33
+level,variant,kind,op,wall_seconds,instructions,codesize
+128,karatsuba_ref,kem,decaps,0.849,57946276,35392
+192,karatsuba_ref,kem,decaps,2.352,174154236,37226
+256,karatsuba_ref,kem,decaps,5.492,426780214,44002
+128,karatsuba_zbc,kem,decaps,0.238,4796531,32504
+192,karatsuba_zbc,kem,decaps,0.470,12041076,33414
+256,karatsuba_zbc,kem,decaps,0.921,23106464,39594
+128,fafft_zbc,kem,decaps,0.497,3299318,32476
+192,fafft_zbc,kem,decaps,2.011,7828476,33044
+256,fafft_zbc,kem,decaps,5.142,16563257,39220
+128,hybrid,kem,decaps,0.229,4465376,32566
+192,hybrid,kem,decaps,0.513,11068989,33476
+256,hybrid,kem,decaps,1.093,22288397,39656
+128,fafft_zvbc,kem,decaps,0.397,7897289,165252
+192,fafft_zvbc,kem,decaps,0.759,17085570,166164
+256,fafft_zvbc,kem,decaps,0.808,22511102,172334
+128,karatsuba_zvbc,kem,decaps,0.213,3980009,32906
+192,karatsuba_zvbc,kem,decaps,0.421,9534744,33816
+256,karatsuba_zvbc,kem,decaps,0.756,17135192,39996

@@ -1,0 +1,15 @@
+# date: 2026-05-13 00:14
+# commit: dc635a5
+# variant: karatsuba_ref
+# level: 192
+function,instructions,percentage
+?? at ??:0,325700939,100.00
+>>>>,13531,0.00
+0:,3,0.00
+0x00core,2,0.00
+0xcore,2,0.00
+0core,1,0.00
+0x0000000080002core,1,0.00
+0x00000000800core,1,0.00
+0x000000core,1,0.00
+0x0000core,1,0.00

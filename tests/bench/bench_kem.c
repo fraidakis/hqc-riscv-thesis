@@ -20,11 +20,14 @@
  *   POLYMUL_NAME      string literal, e.g. "karatsuba_zbc"
  *   HQC_BENCH_MODE=1  ensures AES-free randombytes()
  *   N_ITER            (optional, default 1)
+ *   HQC_SILENT        suppresses HTIF metadata headers in normal Spike bench runs
+ *   HQC_TRACE_MODE    trace/hist-only mode that compiles out warm-up correctness pass
  *
- * Warmup: a single non-timed pass of all three operations is run before
- * the timed N_ITER passes.  On Spike (deterministic ISS, no cache), one
- * call is enough to prime the PRNG state and confirm correctness.
- * For future real-hardware runs it also primes the i-cache.
+ * Warmup: in normal bench/cache builds, a single non-timed pass of all
+ * three operations is run before timed N_ITER passes. On Spike it validates
+ * correctness and primes PRNG state; on real hardware it also primes i-cache.
+ * In HQC_TRACE_MODE this pass is compiled out so trace/histogram capture
+ * exactly one functional KEM cycle without warm-up inflation.
  *
  * Note: only use on Spike for cycle-accurate measurements.  QEMU cycle
  * counts are unreliable (QEMU does not model the pipeline).
@@ -121,6 +124,7 @@ int main(void)
     /* ── Single warm-up pass (also serves as correctness check) ───────── */
     /* One call primes the PRNG state and (on real hardware) the i-cache.
      * On Spike there are no caches, so this is purely the correctness gate. */
+#ifndef HQC_TRACE_MODE
     crypto_kem_keypair(pk, sk);
     crypto_kem_enc(ct, ss_enc, pk);
     crypto_kem_dec(ss_dec, ct, sk);
@@ -128,8 +132,10 @@ int main(void)
         hqc_htif_puts("ERROR: ss_enc != ss_dec — decaps failure!\n");
         hqc_htif_exit(1);
     }
+#endif
 
     /* ── Emit self-describing metadata header ─────────────────────────── */
+#ifndef HQC_SILENT
     uint64_t text_size = (uint64_t)(_text_end - _text_start);
     hqc_htif_puts("# level=");
     hqc_htif_putu64(SECURITY_LEVEL);
@@ -139,9 +145,10 @@ int main(void)
     hqc_htif_putu64(text_size);
     hqc_htif_puts("\n");
 
-    /* ── CSV header ───────────────────────────────────────────────────── */
+    /* ── CSV header ───────────────────────────────────────────────── */
     hqc_htif_puts("op,iterations,min_cycles,median_cycles,max_cycles,"
                   "min_instret,median_instret,max_instret\n");
+#endif
 
     /* ── KeyGen ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {

@@ -1,9 +1,21 @@
-# date: 2026-05-12 14:00
-# commit: d1b8bd3
+# date: 2026-05-13 13:36
+# commit: dc635a5
 compiler,opt,level,variant,status,instructions,text_bytes,elf,error
-clang,-O2,128,fafft_zvbc,OK,8999700,153482,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-clang,-O3,128,fafft_zvbc,OK,8999700,153482,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-clang,-Os,128,fafft_zvbc,OK,8999700,153482,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-gcc,-O2,128,fafft_zvbc,OK,2574974,89370,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-gcc,-O3,128,fafft_zvbc,OK,2833704,86236,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
-gcc,-Os,128,fafft_zvbc,OK,3506540,58010,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
+clang,-O2,128,fafft_zvbc,OK,2083765,84442,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
+clang,-O3,128,fafft_zvbc,OK,1731112,134386,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
+clang,-Os,128,fafft_zvbc,OK,2516200,70056,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
+gcc,-O2,128,fafft_zvbc,OK,2574974,89082,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
+gcc,-O3,128,fafft_zvbc,OK,2833704,85948,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
+gcc,-Os,128,fafft_zvbc,OK,3506540,57722,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc128_fafft_zvbc/bench_polymul_hqc128_fafft_zvbc.elf,
+clang,-O2,192,fafft_zvbc,OK,4617181,84466,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc192_fafft_zvbc/bench_polymul_hqc192_fafft_zvbc.elf,
+clang,-O3,192,fafft_zvbc,OK,3840357,134410,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc192_fafft_zvbc/bench_polymul_hqc192_fafft_zvbc.elf,
+clang,-Os,192,fafft_zvbc,OK,5557334,70082,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc192_fafft_zvbc/bench_polymul_hqc192_fafft_zvbc.elf,
+gcc,-O2,192,fafft_zvbc,OK,5678329,92712,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc192_fafft_zvbc/bench_polymul_hqc192_fafft_zvbc.elf,
+gcc,-O3,192,fafft_zvbc,OK,6291463,91610,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc192_fafft_zvbc/bench_polymul_hqc192_fafft_zvbc.elf,
+gcc,-Os,192,fafft_zvbc,OK,7824292,59526,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc192_fafft_zvbc/bench_polymul_hqc192_fafft_zvbc.elf,
+clang,-O2,256,fafft_zvbc,OK,4652555,84446,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc256_fafft_zvbc/bench_polymul_hqc256_fafft_zvbc.elf,
+clang,-O3,256,fafft_zvbc,OK,3875731,134390,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc256_fafft_zvbc/bench_polymul_hqc256_fafft_zvbc.elf,
+clang,-Os,256,fafft_zvbc,OK,5592706,70066,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc256_fafft_zvbc/bench_polymul_hqc256_fafft_zvbc.elf,
+gcc,-O2,256,fafft_zvbc,OK,5713701,92710,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc256_fafft_zvbc/bench_polymul_hqc256_fafft_zvbc.elf,
+gcc,-O3,256,fafft_zvbc,OK,6326835,91608,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc256_fafft_zvbc/bench_polymul_hqc256_fafft_zvbc.elf,
+gcc,-Os,256,fafft_zvbc,OK,7871225,59524,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc256_fafft_zvbc/bench_polymul_hqc256_fafft_zvbc.elf,

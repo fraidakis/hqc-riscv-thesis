@@ -1,7 +1,0 @@
-# date: 2026-05-12 13:57
-# commit: d1b8bd3
-# variant: hybrid
-level,op,instructions,codesize
-256,keypair,7387556,32338
-256,encaps,14196578,32338
-256,decaps,23634931,32338

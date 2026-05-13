@@ -1,7 +1,0 @@
-# date: 2026-05-12 13:57
-# commit: d1b8bd3
-# variant: karatsuba_ref
-level,op,instructions,codesize
-128,keypair,19331100,27282
-128,encaps,38577485,27282
-128,decaps,58860976,27282

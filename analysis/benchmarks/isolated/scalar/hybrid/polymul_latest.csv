@@ -1,7 +1,7 @@
-# date: 2026-05-12 16:03
-# commit: 7e3c545
+# date: 2026-05-13 13:33
+# commit: dc635a5
 # variant: hybrid
 level,op,instructions,codesize
-128,vect_mul,578981,4010
-192,vect_mul,1814910,3960
-256,vect_mul,3771701,3988
+128,vect_mul,587141,1700
+192,vect_mul,1834830,1722
+256,vect_mul,3801496,1712

@@ -1,0 +1,5 @@
+# date: 2026-05-13 13:29
+# commit: dc635a5
+# variant: karatsuba_zvbc
+load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
+1374,1383,9548,12754,150,200

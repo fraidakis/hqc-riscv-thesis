@@ -71,10 +71,9 @@ NOTES.md
 # ==========================================
 # Benchmarking & Profiling Data
 # ==========================================
-# Ignore all timestamped CSV and TXT backups (Local history only)
-analysis/**/*_202*.csv
-analysis/**/*_202*.txt
-analysis/**/202*.csv
+# Ignore archived benchmark and trace history
+analysis/**/archive/*.csv
+analysis/**/archive/*.txt
 
 # Explicitly track ONLY the "latest" state files
 !analysis/**/*_latest.csv

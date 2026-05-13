@@ -1,0 +1,7 @@
+# date: 2026-05-13 13:34
+# commit: dc635a5
+# variant: karatsuba_ref
+level,op,instructions,codesize
+128,keypair,19111604,35392
+128,encaps,38190117,35392
+128,decaps,57946276,35392

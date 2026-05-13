@@ -84,14 +84,10 @@ def main() -> int:
     total = sum(mnem_counts.values())
     rows = sorted(mnem_counts.items(), key=lambda x: x[1], reverse=True)
 
-    col_w = 28
-    print(f"{'Instruction':<{col_w}} {'Count':>14} {'Pct':>8}")
-    print("-" * (col_w + 25))
-    for mnem, count in rows:
+    print("instruction,count,percentage")
+    for inst, count in rows:
         pct = 100.0 * count / total if total else 0.0
-        print(f"{mnem:<{col_w}} {count:>14,} {pct:>7.2f}%")
-    print("-" * (col_w + 25))
-    print(f"{'TOTAL':<{col_w}} {total:>14,} {'100.00%':>8}")
+        print(f"{inst},{count},{pct:.2f}")
 
     return 0
 

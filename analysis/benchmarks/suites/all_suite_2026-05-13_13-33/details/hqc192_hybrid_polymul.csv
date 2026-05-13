@@ -1,0 +1,5 @@
+# date: 2026-05-13 13:34
+# commit: dc635a5
+# variant: hybrid
+level,op,instructions,codesize
+192,vect_mul,1834830,1722

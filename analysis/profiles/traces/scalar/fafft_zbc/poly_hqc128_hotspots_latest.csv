@@ -1,0 +1,16 @@
+# date: 2026-05-12 20:35
+# commit: dc635a5
+# variant: fafft_zbc
+# level: 128
+function,instructions,percentage
+vect_mul_v5,178448,84.95
+memset,20000,9.52
+reduce,6642,3.16
+_start,2513,1.20
+main,2401,1.14
+>>>>,27,0.01
+hqc_htif_exit,8,0.00
+??,5,0.00
+hqc_rdcycle,4,0.00
+hqc_rdinstret,4,0.00
+vect_mul,2,0.00

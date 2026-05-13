@@ -1,0 +1,3 @@
+128,karatsuba_zbc,kem,keypair,0.238,1320256,32504
+128,karatsuba_zbc,kem,encaps,0.238,2562840,32504
+128,karatsuba_zbc,kem,decaps,0.238,4796531,32504

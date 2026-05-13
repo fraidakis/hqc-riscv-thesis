@@ -46,7 +46,7 @@ set(HQC_SIM "qemu" CACHE STRING "Simulator backend: qemu or spike")
 message(STATUS "Simulator backend: ${HQC_SIM}")
 
 if(HQC_SIM STREQUAL "spike")
-    set(SIM_DEFINES "")       # Spike HTIF is the default in bench.c
+    set(SIM_DEFINES "HQC_SILENT=1") # Suppress verbose headers on Spike — HTIF traps per char are expensive
     set(BENCH_SIM_RUNNER "${CMAKE_SOURCE_DIR}/sim/spike/run.sh")
     set(BENCH_SIM_ARGS "--clean")
 elseif(HQC_SIM STREQUAL "qemu")
@@ -55,6 +55,14 @@ elseif(HQC_SIM STREQUAL "qemu")
     set(BENCH_SIM_ARGS "")
 else()
     message(FATAL_ERROR "Unsupported HQC_SIM='${HQC_SIM}'. Use 'qemu' or 'spike'.")
+endif()
+
+set(HQC_TRACE_MODE 0 CACHE STRING "Compile trace/hist benchmark binaries without warm-up loops")
+if(HQC_TRACE_MODE)
+    list(APPEND SIM_DEFINES "HQC_TRACE_MODE=1")
+    message(STATUS "HQC trace mode: ON (warm-up loops compiled out)")
+else()
+    message(STATUS "HQC trace mode: OFF")
 endif()
 
 # ── Benchmark iteration count ────────────────────────────────────────────────

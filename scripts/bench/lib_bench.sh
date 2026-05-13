@@ -52,6 +52,46 @@ bench_require_elf_or_hint() {
     fi
 }
 
+bench_auto_configure_and_build() {
+    local build_dir="$1" repo_root="$2" target="$3" sim_type="${4:-spike}" trace_mode="${5:-0}" tag="${6:-bench}"
+    
+    # If CMakeCache.txt already exists, just build the target
+    if [[ -f "${build_dir}/CMakeCache.txt" ]]; then
+        if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
+            echo "[${tag}] AUTO-BUILD FAIL ${target}" >&2
+            return 1
+        fi
+        return 0
+    fi
+    
+    # Otherwise, auto-configure the build directory
+    echo " ├── ⚙️ Auto-configuring missing build dir: ${build_dir}..."
+    
+    # Construct the cmake command based on sim_type and trace_mode
+    local cmake_cmd="cmake -S \"$repo_root\" -B \"$build_dir\" \
+        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DHQC_SIM=${sim_type}"
+    
+    # Add trace mode flag if needed
+    if [[ "$trace_mode" == "1" ]]; then
+        cmake_cmd="${cmake_cmd} -DHQC_TRACE_MODE=1"
+    fi
+    
+    # Execute cmake configuration
+    if ! eval "$cmake_cmd" >/dev/null 2>&1; then
+        echo "[${tag}] AUTO-CONFIG FAIL ${build_dir}" >&2
+        return 1
+    fi
+    
+    # Now build the target
+    if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
+        echo "[${tag}] AUTO-BUILD FAIL ${target}" >&2
+        return 1
+    fi
+    
+    return 0
+}
+
 bench_launch_spike_job() {
     local spike="$1" isa="$2" elf="$3" out_file="$4" err_file="${5:-/dev/null}"
     nohup "$spike" --isa="$isa" "$elf" > "$out_file" 2> "$err_file" &
@@ -95,9 +135,24 @@ bench_csv_payload_matches() {
 
 bench_refresh_tracked_csv() {
     local src="$1" dst="$2"
-    mkdir -p "$(dirname "$dst")"
+    local target_dir
+    local archive_dir
+    local archived_src
+
+    target_dir="$(dirname "$dst")"
+    archive_dir="${target_dir}/archive"
+    archived_src="${archive_dir}/$(basename "$src")"
+
+    mkdir -p "$target_dir"
+    mkdir -p "$archive_dir"
     if bench_csv_payload_matches "$src" "$dst"; then
+        mv -f "$src" "$archived_src"
+        echo ""
+        echo " ⏭ Unchanged: $dst"
         return 1
     fi
     cp -f "$src" "$dst"
+    mv -f "$src" "$archived_src"
+    echo ""
+    echo " 🔄 Updated: $dst"
 }

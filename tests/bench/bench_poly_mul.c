@@ -24,6 +24,8 @@
  *   SECURITY_LEVEL  128 | 192 | 256
  *   POLYMUL_NAME    string literal e.g. "karatsuba_ref"
  *   N_ITER          (optional, default 1)
+ *   HQC_SILENT      suppresses HTIF metadata headers in normal Spike bench runs
+ *   HQC_TRACE_MODE  trace/hist-only mode that compiles out un-timed warm-up calls
  *
  * Note: on Spike (deterministic ISS) N_ITER > 1 confirms cycle stability but
  * does not add statistical value.  For real hardware, set N_ITER >= 10.
@@ -101,6 +103,7 @@ int main(void)
     }
 
     /* ── Emit metadata header ────────────────────────────────────────────── */
+#ifndef HQC_SILENT
     uint64_t text_size = (uint64_t)(_text_end - _text_start);
     hqc_htif_puts("# level=");
     hqc_htif_putu64(SECURITY_LEVEL);
@@ -109,9 +112,12 @@ int main(void)
     hqc_htif_puts(",codesize_text=");
     hqc_htif_putu64(text_size);
     hqc_htif_puts("\n");
+#endif
 
     /* ── Warm-up call (discards first-call latency, if any) ─────────────── */
+#ifndef HQC_TRACE_MODE
     vect_mul(poly_out, poly_a, poly_b);
+#endif
 
     /* ── Timed passes ────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
@@ -128,8 +134,10 @@ int main(void)
     sort_u64(samples_ins, N_ITER);
 
     /* ── Emit CSV ────────────────────────────────────────────────────────── */
+#ifndef HQC_SILENT
     hqc_htif_puts("op,iterations,min_cycles,median_cycles,max_cycles,"
                   "min_instret,median_instret,max_instret\n");
+#endif
     hqc_htif_puts("vect_mul,");
     hqc_htif_putu64(N_ITER);
     hqc_htif_puts(",");

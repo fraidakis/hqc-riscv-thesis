@@ -1,2 +1,0 @@
-label,trace,total_instructions,unique_instructions,alu,memory,vector,control,system,other,alu_pct,memory_pct,vector_pct,control_pct,system_pct,other_pct
-bench_polymul_hqc256_hybrid_zbc,analysis/benchmarks/hotspot_profile/bench_polymul_hqc256_hybrid_zbc/spike_trace.log,8680030,62,3285760,1905503,2346337,1142424,6,0,37.85,21.95,27.03,13.16,0.00,0.00
