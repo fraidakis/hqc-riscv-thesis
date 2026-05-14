@@ -100,10 +100,19 @@ sync_suite_kem_latest() {
         return 0
     fi
 
+    local isolated_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
+    local iso_date iso_commit
+    if [[ -f "$isolated_csv" ]]; then
+        iso_date="$(grep '^# date:' "$isolated_csv" | head -n 1 | sed 's/^# date: //' || true)"
+        iso_commit="$(grep '^# commit:' "$isolated_csv" | head -n 1 | sed 's/^# commit: //' || true)"
+    fi
+    iso_date="${iso_date:-$(date +'%Y-%m-%d %H:%M')}"
+    iso_commit="${iso_commit:-$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
+
     mkdir -p "$canonical_dir"
     {
-        echo "# date: $(date +'%Y-%m-%d %H:%M')"
-        echo "# commit: $(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+        echo "# date: ${iso_date}"
+        echo "# commit: ${iso_commit}"
         echo "# variant: ${VARIANT}"
         echo "level,variant,op,instructions,codesize"
         for src in "$latest_suite_dir/keypair.csv" "$latest_suite_dir/encaps.csv" "$latest_suite_dir/decaps.csv"; do
@@ -172,7 +181,7 @@ append_table_or_note() {
 }
 
 generate_report() {
-    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_L${LEVEL}_report.md"
+    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_Full_Report.md"
 
     local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
     local kem_csv="${REPO_ROOT}/analysis/benchmarks/suite/${TRACK}/${VARIANT}/kem_latest.csv"
@@ -182,6 +191,7 @@ generate_report() {
 
     local trace_hotspots_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_hotspots_latest.csv"
     local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_lines_latest.csv"
+    local histogram_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_histogram_latest.csv"
 
     local tmp_poly
     local tmp_kem
@@ -189,6 +199,7 @@ generate_report() {
     local tmp_memory
     local tmp_trace_hot
     local tmp_trace_lines
+    local tmp_histogram
 
     tmp_poly="$(mktemp)"
     tmp_kem="$(mktemp)"
@@ -196,26 +207,27 @@ generate_report() {
     tmp_memory="$(mktemp)"
     tmp_trace_hot="$(mktemp)"
     tmp_trace_lines="$(mktemp)"
+    tmp_histogram="$(mktemp)"
 
-    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}"' RETURN
+    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}" "${tmp_histogram:-}"' RETURN
 
     if [[ -f "$poly_csv" ]]; then
-        awk -F',' -v lvl="$REPORT_LEVEL" '
+        awk -F',' '
             BEGIN { OFS=","; hdr=0 }
             /^#/ { next }
             !hdr { print $1,$2,$3,$4; hdr=1; next }
-            $1 == lvl { print $1,$2,$3,$4 }
+            { print $1,$2,$3,$4 }
         ' "$poly_csv" > "$tmp_poly"
     fi
 
     {
         echo "level,variant,op,instructions,codesize"
         if [[ -f "$kem_csv" ]]; then
-            awk -F',' -v lvl="$REPORT_LEVEL" '
+            awk -F',' '
                 BEGIN { OFS=","; hdr=0 }
                 /^#/ { next }
                 !hdr { hdr=1; next }
-                $1 == lvl { print $1,$2,$3,$4,$5 }
+                { print $1,$2,$3,$4,$5 }
             ' "$kem_csv"
         fi
     } > "$tmp_kem"
@@ -256,11 +268,20 @@ generate_report() {
         ' "$trace_lines_csv" | head -n 21 > "$tmp_trace_lines" || true
     fi
 
+    if [[ -f "$histogram_csv" ]]; then
+        awk -F',' '
+            BEGIN { OFS=","; hdr=0 }
+            /^#/ { next }
+            !hdr { print $0; hdr=1; next }
+            { print $0 }
+        ' "$histogram_csv" | head -n 21 > "$tmp_histogram" || true
+    fi
+
     {
         echo "# Full Analysis Report"
         echo ""
         echo "- Variant: ${VARIANT}"
-        echo "- Level: ${REPORT_LEVEL}"
+        echo "- Level: All"
         echo "- Date: $(date +'%Y-%m-%d %H:%M:%S')"
         echo ""
         echo "## 1. Cycle Counts"
@@ -285,6 +306,7 @@ generate_report() {
 
     append_table_or_note "$report_file" "Function-Level Hotspots (Top 20 Rows)" "$tmp_trace_hot"
     append_table_or_note "$report_file" "Line-Level Hotspots (Top 20 Rows)" "$tmp_trace_lines"
+    append_table_or_note "$report_file" "Basic Block Histogram (Top 20)" "$tmp_histogram"
 
     echo "[done] Report written: ${report_file}"
 }
@@ -324,6 +346,9 @@ main() {
 
     run_quiet_stdout "Trace profiler (line-level)" \
         ./scripts/bench/run_profile.sh --trace --lines --variant "$VARIANT" --level "$LEVEL"
+
+    run_quiet_stdout "Histogram profiler" \
+        ./scripts/bench/run_profile.sh --histogram --variant "$VARIANT" --level "$LEVEL"
 
     echo "[step] Aggregating LLM-readable Markdown report"
     generate_report
