@@ -1,7 +1,7 @@
-# date: 2026-05-14 10:35
-# commit: 47e3152
+# date: 2026-05-14 19:22
+# commit: 6a87af0
 # variant: karatsuba_zbc
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1376,1376,7877,11841,124,186
-192,1479,1373,8271,12813,130,201
-256,1469,1347,8203,12682,129,199
+128,1378,1400,7917,12003,124,188
+192,1479,1397,8295,12965,130,203
+256,1467,1371,8211,12834,129,201

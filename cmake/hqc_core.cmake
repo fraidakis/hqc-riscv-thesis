@@ -50,10 +50,11 @@ function(hqc_add_core LEVEL)
         # optimised version without rebuilding hqc_core.
         # See the VECTOR_SOURCES variable in the target matrix loop.
 
-        # Base field GF(2^m) arithmetic (gf.c) — used by RS decoder and FAFFT
-        # butterflies; this is the SMALL-field operations (GF(2^8) for RS),
-        # distinct from the LARGE polynomial ring GF(2)[x]/(x^n-1).
-        ${HQC_REF}/src/ref/gf.c
+        # Base field GF(2^8) arithmetic — Target 3 Track A promoted (2026-05-14).
+        # src/common/gf.c replaces the upstream reference gf.c; it injects a native
+        # Zbc clmul instruction into gf_mul() (guarded by #ifdef __riscv_zbc for
+        # portability) while keeping all other functions unchanged.
+        ${CMAKE_SOURCE_DIR}/src/common/gf.c
 
         # NOT included here — per-target source selection via HQC_*_IMPL flags:
         #   fips202.c / symmetric.c  ← HQC_KECCAK_IMPL  (Phase 2)
