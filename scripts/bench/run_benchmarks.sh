@@ -110,7 +110,11 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --levels|--level)
-            LEVELS="$2"
+            if [[ "$2" == "all" ]]; then
+                LEVELS="128 192 256"
+            else
+                LEVELS="$2"
+            fi
             shift 2
             ;;
         --promote)
