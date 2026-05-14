@@ -1,4 +1,5 @@
 karatsuba_ref
 karatsuba_zbc
+karatsuba_zbc_nomemset
 karatsuba_zvbc
 hybrid

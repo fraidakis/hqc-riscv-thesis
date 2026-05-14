@@ -1,0 +1,8 @@
+# date: 2026-05-14 14:11
+# commit: 119de46
+# variant: karatsuba_zbc_nomemset
+# cache_config: 512:8:64
+level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+128,1331,105,1226,155,19267763,7813075,2888523,1335284
+192,3052,308,2744,765,48450464,21025807,7104670,3267852
+256,7047,1172,5875,3359,97872869,43740476,14219203,6479808

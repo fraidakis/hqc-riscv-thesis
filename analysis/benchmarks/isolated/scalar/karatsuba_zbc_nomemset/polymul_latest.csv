@@ -1,0 +1,7 @@
+# date: 2026-05-14 14:13
+# commit: 119de46
+# variant: karatsuba_zbc_nomemset
+level,op,instructions,codesize
+128,vect_mul,317645,2810
+192,vect_mul,967470,2842
+256,vect_mul,2142432,2832
