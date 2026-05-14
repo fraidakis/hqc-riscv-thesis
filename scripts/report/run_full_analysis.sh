@@ -13,12 +13,14 @@ Usage:
 Arguments:
   --variant <name>      Required benchmark/profiler variant name.
     --level <value>       Optional level: 128, 192, 256, or all (default: 128).
+    --no-clean            Accepted for compatibility; no-op in this driver.
   -h, --help            Show this help message.
 EOF
 }
 
 VARIANT=""
 LEVEL="128"
+NO_CLEAN=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -39,6 +41,10 @@ while [[ $# -gt 0 ]]; do
             fi
             LEVEL="$2"
             shift 2
+            ;;
+        --no-clean)
+            NO_CLEAN=1
+            shift
             ;;
         -h|--help)
             usage
@@ -136,7 +142,7 @@ append_table_or_note() {
 }
 
 generate_report() {
-    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_Full_Report.md"
+    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_L${REPORT_LEVEL}.md"
 
     local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
     local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/kem_latest.csv"
@@ -146,7 +152,7 @@ generate_report() {
 
     local trace_hotspots_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_hotspots_latest.csv"
     local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_lines_latest.csv"
-    local histogram_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_histogram_latest.csv"
+    local histogram_csv="${REPO_ROOT}/analysis/profiles/histograms/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_latest.csv"
 
     local tmp_poly
     local tmp_kem
@@ -257,7 +263,7 @@ generate_report() {
         echo "# Full Analysis Report"
         echo ""
         echo "- Variant: ${VARIANT}"
-        echo "- Level: All"
+        echo "- Level: ${REPORT_LEVEL}"
         echo "- Date: $(date +'%Y-%m-%d %H:%M:%S')"
         echo ""
         echo "## 1. Cycle Counts"
