@@ -292,19 +292,11 @@ main() {
 
     echo "[step] Running benchmarks and profilers"
 
-    # Required command shape for isolated benchmark; fall back to repository-compatible invocation if needed.
-    if ! run_quiet_stdout "Isolated polymul benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT" --level all; then
-        run_quiet_stdout "Isolated polymul benchmark (compat fallback)" \
-            ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT" --level all
-    fi
+    run_quiet_stdout "Isolated polymul benchmark" \
+        ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT" --level all
 
-    # Required command shape for suite benchmark; fall back to repository-compatible invocation if needed.
-    if ! run_quiet_stdout "Full KEM suite benchmark" \
-        ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level all; then
-        run_quiet_stdout "Full KEM suite benchmark (compat fallback)" \
-            ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level all
-    fi
+    run_quiet_stdout "Isolated KEM benchmark" \
+        ./scripts/bench/run_benchmarks.sh --isolated --kem --variant "$VARIANT" --level all
 
     # Cache/memory profiling are intentionally run in serial via a single-variant invocation.
     run_quiet_stdout "Cache profiler" \
@@ -320,7 +312,7 @@ main() {
         ./scripts/bench/run_profile.sh --trace --lines --variant "$VARIANT" --level "$LEVEL"
 
     run_quiet_stdout "Histogram profiler" \
-        ./scripts/bench/run_profile.sh --trace --histogram --variant "$VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --histogram --variant "$VARIANT" --level "$LEVEL"
 
     echo "[step] Aggregating LLM-readable Markdown report"
     generate_report
