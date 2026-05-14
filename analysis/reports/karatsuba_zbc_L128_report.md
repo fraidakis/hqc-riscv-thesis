@@ -2,7 +2,7 @@
 
 - Variant: karatsuba_zbc
 - Level: 128
-- Date: 2026-05-14 10:38:28
+- Date: 2026-05-14 12:09:15
 
 ## 1. Cycle Counts
 
@@ -10,13 +10,21 @@
 | level | op | instructions | codesize |
 | --- | --- | --- | --- |
 | 128 | vect_mul | 360961 | 2796 |
+| 192 | vect_mul | 1098930 | 2828 |
+| 256 | vect_mul | 2285122 | 2818 |
 
 ### Full KEM Suite
 | level | variant | op | instructions | codesize |
 | --- | --- | --- | --- | --- |
-| 128 | karatsuba_zbc | keypair | 604115 | 39758 |
-| 128 | karatsuba_zbc | encaps | 1252538 | 39758 |
-| 128 | karatsuba_zbc | decaps | 2680559 | 39758 |
+| 128 | keypair | 604115 | 39758 |  |
+| 128 | encaps | 1252538 | 39758 |  |
+| 128 | decaps | 2680559 | 39758 |  |
+| 192 | keypair | 1622996 | 40804 |  |
+| 192 | encaps | 3348382 | 40804 |  |
+| 192 | decaps | 6101623 | 40804 |  |
+| 256 | keypair | 3297029 | 47786 |  |
+| 256 | encaps | 6654995 | 47786 |  |
+| 256 | decaps | 12324577 | 47786 |  |
 
 ## 2. Memory & Cache
 
@@ -78,9 +86,33 @@
 | karatsuba_clmul at gf2x_clmul.c:136 | 134856 | 1.55 |  |
 | karatsuba_clmul at gf2x_clmul.c:133 | 134856 | 1.55 |  |
 | clmul_leaf at gf2x_clmul.c:80 | 114324 | 1.31 |  |
-| KeccakF1600_StatePermute at fips202.c:0 | 98548 | 1.13 |  |
-| clmul_leaf at gf2x_clmul.c:0 | 91758 | 1.05 |  |
+| KeccakF1600_StatePermute at fips202.c:? | 98548 | 1.13 |  |
+| clmul_leaf at gf2x_clmul.c:? | 91758 | 1.05 |  |
 | keccak_inc_absorb at fips202.c:438 | 85750 | 0.99 |  |
 | compare_u32 at vector.c:24 | 83250 | 0.96 |  |
 | memcpy at mem.c:18 | 82652 | 0.95 |  |
+
+### Basic Block Histogram (Top 20)
+| instruction | count | percentage |  |
+| --- | --- | --- | --- |
+| addi | 2078037 | 21.78 |  |
+| bne | 1117539 | 11.71 |  |
+| ld | 1116158 | 11.70 |  |
+| xor | 727390 | 7.62 |  |
+| sb | 705483 | 7.39 |  |
+| bnez | 424554 | 4.45 |  |
+| and | 272362 | 2.85 |  |
+| snez | 239472 | 2.51 |  |
+| or | 230410 | 2.42 |  |
+| sd | 224624 | 2.35 |  |
+| lwu | 181146 | 1.90 |  |
+| add | 150270 | 1.58 |  |
+| slli | 130532 | 1.37 |  |
+| vslide1down.vx | 115092 | 1.21 |  |
+| vsetivli | 115067 | 1.21 |  |
+| vse64.v | 114466 | 1.20 |  |
+| vmv.v.x | 114452 | 1.20 |  |
+| vxor.vv | 114421 | 1.20 |  |
+| vle64.v | 114324 | 1.20 |  |
+| clmul | 114324 | 1.20 |  |
 

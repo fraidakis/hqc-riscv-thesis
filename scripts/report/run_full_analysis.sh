@@ -13,14 +13,12 @@ Usage:
 Arguments:
   --variant <name>      Required benchmark/profiler variant name.
     --level <value>       Optional level: 128, 192, 256, or all (default: 128).
-    --no-clean            Accepted for compatibility; no-op in this driver.
   -h, --help            Show this help message.
 EOF
 }
 
 VARIANT=""
 LEVEL="128"
-NO_CLEAN=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -41,10 +39,6 @@ while [[ $# -gt 0 ]]; do
             fi
             LEVEL="$2"
             shift 2
-            ;;
-        --no-clean)
-            NO_CLEAN=1
-            shift
             ;;
         -h|--help)
             usage
@@ -142,7 +136,7 @@ append_table_or_note() {
 }
 
 generate_report() {
-    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_L${REPORT_LEVEL}.md"
+    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_L${REPORT_LEVEL}_report.md"
 
     local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
     local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/kem_latest.csv"
