@@ -11,18 +11,20 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 usage() {
     cat <<'EOF'
 Usage:
-    run_kat.sh --variant <name> [--level <128|192|256|all|csv>]
+    run_kat.sh --variant <name> [--level <128|192|256|all|csv>] [--spike]
 
 Flags:
     --variant <name>   Polymul variant name (required)
     --level <value>    Security level(s) to run.
                        Accepts: 128, 192, 256, all, or comma-separated values
                        (example: 128,192,256). Default: all.
+    --spike            Use Spike instead of QEMU (default: QEMU).
 EOF
 }
 
 VARIANT=""
 LEVEL_INPUT="all"
+USE_SPIKE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -43,6 +45,10 @@ while [[ $# -gt 0 ]]; do
             fi
             LEVEL_INPUT="$2"
             shift 2
+            ;;
+        --spike)
+            USE_SPIKE=1
+            shift 1
             ;;
         -h|--help)
             usage
@@ -86,9 +92,17 @@ for level in "${LEVELS[@]}"; do
 done
 
 SPIKE_RUNNER="${REPO_ROOT}/sim/spike/run.sh"
-if [[ ! -x "$SPIKE_RUNNER" ]]; then
-    echo "ERROR: sim/spike/run.sh not found or not executable" >&2
-    exit 1
+QEMU_RUNNER="${REPO_ROOT}/sim/qemu/run.sh"
+if [[ "$USE_SPIKE" -eq 1 ]]; then
+    if [[ ! -x "$SPIKE_RUNNER" ]]; then
+        echo "ERROR: sim/spike/run.sh not found or not executable" >&2
+        exit 1
+    fi
+else
+    if [[ ! -x "$QEMU_RUNNER" ]]; then
+        echo "ERROR: sim/qemu/run.sh not found or not executable" >&2
+        exit 1
+    fi
 fi
 
 find_elf_for_target() {
@@ -130,7 +144,11 @@ for level in "${LEVELS[@]}"; do
     log="$(mktemp /tmp/hqc_kat_${level}_${VARIANT}_XXXXXX.log)"
 
     echo "[kat] Running $target"
-    "$SPIKE_RUNNER" --clean "$elf" > "$log" 2>&1 || true
+    if [[ "$USE_SPIKE" -eq 1 ]]; then
+        "${REPO_ROOT}/sim/spike/run.sh" --clean "$elf" > "$log" 2>&1 || true
+    else
+        "${REPO_ROOT}/sim/qemu/run.sh" "$elf" > "$log" 2>&1 || true
+    fi
 
     if [[ ! -s "$log" ]]; then
         echo "FAIL [HQC-${level}]: Simulator produced no output for $(basename "$elf")" >&2
