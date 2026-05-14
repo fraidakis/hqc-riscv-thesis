@@ -1,10 +1,11 @@
 /* src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
  *
- * Official karatsuba_zbc baseline implementation.
+ * Official karatsuba_zbc implementation — Target 4 Track A applied.
  *
  * Polynomial multiplication over GF(2)[x] using recursive Karatsuba with
- * RISC-V Zbc clmul/clmulh leaves, plus a memset-free output assembly/write
- * discipline to avoid redundant zeroing in hot recursion paths.
+ * RISC-V Zbc clmul/clmulh leaves.  Incorporates all prior optimisations:
+ *   - memset-free output assembly/write discipline (Target 1)
+ *   - 2-way software pipeline + hi⊕lo fusion in clmul_leaf (Target 4 Track A)
  */
 
 #include <stdint.h>
@@ -34,54 +35,107 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 /* ── Temporary buffer sizing ─────────────────────────────────────────────*/
 #define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
-/* ── Leaf multiply: no memset ────────────────────────────────────────────
+/* ── Leaf multiply: 2-way software pipeline + hi⊕lo fusion ──────────────
  *
- * Correctness argument for the init-free approach:
+ * Zero-free correctness invariants from karatsuba_zbc are preserved.
+ * The optimisations only reorder and fuse the arithmetic; the set of writes
+ * to each output word is identical to the scalar baseline.
  *
- *  i=0 pass (first outer-loop row):
- *    - (i=0, j=0): r[0] = lo; r[1] = hi;          ← first writes, assign
- *    - (i=0, j=k), k≥1: r[k] ^= lo;               ← r[k] was written as 'hi'
- *                        r[k+1] = hi;              ←   at step k-1 (assign)
- *    After this pass r[0..n] are fully initialised.
+ *  i=0 row:
+ *    First pair (j=0, j=1): r[0]=lo0 (assign), r[1]=hi0^lo1 (fused assign),
+ *    r[2]=hi1 (interim assign, updated by next pair's lo).
+ *    Pairs (j=2,4,...): r[j] ^= lo0 (XOR into interim-hi), r[j+1]=hi0^lo1
+ *    (fused assign), r[j+2]=hi1 (interim assign).
+ *    Scalar tail (odd n): r[n-1] ^= lo, r[n] = hi.
  *
- *  i≥1 pass (remaining outer-loop rows), split at j=n-1:
- *    - j=0..n-2: r[i+j] ^= lo; r[i+j+1] ^= hi;
- *      All accessed positions are in [i, i+n-1] ⊆ [1, 2n-2].
- *      r[i..i+n-1] were initialised by the i=0 pass (r[0..n]) or by the
- *      j=n-1 step of the previous i row (r[n+1..n+i-1]).
- *    - j=n-1: r[i+n-1] ^= lo;  (already initialised as above)
- *             r[i+n]    = hi;   ← first ever write to r[n+i], assign
+ *  i≥1 rows:
+ *    Pairs (j=0,1), (j=2,3),... while j+1 ≤ n-2:
+ *      r[i+j] ^= lo0; r[i+j+1] ^= (hi0^lo1); r[i+j+2] ^= hi1.
+ *    Last pair when n is even (j=n-2): as above, but r[i+n] = hi1 (assign).
+ *    Single tail when n is odd (j=n-1): r[i+n-1] ^= lo, r[i+n] = hi (assign).
  *
- *  After all rows: r[0..2n-1] fully correct, zero bytes read uninitialised.
+ *  n=1 guard: trivial single-product case, no pairing needed.
  */
 static void clmul_leaf(uint64_t * __restrict__ r,
                        const uint64_t * __restrict__ a,
                        const uint64_t * __restrict__ b,
                        size_t n)
 {
-    uint64_t lo, hi;
+    uint64_t lo0, hi0, lo1, hi1;
 
-    /* i=0: assign on first write per slot */
-    clmul64(a[0], b[0], &lo, &hi);
-    r[0] = lo;
-    r[1] = hi;
-    for (size_t j = 1; j < n; j++) {
-        clmul64(a[0], b[j], &lo, &hi);
-        r[j]     ^= lo;   /* r[j] already set as 'hi' by step j-1 */
-        r[j + 1]  = hi;   /* r[j+1]: first write */
+    /* n=1 guard: avoid reading b[1] that doesn't exist */
+    if (__builtin_expect(n == 1, 0)) {
+        clmul64(a[0], b[0], &lo0, &hi0);
+        r[0] = lo0;
+        r[1] = hi0;
+        return;
     }
 
-    /* i≥1: XOR into already-initialised slots; assign on r[n+i] */
+    /* ── i=0 row ─────────────────────────────────────────────────────────
+     * All writes in this pass are fresh assigns (or fused assigns).
+     * The interim assign to r[j+2] is updated by the XOR of the next pair.
+     */
+
+    /* First pair (j=0, j=1): issue both clmul64 before consuming results */
+    clmul64(a[0], b[0], &lo0, &hi0);
+    clmul64(a[0], b[1], &lo1, &hi1);
+    r[0] = lo0;
+    r[1] = hi0 ^ lo1;   /* fused assign: hi from pair 0, lo from pair 1 */
+    r[2] = hi1;          /* interim assign; will be XOR'd by next pair's lo */
+
+    /* Main unrolled loop: pairs starting at j=2 */
+    size_t j = 2;
+    for (; j + 1 < n; j += 2) {
+        clmul64(a[0], b[j],     &lo0, &hi0);
+        clmul64(a[0], b[j + 1], &lo1, &hi1);
+        r[j]     ^= lo0;          /* XOR: r[j] held interim-hi from prev pair */
+        r[j + 1]  = hi0 ^ lo1;   /* fused assign */
+        r[j + 2]  = hi1;          /* interim assign */
+    }
+
+    /* Scalar tail: handles last element when n is odd (j == n-1) */
+    if (j < n) {
+        clmul64(a[0], b[j], &lo0, &hi0);
+        r[j]     ^= lo0;
+        r[j + 1]  = hi0;
+    }
+
+    /* ── i≥1 rows ────────────────────────────────────────────────────────
+     * All writes are XOR into already-initialised positions, except for
+     * the very last write of each row: r[i+n] = hi (first write, assign).
+     *
+     * Main loop: pairs where both j and j+1 are in [0, n-2].
+     * After the loop:
+     *   n even → j == n-2 → handle "last pair" (j=n-2, j+1=n-1) where
+     *            the third output r[i+n] is a fresh assign.
+     *   n odd  → j == n-1 → handle "single tail" (j=n-1) similarly.
+     */
     for (size_t i = 1; i < n; i++) {
-        for (size_t j = 0; j < n - 1; j++) {
-            clmul64(a[i], b[j], &lo, &hi);
-            r[i + j]     ^= lo;
-            r[i + j + 1] ^= hi;
+        j = 0;
+
+        /* Main loop: both elements of each pair are in [0, n-2] */
+        for (; j + 1 < n - 1; j += 2) {
+            clmul64(a[i], b[j],     &lo0, &hi0);
+            clmul64(a[i], b[j + 1], &lo1, &hi1);
+            r[i + j]     ^= lo0;
+            r[i + j + 1] ^= hi0 ^ lo1;  /* fused XOR */
+            r[i + j + 2] ^= hi1;
         }
-        /* j = n-1: hi part lands on r[n+i], a position not yet touched */
-        clmul64(a[i], b[n - 1], &lo, &hi);
-        r[i + n - 1] ^= lo;
-        r[i + n]      = hi;   /* first write to r[n+i] */
+
+        /* Handle remaining element(s) */
+        if (j < n - 1) {
+            /* n even: j == n-2; pair (n-2, n-1); r[i+n] is the fresh assign */
+            clmul64(a[i], b[j],     &lo0, &hi0);
+            clmul64(a[i], b[j + 1], &lo1, &hi1);
+            r[i + j]     ^= lo0;
+            r[i + j + 1] ^= hi0 ^ lo1;  /* fused XOR */
+            r[i + n]      = hi1;          /* first write to r[n+i]: assign */
+        } else {
+            /* n odd: j == n-1; single tail */
+            clmul64(a[i], b[j], &lo0, &hi0);
+            r[i + j]  ^= lo0;
+            r[i + n]   = hi0;             /* first write to r[n+i]: assign */
+        }
     }
 }
 
