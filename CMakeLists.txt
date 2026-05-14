@@ -509,7 +509,9 @@ foreach(LEVEL ${SECURITY_LEVELS})
                     "-Wl,-Map=${CMAKE_BINARY_DIR}/${VLEN_BENCH_TARGET}.map"
                 )
                 add_custom_target(run_${VLEN_BENCH_TARGET}
-                    COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${VLEN_BENCH_TARGET}>
+                    COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS}
+                            $<$<STREQUAL:${HQC_SIM},spike>:--vlen> $<$<STREQUAL:${HQC_SIM},spike>:${VLEN}>
+                            $<TARGET_FILE:${VLEN_BENCH_TARGET}>
                     DEPENDS ${VLEN_BENCH_TARGET}
                     USES_TERMINAL
                     COMMENT "Running ${VLEN_BENCH_TARGET} (VLEN=${VLEN}) with HQC_SIM=${HQC_SIM}"
