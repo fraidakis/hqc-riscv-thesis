@@ -29,7 +29,7 @@ flowchart LR
   C --> D[Report: tables, plots, dashboards]
 
   A1[scripts/implemented_variants.txt] --> A
-  B1[tests/kat + ctest] --> B
+  B1[scripts/test/run_kat.sh] --> B
   C1[analysis/benchmarks/*] --> C
   D1[scripts/report/* + docs/figures/*] --> D
 ```
@@ -145,7 +145,7 @@ hqc-riscv/
 ### Root Files
 
 #### [CMakeLists.txt](../CMakeLists.txt#L1)
-- **Usage:** Top-level CMake orchestrator defining a 3×6 target matrix (3 security levels × 6 polymul variants) producing up to 54 executables: 18 KAT targets for correctness validation, 18 BENCH targets for full-KEM measurements, and 18 POLYMUL_BENCH targets for isolated `vect_mul()` profiling. Configures simulator backend selection via `HQC_SIM`, iteration counts, and implementation switches for `HQC_KECCAK_IMPL` and `HQC_DECODE_IMPL` to toggle between reference and RVV-accelerated paths. Calls `include(cmake/options.cmake)` and `include(cmake/hqc_core.cmake)` to wire variant selection and invariant code compilation. Registers all KAT targets with CTest for automated correctness gating.
+- **Usage:** Top-level CMake orchestrator defining a 3×6 target matrix (3 security levels × 6 polymul variants) producing up to 54 executables: 18 KAT targets for correctness validation, 18 BENCH targets for full-KEM measurements, and 18 POLYMUL_BENCH targets for isolated `vect_mul()` profiling. Configures simulator backend selection via `HQC_SIM`, iteration counts, and implementation switches for `HQC_KECCAK_IMPL` and `HQC_DECODE_IMPL` to toggle between reference and RVV-accelerated paths. Calls `include(cmake/options.cmake)` and `include(cmake/hqc_core.cmake)` to wire variant selection and invariant code compilation. KAT execution is driven through `scripts/test/run_kat.sh` in local and CI workflows.
 - **Why:** This is the central control plane for reproducible variant comparison. It ensures every optimization track is compiled under identical, explicit configuration so performance differences are attributable to algorithm and ISA use, not compiler flags or linking order.
 - **Where:** Invoked by every `cmake -S . -B build` configure step locally, in CI, and in all benchmark automation scripts.
 
@@ -402,7 +402,7 @@ hqc-riscv/
 #### [sim/qemu/run.sh](../sim/qemu/run.sh)
 - **Usage:** Generic QEMU ELF runner for HQC workloads. Resolves `qemu-system-riscv64`, auto-builds the requested ELF if a CMake cache is present, and executes the binary in `virt` system mode with the required hardware flags.
 - **Why:** QEMU is the simulator-specific execution layer for correctness checks. Keeping the hardware configuration here preserves the test/simulator separation of concerns.
-- **Where:** Called by [scripts/test/run_kat.sh](../scripts/test/run_kat.sh) when `--sim qemu` is selected.
+- **Where:** Called by [scripts/test/run_kat.sh](../scripts/test/run_kat.sh) by default (QEMU-first KAT path).
 
 #### [sim/rtl-marian/README.md](../sim/rtl-marian/README.md)
 - **Usage:** Integration guide for running HQC binaries on the PULP Ara / Marian open-source RISC-V vector processor RTL. Documents Verilator and QuestaSim simulation setup, binary loading procedures, and cycle-accurate result collection.
@@ -415,9 +415,9 @@ hqc-riscv/
 - **Where:** Called after `sim/spike/run.sh --profile` produces a trace. Output feeds into [analysis/benchmarks/instruction_mix.csv](../analysis/benchmarks/instruction_mix.csv) and report generation.
 
 #### [scripts/bench/run_benchmarks.sh](../scripts/bench/run_benchmarks.sh)
-- **Usage:** Unified benchmark launcher with `--mode async` for background Spike jobs and `--mode suite` for synchronous benchmarking and summary generation.
-- **Why:** Consolidates the former async and sync benchmark runners behind a single CLI while keeping Spike clean-mode execution centralized in `sim/spike/run.sh`.
-- **Where:** Used for all benchmark campaign launches and reproducible suite runs.
+- **Usage:** Unified benchmark launcher for sequential isolated runs (`--isolated`, optionally `--kem`) that feed canonical benchmark CSVs.
+- **Why:** Keeps benchmark execution deterministic and scriptable while reusing common build/run logic.
+- **Where:** Called directly for quick iteration and by `scripts/report/run_full_analysis.sh` for stateless end-to-end analysis orchestration.
 
 #### [sim/spike/run.sh](../sim/spike/run.sh)
 - **Usage:** Unified Spike runner supporting clean execution and profiling modes via flags. `--clean` runs without logging (fast cycle measurement); `--profile` enables `--log-commits` + `-l` disassembly trace for instruction analysis.
@@ -443,7 +443,7 @@ hqc-riscv/
 #### [tests/bench/bench_poly_mul.c](../tests/bench/bench_poly_mul.c)
 - **Usage:** Isolated `vect_mul()` micro-benchmark measuring polynomial multiply in isolation (no keypair/encaps/decaps, no Keccak overhead). Provides a tighter optimization loop than full-KEM runs.
 - **Why:** `vect_mul()` accounts for >90% of KEM runtime. Isolating it accelerates the algorithmic tuning cycle while preserving the key hotspot signal.
-- **Where:** Compiled into all 18 POLYMUL_BENCH targets. Executed by [scripts/bench/run_benchmarks.sh](../scripts/bench/run_benchmarks.sh) in `--mode async`.
+- **Where:** Compiled into all 18 POLYMUL_BENCH targets. Executed by [scripts/bench/run_benchmarks.sh](../scripts/bench/run_benchmarks.sh) in `--isolated` mode.
 
 #### [tests/ct/ct_harness.c](../tests/ct/ct_harness.c)
 - **Usage:** Constant-time verification harness entrypoint for side-channel analyses. Sets up test scenarios and invokes side-channel tools (ctgrind, dudect).
@@ -486,9 +486,9 @@ hqc-riscv/
 - **Where:** Compiled into all 18 KAT targets (6 variants × 3 levels). Output processed by [scripts/test/run_kat.sh](../scripts/test/run_kat.sh) and [tests/kat/kat_check.py](../tests/kat/kat_check.py).
 
 #### [scripts/test/run_kat.sh](../scripts/test/run_kat.sh)
-- **Usage:** Unified KAT orchestrator: runs an ELF under a simulator (Spike by default, QEMU with `--sim qemu`), captures output, pipes it through `kat_check.py` for verification, and returns pass/fail to the caller. Auto-builds the target ELF before execution to prevent stale binaries.
-- **Why:** Provides the CTest command registered in CMakeLists.txt and the CI execution primitive for automated correctness gating. Spike is the default because it's deterministic and fast; QEMU is available for cross-validation on a traditional x86-based DBT backend.
-- **Where:** Called by CTest tests, `.github/workflows/kat.yml`, and direct developer testing. Consolidates previous separate simulator-specific KAT scripts into a single parameterized entry point.
+- **Usage:** Unified KAT orchestrator: `--variant <name> --level <128|192|256|all> [--spike]`. Uses QEMU by default for fast functional verification and optionally Spike via `--spike`.
+- **Why:** Provides one correctness entrypoint for local and CI use while preserving a deterministic Spike fallback for difficult debug cases.
+- **Where:** Called by direct developer testing and CI workflows.
 
 #### [tests/unit/CMakeLists.txt](../tests/unit/CMakeLists.txt)
 - **Usage:** Unit test build configuration registering individual test targets for GF(2^m) arithmetic, polynomial operations, and decoder correctness checks.
@@ -498,7 +498,7 @@ hqc-riscv/
 #### [tests/unit/test_poly_helpers.c](../tests/unit/test_poly_helpers.c)
 - **Usage:** Unit tests for [src/poly_mul/common/poly_helpers.c](../src/poly_mul/common/poly_helpers.c) helper functions. Tests polynomial copy, XOR, clear, and format conversion correctness.
 - **Why:** Catches helper regressions before they propagate to full benchmark/KAT flows.
-- **Where:** Executed via CTest unit test pipeline.
+- **Where:** Executed via the repository test workflows and local developer test runs.
 
 ### Script Files
 #### [scripts/implemented_variants.txt](../scripts/implemented_variants.txt)
@@ -537,9 +537,9 @@ hqc-riscv/
 - **Where:** Generates depth-sweep benchmark artifacts used in hybrid optimization and reporting.
 
 #### [scripts/bench/run_benchmarks.sh](../scripts/bench/run_benchmarks.sh)
-- **Usage:** Unified benchmark launcher with `--mode async` for background job launch and `--mode suite` for synchronous benchmark suites.
-- **Why:** Replaces the separate async/sync benchmark runners with one documented entrypoint.
-- **Where:** Produces CSV/log artifacts under [analysis/benchmarks/](../analysis/benchmarks/). Used by benchmark campaigns and report generation.
+- **Usage:** Unified benchmark launcher for isolated runs (`--isolated`, optionally `--kem`) across selected levels and variants.
+- **Why:** Provides a stable benchmark primitive used directly by developers and by higher-level stateless wrappers.
+- **Where:** Produces CSV/log artifacts under [analysis/benchmarks/isolated/](../analysis/benchmarks/isolated/). Used by benchmark campaigns and report generation.
 
 #### [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh)
 - **Usage:** Entry script for constant-time verification checks. Runs ctgrind-based taint analysis or dudect statistical timing tests on KEM implementations and exits non-zero on CT violations.
@@ -717,7 +717,7 @@ hqc-riscv/
 #### [.github/workflows/ci.yml](../.github/workflows/ci.yml#L1)
 - **Usage:** Main CI orchestration workflow triggered on every push/PR. Coordinates build, static checks (lint, opcode verification, ISA string validation), KAT correctness gates, and optional profiling/report jobs. Defines job matrix for parallel execution across security levels and variants.
 - **Why:** Provides centralized automation gate for project quality, ensuring every commit passes correctness and ISA compliance checks before merge.
-- **Where:** Triggered by GitHub Actions on push/PR events. Calls CMake build, CTest KAT targets, and CI scripts.
+- **Where:** Triggered by GitHub Actions on push/PR events. Calls CMake build, KAT scripts, and CI scripts.
 
 #### [.github/workflows/ct-verify.yml](../.github/workflows/ct-verify.yml)
 - **Usage:** Dedicated workflow for constant-time verification tasks. Runs ctgrind and dudect analyses on KEM implementations and reports violations or passes.
@@ -725,9 +725,9 @@ hqc-riscv/
 - **Where:** Executes [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh) and stores verification outputs in [analysis/ct_verify/](../analysis/ct_verify/).
 
 #### [.github/workflows/kat.yml](../.github/workflows/kat.yml)
-- **Usage:** KAT matrix workflow spanning all levels/variants and simulator backends. Runs QEMU KAT for scalar variants (fast, broad coverage) and Spike KAT for Zvbc variants (authoritative for vector extensions). Registers CTest matrix jobs for parallel execution.
+- **Usage:** KAT matrix workflow spanning levels/variants with a QEMU-default path and optional Spike fallback coverage.
 - **Why:** Protects cryptographic correctness compatibility through automation, gating releases and major changes.
-- **Where:** Runs KAT scripts ([scripts/test/run_kat.sh](../scripts/test/run_kat.sh)) in CI jobs. Called on every push/PR. Supports both Spike (default) and QEMU simulators via `--sim` flag.
+- **Where:** Runs KAT scripts ([scripts/test/run_kat.sh](../scripts/test/run_kat.sh)) in CI jobs on push/PR events.
 
 #### [.github/workflows/main_cycle_history.yml](../.github/workflows/main_cycle_history.yml)
 - **Usage:** Automates historical cycle/instruction result tracking over mainline evolution. Runs benchmarks on a schedule or manual trigger, commits results to a history branch, and plots trends.

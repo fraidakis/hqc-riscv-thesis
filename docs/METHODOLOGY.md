@@ -58,6 +58,19 @@ instructions are not pathologically expensive (see §12.3).
 - Exact cycle counts with pipeline effects (no RTL model with Zvbc timing).
 - Better performance than ARM Cortex-M4/A72 (different ISA).
 
+### 11.1 Dual-Simulator Strategy (Operational Policy)
+
+To keep both correctness and performance workflows efficient, the project uses
+a strict dual-simulator split:
+
+- QEMU (JIT): functional verification and KAT throughput only. It runs heavy
+  Zvbc rejection-sampling paths in seconds and is the default KAT backend.
+- Spike (ISS): deterministic instruction-count benchmarking, profiling, and
+  trace collection only. It is authoritative for `instret`-based analysis.
+
+This separation prevents simulator wall-clock behavior from contaminating
+performance claims while preserving fast correctness feedback during development.
+
 ---
 
 ## 12. The CPI / Vector Dilemma
@@ -181,7 +194,7 @@ All tools ranked against our three constraints:
 |---|---|
 | Available | Yes (`~/Thesis/installed-tools/bin/spike`) |
 | `rdcycle` semantics | Exact retired instruction count (deterministic) |
-| Zvbc support | Yes: `--isa=rv64gcv_zbc_zbb_zbkb_zvbc --varch=vlen:256,elen:64` |
+| Zvbc support | Yes: `--isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm` |
 | Throughput | ~1–5 M insn/s (use micro-benchmarks to keep runs short) |
 
 **Why #1:** Spike is the only tool providing a meaningful, deterministic,
@@ -240,18 +253,22 @@ latency=1, throughput=1). Interpret output as a **theoretical lower-bound IPC**
 | Available | Yes (`~/Thesis/installed-tools/bin/qemu-system-riscv64`, v10.2.2) |
 | `rdcycle` semantics | **Meaningless** — DBT software counter, not instruction count |
 | Zvbc support | Yes: `-cpu rv64,v=true,vlen=256,elen=64,zbkb=true,zbc=true,zvbc=true` |
-| Speed | Near-native (~10 s for 100 HQC-128 KAT vectors) |
+| Speed | Fast JIT execution (~3-10 s for 100 HQC-128 KAT vectors, variant-dependent) |
 
 **QEMU is our correctness gatekeeper, not our benchmarking tool.**
 Run QEMU KAT after every code change. **Never use QEMU `rdcycle` values in
 the thesis.**
 
 ```bash
-./scripts/test/run_kat.sh --sim qemu build/hqc128_karatsuba_ref.elf tests/kat/PQCkemKAT_128.rsp 2>/dev/null
+./scripts/test/run_kat.sh --variant karatsuba_zvbc --level 128
 # Expected: PASS [HQC-128]: 100/100 vectors matched
 ```
 
-For Zvbc KAT tracks, use Spike (default mode in `scripts/test/run_kat.sh`) because QEMU crashes on the experimental Zvbc extension path in this environment.
+Use Spike KAT mode only when deterministic fallback behavior is required:
+
+```bash
+./scripts/test/run_kat.sh --variant karatsuba_zvbc --level 128 --spike
+```
 
 ### 13.4 FPGA — optional rank 4 (supplementary evidence)
 
