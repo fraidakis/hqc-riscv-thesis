@@ -46,22 +46,64 @@
  */
 #define TMP_BUFFER_WORDS (16 * VEC_N_SIZE_64)
 
-/* ── RVV helper: dst[0..n-1] ^= src[0..n-1]  (vxor.vv, LMUL=4) ─────────
- * Used for the Karatsuba combine phases.
- * With VLEN=256: 16 uint64_t per vector iteration (LMUL=4).
+/* ── RVV helpers: Assign-on-First-Write memory discipline ────────────────
+ *
+ * Transplanted from karatsuba_zbc_rvv (Track B) to eliminate the recursive
+ * memset() bottleneck in karatsuba_vclmul.  Together they implement the
+ * zero-free Karatsuba combine (Step 5) without pre-zeroing r[].
  */
-static void vxor_words(uint64_t * __restrict__ dst,
-                       const uint64_t * __restrict__ src,
-                       size_t n)
+
+/* rvv_copy_u64: Direct-assign n_words uint64_t words from src → dst.
+ * Used for Loop 1 (r = z0) and Loop 2 (r+2m = z2) in Karatsuba assemble.
+ * LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
+ */
+static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
+                                const uint64_t * __restrict__ src,
+                                size_t n_words)
 {
-    size_t i = 0;
-    while (i < n) {
-        size_t vl = __riscv_vsetvl_e64m4(n - i);
-        vuint64m4_t vd = __riscv_vle64_v_u64m4(dst + i, vl);
-        vuint64m4_t vs = __riscv_vle64_v_u64m4(src + i, vl);
-        vd = __riscv_vxor_vv_u64m4(vd, vs, vl);
-        __riscv_vse64_v_u64m4(dst + i, vd, vl);
-        i += vl;
+    size_t n = n_words;
+    while (n > 0) {
+        size_t vl = __riscv_vsetvl_e64m4(n);
+        vuint64m4_t v = __riscv_vle64_v_u64m4(src, vl);
+        __riscv_vse64_v_u64m4(dst, v, vl);
+        src += vl;
+        dst += vl;
+        n   -= vl;
+    }
+}
+
+/* rvv_xor3_u64: dst[i] ^= zmid[i] ^ (z0 ? z0[i] : 0) ^ z2[i].
+ * Used for Loop 3A (src_z0 != NULL) and Loop 3B (src_z0 == NULL, odd n).
+ * LMUL=m2 accommodates four register groups (dst, zmid, z0, z2) within
+ * the 32-register file.  At VLEN=256: 8 uint64_t per iteration.
+ */
+static inline void rvv_xor3_u64(uint64_t       * __restrict__ dst,
+                                const uint64_t * __restrict__ src_zmid,
+                                const uint64_t * __restrict__ src_z0,   /* NULL → 0 */
+                                const uint64_t * __restrict__ src_z2,
+                                size_t n_words)
+{
+    size_t n = n_words;
+    while (n > 0) {
+        size_t vl = __riscv_vsetvl_e64m2(n);
+        vuint64m2_t vdst = __riscv_vle64_v_u64m2(dst,      vl);
+        vuint64m2_t vmid = __riscv_vle64_v_u64m2(src_zmid, vl);
+        vuint64m2_t vz2  = __riscv_vle64_v_u64m2(src_z2,   vl);
+        vuint64m2_t acc;
+        if (src_z0 != (const uint64_t *)0) {
+            vuint64m2_t vz0 = __riscv_vle64_v_u64m2(src_z0, vl);
+            acc = __riscv_vxor_vv_u64m2(vmid, vz0, vl);
+        } else {
+            acc = vmid;
+        }
+        acc  = __riscv_vxor_vv_u64m2(acc,  vz2,  vl);
+        vdst = __riscv_vxor_vv_u64m2(vdst, acc,  vl);
+        __riscv_vse64_v_u64m2(dst, vdst, vl);
+        dst      += vl;
+        src_zmid += vl;
+        if (src_z0 != (const uint64_t *)0) src_z0 += vl;
+        src_z2   += vl;
+        n        -= vl;
     }
 }
 
@@ -228,59 +270,39 @@ static void karatsuba_vclmul(uint64_t * __restrict__ r,
     /* 4) zmid = ta * tb */
     karatsuba_vclmul(zmid, ta, tb, n1, child_buf);
 
-    /* 5) Assemble result using vectorised XOR (Iter 2 advanced):
+    /* 5) Assemble result — zero-free Assign-on-First-Write discipline:
      *      r = z0  +  (zmid ^ z0 ^ z2) * x^m  +  z2 * x^(2m)
      *
-     * Vectorise the combine loop:
-     *   for i in [0, 2*n0):  r[m+i] ^= zmid[i] ^ z0[i] ^ z2[i]
-     *   for i in [2*n0, 2*n1): r[m+i] ^= zmid[i] ^ z2[i]
-     *             (z0 is zero outside [0, 2*n0))
-     * Both segments use vxor_words (LMUL=4, 16 elements/iter). No scalar
-     * fallback, no branch per element.
+     * Loop 1: r[0..2*n0-1]           = z0          (direct assign)
+     * Loop 2: r[2*m..2*m+2*n1-1]     = z2          (direct assign)
+     * Loop 3A: r[m+i] ^= zmid[i] ^ z0[i] ^ z2[i]   i in [0, 2*n0)
+     * Loop 3B: r[m+i] ^= zmid[i] ^ z2[i]            i in [2*n0, 2*n1)
+     *          (z0 is zero outside [0, 2*n0); Loop 3B only for odd n)
+     *
+     * No memset: Loops 1+2 together cover all 2*n words of r before any
+     * read in Loops 3A/3B — same write-before-read guarantee as Track B.
      */
-    memset(r, 0, 2 * n * sizeof(uint64_t));
 
-    /* r[0..2*n0-1] ^= z0[0..2*n0-1] */
-    vxor_words(r, z0, 2 * n0);
+    /* Loop 1: r[0..2*n0-1] = z0 */
+    rvv_copy_u64(r, z0, 2 * n0);
 
-    /* r[2*m..2*m+2*n1-1] ^= z2[0..2*n1-1] */
-    vxor_words(r + 2 * m, z2, 2 * n1);
+    /* Loop 2: r[2*m..2*m+2*n1-1] = z2 */
+    rvv_copy_u64(r + 2 * m, z2, 2 * n1);
 
-    /* Vectorised combine: first segment [0, 2*n0) — zmid ^ z0 ^ z2 */
-    {
-        /* Reuse a temporary to form (zmid ^ z0 ^ z2) for i in [0, 2*n0). */
-        /* We XOR directly into r[m..] in two vectorised sweeps.           */
-        size_t len0 = 2 * n0;   /* z0 is valid here */
-        size_t len1 = 2 * n1 - len0; /* remainder, z0 treated as 0 */
+    /* Loop 3A: r[m..m+2*n0-1] ^= zmid ^ z0 ^ z2 */
+    size_t split = 2 * n0;
+    if (split > 0) {
+        rvv_xor3_u64(r + m, zmid, z0, z2, split);
+    }
 
-        /* Segment A: r[m+i] ^= zmid[i] ^ z0[i] ^ z2[i], i in [0, len0) */
-        size_t off = 0;
-        while (off < len0) {
-            size_t vl = __riscv_vsetvl_e64m4(len0 - off);
-            vuint64m4_t vm = __riscv_vle64_v_u64m4(zmid + off, vl);
-            vuint64m4_t vz0 = __riscv_vle64_v_u64m4(z0   + off, vl);
-            vuint64m4_t vz2 = __riscv_vle64_v_u64m4(z2   + off, vl);
-            vuint64m4_t vr  = __riscv_vle64_v_u64m4(r + m + off, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vm,  vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vz0, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vz2, vl);
-            __riscv_vse64_v_u64m4(r + m + off, vr, vl);
-            off += vl;
-        }
-
-        /* Segment B: r[m+i] ^= zmid[i] ^ z2[i], i in [len0, 2*n1) */
-        /* Only exists when n is odd (n1 = n0 + 1, len1 = 2). */
-        off = len0;
-        while (off < 2 * n1) {
-            size_t vl = __riscv_vsetvl_e64m4(2 * n1 - off);
-            vuint64m4_t vm  = __riscv_vle64_v_u64m4(zmid + off, vl);
-            vuint64m4_t vz2 = __riscv_vle64_v_u64m4(z2   + off, vl);
-            vuint64m4_t vr  = __riscv_vle64_v_u64m4(r + m + off, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vm,  vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vz2, vl);
-            __riscv_vse64_v_u64m4(r + m + off, vr, vl);
-            off += vl;
-        }
+    /* Loop 3B: r[m+2*n0..m+2*n1-1] ^= zmid ^ z2  (odd n only, len=2) */
+    size_t rem = 2 * n1 - split;
+    if (rem > 0) {
+        rvv_xor3_u64(r + m + split,
+                     zmid + split,
+                     (const uint64_t *)0,
+                     z2   + split,
+                     rem);
     }
 }
 
