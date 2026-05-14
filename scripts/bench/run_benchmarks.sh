@@ -76,7 +76,7 @@ usage() {
     cat <<'EOF'
 Usage:
     run_benchmarks.sh --isolated [<bench_set>] [--variant <regex>] [--kem]
-    run_benchmarks.sh --suite [--run-id ID] [--levels "128 192 256"]
+    run_benchmarks.sh --suite [--run-id ID] [--level "128 192 256"]
                     [--variant <regex>] [--promote NAME]
 
 Modes:
@@ -109,7 +109,7 @@ while [[ $# -gt 0 ]]; do
             RUN_ID_OVERRIDE=1
             shift 2
             ;;
-        --levels)
+        --levels|--level)
             LEVELS="$2"
             shift 2
             ;;
@@ -334,19 +334,19 @@ run_suite_mode() {
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$vect_mul_csv"
     echo "# commit: ${GIT_HASH}" >> "$vect_mul_csv"
     echo "# run_id: ${RUN_ID}" >> "$vect_mul_csv"
-    echo "level,variant,kind,op,wall_seconds,instructions,codesize" >> "$vect_mul_csv"
+    echo "level,variant,op,instructions,codesize" >> "$vect_mul_csv"
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$keypair_csv"
     echo "# commit: ${GIT_HASH}" >> "$keypair_csv"
     echo "# run_id: ${RUN_ID}" >> "$keypair_csv"
-    echo "level,variant,kind,op,wall_seconds,instructions,codesize" >> "$keypair_csv"
+    echo "level,variant,op,instructions,codesize" >> "$keypair_csv"
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$encaps_csv"
     echo "# commit: ${GIT_HASH}" >> "$encaps_csv"
     echo "# run_id: ${RUN_ID}" >> "$encaps_csv"
-    echo "level,variant,kind,op,wall_seconds,instructions,codesize" >> "$encaps_csv"
+    echo "level,variant,op,instructions,codesize" >> "$encaps_csv"
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$decaps_csv"
     echo "# commit: ${GIT_HASH}" >> "$decaps_csv"
     echo "# run_id: ${RUN_ID}" >> "$decaps_csv"
-    echo "level,variant,kind,op,wall_seconds,instructions,codesize" >> "$decaps_csv"
+    echo "level,variant,op,instructions,codesize" >> "$decaps_csv"
 
     run_one_suite() {
         local level="$1" variant="$2" kind="$3" target="$4" result_csv="$5"
@@ -365,12 +365,10 @@ run_suite_mode() {
             return 1
         fi
 
-        local elapsed_s t0_ns t1_ns elapsed_ms
+        local t0_ns t1_ns
         t0_ns=$(date +%s%N)
         "$SPIKE_RUNNER" --clean "$elf" > "$raw_log" 2>/dev/null
         t1_ns=$(date +%s%N)
-        elapsed_ms=$(( (t1_ns - t0_ns) / 1000000 ))
-        elapsed_s=$(awk -v ms="$elapsed_ms" 'BEGIN { printf "%.3f", ms/1000.0 }')
 
         local size_tool text_bytes
         size_tool="$RISCV/bin/llvm-size"
@@ -393,13 +391,13 @@ run_suite_mode() {
         if [[ "$kind" == "polymul" ]]; then
             local med_ins
             med_ins="$(awk -F',' '$2=="vect_mul" {print $3; exit}' "$details_csv")"
-            echo "${level},${variant},${kind},vect_mul,${elapsed_s},${med_ins},${text_bytes}" >> "$result_csv"
+            echo "${level},${variant},vect_mul,${med_ins},${text_bytes}" >> "$result_csv"
             ins_arr+=("$(echo "$med_ins" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')")
         else
             for op in keypair encaps decaps; do
                 local med_ins
                 med_ins="$(awk -F',' -v op="$op" '$2==op {print $3; exit}' "$details_csv")"
-                echo "${level},${variant},${kind},${op},${elapsed_s},${med_ins},${text_bytes}" >> "$result_csv"
+                echo "${level},${variant},${op},${med_ins},${text_bytes}" >> "$result_csv"
                 ins_arr+=("$(echo "$med_ins" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')")
             done
         fi
@@ -472,19 +470,19 @@ run_suite_mode() {
     local result_file
     for result_file in "${job_results_dir}"/*.csv; do
         [[ -f "$result_file" ]] || continue
-        while IFS=',' read -r level variant kind op wall_seconds instructions codesize; do
+        while IFS=',' read -r level variant op instructions codesize; do
             case "$op" in
                 vect_mul)
-                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$vect_mul_csv"
+                    echo "${level},${variant},${op},${instructions},${codesize}" >> "$vect_mul_csv"
                     ;;
                 keypair)
-                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$keypair_csv"
+                    echo "${level},${variant},${op},${instructions},${codesize}" >> "$keypair_csv"
                     ;;
                 encaps)
-                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$encaps_csv"
+                    echo "${level},${variant},${op},${instructions},${codesize}" >> "$encaps_csv"
                     ;;
                 decaps)
-                    echo "${level},${variant},${kind},${op},${wall_seconds},${instructions},${codesize}" >> "$decaps_csv"
+                    echo "${level},${variant},${op},${instructions},${codesize}" >> "$decaps_csv"
                     ;;
             esac
         done < "$result_file"

@@ -8,19 +8,17 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 usage() {
     cat <<'EOF'
 Usage:
-    scripts/report/run_full_analysis.sh --variant <name> [--level <128|192|256|all>] [--report]
+        scripts/report/run_full_analysis.sh --variant <name> [--level <128|192|256|all>]
 
 Arguments:
   --variant <name>      Required benchmark/profiler variant name.
-  --level <value>       Optional level: 128, 192, 256, or all (default: all).
-  --report              Optional flag to aggregate results into one Markdown report.
+    --level <value>       Optional level: 128, 192, 256, or all (default: 128).
   -h, --help            Show this help message.
 EOF
 }
 
 VARIANT=""
-LEVEL="all"
-REPORT=0
+LEVEL="128"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -41,10 +39,6 @@ while [[ $# -gt 0 ]]; do
             fi
             LEVEL="$2"
             shift 2
-            ;;
-        --report)
-            REPORT=1
-            shift
             ;;
         -h|--help)
             usage
@@ -69,9 +63,7 @@ if [[ "$LEVEL" != "128" && "$LEVEL" != "192" && "$LEVEL" != "256" && "$LEVEL" !=
     exit 2
 fi
 
-if [[ "$REPORT" -eq 1 ]]; then
-    mkdir -p "${REPO_ROOT}/analysis/llm_reports"
-fi
+mkdir -p "${REPO_ROOT}/analysis/reports"
 
 TRACK="scalar"
 if [[ "${VARIANT}" == *"zvbc"* ]]; then
@@ -162,7 +154,7 @@ append_table_or_note() {
 }
 
 generate_report() {
-    local report_file="${REPO_ROOT}/analysis/llm_reports/${VARIANT}_L${LEVEL}_report.md"
+    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_L${LEVEL}_report.md"
 
     local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
     local suite_root="${REPO_ROOT}/analysis/benchmarks/suites/${SUITE_RUN_ID}"
@@ -194,41 +186,61 @@ generate_report() {
 
     if [[ -f "$poly_csv" ]]; then
         awk -F',' -v lvl="$REPORT_LEVEL" '
-            BEGIN { OFS="," }
+            BEGIN { OFS=","; hdr=0 }
             /^#/ { next }
-            NR == 1 { print $1,$2,$3,$4; next }
+            !hdr { print $1,$2,$3,$4; hdr=1; next }
             $1 == lvl { print $1,$2,$3,$4 }
         ' "$poly_csv" > "$tmp_poly"
     fi
 
     {
-        echo "level,variant,op,wall_seconds,instructions,codesize"
+        echo "level,variant,op,instructions,codesize"
         for kem_src in "$keypair_csv" "$encaps_csv" "$decaps_csv"; do
             if [[ -f "$kem_src" ]]; then
                 awk -F',' -v lvl="$REPORT_LEVEL" -v variant="$VARIANT" '
-                    BEGIN { OFS="," }
+                    BEGIN { OFS=","; hdr=0 }
                     /^#/ { next }
-                    NR == 1 { next }
-                    $1 == lvl && $2 == variant { print $1,$2,$4,$5,$6,$7 }
+                    !hdr { hdr=1; next }
+                    $1 == lvl && $2 == variant { print $1,$2,$3,$4,$5 }
                 ' "$kem_src"
             fi
         done
     } > "$tmp_kem"
 
     if [[ -f "$cache_csv" ]]; then
-        awk '/^#/ { next } NF { print }' "$cache_csv" | head -n 11 > "$tmp_cache" || true
+        awk -F',' '
+            BEGIN { OFS=","; hdr=0 }
+            /^#/ { next }
+            !hdr { print $0; hdr=1; next }
+            { print $0 }
+        ' "$cache_csv" | head -n 11 > "$tmp_cache" || true
     fi
 
     if [[ -f "$memory_csv" ]]; then
-        awk '/^#/ { next } NF { print }' "$memory_csv" > "$tmp_memory"
+        awk -F',' '
+            BEGIN { OFS=","; hdr=0 }
+            /^#/ { next }
+            !hdr { print $0; hdr=1; next }
+            { print $0 }
+        ' "$memory_csv" > "$tmp_memory"
     fi
 
     if [[ -f "$trace_hotspots_csv" ]]; then
-        awk '/^#/ { next } NF { print }' "$trace_hotspots_csv" | head -n 21 > "$tmp_trace_hot" || true
+        awk -F',' '
+            BEGIN { OFS=","; hdr=0 }
+            /^#/ { next }
+            !hdr { print $0; hdr=1; next }
+            { print $0 }
+        ' "$trace_hotspots_csv" | head -n 21 > "$tmp_trace_hot" || true
     fi
 
     if [[ -f "$trace_lines_csv" ]]; then
-        awk '/^#/ { next } NF { print }' "$trace_lines_csv" | head -n 21 > "$tmp_trace_lines" || true
+        awk -F',' '
+            BEGIN { OFS=","; hdr=0 }
+            /^#/ { next }
+            !hdr { print $0; hdr=1; next }
+            { print $0 }
+        ' "$trace_lines_csv" | head -n 21 > "$tmp_trace_lines" || true
     fi
 
     {
@@ -284,7 +296,7 @@ main() {
     if ! run_quiet_stdout "Full KEM suite benchmark" \
         ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level "$LEVEL" --run-id "$SUITE_RUN_ID"; then
         run_quiet_stdout "Full KEM suite benchmark (compat fallback)" \
-            ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --levels "$(resolve_levels_for_suite)" --run-id "$SUITE_RUN_ID"
+            ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level "$(resolve_levels_for_suite)" --run-id "$SUITE_RUN_ID"
     fi
 
     run_quiet_stdout "Cache profiler" \
@@ -299,10 +311,13 @@ main() {
     run_quiet_stdout "Trace profiler (line-level)" \
         ./scripts/bench/run_profile.sh --trace --lines --variant "$VARIANT" --level "$LEVEL"
 
-    if [[ "$REPORT" -eq 1 ]]; then
-        echo "[step] Aggregating LLM-readable Markdown report"
-        generate_report
-    fi
+    echo "[step] Aggregating LLM-readable Markdown report"
+    generate_report
+
+    echo "🧹 Cleaning up intermediate benchmark artifacts..."
+    rm -rf "analysis/benchmarks/suites/${SUITE_RUN_ID}/details"
+    rm -rf "analysis/benchmarks/suites/${SUITE_RUN_ID}/job_results"
+    find "analysis/benchmarks/suites/${SUITE_RUN_ID}" -maxdepth 1 -type f -name "*_polymul.csv" -delete || true
 
     echo "[done] Full analysis orchestration completed"
 }
