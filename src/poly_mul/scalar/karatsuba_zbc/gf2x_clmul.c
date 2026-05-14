@@ -1,18 +1,10 @@
-/* src/poly_mul/karatsuba_zbc/gf2x_clmul.c
+/* src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
  *
- * Karatsuba polynomial multiplication over GF(2)[x]
- * accelerated with the RISC-V Zbc carry-less multiply extension.
+ * Official karatsuba_zbc baseline implementation.
  *
- * Provides the same interface as vendor/hqc-ref/src/ref/gf2x.c:
- *   void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b);
- *
- * Optimisation axes applied:
- *   1. clmul + clmulh base case: 128-bit carry-less product in 2 instructions
- *      (replaces the schoolbook shift-and-XOR loop, ~320 instr → 2 instr).
- *   2. KARATSUBA_THRESHOLD sweep: compile-time tunable cutoff (default = 16 words
- *      based on empirical sweep for HQC-128; override via -DKARATSUBA_THRESHOLD=N).
- *   3. Lazy reduction: multiplication result kept in 2*n unreduced buffer;
- *      reduction mod x^PARAM_N-1 done once at the end (matches reference).
+ * Polynomial multiplication over GF(2)[x] using recursive Karatsuba with
+ * RISC-V Zbc clmul/clmulh leaves, plus a memset-free output assembly/write
+ * discipline to avoid redundant zeroing in hot recursion paths.
  */
 
 #include <stdint.h>
@@ -22,17 +14,10 @@
 
 /* ── RISC-V Zbc carry-less multiply base case ─────────────────────────────
  * Computes the full 128-bit carry-less product of two 64-bit words.
- * Uses inline asm to guarantee exactly clmul + clmulh back-to-back.
- * -march must include _zbc (enforced by the CMake toolchain flags).
  */
 static __attribute__((always_inline)) inline
 void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 {
-    /* Early-clobber (&) on %0 prevents the compiler from allocating the
-     * same register for *lo and the input operands a (%2) or b (%3).
-     * Without &, clmul may overwrite a before clmulh reads it, corrupting
-     * the high half of the 128-bit product.
-     */
     __asm__ volatile (
         "clmul  %0, %2, %3\n\t"
         "clmulh %1, %2, %3\n\t"
@@ -41,52 +26,77 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
     );
 }
 
-/* ── Karatsuba threshold ──────────────────────────────────────────────────
- * For n <= threshold words, use a direct clmul-based leaf multiply.
- * Empirical sweep for HQC-128 (n=277 words):
- *   T=1: 1,809,335   T=2: 1,094,119   T=4: 677,836
- *   T=8:   450,644   T=12-16: 354,187 (optimal, ≡ for this recursion tree)
- *   T=18:  360,287   T=32:    360,287
- * 
- * T=16 gives the optimal balance of Karatsuba reduce and leaf clmul cost.
- * Override at compile time: -DKARATSUBA_THRESHOLD=N
- */
+/* ── Karatsuba threshold ──────────────────────────────────────────────────*/
 #ifndef KARATSUBA_THRESHOLD
 #define KARATSUBA_THRESHOLD HQC_KARATSUBA_THRESHOLD_DEFAULT
 #endif
 
-/* ── Temporary buffer sizing (same formula as reference) ─────────────────
- * At each level: 8*n words.  Summing across levels: < 16*n total.
- */
+/* ── Temporary buffer sizing ─────────────────────────────────────────────*/
 #define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
-/* ── Leaf multiply: n words × n words → 2n words using clmul ────────────
- * For small n (≤ KARATSUBA_THRESHOLD), performs a "schoolbook clmul" where
- * each 64×64 sub-multiplication is handled with clmul+clmulh (2 instructions)
- * instead of the shift-and-XOR loop (~320 instructions).
+/* ── Leaf multiply: no memset ────────────────────────────────────────────
  *
- * Instruction scheduling: the sequential loop is already near-optimal for
- * instruction count (Spike measures instret).  A 2-wide dispatch combining
- * hi0 ^ lo1 was benchmarked but adds loop-overhead instructions (+9% instret).
- * On real OoO hardware the 2-wide form would win via ILP; for this simulator
- * baseline the sequential version is retained.
+ * Correctness argument for the init-free approach:
+ *
+ *  i=0 pass (first outer-loop row):
+ *    - (i=0, j=0): r[0] = lo; r[1] = hi;          ← first writes, assign
+ *    - (i=0, j=k), k≥1: r[k] ^= lo;               ← r[k] was written as 'hi'
+ *                        r[k+1] = hi;              ←   at step k-1 (assign)
+ *    After this pass r[0..n] are fully initialised.
+ *
+ *  i≥1 pass (remaining outer-loop rows), split at j=n-1:
+ *    - j=0..n-2: r[i+j] ^= lo; r[i+j+1] ^= hi;
+ *      All accessed positions are in [i, i+n-1] ⊆ [1, 2n-2].
+ *      r[i..i+n-1] were initialised by the i=0 pass (r[0..n]) or by the
+ *      j=n-1 step of the previous i row (r[n+1..n+i-1]).
+ *    - j=n-1: r[i+n-1] ^= lo;  (already initialised as above)
+ *             r[i+n]    = hi;   ← first ever write to r[n+i], assign
+ *
+ *  After all rows: r[0..2n-1] fully correct, zero bytes read uninitialised.
  */
-static void clmul_leaf(uint64_t * __restrict__ r, const uint64_t * __restrict__ a, const uint64_t * __restrict__ b, size_t n)
+static void clmul_leaf(uint64_t * __restrict__ r,
+                       const uint64_t * __restrict__ a,
+                       const uint64_t * __restrict__ b,
+                       size_t n)
 {
-    memset(r, 0, 2 * n * sizeof(uint64_t));
-    for (size_t i = 0; i < n; i++) {
-        for (size_t j = 0; j < n; j++) {
-            uint64_t lo, hi;
+    uint64_t lo, hi;
+
+    /* i=0: assign on first write per slot */
+    clmul64(a[0], b[0], &lo, &hi);
+    r[0] = lo;
+    r[1] = hi;
+    for (size_t j = 1; j < n; j++) {
+        clmul64(a[0], b[j], &lo, &hi);
+        r[j]     ^= lo;   /* r[j] already set as 'hi' by step j-1 */
+        r[j + 1]  = hi;   /* r[j+1]: first write */
+    }
+
+    /* i≥1: XOR into already-initialised slots; assign on r[n+i] */
+    for (size_t i = 1; i < n; i++) {
+        for (size_t j = 0; j < n - 1; j++) {
             clmul64(a[i], b[j], &lo, &hi);
             r[i + j]     ^= lo;
             r[i + j + 1] ^= hi;
         }
+        /* j = n-1: hi part lands on r[n+i], a position not yet touched */
+        clmul64(a[i], b[n - 1], &lo, &hi);
+        r[i + n - 1] ^= lo;
+        r[i + n]      = hi;   /* first write to r[n+i] */
     }
 }
 
-/* ── Recursive Karatsuba with clmul leaves ───────────────────────────────
- * Identical structure to the reference karatsuba_mul; only the base case
- * is replaced: schoolbook_mul → clmul_leaf.
+/* ── Recursive Karatsuba with clmul leaves and no memset ─────────────────
+ *
+ * Assembly step (step 5) replaces
+ *     memset(r, 0, 2n) + three XOR loops
+ * with direct-assign loops for z0 and z2 followed by an XOR loop for zmid.
+ *
+ * Correctness: after loop-1 (z0→r[0..2n0-1]) and loop-2 (z2→r[2m..2m+2n1-1])
+ * every position in r[0..2n-1] has been assigned exactly once
+ * (loop-1 covers the low half, loop-2 the high half; they are adjacent and
+ * non-overlapping because 2n0=2m and loop-2 starts at 2m).
+ * Loop-3 then XORs zmid^z0^z2 into the already-initialised middle segment
+ * r[m..m+2n1-1].
  */
 static void karatsuba_clmul(uint64_t * __restrict__ r,
                              const uint64_t * __restrict__ a,
@@ -101,14 +111,13 @@ static void karatsuba_clmul(uint64_t * __restrict__ r,
 
     size_t m  = n >> 1;
     size_t n0 = m;
-    size_t n1 = n - m;  /* n1 == m or m+1 when n is odd */
+    size_t n1 = n - m;
 
-    /* Slice temporary storage (8*n words at this level, rest for children) */
-    uint64_t *z0   = tmp;           /* 2*n words: low × low   */
-    uint64_t *z2   = z0 + 2 * n;   /* 2*n words: high × high  */
-    uint64_t *zmid = z2 + 2 * n;   /* 2*n words: mid × mid    */
-    uint64_t *ta   = zmid + 2 * n; /* n1 words: a_lo XOR a_hi */
-    uint64_t *tb   = ta + n;       /* n1 words: b_lo XOR b_hi */
+    uint64_t *z0        = tmp;
+    uint64_t *z2        = z0  + 2 * n;
+    uint64_t *zmid      = z2  + 2 * n;
+    uint64_t *ta        = zmid + 2 * n;
+    uint64_t *tb        = ta  + n;
     uint64_t *child_buf = tmp + 8 * n;
 
     /* 1) z0 = a_lo * b_lo */
@@ -117,7 +126,7 @@ static void karatsuba_clmul(uint64_t * __restrict__ r,
     /* 2) z2 = a_hi * b_hi */
     karatsuba_clmul(z2, a + m, b + m, n1, child_buf);
 
-    /* 3) ta = a_lo XOR a_hi,  tb = b_lo XOR b_hi  (handles odd n1) */
+    /* 3) ta = a_lo XOR a_hi,  tb = b_lo XOR b_hi */
     for (size_t i = 0; i < n1; i++) {
         ta[i] = (i < n0 ? a[i] : 0) ^ a[m + i];
         tb[i] = (i < n0 ? b[i] : 0) ^ b[m + i];
@@ -126,20 +135,22 @@ static void karatsuba_clmul(uint64_t * __restrict__ r,
     /* 4) zmid = ta * tb */
     karatsuba_clmul(zmid, ta, tb, n1, child_buf);
 
-    /* 5) Assemble r = z0  +  (zmid - z0 - z2) * x^m  +  z2 * x^(2m) */
-    memset(r, 0, 2 * n * sizeof(uint64_t));
-    for (size_t i = 0; i < 2 * n0; i++) r[i]           ^= z0[i];
-    for (size_t i = 0; i < 2 * n1; i++) r[2 * m + i]   ^= z2[i];
+    /* 5) Assemble r = z0 + (zmid^z0^z2)*x^m + z2*x^(2m)  — no pre-zero */
+
+    /* Low half: r[0..2n0-1] ← z0 (direct assign, first writes) */
+    for (size_t i = 0; i < 2 * n0; i++) r[i] = z0[i];
+
+    /* High half: r[2m..2m+2n1-1] ← z2 (direct assign, first writes) */
+    for (size_t i = 0; i < 2 * n1; i++) r[2 * m + i] = z2[i];
+
+    /* Middle: r[m..m+2n1-1] ^= zmid^z0^z2 (positions already initialised) */
     for (size_t i = 0; i < 2 * n1; i++) {
-        uint64_t z0i  = (i < 2 * n0 ? z0[i]  : 0);
-        uint64_t z2i  = z2[i];
-        r[m + i] ^= zmid[i] ^ z0i ^ z2i;
+        uint64_t z0i = (i < 2 * n0 ? z0[i] : 0);
+        r[m + i] ^= zmid[i] ^ z0i ^ z2[i];
     }
 }
 
-/* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────
- * Identical to reference: folds the high half back into the low half.
- */
+/* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────*/
 static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
 {
     int shift = (int)HQC_PARAM_N_MOD_64;
@@ -153,9 +164,7 @@ static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
     o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
 }
 
-/* ── Public entry point ──────────────────────────────────────────────────
- * Computes o = a * b mod (x^PARAM_N - 1) over GF(2)[x].
- */
+/* ── Public entry point ──────────────────────────────────────────────────*/
 void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
 {
     uint64_t unreduced[2 * VEC_N_SIZE_64];
