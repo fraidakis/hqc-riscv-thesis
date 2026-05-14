@@ -83,51 +83,6 @@ run_quiet_stdout() {
     "$@" >/dev/null
 }
 
-cache_bust_rebuild() {
-    echo "🧹 Cleaning previous build objects to guarantee a fresh compile..."
-    cmake --build build/bench --target clean >/dev/null || true
-    cmake --build build/bench >/dev/null
-}
-
-sync_suite_kem_latest() {
-    local canonical_dir="${REPO_ROOT}/analysis/benchmarks/suite/${TRACK}/${VARIANT}"
-    local canonical_csv="${canonical_dir}/kem_latest.csv"
-    local latest_suite_dir
-
-    latest_suite_dir="$(ls -1dt "${REPO_ROOT}/analysis/benchmarks/suites/${VARIANT}_suite_"* 2>/dev/null | head -n 1 || true)"
-    if [[ -z "$latest_suite_dir" ]]; then
-        echo "[warn] No suite run directory found to refresh canonical kem_latest.csv"
-        return 0
-    fi
-
-    local isolated_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
-    local iso_date iso_commit
-    if [[ -f "$isolated_csv" ]]; then
-        iso_date="$(grep '^# date:' "$isolated_csv" | head -n 1 | sed 's/^# date: //' || true)"
-        iso_commit="$(grep '^# commit:' "$isolated_csv" | head -n 1 | sed 's/^# commit: //' || true)"
-    fi
-    iso_date="${iso_date:-$(date +'%Y-%m-%d %H:%M')}"
-    iso_commit="${iso_commit:-$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
-
-    mkdir -p "$canonical_dir"
-    {
-        echo "# date: ${iso_date}"
-        echo "# commit: ${iso_commit}"
-        echo "# variant: ${VARIANT}"
-        echo "level,variant,op,instructions,codesize"
-        for src in "$latest_suite_dir/keypair.csv" "$latest_suite_dir/encaps.csv" "$latest_suite_dir/decaps.csv"; do
-            if [[ -f "$src" ]]; then
-                awk -F',' '
-                    BEGIN { OFS=","; hdr=0 }
-                    /^#/ { next }
-                    !hdr { hdr=1; next }
-                    { print $1,$2,$3,$4,$5 }
-                ' "$src"
-            fi
-        done
-    } > "$canonical_csv"
-}
-
 csv_to_markdown() {
     local csv_file="$1"
 
@@ -184,7 +139,7 @@ generate_report() {
     local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_Full_Report.md"
 
     local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
-    local kem_csv="${REPO_ROOT}/analysis/benchmarks/suite/${TRACK}/${VARIANT}/kem_latest.csv"
+    local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/kem_latest.csv"
 
     local cache_csv="${REPO_ROOT}/analysis/profiles/cache/${TRACK}/${VARIANT}/kem_latest.csv"
     local memory_csv="${REPO_ROOT}/analysis/profiles/memory/${TRACK}/${VARIANT}/kem_latest.csv"
@@ -219,6 +174,9 @@ generate_report() {
             { print $1,$2,$3,$4 }
         ' "$poly_csv" > "$tmp_poly"
     fi
+    if [[ ! -s "$tmp_poly" ]]; then
+        rm -f "$tmp_poly"
+    fi
 
     {
         echo "level,variant,op,instructions,codesize"
@@ -231,6 +189,9 @@ generate_report() {
             ' "$kem_csv"
         fi
     } > "$tmp_kem"
+    if [[ ! -s "$tmp_kem" ]]; then
+        rm -f "$tmp_kem"
+    fi
 
     if [[ -f "$cache_csv" ]]; then
         awk -F',' '
@@ -239,6 +200,9 @@ generate_report() {
             !hdr { print $0; hdr=1; next }
             { print $0 }
         ' "$cache_csv" | head -n 11 > "$tmp_cache" || true
+    fi
+    if [[ ! -s "$tmp_cache" ]]; then
+        rm -f "$tmp_cache"
     fi
 
     if [[ -f "$memory_csv" ]]; then
@@ -249,6 +213,9 @@ generate_report() {
             { print $0 }
         ' "$memory_csv" > "$tmp_memory"
     fi
+    if [[ ! -s "$tmp_memory" ]]; then
+        rm -f "$tmp_memory"
+    fi
 
     if [[ -f "$trace_hotspots_csv" ]]; then
         awk -F',' '
@@ -257,6 +224,9 @@ generate_report() {
             !hdr { print $0; hdr=1; next }
             { print $0 }
         ' "$trace_hotspots_csv" | head -n 21 > "$tmp_trace_hot" || true
+    fi
+    if [[ ! -s "$tmp_trace_hot" ]]; then
+        rm -f "$tmp_trace_hot"
     fi
 
     if [[ -f "$trace_lines_csv" ]]; then
@@ -267,6 +237,9 @@ generate_report() {
             { print $0 }
         ' "$trace_lines_csv" | head -n 21 > "$tmp_trace_lines" || true
     fi
+    if [[ ! -s "$tmp_trace_lines" ]]; then
+        rm -f "$tmp_trace_lines"
+    fi
 
     if [[ -f "$histogram_csv" ]]; then
         awk -F',' '
@@ -275,6 +248,9 @@ generate_report() {
             !hdr { print $0; hdr=1; next }
             { print $0 }
         ' "$histogram_csv" | head -n 21 > "$tmp_histogram" || true
+    fi
+    if [[ ! -s "$tmp_histogram" ]]; then
+        rm -f "$tmp_histogram"
     fi
 
     {
@@ -314,8 +290,6 @@ generate_report() {
 main() {
     cd "$REPO_ROOT"
 
-    cache_bust_rebuild
-
     echo "[step] Running benchmarks and profilers"
 
     # Required command shape for isolated benchmark; fall back to repository-compatible invocation if needed.
@@ -332,8 +306,6 @@ main() {
             ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level all
     fi
 
-    sync_suite_kem_latest
-
     # Cache/memory profiling are intentionally run in serial via a single-variant invocation.
     run_quiet_stdout "Cache profiler" \
         ./scripts/bench/run_profile.sh --cache --variant "$VARIANT" --level all
@@ -348,7 +320,7 @@ main() {
         ./scripts/bench/run_profile.sh --trace --lines --variant "$VARIANT" --level "$LEVEL"
 
     run_quiet_stdout "Histogram profiler" \
-        ./scripts/bench/run_profile.sh --histogram --variant "$VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --trace --histogram --variant "$VARIANT" --level "$LEVEL"
 
     echo "[step] Aggregating LLM-readable Markdown report"
     generate_report
