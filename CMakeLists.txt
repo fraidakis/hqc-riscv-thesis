@@ -107,9 +107,7 @@ set(POLYMUL_VARIANTS
     karatsuba_zbc
     karatsuba_zvbc
     karatsuba_ref
-    fafft_zbc
     hybrid
-    fafft_zvbc
 )
 
 # Variants with a real implementation (not __builtin_trap stubs).
@@ -542,12 +540,5 @@ find_program(OBJDUMP_BIN
     NO_DEFAULT_PATH
 )
 
-if(OBJDUMP_BIN)
-    add_custom_target(verify_vclmul
-        COMMAND ${CMAKE_SOURCE_DIR}/scripts/ci/check_opcodes.sh
-                ${OBJDUMP_BIN}
-                "$<TARGET_FILE:hqc128_fafft_zvbc>"
-        DEPENDS hqc128_fafft_zvbc
-        COMMENT "Verifying vclmul opcodes in hqc128_fafft_zvbc"
-    )
-endif()
+
+

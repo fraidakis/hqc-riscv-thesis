@@ -96,27 +96,8 @@ run_quiet_stdout() {
 }
 
 cache_bust_rebuild() {
-    echo "🧹 Clearing CMake cache while preserving toolchain settings..."
-
-    # 1. Salvage existing toolchain/compiler settings
-    TOOLCHAIN_ARGS=""
-    CACHE_FILE="build/bench/CMakeCache.txt"
-    if [ -f "$CACHE_FILE" ]; then
-        TC=$(grep -m 1 "^CMAKE_TOOLCHAIN_FILE:FILEPATH=" "$CACHE_FILE" | cut -d= -f2 || true)
-        CC=$(grep -m 1 "^CMAKE_C_COMPILER:FILEPATH=" "$CACHE_FILE" | cut -d= -f2 || true)
-
-        if [ -n "$TC" ]; then
-            TOOLCHAIN_ARGS="-DCMAKE_TOOLCHAIN_FILE=$TC"
-        elif [ -n "$CC" ]; then
-            TOOLCHAIN_ARGS="-DCMAKE_C_COMPILER=$CC"
-        fi
-    fi
-
-    # 2. Nuke the cache
-    rm -rf build/bench/*
-
-    # 3. Reconfigure with the salvaged settings
-    cmake -S . -B build/bench -DCMAKE_BUILD_TYPE=Release $TOOLCHAIN_ARGS >/dev/null
+    echo "🧹 Cleaning previous build objects to guarantee a fresh compile..."
+    cmake --build build/bench --target clean >/dev/null || true
     cmake --build build/bench >/dev/null
 }
 
@@ -209,7 +190,7 @@ generate_report() {
     tmp_trace_hot="$(mktemp)"
     tmp_trace_lines="$(mktemp)"
 
-    trap 'rm -f "$tmp_poly" "$tmp_kem" "$tmp_cache" "$tmp_memory" "$tmp_trace_hot" "$tmp_trace_lines"' RETURN
+    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}"' RETURN
 
     if [[ -f "$poly_csv" ]]; then
         awk -F',' -v lvl="$REPORT_LEVEL" '
@@ -235,7 +216,7 @@ generate_report() {
     } > "$tmp_kem"
 
     if [[ -f "$cache_csv" ]]; then
-        awk '/^#/ { next } NF { print }' "$cache_csv" | head -n 11 > "$tmp_cache"
+        awk '/^#/ { next } NF { print }' "$cache_csv" | head -n 11 > "$tmp_cache" || true
     fi
 
     if [[ -f "$memory_csv" ]]; then
@@ -243,11 +224,11 @@ generate_report() {
     fi
 
     if [[ -f "$trace_hotspots_csv" ]]; then
-        awk '/^#/ { next } NF { print }' "$trace_hotspots_csv" | head -n 21 > "$tmp_trace_hot"
+        awk '/^#/ { next } NF { print }' "$trace_hotspots_csv" | head -n 21 > "$tmp_trace_hot" || true
     fi
 
     if [[ -f "$trace_lines_csv" ]]; then
-        awk '/^#/ { next } NF { print }' "$trace_lines_csv" | head -n 21 > "$tmp_trace_lines"
+        awk '/^#/ { next } NF { print }' "$trace_lines_csv" | head -n 21 > "$tmp_trace_lines" || true
     fi
 
     {
