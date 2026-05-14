@@ -75,10 +75,6 @@ if [[ "$REPORT_LEVEL" == "all" ]]; then
     REPORT_LEVEL="128"
 fi
 
-sanitize_label() {
-    echo "$1" | tr -c 'A-Za-z0-9_-' '_'
-}
-
 run_quiet_stdout() {
     local label="$1"
     shift
@@ -93,12 +89,34 @@ cache_bust_rebuild() {
     cmake --build build/bench >/dev/null
 }
 
-resolve_levels_for_suite() {
-    if [[ "$LEVEL" == "all" ]]; then
-        echo "128 192 256"
-    else
-        echo "$LEVEL"
+sync_suite_kem_latest() {
+    local canonical_dir="${REPO_ROOT}/analysis/benchmarks/suite/${TRACK}/${VARIANT}"
+    local canonical_csv="${canonical_dir}/kem_latest.csv"
+    local latest_suite_dir
+
+    latest_suite_dir="$(ls -1dt "${REPO_ROOT}/analysis/benchmarks/suites/${VARIANT}_suite_"* 2>/dev/null | head -n 1 || true)"
+    if [[ -z "$latest_suite_dir" ]]; then
+        echo "[warn] No suite run directory found to refresh canonical kem_latest.csv"
+        return 0
     fi
+
+    mkdir -p "$canonical_dir"
+    {
+        echo "# date: $(date +'%Y-%m-%d %H:%M')"
+        echo "# commit: $(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+        echo "# variant: ${VARIANT}"
+        echo "level,variant,op,instructions,codesize"
+        for src in "$latest_suite_dir/keypair.csv" "$latest_suite_dir/encaps.csv" "$latest_suite_dir/decaps.csv"; do
+            if [[ -f "$src" ]]; then
+                awk -F',' '
+                    BEGIN { OFS=","; hdr=0 }
+                    /^#/ { next }
+                    !hdr { hdr=1; next }
+                    { print $1,$2,$3,$4,$5 }
+                ' "$src"
+            fi
+        done
+    } > "$canonical_csv"
 }
 
 csv_to_markdown() {
@@ -157,10 +175,7 @@ generate_report() {
     local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_L${LEVEL}_report.md"
 
     local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
-    local suite_root="${REPO_ROOT}/analysis/benchmarks/suites/${SUITE_RUN_ID}"
-    local keypair_csv="${suite_root}/keypair.csv"
-    local encaps_csv="${suite_root}/encaps.csv"
-    local decaps_csv="${suite_root}/decaps.csv"
+    local kem_csv="${REPO_ROOT}/analysis/benchmarks/suite/${TRACK}/${VARIANT}/kem_latest.csv"
 
     local cache_csv="${REPO_ROOT}/analysis/profiles/cache/${TRACK}/${VARIANT}/kem_latest.csv"
     local memory_csv="${REPO_ROOT}/analysis/profiles/memory/${TRACK}/${VARIANT}/kem_latest.csv"
@@ -195,16 +210,14 @@ generate_report() {
 
     {
         echo "level,variant,op,instructions,codesize"
-        for kem_src in "$keypair_csv" "$encaps_csv" "$decaps_csv"; do
-            if [[ -f "$kem_src" ]]; then
-                awk -F',' -v lvl="$REPORT_LEVEL" -v variant="$VARIANT" '
-                    BEGIN { OFS=","; hdr=0 }
-                    /^#/ { next }
-                    !hdr { hdr=1; next }
-                    $1 == lvl && $2 == variant { print $1,$2,$3,$4,$5 }
-                ' "$kem_src"
-            fi
-        done
+        if [[ -f "$kem_csv" ]]; then
+            awk -F',' -v lvl="$REPORT_LEVEL" '
+                BEGIN { OFS=","; hdr=0 }
+                /^#/ { next }
+                !hdr { hdr=1; next }
+                $1 == lvl { print $1,$2,$3,$4,$5 }
+            ' "$kem_csv"
+        fi
     } > "$tmp_kem"
 
     if [[ -f "$cache_csv" ]]; then
@@ -285,25 +298,26 @@ main() {
 
     # Required command shape for isolated benchmark; fall back to repository-compatible invocation if needed.
     if ! run_quiet_stdout "Isolated polymul benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT" --level "$LEVEL"; then
+        ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT" --level all; then
         run_quiet_stdout "Isolated polymul benchmark (compat fallback)" \
-            ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT"
+            ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT" --level all
     fi
-
-    SUITE_RUN_ID="$(sanitize_label "${VARIANT}_L${LEVEL}_$(date +'%Y%m%d_%H%M%S')")"
 
     # Required command shape for suite benchmark; fall back to repository-compatible invocation if needed.
     if ! run_quiet_stdout "Full KEM suite benchmark" \
-        ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level "$LEVEL" --run-id "$SUITE_RUN_ID"; then
+        ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level all; then
         run_quiet_stdout "Full KEM suite benchmark (compat fallback)" \
-            ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level "$(resolve_levels_for_suite)" --run-id "$SUITE_RUN_ID"
+            ./scripts/bench/run_benchmarks.sh --suite --variant "$VARIANT" --level all
     fi
 
+    sync_suite_kem_latest
+
+    # Cache/memory profiling are intentionally run in serial via a single-variant invocation.
     run_quiet_stdout "Cache profiler" \
-        ./scripts/bench/run_profile.sh --cache --variant "$VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --cache --variant "$VARIANT" --level all
 
     run_quiet_stdout "Memory profiler" \
-        ./scripts/bench/run_profile.sh --memory --variant "$VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --memory --variant "$VARIANT" --level all
 
     run_quiet_stdout "Trace profiler (function-level)" \
         ./scripts/bench/run_profile.sh --trace --variant "$VARIANT" --level "$LEVEL"
@@ -313,11 +327,6 @@ main() {
 
     echo "[step] Aggregating LLM-readable Markdown report"
     generate_report
-
-    echo "🧹 Cleaning up intermediate benchmark artifacts..."
-    rm -rf "analysis/benchmarks/suites/${SUITE_RUN_ID}/details"
-    rm -rf "analysis/benchmarks/suites/${SUITE_RUN_ID}/job_results"
-    find "analysis/benchmarks/suites/${SUITE_RUN_ID}" -maxdepth 1 -type f -name "*_polymul.csv" -delete || true
 
     echo "[done] Full analysis orchestration completed"
 }
