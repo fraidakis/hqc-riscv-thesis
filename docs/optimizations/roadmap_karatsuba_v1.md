@@ -394,202 +394,106 @@ dropping from 20.99% to ~0.5% of total `instret`.
 
 ---
 
-## Target 3 — Polynomial Right-Shift in Karatsuba Reduction (Future Optimization)
+## Target 3 — Final Scalar Sweep (`gf_carryless_mul` + Karatsuba Assembly)
 
-> **Scope:** This target covers optimisation of multi-word polynomial right-shift
-> operations used during the modular reduction phase of Karatsuba multiplication
-> (`reduce()` in `src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c`). While not
-> currently a top-4 hotspot in the baseline `karatsuba_zbc` profile, this
-> optimisation is documented for forward compatibility with future Karatsuba
-> variants or production-ready implementations where reduction becomes
-> register-constrained.
+> **Scope:** This target closes the scalar-only phase before Track B by
+> removing two remaining scalar inefficiencies visible in current profiles:
+> software carry-less multiplication in GF(2^8) and loop-overhead in the
+> Karatsuba assembly step.
 
 ### 3.1 Root Cause
 
-In the Karatsuba polynomial multiplier, the final modular reduction step
-computes `o = a mod (x^PARAM_N - 1)`. When PARAM_N is not a multiple of 64,
-this reduction requires shifting the high half of the 2n-word product buffer
-(`a[VEC_N_SIZE_64..2*VEC_N_SIZE_64-1]`) right by `(PARAM_N mod 64)` bits,
-then XOR-ing the shifted result back into the low half. This implements the
-polynomial reduction: bits that "fall off" the top edge wrap around as if the
-polynomial modulus had absorbed them.
+Two scalar hotspots remain relevant after Targets 1/2/4-Track-A:
 
-The scalar implementation pattern uses a two-adjacent-word sliding window:
+1. `gf_carryless_mul` (`vendor/hqc-ref/src/ref/gf.c`) is still implemented as
+   a software carry-less routine using small lookup-derived masks and nested
+   loops over 2-bit chunks. This is functionally correct and constant-time, but
+   it does not exploit `Zbc` hardware carry-less multiply.
+2. `karatsuba_clmul` assembly in
+   `src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c` uses three scalar loops for
+   low-half copy, high-half copy, and middle XOR accumulation. Even with
+   memset-free logic, the loops still pay branch/loop-counter overhead on every
+   element.
+
+For HQC-128 task-4 profiling, `gf_carryless_mul` is ~8.5% of total `instret`,
+and the `karatsuba_clmul` assembly loop body remains a non-trivial share inside
+the 11.06% Karatsuba hotspot.
+
+### 3.2 Track A — Native `Zbc` Injection in `gf_carryless_mul`
+
+**Strategy: Replace software carry-less chunk loop with one hardware `clmul`.**
+
+Because inputs are 8-bit values, the full carry-less product degree is at most
+14, which fits entirely in the low 16 bits of a single 64-bit `clmul` result.
+So the software chunk loop can be replaced with a direct `clmul` over widened
+operands and byte extraction.
 
 ```c
-// Modular reduction shift pattern in karatsuba_zbc (src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c)
-static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
+// Track A: native clmul-based GF(2^8) carry-less multiply (pseudo-code)
+static inline uint16_t gf_carryless_mul_u8_zbc(uint8_t a, uint8_t b)
 {
-    int shift = (int)HQC_PARAM_N_MOD_64;      // 0–63
-    int inv   = 64 - shift;
-
-    for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
-        uint64_t r  = a[i + VEC_N_SIZE_64 - 1] >> shift;
-        uint64_t carry = (shift == 0) ? 0 : (a[i + VEC_N_SIZE_64] << inv);
-        o[i] = a[i] ^ r ^ carry;  // ← hot line: 2×ld, srl, sll, xor, xor, sd = 7 instructions
-    }
-    o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
+    uint64_t p;
+    __asm__ volatile (
+        "clmul %0, %1, %2\n\t"
+        : "=r"(p)
+        : "r"((uint64_t)a), "r"((uint64_t)b)
+    );
+    return (uint16_t)(p & 0xFFFFu);
 }
-```
 
-Each iteration of the reduction loop body requires: two `ld` (load words at
-positions `i + VEC_N_SIZE_64 - 1` and `i + VEC_N_SIZE_64`), `srl` (shift
-right), `sll` (shift left), two `xor` (combine carry + reduction), `sd` (store)
-→ **~7 instructions per word**. For HQC-128 (`VEC_N_SIZE_64 = 277`), this
-costs ~1,939 instructions per `vect_mul()` call.
-
-This is not currently visible as a top-4 hotspot because:
-- The baseline profile is dominated by the `clmul_leaf` nested loop (Karatsuba
-  recursion tree has O(n^log₂(3)) total products to accumulate).
-- The reduction is called only **once per `vect_mul()`** (O(1)), whereas
-  `clmul_leaf` is called O(n^log₂(3)) times.
-
-However, on production CPUs with larger cache lines and better load forwarding,
-or when scaling to HQC-256, this could become a visible bottleneck due to
-register pressure and L1/L2 cache latency on the cross-word load sequence.
-
-### 3.2 Track A — Pure Scalar (`Zbb` / `Zbkb`)
-
-**Strategy: 4-way loop unrolling + `Zbb` `ror`/`rori` for rotate-style shifts.**
-
-For a fixed `shift` value known at compile time, the
-`(src[i] >> shift) | (src[i+1] << (64-shift))` pattern is identical to a
-64-bit right-rotate spanning two adjacent words. `Zbkb` provides `ror`/`rori`
-but not a cross-word variant; however unrolling 4 iterations and using
-`__builtin_expect` to eliminate the loop overhead (branch prediction, loop
-counter update) reduces instruction overhead per word.
-
-```c
-// Track A: 4-unroll scalar shift-right (Zbkb pseudo-code)
-static void gf2x_shift_right_unroll4(uint64_t *dst,
-                                      const uint64_t *src,
-                                      size_t n_words,
-                                      unsigned shift)
+void gf_carryless_mul(uint8_t *c, uint8_t a, uint8_t b)
 {
-    unsigned inv = 64u - shift;
-    size_t i = 0;
-    // Main 4-unrolled body
-    for (; i + 4 <= n_words - 1; i += 4) {
-        dst[i+0] = (src[i+0] >> shift) | (src[i+1] << inv);
-        dst[i+1] = (src[i+1] >> shift) | (src[i+2] << inv);
-        dst[i+2] = (src[i+2] >> shift) | (src[i+3] << inv);
-        dst[i+3] = (src[i+3] >> shift) | (src[i+4] << inv);
-    }
-    // Scalar tail
-    for (; i < n_words - 1; i++) {
-        dst[i] = (src[i] >> shift) | (src[i+1] << inv);
-    }
-    dst[n_words - 1] = src[n_words - 1] >> shift;
+    uint16_t p = gf_carryless_mul_u8_zbc(a, b);
+    c[0] = (uint8_t)p;
+    c[1] = (uint8_t)(p >> 8);
 }
 ```
 
-When `shift` is a compile-time constant, GCC/Clang with `-march=+zbb` will
-replace the `(a >> shift) | (b << inv)` pattern with `ror` where the hardware
-supports it, and will fold the 4-unroll into back-to-back register pairs.
+**Extensions used:** `Zbc` (`clmul`), base integer loads/stores.
 
-For the Karatsuba `clmul_leaf` analogue: unroll the inner `j` loop by 2 to
-enable the compiler to interleave `clmul` / `clmulh` pairs, reducing
-register-dependency stalls on in-order hardware:
+**Expected savings:** Replaces multiple per-call software mask/shift/XOR steps
+with one `clmul` + two byte stores. For an ~8.5% hotspot, this is a high-value
+scalar-only optimization and a strong candidate for the final Track A gain.
+
+### 3.3 Track A — 4-Way Unroll of `karatsuba_clmul` Assembly Loops
+
+**Strategy: Keep existing write discipline, reduce loop-control overhead.**
+
+The current assembly step is already correctness-safe and memset-free:
+`r[0..2n0-1] = z0`, `r[2m..2m+2n1-1] = z2`, then
+`r[m+i] ^= zmid[i] ^ z0i ^ z2[i]`. A 4-way unroll can be applied to each of
+the three loops without changing data dependencies.
 
 ```c
-// Track A: 2-unrolled clmul_leaf (Zbc pseudo-code)
-for (size_t i = 0; i < n; i++) {
-    size_t j = 0;
-    for (; j + 2 <= n; j += 2) {
-        uint64_t lo0, hi0, lo1, hi1;
-        clmul64(a[i], b[j],   &lo0, &hi0);
-        clmul64(a[i], b[j+1], &lo1, &hi1);
-        r[i+j]   ^= lo0;
-        r[i+j+1] ^= hi0 ^ lo1;   // fold: hi0 and lo1 share the same word
-        r[i+j+2] ^= hi1;
-    }
-    // scalar tail...
+// Track A: 4-way unroll pattern for middle accumulation (pseudo-code)
+size_t i = 0;
+for (; i + 4 <= 2 * n1; i += 4) {
+    uint64_t z00 = (i + 0 < 2 * n0) ? z0[i + 0] : 0;
+    uint64_t z01 = (i + 1 < 2 * n0) ? z0[i + 1] : 0;
+    uint64_t z02 = (i + 2 < 2 * n0) ? z0[i + 2] : 0;
+    uint64_t z03 = (i + 3 < 2 * n0) ? z0[i + 3] : 0;
+    r[m + i + 0] ^= zmid[i + 0] ^ z00 ^ z2[i + 0];
+    r[m + i + 1] ^= zmid[i + 1] ^ z01 ^ z2[i + 1];
+    r[m + i + 2] ^= zmid[i + 2] ^ z02 ^ z2[i + 2];
+    r[m + i + 3] ^= zmid[i + 3] ^ z03 ^ z2[i + 3];
+}
+for (; i < 2 * n1; i++) {
+    uint64_t z0i = (i < 2 * n0) ? z0[i] : 0;
+    r[m + i] ^= zmid[i] ^ z0i ^ z2[i];
 }
 ```
 
-**Extensions used:** Base integer, `Zbb` (`srl`, `sll`, `or` — already emitted;
-`rori` if shift is constant), `Zbkb` (`ror`).
+This unroll is safe because:
+- Low/high destination regions remain first-write assigns.
+- Middle region remains XOR-only into already initialised words.
+- Tail loop preserves exact behavior for non-multiples of 4.
 
-**Expected savings:** 4-unrolling the reduction loop reduces loop-overhead
-instructions by ~75% (branch + addi removed per 4 words). Since reduction is
-called once per `vect_mul()` and costs ~1,939 instructions (7 instr/word ×
-277 words), this optimization is a modest, low-risk improvement: roughly
-**~20–25% reduction** in the `reduce()` function's instruction count.
-Global impact: **~0.3–0.5% of total `instret`** (not a top priority unless
-production hardware exhibits different bottleneck patterns than Spike).
+**Extensions used:** Base integer, optional `Zbb` predication idioms for
+branchless `z0i` materialization.
 
----
-
-### 3.3 Track B — Standard RVV (`V`)
-
-**Strategy: `vsrl.vx` + `vsll.vx` + `vslide1down.vx` for cross-word shift.**
-
-RVV provides the exact primitive needed: `vslide1down.vx` shifts the element
-vector down by one position (loads the next word), enabling a cross-word OR
-without a scalar load. Combined with `vsrl.vx` / `vsll.vx`, the entire shift
-loop becomes a 6-instruction vector body:
-
-```c
-// Track B: RVV vectorised right-shift (pseudo-code)
-static void gf2x_shift_right_rvv(uint64_t *dst,
-                                   const uint64_t *src,
-                                   size_t n_words,
-                                   uint64_t shift)
-{
-    uint64_t inv = 64ULL - shift;
-    size_t remaining = n_words;
-    const uint64_t *s = src;
-    uint64_t       *d = dst;
-
-    while (remaining > 0) {
-        size_t vl;
-        __asm__ volatile (
-            // Configure: e64, m4 → processes up to 4*VLEN/64 elements
-            "vsetvli      %[vl], %[rem], e64, m4, ta, ma\n\t"
-            // Load current window: v0 = src[i .. i+vl-1]
-            "vle64.v      v0, (%[src])\n\t"
-            // Shift right: v4 = v0 >> shift
-            "vsrl.vx      v4, v0, %[sh]\n\t"
-            // Slide down by 1: v8 = {src[i+1..i+vl], fill=src[i+vl]}
-            "vslide1down.vx v8, v0, %[fill]\n\t"
-            // Shift left: v8 = v8 << (64-shift)
-            "vsll.vx      v8, v8, %[inv]\n\t"
-            // OR together: v4 = (v0 >> shift) | (v0_next << inv)
-            "vor.vv       v4, v4, v8\n\t"
-            // Store result
-            "vse64.v      v4, (%[dst])\n\t"
-            : [vl] "=r"(vl)
-            : [rem] "r"(remaining), [src] "r"(s), [dst] "r"(d),
-              [sh]  "r"(shift),     [inv] "r"(inv),
-              [fill] "r"(remaining > 1 ? s[vl] : 0ULL)
-            : "v0","v1","v2","v3","v4","v5","v6","v7",
-              "v8","v9","v10","v11","memory"
-        );
-        s         += vl;
-        d         += vl;
-        remaining -= vl;
-    }
-    // Last word: no next element, only right-shift
-    dst[n_words - 1] = src[n_words - 1] >> shift;
-}
-```
-
-> **Implementation note:** The `vslide1down.vx fill` register (`%[fill]`) must
-> supply the first element of the *next* batch, not a true boundary value, when
-> batching is used. A two-pass approach (load vl+1, process vl) avoids the
-> fill-register complexity.
-
-**Extensions used:** `V` (RVV 1.0): `vsetvli`, `vle64.v`, `vsrl.vx`, `vsll.vx`,
-`vslide1down.vx`, `vor.vv`, `vse64.v`.
-
-**Expected savings:** For `n_words = 277` words with VLEN=256, LMUL=4 gives
-`vl = 16` → `ceil(277/16) = 18` vector loop iterations vs. 277 scalar iterations.
-The 7-instruction vector body (including 3-cycle latency for `vle64.v` → load
-forwarding) means `18 × 7 ≈ 126` instructions vs. `277 × 7 ≈ 1,939` scalar
-instructions — a **~15× instruction reduction** in the `reduce()` kernel.
-Since reduction is O(1) per `vect_mul()`, global impact is modest: **~0.4–0.6%
-of total `instret`** (not recommended for initial experiments; apply after
-P0–P2 have been validated).
+**Expected savings:** Primarily branch and index-update reduction in a
+recursion-hot loop; expected low-single-digit global gain, but effectively
+free risk-wise before RVV transition.
 
 ---
 
@@ -764,26 +668,23 @@ optimisations and the `memset` elimination from Target 1.
 | P1 | `vect_write_support_to_vector` O(w) rewrite (T2) | A | ~16% reduction |
 | P2 | `vect_write_support_to_vector` RVV scatter (T2) | B | ~20% reduction |
 | P3 | `memset` RVV zero+XOR vectorisation (T1) | B | ~18–22% reduction |
-| P4 | `clmul_leaf` software pipeline + hi⊕lo fusion (T4) | A | ~2.5–3% reduction |
-| P5 | Karatsuba assembly RVV XOR (T4) | B | ~1.5–2% reduction |
-| P6 | **Future:** Karatsuba `reduce()` loop unroll (T3-A) | A | ~0.3–0.5% reduction |
-| P7 | **Future:** Karatsuba `reduce()` RVV shift (T3-B) | B | ~0.4–0.6% reduction |
+| P4 | `gf_carryless_mul` native `clmul` injection (T3) | A | ~4–7% reduction |
+| P5 | `karatsuba_clmul` assembly 4-way unroll (T3) | A | ~0.8–1.5% reduction |
+| P6 | `clmul_leaf` software pipeline + hi⊕lo fusion (T4) | A | ~2.5–3% reduction |
+| P7 | Karatsuba assembly RVV XOR (T4) | B | ~1.5–2% reduction |
 
-> **Note on T3 (reduction shift):** Targets P6–P7 are low-priority optimisations
-> for the Karatsuba `reduce()` function. Since reduction is O(1) per `vect_mul()`
-> (called once, not in a hot recursion loop), these optimisations have minimal
-> global impact on the baseline. However, they are documented for forward
-> compatibility with future variants or if production hardware exhibits different
-> bottleneck patterns than the Spike simulator.
+> **Note on final scalar sweep:** P4/P5 are the last low-risk scalar-only
+> optimisations before Track B. They should be completed and benchmarked on all
+> three levels before enabling RVV paths.
 
 **Recommended sequencing:**
 1. Implement P0 (Track A, no new extensions required, self-contained change to `gf2x_clmul.c`).
 2. Implement P1 (Track A, modifies `vector.c` — add CT and non-CT variants).
 3. Benchmark P0+P1 combined against baseline before introducing any RVV code.
-4. Implement P2+P3 together in a single `EXP-karatsuba-zbc-v2-rvv` experiment.
-5. Implement P4+P5 in a follow-up experiment if time permits.
-6. Re-benchmark all three security levels. Promote if KATs pass.
-7. Revisit P6–P7 only if profiling on production hardware reveals `reduce()` as a bottleneck.
+4. Implement P4+P5 as the final scalar sweep in a dedicated experiment.
+5. Re-benchmark all three security levels; promote scalar sweep only if KATs pass.
+6. Implement P2+P3+P7 together in a single `EXP-karatsuba-zbc-v2-rvv` experiment.
+7. Re-benchmark all three security levels and compare scalar-sweep vs RVV deltas.
 
 ---
 
@@ -819,9 +720,9 @@ experiments:
     target_levels: [HQC-128, HQC-192, HQC-256]
     roadmap_ref: docs/optimizations/roadmap_karatsuba_v1.md#target-4
 
-  - id: EXP-karatsuba-zbc-reduce-future
-    status: deferred
-    description: "Optimize reduce() loop unroll (Track A) + RVV shift (Track B); low priority, apply only if production profiling shows bottleneck"
+    - id: EXP-karatsuba-zbc-final-scalar-sweep
+        status: planned
+        description: "Inject native Zbc clmul into gf_carryless_mul and 4-way unroll karatsuba_clmul assembly loops (Track A)"
     target_levels: [HQC-128, HQC-192, HQC-256]
     roadmap_ref: docs/optimizations/roadmap_karatsuba_v1.md#target-3
 ```
