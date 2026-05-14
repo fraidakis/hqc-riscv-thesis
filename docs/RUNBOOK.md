@@ -70,6 +70,24 @@ Pipeline behavior:
 - Aggregates results into a single Markdown report under analysis/reports/.
 - Reads and writes through canonical isolated paths under analysis/benchmarks/isolated/<track>/<variant>/.
 
+### VLEN Scaling Matrix Benchmarks
+
+Use per-VLEN polymul micro-benchmark targets to evaluate RVV scaling for the same algorithm across fixed vector widths.
+
+Build a specific VLEN target (example: HQC-128, karatsuba_zbc_rvv, VLEN=512):
+
+```bash
+cmake --build build/bench --target bench_polymul_hqc128_karatsuba_zbc_rvv_vlen512
+```
+
+When testing wider vectors on Spike, invoke Spike directly with ISA `zvl<VLEN>b` so the emulated machine width matches the benchmark target. Some Spike builds do not support `--varch`, so the ISA suffix is the portable method.
+
+Example (VLEN=512):
+
+```bash
+$RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc_zvl512b build/bench/bench_polymul_hqc128_karatsuba_zbc_rvv_vlen512.elf
+```
+
 ## 4. Direct Isolated Runs (Fast Iteration)
 
 For quick local iteration outside the full wrapper:

@@ -16,7 +16,6 @@
 set -euo pipefail
 
 MODE="clean"
-VLEN=""   # empty = use Spike default (128 b); set to 256/512/1024 via --vlen N
 if [[ "${1:-}" == "--profile" ]]; then
     MODE="profile"
     shift
@@ -26,14 +25,6 @@ elif [[ "${1:-}" == "--clean" ]]; then
 elif [[ "${1:-}" == "--bench" ]]; then
     MODE="clean"
     shift
-fi
-
-# Optional --vlen N flag: configures the vector register file width at runtime.
-# This Spike build (1.1.1-dev) does not support the --varch CLI flag; VLEN is
-# instead set via the Zvl ISA extension (zvlNb) embedded in the --isa string.
-if [[ "${1:-}" == "--vlen" ]]; then
-    VLEN="${2:?--vlen requires a value (e.g. --vlen 512)}"
-    shift 2
 fi
 
 ELF="${1:?Usage: $0 [--clean|--profile] <elf> [flags...]}"
@@ -54,13 +45,6 @@ unset _BUILD_DIR _TARGET
 # _zicntr/_zihpm are added defensively so that any ELF still using the
 # rdcycle pseudoinstruction (CSR 0xc00) does not trap → hang.
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
-
-# Append zvlNb extension when an explicit VLEN was requested.
-# Spike's ISA parser sets the vector unit's VLEN to max(128, N) when it sees
-# zvlNb, matching the -mrvv-vector-bits=N that the ELF was compiled with.
-if [[ -n "$VLEN" ]]; then
-    ISA="${ISA}_zvl${VLEN}b"
-fi
 
 echo "[spike/run] ELF: $ELF"                                        >&2
 echo "[spike/run] ISA: $ISA"                                        >&2
