@@ -44,8 +44,11 @@ function(hqc_add_core LEVEL)
         # Key/ciphertext serialization (parsing.c) — no algorithmic content.
         ${HQC_REF}/src/ref/parsing.c
 
-        # Sparse vector operations (vector.c) — not the polynomial bottleneck.
-        ${HQC_REF}/src/ref/vector.c
+        # NOTE: vector.c is intentionally NOT compiled here.
+        # It is added as a per-target source in CMakeLists.txt so that
+        # experiment variants (e.g. karatsuba_zbc_exp) can substitute an
+        # optimised version without rebuilding hqc_core.
+        # See the VECTOR_SOURCES variable in the target matrix loop.
 
         # Base field GF(2^m) arithmetic (gf.c) — used by RS decoder and FAFFT
         # butterflies; this is the SMALL-field operations (GF(2^8) for RS),
@@ -59,6 +62,9 @@ function(hqc_add_core LEVEL)
         #   reed_solomon.c           ← HQC_DECODE_IMPL   (Phase 3)
         #   code.c / fft.c           ← per-target always (call RM/RS by symbol)
         #   hqc.c                    ← per-target always (calls gf2x by symbol)
+        #   vector.c                 ← per-target always (see VECTOR_SOURCES):
+        #                               src/vector.c — promoted O(weight) scatter
+        #                               (Target 2 Track A, 2026-05-14)
     )
 
     target_include_directories(${TGT} PUBLIC

@@ -215,6 +215,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
 
     foreach(POLYMUL ${POLYMUL_VARIANTS})
 
+        # ── vector.c source — promoted O(weight) scatter for all variants ──────
+        # Target 2 (Track A, 2026-05-14): vect_write_support_to_vector rewritten
+        # from O(VEC_N_SIZE_64 × weight) to O(weight) direct-scatter.
+        # Validated correct across all 3 security levels via KAT (300/300 pass).
+        # Performance: 20.99% → not in top 20 hotspots at HQC-128.
+        # karatsuba_zbc_exp uses the same src/vector.c as all other variants.
+        set(VECTOR_SOURCES ${CMAKE_SOURCE_DIR}/src/vector.c)
+
         # ── Polynomial multiply sources per strategy ──────────────────────────
         if(POLYMUL STREQUAL "karatsuba_ref")
             # Vendor Karatsuba — never modified; this is the performance denominator
@@ -263,6 +271,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${KECCAK_SOURCES}
             ${DECODE_SOURCES}
             ${VENDOR_INVARIANT_SOURCES}
+            ${VECTOR_SOURCES}
             ${LOCAL_COMMON_SOURCES}
         )
         target_link_libraries(${KAT_TARGET} PRIVATE
@@ -330,6 +339,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${KECCAK_SOURCES}
             ${DECODE_SOURCES}
             ${VENDOR_INVARIANT_SOURCES}
+            ${VECTOR_SOURCES}
             ${LOCAL_BENCH_SOURCES}
         )
         target_link_libraries(${BENCH_TARGET} PRIVATE

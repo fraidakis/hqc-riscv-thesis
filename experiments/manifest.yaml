@@ -116,3 +116,34 @@ experiments:
     metrics:
       level_128:
         polymul_instructions: 156770
+
+  # ── Target 2 \u2014 vect_write_support_to_vector (Track A) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+  - id: EXP-target2-bitmanip-scatter
+    date: 2026-05-14
+    hypothesis: "Rewrite vect_write_support_to_vector from O(VEC_N_SIZE_64 \u00d7 weight) to O(weight) using direct-scatter bitset loop (Track A, Zbb/Zbs bitmanip). Baseline share: 20.99% of total KEM-128 instret."
+    status: promoted_to_stable
+    promoted_date: 2026-05-14
+    verdict: "WINNER — function dropped from 20.99% to not in top 20 hotspots. KEM-128 encaps: 1,165,906 → 988,672 (−15.2%). Promoted to src/vector.c and src/vector.c wired into all variants via VECTOR_SOURCES. Pre-target2 archive at experiments/archive_karatsuba_zbc_pre_target2/."
+    path: experiments/EXP-target2-bitmanip-scatter
+    promoted_to: src/vector.c
+    hardware_class: scalar_zbc
+    target_variant: karatsuba_zbc_exp
+    metrics:
+      level_128:
+        polymul_instructions: 317645
+        kem_keypair_instructions: 457921
+        kem_encaps_instructions: 988672
+        kem_decaps_instructions: 2321938
+        vect_write_support_instructions: "~0 (not in top 20; was 1,825,896)"
+      level_192:
+        kem_keypair_instructions: 1220594
+        kem_encaps_instructions: 2592040
+        kem_decaps_instructions: 5078350
+      level_256:
+        kem_keypair_instructions: 2542185
+        kem_encaps_instructions: 5384967
+        kem_decaps_instructions: 10605780
+      measured: 2026-05-14
+      tool: spike
+      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
