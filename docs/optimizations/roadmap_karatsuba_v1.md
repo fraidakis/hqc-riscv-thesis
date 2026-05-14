@@ -394,45 +394,59 @@ dropping from 20.99% to ~0.5% of total `instret`.
 
 ---
 
-## Target 3 — `gf2x_exact_shift_right` / FAFFT Shift Kernel (11.66%)
+## Target 3 — Polynomial Right-Shift in Karatsuba Reduction (Future Optimization)
 
-> **Context:** This target is specific to the `fafft_zbc` variant
-> (`src/poly_mul/scalar/fafft_zbc/`) currently under development. In the
-> `karatsuba_zbc` profile it manifests as `clmul_leaf` at `gf2x_clmul.c:78–81`
-> (14.79%). The roadmap section covers the **shift kernel** that will be the
-> dominant cost in the FAFFT approach, where the "schoolbook shift-right" pattern
-> is the GF(2^n) radix butterfly.
+> **Scope:** This target covers optimisation of multi-word polynomial right-shift
+> operations used during the modular reduction phase of Karatsuba multiplication
+> (`reduce()` in `src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c`). While not
+> currently a top-4 hotspot in the baseline `karatsuba_zbc` profile, this
+> optimisation is documented for forward compatibility with future Karatsuba
+> variants or production-ready implementations where reduction becomes
+> register-constrained.
 
 ### 3.1 Root Cause
 
-In an FAFFT-based GF(2)[x] multiplier, the key primitive is exact right-shift
-of a polynomial bit-vector by `s` positions across a multi-word (64-bit word)
-array. The scalar implementation uses a two-scalar-word sliding window:
+In the Karatsuba polynomial multiplier, the final modular reduction step
+computes `o = a mod (x^PARAM_N - 1)`. When PARAM_N is not a multiple of 64,
+this reduction requires shifting the high half of the 2n-word product buffer
+(`a[VEC_N_SIZE_64..2*VEC_N_SIZE_64-1]`) right by `(PARAM_N mod 64)` bits,
+then XOR-ing the shifted result back into the low half. This implements the
+polynomial reduction: bits that "fall off" the top edge wrap around as if the
+polynomial modulus had absorbed them.
+
+The scalar implementation pattern uses a two-adjacent-word sliding window:
 
 ```c
-// Typical scalar gf2x_exact_shift_right (conceptual, as it would appear
-// in src/poly_mul/scalar/fafft_zbc/gf2x_clmul.c near line 48)
-static inline void gf2x_exact_shift_right(uint64_t *dst,
-                                           const uint64_t *src,
-                                           size_t n_words,
-                                           unsigned shift)
+// Modular reduction shift pattern in karatsuba_zbc (src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c)
+static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
 {
-    unsigned inv = 64u - shift;
-    for (size_t i = 0; i < n_words - 1; i++) {
-        dst[i] = (src[i] >> shift) | (src[i + 1] << inv);  // ← hot line
+    int shift = (int)HQC_PARAM_N_MOD_64;      // 0–63
+    int inv   = 64 - shift;
+
+    for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
+        uint64_t r  = a[i + VEC_N_SIZE_64 - 1] >> shift;
+        uint64_t carry = (shift == 0) ? 0 : (a[i + VEC_N_SIZE_64] << inv);
+        o[i] = a[i] ^ r ^ carry;  // ← hot line: 2×ld, srl, sll, xor, xor, sd = 7 instructions
     }
-    dst[n_words - 1] = src[n_words - 1] >> shift;
+    o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
 }
 ```
 
-Each loop body emits: `ld`, `srl`, `ld`, `sll`, `or`, `sd` → 6 instructions
-per word. For HQC-128 (`n_words = 277`), this costs ~1,662 instructions per
-call. The FAFFT butterfly calls this kernel repeatedly at each frequency level
-(O(N log N) total), making it the dominant cost.
+Each iteration of the reduction loop body requires: two `ld` (load words at
+positions `i + VEC_N_SIZE_64 - 1` and `i + VEC_N_SIZE_64`), `srl` (shift
+right), `sll` (shift left), two `xor` (combine carry + reduction), `sd` (store)
+→ **~7 instructions per word**. For HQC-128 (`VEC_N_SIZE_64 = 277`), this
+costs ~1,939 instructions per `vect_mul()` call.
 
-The `karatsuba_zbc` analogue is the `clmul64` + XOR accumulation in `clmul_leaf`
-(two `ld`, `clmul`, `clmulh`, two `xor`, two `sd` = 8 instructions per
-(i,j) pair), producing the 14.79% hotspot at `gf2x_clmul.c:81`.
+This is not currently visible as a top-4 hotspot because:
+- The baseline profile is dominated by the `clmul_leaf` nested loop (Karatsuba
+  recursion tree has O(n^log₂(3)) total products to accumulate).
+- The reduction is called only **once per `vect_mul()`** (O(1)), whereas
+  `clmul_leaf` is called O(n^log₂(3)) times.
+
+However, on production CPUs with larger cache lines and better load forwarding,
+or when scaling to HQC-256, this could become a visible bottleneck due to
+register pressure and L1/L2 cache latency on the cross-word load sequence.
 
 ### 3.2 Track A — Pure Scalar (`Zbb` / `Zbkb`)
 
@@ -494,12 +508,15 @@ for (size_t i = 0; i < n; i++) {
 ```
 
 **Extensions used:** Base integer, `Zbb` (`srl`, `sll`, `or` — already emitted;
-`rori` if shift is constant), `Zbkb` (`ror`), `Zbc` (`clmul`, `clmulh`).
+`rori` if shift is constant), `Zbkb` (`ror`).
 
-**Expected savings:** 4-unrolling the shift kernel reduces loop-overhead
-instructions by ~75% (branch + addi removed per 4 words). Projected
-**~20–25% reduction** in `gf2x_exact_shift_right` instruction count;
-**~8–10% reduction** in `clmul_leaf` instruction count (2-unroll).
+**Expected savings:** 4-unrolling the reduction loop reduces loop-overhead
+instructions by ~75% (branch + addi removed per 4 words). Since reduction is
+called once per `vect_mul()` and costs ~1,939 instructions (7 instr/word ×
+277 words), this optimization is a modest, low-risk improvement: roughly
+**~20–25% reduction** in the `reduce()` function's instruction count.
+Global impact: **~0.3–0.5% of total `instret`** (not a top priority unless
+production hardware exhibits different bottleneck patterns than Spike).
 
 ---
 
@@ -567,10 +584,12 @@ static void gf2x_shift_right_rvv(uint64_t *dst,
 
 **Expected savings:** For `n_words = 277` words with VLEN=256, LMUL=4 gives
 `vl = 16` → `ceil(277/16) = 18` vector loop iterations vs. 277 scalar iterations.
-The 6-instruction vector body means `18 × 6 = 108` instructions vs.
-`277 × 6 = 1,662` scalar instructions — a **~15× instruction reduction** in the
-kernel. At the FAFFT O(N log N) call frequency, this projects to a
-**>10% global instruction-count reduction** for the full KEM.
+The 7-instruction vector body (including 3-cycle latency for `vle64.v` → load
+forwarding) means `18 × 7 ≈ 126` instructions vs. `277 × 7 ≈ 1,939` scalar
+instructions — a **~15× instruction reduction** in the `reduce()` kernel.
+Since reduction is O(1) per `vect_mul()`, global impact is modest: **~0.4–0.6%
+of total `instret`** (not recommended for initial experiments; apply after
+P0–P2 have been validated).
 
 ---
 
@@ -746,16 +765,25 @@ optimisations and the `memset` elimination from Target 1.
 | P2 | `vect_write_support_to_vector` RVV scatter (T2) | B | ~20% reduction |
 | P3 | `memset` RVV zero+XOR vectorisation (T1) | B | ~18–22% reduction |
 | P4 | `clmul_leaf` software pipeline + hi⊕lo fusion (T4) | A | ~2.5–3% reduction |
-| P5 | FAFFT shift kernel RVV (T3) | B | ~10%+ (fafft variant) |
-| P6 | Karatsuba assembly RVV XOR (T4) | B | ~1.5–2% reduction |
-| P7 | FAFFT shift kernel 4-unroll (T3) | A | ~2–3% (fafft variant) |
+| P5 | Karatsuba assembly RVV XOR (T4) | B | ~1.5–2% reduction |
+| P6 | **Future:** Karatsuba `reduce()` loop unroll (T3-A) | A | ~0.3–0.5% reduction |
+| P7 | **Future:** Karatsuba `reduce()` RVV shift (T3-B) | B | ~0.4–0.6% reduction |
+
+> **Note on T3 (reduction shift):** Targets P6–P7 are low-priority optimisations
+> for the Karatsuba `reduce()` function. Since reduction is O(1) per `vect_mul()`
+> (called once, not in a hot recursion loop), these optimisations have minimal
+> global impact on the baseline. However, they are documented for forward
+> compatibility with future variants or if production hardware exhibits different
+> bottleneck patterns than the Spike simulator.
 
 **Recommended sequencing:**
 1. Implement P0 (Track A, no new extensions required, self-contained change to `gf2x_clmul.c`).
 2. Implement P1 (Track A, modifies `vector.c` — add CT and non-CT variants).
 3. Benchmark P0+P1 combined against baseline before introducing any RVV code.
 4. Implement P2+P3 together in a single `EXP-karatsuba-zbc-v2-rvv` experiment.
-5. Re-benchmark all three security levels. Promote if KATs pass.
+5. Implement P4+P5 in a follow-up experiment if time permits.
+6. Re-benchmark all three security levels. Promote if KATs pass.
+7. Revisit P6–P7 only if profiling on production hardware reveals `reduce()` as a bottleneck.
 
 ---
 
@@ -785,9 +813,15 @@ experiments:
     target_levels: [HQC-128, HQC-192, HQC-256]
     roadmap_ref: docs/optimizations/roadmap_karatsuba_v1.md#targets-1-2-4
 
-  - id: EXP-fafft-zbc-shift-kernel
+  - id: EXP-karatsuba-zbc-leaf-software-pipeline
     status: planned
-    description: "Implement gf2x_exact_shift_right in src/poly_mul/scalar/fafft_zbc/; Track A 4-unroll + Track B RVV vsrl/vslide1down"
+    description: "2-way software-pipelined clmul_leaf with hi⊕lo fusion (Track A) + Karatsuba assembly RVV XOR (Track B)"
+    target_levels: [HQC-128, HQC-192, HQC-256]
+    roadmap_ref: docs/optimizations/roadmap_karatsuba_v1.md#target-4
+
+  - id: EXP-karatsuba-zbc-reduce-future
+    status: deferred
+    description: "Optimize reduce() loop unroll (Track A) + RVV shift (Track B); low priority, apply only if production profiling shows bottleneck"
     target_levels: [HQC-128, HQC-192, HQC-256]
     roadmap_ref: docs/optimizations/roadmap_karatsuba_v1.md#target-3
 ```
@@ -804,3 +838,4 @@ experiments:
 - Bernstein & Lange, "Fast multiplication in binary fields on x86-64 CPUs" (shift-XOR baseline)
 - `analysis/reports/karatsuba_zbc_L128_report.md` (baseline profiling data)
 - `analysis/profiles/traces/scalar/karatsuba_zbc/kem_hqc128_hotspots_latest.csv`
+- Karatsuba algorithm: A. Karatsuba & Y. Ofman, "Multiplication of multidigit numbers on automata", *Soviet Physics Doklady*, 1963
