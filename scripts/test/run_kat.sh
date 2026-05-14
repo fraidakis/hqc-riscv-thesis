@@ -1,127 +1,152 @@
 #!/usr/bin/env bash
 # scripts/test/run_kat.sh
 #
-# Drive the bare-metal KAT binary under a simulator (Spike by default, QEMU optional),
-# capture the console output, and diff against the reference .rsp.
-#
-# Usage:
-#   run_kat.sh [--sim qemu|spike] <elf-binary> <rsp-file>
-#   run_kat.sh [--sim qemu|spike] <elf-binary> <level> <polymul>
-#
-# Arguments:
-#   elf-binary   Path to the compiled hqc<LEVEL>_<POLYMUL> ELF (KAT mode).
-#   rsp-file     Path to the reference PQCkemKAT_*.rsp file.
-#   level        Security level used by the current CTest wiring (128/192/256).
-#   polymul      Polymul variant label, ignored here but accepted for
-#                compatibility with the add_test() signature in CMake.
-#
-# Simulator selection (defaults to Spike if not specified):
-#   --sim spike  : Run under Spike ISS (fast, deterministic)
-#   --sim qemu   : Run under QEMU system-mode emulation
-#
-# Output:
-#   Prints PASS/FAIL summary to stdout.
-#   Exits 0 on success, 1 on KAT failure or simulator error.
-#
-# Timeout: 120 s per security level (HQC-256 KAT on QEMU may take ~90 s).
+# Run KAT ELFs for a polymul variant across one or more HQC security levels.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# Default to Spike; can be overridden with --sim
-SIM="spike"
-if [[ "${1:-}" == "--sim" ]]; then
-    SIM="${2:-spike}"
-    shift 2 || true
-fi
+usage() {
+    cat <<'EOF'
+Usage:
+    run_kat.sh --variant <name> [--level <128|192|256|all|csv>]
 
-# ── Argument parsing ──────────────────────────────────────────────────────────
-if [[ $# -lt 2 ]]; then
-    echo "Usage: run_kat.sh [--sim qemu|spike] <elf> <rsp>" >&2
-    echo "   or: run_kat.sh [--sim qemu|spike] <elf> <level> <polymul>" >&2
-    exit 2
-fi
+Flags:
+    --variant <name>   Polymul variant name (required)
+    --level <value>    Security level(s) to run.
+                       Accepts: 128, 192, 256, all, or comma-separated values
+                       (example: 128,192,256). Default: all.
+EOF
+}
 
-ELF="$1"
-ARG2="$2"
-ARG3="${3:-}"
+VARIANT=""
+LEVEL_INPUT="all"
 
-if [[ "$ARG2" =~ ^(128|192|256)$ ]]; then
-    LEVEL="$ARG2"
-    POLYMUL="${ARG3:-}"
-    RSP="${REPO_ROOT}/tests/kat/PQCkemKAT_${LEVEL}.rsp"
-else
-    RSP="$ARG2"
-    POLYMUL=""
-    LEVEL=""
-fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --variant)
+            if [[ $# -lt 2 || "$2" == --* ]]; then
+                echo "ERROR: --variant requires a value" >&2
+                usage >&2
+                exit 1
+            fi
+            VARIANT="$2"
+            shift 2
+            ;;
+        --level)
+            if [[ $# -lt 2 || "$2" == --* ]]; then
+                echo "ERROR: --level requires a value" >&2
+                usage >&2
+                exit 1
+            fi
+            LEVEL_INPUT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
 
-# ── Auto-build: rebuild the specific ELF target before running ────────────────
-_BUILD_DIR="$(dirname "$ELF")"
-_TARGET="$(basename "$ELF" .elf)"
-if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
-    echo "[kat/run_kat] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
-    cmake --build "$_BUILD_DIR" --target "$_TARGET" -j"$(nproc)" >&2
-fi
-unset _BUILD_DIR _TARGET
-
-if [[ "$SIM" != "qemu" && "$SIM" != "spike" ]]; then
-    echo "ERROR: --sim must be 'qemu' or 'spike'" >&2
-    exit 2
-fi
-
-if [[ "$SIM" == "qemu" && ! -x "${REPO_ROOT}/sim/qemu/run.sh" ]]; then
-    echo "ERROR: sim/qemu/run.sh not found or not executable" >&2
-    exit 2
-fi
-if [[ "$SIM" == "spike" && ! -x "${REPO_ROOT}/sim/spike/run.sh" ]]; then
-    echo "ERROR: sim/spike/run.sh not found or not executable" >&2
-    exit 2
-fi
-
-# ── Derive level from binary name when not provided explicitly ───────────────
-BASENAME="$(basename "$ELF")"
-if [[ -z "$LEVEL" ]]; then
-    if [[ "$BASENAME" == hqc128_* ]]; then LEVEL=128
-    elif [[ "$BASENAME" == hqc192_* ]]; then LEVEL=192
-    elif [[ "$BASENAME" == hqc256_* ]]; then LEVEL=256
-    else
-        echo "WARNING: cannot infer level from binary name '$BASENAME'; omitting level label" >&2
-        LEVEL=""
-    fi
-fi
-
-if [[ ! -f "$RSP" ]]; then
-    echo "ERROR: reference RSP file '$RSP' not found" >&2
-    exit 2
-fi
-
-# ── Temp file for simulator output ────────────────────────────────────────────
-LOG="$(mktemp /tmp/hqc_kat_XXXXXX.log)"
-trap 'rm -f "$LOG"' EXIT
-
-# ── Run under simulator ───────────────────────────────────────────────────────
-if [[ "$SIM" == "qemu" ]]; then
-    echo "Running: $ELF under QEMU..."
-    "${REPO_ROOT}/sim/qemu/run.sh" "$ELF" > "$LOG" 2>&1 || true
-else
-    echo "Running: $ELF under Spike..."
-    "${REPO_ROOT}/sim/spike/run.sh" --clean "$ELF" > "$LOG" 2>&1 || true
-fi
-
-# ── Check captured output ─────────────────────────────────────────────────────
-if [[ ! -s "$LOG" ]]; then
-    echo "FAIL: Simulator produced no output for $BASENAME" >&2
+if [[ -z "$VARIANT" ]]; then
+    echo "ERROR: --variant is required" >&2
+    usage >&2
     exit 1
 fi
 
-# ── Diff against reference .rsp ───────────────────────────────────────────────
-LEVEL_ARG=""
-[[ -n "$LEVEL" ]] && LEVEL_ARG="--level $LEVEL"
+declare -a LEVELS=()
+if [[ "$LEVEL_INPUT" == "all" ]]; then
+    LEVELS=(128 192 256)
+else
+    # Accept comma-separated and/or whitespace-separated values.
+    LEVEL_INPUT="${LEVEL_INPUT//,/ }"
+    read -r -a LEVELS <<< "$LEVEL_INPUT"
+fi
 
-python3 "${REPO_ROOT}/tests/kat/kat_check.py" \
-    --actual "$LOG"  \
-    --rsp    "$RSP"  \
-    $LEVEL_ARG
+if [[ ${#LEVELS[@]} -eq 0 ]]; then
+    echo "ERROR: --level produced no security levels" >&2
+    usage >&2
+    exit 1
+fi
+
+for level in "${LEVELS[@]}"; do
+    if [[ "$level" != "128" && "$level" != "192" && "$level" != "256" ]]; then
+        echo "ERROR: Invalid level '$level' (allowed: 128, 192, 256, all)" >&2
+        usage >&2
+        exit 1
+    fi
+done
+
+SPIKE_RUNNER="${REPO_ROOT}/sim/spike/run.sh"
+if [[ ! -x "$SPIKE_RUNNER" ]]; then
+    echo "ERROR: sim/spike/run.sh not found or not executable" >&2
+    exit 1
+fi
+
+find_elf_for_target() {
+    local target="$1"
+    local direct_path="${REPO_ROOT}/build/bench/${target}.elf"
+    if [[ -f "$direct_path" ]]; then
+        echo "$direct_path"
+        return 0
+    fi
+
+    local first_match
+    first_match="$(find "${REPO_ROOT}/build" -type f -name "${target}.elf" 2>/dev/null | sort | head -n 1 || true)"
+    if [[ -n "$first_match" ]]; then
+        echo "$first_match"
+        return 0
+    fi
+
+    return 1
+}
+
+overall_status=0
+
+for level in "${LEVELS[@]}"; do
+    target="hqc${level}_${VARIANT}"
+    rsp="${REPO_ROOT}/tests/kat/PQCkemKAT_${level}.rsp"
+
+    if [[ ! -f "$rsp" ]]; then
+        echo "FAIL [HQC-${level}]: reference RSP file '$rsp' not found" >&2
+        overall_status=1
+        continue
+    fi
+
+    if ! elf="$(find_elf_for_target "$target")"; then
+        echo "FAIL [HQC-${level}]: ELF not found for target '$target' under build/" >&2
+        overall_status=1
+        continue
+    fi
+
+    log="$(mktemp /tmp/hqc_kat_${level}_${VARIANT}_XXXXXX.log)"
+
+    echo "[kat] Running $target"
+    "$SPIKE_RUNNER" --clean "$elf" > "$log" 2>&1 || true
+
+    if [[ ! -s "$log" ]]; then
+        echo "FAIL [HQC-${level}]: Simulator produced no output for $(basename "$elf")" >&2
+        rm -f "$log"
+        overall_status=1
+        continue
+    fi
+
+    if ! python3 "${REPO_ROOT}/tests/kat/kat_check.py" \
+        --actual "$log" \
+        --rsp "$rsp" \
+        --level "$level"; then
+        overall_status=1
+    fi
+
+    rm -f "$log"
+done
+
+exit "$overall_status"
