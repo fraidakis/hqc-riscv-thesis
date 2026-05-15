@@ -123,10 +123,45 @@ set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
 # Phase 2 replaces this with the RVV Keccak.  All polymul variants automatically
-# pick up the new implementation when HQC_KECCAK_IMPL=rvv.
+# pick up the new implementation when HQC_KECCAK_IMPL=rvv/rvv_x4_imv/etc.
+#
+# KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
+#                        (appended to every KAT / bench target)
+set(KECCAK_INCLUDE_DIRS "")
+
 if(HQC_KECCAK_IMPL STREQUAL "rvv")
     # Phase 2: Zhang et al. RVV Keccak-f + HQC-specific SHAKE-256 wrapper
     set(KECCAK_SOURCES ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv.c)
+
+elseif(HQC_KECCAK_IMPL STREQUAL "rvv_x4_imv" OR
+       HQC_KECCAK_IMPL STREQUAL "rvv_x4_imbv")
+    # PQRV CHES 2025 hybrid-x4 assembly — single-state wrapper calls the
+    # assembly symbol (KeccakF1600_StatePermute_RV64V_4x) directly.
+    # No vendor C glue (fips202x_rv64.c) needed.
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_x4.c
+    )
+    if(HQC_KECCAK_IMPL STREQUAL "rvv_x4_imv")
+        list(APPEND KECCAK_SOURCES
+            ${CMAKE_SOURCE_DIR}/vendor/rvv-keccak/fips202_rv64imv_hybrid_x4.S)
+    else()   # rvv_x4_imbv — imbv assembly uses rori (Zbkb); add zvbb for completeness
+        list(APPEND KECCAK_SOURCES
+            ${CMAKE_SOURCE_DIR}/vendor/rvv-keccak/fips202_rv64imbv_hybrid_x4.S)
+        set_source_files_properties(
+            ${CMAKE_SOURCE_DIR}/vendor/rvv-keccak/fips202_rv64imbv_hybrid_x4.S
+            PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb"
+        )
+    endif()
+
+elseif(HQC_KECCAK_IMPL STREQUAL "rvv_gather")
+    # Custom LMUL=8 vrgather/vror/vandn single-state Keccak-f (Zvbb required).
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_gather.c)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_gather.c
+        PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb"
+    )
+
 else()
     # Default (ref): vendor scalar fips202
     set(KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -288,6 +323,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/lib/fips202
             ${CMAKE_SOURCE_DIR}/src/common
             ${CMAKE_SOURCE_DIR}/tests/kat
+            ${KECCAK_INCLUDE_DIRS}
         )
         target_compile_definitions(${KAT_TARGET} PRIVATE
             HQC_KAT_MODE=1
@@ -355,6 +391,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/src/ref
             ${HQC_REF}/lib/fips202
             ${CMAKE_SOURCE_DIR}/src/common
+            ${KECCAK_INCLUDE_DIRS}
         )
         target_compile_definitions(${BENCH_TARGET} PRIVATE
             HQC_BENCH_MODE=1

@@ -10,12 +10,20 @@
 # The flags control which Keccak and Decoder sources are linked into every target.
 
 # ── Phase 2 flag: Keccak / SHAKE implementation ───────────────────────────────
-# ref : vendor scalar fips202 (default — no dependency on RVV Keccak)
-# rvv : Zhang et al. RVV Keccak-f[1600] + HQC-specific SHAKE-256 wrapper
-#       with 4-way multi-instance interleaving for seed_expand()
+# ref        : vendor scalar fips202 (default — no dependency on RVV Keccak)
+# rvv        : Zhang et al. RVV Keccak-f[1600] + HQC-specific SHAKE-256 wrapper
+#              with 4-way multi-instance interleaving for seed_expand()
+# rvv_x4_imv : PQRV CHES 2025 hybrid-x4 assembly (base RVV, rv64imv variant)
+#              fips202_rvv_x4.c + fips202x_rv64.c + fips202_rv64imv_hybrid_x4.S
+# rvv_x4_imbv: PQRV CHES 2025 hybrid-x4 assembly (with scalar Zbkb rotations,
+#              rv64imbv variant — adds -march=..._zbkb_zvbb for the assembly)
+#              fips202_rvv_x4.c + fips202x_rv64.c + fips202_rv64imbv_hybrid_x4.S
+# rvv_gather : Custom LMUL=8 vrgather/vror/vandn single-state permute (Zvbb)
+#              fips202_rvv_gather.c — requires -march=..._zbkb_zvbb
 set(HQC_KECCAK_IMPL "ref" CACHE STRING
-    "Keccak/SHAKE backend: ref (vendor fips202.c) | rvv (RVV Keccak, Phase 2)")
-set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS "ref" "rvv")
+    "Keccak/SHAKE backend: ref | rvv | rvv_x4_imv | rvv_x4_imbv | rvv_gather")
+set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
+    "ref" "rvv" "rvv_x4_imv" "rvv_x4_imbv" "rvv_gather")
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
@@ -32,7 +40,13 @@ message(STATUS "  DECODE   : ${HQC_DECODE_IMPL}")
 if(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "ref")
     message(STATUS "  → Phase 1 build: polynomial multiplication head-to-head comparison")
 elseif(HQC_KECCAK_IMPL STREQUAL "rvv" AND HQC_DECODE_IMPL STREQUAL "ref")
-    message(STATUS "  → Phase 2 build: + RVV Keccak")
+    message(STATUS "  → Phase 2 build: + RVV Keccak (Zhang et al. intrinsics)")
+elseif(HQC_KECCAK_IMPL STREQUAL "rvv_x4_imv")
+    message(STATUS "  → Phase 2 build: PQRV hybrid-x4 (base RVV, imv assembly)")
+elseif(HQC_KECCAK_IMPL STREQUAL "rvv_x4_imbv")
+    message(STATUS "  → Phase 2 build: PQRV hybrid-x4 (Zbkb scalar rotations, imbv assembly, +zvbb)")
+elseif(HQC_KECCAK_IMPL STREQUAL "rvv_gather")
+    message(STATUS "  → Phase 2 build: custom LMUL=8 vrgather permute (+zvbb)")
 elseif(HQC_KECCAK_IMPL STREQUAL "rvv" AND HQC_DECODE_IMPL STREQUAL "rvv")
     message(STATUS "  → Full-stack build: poly-mul + RVV Keccak + RVV decoder")
 endif()
@@ -102,8 +116,14 @@ message(STATUS "  karatsuba_ref LTO : ${HQC_REF_LTO}")
 message(STATUS "  karatsuba_ref PGO : ${HQC_REF_PGO}")
 
 # ── Validation ────────────────────────────────────────────────────────────────
-if(NOT HQC_KECCAK_IMPL STREQUAL "ref" AND NOT HQC_KECCAK_IMPL STREQUAL "rvv")
-    message(FATAL_ERROR "HQC_KECCAK_IMPL must be 'ref' or 'rvv', got '${HQC_KECCAK_IMPL}'")
+if(NOT HQC_KECCAK_IMPL STREQUAL "ref"       AND
+   NOT HQC_KECCAK_IMPL STREQUAL "rvv"       AND
+   NOT HQC_KECCAK_IMPL STREQUAL "rvv_x4_imv"  AND
+   NOT HQC_KECCAK_IMPL STREQUAL "rvv_x4_imbv" AND
+   NOT HQC_KECCAK_IMPL STREQUAL "rvv_gather")
+    message(FATAL_ERROR
+        "HQC_KECCAK_IMPL must be one of: ref | rvv | rvv_x4_imv | rvv_x4_imbv | rvv_gather, "
+        "got '${HQC_KECCAK_IMPL}'")
 endif()
 if(NOT HQC_DECODE_IMPL STREQUAL "ref" AND NOT HQC_DECODE_IMPL STREQUAL "rvv")
     message(FATAL_ERROR "HQC_DECODE_IMPL must be 'ref' or 'rvv', got '${HQC_DECODE_IMPL}'")
