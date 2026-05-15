@@ -1,8 +1,0 @@
-# Phase 1+ KAT Results (QEMU, 100 vectors each)
-# Validator: tests/kat/kat_check.py vs vendor/hqc-ref/kats/ref/hqc-*/PQCkemKAT_*.rsp
-hqc128_karatsuba_zvbc: PASS 100/100
-hqc192_karatsuba_zvbc: PASS 100/100
-hqc256_karatsuba_zvbc: PASS 100/100
-hqc128_fafft_zvbc:     PASS 100/100
-hqc192_fafft_zvbc:     PASS 100/100
-hqc256_fafft_zvbc:     PASS 100/100
