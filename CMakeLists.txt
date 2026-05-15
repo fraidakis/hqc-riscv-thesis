@@ -122,43 +122,28 @@ file(STRINGS "${CMAKE_SOURCE_DIR}/scripts/implemented_variants.txt" IMPLEMENTED_
 set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
-# Phase 2 replaces this with the RVV Keccak.  All polymul variants automatically
-# pick up the new implementation when HQC_KECCAK_IMPL=rvv/rvv_x4_imv/etc.
+# All polymul variants automatically pick up the chosen Keccak impl.
+# Stable options: ref | rvv_only (Track B) | zvbb_gather (Track C)
 #
 # KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
 #                        (appended to every KAT / bench target)
 set(KECCAK_INCLUDE_DIRS "")
 
-if(HQC_KECCAK_IMPL STREQUAL "rvv")
-    # Phase 2: Zhang et al. RVV Keccak-f + HQC-specific SHAKE-256 wrapper
-    set(KECCAK_SOURCES ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv.c)
-
-elseif(HQC_KECCAK_IMPL STREQUAL "rvv_x4_imv" OR
-       HQC_KECCAK_IMPL STREQUAL "rvv_x4_imbv")
-    # PQRV CHES 2025 hybrid-x4 assembly — single-state wrapper calls the
-    # assembly symbol (KeccakF1600_StatePermute_RV64V_4x) directly.
-    # No vendor C glue (fips202x_rv64.c) needed.
-    set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_x4.c
-    )
-    if(HQC_KECCAK_IMPL STREQUAL "rvv_x4_imv")
-        list(APPEND KECCAK_SOURCES
-            ${CMAKE_SOURCE_DIR}/vendor/rvv-keccak/fips202_rv64imv_hybrid_x4.S)
-    else()   # rvv_x4_imbv — imbv assembly uses rori (Zbkb); add zvbb for completeness
-        list(APPEND KECCAK_SOURCES
-            ${CMAKE_SOURCE_DIR}/vendor/rvv-keccak/fips202_rv64imbv_hybrid_x4.S)
-        set_source_files_properties(
-            ${CMAKE_SOURCE_DIR}/vendor/rvv-keccak/fips202_rv64imbv_hybrid_x4.S
-            PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb"
-        )
-    endif()
-
-elseif(HQC_KECCAK_IMPL STREQUAL "rvv_gather")
-    # Custom LMUL=8 vrgather/vror/vandn single-state Keccak-f (Zvbb required).
-    set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_gather.c)
+if(HQC_KECCAK_IMPL STREQUAL "rvv_only")
+    # Track B: Base V extension — Zhang et al. RVV Keccak-f + HQC SHAKE wrapper
+    set(KECCAK_SOURCES ${CMAKE_SOURCE_DIR}/src/keccak/fips202_rvv_only.c)
     set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_gather.c
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_rvv_only.c
+        PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zbc_zbb_zbkb_zvbc -mrvv-vector-bits=256"
+    )
+
+elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_gather")
+    # Track C: Zvbb — custom LMUL=8 vrgather/vror/vandn single-state Keccak-f
+    # Requires zvbb + zvl256b (vl=25 at e64/LMUL=8 needs VLEN≥256).
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_gather.c)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_gather.c
         PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb"
     )
 

@@ -140,3 +140,42 @@ python3 scripts/report/extract_results.py --latex > analysis/report/table_result
 - Keep QEMU as default for KAT correctness throughput.
 - Prefer the stateless full-analysis wrapper for reproducible thesis artifacts.
 
+---
+
+## 9. Running the Hardware-Accelerated Tracks
+
+Two definitive execution pairings have been validated across all three HQC security levels.
+Both pair a vector polynomial multiplier with a vector Keccak implementation.
+
+### Track B — Base RVV (no Vector Crypto extension)
+
+- **Polynomial multiply:** `src/poly_mul/vector/rvv_only/karatsuba_zbc/gf2x_clmul.c`
+- **Keccak / SHAKE:** `src/keccak/fips202_rvv_only.c`
+- **ISA:** `rv64gcv_zbc_zbb_zbkb_zicntr_zihpm` (no Zvbc/Zvbb required)
+
+```bash
+cmake -S . -B build/track_b \
+  -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+  -DRISCV=$RISCV \
+  -DHQC_KECCAK_IMPL=rvv_only \
+  -DHQC_SIM=spike
+./scripts/report/run_full_analysis.sh --build-dir build/track_b --variant karatsuba_zbc_rvv
+```
+
+### Track C — Vector Crypto (Zvbc + Zvbb, winning configuration)
+
+- **Polynomial multiply:** `src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c`
+- **Keccak / SHAKE:** `src/keccak/fips202_zvbb_gather.c`
+- **ISA:** `rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm`
+- **Result (HQC-128 decaps):** 1,225,209 instructions — 2.5% fewer than Track B scalar Keccak
+- **Note:** `zvl256b` is mandatory; LMUL=8/e64 requires VLEN≥256 to hold all 25 Keccak-f lanes
+
+```bash
+cmake -S . -B build/track_c \
+  -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+  -DRISCV=$RISCV \
+  -DHQC_KECCAK_IMPL=zvbb_gather \
+  -DHQC_SIM=spike
+./scripts/report/run_full_analysis.sh --build-dir build/track_c --variant karatsuba_zvbc
+```
+

@@ -27,6 +27,12 @@
 #include <riscv_vector.h>
 #include "fips202.h"
 
+/* Fixed-length RVV type for Clang 21+: arrays of sizeless types are forbidden
+ * in C unless the type has a declared fixed bit-width via this attribute.
+ * Requires -mrvv-vector-bits=256 (VLEN=256, LMUL=1 → 4 u64 lanes). */
+typedef vuint64m1_t vu64m1_fixed_t __attribute__((riscv_rvv_vector_bits(256)));
+#define vuint64m1_arr_t vu64m1_fixed_t
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * Section 1 — Scalar Keccak-f[1600]  (used by all single-stream functions)
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -475,11 +481,11 @@ void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen)
         (vl))
 
 /* 4-way Keccak-f[1600] round function operating on SoA state st[25] */
-static void keccak_f1600_x4_rvv(vuint64m1_t st[25], size_t vl)
+static void keccak_f1600_x4_rvv(vuint64m1_arr_t *st, size_t vl)
 {
     vuint64m1_t C0, C1, C2, C3, C4;
     vuint64m1_t D0, D1, D2, D3, D4;
-    vuint64m1_t B[25];
+    vuint64m1_arr_t B[25];
 
     for (int round = 0; round < NROUNDS; round++) {
         /* ── θ ── */
@@ -587,7 +593,7 @@ void shake256_x4(uint8_t *out0, uint8_t *out1, uint8_t *out2, uint8_t *out3,
     size_t vl = __riscv_vsetvl_e64m1(4);
 
     /* SoA state: st[i] = lane i of all 4 instances, as a 4-element u64 vector */
-    vuint64m1_t st[25];
+    vuint64m1_arr_t st[25];
     for (int i = 0; i < 25; i++)
         st[i] = __riscv_vmv_v_x_u64m1(0, vl);
 
