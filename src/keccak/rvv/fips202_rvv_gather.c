@@ -165,10 +165,10 @@ static void KeccakF1600_StatePermute(uint64_t *state)
             vuint64m8_t vB     = __riscv_vrgather_vv_u64m8(v0, idx_x1, vl);
             vuint64m8_t idx_x2 = __riscv_vle64_v_u64m8(chi_x2, vl);
             vuint64m8_t vC     = __riscv_vrgather_vv_u64m8(v0, idx_x2, vl);
-            /* vandn(B, C) = ~B & C;  new[i] = A[i] ^ (~A[x+1] & A[x+2]) */
+            /* vandn(op1,op2)=op1&~op2, so vandn(vC,vB)=vC&~vB=~vB&vC=~A[x+1]&A[x+2] */
             v0 = __riscv_vxor_vv_u64m8(
                      v0,
-                     __riscv_vandn_vv_u64m8(vB, vC, vl),
+                     __riscv_vandn_vv_u64m8(vC, vB, vl),
                      vl);
         }
 
