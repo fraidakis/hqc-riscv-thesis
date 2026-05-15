@@ -1,7 +1,0 @@
-# date: 2026-05-13 17:28
-# commit: a467a3d
-# variant: fafft_zvbc
-level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,6140,4773,77974,53651,1219,839
-192,5574,4594,68720,50657,1074,792
-256,5566,4568,68660,50526,1073,790

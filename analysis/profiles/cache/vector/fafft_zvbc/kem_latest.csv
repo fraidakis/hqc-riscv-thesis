@@ -1,8 +1,0 @@
-# date: 2026-05-13 17:29
-# commit: a467a3d
-# variant: fafft_zvbc
-# cache_config: 512:8:64
-level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-128,1453,257,1196,163,44363043,27620851,9590129,6683132
-192,3465,719,2746,854,98089468,60965035,20886644,14207460
-256,5477,1286,4191,2017,116347237,63736412,24174965,14987700

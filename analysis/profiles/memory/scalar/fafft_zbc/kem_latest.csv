@@ -1,7 +1,0 @@
-# date: 2026-05-13 23:43
-# commit: 20bb9d9
-# variant: fafft_zbc
-level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1376,1376,7877,11841,124,186
-192,1479,1373,8271,12813,130,201
-256,1469,1347,8203,12682,129,199
