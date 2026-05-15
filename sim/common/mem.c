@@ -10,6 +10,9 @@
  */
 
 #include <stddef.h>
+#ifdef __riscv_v
+#include <riscv_vector.h>
+#endif
 
 void *memcpy(void *dst, const void *src, size_t n)
 {
@@ -36,6 +39,23 @@ void *memmove(void *dst, const void *src, size_t n)
 
 void *memset(void *dst, int c, size_t n)
 {
+#ifdef __riscv_v
+    /* Fast-path: 8-byte aligned zero-fill using LMUL=8 (VLEN=256 → 256 B/iter).
+     * All security-zeroization and implicit {0}-init buffers satisfy this:
+     * they are uint64_t arrays, naturally 8-byte aligned, sizes divisible by 8. */
+    if (c == 0 && ((uintptr_t)dst & 7) == 0 && (n & 7) == 0) {
+        uint64_t *d = (uint64_t *)dst;
+        size_t words = n >> 3;
+        while (words > 0) {
+            size_t vl = __riscv_vsetvl_e64m8(words);
+            __riscv_vse64_v_u64m8(d, __riscv_vmv_v_x_u64m8(0, vl), vl);
+            d     += vl;
+            words -= vl;
+        }
+        return dst;
+    }
+#endif
+    /* Scalar fallback: unaligned, non-zero fill, or byte-granularity. */
     unsigned char *d = (unsigned char *)dst;
     for (size_t i = 0; i < n; i++)
         d[i] = (unsigned char)c;

@@ -1,28 +1,19 @@
-/* src/poly_mul/karatsuba_zvbc/gf2x_vclmul.c
+/* src/poly_mul/karatsuba_zvbc/gf2x_vclmul_c3.c
  *
- * Vectorized Karatsuba with vclmul.vv / vclmulh.vv.
+ * C-3a sandbox: assign-first-write discipline in vclmul_leaf.
+ * Derived from gf2x_vclmul.c — only vclmul_leaf is modified.
  *
- * This is the Zvbc-vectorised version of karatsuba_zbc/gf2x_clmul.c.
- * Two optimisation axes are applied:
+ * Change: replace memset(r, 0, 2*n) with:
+ *   1. RVV zero of upper half only: vse64(r+n, vmv.v.x(0)) [1 instruction]
+ *   2. Peeled i=0 outer iteration: lo uses direct vse64 (assign) since
+ *      r[0..n-1] are uninitialised at that point.
  *
- *   Iter 1 — Vectorise leaf nodes:
- *     Replace scalar `clmul`+`clmulh` double-loop with `vclmul.vv` +
- *     `vclmulh.vv` using a splat (vmv.v.x) + vector-loop over b[].
- *     For THRESHOLD=16 and VLEN=256 (LMUL=4 → 16 uint64_t per group),
- *     the entire inner j-loop collapses to ONE vector iteration:
- *       scalar: 16×16 × ~8 instr ≈ 2048 instr/leaf
- *       vector: 16 × ~10 instr    ≈  160 instr/leaf  (~12.8× on leaf)
- *
- *   Iter 2 — Vectorise Karatsuba XOR combines:
- *     The XOR accumulation in the combine phase (z0, zmid, z2 arrays)
- *     uses vxor.vv with LMUL=4 (16 uint64_t per iteration), replacing
- *     scalar word-by-word loops.
- *
- * Provides the same interface as vendor/hqc-ref/src/ref/gf2x.c:
- *   void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b);
- *
- * Requires: -march includes zvbc (ratified RISC-V vector carry-less multiply).
- * Detected at compile time via HQC_POLYMUL_ZVBC=1 (set by CMakeLists.txt).
+ * Correctness argument:
+ *   r[0..n-1]: first written by i=0 lo-assign. No prior read. Safe.
+ *   r[n..2n-1]: first-write always arrives from a hi strip which XOR-
+ *               accumulates. Pre-zeroing these positions with one RVV
+ *               store makes the XOR-accumulate behave as assignment on
+ *               first touch. Correct.
  */
 
 #include <stdint.h>
@@ -128,9 +119,39 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
                         const uint64_t * __restrict__ b,
                         size_t n)
 {
-    memset(r, 0, 2 * n * sizeof(uint64_t));
+    /* ── C-3a: Assign-First-Write ──────────────────────────────────────
+     * Lower half r[0..n-1]: initialised by direct assign in the peeled
+     *   i=0 lo strip below.  No pre-zeroing needed.
+     * Upper half r[n..2n-1]: first-write always arrives from a hi strip
+     *   (XOR-accumulate).  Pre-zero with one RVV vse64.v instead of the
+     *   full scalar memset byte-loop (saves ~2n scalar instructions).
+     */
+    {
+        size_t vlz = __riscv_vsetvl_e64m4(n);
+        __riscv_vse64_v_u64m4(r + n, __riscv_vmv_v_x_u64m4(0, vlz), vlz);
+    }
 
-    size_t i = 0;
+    /* ── i=0 peeled: lo uses direct store (r[0..n-1] uninitialised) ─── */
+    {
+        uint64_t a0 = a[0];
+        size_t j = 0;
+        while (j < n) {
+            size_t vl = __riscv_vsetvl_e64m4(n - j);
+            vuint64m4_t vb   = __riscv_vle64_v_u64m4(b + j, vl);
+            vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
+            vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
+            vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+            /* lo: ASSIGN — r[j..j+vl-1] have not been written yet */
+            __riscv_vse64_v_u64m4(r + j, vlo0, vl);
+            /* hi: load-XOR-store — r[j+1..j+vl-1] hold lo; r[j+vl] pre-zeroed */
+            vuint64m4_t vr = __riscv_vle64_v_u64m4(r + j + 1, vl);
+            vr = __riscv_vxor_vv_u64m4(vr, vhi0, vl);
+            __riscv_vse64_v_u64m4(r + j + 1, vr, vl);
+            j += vl;
+        }
+    }
+
+    size_t i = 1;  /* i=0 already handled above */
 
     /* ── 4x unrolled outer loop ─────────────────────────────────────── */
     for (; i + 3 < n; i += 4) {
