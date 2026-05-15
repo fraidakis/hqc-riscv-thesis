@@ -2,38 +2,38 @@
 
 - Variant: karatsuba_zbc_rvv
 - Level: 128
-- Date: 2026-05-14 20:18:30
+- Date: 2026-05-15 18:30:21
 
 ## 1. Cycle Counts
 
 ### Polymul Isolated
 | level | op | instructions | codesize |
 | --- | --- | --- | --- |
-| 128 | vect_mul | 286173 | 2892 |
-| 192 | vect_mul | 873410 | 2924 |
-| 256 | vect_mul | 1922492 | 2914 |
+| 128 | vect_mul | 270021 | 2892 |
+| 192 | vect_mul | 823102 | 2924 |
+| 256 | vect_mul | 1857509 | 2914 |
 
 ### Full KEM Suite
 | level | variant | op | instructions | codesize |
 | --- | --- | --- | --- | --- |
-| 128 | keypair | 426449 | 38710 |  |
-| 128 | encaps | 878608 | 38710 |  |
-| 128 | decaps | 1795968 | 38710 |  |
-| 192 | keypair | 1126534 | 39742 |  |
-| 192 | encaps | 2328680 | 39742 |  |
-| 192 | decaps | 4232479 | 39742 |  |
-| 256 | keypair | 2322245 | 46740 |  |
-| 256 | encaps | 4765727 | 46740 |  |
-| 256 | decaps | 8508365 | 46740 |  |
+| 128 | keypair | 412915 | 38710 |  |
+| 128 | encaps | 849252 | 38710 |  |
+| 128 | decaps | 1745308 | 38710 |  |
+| 192 | keypair | 1076893 | 39742 |  |
+| 192 | encaps | 2224468 | 39742 |  |
+| 192 | decaps | 4072134 | 39742 |  |
+| 256 | keypair | 2256676 | 46740 |  |
+| 256 | encaps | 4626491 | 46740 |  |
+| 256 | decaps | 8295093 | 46740 |  |
 
 ## 2. Memory & Cache
 
 ### Cache Misses (Top 10 Rows)
 | level | dc_misses | dc_read_misses | dc_write_misses | dc_writebacks | dc_bytes_read | dc_bytes_written | dc_read_accesses | dc_write_accesses |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 128 | 1326 | 106 | 1220 | 144 | 13368125 | 6521893 | 1971567 | 1159058 |
-| 192 | 3008 | 294 | 2714 | 726 | 31547768 | 17878399 | 4439809 | 2851896 |
-| 256 | 6908 | 1167 | 5741 | 3227 | 60566967 | 35227574 | 8396373 | 5386242 |
+| 128 | 1293 | 88 | 1205 | 115 | 13387997 | 6525701 | 1977327 | 1162866 |
+| 192 | 2965 | 309 | 2656 | 672 | 31557336 | 17884479 | 4446213 | 2857976 |
+| 256 | 7012 | 1137 | 5875 | 3314 | 60547383 | 35227574 | 8393925 | 5386242 |
 
 ### Memory Footprint
 | level | load_instructions | store_instructions | load_bytes | store_bytes | est_cache_lines_load | est_cache_lines_store |
@@ -45,46 +45,32 @@
 ## 3. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
-No data found: /tmp/tmp.XMSGSBMvaC
+No data found: /tmp/tmp.Xj6RiRNAGf
 
 ### Line-Level Hotspots (Top 20 Rows)
-No data found: /tmp/tmp.Q7sOAvzC0y
+No data found: /tmp/tmp.OS5iO3C1Fd
 
 ### Basic Block Histogram (Top 20)
 | instruction | count | percentage |  |
 | --- | --- | --- | --- |
-| ld | 766672 | 15.94 |  |
-| addi | 615173 | 12.79 |  |
-| xor | 470770 | 9.79 |  |
-| bnez | 420821 | 8.75 |  |
-| sd | 218129 | 4.53 |  |
-| bne | 206382 | 4.29 |  |
-| add | 183672 | 3.82 |  |
-| sb | 137793 | 2.86 |  |
-| clmul | 119322 | 2.48 |  |
-| clmulh | 114324 | 2.38 |  |
-| lh | 110766 | 2.30 |  |
-| slli | 103553 | 2.15 |  |
-| rori | 98832 | 2.05 |  |
-| mv | 92882 | 1.93 |  |
-| vsetivli | 89171 | 1.85 |  |
-| bltu | 86498 | 1.80 |  |
-| andn | 85375 | 1.77 |  |
-| vle64.v | 74382 | 1.55 |  |
-| sh | 62575 | 1.30 |  |
-| vxor.vv | 62071 | 1.29 |  |
-
-## 4. VLEN Scaling Analysis
-
-### VLEN Instruction Scaling (HQC-128 vect_mul)
-*Note: Tested directly via Spike utilizing the `zvl<VLEN>b` ISA flags.*
-
-| Variant / Width | vect_mul instructions | Delta vs Scalar |
-| --- | --- | --- |
-| karatsuba_zbc (scalar baseline) | 296,703 | baseline |
-| karatsuba_zbc_rvv (VLEN=256) | 286,173 | -3.55% |
-| karatsuba_zbc_rvv (VLEN=512) | 271,589 | -8.46% |
-| karatsuba_zbc_rvv (VLEN=1024) | 275,105 | -7.28% |
-
-**Architectural Note:** At VLEN=256, `LMUL=m4` processes exactly 4 elements per iteration, matching our 4-way scalar unroll, meaning vector setup overhead cancels out loop-control savings. At VLEN=512, the overhead is amortized across 8 elements per iteration, resulting in the peak performance gain for this specific algorithm. VLEN=1024 sees slight degradation likely due to register-group pressure.
+| ld | 767680 | 16.16 |  |
+| addi | 615173 | 12.95 |  |
+| xor | 470770 | 9.91 |  |
+| bnez | 416663 | 8.77 |  |
+| sd | 218129 | 4.59 |  |
+| bne | 206382 | 4.34 |  |
+| add | 168168 | 3.54 |  |
+| sb | 137793 | 2.90 |  |
+| clmul | 119322 | 2.51 |  |
+| clmulh | 114324 | 2.41 |  |
+| lh | 110766 | 2.33 |  |
+| rori | 98832 | 2.08 |  |
+| slli | 98387 | 2.07 |  |
+| mv | 92882 | 1.96 |  |
+| vsetivli | 89171 | 1.88 |  |
+| bltu | 86498 | 1.82 |  |
+| andn | 85375 | 1.80 |  |
+| sh | 62575 | 1.32 |  |
+| vle64.v | 61458 | 1.29 |  |
+| subw | 54766 | 1.15 |  |
 

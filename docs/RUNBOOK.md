@@ -159,7 +159,7 @@ cmake -S . -B build/track_b \
   -DRISCV=$RISCV \
   -DHQC_KECCAK_IMPL=rvv_only \
   -DHQC_SIM=spike
-./scripts/report/run_full_analysis.sh --build-dir build/track_b --variant karatsuba_zbc_rvv
+./scripts/report/run_full_analysis.sh --variant karatsuba_zbc_rvv
 ```
 
 ### Track C — Vector Crypto (Zvbc + Zvbb, winning configuration)
@@ -176,6 +176,5 @@ cmake -S . -B build/track_c \
   -DRISCV=$RISCV \
   -DHQC_KECCAK_IMPL=zvbb_gather \
   -DHQC_SIM=spike
-./scripts/report/run_full_analysis.sh --build-dir build/track_c --variant karatsuba_zvbc
+./scripts/report/run_full_analysis.sh build/track_c --variant karatsuba_zvbc
 ```
-
