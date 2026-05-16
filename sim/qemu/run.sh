@@ -22,10 +22,24 @@ fi
 _BUILD_DIR="$(dirname "$ELF")"
 _TARGET="$(basename "$ELF" .elf)"
 if [[ -f "$_BUILD_DIR/CMakeCache.txt" ]]; then
-    echo "[qemu/run] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
-    cmake --build "$_BUILD_DIR" --target "$_TARGET" -j"$(nproc)" >&2
+    # Guard: skip auto-build when the build dir is configured for Spike.
+    # A Spike build uses HTIF tohost/fromhost as its exit mechanism; that MMIO
+    # region does not exist on QEMU's virt machine, so the ELF would never signal
+    # completion and would hang indefinitely.  Such ELFs must not be run via QEMU.
+    _CACHED_SIM=$(grep -E '^HQC_SIM:STRING=' "$_BUILD_DIR/CMakeCache.txt" 2>/dev/null | cut -d= -f2 || true)
+    if [[ "$_CACHED_SIM" == "spike" ]]; then
+        echo "[qemu/run] WARNING: skipping auto-build — $_BUILD_DIR is Spike-configured (HQC_SIM=spike)." >&2
+        echo "[qemu/run] This ELF may be incompatible with QEMU.  Re-run from a QEMU build dir." >&2
+    else
+        echo "[qemu/run] Auto-build: cmake --build $_BUILD_DIR --target $_TARGET" >&2
+        # Non-fatal: if the build fails (e.g. cached Keccak impl name no longer
+        # valid after a CMakeLists.txt rename), warn and fall through to run
+        # whatever ELF is already present on disk.
+        cmake --build "$_BUILD_DIR" --target "$_TARGET" -j"$(nproc)" >&2 || \
+            echo "[qemu/run] WARNING: auto-build failed, attempting to run existing ELF." >&2
+    fi
 fi
-unset _BUILD_DIR _TARGET
+unset _BUILD_DIR _TARGET _CACHED_SIM
 
 # The bare-metal ELF loads at 0x80000000; OpenSBI also loads there → collision.
 # Always use -bios none so QEMU starts the ELF directly as the "kernel".

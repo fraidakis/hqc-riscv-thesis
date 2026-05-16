@@ -133,6 +133,7 @@ bench_auto_configure_and_build() {
     # Construct the cmake command based on sim_type and trace_mode.
     local cmake_cmd="cmake -S \"$repo_root\" -B \"$build_dir\" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DCMAKE_BUILD_TYPE=Release \
         -DHQC_SIM=${sim_type} \
         -DHQC_KECCAK_IMPL=${_keccak} \
         -DHQC_DECODE_IMPL=${_decode}"

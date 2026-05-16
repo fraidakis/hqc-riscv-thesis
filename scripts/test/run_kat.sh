@@ -105,23 +105,31 @@ else
     fi
 fi
 
-find_elf_for_target() {
-    local target="$1"
-    local direct_path="${REPO_ROOT}/build/bench/${target}.elf"
-    if [[ -f "$direct_path" ]]; then
-        echo "$direct_path"
-        return 0
+# ── Determine simulator type and QEMU-safe Keccak impl ────────────────────────
+# zvbb_gather requires Zvbb which is not enabled in the QEMU virt CPU flags.
+# For QEMU KAT tests, down-map to rvv_only (RVV 1.0 only; always supported
+# by our QEMU CPU spec).  The KAT vectors are Keccak-implementation-agnostic:
+# any correct Keccak implementation produces identical output for the same input.
+if [[ "$USE_SPIKE" -eq 1 ]]; then
+    sim_type="spike"
+    eff_keccak="${KECCAK_IMPL:-ref}"
+else
+    sim_type="qemu"
+    if [[ "${KECCAK_IMPL:-ref}" == "zvbb_gather" ]]; then
+        eff_keccak="rvv_only"
+    else
+        eff_keccak="${KECCAK_IMPL:-ref}"
     fi
+fi
+# Override so bench_auto_configure_and_build picks up the adjusted value.
+KECCAK_IMPL="$eff_keccak"
+export KECCAK_IMPL
 
-    local first_match
-    first_match="$(find "${REPO_ROOT}/build" -type f -name "${target}.elf" 2>/dev/null | sort | head -n 1 || true)"
-    if [[ -n "$first_match" ]]; then
-        echo "$first_match"
-        return 0
-    fi
-
-    return 1
-}
+# Dedicated KAT build dir — one per (sim, keccak, decode) combination.
+# This dir is owned by run_kat.sh and is always configured with the correct
+# HQC_SIM and Keccak impl, so cmake auto-build can never produce a
+# simulator-incompatible ELF here.
+KAT_BUILD_DIR="${REPO_ROOT}/build/kat-${sim_type}-${eff_keccak}-${DECODE_IMPL:-ref}"
 
 overall_status=0
 
@@ -135,8 +143,16 @@ for level in "${LEVELS[@]}"; do
         continue
     fi
 
-    if ! elf="$(find_elf_for_target "$target")"; then
-        echo "FAIL [HQC-${level}]: ELF not found for target '$target' under build/" >&2
+    # Ensure the KAT ELF is built in the owned build dir.
+    if ! bench_auto_configure_and_build "$KAT_BUILD_DIR" "$REPO_ROOT" "$target" "$sim_type" 0 "kat"; then
+        echo "FAIL [HQC-${level}]: failed to build $target in $KAT_BUILD_DIR" >&2
+        overall_status=1
+        continue
+    fi
+
+    elf="${KAT_BUILD_DIR}/${target}.elf"
+    if [[ ! -f "$elf" ]]; then
+        echo "FAIL [HQC-${level}]: ELF not found after build: $elf" >&2
         overall_status=1
         continue
     fi
