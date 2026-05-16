@@ -1,5 +1,5 @@
-# date: 2026-05-15 19:45
-# commit: 1fa5db7
+# date: 2026-05-16 17:44
+# commit: 97b6270
 # variant: karatsuba_zvbc
 # cache_config: 512:8:64
 level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses

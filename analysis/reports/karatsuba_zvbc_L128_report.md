@@ -2,7 +2,7 @@
 
 - Variant: karatsuba_zvbc
 - Level: 128
-- Date: 2026-05-16 16:40:29
+- Date: 2026-05-16 18:04:09
 
 ## 1. Cycle Counts
 
@@ -16,15 +16,15 @@
 ### Full KEM Suite
 | level | variant | op | instructions | codesize |
 | --- | --- | --- | --- | --- |
-| 128 | keypair | 228823 | 37110 |  |
-| 128 | encaps | 481997 | 37110 |  |
-| 128 | decaps | 975141 | 37110 |  |
-| 192 | keypair | 520851 | 38478 |  |
-| 192 | encaps | 1112648 | 38478 |  |
-| 192 | decaps | 2055181 | 38478 |  |
-| 256 | keypair | 788153 | 45476 |  |
-| 256 | encaps | 1690709 | 45476 |  |
-| 256 | decaps | 3329924 | 45476 |  |
+| 128 | keypair | 222751 | 37030 |  |
+| 128 | encaps | 470405 | 37030 |  |
+| 128 | decaps | 953889 | 37030 |  |
+| 192 | keypair | 509811 | 38398 |  |
+| 192 | encaps | 1090292 | 38398 |  |
+| 192 | decaps | 2013781 | 38398 |  |
+| 256 | keypair | 770489 | 45396 |  |
+| 256 | encaps | 1656485 | 45396 |  |
+| 256 | decaps | 3264788 | 45396 |  |
 
 ## 2. Memory & Cache
 
@@ -47,72 +47,72 @@
 ### Function-Level Hotspots (Top 20 Rows)
 | function | instructions | percentage |  |
 | --- | --- | --- | --- |
-| KeccakF1600_StatePermute | 560616 | 26.15 |  |
-| karatsuba_vclmul | 309024 | 14.42 |  |
-| vclmul_leaf | 254580 | 11.88 |  |
-| keccak_inc_absorb | 141116 | 6.58 |  |
-| memcpy | 137922 | 6.43 |  |
-| gf_reduce | 105600 | 4.93 |  |
-| keccak_inc_squeeze | 96430 | 4.50 |  |
-| compare_u32 | 83250 | 3.88 |  |
-| vect_generate_random_support2 | 79260 | 3.70 |  |
-| rvv_xor3_u64 | 54282 | 2.53 |  |
-| vect_generate_random_support1 | 49869 | 2.33 |  |
-| rvv_copy_u64 | 33822 | 1.58 |  |
-| memset | 33045 | 1.54 |  |
-| vect_compare | 31058 | 1.45 |  |
-| gf_mul | 23794 | 1.11 |  |
-| reduce | 19974 | 0.93 |  |
-| vect_add | 17744 | 0.83 |  |
-| compute_syndromes | 13895 | 0.65 |  |
-| gf_square | 12489 | 0.58 |  |
-| compute_elp | 10382 | 0.48 |  |
+| KeccakF1600_StatePermute | 521424 | 24.78 |  |
+| karatsuba_vclmul | 309024 | 14.69 |  |
+| vclmul_leaf | 254580 | 12.10 |  |
+| keccak_inc_absorb | 141116 | 6.71 |  |
+| memcpy | 137922 | 6.55 |  |
+| gf_reduce | 105600 | 5.02 |  |
+| keccak_inc_squeeze | 96430 | 4.58 |  |
+| compare_u32 | 83250 | 3.96 |  |
+| vect_generate_random_support2 | 79260 | 3.77 |  |
+| rvv_xor3_u64 | 54282 | 2.58 |  |
+| vect_generate_random_support1 | 49869 | 2.37 |  |
+| rvv_copy_u64 | 33822 | 1.61 |  |
+| memset | 33045 | 1.57 |  |
+| vect_compare | 31058 | 1.48 |  |
+| gf_mul | 23794 | 1.13 |  |
+| reduce | 19974 | 0.95 |  |
+| vect_add | 17744 | 0.84 |  |
+| compute_syndromes | 13895 | 0.66 |  |
+| gf_square | 12489 | 0.59 |  |
+| compute_elp | 10382 | 0.49 |  |
 
 ### Line-Level Hotspots (Top 20 Rows)
 | function | instructions | percentage |  |
 | --- | --- | --- | --- |
-| KeccakF1600_StatePermute at fips202_zvbb_gather.c:154 | 194256 | 9.06 |  |
-| KeccakF1600_StatePermute at fips202_zvbb_gather.c:149 | 170400 | 7.95 |  |
-| compare_u32 at vector.c:43 | 83250 | 3.88 |  |
-| memcpy at mem.c:21 | 82652 | 3.86 |  |
-| KeccakF1600_StatePermute at fips202_zvbb_gather.c:? | 77532 | 3.62 |  |
-| karatsuba_vclmul at gf2x_vclmul.c:286 | 70332 | 3.28 |  |
-| karatsuba_vclmul at gf2x_vclmul.c:288 | 56190 | 2.62 |  |
-| karatsuba_vclmul at gf2x_vclmul.c:287 | 55788 | 2.60 |  |
-| memcpy at mem.c:22 | 54764 | 2.55 |  |
-| keccak_inc_squeeze at fips202_zvbb_gather.c:295 | 51696 | 2.41 |  |
-| gf_reduce at gf.c:106 | 44712 | 2.09 |  |
-| keccak_inc_absorb at fips202_zvbb_gather.c:260 | 43067 | 2.01 |  |
-| keccak_inc_absorb at fips202_zvbb_gather.c:262 | 42875 | 2.00 |  |
-| keccak_inc_absorb at fips202_zvbb_gather.c:261 | 42875 | 2.00 |  |
-| karatsuba_vclmul at gf2x_vclmul.c:261 | 41496 | 1.94 |  |
-| keccak_inc_squeeze at fips202_zvbb_gather.c:294 | 34608 | 1.61 |  |
-| vect_generate_random_support2 at vector.c:136 | 34188 | 1.59 |  |
-| KeccakF1600_StatePermute at fips202_zvbb_gather.c:151 | 34080 | 1.59 |  |
-| gf_reduce at gf.c:105 | 33534 | 1.56 |  |
-| vect_generate_random_support2 at vector.c:137 | 33300 | 1.55 |  |
+| KeccakF1600_StatePermute at fips202_zvbb_gather.c:148 | 194256 | 9.23 |  |
+| KeccakF1600_StatePermute at fips202_zvbb_gather.c:143 | 170400 | 8.10 |  |
+| compare_u32 at vector.c:43 | 83250 | 3.96 |  |
+| memcpy at mem.c:21 | 82652 | 3.93 |  |
+| karatsuba_vclmul at gf2x_vclmul.c:286 | 70332 | 3.34 |  |
+| karatsuba_vclmul at gf2x_vclmul.c:288 | 56190 | 2.67 |  |
+| karatsuba_vclmul at gf2x_vclmul.c:287 | 55788 | 2.65 |  |
+| memcpy at mem.c:22 | 54764 | 2.60 |  |
+| keccak_inc_squeeze at fips202_zvbb_gather.c:294 | 51696 | 2.46 |  |
+| KeccakF1600_StatePermute at fips202_zvbb_gather.c:? | 45156 | 2.15 |  |
+| gf_reduce at gf.c:106 | 44712 | 2.12 |  |
+| keccak_inc_absorb at fips202_zvbb_gather.c:259 | 43067 | 2.05 |  |
+| keccak_inc_absorb at fips202_zvbb_gather.c:261 | 42875 | 2.04 |  |
+| keccak_inc_absorb at fips202_zvbb_gather.c:260 | 42875 | 2.04 |  |
+| karatsuba_vclmul at gf2x_vclmul.c:261 | 41496 | 1.97 |  |
+| keccak_inc_squeeze at fips202_zvbb_gather.c:293 | 34608 | 1.64 |  |
+| vect_generate_random_support2 at vector.c:136 | 34188 | 1.62 |  |
+| KeccakF1600_StatePermute at fips202_zvbb_gather.c:145 | 34080 | 1.62 |  |
+| gf_reduce at gf.c:105 | 33534 | 1.59 |  |
+| vect_generate_random_support2 at vector.c:137 | 33300 | 1.58 |  |
 
 ### Basic Block Histogram (Top 20)
 | instruction | count | percentage |  |
 | --- | --- | --- | --- |
-| ld | 649093 | 22.04 |  |
-| bnez | 403574 | 13.71 |  |
-| addi | 283393 | 9.62 |  |
-| xor | 267742 | 9.09 |  |
-| sd | 181755 | 6.17 |  |
-| add | 165054 | 5.61 |  |
-| slli | 88523 | 3.01 |  |
-| bne | 87706 | 2.98 |  |
-| vle64.v | 50522 | 1.72 |  |
-| lbu | 48736 | 1.66 |  |
-| sb | 47835 | 1.62 |  |
-| or | 43277 | 1.47 |  |
-| vse64.v | 38574 | 1.31 |  |
-| vxor.vv | 37849 | 1.29 |  |
-| mv | 34809 | 1.18 |  |
-| andi | 34169 | 1.16 |  |
-| subw | 34146 | 1.16 |  |
-| bltu | 32516 | 1.10 |  |
-| csrr | 29352 | 1.00 |  |
-| lw | 24081 | 0.82 |  |
+| ld | 648689 | 22.39 |  |
+| bnez | 403170 | 13.91 |  |
+| addi | 276293 | 9.54 |  |
+| xor | 267742 | 9.24 |  |
+| sd | 181755 | 6.27 |  |
+| add | 150570 | 5.20 |  |
+| slli | 88239 | 3.05 |  |
+| bne | 87706 | 3.03 |  |
+| vle64.v | 50522 | 1.74 |  |
+| lbu | 48736 | 1.68 |  |
+| sb | 47835 | 1.65 |  |
+| or | 43277 | 1.49 |  |
+| vse64.v | 38574 | 1.33 |  |
+| vxor.vv | 37849 | 1.31 |  |
+| mv | 34809 | 1.20 |  |
+| andi | 34169 | 1.18 |  |
+| subw | 34146 | 1.18 |  |
+| bltu | 32516 | 1.12 |  |
+| lw | 24081 | 0.83 |  |
+| sub | 23648 | 0.82 |  |
 
