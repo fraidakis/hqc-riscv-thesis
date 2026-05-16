@@ -125,9 +125,10 @@ hqc-riscv/
 ├── experiments/                     # Experimental branches + manifest/spec for experiment catalog
 │   ├── manifest.yaml
 │   ├── manifest.schema.json
+│   ├── EXP-fafft-rvv-blueprint/
 │   ├── EXP-fafft-v3-zvc/
-│   ├── EXP-fafft-v4-task-pipeline/
-│   └── EXP-fafft-v6-rvv-schoolbook/
+│   ├── EXP-fafft-v6-rvv-schoolbook/
+│   └── EXP-fafft-zvbc-towerfield/
 │
 ├── vendor/                          # Upstream HQC reference submodule
 │   └── hqc-ref/
@@ -697,16 +698,6 @@ hqc-riscv/
 - **Usage:** Header defining v3 experiment API: `vect_mul_v3()` entry point, helper structs for CRT decomposition, and compile-time macros controlling v3-specific behavior.
 - **Why:** Defines a controlled API surface for v3 experimentation without polluting stable headers. Enables isolation and selective activation of v3 code.
 - **Where:** Included by sources in EXP-fafft-v3-zvc when building the experimental branch.
-
-#### [experiments/EXP-fafft-v4-task-pipeline/fafft_v4.c](../experiments/EXP-fafft-v4-task-pipeline/fafft_v4.c)
-- **Usage:** v4 task-pipeline implementation exploring staged FAFFT decomposition and task-level RVV acceleration opportunities. Encodes a distinct algorithmic path with revised dataflow and memory access patterns targeting pipeline-friendly task scheduling.
-- **Why:** Records v4 architectural experiments and measured outcomes as a separate branch, enabling intentional exploration of task-parallelism alternatives without disrupting main-line development.
-- **Where:** Used in EXP-fafft-v4-task-pipeline-only builds/tests. Built via conditional CMake paths for experimental branches.
-
-#### [experiments/EXP-fafft-v4-task-pipeline/fafft_v4.h](../experiments/EXP-fafft-v4-task-pipeline/fafft_v4.h)
-- **Usage:** API declarations for v4 task variants: `vect_mul_v4()`, task structure types, pipeline function pointers.
-- **Why:** Keeps experiment symbols explicit, backward-compatible, and testable for replaying runs independently.
-- **Where:** Included by v4 experimental source files.
 
 #### [experiments/EXP-fafft-v6-rvv-schoolbook](../experiments/EXP-fafft-v6-rvv-schoolbook/)
 - **Usage:** Reserved/archival directory for the v6 RVV-schoolbook experiment track. No active implementation sources, but directory maintained for manifest continuity and historical reference.

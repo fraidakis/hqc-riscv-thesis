@@ -1,4 +1,4 @@
-/* EXP-fafft-zvbc-v0-towerfield/fafft_vclmul_towerfield.c
+/* EXP-fafft-zvbc-towerfield/fafft_vclmul_towerfield.c
  *
  * ZVBC tower-field FAFFT — archived as loser from the FAFFT showdown.
  *

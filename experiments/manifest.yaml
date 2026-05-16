@@ -1,62 +1,15 @@
 experiments:
   # ── Scalar (fafft_zbc) losers ──────────────────────────────────────────────
 
-  - id: EXP-fafft-v4-task-pipeline
-    date: 2026-05-05
-    hypothesis: "Evaluate staged task-pipeline FAFFT variants for lower instret at HQC-128."
-    status: promoted_to_stable
-    verdict: "ZVBC WINNER (cache-busted): 178,007 polymul instructions at L128 with best KEM medians. Promoted to src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c."
-    path: experiments/EXP-fafft-v4-task-pipeline
-    hardware_class: crypto_vector_zvbc
-    metrics:
-      level_128:
-        polymul_instructions: 178007
-        kem_keypair_instructions: 421161
-        kem_encaps_instructions: 886630
-        kem_decaps_instructions: 2131697
-      measured: 2026-05-13
-      tool: spike
-      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
-
-  - id: EXP-fafft-v6-rvv-schoolbook
-    date: 2026-05-05
-    hypothesis: "Evaluate RVV schoolbook-oriented FAFFT path for vector acceleration."
-    status: deprecated
-    verdict: "Experiment directory not present in workspace — never implemented."
-    path: experiments/EXP-fafft-v6-rvv-schoolbook
-    hardware_class: standard_vector_rvv_only
-    metrics:
-      level_128:
-        polymul_instructions: TODO
-        kem_keypair_instructions: TODO
-        kem_encaps_instructions: TODO
-        kem_decaps_instructions: TODO
-
-  - id: EXP-fafft-v5-promoted
-    date: 2026-05-05
-    hypothesis: "Promote CRT-bypass RVV v5 as stable FAFFT backend."
-    status: deprecated
-    verdict: "Lost to EXP-fafft-v4-task-pipeline in cache-busted run (179,963 vs 178,007 polymul at L128) and higher KEM medians. Archived to experiments/EXP-fafft-zvbc-v5/."
-    path: experiments/EXP-fafft-zvbc-v5
-    hardware_class: crypto_vector_zvbc
-    metrics:
-      level_128:
-        polymul_instructions: 179963
-        kem_keypair_instructions: 423117
-        kem_encaps_instructions: 890542
-        kem_decaps_instructions: 2137565
-      measured: 2026-05-13
-      tool: spike
-      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
 
   # ── ZVBC (fafft_zvbc) losers ───────────────────────────────────────────────
 
-  - id: EXP-fafft-zvbc-v0-towerfield
+  - id: EXP-fafft-zvbc-towerfield
     date: 2026-05-13
     hypothesis: "Original fafft_zvbc using tower-field FAFFT ref/ sources with Zvbc compile flags."
     status: deprecated
-    verdict: "ZVBC LOSER — tower-field FAFFT is semantically incompatible with vclmul.vv; 8.97x slower than v4 winner."
-    path: experiments/EXP-fafft-zvbc-v0-towerfield
+    verdict: "ZVBC LOSER — tower-field FAFFT (Jang et al. additive-FFT, GF(2^32) bit-sliced tower-field) is semantically incompatible with vclmul.vv; 8.97x slower than the vclmul.vv schoolbook winner."
+    path: experiments/EXP-fafft-zvbc-towerfield
     hardware_class: crypto_vector_zvbc
     metrics:
       level_128:
