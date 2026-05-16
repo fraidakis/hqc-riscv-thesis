@@ -10,7 +10,9 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 bench_load_implemented_variants "$REPO_ROOT"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
-VARIANT=""
+# Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
+bench_parse_track_args "$@"
+
 LEVEL=""
 
 RISCV="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
@@ -25,7 +27,7 @@ fi
 usage() {
     cat <<'EOF'
 Usage:
-    compare_compilers.sh --variant <variant|all> [--level 128|192|256]
+    compare_compilers.sh --mul <variant|all> [--level 128|192|256]
 EOF
 }
 
@@ -159,8 +161,11 @@ run_for_variant() {
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --variant)
-            VARIANT="$2"
+        --variant|--mul)
+            MUL_VARIANT="$2"
+            shift 2
+            ;;
+        --keccak|--decode)
             shift 2
             ;;
         --level)
@@ -179,8 +184,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$VARIANT" ]]; then
-    echo "[compare_compilers] ERROR: --variant is required" >&2
+if [[ -z "$MUL_VARIANT" ]]; then
+    echo "[compare_compilers] ERROR: --mul is required" >&2
     usage >&2
     exit 2
 fi
@@ -190,14 +195,14 @@ if [[ -n "$LEVEL" ]] && ! [[ "$LEVEL" =~ ^(128|192|256)$ ]]; then
     exit 2
 fi
 
-if [[ "$VARIANT" == "all" ]]; then
+if [[ "$MUL_VARIANT" == "all" ]]; then
     for v in "${IMPLEMENTED_VARIANTS[@]}"; do
         run_for_variant "$v"
     done
 else
-    if ! grep -qx "$VARIANT" "$REPO_ROOT/scripts/implemented_variants.txt"; then
-        echo "[compare_compilers] ERROR: variant '$VARIANT' not in scripts/implemented_variants.txt" >&2
+    if ! grep -qx "$MUL_VARIANT" "$REPO_ROOT/scripts/implemented_variants.txt"; then
+        echo "[compare_compilers] ERROR: variant '$MUL_VARIANT' not in scripts/implemented_variants.txt" >&2
         exit 2
     fi
-    run_for_variant "$VARIANT"
+    run_for_variant "$MUL_VARIANT"
 fi

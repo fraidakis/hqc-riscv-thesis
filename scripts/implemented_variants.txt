@@ -1,5 +1,5 @@
 karatsuba_ref
 karatsuba_zbc
-karatsuba_zbc_rvv
+karatsuba_rvv
 karatsuba_zvbc
 hybrid

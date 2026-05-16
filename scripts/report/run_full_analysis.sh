@@ -4,31 +4,37 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/../bench/lib_bench.sh"
 
 usage() {
     cat <<'EOF'
 Usage:
-        scripts/report/run_full_analysis.sh --variant <name> [--level <128|192|256|all>]
+        scripts/report/run_full_analysis.sh --mul <name> [--level <128|192|256|all>]
 
 Arguments:
-  --variant <name>      Required benchmark/profiler variant name.
+  --mul <name>         Required benchmark/profiler variant name.
     --level <value>       Optional level: 128, 192, 256, or all (default: 128).
   -h, --help            Show this help message.
 EOF
 }
 
-VARIANT=""
+# Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
+bench_parse_track_args "$@"
+
 LEVEL="128"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --variant)
+        --mul)
             if [[ $# -lt 2 ]]; then
-                echo "ERROR: --variant requires a value" >&2
+                echo "ERROR: --mul requires a value" >&2
                 usage
                 exit 2
             fi
-            VARIANT="$2"
+            MUL_VARIANT="$2"
+            shift 2
+            ;;
+        --keccak|--decode)
             shift 2
             ;;
         --level)
@@ -52,7 +58,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$VARIANT" ]]; then
+if [[ -z "$MUL_VARIANT" ]]; then
     usage
     exit 1
 fi
@@ -66,7 +72,7 @@ fi
 mkdir -p "${REPO_ROOT}/analysis/reports"
 
 TRACK="scalar"
-if [[ "${VARIANT}" == *"zvbc"* ]]; then
+if [[ "${MUL_VARIANT}" == *"zvbc"* ]]; then
     TRACK="vector"
 fi
 
@@ -136,17 +142,17 @@ append_table_or_note() {
 }
 
 generate_report() {
-    local report_file="${REPO_ROOT}/analysis/reports/${VARIANT}_L${REPORT_LEVEL}_report.md"
+    local report_file="${REPO_ROOT}/analysis/reports/${MUL_VARIANT}_L${REPORT_LEVEL}_report.md"
 
-    local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/polymul_latest.csv"
-    local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${VARIANT}/kem_latest.csv"
+    local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/polymul_latest.csv"
+    local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/kem_latest.csv"
 
-    local cache_csv="${REPO_ROOT}/analysis/profiles/cache/${TRACK}/${VARIANT}/kem_latest.csv"
-    local memory_csv="${REPO_ROOT}/analysis/profiles/memory/${TRACK}/${VARIANT}/kem_latest.csv"
+    local cache_csv="${REPO_ROOT}/analysis/profiles/cache/${TRACK}/${MUL_VARIANT}/kem_latest.csv"
+    local memory_csv="${REPO_ROOT}/analysis/profiles/memory/${TRACK}/${MUL_VARIANT}/kem_latest.csv"
 
-    local trace_hotspots_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_hotspots_latest.csv"
-    local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_lines_latest.csv"
-    local histogram_csv="${REPO_ROOT}/analysis/profiles/histograms/${TRACK}/${VARIANT}/kem_hqc${REPORT_LEVEL}_latest.csv"
+    local trace_hotspots_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/kem_hqc${REPORT_LEVEL}_hotspots_latest.csv"
+    local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/kem_hqc${REPORT_LEVEL}_lines_latest.csv"
+    local histogram_csv="${REPO_ROOT}/analysis/profiles/histograms/${TRACK}/${MUL_VARIANT}/kem_hqc${REPORT_LEVEL}_latest.csv"
 
     local tmp_poly
     local tmp_kem
@@ -256,7 +262,7 @@ generate_report() {
     {
         echo "# Full Analysis Report"
         echo ""
-        echo "- Variant: ${VARIANT}"
+        echo "- Variant: ${MUL_VARIANT}"
         echo "- Level: ${REPORT_LEVEL}"
         echo "- Date: $(date +'%Y-%m-%d %H:%M:%S')"
         echo ""
@@ -293,26 +299,26 @@ main() {
     echo "[step] Running benchmarks and profilers"
 
     run_quiet_stdout "Isolated polymul benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --variant "$VARIANT" --level all
+        ./scripts/bench/run_benchmarks.sh --isolated --mul "$MUL_VARIANT" --level all
 
     run_quiet_stdout "Isolated KEM benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --kem --variant "$VARIANT" --level all
+        ./scripts/bench/run_benchmarks.sh --isolated --kem --mul "$MUL_VARIANT" --level all
 
     # Cache/memory profiling are intentionally run in serial via a single-variant invocation.
     run_quiet_stdout "Cache profiler" \
-        ./scripts/bench/run_profile.sh --cache --variant "$VARIANT" --level all
+        ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --level all
 
     run_quiet_stdout "Memory profiler" \
-        ./scripts/bench/run_profile.sh --memory --variant "$VARIANT" --level all
+        ./scripts/bench/run_profile.sh --memory --mul "$MUL_VARIANT" --level all
 
     run_quiet_stdout "Trace profiler (function-level)" \
-        ./scripts/bench/run_profile.sh --trace --variant "$VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --trace --mul "$MUL_VARIANT" --level "$LEVEL"
 
     run_quiet_stdout "Trace profiler (line-level)" \
-        ./scripts/bench/run_profile.sh --trace --lines --variant "$VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --trace --lines --mul "$MUL_VARIANT" --level "$LEVEL"
 
     run_quiet_stdout "Histogram profiler" \
-        ./scripts/bench/run_profile.sh --histogram --variant "$VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --histogram --mul "$MUL_VARIANT" --level "$LEVEL"
 
     echo "[step] Aggregating LLM-readable Markdown report"
     generate_report

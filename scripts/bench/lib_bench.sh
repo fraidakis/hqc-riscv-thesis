@@ -25,6 +25,58 @@ bench_load_implemented_variants() {
     mapfile -t IMPLEMENTED_VARIANTS < "${repo_root}/scripts/implemented_variants.txt"
 }
 
+# bench_parse_track_args "$@"
+# Parses --mul <variant>, --keccak <impl>, --decode <impl> from the argument list.
+# Sets globals: MUL_VARIANT  KECCAK_IMPL  DECODE_IMPL
+# Auto-maps KECCAK_IMPL from MUL_VARIANT suffix when --keccak is not provided.
+# Caller's $@ is not modified — remaining args are still available to the caller.
+bench_parse_track_args() {
+    local _keccak_explicit=0
+    local _decode_explicit=0
+    MUL_VARIANT=""
+    KECCAK_IMPL=""
+    DECODE_IMPL=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --mul)
+                MUL_VARIANT="${2:-}"
+                shift 2
+                ;;
+            --keccak)
+                KECCAK_IMPL="${2:-}"
+                _keccak_explicit=1
+                shift 2
+                ;;
+            --decode)
+                DECODE_IMPL="${2:-}"
+                _decode_explicit=1
+                shift 2
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    # Auto-map KECCAK_IMPL from MUL_VARIANT suffix if not explicitly set.
+    if [[ "$_keccak_explicit" -eq 0 ]] && [[ -n "$MUL_VARIANT" ]]; then
+        case "$MUL_VARIANT" in
+            *_zvbc)             KECCAK_IMPL="zvbb_gather" ;;
+            *_rvv)              KECCAK_IMPL="rvv_only"    ;;
+            *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;
+            *)                  KECCAK_IMPL="ref"          ;;
+        esac
+    fi
+
+    # Default decode impl.
+    if [[ "$_decode_explicit" -eq 0 ]]; then
+        DECODE_IMPL="ref"
+    fi
+
+    export MUL_VARIANT KECCAK_IMPL DECODE_IMPL
+}
+
 bench_require_executable() {
     local exe="$1" msg="${2:-Executable not found}"
     if [[ ! -x "$exe" ]]; then
@@ -54,41 +106,54 @@ bench_require_elf_or_hint() {
 
 bench_auto_configure_and_build() {
     local build_dir="$1" repo_root="$2" target="$3" sim_type="${4:-spike}" trace_mode="${5:-0}" tag="${6:-bench}"
-    
-    # If CMakeCache.txt already exists, just build the target
+    local _keccak="${KECCAK_IMPL:-ref}"
+    local _decode="${DECODE_IMPL:-ref}"
+
+    # If CMakeCache.txt already exists, check whether Keccak/Decode impl matches.
     if [[ -f "${build_dir}/CMakeCache.txt" ]]; then
-        if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
-            echo "[${tag}] AUTO-BUILD FAIL ${target}" >&2
-            return 1
+        local _cached_keccak _cached_decode
+        _cached_keccak=$(grep -E '^HQC_KECCAK_IMPL:' "${build_dir}/CMakeCache.txt" 2>/dev/null | cut -d= -f2 || true)
+        _cached_decode=$(grep -E '^HQC_DECODE_IMPL:'  "${build_dir}/CMakeCache.txt" 2>/dev/null | cut -d= -f2 || true)
+
+        if [[ "$_cached_keccak" == "$_keccak" && "$_cached_decode" == "$_decode" ]]; then
+            # Cache matches — just build.
+            if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
+                echo "[${tag}] AUTO-BUILD FAIL ${target}" >&2
+                return 1
+            fi
+            return 0
         fi
-        return 0
+
+        # Impl changed — force reconfiguration.
+        echo " ├── ♻️  Impl changed (keccak: ${_cached_keccak:-unset} → ${_keccak}, decode: ${_cached_decode:-unset} → ${_decode}), reconfiguring: ${build_dir}..."
+    else
+        echo " ├── ⚙️  Auto-configuring missing build dir: ${build_dir}..."
     fi
-    
-    # Otherwise, auto-configure the build directory
-    echo " ├── ⚙️ Auto-configuring missing build dir: ${build_dir}..."
-    
-    # Construct the cmake command based on sim_type and trace_mode
+
+    # Construct the cmake command based on sim_type and trace_mode.
     local cmake_cmd="cmake -S \"$repo_root\" -B \"$build_dir\" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-        -DHQC_SIM=${sim_type}"
-    
-    # Add trace mode flag if needed
+        -DHQC_SIM=${sim_type} \
+        -DHQC_KECCAK_IMPL=${_keccak} \
+        -DHQC_DECODE_IMPL=${_decode}"
+
+    # Add trace mode flag if needed.
     if [[ "$trace_mode" == "1" ]]; then
         cmake_cmd="${cmake_cmd} -DHQC_TRACE_MODE=1"
     fi
-    
-    # Execute cmake configuration
+
+    # Execute cmake configuration.
     if ! eval "$cmake_cmd" >/dev/null 2>&1; then
         echo "[${tag}] AUTO-CONFIG FAIL ${build_dir}" >&2
         return 1
     fi
-    
-    # Now build the target
+
+    # Build the target.
     if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
         echo "[${tag}] AUTO-BUILD FAIL ${target}" >&2
         return 1
     fi
-    
+
     return 0
 }
 

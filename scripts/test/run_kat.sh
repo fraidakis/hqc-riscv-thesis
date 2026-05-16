@@ -7,14 +7,18 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/../bench/lib_bench.sh"
 
 usage() {
     cat <<'EOF'
 Usage:
-    run_kat.sh --variant <name> [--level <128|192|256|all|csv>] [--spike]
+    run_kat.sh --mul <name> [--keccak <impl>] [--decode <impl>]
+               [--level <128|192|256|all|csv>] [--spike]
 
 Flags:
-    --variant <name>   Polymul variant name (required)
+    --mul <name>       Polymul variant name (required)
+    --keccak <impl>    Keccak implementation (auto-mapped from --mul suffix if omitted)
+    --decode <impl>    Decode implementation (default: ref)
     --level <value>    Security level(s) to run.
                        Accepts: 128, 192, 256, all, or comma-separated values
                        (example: 128,192,256). Default: all.
@@ -22,19 +26,15 @@ Flags:
 EOF
 }
 
-VARIANT=""
+# Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
+bench_parse_track_args "$@"
+
 LEVEL_INPUT="all"
 USE_SPIKE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --variant)
-            if [[ $# -lt 2 || "$2" == --* ]]; then
-                echo "ERROR: --variant requires a value" >&2
-                usage >&2
-                exit 1
-            fi
-            VARIANT="$2"
+        --mul|--keccak|--decode)
             shift 2
             ;;
         --level)
@@ -62,8 +62,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$VARIANT" ]]; then
-    echo "ERROR: --variant is required" >&2
+if [[ -z "$MUL_VARIANT" ]]; then
+    echo "ERROR: --mul is required" >&2
     usage >&2
     exit 1
 fi
@@ -126,7 +126,7 @@ find_elf_for_target() {
 overall_status=0
 
 for level in "${LEVELS[@]}"; do
-    target="hqc${level}_${VARIANT}"
+    target="hqc${level}_${MUL_VARIANT}"
     rsp="${REPO_ROOT}/tests/kat/PQCkemKAT_${level}.rsp"
 
     if [[ ! -f "$rsp" ]]; then
@@ -141,7 +141,7 @@ for level in "${LEVELS[@]}"; do
         continue
     fi
 
-    log="$(mktemp /tmp/hqc_kat_${level}_${VARIANT}_XXXXXX.log)"
+    log="$(mktemp /tmp/hqc_kat_${level}_${MUL_VARIANT}_XXXXXX.log)"
 
     echo "[kat] Running $target"
     if [[ "$USE_SPIKE" -eq 1 ]]; then

@@ -7,11 +7,11 @@
 #   --suite    : synchronous suite mode (formerly run_spike_suite_sync.sh)
 #
 # Isolated usage:
-#   run_benchmarks.sh --isolated [<bench_set>] [--variant <regex>]
+#   run_benchmarks.sh --isolated [<bench_set>] [--mul <regex>] [--keccak <impl>] [--decode <impl>]
 #
 # Suite usage:
 #   run_benchmarks.sh --suite [--run-id ID] [--levels "128 192 256"]
-#                     [--variant <regex>] [--promote NAME]
+#                     [--mul <regex>] [--promote NAME]
 
 set -euo pipefail
 
@@ -22,6 +22,9 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 bench_load_implemented_variants "$REPO_ROOT"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
+# Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
+bench_parse_track_args "$@"
+
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 SPIKE_RUNNER="${REPO_ROOT}/sim/spike/run.sh"
@@ -31,7 +34,6 @@ BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
 # Shared/default flags.
 MODE="isolated"
-VARIANT_FILTER=""
 
 # Isolated mode flags.
 BENCH_SET=""
@@ -75,9 +77,9 @@ BENCH_SET_TRACK_MAP=(
 usage() {
     cat <<'EOF'
 Usage:
-    run_benchmarks.sh --isolated [<bench_set>] [--variant <regex>] [--kem]
+    run_benchmarks.sh --isolated [<bench_set>] [--mul <regex>] [--keccak <impl>] [--decode <impl>] [--kem]
     run_benchmarks.sh --suite [--run-id ID] [--level "128 192 256"]
-                    [--variant <regex>] [--promote NAME]
+                    [--mul <regex>] [--promote NAME]
 
 Modes:
   isolated  Run polymul micro-benchmarks (or full KEM with --kem) synchronously in the foreground.
@@ -96,8 +98,11 @@ while [[ $# -gt 0 ]]; do
             MODE="suite"
             shift 1
             ;;
-        --variant)
-            VARIANT_FILTER="$2"
+        --variant|--mul)
+            MUL_VARIANT="$2"
+            shift 2
+            ;;
+        --keccak|--decode)
             shift 2
             ;;
         --kem)
@@ -206,7 +211,7 @@ parse_spike_to_csv() {
 }
 
 run_isolated_mode() {
-    local variant="${VARIANT_FILTER}"
+    local variant="${MUL_VARIANT}"
 
     # Determine track type and output directory
     local track="scalar"
@@ -312,7 +317,7 @@ run_isolated_mode() {
 run_suite_mode() {
     if [[ "$RUN_ID_OVERRIDE" -eq 0 ]]; then
         local variant_label
-        variant_label="$(bench_sanitize_label "${VARIANT_FILTER:-all}")"
+        variant_label="$(bench_sanitize_label "${MUL_VARIANT:-all}")"
         RUN_ID="${variant_label}_suite_${BENCH_TIME}"
     fi
 
@@ -440,7 +445,7 @@ run_suite_mode() {
     mkdir -p "$job_results_dir"
 
     for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
-        bench_variant_matches "$variant" "$VARIANT_FILTER" || continue
+        bench_variant_matches "$variant" "$MUL_VARIANT" || continue
         for level in $LEVELS; do
             local poly_target kem_target result_csv
             poly_target="bench_polymul_hqc${level}_${variant}"
@@ -517,7 +522,7 @@ run_suite_mode() {
 
 case "$MODE" in
     isolated)
-        if [[ "${VARIANT_FILTER:-}" == "all" ]]; then
+        if [[ "${MUL_VARIANT:-}" == "all" ]]; then
             if ! command -v parallel >/dev/null 2>&1; then
                 echo "ERROR: GNU parallel is required for --isolated --variant all" >&2
                 echo "       Install parallel and retry" >&2
@@ -544,15 +549,15 @@ case "$MODE" in
                 if [[ -n "$kem_arg" ]]; then
                     cmd+=" ${kem_arg}"
                 fi
-                cmd+=" --variant ${v}"
+                cmd+" --mul ${v}"
                 cmds+=("$cmd")
             done
 
             printf '%s\n' "${cmds[@]}" | parallel --jobs 4
         else
-            if [[ -z "${VARIANT_FILTER:-}" ]]; then VARIANT_FILTER="karatsuba_zbc"; fi
-            if [[ ! " ${IMPLEMENTED_VARIANTS[*]} " =~ " ${VARIANT_FILTER} " ]]; then
-                echo "ERROR: Variant '${VARIANT_FILTER}' is not valid." >&2
+            if [[ -z "${MUL_VARIANT:-}" ]]; then MUL_VARIANT="karatsuba_zbc"; fi
+            if [[ ! " ${IMPLEMENTED_VARIANTS[*]} " =~ " ${MUL_VARIANT} " ]]; then
+                echo "ERROR: Variant '${MUL_VARIANT}' is not valid." >&2
                 exit 1
             fi
             run_isolated_mode

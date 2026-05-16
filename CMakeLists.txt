@@ -105,7 +105,7 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 #   Phase 1+ — fafft_zvbc    : vclmul.vv vectorised butterflies (Spike Zvbc only)
 set(POLYMUL_VARIANTS
     karatsuba_zbc
-    karatsuba_zbc_rvv
+    karatsuba_rvv
     karatsuba_zvbc
     karatsuba_ref
     hybrid
@@ -269,9 +269,9 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "fafft_zvbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c)
-        elseif(POLYMUL STREQUAL "karatsuba_zbc_rvv")
+        elseif(POLYMUL STREQUAL "karatsuba_rvv")
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/rvv_only/karatsuba_zbc/gf2x_clmul.c)
+                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/rvv_only/karatsuba_rvv/gf2x_clmul.c)
         elseif(POLYMUL STREQUAL "karatsuba_zvbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c)

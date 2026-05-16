@@ -9,10 +9,10 @@
 #   --histogram  Spike PC histogram pipeline
 #
 # Examples:
-#   scripts/bench/run_profile.sh --cache --variant karatsuba_zbc --level 128
-#   scripts/bench/run_profile.sh --memory --variant hybrid --level 192
-#   scripts/bench/run_profile.sh --trace --variant karatsuba_zbc
-#   scripts/bench/run_profile.sh --histogram --variant karatsuba_zbc --report
+#   scripts/bench/run_profile.sh --cache --mul karatsuba_zbc --level 128
+#   scripts/bench/run_profile.sh --memory --mul hybrid --level 192
+#   scripts/bench/run_profile.sh --trace --mul karatsuba_zbc
+#   scripts/bench/run_profile.sh --histogram --mul karatsuba_zbc --report
 
 set -euo pipefail
 
@@ -24,8 +24,10 @@ GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 PROFILE_TMP_ROOT="$REPO_ROOT/.tmp"
 
+# Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
+bench_parse_track_args "$@"
+
 MODE=""
-VARIANT=""
 LEVEL="128"
 LEVEL_SET=0
 REPORT_FLAG=0
@@ -70,7 +72,7 @@ bench_print_level_branch() {
 }
 
 profile_cache_mode() {
-    local variant="${VARIANT:-karatsuba_zbc}"
+    local variant="${MUL_VARIANT:-karatsuba_zbc}"
     local dc_config="${DC_CONFIG:-512:8:64}"
     local profile_kind="KEM"
     local target_prefix="bench"
@@ -174,7 +176,7 @@ profile_cache_mode() {
 }
 
 profile_memory_mode() {
-    local variant="${VARIANT:-karatsuba_zbc}"
+    local variant="${MUL_VARIANT:-karatsuba_zbc}"
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
@@ -289,7 +291,7 @@ END{printf "%d %d %d %d", lb, sb, li, si}
 }
 
 profile_trace_mode() {
-    local variant="${VARIANT:-karatsuba_zbc}"
+    local variant="${MUL_VARIANT:-karatsuba_zbc}"
     local track="scalar"
     local profile_kind="KEM"
     local target_prefix="bench"
@@ -421,8 +423,8 @@ profile_trace_mode() {
 }
 
 profile_histogram_mode() {
-    if [[ -z "$VARIANT" ]]; then
-        echo "ERROR: --histogram requires --variant <variant>" >&2
+    if [[ -z "$MUL_VARIANT" ]]; then
+    echo "ERROR: --histogram requires --mul <variant>" >&2
         exit 2
     fi
 
@@ -451,12 +453,12 @@ profile_histogram_mode() {
     fi
 
     local track
-    if [[ "${VARIANT,,}" == *"zvbc"* ]]; then
+    if [[ "${MUL_VARIANT,,}" == *"zvbc"* ]]; then
         track="vector"
     else
         track="scalar"
     fi
-    local variant="${VARIANT:-karatsuba_zbc}"
+    local variant="${MUL_VARIANT:-karatsuba_zbc}"
     local out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${variant}"
 
     if ! bench_require_executable "$spike" "Spike not found"; then
@@ -537,10 +539,10 @@ profile_histogram_mode() {
 usage() {
     cat <<'EOF'
 Usage:
-    run_profile.sh --cache [--variant V] [--level 128|192|256|all] [--polymul]
-    run_profile.sh --memory [--variant V] [--level 128|192|256|all] [--polymul]
-    run_profile.sh --trace [--variant V] [--level 128|192|256|all] [--polymul] [--lines]
-    run_profile.sh --histogram --variant <variant> [--polymul] [--report]
+    run_profile.sh --cache [--mul V] [--level 128|192|256|all] [--polymul]
+    run_profile.sh --memory [--mul V] [--level 128|192|256|all] [--polymul]
+    run_profile.sh --trace [--mul V] [--level 128|192|256|all] [--polymul] [--lines]
+    run_profile.sh --histogram --mul <variant> [--polymul] [--report]
              [--top N] [--compare-with set] [--context]
 EOF
 }
@@ -551,8 +553,11 @@ while [[ $# -gt 0 ]]; do
             MODE="${1#--}"
             shift
             ;;
-        --variant)
-            VARIANT="$2"
+        --variant|--mul)
+            MUL_VARIANT="$2"
+            shift 2
+            ;;
+        --keccak|--decode)
             shift 2
             ;;
         --level)
@@ -607,7 +612,7 @@ if [[ "$LEVEL_SET" -eq 0 ]] && [[ "$MODE" == "cache" || "$MODE" == "memory" ]]; 
 fi
 
 run_mode_for_variant() {
-    VARIANT="$1"
+    MUL_VARIANT="$1"
     case "$MODE" in
         cache)     profile_cache_mode ;;
         memory)    profile_memory_mode ;;
@@ -641,10 +646,10 @@ profile_select_parallel_jobs() {
 declare -a batch_variants=()
 declare -a batch_levels=()
 
-if [[ "$VARIANT" == "all" ]]; then
+if [[ "$MUL_VARIANT" == "all" ]]; then
     batch_variants=("${IMPLEMENTED_VARIANTS[@]}")
-elif [[ -n "$VARIANT" ]]; then
-    batch_variants=("$VARIANT")
+elif [[ -n "$MUL_VARIANT" ]]; then
+    batch_variants=("$MUL_VARIANT")
 elif [[ "$MODE" == "histogram" ]]; then
     batch_variants=("")
 else
@@ -660,7 +665,7 @@ fi
 if [[ "${#batch_variants[@]}" -gt 1 ]]; then
     if [[ "$MODE" == "cache" || "$MODE" == "memory" ]]; then
         for v in "${batch_variants[@]}"; do
-            VARIANT="$v"
+            MUL_VARIANT="$v"
             run_mode_for_variant "$v"
         done
     else
@@ -673,7 +678,7 @@ if [[ "${#batch_variants[@]}" -gt 1 ]]; then
         cmd=""
 
         for v in "${batch_variants[@]}"; do
-            cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --variant ${v} --level ${LEVEL}"
+            cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --mul ${v} --level ${LEVEL}"
             if [[ "$REPORT_FLAG" -eq 1 ]]; then cmd+=" --report"; fi
             if [[ -n "$TOP_N" ]]; then cmd+=" --top ${TOP_N}"; fi
             if [[ -n "$COMPARE_WITH" ]]; then cmd+=" --compare-with ${COMPARE_WITH}"; fi
