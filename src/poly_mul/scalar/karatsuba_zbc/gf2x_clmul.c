@@ -14,14 +14,12 @@
  *   clmul_leaf_n4 was dead code.  Removing it and its case 4 switch arm also
  *   eliminates the dead comparison on every leaf call, yielding a further
  *   435-instruction reduction:
- *     V2-A3 champion (with clmul_leaf_n4): 274,566 instret
- *     Ablation champion (n=8 only):        274,131 instret  (−435, −0.16%)
+ *     V2-A3 champion (with clmul_leaf_n8): 274,131 instret
  *
  * Full optimisation history vs original baseline (360,961 instret):
  *   Total reduction: 360,961 → 274,131 instret  (−86,830, −24.05%)
  *
  * KAT validated: 300/300 vectors across HQC-{128,192,256} (2026-05-17).
- * Performance: vect_mul HQC-128 274,566 → 274,131 instret (−0.16%).
  */
 
 #include <stdint.h>
