@@ -13,7 +13,7 @@ usage() {
     cat <<'EOF'
 Usage:
     run_kat.sh --mul <name> [--keccak <impl>] [--decode <impl>]
-               [--level <128|192|256|all|csv>] [--spike]
+               [--level <128|192|256|all|csv>] [--qemu]
 
 Flags:
     --mul <name>       Polymul variant name (required)
@@ -22,7 +22,8 @@ Flags:
     --level <value>    Security level(s) to run.
                        Accepts: 128, 192, 256, all, or comma-separated values
                        (example: 128,192,256). Default: all.
-    --spike            Use Spike instead of QEMU (default: QEMU).
+    --qemu             Use QEMU instead of Spike (default: Spike).
+    --spike            Alias for default Spike mode (kept for backward compatibility).
 EOF
 }
 
@@ -30,7 +31,7 @@ EOF
 bench_parse_track_args "$@"
 
 LEVEL_INPUT="all"
-USE_SPIKE=0
+USE_SPIKE=1
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -48,6 +49,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --spike)
             USE_SPIKE=1
+            shift 1
+            ;;
+        --qemu)
+            USE_SPIKE=0
             shift 1
             ;;
         -h|--help)
@@ -125,11 +130,12 @@ fi
 KECCAK_IMPL="$eff_keccak"
 export KECCAK_IMPL
 
-# Dedicated KAT build dir — one per (sim, keccak, decode) combination.
-# This dir is owned by run_kat.sh and is always configured with the correct
-# HQC_SIM and Keccak impl, so cmake auto-build can never produce a
+# Dedicated KAT build dir — owned by run_kat.sh and always configured with
+# the correct HQC_SIM and Keccak impl, so cmake auto-build can never produce a
 # simulator-incompatible ELF here.
-KAT_BUILD_DIR="${REPO_ROOT}/build/kat-${sim_type}-${eff_keccak}-${DECODE_IMPL:-ref}"
+# Hierarchy: build/<sim>/kat/   (dynamic Keccak variant is stored in the cmake
+# cache; bench_auto_configure_and_build reconfigures on mismatch automatically).
+KAT_BUILD_DIR="${REPO_ROOT}/build/${sim_type}/kat"
 
 overall_status=0
 

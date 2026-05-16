@@ -4,8 +4,9 @@ docs/PROPOSALS.md
 prompts/
 repo_*.txt
 
-# Build outputs
-build*/
+# Build outputs — hierarchical matrix lives under build/<sim>/<context>/
+build/
+build-*/
 *.o
 *.a
 *.elf

@@ -29,7 +29,7 @@ RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 SPIKE_RUNNER="${REPO_ROOT}/sim/spike/run.sh"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
-BUILD_DIR="${REPO_ROOT}/build/spike"
+BUILD_DIR="${REPO_ROOT}/build/spike/bench"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
 # Shared/default flags.

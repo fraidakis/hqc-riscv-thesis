@@ -122,18 +122,19 @@ profile_cache_mode() {
         target_levels=("$LEVEL")
     fi
 
+    # Single shared build dir for all levels — configure once, build per target.
+    local build_dir="$REPO_ROOT/build/spike/cacheprof"
+    cmake -S "$REPO_ROOT" -B "$build_dir" \
+        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DRISCV="$riscv" \
+        -DHQC_SIM=spike >/dev/null 2>&1
+
     local total_levels="${#target_levels[@]}"
     local idx=0
     for level in "${target_levels[@]}"; do
         idx=$((idx + 1))
-        local build_dir="$REPO_ROOT/build/spike_cacheprof_hqc${level}_${variant}"
         local target="${target_prefix}_hqc${level}_${variant}"
         local elf="$build_dir/${target}.elf"
-
-        cmake -S "$REPO_ROOT" -B "$build_dir" \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-            -DRISCV="$riscv" \
-            -DHQC_SIM=spike >/dev/null 2>&1
 
         cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1
 
@@ -217,17 +218,18 @@ profile_memory_mode() {
         target_levels=("$LEVEL")
     fi
 
+    # Single shared build dir for all levels — configure once, build per target.
+    local build_dir="$REPO_ROOT/build/qemu/memprof"
+    cmake -S "$REPO_ROOT" -B "$build_dir" \
+        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DHQC_SIM=qemu >/dev/null 2>&1
+
     local total_levels="${#target_levels[@]}"
     local idx=0
     for level in "${target_levels[@]}"; do
         idx=$((idx + 1))
-        local build_dir="$REPO_ROOT/build/qemu_memprof_hqc${level}_${variant}"
         local target="${target_prefix}_hqc${level}_${variant}"
         local elf="$build_dir/${target}.elf"
-
-        cmake -S "$REPO_ROOT" -B "$build_dir" \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-            -DHQC_SIM=qemu >/dev/null 2>&1
 
         cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1
 
@@ -311,7 +313,7 @@ profile_trace_mode() {
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local spike="${riscv}/bin/spike"
     local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm}"
-    local build_dir="$REPO_ROOT/build/spike_trace"
+    local build_dir="$REPO_ROOT/build/spike/trace"
 
     if [[ "$variant" == *"zvbc"* || "$variant" == *"v"* ]]; then
         track="vector"
@@ -433,7 +435,7 @@ profile_histogram_mode() {
     local riscv="${RISCV:-$HOME/Thesis/installed-tools}"
     local spike="${riscv}/bin/spike"
     local isa="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
-    local build_dir="$REPO_ROOT/build/spike_trace"
+    local build_dir="$REPO_ROOT/build/spike/trace"
     local target_levels=()
     if [[ "$LEVEL" == "all" ]]; then
         target_levels=(128 192 256)
