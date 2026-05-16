@@ -342,7 +342,9 @@ profile_trace_mode() {
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DRISCV="$riscv" \
         -DHQC_SIM=spike \
-        -DHQC_TRACE_MODE=1 >/dev/null 2>&1
+        -DHQC_TRACE_MODE=1 \
+        -DHQC_KECCAK_IMPL="${KECCAK_IMPL:-ref}" \
+        -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" >/dev/null 2>&1
 
     echo -e "\n📦 ${variant} (trace - ${profile_kind})"
 
@@ -474,7 +476,9 @@ profile_histogram_mode() {
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DRISCV="$riscv" \
         -DHQC_SIM=spike \
-        -DHQC_TRACE_MODE=1 >/dev/null 2>&1
+        -DHQC_TRACE_MODE=1 \
+        -DHQC_KECCAK_IMPL="${KECCAK_IMPL:-ref}" \
+        -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" >/dev/null 2>&1
 
     echo -e "\n📦 ${variant} (histogram - ${profile_kind})"
 

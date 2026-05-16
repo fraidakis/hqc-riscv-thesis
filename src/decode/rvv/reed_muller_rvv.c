@@ -23,11 +23,24 @@ static void hadamard_rvv(rm_expanded_cdw *src, rm_expanded_cdw *dst) {
     rm_expanded_cdw *p1 = src;
     rm_expanded_cdw *p2 = dst;
 
+    // With VLEN=256, SEW=16, LMUL=4: vl = 256*4/16 = 64 elements (covers all
+    // 64 butterfly pairs in a single vector instruction).
+    size_t vl = __riscv_vsetvl_e16m4(64);
+
     for (int32_t pass = 0; pass < 7; pass++) {
-        for (int32_t i = 0; i < 64; i++) {
-            (*p2)[i] = (*p1)[2 * i] + (*p1)[2 * i + 1];
-            (*p2)[i + 64] = (*p1)[2 * i] - (*p1)[2 * i + 1];
-        }
+        int16_t *in  = (int16_t *)(*p1);
+        int16_t *out = (int16_t *)(*p2);
+
+        // Load 64 even-indexed elements: p1[0], p1[2], ..., p1[126]
+        // stride = 2 * sizeof(int16_t) = 4 bytes
+        vint16m4_t even = __riscv_vlse16_v_i16m4(in,     (ptrdiff_t)(2 * sizeof(int16_t)), vl);
+        // Load 64 odd-indexed elements: p1[1], p1[3], ..., p1[127]
+        vint16m4_t odd  = __riscv_vlse16_v_i16m4(in + 1, (ptrdiff_t)(2 * sizeof(int16_t)), vl);
+
+        // p2[0..63]   = even + odd  (butterfly sum)
+        // p2[64..127] = even - odd  (butterfly difference)
+        __riscv_vse16_v_i16m4(out,      __riscv_vadd_vv_i16m4(even, odd, vl), vl);
+        __riscv_vse16_v_i16m4(out + 64, __riscv_vsub_vv_i16m4(even, odd, vl), vl);
 
         rm_expanded_cdw *p3 = p1;
         p1 = p2;

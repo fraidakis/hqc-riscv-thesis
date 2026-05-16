@@ -299,26 +299,26 @@ main() {
     echo "[step] Running benchmarks and profilers"
 
     run_quiet_stdout "Isolated polymul benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --mul "$MUL_VARIANT" --level all
+        ./scripts/bench/run_benchmarks.sh --isolated --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
     run_quiet_stdout "Isolated KEM benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --kem --mul "$MUL_VARIANT" --level all
+        ./scripts/bench/run_benchmarks.sh --isolated --kem --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
     # Cache/memory profiling are intentionally run in serial via a single-variant invocation.
     run_quiet_stdout "Cache profiler" \
-        ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --level all
+        ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
     run_quiet_stdout "Memory profiler" \
-        ./scripts/bench/run_profile.sh --memory --mul "$MUL_VARIANT" --level all
+        ./scripts/bench/run_profile.sh --memory --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
     run_quiet_stdout "Trace profiler (function-level)" \
-        ./scripts/bench/run_profile.sh --trace --mul "$MUL_VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --trace --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
     run_quiet_stdout "Trace profiler (line-level)" \
-        ./scripts/bench/run_profile.sh --trace --lines --mul "$MUL_VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --trace --lines --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
     run_quiet_stdout "Histogram profiler" \
-        ./scripts/bench/run_profile.sh --histogram --mul "$MUL_VARIANT" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --histogram --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
     echo "[step] Aggregating LLM-readable Markdown report"
     generate_report
