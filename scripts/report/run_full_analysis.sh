@@ -72,7 +72,7 @@ fi
 mkdir -p "${REPO_ROOT}/analysis/reports"
 
 TRACK="scalar"
-if [[ "${MUL_VARIANT}" == *"zvbc"* ]]; then
+if [[ "${MUL_VARIANT}" == *"zvbc"* || "${MUL_VARIANT}" == *"rvv"* ]]; then
     TRACK="vector"
 fi
 

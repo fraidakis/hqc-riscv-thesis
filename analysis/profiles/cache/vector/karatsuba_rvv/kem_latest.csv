@@ -1,5 +1,5 @@
-# date: 2026-05-16 17:15
-# commit: 0e193aa
+# date: 2026-05-16 18:02
+# commit: be7e02a
 # variant: karatsuba_rvv
 # cache_config: 512:8:64
 level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses

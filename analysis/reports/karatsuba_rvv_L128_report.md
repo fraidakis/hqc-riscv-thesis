@@ -2,7 +2,7 @@
 
 - Variant: karatsuba_rvv
 - Level: 128
-- Date: 2026-05-16 17:18:13
+- Date: 2026-05-16 18:02:56
 
 ## 1. Cycle Counts
 
@@ -45,10 +45,52 @@
 ## 3. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
-No data found: /tmp/tmp.5xfIR5HZBg
+| function | instructions | percentage |  |
+| --- | --- | --- | --- |
+| clmul_leaf | 1078674 | 29.40 |  |
+| KeccakF1600_StatePermute | 578792 | 15.77 |  |
+| karatsuba_clmul | 309024 | 8.42 |  |
+| clmul64 | 251532 | 6.85 |  |
+| hadamard | 227516 | 6.20 |  |
+| keccak_inc_absorb | 141116 | 3.85 |  |
+| memcpy | 137922 | 3.76 |  |
+| find_peaks | 105919 | 2.89 |  |
+| gf_reduce | 105600 | 2.88 |  |
+| keccak_inc_squeeze | 96430 | 2.63 |  |
+| expand_and_sum | 93748 | 2.55 |  |
+| compare_u32 | 83250 | 2.27 |  |
+| vect_generate_random_support2 | 79260 | 2.16 |  |
+| rvv_xor3_u64 | 54684 | 1.49 |  |
+| vect_generate_random_support1 | 49869 | 1.36 |  |
+| rvv_copy_u64 | 33822 | 0.92 |  |
+| memset | 33045 | 0.90 |  |
+| vect_compare | 31058 | 0.85 |  |
+| gf_mul | 23794 | 0.65 |  |
+| reduce | 19974 | 0.54 |  |
 
 ### Line-Level Hotspots (Top 20 Rows)
-No data found: /tmp/tmp.dal6OjyhHN
+| function | instructions | percentage |  |
+| --- | --- | --- | --- |
+| clmul_leaf at gf2x_clmul.c:179 | 309498 | 8.43 |  |
+| clmul64 at gf2x_clmul.c:42 | 228648 | 6.23 |  |
+| clmul_leaf at gf2x_clmul.c:176 | 176856 | 4.82 |  |
+| clmul_leaf at gf2x_clmul.c:181 | 132642 | 3.61 |  |
+| clmul_leaf at gf2x_clmul.c:0 | 102408 | 2.79 |  |
+| KeccakF1600_StatePermute at fips202_rvv_only.c:0 | 98548 | 2.69 |  |
+| clmul_leaf at gf2x_clmul.c:180 | 88428 | 2.41 |  |
+| keccak_inc_absorb at fips202_rvv_only.c:290 | 85750 | 2.34 |  |
+| compare_u32 at vector.c:43 | 83250 | 2.27 |  |
+| memcpy at mem.c:21 | 82652 | 2.25 |  |
+| hadamard at reed_muller.c:98 | 82432 | 2.25 |  |
+| hadamard at reed_muller.c:99 | 82432 | 2.25 |  |
+| karatsuba_clmul at gf2x_clmul.c:239 | 70332 | 1.92 |  |
+| expand_and_sum at reed_muller.c:132 | 68448 | 1.87 |  |
+| hadamard at reed_muller.c:97 | 62606 | 1.71 |  |
+| karatsuba_clmul at gf2x_clmul.c:241 | 56190 | 1.53 |  |
+| karatsuba_clmul at gf2x_clmul.c:240 | 55788 | 1.52 |  |
+| memcpy at mem.c:22 | 54764 | 1.49 |  |
+| keccak_inc_squeeze at fips202_rvv_only.c:320 | 51696 | 1.41 |  |
+| gf_reduce at gf.c:106 | 44712 | 1.22 |  |
 
 ### Basic Block Histogram (Top 20)
 | instruction | count | percentage |  |

@@ -93,7 +93,7 @@ profile_cache_mode() {
     fi
 
     local track="scalar"
-    if [[ "$variant" == *"zvbc"* ]]; then track="vector"; fi
+    if [[ "$variant" == *"zvbc"* || "$variant" == *"rvv"* ]]; then track="vector"; fi
     local out_dir="$REPO_ROOT/analysis/profiles/cache/${track}/${variant}"
     mkdir -p "$out_dir"
 
@@ -196,7 +196,7 @@ profile_memory_mode() {
     fi
 
     local track="scalar"
-    if [[ "$variant" == *"zvbc"* ]]; then track="vector"; fi
+    if [[ "$variant" == *"zvbc"* || "$variant" == *"rvv"* ]]; then track="vector"; fi
     local out_dir="$REPO_ROOT/analysis/profiles/memory/${track}/${variant}"
     mkdir -p "$out_dir"
 
@@ -315,7 +315,7 @@ profile_trace_mode() {
     local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm}"
     local build_dir="$REPO_ROOT/build/spike/trace"
 
-    if [[ "$variant" == *"zvbc"* || "$variant" == *"v"* ]]; then
+    if [[ "$variant" == *"zvbc"* || "$variant" == *"rvv"* ]]; then
         track="vector"
     fi
 
@@ -457,7 +457,7 @@ profile_histogram_mode() {
     fi
 
     local track
-    if [[ "${MUL_VARIANT,,}" == *"zvbc"* ]]; then
+    if [[ "${MUL_VARIANT,,}" == *"zvbc"* || "${MUL_VARIANT,,}" == *"rvv"* ]]; then
         track="vector"
     else
         track="scalar"

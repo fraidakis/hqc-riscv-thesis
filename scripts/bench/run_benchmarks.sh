@@ -215,7 +215,7 @@ run_isolated_mode() {
 
     # Determine track type and output directory
     local track="scalar"
-    if [[ -n "$variant" ]] && [[ "${variant,,}" == *"zvbc"* ]]; then
+    if [[ -n "$variant" ]] && [[ "${variant,,}" == *"zvbc"* || "${variant,,}" == *"rvv"* ]]; then
         track="vector"
     fi
 
