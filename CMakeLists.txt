@@ -88,6 +88,12 @@ message(STATUS "Hybrid Karatsuba depth: ${HYBRID_KARATSUBA_DEPTH}")
 set(V3_HYBRID_THRESH 32 CACHE STRING "Crossover threshold for hybrid_v3 (words): below this → clmul leaf")
 message(STATUS "Hybrid v3 crossover threshold: ${V3_HYBRID_THRESH}")
 
+# Karatsuba threshold for the karatsuba_zbc_exp experimental variant.
+# Controls KARATSUBA_THRESHOLD in EXP-karatsuba-zbc-leaf-fixed/gf2x_clmul.c.
+# Default 8 (V2-A1 sweep baseline); override: cmake -DHQC_KARATSUBA_THRESHOLD=4|8|16
+set(HQC_KARATSUBA_THRESHOLD 8 CACHE STRING "Karatsuba leaf threshold for karatsuba_zbc_exp (V2-A1 sweep)")
+message(STATUS "karatsuba_zbc_exp threshold: ${HQC_KARATSUBA_THRESHOLD}")
+
 # ── Upstream vendor root (registered as git submodule in Phase 0a) ────────────
 set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 
@@ -105,6 +111,8 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 #   Phase 1+ — fafft_zvbc    : vclmul.vv vectorised butterflies (Spike Zvbc only)
 set(POLYMUL_VARIANTS
     karatsuba_zbc
+    karatsuba_zbc_exp
+    karatsuba_zbc_ablation
     karatsuba_rvv
     karatsuba_zvbc
     karatsuba_ref
@@ -251,6 +259,16 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "karatsuba_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c)
+        elseif(POLYMUL STREQUAL "karatsuba_zbc_exp")
+            # EXP: V2-A3 fixed-size leaf specialization + V2-A1 threshold sweep.
+            # Configure threshold: cmake -DHQC_KARATSUBA_THRESHOLD=4|8|16
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-zbc-leaf-fixed/gf2x_clmul.c)
+        elseif(POLYMUL STREQUAL "karatsuba_zbc_ablation")
+            # EXP: V2-A3 ablation — clmul_leaf_n4 removed (dead code at T=16).
+            # Verifies that n=8 leaf alone explains the full 3.21% gain.
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-ablation/gf2x_clmul.c)
         elseif(POLYMUL STREQUAL "fafft_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft.c
@@ -321,6 +339,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
             # run_kat.sh detects this compile-time definition and adjusts accordingly.
             target_compile_definitions(${KAT_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
         endif()
+        if(POLYMUL STREQUAL "karatsuba_zbc_exp")
+            target_compile_definitions(${KAT_TARGET} PRIVATE
+                KARATSUBA_THRESHOLD=${HQC_KARATSUBA_THRESHOLD})
+        endif()
+        if(POLYMUL STREQUAL "karatsuba_zbc_ablation")
+            target_compile_definitions(${KAT_TARGET} PRIVATE
+                KARATSUBA_THRESHOLD=16)
+        endif()
         if(POLYMUL STREQUAL "hybrid")
             target_compile_definitions(${KAT_TARGET} PRIVATE
                 HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
@@ -389,6 +415,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
         endif()
+        if(POLYMUL STREQUAL "karatsuba_zbc_exp")
+            target_compile_definitions(${BENCH_TARGET} PRIVATE
+                KARATSUBA_THRESHOLD=${HQC_KARATSUBA_THRESHOLD})
+        endif()
+        if(POLYMUL STREQUAL "karatsuba_zbc_ablation")
+            target_compile_definitions(${BENCH_TARGET} PRIVATE
+                KARATSUBA_THRESHOLD=16)
+        endif()
 
         if(POLYMUL STREQUAL "hybrid")
             target_compile_definitions(${BENCH_TARGET} PRIVATE
@@ -447,6 +481,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
         )
         if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+        endif()
+        if(POLYMUL STREQUAL "karatsuba_zbc_exp")
+            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
+                KARATSUBA_THRESHOLD=${HQC_KARATSUBA_THRESHOLD})
+        endif()
+        if(POLYMUL STREQUAL "karatsuba_zbc_ablation")
+            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
+                KARATSUBA_THRESHOLD=16)
         endif()
         if(POLYMUL STREQUAL "hybrid")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE

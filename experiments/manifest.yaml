@@ -100,3 +100,80 @@ experiments:
       measured: 2026-05-14
       tool: spike
       isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
+
+  # ── V2-A3 Fixed-Size Leaf + V2-A1 Threshold Sweep ─────────────────────────
+
+  - id: EXP-karatsuba-zbc-leaf-fixed
+    date: 2026-05-15
+    hypothesis: >
+      Fully-unrolled fixed-size leaf functions (clmul_leaf_n4: 16 clmul64,
+      clmul_leaf_n8: 64 clmul64, zero branches) eliminate inner-loop control
+      overhead (branch + addi per row) in the schoolbook leaf multiplier.
+      Combined with a threshold sweep T∈{4,8,16}, the best configuration
+      should reduce vect_mul HQC-128 instret below the champion baseline of
+      283,686.
+    status: promoted_to_stable
+    promoted_date: 2026-05-15
+    verdict: >
+      WINNER — T=16 with clmul_leaf_n8 dispatch: 274,566 instret (−9,120,
+      −3.21% vs baseline 283,686). T=8: 312,396 (worse — extra recursion
+      overhead dominates). T=4: 409,104 (worse). Fixed-size n=8 leaf at the
+      natural T=16 base case captures all the branch-elimination gain without
+      adding recursion depth. Promoted to src/poly_mul/scalar/karatsuba_zbc/.
+      Pre-promotion archive at experiments/archive_karatsuba_zbc_pre_leaffixed/.
+    path: experiments/EXP-karatsuba-zbc-leaf-fixed
+    promoted_to: src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
+    hardware_class: scalar_zbc
+    cmake_variant: karatsuba_zbc_exp
+    cmake_flag: -DHQC_KARATSUBA_THRESHOLD=16
+    baseline_polymul_instructions_l128: 283686
+    tracks: [V2-A3, V2-A1]
+    metrics:
+      level_128:
+        polymul_instructions_t4: 409104
+        polymul_instructions_t8: 312396
+        polymul_instructions_t16: 274566
+        winning_threshold: 16
+        delta_instret: -9120
+        delta_percent: -3.21
+      measured: 2026-05-15
+      tool: spike
+      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
+
+  # ── V2-A3 Ablation: dead-code removal of clmul_leaf_n4 ────────────────────
+
+  - id: EXP-karatsuba-ablation
+    date: 2026-05-17
+    hypothesis: >
+      At T=16 the recursion tree for HQC-128 (n=277) never produces n=4
+      leaves.  clmul_leaf_n4 is dead code.  Removing it and its case 4
+      switch arm should yield identical performance (274,566 instret),
+      confirming n=8 alone explains the V2-A3 gain.  Unexpected finding:
+      the dead case 4 comparison itself added overhead.
+    status: promoted_to_stable
+    promoted_date: 2026-05-17
+    verdict: >
+      WINNER — clmul_leaf_n4 confirmed dead (never invoked at T=16).
+      Removing the dead function AND its switch arm eliminates 435
+      superfluous branch-comparison instructions per vect_mul call:
+        V2-A3 champion (with clmul_leaf_n4 + case 4): 274,566 instret
+        Ablation champion (clmul_leaf_n8 only):        274,131 instret
+        Delta: −435 instret (−0.16%).
+      Total reduction vs original baseline (360,961): −86,830 (−24.05%).
+      KAT: 300/300 validated 2026-05-17.
+    path: experiments/EXP-karatsuba-ablation
+    promoted_to: src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
+    archive: experiments/archive_karatsuba_zbc_pre_ablation/gf2x_clmul.c
+    hardware_class: scalar_zbc
+    cmake_variant: karatsuba_zbc_ablation
+    tracks: [V2-A3-ablation]
+    metrics:
+      level_128:
+        polymul_instructions: 274131
+        delta_vs_pre_ablation_instret: -435
+        delta_vs_pre_ablation_percent: -0.16
+        delta_vs_original_instret: -86830
+        delta_vs_original_percent: -24.05
+      measured: 2026-05-17
+      tool: spike
+      isa: rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm
