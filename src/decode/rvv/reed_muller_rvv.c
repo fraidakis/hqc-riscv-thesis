@@ -49,33 +49,62 @@ static void hadamard_rvv(rm_expanded_cdw *src, rm_expanded_cdw *dst) {
 }
 
 static int32_t find_peaks_rvv(rm_expanded_cdw *transform) {
-    int32_t peak_abs_value = 0;
-    int32_t peak_value = 0;
-    int32_t peak_pos = 0;
-    for (int32_t i = 0; i < 128; i++) {
-        int32_t t = (*transform)[i];
-        int32_t pos_mask = -(t > 0);
-        int32_t absolute = (pos_mask & t) | (~pos_mask & -t);
-        peak_value = absolute > peak_abs_value ? t : peak_value;
-        peak_pos = absolute > peak_abs_value ? i : peak_pos;
-        peak_abs_value = absolute > peak_abs_value ? absolute : peak_abs_value;
-    }
-    peak_pos |= 128 * (peak_value > 0);
-    return peak_pos;
+    // VLEN=256, SEW=16, LMUL=8: vl = 256*8/16 = 128 — whole array in one pass.
+    size_t vl = __riscv_vsetvl_e16m8(128);
+    int16_t *t = (int16_t *)(*transform);
+
+    vint16m8_t v = __riscv_vle16_v_i16m8(t, vl);
+
+    // Absolute value: max(v, 0 - v).
+    // RM values are bounded by MULTIPLICITY (≤46), so INT16_MIN is never seen.
+    vint16m8_t neg_v  = __riscv_vrsub_vx_i16m8(v, 0, vl);
+    vint16m8_t abs_v  = __riscv_vmax_vv_i16m8(v, neg_v, vl);
+
+    // Unsigned reduction to find the maximum absolute value.
+    vuint16m8_t uabs_v     = __riscv_vreinterpret_v_i16m8_u16m8(abs_v);
+    vuint16m1_t identity   = __riscv_vmv_v_x_u16m1(0, 1);
+    vuint16m1_t max_red    = __riscv_vredmaxu_vs_u16m8_u16m1(uabs_v, identity, vl);
+    uint16_t    max_abs    = __riscv_vmv_x_s_u16m1_u16(max_red);
+
+    // Mask: first lane where |v[i]| == max_abs.
+    vbool2_t peak_mask = __riscv_vmseq_vx_u16m8_b2(uabs_v, max_abs, vl);
+    long     peak_pos  = __riscv_vfirst_m_b2(peak_mask, vl);
+
+    // Set bit 7 if the peak value is positive.
+    int16_t peak_val = t[peak_pos];
+    return (int32_t)peak_pos | (128 * (peak_val > 0));
 }
 
 static void expand_and_sum(rm_expanded_cdw *dest, rm_codeword_t src[]) {
+    // SEW=32, LMUL=4, vl=32: process all 32 bits of one uint32_t word in a
+    // single vector pass.  shift_amounts = [0, 1, 2, ..., 31].
+    size_t vl32 = __riscv_vsetvl_e32m4(32);
+    vuint32m4_t shift_amounts = __riscv_vid_v_u32m4(vl32);
+
+    // copy 0: assign (overwrite dest rather than accumulate).
     for (int32_t part = 0; part < 4; part++) {
-        for (int32_t bit = 0; bit < 32; bit++) {
-            (*dest)[part * 32 + bit] = src[0].u32[part] >> bit & 1;
-        }
+        vuint32m4_t vword = __riscv_vmv_v_x_u32m4(src[0].u32[part], vl32);
+        vuint32m4_t bits32 = __riscv_vand_vx_u32m4(
+            __riscv_vsrl_vv_u32m4(vword, shift_amounts, vl32), 1, vl32);
+        // Narrow uint32→uint16: values are 0 or 1, truncation is exact.
+        vuint16m2_t bits16 = __riscv_vncvt_x_x_w_u16m2(bits32, vl32);
+        __riscv_vse16_v_u16m2(
+            (uint16_t *)&(*dest)[part * 32], bits16, vl32);
     }
 
+    // copies 1..MULTIPLICITY-1: accumulate.
     for (int32_t copy = 1; copy < MULTIPLICITY; copy++) {
         for (int32_t part = 0; part < 4; part++) {
-            for (int32_t bit = 0; bit < 32; bit++) {
-                (*dest)[part * 32 + bit] += src[copy].u32[part] >> bit & 1;
-            }
+            vuint32m4_t vword = __riscv_vmv_v_x_u32m4(src[copy].u32[part], vl32);
+            vuint32m4_t bits32 = __riscv_vand_vx_u32m4(
+                __riscv_vsrl_vv_u32m4(vword, shift_amounts, vl32), 1, vl32);
+            vuint16m2_t bits16 = __riscv_vncvt_x_x_w_u16m2(bits32, vl32);
+            vint16m2_t  acc    = __riscv_vle16_v_i16m2(
+                (int16_t *)&(*dest)[part * 32], vl32);
+            acc = __riscv_vadd_vv_i16m2(
+                acc, __riscv_vreinterpret_v_u16m2_i16m2(bits16), vl32);
+            __riscv_vse16_v_i16m2(
+                (int16_t *)&(*dest)[part * 32], acc, vl32);
         }
     }
 }
