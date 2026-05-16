@@ -202,7 +202,16 @@ With LMUL=8 and VLEN=256 this stores 256 bytes per `vse64.v` vs 1 byte per
 
 ---
 
-### Target C-4: Keccak Inner Loop Micro-Optimizations
+### Target C-4: Keccak Inner Loop Micro-Optimizations **[ABANDONED]**
+
+> **Post-mortem:** All three sub-targets (C-4a/b/c) were implemented and
+> measured. Every variant regressed. Root cause: LMUL=8 on VLEN=256 gives
+> exactly 4 register groups. Hoisting any index vector forces a spill of the
+> state group (`v0–v7`), costing more than the loads eliminated. Even the
+> isolated C-4b masked-Iota approach regressed by +21k instret. The original
+> double-`vsetvl` Iota and per-round index reloads are the register-optimal
+> pattern at this ISA/VLEN/LMUL. Full analysis archived in
+> `experiments/archive_keccak_c4_register_wall/README.md`.
 
 **File:** `src/keccak/fips202_zvbb_gather.c`
 
