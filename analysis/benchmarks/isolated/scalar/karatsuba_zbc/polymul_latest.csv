@@ -1,7 +1,7 @@
-# date: 2026-05-14 19:22
-# commit: 6a87af0
+# date: 2026-05-16 17:08
+# commit: 0e193aa
 # variant: karatsuba_zbc
 level,op,instructions,codesize
-128,vect_mul,296703,3104
-192,vect_mul,905153,3136
-256,vect_mul,1956574,3126
+128,vect_mul,283686,3784
+192,vect_mul,863483,3816
+256,vect_mul,1904461,3806

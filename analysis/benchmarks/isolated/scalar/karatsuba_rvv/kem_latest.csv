@@ -1,0 +1,13 @@
+# date: 2026-05-16 17:17
+# commit: 0e193aa
+# variant: karatsuba_rvv
+level,op,instructions,codesize
+128,keypair,411289,41634
+128,encaps,846696,41634
+128,decaps,1740894,41634
+192,keypair,1075457,42666
+192,encaps,2222011,42666
+192,decaps,4067779,42666
+256,keypair,2254438,49664
+256,encaps,4622790,49664
+256,decaps,8288769,49664

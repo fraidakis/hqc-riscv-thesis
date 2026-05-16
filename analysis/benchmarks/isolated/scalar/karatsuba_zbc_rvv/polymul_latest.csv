@@ -1,7 +1,0 @@
-# date: 2026-05-15 18:29
-# commit: 9d7fc98
-# variant: karatsuba_zbc_rvv
-level,op,instructions,codesize
-128,vect_mul,270021,2892
-192,vect_mul,823102,2924
-256,vect_mul,1857509,2914
