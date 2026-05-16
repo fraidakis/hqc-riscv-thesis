@@ -157,7 +157,14 @@ the `memset(r, 0, 2*n*sizeof(uint64_t))` entirely.
    remainder after the 4× unroll).
 4. Remove the `memset` call (line 131).
 
-**Estimated saving:** 600–800k instret (dominant fraction of the 924k total).
+
+**Measured result:**
+
+- The committed C-3a baseline (assign-first-write + one RVV vzero for upper half) achieves **decaps L128 = 953,889**.
+- Attempting to eliminate the final upper-half vzero (using per-iteration `vslidedown_vx` + `vsetvl(1)` assign) **regressed to 1,003,062** (+49k). The overhead of extracting and storing each upper-half cell individually far exceeds the cost of a single wide vzero store.
+- The optimal pattern is: assign-first-write for the lower half, and a single RVV vzero for the upper half.
+
+**Lesson:** Do not attempt per-element extraction for upper-half initialization; the single wide vzero is register- and instruction-optimal at small n.
 
 #### C-3b — Vectorized `memset` for security zeroization
 
@@ -338,7 +345,8 @@ constant-time mask-select pattern in the current scalar code maps to
 | Target | Mechanism | File(s) | Est. Saving | Projected Decaps |
 |---|---|---|---:|---:|
 | **Baseline** | `zvbb_gather` + `karatsuba_zvbc` | — | — | **1,225,209** |
-| **C-3a** | Assign-first-write in `vclmul_leaf` | `gf2x_vclmul.c` | ~650k | ~575k |
+| **C-3a** | Assign-first-write in `vclmul_leaf` | `gf2x_vclmul.c` | ~650k | **953,889** (measured) |
+| **C-3a (vslidedown fail)** | Per-iteration assign, no vzero | `gf2x_vclmul.c` | — | **1,003,062** (regressed) |
 | **C-3b** | Vectorized `memset` (aligned zero) | `mem.c` | ~45k | ~530k |
 | **C-4a** | Hoist index vectors out of round loop | `fips202_zvbb_gather.c` | ~65k | ~465k |
 | **C-4b/c** | Iota mask + 2× unroll | `fips202_zvbb_gather.c` | ~37k | ~428k |
