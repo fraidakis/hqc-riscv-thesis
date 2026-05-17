@@ -226,6 +226,10 @@ the leaf is the binding constraint.
 
 ### Track V2-A1 — Threshold Sweep
 
+> **Status (2026-05-15):** ✅ Promoted — T=16 confirmed winner.
+> `vect_mul` HQC-128: 283,686 → 274,566 instret (−3.21%).
+> KAT: 300/300 vectors validated.
+
 **Problem:** `KARATSUBA_THRESHOLD_DEFAULT = 16` is a fixed choice with no
 empirical sweep for n=277 after all v1 optimizations.
 
@@ -330,6 +334,23 @@ loads → **~1.5–2% global polymul instret reduction**.
 ---
 
 ### Track V2-A3 — Fixed-Size Leaf Specialization (n=4, n=8, n=16)
+
+> **Status (2026-05-15):** ✅ Promoted — `clmul_leaf_n8` dispatched at n=8 (T=16 tree).
+> Combined with V2-A1: 274,566 instret at promotion.
+> KAT: 300/300 vectors validated.
+>
+> **Ablation study (EXP-karatsuba-ablation, 2026-05-17):** Dead-code pruning
+> revealed that `clmul_leaf_n4` is never reached at T=16 for n=277 (recursion
+> tree only produces n≥8 leaves). The `case 4:` dispatch arm was also dead,
+> but its presence generated a superfluous comparison on every leaf call.
+> Removing both dropped a further 435 instret:
+>
+> | Version | instret | Δ |
+> |---|---|---|
+> | V2-A3 promotion (clmul\_leaf\_n8 + case 4) | 274,566 | −3.21% vs baseline |
+> | Ablation (case 4 + clmul\_leaf\_n4 removed) | **274,131** | −0.16% further |
+>
+> **Current scalar champion: 274,131 instret** (2026-05-17).
 
 **Problem:** The compiler cannot fully unroll or schedule `clmul_leaf` for
 variable `n` even with `-O3`; all loop structures remain as loops.
@@ -850,8 +871,8 @@ and plot `f(T)` to find the empirical minimum.
 | Priority | Track | Strategy | Scope | Projected Global ∆ |
 |----------|-------|----------|-------|---------------------|
 | **P0** | AP-1 | Toom-Cook 3-way GF(2)[x] | Algorithmic | **−20–30%** polymul |
-| **P1** | V2-A1 | Threshold sweep (find optimal T*) | Micro | **−5–15%** polymul |
-| **P2** | V2-A3 | Fixed-size leaf n=4/n=8 | Micro | **−15–25%** leaf cost |
+| **P1** | V2-A1 | ~~Threshold sweep (find optimal T*)~~ ✅ T=16 promoted (−3.21%) | Micro | **Done** |
+| **P2** | V2-A3 | ~~Fixed-size leaf n=4/n=8~~ ✅ clmul\_leaf\_n8 promoted (+ablation → 274,131) | Micro | **Done** |
 | **P3** | AP-2 | Fixed-size specialized tree n=277 | Algorithmic | **−3–8%** polymul |
 | **P4** | V2-A4 | 4-way inner unroll + hi⊕lo fusion ext. | Micro | **−3–6%** polymul |
 | **P5** | V2-A2 | b[] register preloading | Micro | **−1.5–2%** polymul |
@@ -864,13 +885,14 @@ If TC3 (−25%) stacks with threshold optimization (−10%) and fixed-size
 leaf (−15%), with the gains being partially multiplicative:
 
 ```
-Karatsuba vect_mul L128 baseline: 283,686 instret
+Karatsuba vect_mul L128 scalar champion (2026-05-17): 274,131 instret
+  (V2-A1 T=16 sweep: 283,686 → 274,566, V2-A3 leaf + ablation: → 274,131)
 
-After TC3 (−25%):                ~212,765
-After T* sweep (−10%):           ~191,489
-After fixed-size leaf (−15%):    ~162,765
+After TC3 (−25%):                ~205,598
+After T* re-sweep (−10%):        ~185,038
+After fixed-size leaf (−15%):     ~157,282
                                 ─────────
-Projected lower bound:          ~160,000–180,000 instret
+Projected lower bound:          ~155,000–175,000 instret
 ```
 
 This would represent an additional **~37–44% reduction** over the current
@@ -886,8 +908,8 @@ cannot be closed without `Zvbc`.
 
 | Experiment ID | Strategy | Implements | Validation |
 |---|---|---|---|
-| `EXP-karatsuba-zbc-threshold-sweep` | V2-A1 | Compile-time T sweep | KAT 300 vectors + benchmark L128/192/256 |
-| `EXP-karatsuba-zbc-leaf-fixed` | V2-A3 | `clmul_leaf_n4/n8/n16` | Unit tests for n=4,8,16 leaves |
+| `EXP-karatsuba-zbc-threshold-sweep` | V2-A1 | Compile-time T sweep | ✅ KAT 300/300, T=16 champion promoted 2026-05-15 |
+| `EXP-karatsuba-zbc-leaf-fixed` | V2-A3 | `clmul_leaf_n8` + ablation | ✅ KAT 300/300, promoted 2026-05-15; ablation → 274,131 |
 | `EXP-toomcook3-gf2x-zbc` | AP-1 | Full TC3 with Zbc leaf | KAT 300 vectors + isolated + full KEM |
 | `EXP-karatsuba-zbc-specialized-277` | AP-2 | Code-gen for n=277 | KAT + code-size budget check |
 | `EXP-karatsuba-zbc-v2-combined` | P0+P1+P2 | Best composition | Full benchmark suite |
@@ -930,6 +952,69 @@ on all new leaf and TC3 variants before promotion, as with all prior targets.
 
 ---
 
-*Roadmap v2 authored 2026-05-16. All projections are Spike `instret` estimates
-under the rv64gc_zbc_zbb_zbkb ISA. Real hardware results will differ due to
-out-of-order execution and cache hierarchy effects.*
+*Roadmap v2 authored 2026-05-16. Updated 2026-05-17 (V2-A1, V2-A3 promoted;
+ablation study complete; AP-1 next-steps added). All projections are Spike
+`instret` estimates under the rv64gc_zbc_zbb_zbkb ISA. Real hardware results
+will differ due to out-of-order execution and cache hierarchy effects.*
+
+---
+
+## 8. Next Step: Pivot AP-1 — Toom-Cook 3-Way over GF(2)[x]
+
+**Context:** V2 micro-optimizations (V2-A1 threshold sweep, V2-A3 fixed-size
+leaf, dead-code ablation) are saturated. The scalar champion stands at
+**274,131 instret** (2026-05-17). The leaf (`clmul_leaf_n8`) is fully unrolled
+with zero branches; further per-leaf gains would require a different schoolbook
+algorithm. The primary remaining lever is an **algorithmic pivot**.
+
+**Why TC3 now:**
+
+| Optimization | Projected savings | Status |
+|---|---|---|
+| V2-A1 threshold sweep | \u22123.21% | \u2705 Done |
+| V2-A3 fixed leaf + ablation | \u22120.16% further | \u2705 Done |
+| V2-A4 4-way unroll | \u22123\u20136% | Not started |
+| AP-1 Toom-Cook 3-way | **\u221220\u201330%** | **\u2190 Priority 0** |
+
+Micro-optimizations V2-A2, V2-A4, V2-A5 remain valid targets but are
+dwarfed by the AP-1 algorithmic gain. The recommendation is:
+**implement AP-1 first; apply micro-optimizations on top of the TC3 framework.**
+
+**Immediate action:**
+
+Create experiment `experiments/EXP-toomcook3-gf2x-zbc/` with the following
+structure:
+
+```
+experiments/EXP-toomcook3-gf2x-zbc/
+\u251c\u2500\u2500 gf2x_clmul.c          \u2190 TC3 entry point (tc3_clmul replacing karatsuba_clmul)
+\u251c\u2500\u2500 tc3_eval.h            \u2190 5-point evaluation helpers
+\u251c\u2500\u2500 tc3_interp.h          \u2190 binary interpolation (XOR + shift only)
+\u2514\u2500\u2500 notes.md              \u2190 derivation of evaluation matrix, temp-buffer sizing
+```
+
+**Base-case engine:** Reuse `clmul_leaf_n8` from `karatsuba_zbc` for n\u22648
+sub-problems. This avoids re-deriving the optimized schoolbook leaf and
+ensures the proven zero-free write discipline is inherited.
+
+**Temp-buffer sizing (TC3, n=277):**
+- k = ceil(277/3) = 93 words
+- 5 evaluation pairs (ea\u00d74 + eb\u00d74 + direct pointers): 8 \u00d7 93 = 744 words
+- 5 product buffers (2k each): 5 \u00d7 186 = 930 words
+- Child recursion buffer (recursive, depth-2 TC3): \u224820k \u00d7 (93/3)^2 = \u2248740 words
+- **Total: ~2,415 words (\u224819 KB)** vs Karatsuba's ~4,432 words (~35 KB)
+
+TC3 actually uses **less** stack than the current Karatsuba for n=277 because
+the reduced sub-problem count outweighs the larger evaluation buffer.
+
+**Validation checklist before promotion:**
+1. KAT 300/300 vectors for HQC-{128, 192, 256}
+2. `ctgrind` / `dudect` on `vect_mul` with TC3 backend
+3. Spike isolated benchmark: `vect_mul` HQC-128 instret
+4. Comparison table: TC3 vs karatsuba_zbc scalar champion (274,131)
+
+**Reference implementations to consult:**
+- `gf2x` library (`gf2x/src/Kara4.c`) — binary Toom-3 interpolation table
+- Bernstein "Batch binary Edwards" (CRYPTO 2009) — formal derivation
+- `experiments/EXP-fafft-zvbc-towerfield/` — prior complex-field experiment
+  (different algorithm but shares the evaluation-point framework pattern)

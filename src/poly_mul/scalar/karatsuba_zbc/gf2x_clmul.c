@@ -319,22 +319,27 @@ static void clmul_leaf(uint64_t * __restrict__ r,
 
     /* ── i=0 row ─────────────────────────────────────────────────────────
      * All writes in this pass are fresh assigns (or fused assigns).
+     * The interim assign to r[j+2] is updated by the XOR of the next pair.
      */
+
+    /* First pair (j=0, j=1): issue both clmul64 before consuming results */
     clmul64(a[0], b[0], &lo0, &hi0);
     clmul64(a[0], b[1], &lo1, &hi1);
     r[0] = lo0;
-    r[1] = hi0 ^ lo1;
-    r[2] = hi1;
+    r[1] = hi0 ^ lo1;   /* fused assign: hi from pair 0, lo from pair 1 */
+    r[2] = hi1;          /* interim assign; will be XOR'd by next pair's lo */
 
+    /* Main unrolled loop: pairs starting at j=2 */
     size_t j = 2;
     for (; j + 1 < n; j += 2) {
         clmul64(a[0], b[j],     &lo0, &hi0);
         clmul64(a[0], b[j + 1], &lo1, &hi1);
-        r[j]     ^= lo0;
-        r[j + 1]  = hi0 ^ lo1;
-        r[j + 2]  = hi1;
+        r[j]     ^= lo0;          /* XOR: r[j] held interim-hi from prev pair */
+        r[j + 1]  = hi0 ^ lo1;   /* fused assign */
+        r[j + 2]  = hi1;          /* interim assign */
     }
 
+    /* Scalar tail: handles last element when n is odd (j == n-1) */
     if (j < n) {
         clmul64(a[0], b[j], &lo0, &hi0);
         r[j]     ^= lo0;
@@ -342,30 +347,40 @@ static void clmul_leaf(uint64_t * __restrict__ r,
     }
 
     /* ── i≥1 rows ────────────────────────────────────────────────────────
-     * All writes XOR into already-initialised positions, except r[i+n]
-     * which is a fresh assign (first write to that index).
+     * All writes are XOR into already-initialised positions, except for
+     * the very last write of each row: r[i+n] = hi (first write, assign).
+     *
+     * Main loop: pairs where both j and j+1 are in [0, n-2].
+     * After the loop:
+     *   n even → j == n-2 → handle "last pair" (j=n-2, j+1=n-1) where
+     *            the third output r[i+n] is a fresh assign.
+     *   n odd  → j == n-1 → handle "single tail" (j=n-1) similarly.
      */
     for (size_t i = 1; i < n; i++) {
         j = 0;
 
+        /* Main loop: both elements of each pair are in [0, n-2] */
         for (; j + 1 < n - 1; j += 2) {
             clmul64(a[i], b[j],     &lo0, &hi0);
             clmul64(a[i], b[j + 1], &lo1, &hi1);
             r[i + j]     ^= lo0;
-            r[i + j + 1] ^= hi0 ^ lo1;
+            r[i + j + 1] ^= hi0 ^ lo1;  /* fused XOR */
             r[i + j + 2] ^= hi1;
         }
 
+        /* Handle remaining element(s) */
         if (j < n - 1) {
+            /* n even: j == n-2; pair (n-2, n-1); r[i+n] is the fresh assign */
             clmul64(a[i], b[j],     &lo0, &hi0);
             clmul64(a[i], b[j + 1], &lo1, &hi1);
             r[i + j]     ^= lo0;
-            r[i + j + 1] ^= hi0 ^ lo1;
-            r[i + n]      = hi1;
+            r[i + j + 1] ^= hi0 ^ lo1;  /* fused XOR */
+            r[i + n]      = hi1;          /* first write to r[n+i]: assign */
         } else {
+            /* n odd: j == n-1; single tail */
             clmul64(a[i], b[j], &lo0, &hi0);
             r[i + j]  ^= lo0;
-            r[i + n]   = hi0;
+            r[i + n]   = hi0;             /* first write to r[n+i]: assign */
         }
     }
 }
@@ -452,6 +467,7 @@ static void karatsuba_clmul(uint64_t * __restrict__ r,
         uint64_t *rm  = r + m;
         size_t split  = 2 * n0;
         size_t i = 0;
+        /* Sub-range A: [0, split) — 4-way unroll */
         for (; i + 4 <= split; i += 4) {
             rm[i]     ^= zmid[i]     ^ z0[i]     ^ z2[i];
             rm[i + 1] ^= zmid[i + 1] ^ z0[i + 1] ^ z2[i + 1];
@@ -459,6 +475,7 @@ static void karatsuba_clmul(uint64_t * __restrict__ r,
             rm[i + 3] ^= zmid[i + 3] ^ z0[i + 3] ^ z2[i + 3];
         }
         for (; i < split; i++) rm[i] ^= zmid[i] ^ z0[i] ^ z2[i];
+        /* Sub-range B: [split, 2*n1) — at most 1 element (n odd only) */
         for (; i < 2 * n1; i++) rm[i] ^= zmid[i] ^ z2[i];
     }
 }
