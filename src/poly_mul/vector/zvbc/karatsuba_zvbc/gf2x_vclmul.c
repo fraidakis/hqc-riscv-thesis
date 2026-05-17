@@ -249,83 +249,7 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
     }
 }
 
-/* ── Recursive Karatsuba with vectorised leaf and combines ───────────────
- * Structure identical to karatsuba_zbc; only the base case (vclmul_leaf)
- * and the combine XOR loops (vxor_words) differ.
- */
-static void karatsuba_vclmul(uint64_t * __restrict__ r,
-                              const uint64_t * __restrict__ a,
-                              const uint64_t * __restrict__ b,
-                              size_t n,
-                              uint64_t * __restrict__ tmp)
-{
-    if (n <= KARATSUBA_THRESHOLD) {
-        vclmul_leaf(r, a, b, n);
-        return;
-    }
-
-    size_t m  = n >> 1;
-    size_t n0 = m;
-    size_t n1 = n - m;   /* n1 == m or m+1 when n is odd */
-
-    /* Slice temporary storage (8*n words at this level). */
-    uint64_t *z0   = tmp;
-    uint64_t *z2   = z0 + 2 * n;
-    uint64_t *zmid = z2 + 2 * n;
-    uint64_t *ta   = zmid + 2 * n;
-    uint64_t *tb   = ta + n;
-    uint64_t *child_buf = tmp + 8 * n;
-
-    /* 1) z0 = a_lo * b_lo */
-    karatsuba_vclmul(z0, a, b, n0, child_buf);
-
-    /* 2) z2 = a_hi * b_hi */
-    karatsuba_vclmul(z2, a + m, b + m, n1, child_buf);
-
-    /* 3) ta = a_lo XOR a_hi,  tb = b_lo XOR b_hi  (handles odd n1). */
-    for (size_t i = 0; i < n1; i++) {
-        ta[i] = (i < n0 ? a[i] : 0) ^ a[m + i];
-        tb[i] = (i < n0 ? b[i] : 0) ^ b[m + i];
-    }
-
-    /* 4) zmid = ta * tb */
-    karatsuba_vclmul(zmid, ta, tb, n1, child_buf);
-
-    /* 5) Assemble result — zero-free Assign-on-First-Write discipline:
-     *      r = z0  +  (zmid ^ z0 ^ z2) * x^m  +  z2 * x^(2m)
-     *
-     * Loop 1: r[0..2*n0-1]           = z0          (direct assign)
-     * Loop 2: r[2*m..2*m+2*n1-1]     = z2          (direct assign)
-     * Loop 3A: r[m+i] ^= zmid[i] ^ z0[i] ^ z2[i]   i in [0, 2*n0)
-     * Loop 3B: r[m+i] ^= zmid[i] ^ z2[i]            i in [2*n0, 2*n1)
-     *          (z0 is zero outside [0, 2*n0); Loop 3B only for odd n)
-     *
-     * No memset: Loops 1+2 together cover all 2*n words of r before any
-     * read in Loops 3A/3B — same write-before-read guarantee as Track B.
-     */
-
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    rvv_copy_u64(r, z0, 2 * n0);
-
-    /* Loop 2: r[2*m..2*m+2*n1-1] = z2 */
-    rvv_copy_u64(r + 2 * m, z2, 2 * n1);
-
-    /* Loop 3A: r[m..m+2*n0-1] ^= zmid ^ z0 ^ z2 */
-    size_t split = 2 * n0;
-    if (split > 0) {
-        rvv_xor3_u64(r + m, zmid, z0, z2, split);
-    }
-
-    /* Loop 3B: r[m+2*n0..m+2*n1-1] ^= zmid ^ z2  (odd n only, len=2) */
-    size_t rem = 2 * n1 - split;
-    if (rem > 0) {
-        rvv_xor3_u64(r + m + split,
-                     zmid + split,
-                     (const uint64_t *)0,
-                     z2   + split,
-                     rem);
-    }
-}
+#include "karatsuba_zvbc_specialized_gen.h"
 
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────
  * Kept scalar: vectorizing the sliding-window pattern (each output element
@@ -357,6 +281,18 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
     uint64_t unreduced[2 * VEC_N_SIZE_64];
     uint64_t tmp_buf[TMP_BUFFER_WORDS];
 
-    karatsuba_vclmul(unreduced, a, b, VEC_N_SIZE_64, tmp_buf);
+    switch (VEC_N_SIZE_64) {
+    case 277u:
+        kmul_277(unreduced, a, b, tmp_buf);
+        break;
+    case 561u:
+        kmul_561(unreduced, a, b, tmp_buf);
+        break;
+    case 901u:
+        kmul_901(unreduced, a, b, tmp_buf);
+        break;
+    default:
+        __builtin_trap();
+    }
     reduce(o, unreduced);
 }
