@@ -174,6 +174,10 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
         ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
         ${HQC_REF}/src/ref/reed_solomon.c
     )
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
+        PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zbc_zbb_zbkb_zvbc -mrvv-vector-bits=256"
+    )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon
     set(DECODE_SOURCES

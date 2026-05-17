@@ -28,7 +28,7 @@ bench_load_implemented_variants() {
 # bench_parse_track_args "$@"
 # Parses --mul <variant>, --keccak <impl>, --decode <impl> from the argument list.
 # Sets globals: MUL_VARIANT  KECCAK_IMPL  DECODE_IMPL
-# Auto-maps KECCAK_IMPL from MUL_VARIANT suffix when --keccak is not provided.
+# Auto-maps KECCAK_IMPL/DECODE_IMPL from MUL_VARIANT suffix when not provided.
 # Caller's $@ is not modified — remaining args are still available to the caller.
 bench_parse_track_args() {
     local _keccak_explicit=0
@@ -69,9 +69,13 @@ bench_parse_track_args() {
         esac
     fi
 
-    # Default decode impl.
+    # Auto-map DECODE_IMPL from MUL_VARIANT suffix if not explicitly set.
     if [[ "$_decode_explicit" -eq 0 ]]; then
-        DECODE_IMPL="ref"
+        case "$MUL_VARIANT" in
+            *_zvbc|*_rvv)      DECODE_IMPL="rvv" ;;
+            *_zbc|*_ref|hybrid) DECODE_IMPL="ref" ;;
+            *)                  DECODE_IMPL="ref" ;;
+        esac
     fi
 
     export MUL_VARIANT KECCAK_IMPL DECODE_IMPL
