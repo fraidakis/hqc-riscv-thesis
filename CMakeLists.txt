@@ -113,6 +113,10 @@ set(POLYMUL_VARIANTS
     karatsuba_zbc
     karatsuba_zbc_exp
     karatsuba_zbc_ablation
+    karatsuba_leaf_v2_micro
+    karatsuba_v2_a5
+    karatsuba_ap2_specialized
+    toomcook3_zbc
     karatsuba_rvv
     karatsuba_zvbc
     karatsuba_ref
@@ -269,6 +273,18 @@ foreach(LEVEL ${SECURITY_LEVELS})
             # Verifies that n=8 leaf alone explains the full 3.21% gain.
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-ablation/gf2x_clmul.c)
+        elseif(POLYMUL STREQUAL "karatsuba_leaf_v2_micro")
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-leaf-v2-micro/gf2x_clmul.c)
+        elseif(POLYMUL STREQUAL "karatsuba_v2_a5")
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-v2-a5/gf2x_clmul.c)
+        elseif(POLYMUL STREQUAL "karatsuba_ap2_specialized")
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-ap2-specialized/gf2x_clmul.c)
+        elseif(POLYMUL STREQUAL "toomcook3_zbc")
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc/gf2x_clmul.c)
         elseif(POLYMUL STREQUAL "fafft_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft.c
@@ -326,6 +342,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/lib/fips202
             ${CMAKE_SOURCE_DIR}/src/common
             ${CMAKE_SOURCE_DIR}/tests/kat
+            ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc
             ${KECCAK_INCLUDE_DIRS}
         )
         target_compile_definitions(${KAT_TARGET} PRIVATE
@@ -402,6 +419,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/src/ref
             ${HQC_REF}/lib/fips202
             ${CMAKE_SOURCE_DIR}/src/common
+            ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc
             ${KECCAK_INCLUDE_DIRS}
         )
         target_compile_definitions(${BENCH_TARGET} PRIVATE
@@ -470,6 +488,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/src/ref/${VARIANT}
             ${HQC_REF}/src/ref
             ${CMAKE_SOURCE_DIR}/src/common
+            ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc
         )
         target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
             HQC_BENCH_MODE=1

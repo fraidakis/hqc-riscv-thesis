@@ -1,5 +1,9 @@
 karatsuba_ref
 karatsuba_zbc
+karatsuba_leaf_v2_micro
+karatsuba_v2_a5
+karatsuba_ap2_specialized
+toomcook3_zbc
 karatsuba_rvv
 karatsuba_zvbc
 hybrid

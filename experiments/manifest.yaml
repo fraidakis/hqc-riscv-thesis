@@ -1,4 +1,16 @@
 experiments:
+  - id: EXP-toomcook3-gf2x-zbc
+    date: 2026-05-17
+    hypothesis: >
+      Replace Karatsuba 3-sub-problem recursion with Toom-Cook 3-way over GF(2)[x]
+      using GF(4) evaluation points {0, 1, omega, omega^2, infinity}. Projects
+      O(n^1.465) vs O(n^1.585) with fewer leaf calls at HQC-128.
+    status: in-progress
+    path: experiments/EXP-toomcook3-gf2x-zbc
+    hardware_class: scalar_zbc
+    baseline_polymul_instructions_l128: 274131
+    tracks: [AP-1]
+
   # ── Scalar (fafft_zbc) losers ──────────────────────────────────────────────
 
 

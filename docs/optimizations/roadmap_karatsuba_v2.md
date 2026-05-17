@@ -350,7 +350,7 @@ loads → **~1.5–2% global polymul instret reduction**.
 > | V2-A3 promotion (clmul\_leaf\_n8 + case 4) | 274,566 | −3.21% vs baseline |
 > | Ablation (case 4 + clmul\_leaf\_n4 removed) | **274,131** | −0.16% further |
 >
-> **Current scalar champion: 274,131 instret** (2026-05-17).
+> **Current scalar champion after V2-A4 promotion: 268,430 instret** (2026-05-17).
 
 **Problem:** The compiler cannot fully unroll or schedule `clmul_leaf` for
 variable `n` even with `-O3`; all loop structures remain as loops.
@@ -440,6 +440,12 @@ specialized fixed-size dispatching the per-node overhead is also reduced
 
 ### Track V2-A4 — Inner Loop 4-Way Unrolling in `clmul_leaf` Rows `i≥1`
 
+> **Status (2026-05-17):** ✅ Promoted — pointer-bump `rp` addressing plus
+> 4-way inner unroll in `clmul_leaf` rows `i>=1` validated and merged.
+> KAT: 300/300 vectors (HQC-128/192/256).
+> Isolated Spike `vect_mul` HQC-128: **268,430 instret**
+> (vs prior champion 274,131; Δ = −5,701, −2.08%).
+
 **Problem:** The current `clmul_leaf` uses a 2-way unroll for the `j` loop
 in rows `i≥1` (two `clmul64` calls per iteration). The inner loop still has
 branch + `addi` per 2 elements.
@@ -497,6 +503,13 @@ Estimated: **3–6% polymul instret reduction** from branch + addi elimination.
 ---
 
 ### Track V2-A5 — Pointer-Bump Addressing in Assembly Loops
+
+> **Status (2026-05-17):** ❌ Failed/Rejected (Empirical).
+> Benchmark result: **271,710 instret** (HQC-128 isolated `vect_mul`),
+> which is +1.22% versus the promoted 268,430 champion.
+> Root cause: pointer bumping prevented the compiler from exploiting
+> RISC-V `ld`/`sd` free 12-bit immediate offsets, introducing extra `addi`
+> pointer-maintenance instructions.
 
 **Problem:** The three assembly loops in `karatsuba_clmul` (Loop 1: `r[i] = z0[i]`,
 Loop 2: `rh[i] = z2[i]`, Loop 3: `rm[i] ^= zmid[i]^z0[i]^z2[i]`) compute
@@ -572,7 +585,11 @@ since `ta`/`tb` construction is not in the top hotspot list. **Priority: low.**
 
 ## 4. Algorithmic Pivots
 
-### Pivot AP-1 — Toom-Cook 3-Way Multiplication over GF(2)[x] (**PRIMARY**)
+### Pivot AP-1 — Toom-Cook 3-Way Multiplication over GF(2)[x] (**❌ Failed/Rejected (Empirical)**)
+
+**Empirical outcome (2026-05-17):** Rejected. `EXP-toomcook3-gf2x-zbc`
+passed KAT 300/300 but measured **474,326 instret** (HQC-128 isolated
+`vect_mul`) versus scalar champion **274,131 instret** (+73.03%).
 
 **Motivation:** This is the single most impactful change available in the
 scalar track. Every micro-optimization above provides at best 5–15% incremental
@@ -870,13 +887,13 @@ and plot `f(T)` to find the empirical minimum.
 
 | Priority | Track | Strategy | Scope | Projected Global ∆ |
 |----------|-------|----------|-------|---------------------|
-| **P0** | AP-1 | Toom-Cook 3-way GF(2)[x] | Algorithmic | **−20–30%** polymul |
+| **P0** | AP-1 | Toom-Cook 3-way GF(2)[x] | Algorithmic | **❌ Rejected (474,326 vs 268,430)** |
 | **P1** | V2-A1 | ~~Threshold sweep (find optimal T*)~~ ✅ T=16 promoted (−3.21%) | Micro | **Done** |
 | **P2** | V2-A3 | ~~Fixed-size leaf n=4/n=8~~ ✅ clmul\_leaf\_n8 promoted (+ablation → 274,131) | Micro | **Done** |
-| **P3** | AP-2 | Fixed-size specialized tree n=277 | Algorithmic | **−3–8%** polymul |
-| **P4** | V2-A4 | 4-way inner unroll + hi⊕lo fusion ext. | Micro | **−3–6%** polymul |
+| **P3** | AP-2 | Fixed-size specialized tree (roots 277/561/901) | Algorithmic | **✅ Promoted (158,928 / 483,283 / 1,614,035)** |
+| **P4** | V2-A4 | 4-way inner unroll + hi⊕lo fusion ext. | Micro | **✅ Promoted (268,430)** |
 | **P5** | V2-A2 | b[] register preloading | Micro | **−1.5–2%** polymul |
-| **P6** | V2-A5 | Pointer-bump addressing | Micro | **−1–2%** polymul |
+| **P6** | V2-A5 | Pointer-bump addressing | Micro | **❌ Rejected (271,710, +1.22%)** |
 | P7 | V2-A6 | `Zbkb` pack for paired lanes | Micro | <1% — low priority |
 
 ### Combined Projection (optimistic, all P0–P5)
@@ -885,8 +902,9 @@ If TC3 (−25%) stacks with threshold optimization (−10%) and fixed-size
 leaf (−15%), with the gains being partially multiplicative:
 
 ```
-Karatsuba vect_mul L128 scalar champion (2026-05-17): 274,131 instret
-  (V2-A1 T=16 sweep: 283,686 → 274,566, V2-A3 leaf + ablation: → 274,131)
+Karatsuba vect_mul L128 scalar champion (2026-05-17): 268,430 instret
+  (V2-A1 T=16 sweep: 283,686 → 274,566, V2-A3 leaf + ablation: → 274,131,
+   V2-A4 inner-loop promotion: → 268,430)
 
 After TC3 (−25%):                ~205,598
 After T* re-sweep (−10%):        ~185,038
@@ -910,8 +928,9 @@ cannot be closed without `Zvbc`.
 |---|---|---|---|
 | `EXP-karatsuba-zbc-threshold-sweep` | V2-A1 | Compile-time T sweep | ✅ KAT 300/300, T=16 champion promoted 2026-05-15 |
 | `EXP-karatsuba-zbc-leaf-fixed` | V2-A3 | `clmul_leaf_n8` + ablation | ✅ KAT 300/300, promoted 2026-05-15; ablation → 274,131 |
+| `EXP-karatsuba-leaf-v2-micro` | V2-A4 | 4-way inner-loop unroll + pointer-bump `rp` | ✅ KAT 300/300, promoted 2026-05-17; 268,430 |
 | `EXP-toomcook3-gf2x-zbc` | AP-1 | Full TC3 with Zbc leaf | KAT 300 vectors + isolated + full KEM |
-| `EXP-karatsuba-zbc-specialized-277` | AP-2 | Code-gen for n=277 | KAT + code-size budget check |
+| `EXP-karatsuba-zbc-specialized-277` | AP-2 | Code-gen for fixed roots 277/561/901 | ✅ KAT 300/300, promoted 2026-05-17; isolated polymul: 158,928 / 483,283 / 1,614,035 |
 | `EXP-karatsuba-zbc-v2-combined` | P0+P1+P2 | Best composition | Full benchmark suite |
 
 ---
@@ -952,69 +971,35 @@ on all new leaf and TC3 variants before promotion, as with all prior targets.
 
 ---
 
-*Roadmap v2 authored 2026-05-16. Updated 2026-05-17 (V2-A1, V2-A3 promoted;
-ablation study complete; AP-1 next-steps added). All projections are Spike
+*Roadmap v2 authored 2026-05-16. Updated 2026-05-17 (V2-A1, V2-A3, V2-A4 and AP-2 promoted;
+AP-1 and V2-A5 rejected empirically). All projections are Spike
 `instret` estimates under the rv64gc_zbc_zbb_zbkb ISA. Real hardware results
 will differ due to out-of-order execution and cache hierarchy effects.*
 
 ---
 
-## 8. Next Step: Pivot AP-1 — Toom-Cook 3-Way over GF(2)[x]
+## 8. AP-2 Outcome: Fixed-Size Unrolled Recursion Tree
 
-**Context:** V2 micro-optimizations (V2-A1 threshold sweep, V2-A3 fixed-size
-leaf, dead-code ablation) are saturated. The scalar champion stands at
-**274,131 instret** (2026-05-17). The leaf (`clmul_leaf_n8`) is fully unrolled
-with zero branches; further per-leaf gains would require a different schoolbook
-algorithm. The primary remaining lever is an **algorithmic pivot**.
+**Status:** ✅ promoted to stable `karatsuba_zbc`.
 
-**Why TC3 now:**
+With V2-A5 empirically rejected (**271,710 instret**, +1.22%), AP-2 was
+executed by replacing dynamic recursion dispatch with generated fixed-size
+roots and compile-time offsets.
 
-| Optimization | Projected savings | Status |
-|---|---|---|
-| V2-A1 threshold sweep | \u22123.21% | \u2705 Done |
-| V2-A3 fixed leaf + ablation | \u22120.16% further | \u2705 Done |
-| V2-A4 4-way unroll | \u22123\u20136% | Not started |
-| AP-1 Toom-Cook 3-way | **\u221220\u201330%** | **\u2190 Priority 0** |
+Final stable generation/dispatch:
 
-Micro-optimizations V2-A2, V2-A4, V2-A5 remain valid targets but are
-dwarfed by the AP-1 algorithmic gain. The recommendation is:
-**implement AP-1 first; apply micro-optimizations on top of the TC3 framework.**
+- `scripts/gen/gen_karatsuba_specialized.py`
+- `src/poly_mul/scalar/karatsuba_zbc/karatsuba_specialized_gen.h`
+- `src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c` dispatch:
+  - `n == 277` -> `kmul_277`
+  - `n == 561` -> `kmul_561`
+  - `n == 901` -> `kmul_901`
 
-**Immediate action:**
+Validation:
 
-Create experiment `experiments/EXP-toomcook3-gf2x-zbc/` with the following
-structure:
-
-```
-experiments/EXP-toomcook3-gf2x-zbc/
-\u251c\u2500\u2500 gf2x_clmul.c          \u2190 TC3 entry point (tc3_clmul replacing karatsuba_clmul)
-\u251c\u2500\u2500 tc3_eval.h            \u2190 5-point evaluation helpers
-\u251c\u2500\u2500 tc3_interp.h          \u2190 binary interpolation (XOR + shift only)
-\u2514\u2500\u2500 notes.md              \u2190 derivation of evaluation matrix, temp-buffer sizing
-```
-
-**Base-case engine:** Reuse `clmul_leaf_n8` from `karatsuba_zbc` for n\u22648
-sub-problems. This avoids re-deriving the optimized schoolbook leaf and
-ensures the proven zero-free write discipline is inherited.
-
-**Temp-buffer sizing (TC3, n=277):**
-- k = ceil(277/3) = 93 words
-- 5 evaluation pairs (ea\u00d74 + eb\u00d74 + direct pointers): 8 \u00d7 93 = 744 words
-- 5 product buffers (2k each): 5 \u00d7 186 = 930 words
-- Child recursion buffer (recursive, depth-2 TC3): \u224820k \u00d7 (93/3)^2 = \u2248740 words
-- **Total: ~2,415 words (\u224819 KB)** vs Karatsuba's ~4,432 words (~35 KB)
-
-TC3 actually uses **less** stack than the current Karatsuba for n=277 because
-the reduced sub-problem count outweighs the larger evaluation buffer.
-
-**Validation checklist before promotion:**
-1. KAT 300/300 vectors for HQC-{128, 192, 256}
-2. `ctgrind` / `dudect` on `vect_mul` with TC3 backend
-3. Spike isolated benchmark: `vect_mul` HQC-128 instret
-4. Comparison table: TC3 vs karatsuba_zbc scalar champion (274,131)
-
-**Reference implementations to consult:**
-- `gf2x` library (`gf2x/src/Kara4.c`) — binary Toom-3 interpolation table
-- Bernstein "Batch binary Edwards" (CRYPTO 2009) — formal derivation
-- `experiments/EXP-fafft-zvbc-towerfield/` — prior complex-field experiment
-  (different algorithm but shares the evaluation-point framework pattern)
+1. KAT all levels (`karatsuba_zbc`): **300/300 vectors matched**
+2. Isolated Spike polymul (`vect_mul`) final counts:
+   - HQC-128: **158,928** instret
+   - HQC-192: **483,283** instret
+   - HQC-256: **1,614,035** instret
+3. Full analysis regenerated via `scripts/report/run_full_analysis.sh --mul karatsuba_zbc`

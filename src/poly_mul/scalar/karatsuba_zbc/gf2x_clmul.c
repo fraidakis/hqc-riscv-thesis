@@ -307,7 +307,7 @@ static void clmul_leaf(uint64_t * __restrict__ r,
                        const uint64_t * __restrict__ b,
                        size_t n)
 {
-    uint64_t lo0, hi0, lo1, hi1;
+    uint64_t lo0, hi0, lo1, hi1, lo2, hi2, lo3, hi3;
 
     /* n=1 guard: avoid reading b[1] that doesn't exist */
     if (__builtin_expect(n == 1, 0)) {
@@ -357,15 +357,30 @@ static void clmul_leaf(uint64_t * __restrict__ r,
      *   n odd  → j == n-1 → handle "single tail" (j=n-1) similarly.
      */
     for (size_t i = 1; i < n; i++) {
+        uint64_t *rp = r + i;
         j = 0;
 
-        /* Main loop: both elements of each pair are in [0, n-2] */
+        /* Main 4-way block: four consecutive multiplies (j..j+3). */
+        for (; j + 3 < n - 1; j += 4) {
+            clmul64(a[i], b[j],     &lo0, &hi0);
+            clmul64(a[i], b[j + 1], &lo1, &hi1);
+            clmul64(a[i], b[j + 2], &lo2, &hi2);
+            clmul64(a[i], b[j + 3], &lo3, &hi3);
+
+            rp[j]     ^= lo0;
+            rp[j + 1] ^= hi0 ^ lo1;
+            rp[j + 2] ^= hi1 ^ lo2;
+            rp[j + 3] ^= hi2 ^ lo3;
+            rp[j + 4] ^= hi3;
+        }
+
+        /* 2-way tail: keeps the fused hi0^lo1 update. */
         for (; j + 1 < n - 1; j += 2) {
             clmul64(a[i], b[j],     &lo0, &hi0);
             clmul64(a[i], b[j + 1], &lo1, &hi1);
-            r[i + j]     ^= lo0;
-            r[i + j + 1] ^= hi0 ^ lo1;  /* fused XOR */
-            r[i + j + 2] ^= hi1;
+            rp[j]     ^= lo0;
+            rp[j + 1] ^= hi0 ^ lo1;  /* fused XOR */
+            rp[j + 2] ^= hi1;
         }
 
         /* Handle remaining element(s) */
@@ -373,112 +388,19 @@ static void clmul_leaf(uint64_t * __restrict__ r,
             /* n even: j == n-2; pair (n-2, n-1); r[i+n] is the fresh assign */
             clmul64(a[i], b[j],     &lo0, &hi0);
             clmul64(a[i], b[j + 1], &lo1, &hi1);
-            r[i + j]     ^= lo0;
-            r[i + j + 1] ^= hi0 ^ lo1;  /* fused XOR */
+            rp[j]     ^= lo0;
+            rp[j + 1] ^= hi0 ^ lo1;  /* fused XOR */
             r[i + n]      = hi1;          /* first write to r[n+i]: assign */
         } else {
             /* n odd: j == n-1; single tail */
             clmul64(a[i], b[j], &lo0, &hi0);
-            r[i + j]  ^= lo0;
+            rp[j]  ^= lo0;
             r[i + n]   = hi0;             /* first write to r[n+i]: assign */
         }
     }
 }
 
-/* ── Recursive Karatsuba with fixed-size leaf dispatch ───────────────────
- *
- * Ablation variant: n=4 specialization removed (dead code at T=16).
- * Switch dispatches n=8 → clmul_leaf_n8 only; all other n fall to the
- * general clmul_leaf fallback.  KARATSUBA_THRESHOLD = 16 (default).
- *
- * The 4-way unrolled assembly loops (Target 3 Track A) are preserved.
- */
-static void karatsuba_clmul(uint64_t * __restrict__ r,
-                             const uint64_t * __restrict__ a,
-                             const uint64_t * __restrict__ b,
-                             size_t n,
-                             uint64_t * __restrict__ tmp)
-{
-    if (n <= KARATSUBA_THRESHOLD) {
-        switch (n) {
-        case 8: clmul_leaf_n8(r, a, b); return;
-        default: clmul_leaf(r, a, b, n); return;
-        }
-    }
-
-    size_t m  = n >> 1;
-    size_t n0 = m;
-    size_t n1 = n - m;
-
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0  + 2 * n;
-    uint64_t *zmid      = z2  + 2 * n;
-    uint64_t *ta        = zmid + 2 * n;
-    uint64_t *tb        = ta  + n;
-    uint64_t *child_buf = tmp + 8 * n;
-
-    /* 1) z0 = a_lo * b_lo */
-    karatsuba_clmul(z0, a, b, n0, child_buf);
-
-    /* 2) z2 = a_hi * b_hi */
-    karatsuba_clmul(z2, a + m, b + m, n1, child_buf);
-
-    /* 3) ta = a_lo XOR a_hi,  tb = b_lo XOR b_hi */
-    for (size_t i = 0; i < n1; i++) {
-        ta[i] = (i < n0 ? a[i] : 0) ^ a[m + i];
-        tb[i] = (i < n0 ? b[i] : 0) ^ b[m + i];
-    }
-
-    /* 4) zmid = ta * tb */
-    karatsuba_clmul(zmid, ta, tb, n1, child_buf);
-
-    /* 5) Assemble r — no pre-zero, 4-way unrolled ───────────────────────*/
-
-    /* Loop 1: r[0..2n0-1] = z0[i] */
-    {
-        size_t len = 2 * n0;
-        size_t i = 0;
-        for (; i + 4 <= len; i += 4) {
-            r[i]     = z0[i];
-            r[i + 1] = z0[i + 1];
-            r[i + 2] = z0[i + 2];
-            r[i + 3] = z0[i + 3];
-        }
-        for (; i < len; i++) r[i] = z0[i];
-    }
-
-    /* Loop 2: r[2m..2m+2n1-1] = z2[i] */
-    {
-        size_t len  = 2 * n1;
-        uint64_t *rh = r + 2 * m;
-        size_t i = 0;
-        for (; i + 4 <= len; i += 4) {
-            rh[i]     = z2[i];
-            rh[i + 1] = z2[i + 1];
-            rh[i + 2] = z2[i + 2];
-            rh[i + 3] = z2[i + 3];
-        }
-        for (; i < len; i++) rh[i] = z2[i];
-    }
-
-    /* Loop 3: r[m+i] ^= zmid[i] ^ z0i ^ z2[i]
-     * Split at split=2*n0: below → z0i=z0[i]; above → z0i=0 */
-    {
-        uint64_t *rm  = r + m;
-        size_t split  = 2 * n0;
-        size_t i = 0;
-        /* Sub-range A: [0, split) — 4-way unroll */
-        for (; i + 4 <= split; i += 4) {
-            rm[i]     ^= zmid[i]     ^ z0[i]     ^ z2[i];
-            rm[i + 1] ^= zmid[i + 1] ^ z0[i + 1] ^ z2[i + 1];
-            rm[i + 2] ^= zmid[i + 2] ^ z0[i + 2] ^ z2[i + 2];
-            rm[i + 3] ^= zmid[i + 3] ^ z0[i + 3] ^ z2[i + 3];
-        }
-        for (; i < split; i++) rm[i] ^= zmid[i] ^ z0[i] ^ z2[i];
-        /* Sub-range B: [split, 2*n1) — at most 1 element (n odd only) */
-        for (; i < 2 * n1; i++) rm[i] ^= zmid[i] ^ z2[i];
-    }
-}
+#include "karatsuba_specialized_gen.h"
 
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────*/
 static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
@@ -500,6 +422,18 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
     uint64_t unreduced[2 * VEC_N_SIZE_64];
     uint64_t tmp_buf[TMP_BUFFER_WORDS];
 
-    karatsuba_clmul(unreduced, a, b, VEC_N_SIZE_64, tmp_buf);
+    switch (VEC_N_SIZE_64) {
+    case 277u:
+        kmul_277(unreduced, a, b, tmp_buf);
+        break;
+    case 561u:
+        kmul_561(unreduced, a, b, tmp_buf);
+        break;
+    case 901u:
+        kmul_901(unreduced, a, b, tmp_buf);
+        break;
+    default:
+        __builtin_trap();
+    }
     reduce(o, unreduced);
 }
