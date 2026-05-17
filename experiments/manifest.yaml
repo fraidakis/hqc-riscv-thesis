@@ -64,23 +64,47 @@ experiments:
     date: 2026-05-14
     hypothesis: "Promote scalar karatsuba_zbc as the default scalar polymul baseline."
     status: promoted_to_stable
-    verdict: "Ultimate scalar champion baseline."
+    promoted_date: 2026-05-17
+    verdict: "Ultimate scalar champion baseline after AP-2 fixed-tree promotion."
     path: src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
     hardware_class: scalar_zbc
     metrics:
       level_128:
-        polymul_instructions: 360961
+        polymul_instructions: 158928
+        kem_decaps_instructions: 1407786
+      level_192:
+        polymul_instructions: 483283
+        kem_decaps_instructions: 3048493
+      level_256:
+        polymul_instructions: 1614035
+        kem_decaps_instructions: 7558518
 
   - id: EXP-karatsuba-zvbc-champion
     date: 2026-05-14
     hypothesis: "Promote vector karatsuba_zvbc as the default ZVBC polymul baseline."
     status: promoted_to_stable
-    verdict: "Ultimate ZVBC champion baseline."
+    promoted_date: 2026-05-17
+    verdict: "Ultimate ZVBC champion baseline after AP-2 fixed-tree promotion and RVV Reed-Muller reactivation."
     path: src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c
     hardware_class: crypto_vector_zvbc
     metrics:
       level_128:
-        polymul_instructions: 156770
+        polymul_instructions: 72644
+        kem_decaps_instructions: 900906
+      level_192:
+        polymul_instructions: 219338
+        kem_decaps_instructions: 1851145
+      level_256:
+        polymul_instructions: 326260
+        kem_decaps_instructions: 3045518
+
+  - id: ARCHIVE-karatsuba-zvbc-pre-ap2
+    date: 2026-05-17
+    hypothesis: "Preserve the final pre-AP2 dynamic-recursion karatsuba_zvbc implementation before the fixed-tree generator replaced it."
+    status: archived
+    verdict: "Archived historical source from commit bd040b9a6bd8bd5c0e7d64bfd0a9867f8fa4cea9 for thesis provenance and regression comparisons."
+    path: experiments/archive_karatsuba_zvbc_pre_ap2
+    hardware_class: crypto_vector_zvbc
 
   # ── Target 2 \u2014 vect_write_support_to_vector (Track A) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
