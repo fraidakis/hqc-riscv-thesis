@@ -135,7 +135,7 @@ export KECCAK_IMPL
 # simulator-incompatible ELF here.
 # Hierarchy: build/<sim>/kat/   (dynamic Keccak variant is stored in the cmake
 # cache; bench_auto_configure_and_build reconfigures on mismatch automatically).
-KAT_BUILD_DIR="${REPO_ROOT}/build/${sim_type}/kat"
+KAT_BUILD_DIR="${REPO_ROOT}/build/${sim_type}/kat_k${KECCAK_IMPL}_d${DECODE_IMPL}"
 
 overall_status=0
 

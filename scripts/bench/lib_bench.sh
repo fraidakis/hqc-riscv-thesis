@@ -114,51 +114,50 @@ bench_auto_configure_and_build() {
     local build_dir="$1" repo_root="$2" target="$3" sim_type="${4:-spike}" trace_mode="${5:-0}" tag="${6:-bench}"
     local _keccak="${KECCAK_IMPL:-ref}"
     local _decode="${DECODE_IMPL:-ref}"
+    local lock_fd=""
 
-    # If CMakeCache.txt already exists, check whether Keccak/Decode impl matches.
-    if [[ -f "${build_dir}/CMakeCache.txt" ]]; then
-        local _cached_keccak _cached_decode
-        _cached_keccak=$(grep -E '^HQC_KECCAK_IMPL:' "${build_dir}/CMakeCache.txt" 2>/dev/null | cut -d= -f2 || true)
-        _cached_decode=$(grep -E '^HQC_DECODE_IMPL:'  "${build_dir}/CMakeCache.txt" 2>/dev/null | cut -d= -f2 || true)
-
-        if [[ "$_cached_keccak" == "$_keccak" && "$_cached_decode" == "$_decode" ]]; then
-            # Cache matches — just build.
-            if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
-                echo "[${tag}] AUTO-BUILD FAIL ${target}" >&2
-                return 1
-            fi
-            return 0
-        fi
-
-        # Impl changed — force reconfiguration.
-        echo " ├── ♻️  Impl changed (keccak: ${_cached_keccak:-unset} → ${_keccak}, decode: ${_cached_decode:-unset} → ${_decode}), reconfiguring: ${build_dir}..."
-    else
-        echo " ├── ⚙️  Auto-configuring missing build dir: ${build_dir}..."
+    mkdir -p "$build_dir"
+    if command -v flock >/dev/null 2>&1; then
+        exec {lock_fd}>"${build_dir}.lock"
+        flock "$lock_fd"
     fi
 
-    # Construct the cmake command based on sim_type and trace_mode.
-    local cmake_cmd="cmake -S \"$repo_root\" -B \"$build_dir\" \
+    if [[ ! -f "${build_dir}/CMakeCache.txt" ]]; then
+        echo " ├── ⚙️  Auto-configuring missing build dir: ${build_dir}..."
+        # Construct the cmake command based on sim_type and trace_mode.
+        local cmake_cmd="cmake -S \"$repo_root\" -B \"$build_dir\" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DHQC_SIM=${sim_type} \
         -DHQC_KECCAK_IMPL=${_keccak} \
         -DHQC_DECODE_IMPL=${_decode}"
 
-    # Add trace mode flag if needed.
-    if [[ "$trace_mode" == "1" ]]; then
-        cmake_cmd="${cmake_cmd} -DHQC_TRACE_MODE=1"
-    fi
+        # Add trace mode flag if needed.
+        if [[ "$trace_mode" == "1" ]]; then
+            cmake_cmd="${cmake_cmd} -DHQC_TRACE_MODE=1"
+        fi
 
-    # Execute cmake configuration.
-    if ! eval "$cmake_cmd" >/dev/null 2>&1; then
-        echo "[${tag}] AUTO-CONFIG FAIL ${build_dir}" >&2
-        return 1
+        # Execute cmake configuration.
+        if ! eval "$cmake_cmd" >/dev/null 2>&1; then
+            if [[ -n "$lock_fd" ]]; then
+                eval "exec ${lock_fd}>&-"
+            fi
+            echo "[${tag}] AUTO-CONFIG FAIL ${build_dir}" >&2
+            return 1
+        fi
     fi
 
     # Build the target.
     if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
+        if [[ -n "$lock_fd" ]]; then
+            eval "exec ${lock_fd}>&-"
+        fi
         echo "[${tag}] AUTO-BUILD FAIL ${target}" >&2
         return 1
+    fi
+
+    if [[ -n "$lock_fd" ]]; then
+        eval "exec ${lock_fd}>&-"
     fi
 
     return 0

@@ -86,7 +86,7 @@ run_one() {
         return 1
     fi
 
-    target="bench_polymul_hqc${level}_${variant}"
+    target="bench_hqc${level}_${variant}"
     if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
         echo "${compiler},-${opt},${level},${variant},FAIL,,,,build_failed" >> "$csv_out"
         echo "FAIL"
@@ -102,7 +102,7 @@ run_one() {
         echo "FAIL"
         return 1
     fi
-    instret="$(awk -F',' '$1=="vect_mul" {print $7; exit}' "$run_out")"
+    instret="$(awk -F',' '($1=="keypair" || $1=="encaps" || $1=="decaps") {sum += $7} END {print sum + 0}' "$run_out")"
 
     size_tool="$RISCV/bin/llvm-size"
     if [[ ! -x "$size_tool" ]]; then
