@@ -49,7 +49,8 @@ PROMOTE_NAME=""
 # Benchmark set mappings (isolated mode).
 declare -A BENCH_SET_VARIANT_MAP
 BENCH_SET_VARIANT_MAP=(
-    [baseline_ref]="karatsuba_ref"
+    [baseline_ref]="ref_scalar"
+    [baseline_ref_vector]="ref_vector"
     [polymul_zbc]="karatsuba_zbc"
     [fafft_zbc]="fafft_zbc"
     [hybrid]="hybrid"

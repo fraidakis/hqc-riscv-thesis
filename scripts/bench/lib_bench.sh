@@ -62,6 +62,7 @@ bench_parse_track_args() {
     # Auto-map KECCAK_IMPL from MUL_VARIANT suffix if not explicitly set.
     if [[ "$_keccak_explicit" -eq 0 ]] && [[ -n "$MUL_VARIANT" ]]; then
         case "$MUL_VARIANT" in
+            ref_scalar|ref_vector) KECCAK_IMPL="ref"         ;;
             *_zvbc)             KECCAK_IMPL="zvbb_gather" ;;
             *_rvv)              KECCAK_IMPL="rvv_only"    ;;
             *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;
@@ -72,6 +73,7 @@ bench_parse_track_args() {
     # Auto-map DECODE_IMPL from MUL_VARIANT suffix if not explicitly set.
     if [[ "$_decode_explicit" -eq 0 ]]; then
         case "$MUL_VARIANT" in
+            ref_scalar|ref_vector) DECODE_IMPL="ref" ;;
             *_zvbc|*_rvv)      DECODE_IMPL="rvv" ;;
             *_zbc|*_ref|hybrid) DECODE_IMPL="ref" ;;
             *)                  DECODE_IMPL="ref" ;;

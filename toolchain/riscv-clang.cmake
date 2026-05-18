@@ -86,7 +86,7 @@ endif()
 set(RISCV_TARGET_TRIPLE "riscv64-unknown-elf")
 
 # ── Aggressive bare-metal compile flags ──────────────────────────────────────
-set(RISCV_MARCH "rv64gcv_zbc_zbb_zbkb_zvbc")
+set(RISCV_MARCH "rv64gc_zbc_zbb_zbkb")
 set(RISCV_MABI  "lp64d")
 set(RISCV_OPT_LEVEL "-O3" CACHE STRING "Optimization flag for Clang (e.g. -O2, -O3, -Os)")
 
@@ -127,7 +127,7 @@ set(RISCV_FORCE_FLAGS
   " --sysroot=${RISCV_SYSROOT}"
   " --gcc-toolchain=${RISCV}"
   " -isystem ${RISCV_SYSROOT}/include"
-  " -march=rv64gcv_zbc_zbb_zbkb_zvbc"
+  " -march=rv64gc_zbc_zbb_zbkb"
   " -mabi=lp64d"
   " -menable-experimental-extensions"
   " -mcmodel=medany"

@@ -1,40 +1,25 @@
 # Final Metrics Aggregation
 
-This document freezes the thesis-facing performance summary at the end of the engineering phase.
+This document records the thesis-facing HQC-128 instruction-count table after the final architecture and sterility sweep.
 
-## L128 Headline
+## Master Table (HQC-128)
 
-| Configuration | `vect_mul` instret | `decaps` instret | Source |
-| --- | ---: | ---: | --- |
-| Original baseline (`karatsuba_ref`) | 18,527,412 | 56,442,183 | `analysis/benchmarks/isolated/scalar/karatsuba_ref/*.csv` |
-| Final scalar champion (`karatsuba_zbc`, AP-2) | 158,928 | 1,407,786 | `analysis/benchmarks/isolated/scalar/karatsuba_zbc/*.csv` |
-| Final vector champion (`karatsuba_zvbc`, AP-2) | 72,644 | 900,906 | `analysis/benchmarks/isolated/vector/karatsuba_zvbc/*.csv` |
+| Tier | ISA profile | Baseline variant | Champion variant | `vect_mul` instret (baseline) | `vect_mul` instret (champion) | `decaps` instret (baseline) | `decaps` instret (champion) |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: |
+| Tier 1: Ultra-Constrained IoT | `rv64gc_zbc` (strict scalar) | `ref_scalar` | `karatsuba_zbc` | 19,213,918 | 211,841 | 59,252,696 | 2,099,075 |
+| Tier 2: Mid-Range Edge | `rv64gcv_zbc` (base vector) | `ref_vector` | `karatsuba_rvv` (AP-2) | 18,535,529 | 157,377 | 56,669,986 | 1,370,788 |
+| Tier 3: High-End Silicon | `rv64gcv_zbc_zvbc` (vector crypto) | `ref_vector` | `karatsuba_zvbc` (AP-2) | 18,535,529 | 72,644 | 56,669,986 | 901,150 |
 
-## Isolated Polymul Comparison
+## Measurement Sources
 
-| Level | Original baseline (`karatsuba_ref`) | Final scalar champion (`karatsuba_zbc`, AP-2) | Final vector champion (`karatsuba_zvbc`, AP-2) |
-| --- | ---: | ---: | ---: |
-| HQC-128 | 18,527,412 | 158,928 | 72,644 |
-| HQC-192 | 56,315,140 | 483,283 | 219,338 |
-| HQC-256 | 139,115,660 | 1,614,035 | 326,260 |
+- `ref_scalar`: `analysis/benchmarks/isolated/scalar/ref_scalar/polymul_latest.csv`, `analysis/benchmarks/isolated/scalar/ref_scalar/kem_latest.csv`
+- `ref_vector`: `analysis/benchmarks/isolated/scalar/ref_vector/polymul_latest.csv`, `analysis/benchmarks/isolated/scalar/ref_vector/kem_latest.csv`
+- `karatsuba_zbc`: `analysis/benchmarks/isolated/scalar/karatsuba_zbc/polymul_latest.csv`, `analysis/benchmarks/isolated/scalar/karatsuba_zbc/kem_latest.csv`
+- `karatsuba_rvv`: `analysis/benchmarks/isolated/vector/karatsuba_rvv/polymul_latest.csv`, `analysis/benchmarks/isolated/vector/karatsuba_rvv/kem_latest.csv`
+- `karatsuba_zvbc`: `analysis/benchmarks/isolated/vector/karatsuba_zvbc/polymul_latest.csv`, `analysis/benchmarks/isolated/vector/karatsuba_zvbc/kem_latest.csv`
 
-## Full KEM Decapsulation Comparison
+## AP-2 Threshold Check
 
-| Level | Original baseline (`karatsuba_ref`) | Final scalar champion (`karatsuba_zbc`, AP-2) | Final vector champion (`karatsuba_zvbc`, AP-2) |
-| --- | ---: | ---: | ---: |
-| HQC-128 | 56,442,183 | 1,407,786 | 900,906 |
-| HQC-192 | 170,368,590 | 3,048,493 | 1,851,145 |
-| HQC-256 | 419,815,566 | 7,558,518 | 3,045,518 |
-
-## Experimental Track Summary
-
-- Target 1-4 micro-optimizations harvested the scalar low-hanging fruit: zero-free write discipline, direct support-bit scatter, native `clmul/clmulh` integration, and the final inner-loop unroll/hi-xor fusion sequence that established the strong pre-AP-2 scalar baseline.
-- The LMUL=8 register wall discovery was decisive on the vector track: wider RVV configurations exposed register-pressure limits and forced a more disciplined use of LMUL, shaping the winning `vclmul.vv` implementations and ruling out several seemingly attractive full-width designs.
-- The FAFFT `O(n \log n)` line was a negative result in this environment: asymptotics lost to constant factors, field-conversion overhead, and hardware mismatch, so FAFFT never displaced the Karatsuba/vector-schoolbook family in the final benchmark tables.
-- The TC3 6-way / Toom-Cook track was also a negative result: despite the lower multiplication count on paper, interpolation/evaluation overhead dominated on Spike, and the implementation regressed versus the best Karatsuba baselines.
-- The ultimate breakthrough was AP-2 fixed-tree specialization: replacing dynamic recursion with generated compile-time trees for roots `277/561/901` produced the final scalar champion at 158,928 instret and the final vector champion at 72,644 instret, enabling the project-ending 900,906-instret HQC-128 decapsulation result.
-
-## Notes
-
-- All counts above are Spike `instret` measurements captured from the repository's isolated benchmark harness.
-- The final vector decapsulation milestone depends on two ingredients together: AP-2 specialized `karatsuba_zvbc` plus RVV Reed-Muller decode reactivation.
+- `karatsuba_rvv` AP-2 `vect_mul` at HQC-128: **157,377** instret.
+- Target threshold: **158,928** instret.
+- Result: **PASS** (improvement of 1,551 instret versus the threshold).

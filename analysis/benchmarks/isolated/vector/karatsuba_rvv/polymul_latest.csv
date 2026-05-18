@@ -1,7 +1,7 @@
-# date: 2026-05-16 17:17
-# commit: 0e193aa
+# date: 2026-05-18 10:00
+# commit: 6aaea37
 # variant: karatsuba_rvv
 level,op,instructions,codesize
-128,vect_mul,270021,2932
-192,vect_mul,823102,2964
-256,vect_mul,1857509,2954
+128,vect_mul,157377,10442
+192,vect_mul,481065,11262
+256,vect_mul,1608062,9746

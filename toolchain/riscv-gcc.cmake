@@ -37,7 +37,7 @@ set(CMAKE_SYSROOT "${RISCV_SYSROOT}")
 set(RISCV_TARGET_TRIPLE "riscv64-unknown-elf")
 
 # ── Aggressive bare-metal compile flags ──────────────────────────────────────
-set(RISCV_MARCH "rv64gcv_zbc_zbb_zbkb_zvbc")
+set(RISCV_MARCH "rv64gc_zbc_zbb_zbkb")
 set(RISCV_MABI  "lp64d")
 set(RISCV_OPT_LEVEL "-O3" CACHE STRING "Optimization flag for GCC (e.g. -O2, -O3, -Os)")
 

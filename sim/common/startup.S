@@ -4,8 +4,8 @@
  *
  * Boot sequence:
  *   1. Set up a stack pointer
- *   2. Enable the V extension: set mstatus.VS = Dirty (3)
- *   3. Execute vsetvli to configure vtype (e64, m1, ta, ma)
+ *   2. If V is enabled at compile time: set mstatus.VS = Dirty (3)
+ *   3. If V is enabled at compile time: execute vsetvli to configure vtype
  *   4. Zero the BSS segment
  *   5. Call main()
  *   6. Loop forever (or invoke a simulated exit via tohost)
@@ -19,16 +19,14 @@ _start:
     /* ── 1. Stack pointer ──────────────────────────────────────────── */
     la   sp, _stack_top
 
-    /* ── 2. Enable V extension: mstatus.VS = Dirty (0b11 << 9) ─────
-     *  mstatus bit layout (RV64):
-     *    [10:9] VS   – Vector context status
-     *  We OR in (3 << 9) = 0x600 to set VS=Dirty so vsetvli doesn't trap.
+    /* ── 2/3. Vector init (only when building with V enabled) ──────
+     * If __riscv_vector is not defined, scalar targets skip this.
      */
-    li   t0, 0x600          /* VS = Dirty */
+#ifdef __riscv_vector
+    li   t0, 0x600          /* mstatus.VS = Dirty */
     csrs mstatus, t0
-
-    /* ── 3. vsetvli: configure e64 lmul=m1 tail-agnostic mask-agnostic */
     vsetvli t0, zero, e64, m1, ta, ma
+#endif
 
     /* ── 4. Zero BSS ──────────────────────────────────────────────── */
     la   a0, _bss_start

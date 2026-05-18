@@ -30,7 +30,7 @@ set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv")
 
 # ── Diagnostic messages ───────────────────────────────────────────────────────
 message(STATUS "HQC configuration:")
-message(STATUS "  POLYMUL  : all five variants (karatsuba_ref / karatsuba_zbc / fafft_zbc / hybrid_zbc / fafft_zvbc)")
+message(STATUS "  POLYMUL  : matrix includes ref_scalar/ref_vector baselines and optimized variants")
 message(STATUS "  KECCAK   : ${HQC_KECCAK_IMPL}")
 message(STATUS "  DECODE   : ${HQC_DECODE_IMPL}")
 if(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "ref")
@@ -59,11 +59,11 @@ message(STATUS "  VLEN matrix: ${VLEN_LIST}")
 # strategies that contain RVV code whose performance is VLEN-sensitive.
 set(VECTOR_POLYMUL_VARIANTS fafft_zbc fafft_zvbc karatsuba_zvbc karatsuba_rvv)
 
-# ── LTO + PGO for karatsuba_ref baseline (P-06) ──────────────────────────────
-# These flags apply ONLY to karatsuba_ref targets (KAT + bench + polymul bench).
+# ── LTO + PGO for reference baselines (P-06) ─────────────────────────────────
+# These flags apply ONLY to ref_scalar/ref_vector targets (KAT + bench + polymul bench).
 # They do NOT affect any other variant.
 #
-# HQC_REF_LTO    : ON (default) | OFF  — enable -flto on karatsuba_ref targets
+# HQC_REF_LTO    : ON (default) | OFF  — enable -flto on reference targets
 #
 # HQC_REF_PGO    : off (default) | generate | use
 #   generate : compile with -fprofile-generate / -fprofile-instr-generate to
@@ -75,8 +75,8 @@ set(VECTOR_POLYMUL_VARIANTS fafft_zbc fafft_zvbc karatsuba_zvbc karatsuba_rvv)
 #
 # Example workflow:
 #   cmake -B build/qemu -DHQC_REF_LTO=ON -DHQC_REF_PGO=generate ...
-#   cmake --build build/qemu --target bench_hqc128_karatsuba_ref
-#   spike --isa=rv64gcv ... bench_hqc128_karatsuba_ref.elf   # emits default.profraw
+#   cmake --build build/qemu --target bench_hqc128_ref_scalar
+#   spike --isa=rv64gcv ... bench_hqc128_ref_scalar.elf   # emits default.profraw
 #   llvm-profdata merge -output=hqc_ref.profdata default.profraw
 #   cmake -B build/qemu -DHQC_REF_PGO=use -DHQC_REF_PGO_FILE=hqc_ref.profdata ...
 #   cmake --build build/qemu --target bench_hqc128_karatsuba_ref
@@ -104,8 +104,8 @@ if(NOT HQC_REF_PGO STREQUAL "off" AND
     message(FATAL_ERROR "HQC_REF_PGO must be 'off', 'generate', or 'use', got '${HQC_REF_PGO}'")
 endif()
 
-message(STATUS "  karatsuba_ref LTO : ${HQC_REF_LTO}")
-message(STATUS "  karatsuba_ref PGO : ${HQC_REF_PGO}")
+message(STATUS "  reference LTO : ${HQC_REF_LTO}")
+message(STATUS "  reference PGO : ${HQC_REF_PGO}")
 
 # ── Validation ────────────────────────────────────────────────────────────────
 if(NOT HQC_KECCAK_IMPL STREQUAL "ref"          AND

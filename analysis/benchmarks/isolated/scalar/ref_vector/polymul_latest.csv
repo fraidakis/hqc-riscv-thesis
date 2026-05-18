@@ -1,0 +1,7 @@
+# date: 2026-05-18 09:59
+# commit: 6aaea37
+# variant: ref_vector
+level,op,instructions,codesize
+128,vect_mul,18535529,3810
+192,vect_mul,56339678,3854
+256,vect_mul,139155769,3854
