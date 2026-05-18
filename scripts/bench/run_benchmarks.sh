@@ -550,7 +550,7 @@ case "$MODE" in
                 if [[ -n "$kem_arg" ]]; then
                     cmd+=" ${kem_arg}"
                 fi
-                cmd+" --mul ${v}"
+                cmd+=" --mul ${v}"
                 cmds+=("$cmd")
             done
 

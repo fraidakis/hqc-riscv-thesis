@@ -191,8 +191,12 @@ set(LOCAL_BENCH_SOURCES
 # Called for every ref_scalar/ref_vector executable (KAT, bench, polymul bench).
 function(hqc_apply_ref_lto_pgo TARGET)
     if(HQC_REF_LTO)
-        target_compile_options(${TARGET} PRIVATE -flto)
-        target_link_options(${TARGET} PRIVATE -flto)
+        if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND "${TARGET}" MATCHES "_ref_vector$")
+            message(STATUS "Skipping LTO for ${TARGET} with GCC (known lto1 builtin incompatibility)")
+        else()
+            target_compile_options(${TARGET} PRIVATE -flto)
+            target_link_options(${TARGET} PRIVATE -flto)
+        endif()
     endif()
 
     if(HQC_REF_PGO STREQUAL "generate")
@@ -246,11 +250,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gc_zbc_zbb_zbkb
                 -mabi=lp64d
-                $<$<C_COMPILER_ID:GNU>:-mno-vector>
                 $<$<C_COMPILER_ID:Clang>:-mno-zvector>
                 -fno-tree-vectorize
-                -fno-vectorize
-                -fno-slp-vectorize)
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>)
             set(VARIANT_REF_PROFILE ON)
         elseif(POLYMUL STREQUAL "ref_vector")
             # Reference vector baseline: compiler auto-vectorization ceiling for Tier 2 ISA.
@@ -277,11 +280,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gc_zbc_zbb_zbkb
                 -mabi=lp64d
-                $<$<C_COMPILER_ID:GNU>:-mno-vector>
                 $<$<C_COMPILER_ID:Clang>:-mno-zvector>
                 -fno-tree-vectorize
-                -fno-vectorize
-                -fno-slp-vectorize)
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>)
         elseif(POLYMUL STREQUAL "karatsuba_rvv")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/rvv_only/karatsuba_rvv/gf2x_clmul.c)

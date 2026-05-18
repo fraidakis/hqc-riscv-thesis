@@ -44,7 +44,7 @@ TIERS = [
         "note": "rv64gc_zbc_zbb_zbkb, no vector",
     },
     {
-        "label": "Table 2 — Tier 2 (Edge Hybrid RVV)",
+        "label": "Table 2 — Tier 2 (Edge RVV)",
         "baseline_variant": "ref_vector",
         "baseline_dir": _SCALAR_DIR,
         "champion_variant": "karatsuba_rvv",

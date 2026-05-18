@@ -1,0 +1,7 @@
+# date: 2026-05-18 17:48
+# commit: b9b014e
+# variant: ref_vector
+level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
+128,1745,1863,11666,16330,183,256
+192,1967,2001,12889,18479,202,289
+256,2021,2019,13378,18356,210,287
