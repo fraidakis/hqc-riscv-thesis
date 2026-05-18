@@ -1,3 +1,4 @@
+ref_pure
 ref_scalar
 ref_vector
 karatsuba_zbc

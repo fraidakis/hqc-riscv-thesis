@@ -77,6 +77,25 @@ that should be reflected in the thesis narrative.
 
 ---
 
+### Discovery 4 — The Compiler Ceiling on Zvbb/Zvbc Flags
+
+**Experiment**: A temporary baseline `ref_full_crypto` was compiled from the exact same unoptimized reference C sources (`gf2x.c`, `fips202.c`, scalar RM/RS) with
+`-march=rv64gcv_zbc_zbb_zbkb_zvbb_zvbc` and auto-vectorization enabled.
+
+**Result (HQC-128)**:
+- `ref_vector` (`-march=rv64gcv_zbc_zbb_zbkb`):
+	- `vect_mul`: 18,527,412 instret
+	- `decaps`: 56,442,467 instret
+- `ref_full_crypto` (`+zvbb+zvbc`):
+	- `vect_mul`: 18,527,412 instret
+	- `decaps`: 56,442,898 instret
+
+The difference is statistically and practically negligible for deterministic Spike instret accounting (exactly identical for `vect_mul`; <0.001% drift for `decaps`).
+
+**Conclusion**: Compilers do not automatically synthesize Zvbc/Zvbb crypto-vector primitives from generic C in this workload. Therefore `ref_vector` is the practical compiler ceiling baseline, and explicit hand-written intrinsic kernels remain necessary to realize Tier 3 gains.
+
+---
+
 ## Open Questions
 
 - [ ] Does Zvbb-based Keccak (`zvbb_gather`) outperform scalar at VLEN=512? (Needs hardware measurement or RTL sim.)

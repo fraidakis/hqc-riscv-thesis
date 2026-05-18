@@ -111,6 +111,7 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 #   Phase 1c — hybrid        : Karatsuba outer levels → FAFFT inner (CRT)
 #   Phase 1+ — fafft_zvbc    : vclmul.vv vectorised butterflies (Spike Zvbc only)
 set(POLYMUL_VARIANTS
+    ref_pure
     ref_scalar
     ref_vector
     karatsuba_zbc
@@ -267,8 +268,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
         set(VARIANT_REF_PROFILE OFF)
 
         # ── Polynomial multiply sources per strategy ──────────────────────────
-        if(POLYMUL STREQUAL "ref_scalar")
-            # Reference scalar baseline: vendor unoptimized polymul/keccak/decode.
+        if(POLYMUL STREQUAL "ref_pure")
+            # Reference pure-C baseline: no vector and no crypto/bitmanip ISA.
             set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
             set(VARIANT_DECODE_SOURCES
@@ -283,15 +284,31 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -fno-vectorize
                 -fno-slp-vectorize)
             set(VARIANT_REF_PROFILE ON)
-        elseif(POLYMUL STREQUAL "ref_vector")
-            # Reference vector baseline: same vendor scalar sources, base V ISA.
+        elseif(POLYMUL STREQUAL "ref_scalar")
+            # Reference scalar baseline: vendor unoptimized polymul/keccak/decode.
             set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
                 ${HQC_REF}/src/ref/reed_solomon.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv
+                -march=rv64gc_zbc_zbb_zbkb
+                -mabi=lp64d
+                $<$<C_COMPILER_ID:GNU>:-mno-vector>
+                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
+                -fno-tree-vectorize
+                -fno-vectorize
+                -fno-slp-vectorize)
+            set(VARIANT_REF_PROFILE ON)
+        elseif(POLYMUL STREQUAL "ref_vector")
+            # Reference vector baseline: compiler auto-vectorization ceiling for Tier 2 ISA.
+            set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
+            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            set(VARIANT_DECODE_SOURCES
+                ${HQC_REF}/src/ref/reed_muller.c
+                ${HQC_REF}/src/ref/reed_solomon.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=rv64gcv_zbc_zbb_zbkb
                 -mabi=lp64d
                 -O3
                 $<$<C_COMPILER_ID:GNU>:-ftree-vectorize>
