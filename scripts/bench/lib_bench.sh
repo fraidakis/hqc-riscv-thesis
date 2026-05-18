@@ -64,7 +64,7 @@ bench_parse_track_args() {
         case "$MUL_VARIANT" in
             ref_scalar|ref_vector) KECCAK_IMPL="ref"         ;;
             *_zvbc)             KECCAK_IMPL="zvbb_gather" ;;
-            *_rvv)              KECCAK_IMPL="rvv_only"    ;;
+            *_rvv)              KECCAK_IMPL="ref"         ;;
             *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;
             *)                  KECCAK_IMPL="ref"          ;;
         esac
