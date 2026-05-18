@@ -36,7 +36,7 @@ _VECTOR_DIR = ISOLATED / "vector"
 
 TIERS = [
     {
-        "label": "Tier 1 — IoT (Pure Scalar, rv64gc + Zbc)",
+        "label": "Table 1 — Tier 1 (IoT Scalar)",
         "baseline_variant": "ref_scalar",
         "baseline_dir": _SCALAR_DIR,
         "champion_variant": "karatsuba_zbc",
@@ -44,7 +44,7 @@ TIERS = [
         "note": "rv64gc_zbc_zbb_zbkb, no vector",
     },
     {
-        "label": "Tier 2 — Edge (Hybrid RVV + Scalar Keccak)",
+        "label": "Table 2 — Tier 2 (Edge Hybrid RVV)",
         "baseline_variant": "ref_vector",
         "baseline_dir": _SCALAR_DIR,
         "champion_variant": "karatsuba_rvv",
@@ -52,7 +52,7 @@ TIERS = [
         "note": "rv64gcv + Zbc/Zbb/Zbkb; AP-2 fixed-tree polymul, scalar Keccak",
     },
     {
-        "label": "Tier 3 — High-End (Full Zvbc Vector)",
+        "label": "Table 3 — Tier 3 (High-End Zvbc)",
         "baseline_variant": "ref_vector",
         "baseline_dir": _SCALAR_DIR,
         "champion_variant": "karatsuba_zvbc",
@@ -94,20 +94,14 @@ def load_variant(base_dir: Path, variant: str) -> dict[str, dict[tuple[int, str]
 def fmt_instret(n: Optional[int]) -> str:
     if n is None:
         return "—"
-    if n >= 1_000_000:
-        return f"{n / 1_000_000:.3f}M"
-    if n >= 1_000:
-        return f"{n / 1_000:.1f}k"
-    return str(n)
+    return f"{n:,}"
 
 
 def fmt_speedup(base: Optional[int], champ: Optional[int]) -> str:
     if base is None or champ is None or champ == 0:
         return "—"
     ratio = base / champ
-    if ratio >= 10:
-        return f"x{ratio:.0f}"
-    return f"x{ratio:.1f}"
+    return f"x{ratio:.2f}"
 
 
 def build_table(levels: list[int]) -> str:
@@ -145,13 +139,26 @@ def build_table(levels: list[int]) -> str:
         )
         buf.write("|-------|-----|----------------------|------------------------|--------|\n")
         for lvl in levels:
+            level_base_total = 0
+            level_champ_total = 0
+            has_all_totals = True
             for op in ("keypair", "encaps", "decaps"):
                 key = (lvl, op)
                 b = base_data["kem"].get(key)
                 c = champ_data["kem"].get(key)
+                if b is None or c is None:
+                    has_all_totals = False
+                else:
+                    level_base_total += b
+                    level_champ_total += c
                 buf.write(
                     f"| HQC-{lvl} | {op} | {fmt_instret(b)} | {fmt_instret(c)} | {fmt_speedup(b, c)} |\n"
                 )
+            total_b = level_base_total if has_all_totals else None
+            total_c = level_champ_total if has_all_totals else None
+            buf.write(
+                f"| HQC-{lvl} | **Total KEM** | **{fmt_instret(total_b)}** | **{fmt_instret(total_c)}** | **{fmt_speedup(total_b, total_c)}** |\n"
+            )
         buf.write("\n")
 
     return buf.getvalue()

@@ -96,6 +96,39 @@ The difference is statistically and practically negligible for deterministic Spi
 
 ---
 
+### Discovery 5 — The Zbb Keccak Speedup
+
+Before retiring the strict no-extension baseline (`ref_pure`), we measured
+`KeccakF1600_StatePermute` at **918,882** instructions. Rebuilding the same
+reference path with Zbb enabled (`ref_scalar`) reduced this to **578,792**.
+
+This is a **37% reduction** from pure hardware support: native scalar rotate
+(`rori`) eliminates synthesized rotate idioms that otherwise expand into
+multiple shift/or instructions.
+
+The key thesis interpretation is that this win is architectural rather than
+algorithmic. No Keccak source rewrite was required; the improvement came from
+ISA capability exposure.
+
+---
+
+### Discovery 6 — Amdahl's Law and the Polymul Ceiling
+
+In isolation, `vect_mul` reaches roughly **90x** speedup (ref scalar path to
+`karatsuba_zbc`). End-to-end `decaps`, however, is capped near **28x**.
+
+This is a direct Amdahl's Law result: polynomial multiplication was originally
+about 96% of `decaps`. Once that region is aggressively optimized, the
+remaining ~4% (Keccak hashing plus scalar decode/control work) dominates the
+new runtime. The whole-system speedup therefore asymptotically approaches the
+25x-28x range even as `vect_mul` continues to improve.
+
+For the thesis narrative, this is the central systems lesson: local kernel
+speedups do not translate linearly to application-level speedups once bottleneck
+ownership shifts.
+
+---
+
 ## Open Questions
 
 - [ ] Does Zvbb-based Keccak (`zvbb_gather`) outperform scalar at VLEN=512? (Needs hardware measurement or RTL sim.)

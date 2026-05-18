@@ -72,28 +72,6 @@ endif()
 set(BENCH_N_ITER 1 CACHE STRING "Iterations per benchmark operation (N_ITER)")
 message(STATUS "Benchmark N_ITER: ${BENCH_N_ITER}")
 
-# ── Hybrid Karatsuba depth (Phase 1c sweep) ───────────────────────────────────
-# Sets HYBRID_KARATSUBA_DEPTH for all hybrid targets.
-# 0 = pure FAFFT, 1 = one Karatsuba outer level (default), etc.
-# Override at configure time: cmake -DHYBRID_KARATSUBA_DEPTH=2 ..
-set(HYBRID_KARATSUBA_DEPTH 0 CACHE STRING "Karatsuba outer levels for hybrid (0=pure FAFFT, empirically optimal at HQC sizes)")
-message(STATUS "Hybrid Karatsuba depth: ${HYBRID_KARATSUBA_DEPTH}")
-
-# ── Hybrid v3 crossover threshold (Phase 1b v3 sweep) ────────────────────────
-# Controls V3_HYBRID_THRESH in hybrid_v3.c: when sub-problem size ≤ threshold,
-# the outer Karatsuba recursion ("FAFFT outer shell") exits and switches to the
-# clmul+clmulh schoolbook leaf ("Karatsuba base case").
-# Sweep: 32 → 64 → 128 to find the optimal crossover point.
-# Override at configure time: cmake -DV3_HYBRID_THRESH=32 ..
-set(V3_HYBRID_THRESH 32 CACHE STRING "Crossover threshold for hybrid_v3 (words): below this → clmul leaf")
-message(STATUS "Hybrid v3 crossover threshold: ${V3_HYBRID_THRESH}")
-
-# Karatsuba threshold for the karatsuba_zbc_exp experimental variant.
-# Controls KARATSUBA_THRESHOLD in EXP-karatsuba-zbc-leaf-fixed/gf2x_clmul.c.
-# Default 8 (V2-A1 sweep baseline); override: cmake -DHQC_KARATSUBA_THRESHOLD=4|8|16
-set(HQC_KARATSUBA_THRESHOLD 8 CACHE STRING "Karatsuba leaf threshold for karatsuba_zbc_exp (V2-A1 sweep)")
-message(STATUS "karatsuba_zbc_exp threshold: ${HQC_KARATSUBA_THRESHOLD}")
-
 # ── Upstream vendor root (registered as git submodule in Phase 0a) ────────────
 set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 
@@ -104,26 +82,17 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 # Different CMake build dirs control Keccak/Decode implementation via
 # HQC_KECCAK_IMPL / HQC_DECODE_IMPL (set in cmake/options.cmake).
 #
-#   Phase 0a — ref_scalar    : vendor scalar baseline, strict rv64gc ISA
-#   Phase 0b — ref_vector    : vendor scalar sources, compiled for base RVV auto-vectorization
-#   Phase 1a — karatsuba_zbc : clmul base-case + lazy reduction + depth sweep
-#   Phase 1b — fafft_zbc     : FAFFT with clmul GF(2^m) butterflies + RVV XOR
-#   Phase 1c — hybrid        : Karatsuba outer levels → FAFFT inner (CRT)
-#   Phase 1+ — fafft_zvbc    : vclmul.vv vectorised butterflies (Spike Zvbc only)
+#   ref_scalar    : vendor scalar baseline, no RVV
+#   ref_vector    : vendor reference sources, compiled for base RVV auto-vectorization
+#   karatsuba_zbc : scalar optimized champion
+#   karatsuba_rvv : RVV hybrid champion
+#   karatsuba_zvbc: full vector-crypto champion
 set(POLYMUL_VARIANTS
-    ref_pure
     ref_scalar
     ref_vector
     karatsuba_zbc
-    karatsuba_zbc_exp
-    karatsuba_zbc_ablation
-    karatsuba_leaf_v2_micro
-    karatsuba_v2_a5
-    karatsuba_ap2_specialized
-    toomcook3_zbc
     karatsuba_rvv
     karatsuba_zvbc
-    hybrid
 )
 
 # Variants with a real implementation (not __builtin_trap stubs).
@@ -260,7 +229,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
         # from O(VEC_N_SIZE_64 × weight) to O(weight) direct-scatter.
         # Validated correct across all 3 security levels via KAT (300/300 pass).
         # Performance: 20.99% → not in top 20 hotspots at HQC-128.
-        # karatsuba_zbc_exp uses the same src/vector.c as all other variants.
         set(VECTOR_SOURCES ${CMAKE_SOURCE_DIR}/src/vector.c)
         set(VARIANT_KECCAK_SOURCES ${KECCAK_SOURCES})
         set(VARIANT_DECODE_SOURCES ${DECODE_SOURCES})
@@ -268,23 +236,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         set(VARIANT_REF_PROFILE OFF)
 
         # ── Polynomial multiply sources per strategy ──────────────────────────
-        if(POLYMUL STREQUAL "ref_pure")
-            # Reference pure-C baseline: no vector and no crypto/bitmanip ISA.
-            set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
-            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
-            set(VARIANT_DECODE_SOURCES
-                ${HQC_REF}/src/ref/reed_muller.c
-                ${HQC_REF}/src/ref/reed_solomon.c)
-            list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gc
-                -mabi=lp64d
-                $<$<C_COMPILER_ID:GNU>:-mno-vector>
-                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
-                -fno-tree-vectorize
-                -fno-vectorize
-                -fno-slp-vectorize)
-            set(VARIANT_REF_PROFILE ON)
-        elseif(POLYMUL STREQUAL "ref_scalar")
+        if(POLYMUL STREQUAL "ref_scalar")
             # Reference scalar baseline: vendor unoptimized polymul/keccak/decode.
             set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -330,62 +282,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -fno-tree-vectorize
                 -fno-vectorize
                 -fno-slp-vectorize)
-        elseif(POLYMUL STREQUAL "karatsuba_zbc_exp")
-            # EXP: V2-A3 fixed-size leaf specialization + V2-A1 threshold sweep.
-            # Configure threshold: cmake -DHQC_KARATSUBA_THRESHOLD=4|8|16
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-zbc-leaf-fixed/gf2x_clmul.c)
-        elseif(POLYMUL STREQUAL "karatsuba_zbc_ablation")
-            # EXP: V2-A3 ablation — clmul_leaf_n4 removed (dead code at T=16).
-            # Verifies that n=8 leaf alone explains the full 3.21% gain.
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-ablation/gf2x_clmul.c)
-        elseif(POLYMUL STREQUAL "karatsuba_leaf_v2_micro")
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-leaf-v2-micro/gf2x_clmul.c)
-        elseif(POLYMUL STREQUAL "karatsuba_v2_a5")
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-v2-a5/gf2x_clmul.c)
-        elseif(POLYMUL STREQUAL "karatsuba_ap2_specialized")
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/experiments/EXP-karatsuba-ap2-specialized/gf2x_clmul.c)
-        elseif(POLYMUL STREQUAL "toomcook3_zbc")
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc/gf2x_clmul.c)
-        elseif(POLYMUL STREQUAL "fafft_zbc")
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/fafft.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/fafft_zbc/ref/reduce.c)
-            list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zbkb
-                -mabi=lp64d
-                -O3)
-        elseif(POLYMUL STREQUAL "hybrid")
-            # Phase 1b v3: Scalar Hybrid Architecture.
-            # hybrid.c wraps vect_mul_hybrid_v3 (v3/hybrid_v3.c):
-            #   Recursive Karatsuba divide-and-conquer ("FAFFT outer shell")
-            #   down to V3_HYBRID_THRESH words, then clmul+clmulh schoolbook
-            #   leaf ("Karatsuba base case"). Pure scalar Zbc — no RVV, no
-            #   tower-field FAFFT overhead.
-            # V3_HYBRID_THRESH sweep: cmake -DV3_HYBRID_THRESH=32/64/128
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc/hybrid.c
-                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc/hybrid_v3.c)
-            list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gc_zbc_zbb_zbkb
-                -mabi=lp64d
-                $<$<C_COMPILER_ID:GNU>:-mno-vector>
-                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
-                -fno-tree-vectorize
-                -fno-vectorize
-                -fno-slp-vectorize)
-        elseif(POLYMUL STREQUAL "fafft_zvbc")
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/fafft_zvbc/fafft_vclmul.c)
-            list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb
-                -mabi=lp64d
-                -O3)
         elseif(POLYMUL STREQUAL "karatsuba_rvv")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/rvv_only/karatsuba_rvv/gf2x_clmul.c)
@@ -433,7 +329,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/lib/fips202
             ${CMAKE_SOURCE_DIR}/src/common
             ${CMAKE_SOURCE_DIR}/tests/kat
-            ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc
             ${KECCAK_INCLUDE_DIRS}
         )
         target_compile_definitions(${KAT_TARGET} PRIVATE
@@ -445,27 +340,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(VARIANT_COMPILE_OPTIONS)
             target_compile_options(${KAT_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
-        if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
+        if(POLYMUL STREQUAL "karatsuba_zvbc")
             # Zvbc variants require --isa=rv64gcv_zvbc on Spike at runtime.
             # run_kat.sh detects this compile-time definition and adjusts accordingly.
             target_compile_definitions(${KAT_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
-        endif()
-        if(POLYMUL STREQUAL "karatsuba_zbc_exp")
-            target_compile_definitions(${KAT_TARGET} PRIVATE
-                KARATSUBA_THRESHOLD=${HQC_KARATSUBA_THRESHOLD})
-        endif()
-        if(POLYMUL STREQUAL "karatsuba_zbc_ablation")
-            target_compile_definitions(${KAT_TARGET} PRIVATE
-                KARATSUBA_THRESHOLD=16)
-        endif()
-        if(POLYMUL STREQUAL "hybrid")
-            target_compile_definitions(${KAT_TARGET} PRIVATE
-                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
-                V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
-                HQC_POLYMUL_HYBRID_KEYCACHE=1)
-            # vect_mul_keycache.h is included by hybrid.c via #ifdef guard
-            target_include_directories(${KAT_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
         endif()
         set_target_properties(${KAT_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -513,7 +391,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/src/ref
             ${HQC_REF}/lib/fips202
             ${CMAKE_SOURCE_DIR}/src/common
-            ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc
             ${KECCAK_INCLUDE_DIRS}
         )
         target_compile_definitions(${BENCH_TARGET} PRIVATE
@@ -527,25 +404,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(VARIANT_COMPILE_OPTIONS)
             target_compile_options(${BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
-        if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
+        if(POLYMUL STREQUAL "karatsuba_zvbc")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
-        endif()
-        if(POLYMUL STREQUAL "karatsuba_zbc_exp")
-            target_compile_definitions(${BENCH_TARGET} PRIVATE
-                KARATSUBA_THRESHOLD=${HQC_KARATSUBA_THRESHOLD})
-        endif()
-        if(POLYMUL STREQUAL "karatsuba_zbc_ablation")
-            target_compile_definitions(${BENCH_TARGET} PRIVATE
-                KARATSUBA_THRESHOLD=16)
-        endif()
-
-        if(POLYMUL STREQUAL "hybrid")
-            target_compile_definitions(${BENCH_TARGET} PRIVATE
-                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
-                V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
-                HQC_POLYMUL_HYBRID_KEYCACHE=1)
-            target_include_directories(${BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
         endif()
         set_target_properties(${BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -585,7 +445,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${HQC_REF}/src/ref/${VARIANT}
             ${HQC_REF}/src/ref
             ${CMAKE_SOURCE_DIR}/src/common
-            ${CMAKE_SOURCE_DIR}/experiments/EXP-toomcook3-gf2x-zbc
         )
         target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
             HQC_BENCH_MODE=1
@@ -598,24 +457,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(VARIANT_COMPILE_OPTIONS)
             target_compile_options(${POLYMUL_BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
-        if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
+        if(POLYMUL STREQUAL "karatsuba_zvbc")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
-        endif()
-        if(POLYMUL STREQUAL "karatsuba_zbc_exp")
-            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
-                KARATSUBA_THRESHOLD=${HQC_KARATSUBA_THRESHOLD})
-        endif()
-        if(POLYMUL STREQUAL "karatsuba_zbc_ablation")
-            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
-                KARATSUBA_THRESHOLD=16)
-        endif()
-        if(POLYMUL STREQUAL "hybrid")
-            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
-                HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
-                V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
-                HQC_POLYMUL_HYBRID_KEYCACHE=1)
-            target_include_directories(${POLYMUL_BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
         endif()
         set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -673,16 +516,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
                     ${VARIANT_COMPILE_OPTIONS}
                     "-mrvv-vector-bits=${VLEN}"
                 )
-                if(POLYMUL STREQUAL "fafft_zvbc" OR POLYMUL STREQUAL "karatsuba_zvbc")
+                if(POLYMUL STREQUAL "karatsuba_zvbc")
                     target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
-                endif()
-                if(POLYMUL STREQUAL "hybrid")
-                    target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE
-                        HYBRID_KARATSUBA_DEPTH=${HYBRID_KARATSUBA_DEPTH}
-                        V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
-                        HQC_POLYMUL_HYBRID_KEYCACHE=1)
-                    target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE
-                        ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
                 endif()
                 set_target_properties(${VLEN_BENCH_TARGET} PROPERTIES
                     SUFFIX ".elf"
