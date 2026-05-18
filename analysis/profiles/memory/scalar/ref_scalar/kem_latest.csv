@@ -1,0 +1,7 @@
+# date: 2026-05-18 15:52
+# commit: cfe3833
+# variant: ref_scalar
+level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
+128,1654,2142,7810,10731,123,168
+192,1824,2256,8239,10904,129,171
+256,1833,2234,7691,10057,121,158

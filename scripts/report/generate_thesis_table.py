@@ -1,162 +1,195 @@
 #!/usr/bin/env python3
-"""Generate thesis master metrics tables from latest isolated benchmark CSVs.
+"""Generate thesis speedup summary table from isolated benchmark CSVs.
 
-This script computes exact speedups using:
+Reads the most recent polymul_latest.csv and kem_latest.csv for each variant
+and computes exact speedup multipliers:
+
     Speedup = Baseline_instret / Champion_instret
 
-Outputs docs/THESIS_METRICS_MASTER.md with:
-- Table 1: Scalar optimization path (IoT)
-- Table 4: Vector optimization path (Edge)
-- Table 5: Vector crypto path (High-End)
+Three hardware tiers:
+  Tier 1 (IoT)     ref_scalar  → karatsuba_zbc
+  Tier 2 (Edge)    ref_vector  → karatsuba_rvv   (hybrid: RVV polymul + scalar Keccak)
+  Tier 3 (High-End) ref_vector → karatsuba_zvbc
+
+Usage:
+  python3 scripts/report/generate_thesis_table.py
+  python3 scripts/report/generate_thesis_table.py --level 128
+  python3 scripts/report/generate_thesis_table.py --level all   # default
+  python3 scripts/report/generate_thesis_table.py --out path/to/output.md
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import io
+import sys
 from pathlib import Path
 from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ISOLATED_ROOT = REPO_ROOT / "analysis" / "benchmarks" / "isolated"
-OUT_PATH = REPO_ROOT / "docs" / "THESIS_METRICS_MASTER.md"
+ISOLATED = REPO_ROOT / "analysis/benchmarks/isolated"
+
+# (subdir, variant_name)
+_SCALAR_DIR = ISOLATED / "scalar"
+_VECTOR_DIR = ISOLATED / "vector"
+
+TIERS = [
+    {
+        "label": "Tier 1 — IoT (Pure Scalar, rv64gc + Zbc)",
+        "baseline_variant": "ref_scalar",
+        "baseline_dir": _SCALAR_DIR,
+        "champion_variant": "karatsuba_zbc",
+        "champion_dir": _SCALAR_DIR,
+        "note": "rv64gc_zbc_zbb_zbkb, no vector",
+    },
+    {
+        "label": "Tier 2 — Edge (Hybrid RVV + Scalar Keccak)",
+        "baseline_variant": "ref_vector",
+        "baseline_dir": _SCALAR_DIR,
+        "champion_variant": "karatsuba_rvv",
+        "champion_dir": _VECTOR_DIR,
+        "note": "rv64gcv + Zbc/Zbb/Zbkb; AP-2 fixed-tree polymul, scalar Keccak",
+    },
+    {
+        "label": "Tier 3 — High-End (Full Zvbc Vector)",
+        "baseline_variant": "ref_vector",
+        "baseline_dir": _SCALAR_DIR,
+        "champion_variant": "karatsuba_zvbc",
+        "champion_dir": _VECTOR_DIR,
+        "note": "rv64gcv + Zvbc/Zvbb/Zvl256b",
+    },
+]
+
+LEVELS = [128, 192, 256]
 
 
-def read_latest_csv(path: Path) -> dict[tuple[int, str], int]:
-    data: dict[tuple[int, str], int] = {}
+def read_csv(path: Path) -> dict[tuple[int, str], int]:
+    """Return {(level, op): instructions} from a benchmark CSV file."""
+    result: dict[tuple[int, str], int] = {}
     if not path.exists():
-        return data
-    with path.open("r", encoding="utf-8") as f:
+        return result
+    with path.open() as f:
         reader = csv.DictReader(row for row in f if not row.startswith("#"))
         for row in reader:
             try:
-                lvl = int(row["level"])
+                level = int(row["level"])
                 op = row["op"].strip()
-                inst = int(row["instructions"])
+                instret = int(row["instructions"])
+                result[(level, op)] = instret
             except (KeyError, ValueError):
                 continue
-            data[(lvl, op)] = inst
-    return data
+    return result
 
 
-def get_instret(variant: str, op: str, level: int) -> Optional[int]:
-    track = "vector" if ("rvv" in variant or "zvbc" in variant) else "scalar"
-    csv_name = "kem_latest.csv" if op == "decaps" else "polymul_latest.csv"
-    csv_path = ISOLATED_ROOT / track / variant / csv_name
-    return read_latest_csv(csv_path).get((level, op))
+def load_variant(base_dir: Path, variant: str) -> dict[str, dict[tuple[int, str], int]]:
+    """Load both polymul and kem CSVs for a variant."""
+    variant_dir = base_dir / variant
+    return {
+        "polymul": read_csv(variant_dir / "polymul_latest.csv"),
+        "kem": read_csv(variant_dir / "kem_latest.csv"),
+    }
 
 
-def fmt_int(x: Optional[int]) -> str:
-    if x is None:
+def fmt_instret(n: Optional[int]) -> str:
+    if n is None:
         return "—"
-    return f"{x:,}"
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.3f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}k"
+    return str(n)
 
 
-def speedup(base: Optional[int], champ: Optional[int]) -> Optional[float]:
+def fmt_speedup(base: Optional[int], champ: Optional[int]) -> str:
     if base is None or champ is None or champ == 0:
-        return None
-    return base / champ
-
-
-def fmt_speed(ratio: Optional[float]) -> str:
-    if ratio is None:
         return "—"
-    return f"x{ratio:.2f}"
+    ratio = base / champ
+    if ratio >= 10:
+        return f"x{ratio:.0f}"
+    return f"x{ratio:.1f}"
 
 
-def row_for(label: str, variant: str, level: int) -> tuple[str, str, str]:
-    vm = get_instret(variant, "vect_mul", level)
-    dec = get_instret(variant, "decaps", level)
-    return (label, fmt_int(vm), fmt_int(dec))
+def build_table(levels: list[int]) -> str:
+    buf = io.StringIO()
 
+    for tier in TIERS:
+        buf.write(f"## {tier['label']}\n\n")
+        buf.write(f"> {tier['note']}\n\n")
 
-def build_table_1(level: int) -> str:
-    l1_vm = get_instret("ref_pure", "vect_mul", level)
-    l1_dec = get_instret("ref_pure", "decaps", level)
-    l2_vm = get_instret("ref_scalar", "vect_mul", level)
-    l2_dec = get_instret("ref_scalar", "decaps", level)
-    l3_vm = get_instret("karatsuba_zbc", "vect_mul", level)
-    l3_dec = get_instret("karatsuba_zbc", "decaps", level)
+        base_data = load_variant(tier["baseline_dir"], tier["baseline_variant"])
+        champ_data = load_variant(tier["champion_dir"], tier["champion_variant"])
 
-    lines = []
-    lines.append("## Table 1: The Scalar Optimization Path (IoT Tier)")
-    lines.append("")
-    lines.append("| Stage | Variant | `vect_mul` instret | Speedup vs previous (`vect_mul`) | `decaps` instret | Speedup vs previous (`decaps`) |")
-    lines.append("|---|---|---:|---:|---:|---:|")
-    lines.append(
-        f"| Level 1 (Pure C) | `ref_pure` | {fmt_int(l1_vm)} | — | {fmt_int(l1_dec)} | — |"
-    )
-    lines.append(
-        f"| Level 2 (Hardware Assisted) | `ref_scalar` | {fmt_int(l2_vm)} | {fmt_speed(speedup(l1_vm, l2_vm))} | {fmt_int(l2_dec)} | {fmt_speed(speedup(l1_dec, l2_dec))} |"
-    )
-    lines.append(
-        f"| Level 3 (Algorithmic Champion) | `karatsuba_zbc` | {fmt_int(l3_vm)} | {fmt_speed(speedup(l2_vm, l3_vm))} | {fmt_int(l3_dec)} | {fmt_speed(speedup(l2_dec, l3_dec))} |"
-    )
-    lines.append("")
-    return "\n".join(lines)
+        base_name = tier["baseline_variant"]
+        champ_name = tier["champion_variant"]
 
+        # --- vect_mul table ---
+        buf.write(f"### `vect_mul` (polynomial multiply)\n\n")
+        buf.write(
+            f"| Level | {base_name} (instret) | {champ_name} (instret) | Speedup |\n"
+        )
+        buf.write("|-------|----------------------|------------------------|--------|\n")
+        for lvl in levels:
+            key = (lvl, "vect_mul")
+            b = base_data["polymul"].get(key)
+            c = champ_data["polymul"].get(key)
+            buf.write(
+                f"| HQC-{lvl} | {fmt_instret(b)} | {fmt_instret(c)} | {fmt_speedup(b, c)} |\n"
+            )
+        buf.write("\n")
 
-def build_table_4(level: int) -> str:
-    l1_vm = get_instret("ref_vector", "vect_mul", level)
-    l1_dec = get_instret("ref_vector", "decaps", level)
-    l2_vm = get_instret("karatsuba_rvv", "vect_mul", level)
-    l2_dec = get_instret("karatsuba_rvv", "decaps", level)
+        # --- KEM table ---
+        buf.write(f"### KEM operations\n\n")
+        buf.write(
+            f"| Level | Op | {base_name} (instret) | {champ_name} (instret) | Speedup |\n"
+        )
+        buf.write("|-------|-----|----------------------|------------------------|--------|\n")
+        for lvl in levels:
+            for op in ("keypair", "encaps", "decaps"):
+                key = (lvl, op)
+                b = base_data["kem"].get(key)
+                c = champ_data["kem"].get(key)
+                buf.write(
+                    f"| HQC-{lvl} | {op} | {fmt_instret(b)} | {fmt_instret(c)} | {fmt_speedup(b, c)} |\n"
+                )
+        buf.write("\n")
 
-    lines = []
-    lines.append("## Table 4: The Vector Optimization Path (Edge/Banana Pi Tier)")
-    lines.append("")
-    lines.append("| Stage | Variant | `vect_mul` instret | Speedup vs previous (`vect_mul`) | `decaps` instret | Speedup vs previous (`decaps`) |")
-    lines.append("|---|---|---:|---:|---:|---:|")
-    lines.append(
-        f"| Level 1 (Compiler Auto-Vectorized) | `ref_vector` | {fmt_int(l1_vm)} | — | {fmt_int(l1_dec)} | — |"
-    )
-    lines.append(
-        f"| Level 2 (Hybrid Champion) | `karatsuba_rvv` | {fmt_int(l2_vm)} | {fmt_speed(speedup(l1_vm, l2_vm))} | {fmt_int(l2_dec)} | {fmt_speed(speedup(l1_dec, l2_dec))} |"
-    )
-    lines.append("")
-    return "\n".join(lines)
-
-
-def build_table_5(level: int) -> str:
-    l1_vm = get_instret("ref_vector", "vect_mul", level)
-    l1_dec = get_instret("ref_vector", "decaps", level)
-    l2_vm = get_instret("karatsuba_zvbc", "vect_mul", level)
-    l2_dec = get_instret("karatsuba_zvbc", "decaps", level)
-
-    lines = []
-    lines.append("## Table 5: The Vector Crypto Path (High-End Tier)")
-    lines.append("")
-    lines.append("| Stage | Variant | `vect_mul` instret | Speedup vs previous (`vect_mul`) | `decaps` instret | Speedup vs previous (`decaps`) |")
-    lines.append("|---|---|---:|---:|---:|---:|")
-    lines.append(
-        f"| Level 1 (Compiler Barrier) | `ref_vector` | {fmt_int(l1_vm)} | — | {fmt_int(l1_dec)} | — |"
-    )
-    lines.append(
-        f"| Level 2 (Full Hardware Champion) | `karatsuba_zvbc` | {fmt_int(l2_vm)} | {fmt_speed(speedup(l1_vm, l2_vm))} | {fmt_int(l2_dec)} | {fmt_speed(speedup(l1_dec, l2_dec))} |"
-    )
-    lines.append("")
-    return "\n".join(lines)
+    return buf.getvalue()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate THESIS_METRICS_MASTER.md from latest benchmark CSVs")
-    parser.add_argument("--level", type=int, default=128, choices=[128, 192, 256], help="Security level to render (default: 128)")
+    parser = argparse.ArgumentParser(
+        description="Generate thesis speedup table from isolated benchmark CSVs."
+    )
+    parser.add_argument(
+        "--level",
+        choices=["128", "192", "256", "all"],
+        default="all",
+        help="Security level(s) to include (default: all)",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Write output to this Markdown file instead of stdout",
+    )
     args = parser.parse_args()
 
-    doc_lines = []
-    doc_lines.append("# Thesis Metrics Master")
-    doc_lines.append("")
-    doc_lines.append(f"Security level: HQC-{args.level}")
-    doc_lines.append("")
-    doc_lines.append("Speedup definition: `Baseline / Champion`.")
-    doc_lines.append("")
-    doc_lines.append(build_table_1(args.level))
-    doc_lines.append(build_table_4(args.level))
-    doc_lines.append(build_table_5(args.level))
+    levels = LEVELS if args.level == "all" else [int(args.level)]
 
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text("\n".join(doc_lines), encoding="utf-8")
-    print(f"Written: {OUT_PATH}")
+    header = (
+        "# HQC-RISC-V Thesis Speedup Summary\n\n"
+        "Speedup = Baseline instret / Champion instret (higher is better).\n"
+        "All measurements are deterministic instruction-retired counts from Spike ISS.\n\n"
+    )
+    table = header + build_table(levels)
+
+    if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(table)
+        print(f"Written: {args.out}")
+    else:
+        sys.stdout.write(table)
 
 
 if __name__ == "__main__":

@@ -2,157 +2,117 @@
 
 - Variant: karatsuba_zbc
 - Level: 128
-- Date: 2026-05-17 11:46:57
+- Date: 2026-05-18 16:23:56
 
 ## 1. Cycle Counts
 
 ### Polymul Isolated
 | level | op | instructions | codesize |
 | --- | --- | --- | --- |
-| 128 | vect_mul | 158928 | 11858 |
-| 192 | vect_mul | 483283 | 13528 |
-| 256 | vect_mul | 1614035 | 13808 |
+| 128 | vect_mul | 211841 | 14254 |
+| 192 | vect_mul | 650635 | 16056 |
+| 256 | vect_mul | 1900362 | 15150 |
 
 ### Full KEM Suite
 | level | variant | op | instructions | codesize |
 | --- | --- | --- | --- | --- |
-| 128 | keypair | 300265 | 47676 |  |
-| 128 | encaps | 624625 | 47676 |  |
-| 128 | decaps | 1407786 | 47676 |  |
-| 192 | keypair | 735707 | 50346 |  |
-| 192 | encaps | 1542488 | 50346 |  |
-| 192 | decaps | 3048493 | 50346 |  |
-| 256 | keypair | 2011033 | 57634 |  |
-| 256 | encaps | 4135957 | 57634 |  |
-| 256 | decaps | 7558518 | 57634 |  |
+| 128 | keypair | 458121 | 47398 |  |
+| 128 | encaps | 905479 | 47398 |  |
+| 128 | decaps | 2099075 | 47398 |  |
+| 192 | keypair | 1123538 | 50348 |  |
+| 192 | encaps | 2254714 | 50348 |  |
+| 192 | decaps | 4462247 | 50348 |  |
+| 256 | keypair | 2660281 | 56332 |  |
+| 256 | encaps | 5345720 | 56332 |  |
+| 256 | decaps | 9917432 | 56332 |  |
 
 ## 2. Memory & Cache
 
 ### Cache Misses (Top 10 Rows)
 | level | dc_misses | dc_read_misses | dc_write_misses | dc_writebacks | dc_bytes_read | dc_bytes_written | dc_read_accesses | dc_write_accesses |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 128 | 1292 | 88 | 1204 | 110 | 11160103 | 5848079 | 1822483 | 1044390 |
-| 192 | 3075 | 295 | 2780 | 771 | 24832762 | 15687369 | 3900644 | 2557670 |
-| 256 | 6960 | 1077 | 5883 | 3296 | 60099657 | 32902784 | 9069762 | 5337698 |
+| 128 | 1284 | 100 | 1184 | 105 | 11493639 | 6120771 | 1733783 | 1113920 |
+| 192 | 3021 | 271 | 2750 | 716 | 25979584 | 16609891 | 3738354 | 2701060 |
+| 256 | 6835 | 989 | 5846 | 3194 | 61195689 | 33909404 | 8474793 | 5238730 |
 
 ### Memory Footprint
 | level | load_instructions | store_instructions | load_bytes | store_bytes | est_cache_lines_load | est_cache_lines_store |
 | --- | --- | --- | --- | --- | --- | --- |
-| 128 | 2457 | 2332 | 49099 | 40809 | 768 | 638 |
-| 192 | 2821 | 2602 | 61423 | 52425 | 960 | 820 |
-| 256 | 2687 | 2364 | 61609 | 44998 | 963 | 704 |
+| 128 | 3137 | 2780 | 20825 | 18043 | 326 | 282 |
+| 192 | 3362 | 2909 | 22935 | 19329 | 359 | 303 |
+| 256 | 3396 | 2936 | 22715 | 19344 | 355 | 303 |
 
 ## 3. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
 | function | instructions | percentage |  |
 | --- | --- | --- | --- |
-| KeccakF1600_StatePermute | 578792 | 19.47
- |  |
-| clmul_leaf | 477096 | 16.05
- |  |
-| clmul64 | 228648 | 7.69
- |  |
-| hadamard | 227516 | 7.65
- |  |
-| keccak_inc_absorb | 141116 | 4.75
- |  |
-| memcpy | 137922 | 4.64
- |  |
-| find_peaks | 105919 | 3.56
- |  |
-| gf_reduce | 105600 | 3.55
- |  |
-| keccak_inc_squeeze | 96430 | 3.24
- |  |
-| expand_and_sum | 93748 | 3.15
- |  |
-| compare_u32 | 83250 | 2.80
- |  |
-| vect_generate_random_support2 | 79260 | 2.67
- |  |
-| clmul_leaf_n8 | 70818 | 2.38
- |  |
-| vect_generate_random_support1 | 49869 | 1.68
- |  |
-| kmul_35 | 49236 | 1.66
- |  |
-| kmul_18 | 48576 | 1.63
- |  |
-| kmul_17 | 39960 | 1.34
- |  |
-| memset | 33045 | 1.11
- |  |
-| vect_compare | 31058 | 1.04
- |  |
-| kmul_69 | 29520 | 0.99
- |  |
+| KeccakF1600_StatePermute | 578792 | 16.64 |  |
+| clmul_leaf | 477096 | 13.71 |  |
+| memset | 316635 | 9.10 |  |
+| clmul64 | 228870 | 6.58 |  |
+| hadamard | 227516 | 6.54 |  |
+| keccak_inc_absorb | 141116 | 4.06 |  |
+| memcpy | 137922 | 3.96 |  |
+| kmul_35 | 113520 | 3.26 |  |
+| find_peaks | 105919 | 3.04 |  |
+| gf_reduce | 105600 | 3.04 |  |
+| kmul_18 | 100320 | 2.88 |  |
+| keccak_inc_squeeze | 96430 | 2.77 |  |
+| expand_and_sum | 93748 | 2.69 |  |
+| compare_u32 | 83250 | 2.39 |  |
+| kmul_17 | 80142 | 2.30 |  |
+| vect_generate_random_support2 | 79260 | 2.28 |  |
+| clmul_leaf_n8 | 67710 | 1.95 |  |
+| vect_generate_random_support1 | 49869 | 1.43 |  |
+| kmul_69 | 40950 | 1.18 |  |
+| kmul_277 | 36480 | 1.05 |  |
 
 ### Line-Level Hotspots (Top 20 Rows)
 | function | instructions | percentage |  |
 | --- | --- | --- | --- |
-| clmul64 at gf2x_clmul.c:36 | 228648 | 7.69
- |  |
-| KeccakF1600_StatePermute at fips202.c:? | 98548 | 3.32
- |  |
-| clmul_leaf at gf2x_clmul.c:371 | 88992 | 2.99
- |  |
-| keccak_inc_absorb at fips202.c:438 | 85750 | 2.88
- |  |
-| compare_u32 at vector.c:43 | 83250 | 2.80
- |  |
-| memcpy at mem.c:21 | 82652 | 2.78
- |  |
-| hadamard at reed_muller.c:98 | 82432 | 2.77
- |  |
-| hadamard at reed_muller.c:99 | 82432 | 2.77
- |  |
-| clmul_leaf at gf2x_clmul.c:372 | 79104 | 2.66
- |  |
-| clmul_leaf at gf2x_clmul.c:373 | 79104 | 2.66
- |  |
-| expand_and_sum at reed_muller.c:132 | 68448 | 2.30
- |  |
-| hadamard at reed_muller.c:97 | 62606 | 2.11
- |  |
-| memcpy at mem.c:22 | 54764 | 1.84
- |  |
-| keccak_inc_squeeze at fips202.c:505 | 51696 | 1.74
- |  |
-| clmul_leaf at gf2x_clmul.c:370 | 49440 | 1.66
- |  |
-| gf_reduce at gf.c:106 | 44712 | 1.50
- |  |
-| keccak_inc_absorb at fips202.c:435 | 43067 | 1.45
- |  |
-| clmul_leaf at gf2x_clmul.c:374 | 39552 | 1.33
- |  |
-| find_peaks at reed_muller.c:155 | 35328 | 1.19
- |  |
-| keccak_inc_squeeze at fips202.c:504 | 34608 | 1.16
- |  |
+| clmul64 at gf2x_clmul.c:36 | 228648 | 6.57 |  |
+| memset at mem.c:60 | 210996 | 6.07 |  |
+| memset at mem.c:61 | 105357 | 3.03 |  |
+| KeccakF1600_StatePermute at fips202.c:0 | 98548 | 2.83 |  |
+| clmul_leaf at gf2x_clmul.c:371 | 88992 | 2.56 |  |
+| keccak_inc_absorb at fips202.c:438 | 85750 | 2.47 |  |
+| compare_u32 at vector.c:43 | 83250 | 2.39 |  |
+| memcpy at mem.c:21 | 82652 | 2.38 |  |
+| hadamard at reed_muller.c:98 | 82432 | 2.37 |  |
+| hadamard at reed_muller.c:99 | 82432 | 2.37 |  |
+| clmul_leaf at gf2x_clmul.c:372 | 79104 | 2.27 |  |
+| clmul_leaf at gf2x_clmul.c:373 | 79104 | 2.27 |  |
+| expand_and_sum at reed_muller.c:132 | 68448 | 1.97 |  |
+| hadamard at reed_muller.c:97 | 62606 | 1.80 |  |
+| memcpy at mem.c:22 | 54764 | 1.57 |  |
+| keccak_inc_squeeze at fips202.c:505 | 51696 | 1.49 |  |
+| clmul_leaf at gf2x_clmul.c:370 | 49440 | 1.42 |  |
+| gf_reduce at gf.c:106 | 44712 | 1.29 |  |
+| keccak_inc_absorb at fips202.c:435 | 43067 | 1.24 |  |
+| clmul_leaf at gf2x_clmul.c:374 | 39552 | 1.14 |  |
 
 ### Basic Block Histogram (Top 20)
 | instruction | count | percentage |  |
 | --- | --- | --- | --- |
-| ld | 684588 | 18.22 |  |
-| xor | 541132 | 14.40 |  |
-| bnez | 394331 | 10.49 |  |
-| addi | 307943 | 8.20 |  |
-| sd | 238271 | 6.34 |  |
-| bne | 121386 | 3.23 |  |
-| clmul | 119322 | 3.18 |  |
-| clmulh | 114324 | 3.04 |  |
-| lh | 110766 | 2.95 |  |
-| rori | 98832 | 2.63 |  |
-| andn | 85375 | 2.27 |  |
-| add | 82136 | 2.19 |  |
-| slli | 72651 | 1.93 |  |
-| sh | 62575 | 1.67 |  |
-| mv | 60812 | 1.62 |  |
-| subw | 54754 | 1.46 |  |
-| lbu | 49840 | 1.33 |  |
-| or | 49165 | 1.31 |  |
-| sb | 47835 | 1.27 |  |
-| vle64.v | 38706 | 1.03 |  |
+| ld | 865233 | 20.29 |  |
+| xor | 626348 | 14.69 |  |
+| bnez | 395621 | 9.28 |  |
+| addi | 374794 | 8.79 |  |
+| sd | 348830 | 8.18 |  |
+| bne | 219474 | 5.15 |  |
+| sb | 144373 | 3.39 |  |
+| clmul | 119322 | 2.80 |  |
+| clmulh | 114324 | 2.68 |  |
+| lh | 110790 | 2.60 |  |
+| rori | 98832 | 2.32 |  |
+| andn | 85723 | 2.01 |  |
+| add | 80513 | 1.89 |  |
+| slli | 71370 | 1.67 |  |
+| sh | 63067 | 1.48 |  |
+| mv | 61055 | 1.43 |  |
+| subw | 54754 | 1.28 |  |
+| lbu | 50896 | 1.19 |  |
+| or | 49417 | 1.16 |  |
+| andi | 35555 | 0.83 |  |
 
