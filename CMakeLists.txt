@@ -352,8 +352,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
             #   tower-field FAFFT overhead.
             # V3_HYBRID_THRESH sweep: cmake -DV3_HYBRID_THRESH=32/64/128
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc/hybrid.c
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c)
+                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc/hybrid.c
+                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc/hybrid_v3.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gc_zbc_zbb_zbkb
                 -mabi=lp64d
@@ -448,7 +448,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 HQC_POLYMUL_HYBRID_KEYCACHE=1)
             # vect_mul_keycache.h is included by hybrid.c via #ifdef guard
             target_include_directories(${KAT_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
+                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
         endif()
         set_target_properties(${KAT_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -528,7 +528,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
                 HQC_POLYMUL_HYBRID_KEYCACHE=1)
             target_include_directories(${BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
+                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
         endif()
         set_target_properties(${BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -598,7 +598,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
                 HQC_POLYMUL_HYBRID_KEYCACHE=1)
             target_include_directories(${POLYMUL_BENCH_TARGET} BEFORE PRIVATE
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
+                ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
         endif()
         set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -665,7 +665,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                         V3_HYBRID_THRESH=${V3_HYBRID_THRESH}
                         HQC_POLYMUL_HYBRID_KEYCACHE=1)
                     target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE
-                        ${CMAKE_SOURCE_DIR}/src/poly_mul/zvbc/hybrid)
+                        ${CMAKE_SOURCE_DIR}/experiments/archive_hybrid_zbc)
                 endif()
                 set_target_properties(${VLEN_BENCH_TARGET} PROPERTIES
                     SUFFIX ".elf"

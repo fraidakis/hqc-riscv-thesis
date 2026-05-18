@@ -306,9 +306,9 @@ profile_trace_mode() {
         out_prefix="poly"
     fi
     cleanup_profile_trace_mode() {
-        rm -rf "$trace_tmp_dir"
+        rm -rf "${trace_tmp_dir:-}"
         rmdir "$PROFILE_TMP_ROOT" 2>/dev/null || true
-        rm -f "$latest_status_tmp"
+        rm -f "${latest_status_tmp:-}"
     }
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local spike="${riscv}/bin/spike"
