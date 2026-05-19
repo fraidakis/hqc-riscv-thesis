@@ -66,7 +66,7 @@ BIOS="none"
 echo "[qemu/run] Running: $ELF"
 "$QEMU_BIN" \
     -machine virt \
-    -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
+    -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true,zvbb=true \
     -m 128M \
     -nographic \
     -monitor none \

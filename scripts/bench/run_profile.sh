@@ -219,10 +219,14 @@ profile_memory_mode() {
     fi
 
     # Single shared build dir for all levels — configure once, build per target.
+    # Pass impl flags so the correct keccak/decode sources are compiled.
     local build_dir="$REPO_ROOT/build/qemu/memprof"
     cmake -S "$REPO_ROOT" -B "$build_dir" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-        -DHQC_SIM=qemu >/dev/null 2>&1
+        -DRISCV="${riscv}" \
+        -DHQC_SIM=qemu \
+        -DHQC_KECCAK_IMPL="${KECCAK_IMPL:-ref}" \
+        -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" >/dev/null 2>&1
 
     local total_levels="${#target_levels[@]}"
     local idx=0
@@ -237,12 +241,13 @@ profile_memory_mode() {
 
         "$qemu" \
             -machine virt \
-            -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true \
-            -m 256M \
+            -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true,zvbb=true \
+            -m 128M \
             -nographic \
+            -monitor none \
             -bios none \
             -kernel "$elf" \
-            -serial mon:stdio \
+            -serial stdio \
             -no-reboot \
             -d in_asm,nochain \
             -D "$qemu_log" >/dev/null 2>&1
