@@ -76,6 +76,7 @@ NOTES.md
 # Ignore archived benchmark and trace history
 analysis/**/archive/*.csv
 analysis/**/archive/*.txt
+analysis/**/archive/tmp.*
 
 # Explicitly track ONLY the "latest" state files
 !analysis/**/*_latest.csv
