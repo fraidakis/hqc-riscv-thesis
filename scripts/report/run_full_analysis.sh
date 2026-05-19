@@ -18,10 +18,8 @@ Arguments:
 EOF
 }
 
-# Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
-bench_parse_track_args "$@"
-
 LEVEL="128"
+MUL_VARIANT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -71,22 +69,24 @@ fi
 
 mkdir -p "${REPO_ROOT}/analysis/reports"
 
-TRACK="scalar"
-if [[ "${MUL_VARIANT}" == *"zvbc"* || "${MUL_VARIANT}" == *"rvv"* ]]; then
-    TRACK="vector"
-fi
+run_step_with_timer() {
+    local step="$1"
+    local total="$2"
+    local msg="$3"
+    shift 3
 
-REPORT_LEVEL="$LEVEL"
-if [[ "$REPORT_LEVEL" == "all" ]]; then
-    REPORT_LEVEL="128"
-fi
-
-run_quiet_stdout() {
-    local label="$1"
-    shift
-
-    echo "[run] ${label}"
-    "$@" >/dev/null
+    printf "[%s/%s] ⏱️  %s ... " "$step" "$total" "$msg"
+    local t_start t_end elapsed exit_code
+    t_start="$(date +%s%N)"
+    { "$@" >/dev/null 2>&1; } && exit_code=0 || exit_code=$?
+    t_end="$(date +%s%N)"
+    elapsed=$(awk -v s="$t_start" -v e="$t_end" 'BEGIN { printf "%.1f", (e - s) / 1000000000 }')
+    if [[ $exit_code -eq 0 ]]; then
+        echo "✔️ DONE (${elapsed}s)"
+    else
+        echo "❌ FAILED"
+        return $exit_code
+    fi
 }
 
 csv_to_markdown() {
@@ -293,37 +293,61 @@ generate_report() {
     echo "[done] Report written: ${report_file}"
 }
 
-main() {
+run_variant_analysis() {
+    local variant="$1"
+    export MUL_VARIANT="$variant"
+
+    TRACK="scalar"
+    if [[ "${MUL_VARIANT}" == *"zvbc"* || "${MUL_VARIANT}" == *"rvv"* ]]; then
+        TRACK="vector"
+    fi
+
+    bench_parse_track_args --mul "$MUL_VARIANT"
+
+    REPORT_LEVEL="$LEVEL"
+    if [[ "$REPORT_LEVEL" == "all" ]]; then
+        REPORT_LEVEL="128"
+    fi
+
+    echo ""
+    echo "============================================================"
+    echo "  STARTING FULL ANALYSIS: ${MUL_VARIANT}"
+    echo "============================================================"
+    echo ""
+
     cd "$REPO_ROOT"
 
-    echo "[step] Running benchmarks and profilers"
-
-    run_quiet_stdout "Isolated polymul benchmark" \
+    run_step_with_timer 1 8 "Isolated polymul benchmark" \
         ./scripts/bench/run_benchmarks.sh --isolated --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    run_quiet_stdout "Isolated KEM benchmark" \
+    run_step_with_timer 2 8 "Isolated KEM benchmark" \
         ./scripts/bench/run_benchmarks.sh --isolated --kem --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    # Cache/memory profiling are intentionally run in serial via a single-variant invocation.
-    run_quiet_stdout "Cache profiler" \
+    run_step_with_timer 3 8 "Cache profiler" \
         ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    run_quiet_stdout "Memory profiler" \
+    run_step_with_timer 4 8 "Memory profiler" \
         ./scripts/bench/run_profile.sh --memory --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    run_quiet_stdout "Trace profiler (function-level)" \
+    run_step_with_timer 5 8 "Trace profiler (function-level)" \
         ./scripts/bench/run_profile.sh --trace --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_quiet_stdout "Trace profiler (line-level)" \
+    run_step_with_timer 6 8 "Trace profiler (line-level)" \
         ./scripts/bench/run_profile.sh --trace --lines --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_quiet_stdout "Histogram profiler" \
+    run_step_with_timer 7 8 "Histogram profiler" \
         ./scripts/bench/run_profile.sh --histogram --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    echo "[step] Aggregating LLM-readable Markdown report"
-    generate_report
-
-    echo "[done] Full analysis orchestration completed"
+    run_step_with_timer 8 8 "Generate Markdown report" \
+        generate_report
 }
 
-main
+bench_load_implemented_variants "$REPO_ROOT"
+
+if [[ "$MUL_VARIANT" == "all" ]]; then
+    for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
+        run_variant_analysis "$variant"
+    done
+else
+    run_variant_analysis "$MUL_VARIANT"
+fi
