@@ -20,6 +20,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPARE_ROOT = REPO_ROOT / "analysis" / "benchmarks" / "compiler_compare"
 OUT_PATH = REPO_ROOT / "analysis" / "reports" / "compiler_analysis.md"
 TARGET_COMPILERS = {"clang", "gcc"}
+VARIANT_ORDER = [
+    "ref_scalar",
+    "ref_vector",
+    "karatsuba_zbc",
+    "karatsuba_rvv",
+    "karatsuba_zvbc",
+]
+VARIANT_RANK = {name: idx for idx, name in enumerate(VARIANT_ORDER)}
 
 
 @dataclass(frozen=True)
@@ -117,7 +125,10 @@ def pick_winner(clang: BestRun | None, gcc: BestRun | None) -> tuple[str, str]:
 
 
 def build_markdown(best: dict[tuple[str, int, str], BestRun], scanned_files: int) -> str:
-    keys = sorted({(variant, level) for (variant, level, _compiler) in best.keys()})
+    keys = sorted(
+        {(variant, level) for (variant, level, _compiler) in best.keys()},
+        key=lambda item: (VARIANT_RANK.get(item[0], len(VARIANT_RANK)), item[0], item[1]),
+    )
 
     lines: list[str] = []
     lines.append("# Compiler Showdown Analysis")

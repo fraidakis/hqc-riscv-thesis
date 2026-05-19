@@ -20,6 +20,16 @@ bench_variant_matches() {
     echo "$variant" | grep -qE "$filter"
 }
 
+bench_variant_track() {
+    local variant="${1:-}"
+    local normalized="${variant,,}"
+
+    case "$normalized" in
+        ref_vector|*_rvv|*_zvbc) echo "vector" ;;
+        *) echo "scalar" ;;
+    esac
+}
+
 bench_load_implemented_variants() {
     local repo_root="$1"
     mapfile -t IMPLEMENTED_VARIANTS < "${repo_root}/scripts/implemented_variants.txt"
