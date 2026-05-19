@@ -61,6 +61,25 @@ TIERS = [
 
 LEVELS = [128, 192, 256]
 
+SINGLE_BENCH_TABLES = [
+    {
+        "label": "Table 4 — Keccak Speedups",
+        "title": "`keccak`",
+        "subdir": ISOLATED / "keccak",
+        "baseline_file": "isolated_keccak_ref_latest.csv",
+        "champion_file": "isolated_keccak_opt_latest.csv",
+        "op": "keccak",
+    },
+    {
+        "label": "Table 5 — Decode Speedups",
+        "title": "`decode`",
+        "subdir": ISOLATED / "decode",
+        "baseline_file": "isolated_decode_ref_latest.csv",
+        "champion_file": "isolated_decode_opt_latest.csv",
+        "op": "decode",
+    },
+]
+
 
 def read_csv(path: Path) -> dict[tuple[int, str], int]:
     """Return {(level, op): instructions} from a benchmark CSV file."""
@@ -88,6 +107,16 @@ def load_variant(base_dir: Path, variant: str) -> dict[str, dict[tuple[int, str]
         "polymul": read_csv(variant_dir / f"isolated_polymul_{variant_slug}_latest.csv"),
         "kem": read_csv(variant_dir / f"isolated_kem_{variant_slug}_latest.csv"),
     }
+
+
+def load_single_benchmark(
+    base_dir: Path, baseline_file: str, champion_file: str
+) -> tuple[dict[tuple[int, str], int], dict[tuple[int, str], int]]:
+    """Load a reference/optimized CSV pair for an isolated benchmark."""
+    return (
+        read_csv(base_dir / baseline_file),
+        read_csv(base_dir / champion_file),
+    )
 
 
 def fmt_instret(n: Optional[int]) -> str:
@@ -157,6 +186,27 @@ def build_table() -> str:
             total_c = level_champ_total if has_all_totals else None
             buf.write(
                 f"| HQC-{lvl} | **Total KEM** | **{fmt_instret(total_b)}** | **{fmt_instret(total_c)}** | **{fmt_speedup(total_b, total_c)}** |\n"
+            )
+        buf.write("\n")
+
+    for table in SINGLE_BENCH_TABLES:
+        buf.write(f"## {table['label']}\n\n")
+        buf.write(f"### {table['title']}\n\n")
+
+        base_data, champ_data = load_single_benchmark(
+            table["subdir"],
+            table["baseline_file"],
+            table["champion_file"],
+        )
+
+        buf.write("| Level | reference (instret) | optimized (instret) | Speedup |\n")
+        buf.write("|-------|----------------------|---------------------|--------|\n")
+        for lvl in LEVELS:
+            key = (lvl, table["op"])
+            b = base_data.get(key)
+            c = champ_data.get(key)
+            buf.write(
+                f"| HQC-{lvl} | {fmt_instret(b)} | {fmt_instret(c)} | {fmt_speedup(b, c)} |\n"
             )
         buf.write("\n")
 

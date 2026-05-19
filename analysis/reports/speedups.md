@@ -90,3 +90,23 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 | HQC-256 | decaps | 419,815,844 | 3,045,877 | x137.83 |
 | HQC-256 | **Total KEM** | **838,419,240** | **5,253,817** | **x159.58** |
 
+## Table 4 — Keccak Speedups
+
+### `keccak`
+
+| Level | reference (instret) | optimized (instret) | Speedup |
+|-------|----------------------|---------------------|--------|
+| HQC-128 | 4,680 | 4,277 | x1.09 |
+| HQC-192 | 4,680 | 4,277 | x1.09 |
+| HQC-256 | 4,680 | 4,277 | x1.09 |
+
+## Table 5 — Decode Speedups
+
+### `decode`
+
+| Level | reference (instret) | optimized (instret) | Speedup |
+|-------|----------------------|---------------------|--------|
+| HQC-128 | 400,787 | 183,339 | x2.19 |
+| HQC-192 | 583,821 | 238,239 | x2.45 |
+| HQC-256 | 1,099,622 | 544,226 | x2.02 |
+
