@@ -1,0 +1,7 @@
+# date: 2026-05-19 15:12
+# commit: db59cec
+# variant: karatsuba_rvv
+level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
+128,2553,2392,34556,27643,540,432
+192,2902,2733,32270,29278,505,458
+256,2665,2525,29229,26399,457,413
