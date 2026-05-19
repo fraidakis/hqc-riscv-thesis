@@ -122,8 +122,8 @@ profile_cache_mode() {
         target_levels=("$LEVEL")
     fi
 
-    # Single shared build dir for all levels — configure once, build per target.
-    local build_dir="$REPO_ROOT/build/spike/cacheprof"
+    # Isolated build dir per impl pairing — configure once, build per target.
+    local build_dir="$REPO_ROOT/build/spike/cacheprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
     cmake -S "$REPO_ROOT" -B "$build_dir" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DRISCV="$riscv" \
@@ -218,9 +218,9 @@ profile_memory_mode() {
         target_levels=("$LEVEL")
     fi
 
-    # Single shared build dir for all levels — configure once, build per target.
+    # Isolated build dir per impl pairing — configure once, build per target.
     # Pass impl flags so the correct keccak/decode sources are compiled.
-    local build_dir="$REPO_ROOT/build/qemu/memprof"
+    local build_dir="$REPO_ROOT/build/qemu/memprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
     cmake -S "$REPO_ROOT" -B "$build_dir" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DRISCV="${riscv}" \
