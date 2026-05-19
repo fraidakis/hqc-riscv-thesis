@@ -24,14 +24,10 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 bench_load_implemented_variants "$REPO_ROOT"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
-# Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
-bench_parse_track_args "$@"
-
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 SPIKE_RUNNER="${REPO_ROOT}/sim/spike/run.sh"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
-BUILD_DIR="${REPO_ROOT}/build/spike/bench_k${KECCAK_IMPL}_d${DECODE_IMPL}"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
 # Shared/default flags.
@@ -62,18 +58,24 @@ EOF
 }
 
 # Parse args.
+declare -a REBUILT_ARGS=()
+TARGET_ARG=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --mode)
             MODE="$2"
             shift 2
+            if [[ $# -gt 0 && "$1" != --* ]]; then
+                TARGET_ARG="$1"
+                shift 1
+            fi
             ;;
         --variant|--mul)
-            MUL_VARIANT="$2"
+            REBUILT_ARGS+=("--mul" "$2")
             shift 2
             ;;
         --keccak|--decode)
-            # Already consumed by bench_parse_track_args above; skip here.
+            REBUILT_ARGS+=("$1" "$2")
             shift 2
             ;;
         --run-id)
@@ -115,6 +117,23 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Map positional TARGET_ARG into the correct REBUILT_ARGS slot.
+case "$MODE" in
+    kem|mul|suite)
+        REBUILT_ARGS+=("--mul" "${TARGET_ARG:-karatsuba_zbc}")
+        ;;
+    keccak)
+        REBUILT_ARGS+=("--keccak" "${TARGET_ARG:-ref}")
+        REBUILT_ARGS+=("--mul" "karatsuba_zbc")
+        ;;
+    decode)
+        REBUILT_ARGS+=("--decode" "${TARGET_ARG:-ref}")
+        REBUILT_ARGS+=("--mul" "karatsuba_zbc")
+        ;;
+esac
+bench_parse_track_args "${REBUILT_ARGS[@]}"
+BUILD_DIR="${REPO_ROOT}/build/spike/bench_k${KECCAK_IMPL}_d${DECODE_IMPL}"
 
 if [[ "$MODE" != "mul" && "$MODE" != "kem" && "$MODE" != "keccak" && "$MODE" != "decode" && "$MODE" != "suite" ]]; then
     echo "ERROR: --mode must be one of: mul, kem, keccak, decode, suite" >&2

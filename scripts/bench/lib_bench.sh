@@ -98,6 +98,8 @@ bench_parse_track_args() {
         esac
     fi
 
+    if [[ "$KECCAK_IMPL" == "opt" ]]; then KECCAK_IMPL="zvbb_gather"; fi
+    if [[ "$DECODE_IMPL" == "opt" ]]; then DECODE_IMPL="rvv"; fi
     export MUL_VARIANT KECCAK_IMPL DECODE_IMPL
 }
 

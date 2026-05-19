@@ -493,6 +493,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${VARIANT_KECCAK_SOURCES}
             ${CMAKE_SOURCE_DIR}/sim/common/mem.c
         )
+        target_link_libraries(${KECCAK_BENCH_TARGET} PRIVATE
+            $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
         target_include_directories(${KECCAK_BENCH_TARGET} BEFORE PRIVATE
             ${HQC_REF}/src/common/${VARIANT}
             ${HQC_REF}/src/ref/${VARIANT}
@@ -542,11 +544,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${CMAKE_SOURCE_DIR}/src/common/bench.c
             ${VARIANT_DECODE_SOURCES}
             ${HQC_REF}/src/common/fft.c
-            ${HQC_REF}/src/ref/gf.c
-            ${HQC_REF}/src/common/crypto_memset.c
             ${CMAKE_SOURCE_DIR}/sim/common/mem.c
             ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
         )
+        target_link_libraries(${DECODE_BENCH_TARGET} PRIVATE
+            $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
         target_include_directories(${DECODE_BENCH_TARGET} BEFORE PRIVATE
             ${HQC_REF}/src/common/${VARIANT}
             ${HQC_REF}/src/ref/${VARIANT}
