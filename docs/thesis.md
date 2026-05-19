@@ -73,7 +73,7 @@ that should be reflected in the thesis narrative.
 
 **Thesis narrative hook**: The tiered decomposition maps directly to RISC-V's modular ISA philosophy — each extension is optional, each variant is strictly controlled, and speedup scales predictably with extension adoption. This makes HQC an effective case study for evaluating the real-world payoff of post-quantum crypto extensions in the RISC-V roadmap.
 
-**Reference**: `docs/thesis/METRICS_AGGREGATION.md`, generated tables via `python3 scripts/report/generate_thesis_table.py`.
+**Reference**: `docs/thesis/METRICS_AGGREGATION.md`, generated tables via `python3 scripts/report/generate_speedups.py`.
 
 ---
 
@@ -217,4 +217,4 @@ peak performance usually requires either autotuning or multi-versioned kernels.
 - All benchmark numbers are **instruction-retired counts** from Spike ISS (deterministic, not cycle counts).
 - Speedup = `baseline_instret / champion_instret` — higher is better.
 - "Hybrid" always means: RVV polymul + RVV decode + **scalar Keccak**.
-- Run `python3 scripts/report/generate_thesis_table.py` to regenerate the speedup table from current CSVs.
+- Run `python3 scripts/report/generate_speedups.py` to regenerate the speedup table from current CSVs.

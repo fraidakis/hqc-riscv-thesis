@@ -93,8 +93,8 @@ profile_cache_mode() {
         exit 2
     fi
 
-    local track="scalar"
-    if [[ "$variant" == *"zvbc"* || "$variant" == *"rvv"* ]]; then track="vector"; fi
+    local track
+    track="$(bench_variant_track "$variant")"
     local out_dir="$REPO_ROOT/analysis/profiles/cache/${track}/${variant}"
     mkdir -p "$out_dir"
 
@@ -203,8 +203,8 @@ profile_memory_mode() {
         exit 2
     fi
 
-    local track="scalar"
-    if [[ "$variant" == *"zvbc"* || "$variant" == *"rvv"* ]]; then track="vector"; fi
+    local track
+    track="$(bench_variant_track "$variant")"
     local out_dir="$REPO_ROOT/analysis/profiles/memory/${track}/${variant}"
     mkdir -p "$out_dir"
 
@@ -314,7 +314,8 @@ END{printf "%d %d %d %d", lb, sb, li, si}
 profile_trace_mode() {
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
     local variant_slug="${variant//_/-}"
-    local track="scalar"
+    local track
+    track="$(bench_variant_track "$variant")"
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
@@ -334,10 +335,6 @@ profile_trace_mode() {
     local spike="${riscv}/bin/spike"
     local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm}"
     local build_dir="$REPO_ROOT/build/spike/trace"
-
-    if [[ "$variant" == *"zvbc"* || "$variant" == *"rvv"* ]]; then
-        track="vector"
-    fi
 
     if [[ ! -x "$spike" ]]; then
         echo "ERROR: spike not found at $spike" >&2
@@ -476,13 +473,9 @@ profile_histogram_mode() {
         out_prefix="poly"
     fi
 
-    local track
-    if [[ "${MUL_VARIANT,,}" == *"zvbc"* || "${MUL_VARIANT,,}" == *"rvv"* ]]; then
-        track="vector"
-    else
-        track="scalar"
-    fi
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
+    local track
+    track="$(bench_variant_track "$variant")"
     local variant_slug="${variant//_/-}"
     local out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${variant}"
 

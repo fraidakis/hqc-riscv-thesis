@@ -241,10 +241,8 @@ run_isolated_mode() {
     local variant_slug="${variant//_/-}"
 
     # Determine track type and output directory
-    local track="scalar"
-    if [[ -n "$variant" ]] && [[ "${variant,,}" == *"zvbc"* || "${variant,,}" == *"rvv"* ]]; then
-        track="vector"
-    fi
+    local track
+    track="$(bench_variant_track "$variant")"
 
     # Use variant filter or derive from first matched variant
     local variant_label first_variant

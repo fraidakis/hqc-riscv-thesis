@@ -146,8 +146,7 @@ run_for_variant() {
     if [[ -n "$LEVEL" ]]; then
         level_tag="L${LEVEL}"
     fi
-    track="scalar"
-    if [[ "$variant" == *"zvbc"* ]]; then track="vector"; fi
+    track="$(bench_variant_track "$variant")"
     out_dir="$REPO_ROOT/analysis/benchmarks/compiler_compare/${track}/${variant}"
     mkdir -p "$out_dir"
     csv_out="${out_dir}/compiler_compare_${level_tag}_${variant_slug}_${stamp}.csv"

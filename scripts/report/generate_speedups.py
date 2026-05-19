@@ -13,8 +13,8 @@ Three hardware tiers:
   Tier 3 (High-End) ref_vector → karatsuba_zvbc
 
 Usage:
-    python3 scripts/report/generate_thesis_table.py
-    python3 scripts/report/generate_thesis_table.py --out path/to/output.md
+    python3 scripts/report/generate_speedups.py
+    python3 scripts/report/generate_speedups.py --out path/to/output.md
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ TIERS = [
     {
         "label": "Table 2 — Tier 2 (Edge RVV)",
         "baseline_variant": "ref_vector",
-        "baseline_dir": _SCALAR_DIR,
+        "baseline_dir": _VECTOR_DIR,
         "champion_variant": "karatsuba_rvv",
         "champion_dir": _VECTOR_DIR,
         "note": "rv64gcv + Zbc/Zbb/Zbkb; AP-2 fixed-tree polymul, scalar Keccak",
@@ -52,7 +52,7 @@ TIERS = [
     {
         "label": "Table 3 — Tier 3 (High-End Zvbc)",
         "baseline_variant": "ref_vector",
-        "baseline_dir": _SCALAR_DIR,
+        "baseline_dir": _VECTOR_DIR,
         "champion_variant": "karatsuba_zvbc",
         "champion_dir": _VECTOR_DIR,
         "note": "rv64gcv + Zvbc/Zvbb/Zvl256b",
