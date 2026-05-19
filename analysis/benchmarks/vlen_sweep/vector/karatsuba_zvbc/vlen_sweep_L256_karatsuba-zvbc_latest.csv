@@ -1,0 +1,21 @@
+# date: 2026-05-19 14:38
+# commit: 6e7ef93
+# variant: karatsuba_zvbc
+# level: 256
+vlen,op,instructions
+256,keypair,697510
+256,encaps,1510430
+256,decaps,3600208
+256,total,5808148
+512,keypair,710262
+512,encaps,1532621
+512,decaps,3622983
+512,total,5865866
+1024,keypair,761798
+1024,encaps,1630825
+1024,decaps,4192006
+1024,total,6584629
+2048,keypair,841508
+2048,encaps,1783747
+2048,decaps,4397557
+2048,total,7022812

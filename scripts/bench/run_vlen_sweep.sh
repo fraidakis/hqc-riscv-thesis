@@ -4,8 +4,8 @@
 # per security level so each output file captures all VLEN points for one level.
 #
 # Output layout:
-#   analysis/benchmarks/vlen_sweep/vector/<variant>/level<L>_latest.csv
-#   analysis/benchmarks/vlen_sweep/vector/<variant>/archive/<timestamp>.csv
+#   analysis/benchmarks/vlen_sweep/vector/<variant>/vlen_sweep_L<level>_<variant-slug>_latest.csv
+#   analysis/benchmarks/vlen_sweep/vector/<variant>/archive/vlen_sweep_L<level>_<variant-slug>_<timestamp>.csv
 #
 # CSV schema: vlen,op,instructions
 #
@@ -31,6 +31,7 @@ VLENS=(256 512 1024 2048)
 VLEN_LIST_CMAKE="$(IFS=';'; echo "${VLENS[*]}")"
 
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+RUN_STAMP="$(date +'%Y-%m-%d_%H-%M')"
 
 MUL_FILTER=""
 LEVEL_FILTER="all"
@@ -176,9 +177,9 @@ for variant in "${VARIANTS[@]}"; do
     for level in "${selected_levels[@]}"; do
         out_dir="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${variant}"
         csv_latest="${out_dir}/vlen_sweep_L${level}_${variant_slug}_latest.csv"
-        csv_run="${out_dir}/vlen_sweep_L${level}_${variant_slug}_${GIT_HASH}_$(date +'%Y-%m-%d_%H-%M').csv"
-
-        tmp_csv="$(mktemp)"
+        csv_archive_basename="$(basename "${csv_latest/_latest.csv/_${RUN_STAMP}.csv}")"
+        tmp_csv="${out_dir}/${csv_archive_basename}"
+        mkdir -p "$out_dir"
 
         # Write metadata header + column header into temp CSV.
         {
@@ -254,7 +255,6 @@ for variant in "${VARIANTS[@]}"; do
 
         # Commit the temp CSV to the archival system.
         bench_refresh_tracked_csv "$tmp_csv" "$csv_latest" || true
-        cp -f "$csv_latest" "$csv_run" >/dev/null 2>&1 || true
         echo "  → ${csv_latest}"
     done
 done

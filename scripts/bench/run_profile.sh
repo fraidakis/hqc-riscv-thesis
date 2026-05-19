@@ -101,6 +101,13 @@ profile_cache_mode() {
     local BENCH_TIME
     BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
+    local level_tag="Lall"
+    if [[ "$LEVEL" != "all" ]]; then
+        level_tag="L${LEVEL}"
+    fi
+    local csv_out="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
+    local csv_latest="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
+
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
     echo "# commit: ${GIT_HASH}" >> "$csv_out"
     echo "# variant: ${variant}" >> "$csv_out"
@@ -121,13 +128,6 @@ profile_cache_mode() {
     else
         target_levels=("$LEVEL")
     fi
-
-    local level_tag="Lall"
-    if [[ "$LEVEL" != "all" ]]; then
-        level_tag="L${LEVEL}"
-    fi
-    local csv_out="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
-    local csv_latest="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
 
     # Isolated build dir per impl pairing — configure once, build per target.
     local build_dir="$REPO_ROOT/build/spike/cacheprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
@@ -211,6 +211,13 @@ profile_memory_mode() {
     local BENCH_TIME
     BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
+    local level_tag="Lall"
+    if [[ "$LEVEL" != "all" ]]; then
+        level_tag="L${LEVEL}"
+    fi
+    local csv_out="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
+    local csv_latest="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
+
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
     echo "# commit: ${GIT_HASH}" >> "$csv_out"
     echo "# variant: ${variant}" >> "$csv_out"
@@ -224,13 +231,6 @@ profile_memory_mode() {
     else
         target_levels=("$LEVEL")
     fi
-
-    local level_tag="Lall"
-    if [[ "$LEVEL" != "all" ]]; then
-        level_tag="L${LEVEL}"
-    fi
-    local csv_out="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
-    local csv_latest="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
 
     # Isolated build dir per impl pairing — configure once, build per target.
     # Pass impl flags so the correct keccak/decode sources are compiled.
