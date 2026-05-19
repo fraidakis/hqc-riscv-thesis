@@ -1,7 +1,0 @@
-# date: 2026-05-14 14:11
-# commit: 119de46
-# variant: karatsuba_zbc_nomemset
-level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1391,1395,7997,11947,125,187
-192,1494,1392,8391,12909,132,202
-256,1484,1366,8323,12778,131,200

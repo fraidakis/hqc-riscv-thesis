@@ -73,6 +73,7 @@ bench_print_level_branch() {
 
 profile_cache_mode() {
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
+    local variant_slug="${variant//_/-}"
     local dc_config="${DC_CONFIG:-512:8:64}"
     local profile_kind="KEM"
     local target_prefix="bench"
@@ -99,7 +100,6 @@ profile_cache_mode() {
 
     local BENCH_TIME
     BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
-    local csv_out="$out_dir/${out_prefix}_${BENCH_TIME}.csv"
 
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
     echo "# commit: ${GIT_HASH}" >> "$csv_out"
@@ -121,6 +121,13 @@ profile_cache_mode() {
     else
         target_levels=("$LEVEL")
     fi
+
+    local level_tag="Lall"
+    if [[ "$LEVEL" != "all" ]]; then
+        level_tag="L${LEVEL}"
+    fi
+    local csv_out="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
+    local csv_latest="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
 
     # Isolated build dir per impl pairing — configure once, build per target.
     local build_dir="$REPO_ROOT/build/spike/cacheprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
@@ -172,12 +179,13 @@ profile_cache_mode() {
         rm -f "$raw_stdout" "$raw_stderr"
     done
 
-    bench_refresh_tracked_csv "$csv_out" "${out_dir}/${out_prefix}_latest.csv" || true
+    bench_refresh_tracked_csv "$csv_out" "$csv_latest" || true
     echo ""
 }
 
 profile_memory_mode() {
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
+    local variant_slug="${variant//_/-}"
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
@@ -202,7 +210,6 @@ profile_memory_mode() {
 
     local BENCH_TIME
     BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
-    local csv_out="$out_dir/${out_prefix}_${BENCH_TIME}.csv"
 
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
     echo "# commit: ${GIT_HASH}" >> "$csv_out"
@@ -217,6 +224,13 @@ profile_memory_mode() {
     else
         target_levels=("$LEVEL")
     fi
+
+    local level_tag="Lall"
+    if [[ "$LEVEL" != "all" ]]; then
+        level_tag="L${LEVEL}"
+    fi
+    local csv_out="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
+    local csv_latest="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
 
     # Isolated build dir per impl pairing — configure once, build per target.
     # Pass impl flags so the correct keccak/decode sources are compiled.
@@ -293,12 +307,13 @@ END{printf "%d %d %d %d", lb, sb, li, si}
         rm -f "$qemu_log"
     done
 
-    bench_refresh_tracked_csv "$csv_out" "${out_dir}/${out_prefix}_latest.csv" || true
+    bench_refresh_tracked_csv "$csv_out" "$csv_latest" || true
     echo ""
 }
 
 profile_trace_mode() {
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
+    local variant_slug="${variant//_/-}"
     local track="scalar"
     local profile_kind="KEM"
     local target_prefix="bench"
@@ -382,9 +397,9 @@ profile_trace_mode() {
             fi
         fi
 
-        local csv_filename="${out_prefix}_hqc${level}_hotspots_${BENCH_TIME}.csv"
+        local csv_filename="trace_${out_prefix}_L${level}_${variant_slug}_hotspots_${BENCH_TIME}.csv"
         if [[ "$PROFILE_LINES" == "1" ]]; then
-            csv_filename="${out_prefix}_hqc${level}_lines_${BENCH_TIME}.csv"
+            csv_filename="trace_${out_prefix}_L${level}_${variant_slug}_lines_${BENCH_TIME}.csv"
         fi
         local csv_out="$out_dir/$csv_filename"
 
@@ -415,7 +430,7 @@ profile_trace_mode() {
             echo " ${branch} L${level} ⋯ generated trace in ${elapsed}s"
         fi
 
-        if ! bench_refresh_tracked_csv_quiet "$csv_out" "${out_dir}/${out_prefix}_hqc${level}_${trace_suffix}_latest.csv" >> "$latest_status_tmp"; then
+        if ! bench_refresh_tracked_csv_quiet "$csv_out" "${out_dir}/trace_${out_prefix}_L${level}_${variant_slug}_${trace_suffix}_latest.csv" >> "$latest_status_tmp"; then
             true
         fi
 
@@ -468,6 +483,7 @@ profile_histogram_mode() {
         track="scalar"
     fi
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
+    local variant_slug="${variant//_/-}"
     local out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${variant}"
 
     if ! bench_require_executable "$spike" "Spike not found"; then
@@ -511,7 +527,7 @@ profile_histogram_mode() {
         fi
 
         local hist="${out_dir}/${out_prefix}_hqc${level}_${variant}_hist.txt"
-        local mix_file="${out_dir}/${out_prefix}_hqc${level}_${BENCH_TIME}.csv"
+        local mix_file="${out_dir}/histogram_${out_prefix}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
         local objdump_bin="${RISCV:-$HOME/Thesis/installed-tools}/bin/llvm-objdump"
 
         "$spike" --isa="$isa" -g "$elf" >/dev/null 2> "$hist"
@@ -526,7 +542,7 @@ profile_histogram_mode() {
         local prefix=" ├──"
         if [[ "$idx" -eq "$total_levels" ]]; then prefix=" └──"; fi
         echo "${prefix} L${level} ⋯ $(basename "$mix_file")"
-        if ! bench_refresh_tracked_csv_quiet "$mix_file" "${out_dir}/${out_prefix}_hqc${level}_latest.csv" >> "$latest_status_tmp"; then
+        if ! bench_refresh_tracked_csv_quiet "$mix_file" "${out_dir}/histogram_${out_prefix}_L${level}_${variant_slug}_latest.csv" >> "$latest_status_tmp"; then
             true
         fi
         if [[ "$REPORT_FLAG" -eq 1 ]]; then

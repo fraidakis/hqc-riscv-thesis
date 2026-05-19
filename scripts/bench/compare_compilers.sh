@@ -139,13 +139,19 @@ run_for_variant() {
         levels=("$LEVEL")
     fi
 
-    local stamp out_dir track csv_out
+    local stamp out_dir track csv_out csv_latest variant_slug level_tag
     stamp="$(date +'%Y-%m-%d_%H-%M')"
+    variant_slug="${variant//_/-}"
+    level_tag="Lall"
+    if [[ -n "$LEVEL" ]]; then
+        level_tag="L${LEVEL}"
+    fi
     track="scalar"
     if [[ "$variant" == *"zvbc"* ]]; then track="vector"; fi
     out_dir="$REPO_ROOT/analysis/benchmarks/compiler_compare/${track}/${variant}"
     mkdir -p "$out_dir"
-    csv_out="${out_dir}/${stamp}.csv"
+    csv_out="${out_dir}/compiler_compare_${level_tag}_${variant_slug}_${stamp}.csv"
+    csv_latest="${out_dir}/compiler_compare_${level_tag}_${variant_slug}_latest.csv"
 
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
     echo "# commit: ${GIT_HASH}" >> "$csv_out"
@@ -171,7 +177,7 @@ run_for_variant() {
         done
     done
 
-    bench_refresh_tracked_csv "$csv_out" "${out_dir}/latest.csv" || true
+    bench_refresh_tracked_csv "$csv_out" "$csv_latest" || true
     echo ""
 }
 

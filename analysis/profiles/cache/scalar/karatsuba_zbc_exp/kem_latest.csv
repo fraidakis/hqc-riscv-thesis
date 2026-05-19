@@ -1,8 +1,0 @@
-# date: 2026-05-14 19:17
-# commit: 6a87af0
-# variant: karatsuba_zbc_exp
-# cache_config: 512:8:64
-level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-128,1286,82,1204,109,13372253,6521893,1972083,1159058
-192,3008,294,2714,726,31547880,17878399,4439823,2851896
-256,7007,1150,5857,3314,60557335,35227574,8395169,5386242

@@ -129,6 +129,80 @@ ownership shifts.
 
 ---
 
+### Discovery 7 — Why Larger VLEN Can Increase instret
+
+**Observation**: In VLEN sweeps, increasing runtime VLEN (e.g., 256 → 512 → 1024)
+does not guarantee lower instruction-retired counts for end-to-end KEM. In some
+cases, instret rises.
+
+**Interpretation**: This is not a Spike measurement bug by itself. It indicates
+that the current code path does not scale instruction efficiency with wider vector
+registers for those kernels.
+
+**Why this can happen in practice**:
+
+- **Fixed-width coding patterns**: Some RVV kernels are written around fixed
+	chunk sizes and constants tuned for VLEN=256. If loops, pack/unpack steps,
+	or lane management are not restructured for larger `vl`, wider vectors can
+	introduce extra setup/shuffle work without proportional amortization.
+
+- **VL-dependent control overhead**: `vsetvl`/boundary handling can change with
+	VLEN and LMUL choices. If tail paths or loop trip geometry become less aligned,
+	total dynamic instructions may increase.
+
+- **Whole-KEM composition effects**: End-to-end KEM includes keypair/encaps/decaps,
+	not only polymul. Even if polymul benefits slightly, non-scaling components
+	(hashing, decode glue, control code) can dominate and flatten or invert the
+	total-instret trend.
+
+- **Configuration-path sensitivity**: The RVV decoder path is currently unstable
+	for larger VLEN in this workflow, so VLEN sweeps pin decode to scalar `ref`
+	for stable polymul-centric comparison. This is a methodological choice to avoid
+	conflating decoder issues with polymul scaling.
+
+**Thesis takeaway**: "Bigger VLEN" is not automatically "fewer instructions".
+To realize gains, kernels must be explicitly VLEN-aware (loop structure,
+tiling, LMUL/SEW strategy, and data layout), and full-pipeline effects must be
+measured rather than inferred from a single hot function.
+
+**Concrete examples from this repo's workflow**:
+
+- `ref_vector` can show increasing KEM instret as VLEN grows (e.g., L128 run
+	often trends upward from VLEN=256 to 2048). This indicates that wider runtime
+	vector width does not map to fewer dynamic instructions for the current full
+	KEM path.
+
+- `karatsuba_rvv` with RVV decoder (`decode=rvv`) can hang for larger VLEN in
+	the full-KEM sweep path. For stable VLEN polymul scaling comparison, the sweep
+	pins `decode=ref` to isolate polymul effects from decoder instability.
+
+**How to make kernels more VLEN-agnostic (and when it helps)**:
+
+- **Strip-mined RVV loops everywhere**:
+	- Use `for (; n > 0; n -= vl) { vl = vsetvl(...); ... }` patterns.
+	- Avoid compile-time assumptions like "exactly 256-bit vectors" for loop body
+		shape and tail handling.
+
+- **Parameterize LMUL/SEW and tile geometry**:
+	- Keep data movement and arithmetic tiles derived from `vl` instead of fixed
+		constants tied to VLEN=256.
+	- Benchmark candidate `(SEW, LMUL)` points and keep per-kernel defaults.
+
+- **Reduce VLEN-sensitive overhead**:
+	- Minimize repeated `vsetvl` inside inner loops.
+	- Hoist invariant permutation/index vectors.
+	- Prefer contiguous vector loads/stores over gather/scatter where possible.
+
+- **Use multiversion + dispatcher when needed**:
+	- A single generic kernel is possible, but highest performance often needs
+		specialized paths (e.g., VLEN 256/512/1024 tuned variants) plus runtime
+		dispatch.
+
+**Practical conclusion**: VLEN-agnostic correctness is achievable; VLEN-agnostic
+peak performance usually requires either autotuning or multi-versioned kernels.
+
+---
+
 ## Open Questions
 
 - [ ] Does Zvbb-based Keccak (`zvbb_gather`) outperform scalar at VLEN=512? (Needs hardware measurement or RTL sim.)

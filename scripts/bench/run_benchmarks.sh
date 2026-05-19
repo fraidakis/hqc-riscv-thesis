@@ -192,6 +192,22 @@ format_int() {
     }'
 }
 
+format_int_dot() {
+    local n="${1:-0}"
+    if [[ ! "$n" =~ ^[0-9]+$ ]]; then
+        echo "$n"
+        return
+    fi
+    awk -v n="$n" 'BEGIN {
+        out = ""
+        while (n >= 1000) {
+            out = sprintf(".%03d", n % 1000) out
+            n = int(n / 1000)
+        }
+        printf "%d%s", n, out
+    }'
+}
+
 # Parse raw Spike output into clean CSV format.
 # Arguments: raw_log csv_out level codesize
 #   raw_log: raw Spike output file
@@ -207,12 +223,22 @@ parse_spike_to_csv() {
             op = $1
             instructions = $7
             printf "%s,%s,%s,%s\n", level, op, instructions, codesize >> csv_out
+            if (op == "keypair" || op == "encaps" || op == "decaps") {
+                total += instructions
+                kem_rows++
+            }
+        }
+        END {
+            if (kem_rows > 0) {
+                printf "%s,total,%s,%s\n", level, total, codesize >> csv_out
+            }
         }
     ' csv_out="$csv_out" "$raw_log"
 }
 
 run_isolated_mode() {
     local variant="${MUL_VARIANT}"
+    local variant_slug="${variant//_/-}"
 
     # Determine track type and output directory
     local track="scalar"
@@ -238,7 +264,7 @@ run_isolated_mode() {
     fi
 
     # Single CSV file per run containing all levels and variants
-    local csv="${out_dir}/${kind}_${BENCH_TIME}.csv"
+    local csv="${out_dir}/isolated_${kind}_${variant_slug}_${BENCH_TIME}.csv"
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv"
     echo "# commit: ${GIT_HASH}" >> "$csv"
     echo "# variant: ${variant}" >> "$csv"
@@ -296,12 +322,28 @@ run_isolated_mode() {
 
         local ins_str=""
         if [[ "$DO_KEM" -eq 1 ]]; then
-            local kp=$(awk -F',' '/^keypair,/ {print $7}' "$tmp_log" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')
-            local enc=$(awk -F',' '/^encaps,/ {print $7}' "$tmp_log" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')
-            local dec=$(awk -F',' '/^decaps,/ {print $7}' "$tmp_log" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')
-            ins_str="Kp: ${kp} | Enc: ${enc} | Dec: ${dec}"
+            local kp_raw enc_raw dec_raw total
+            kp_raw="$(awk -F',' '/^keypair,/ {print $7; exit}' "$tmp_log")"
+            enc_raw="$(awk -F',' '/^encaps,/ {print $7; exit}' "$tmp_log")"
+            dec_raw="$(awk -F',' '/^decaps,/ {print $7; exit}' "$tmp_log")"
+
+            kp_raw="${kp_raw:-0}"
+            enc_raw="${enc_raw:-0}"
+            dec_raw="${dec_raw:-0}"
+            total=$((kp_raw + enc_raw + dec_raw))
+
+            local kp enc dec total_fmt
+            kp="$(format_int_dot "$kp_raw")"
+            enc="$(format_int_dot "$enc_raw")"
+            dec="$(format_int_dot "$dec_raw")"
+            total_fmt="$(format_int_dot "$total")"
+
+            ins_str="$(printf 'Kp: %11s | Enc: %11s | Dec: %11s | Total: %11s' "$kp" "$enc" "$dec" "$total_fmt")"
         else
-            local vm=$(awk -F',' '/^vect_mul,/ {print $7}' "$tmp_log" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1.\2/;ta')
+            local vm_raw vm
+            vm_raw="$(awk -F',' '/^vect_mul,/ {print $7; exit}' "$tmp_log")"
+            vm_raw="${vm_raw:-0}"
+            vm="$(format_int_dot "$vm_raw")"
             ins_str="${vm} instructions"
         fi
 
@@ -312,7 +354,7 @@ run_isolated_mode() {
     done
 
     echo ""
-    bench_refresh_tracked_csv "$csv" "${out_dir}/${kind}_latest.csv" || true
+    bench_refresh_tracked_csv "$csv" "${out_dir}/isolated_${kind}_${variant_slug}_latest.csv" || true
 }
 
 run_suite_mode() {
@@ -335,11 +377,15 @@ run_suite_mode() {
     run_root="${REPO_ROOT}/analysis/benchmarks/suites/${RUN_ID}"
     mkdir -p "$run_root"
 
+    local suite_variant_slug
+    suite_variant_slug="$(bench_sanitize_label "${MUL_VARIANT:-all}")"
+    suite_variant_slug="${suite_variant_slug//_/-}"
+
     local vect_mul_csv keypair_csv encaps_csv decaps_csv
-    vect_mul_csv="${run_root}/vect_mul.csv"
-    keypair_csv="${run_root}/keypair.csv"
-    encaps_csv="${run_root}/encaps.csv"
-    decaps_csv="${run_root}/decaps.csv"
+    vect_mul_csv="${run_root}/suite_vect-mul_Lall_${suite_variant_slug}.csv"
+    keypair_csv="${run_root}/suite_keypair_Lall_${suite_variant_slug}.csv"
+    encaps_csv="${run_root}/suite_encaps_Lall_${suite_variant_slug}.csv"
+    decaps_csv="${run_root}/suite_decaps_Lall_${suite_variant_slug}.csv"
 
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$vect_mul_csv"
     echo "# commit: ${GIT_HASH}" >> "$vect_mul_csv"

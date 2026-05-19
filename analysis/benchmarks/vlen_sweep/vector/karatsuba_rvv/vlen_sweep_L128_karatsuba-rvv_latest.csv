@@ -1,0 +1,21 @@
+# date: 2026-05-19 14:12
+# commit: 19bab15
+# variant: karatsuba_rvv
+# level: 128
+vlen,op,instructions
+256,keypair,298707
+256,encaps,621513
+256,decaps,1403417
+256,total,2323637
+512,keypair,299504
+512,encaps,619502
+512,decaps,1396738
+512,total,2315744
+1024,keypair,312665
+1024,encaps,641624
+1024,decaps,1646486
+1024,total,2600775
+2048,keypair,317878
+2048,encaps,670517
+2048,decaps,1681848
+2048,total,2670243

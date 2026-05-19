@@ -1,6 +1,0 @@
-# date: 2026-05-19 11:53
-# commit: 5dd3ace
-# variant: karatsuba_rvv
-# level: 128
-level,vlen,op,instructions
-128,256,total_kem,0

@@ -1,7 +1,0 @@
-# date: 2026-05-18 14:52
-# commit: 49d2258
-# variant: ref_full_crypto
-level,op,instructions,codesize
-128,vect_mul,18527412,3840
-192,vect_mul,56315140,3884
-256,vect_mul,139115660,3884

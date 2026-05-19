@@ -1,7 +1,0 @@
-# date: 2026-05-16 17:03
-# commit: 0e193aa
-# variant: karatsuba_ref
-level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1737,1841,12028,17637,188,276
-192,1830,1852,12224,18655,191,292
-256,2025,1979,13879,19843,217,311
