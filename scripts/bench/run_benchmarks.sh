@@ -252,7 +252,13 @@ run_single_mode() {
     echo "# variant: ${variant}" >> "$csv"
     echo "level,op,instructions,codesize" >> "$csv"
 
-    echo -e "\n📦 ${variant} (${MODE})"
+    if [[ "$MODE" == "keccak" ]]; then
+        echo -e "\n📦 keccak_${KECCAK_IMPL} (isolated)"
+    elif [[ "$MODE" == "decode" ]]; then
+        echo -e "\n📦 decode_${DECODE_IMPL} (isolated)"
+    else
+        echo -e "\n📦 ${variant} (${MODE})"
+    fi
 
     # Loop through security levels
     for level in 128 192 256; do
@@ -267,12 +273,12 @@ run_single_mode() {
                 target="bench_polymul_hqc${level}_${variant}"
                 ;;
             keccak)
-                elf="${BUILD_DIR}/bench_keccak_hqc${level}_${variant}.elf"
-                target="bench_keccak_hqc${level}_${variant}"
+                elf="${BUILD_DIR}/bench_keccak_hqc${level}.elf"
+                target="bench_keccak_hqc${level}"
                 ;;
             decode)
-                elf="${BUILD_DIR}/bench_decode_hqc${level}_${variant}.elf"
-                target="bench_decode_hqc${level}_${variant}"
+                elf="${BUILD_DIR}/bench_decode_hqc${level}.elf"
+                target="bench_decode_hqc${level}"
                 ;;
         esac
 
