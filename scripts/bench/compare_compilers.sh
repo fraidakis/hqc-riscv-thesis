@@ -17,7 +17,8 @@ LEVEL=""
 
 RISCV="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
+ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
+SPIKE_TIMEOUT_SEC="${SPIKE_TIMEOUT_SEC:-30}"
 
 if [[ ! -x "$SPIKE" ]]; then
     echo "[compare_compilers] ERROR: Spike not found at $SPIKE" >&2
@@ -80,7 +81,9 @@ run_one() {
         -DCMAKE_TOOLCHAIN_FILE="$REPO_ROOT/$toolchain" \
         -DRISCV="$RISCV" \
         -DRISCV_OPT_LEVEL="-${opt}" \
-        -DHQC_SIM=spike >/dev/null 2>&1; then
+        -DHQC_SIM=spike \
+        -DHQC_KECCAK_IMPL="${KECCAK_IMPL}" \
+        -DHQC_DECODE_IMPL="${DECODE_IMPL}" >/dev/null 2>&1; then
         echo "${compiler},-${opt},${level},${variant},FAIL,,,,cmake_configure_failed" >> "$csv_out"
         echo "FAIL"
         return 1
@@ -97,10 +100,23 @@ run_one() {
     run_out="$build_dir/${target}.stdout"
     run_err="$build_dir/${target}.stderr"
 
-    if ! "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2> "$run_err"; then
-        echo "${compiler},-${opt},${level},${variant},FAIL,,,${elf},spike_run_failed" >> "$csv_out"
-        echo "FAIL"
-        return 1
+    if command -v timeout >/dev/null 2>&1; then
+        if ! timeout "${SPIKE_TIMEOUT_SEC}s" "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2> "$run_err"; then
+            local rc="$?"
+            local err_tag="spike_run_failed"
+            if [[ "$rc" -eq 124 ]]; then
+                err_tag="spike_run_timeout"
+            fi
+            echo "${compiler},-${opt},${level},${variant},FAIL,,,${elf},${err_tag}" >> "$csv_out"
+            echo "FAIL"
+            return 1
+        fi
+    else
+        if ! "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2> "$run_err"; then
+            echo "${compiler},-${opt},${level},${variant},FAIL,,,${elf},spike_run_failed" >> "$csv_out"
+            echo "FAIL"
+            return 1
+        fi
     fi
     instret="$(awk -F',' '($1=="keypair" || $1=="encaps" || $1=="decaps") {sum += $7} END {print sum + 0}' "$run_out")"
 
