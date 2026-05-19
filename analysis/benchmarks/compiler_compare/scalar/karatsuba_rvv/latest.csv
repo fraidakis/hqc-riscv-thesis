@@ -1,0 +1,21 @@
+# date: 2026-05-19 09:05
+# commit: e684ed8
+compiler,opt,level,variant,status,instructions,text_bytes,elf,error
+clang,-O2,128,karatsuba_rvv,OK,2394199,46176,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc128_karatsuba_rvv/bench_hqc128_karatsuba_rvv.elf,
+clang,-O3,128,karatsuba_rvv,OK,2394221,47068,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc128_karatsuba_rvv/bench_hqc128_karatsuba_rvv.elf,
+clang,-Os,128,karatsuba_rvv,OK,2456752,45182,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc128_karatsuba_rvv/bench_hqc128_karatsuba_rvv.elf,
+gcc,-O2,128,karatsuba_rvv,OK,3077283,26200,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc128_karatsuba_rvv/bench_hqc128_karatsuba_rvv.elf,
+gcc,-O3,128,karatsuba_rvv,OK,3061075,26998,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc128_karatsuba_rvv/bench_hqc128_karatsuba_rvv.elf,
+gcc,-Os,128,karatsuba_rvv,OK,3092508,25926,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc128_karatsuba_rvv/bench_hqc128_karatsuba_rvv.elf,
+clang,-O2,192,karatsuba_rvv,OK,5562136,47980,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc192_karatsuba_rvv/bench_hqc192_karatsuba_rvv.elf,
+clang,-O3,192,karatsuba_rvv,OK,5562156,48862,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc192_karatsuba_rvv/bench_hqc192_karatsuba_rvv.elf,
+clang,-Os,192,karatsuba_rvv,OK,5647850,46986,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc192_karatsuba_rvv/bench_hqc192_karatsuba_rvv.elf,
+gcc,-O2,192,karatsuba_rvv,OK,6886380,29598,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc192_karatsuba_rvv/bench_hqc192_karatsuba_rvv.elf,
+gcc,-O3,192,karatsuba_rvv,OK,6863428,30396,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc192_karatsuba_rvv/bench_hqc192_karatsuba_rvv.elf,
+gcc,-Os,192,karatsuba_rvv,OK,6907014,29286,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc192_karatsuba_rvv/bench_hqc192_karatsuba_rvv.elf,
+clang,-O2,256,karatsuba_rvv,OK,14079167,53472,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O2_hqc256_karatsuba_rvv/bench_hqc256_karatsuba_rvv.elf,
+clang,-O3,256,karatsuba_rvv,OK,14079187,54360,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_O3_hqc256_karatsuba_rvv/bench_hqc256_karatsuba_rvv.elf,
+clang,-Os,256,karatsuba_rvv,OK,14251449,52480,/home/fraidakisg/Thesis/hqc-riscv/build/compare_clang_Os_hqc256_karatsuba_rvv/bench_hqc256_karatsuba_rvv.elf,
+gcc,-O2,256,karatsuba_rvv,OK,13164354,34516,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O2_hqc256_karatsuba_rvv/bench_hqc256_karatsuba_rvv.elf,
+gcc,-O3,256,karatsuba_rvv,OK,13132770,35314,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_O3_hqc256_karatsuba_rvv/bench_hqc256_karatsuba_rvv.elf,
+gcc,-Os,256,karatsuba_rvv,OK,13208392,34226,/home/fraidakisg/Thesis/hqc-riscv/build/compare_gcc_Os_hqc256_karatsuba_rvv/bench_hqc256_karatsuba_rvv.elf,

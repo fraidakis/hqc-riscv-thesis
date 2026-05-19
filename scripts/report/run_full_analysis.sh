@@ -311,7 +311,7 @@ run_variant_analysis() {
 
     echo ""
     echo "============================================================"
-    echo "  STARTING FULL ANALYSIS: ${MUL_VARIANT}"
+    echo "         STARTING FULL ANALYSIS: ${MUL_VARIANT}"
     echo "============================================================"
     echo ""
 

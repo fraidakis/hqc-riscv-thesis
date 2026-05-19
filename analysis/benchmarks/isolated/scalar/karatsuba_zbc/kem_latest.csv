@@ -1,5 +1,5 @@
-# date: 2026-05-18 10:00
-# commit: 6aaea37
+# date: 2026-05-19 00:24
+# commit: 0812c6c
 # variant: karatsuba_zbc
 level,op,instructions,codesize
 128,keypair,458121,47398
