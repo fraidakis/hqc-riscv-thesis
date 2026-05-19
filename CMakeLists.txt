@@ -436,7 +436,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
 
         add_executable(${POLYMUL_BENCH_TARGET} EXCLUDE_FROM_ALL
             ${STARTUP_S}
-            ${CMAKE_SOURCE_DIR}/tests/bench/bench_poly_mul.c
+            ${CMAKE_SOURCE_DIR}/tests/bench/bench_mul.c
             ${CMAKE_SOURCE_DIR}/src/common/bench.c
             ${POLYMUL_SOURCES}
             ${CMAKE_SOURCE_DIR}/sim/common/mem.c
@@ -480,6 +480,109 @@ foreach(LEVEL ${SECURITY_LEVELS})
             COMMENT "Running ${POLYMUL_BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
         )
 
+        # KECCAK MICRO-BENCH target  (bench_keccak_hqc${LEVEL}_${POLYMUL}) ───
+        # Benchmarks one SHAKE-256 absorb + squeezeblocks call in isolation.
+        # Use for Amdahl's Law analysis of the Keccak bottleneck.
+        #   cmake --build build --target bench_keccak_hqc128_ref_scalar
+        set(KECCAK_BENCH_TARGET "bench_keccak_hqc${LEVEL}_${POLYMUL}")
+
+        add_executable(${KECCAK_BENCH_TARGET} EXCLUDE_FROM_ALL
+            ${STARTUP_S}
+            ${CMAKE_SOURCE_DIR}/tests/bench/bench_keccak.c
+            ${CMAKE_SOURCE_DIR}/src/common/bench.c
+            ${VARIANT_KECCAK_SOURCES}
+            ${CMAKE_SOURCE_DIR}/sim/common/mem.c
+        )
+        target_include_directories(${KECCAK_BENCH_TARGET} BEFORE PRIVATE
+            ${HQC_REF}/src/common/${VARIANT}
+            ${HQC_REF}/src/ref/${VARIANT}
+            ${HQC_REF}/src/common
+            ${HQC_REF}/lib/fips202
+            ${CMAKE_SOURCE_DIR}/src/common
+            ${KECCAK_INCLUDE_DIRS}
+        )
+        target_compile_definitions(${KECCAK_BENCH_TARGET} PRIVATE
+            HQC_BENCH_MODE=1
+            SECURITY_LEVEL=${LEVEL}
+            HQC_${LEVEL}
+            ${SIM_DEFINES}
+            N_ITER=${BENCH_N_ITER}
+            KECCAK_NAME="${HQC_KECCAK_IMPL}"
+        )
+        if(VARIANT_COMPILE_OPTIONS)
+            target_compile_options(${KECCAK_BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
+        endif()
+        set_target_properties(${KECCAK_BENCH_TARGET} PROPERTIES
+            SUFFIX ".elf"
+            LINK_DEPENDS "${LINKER_SCRIPT}"
+        )
+        target_link_options(${KECCAK_BENCH_TARGET} PRIVATE
+            "-T${LINKER_SCRIPT}"
+            "-Wl,-Map=${CMAKE_BINARY_DIR}/${KECCAK_BENCH_TARGET}.map"
+        )
+        if(VARIANT_REF_PROFILE)
+            hqc_apply_ref_lto_pgo(${KECCAK_BENCH_TARGET})
+        endif()
+        add_custom_target(run_${KECCAK_BENCH_TARGET}
+            COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${KECCAK_BENCH_TARGET}>
+            DEPENDS ${KECCAK_BENCH_TARGET}
+            USES_TERMINAL
+            COMMENT "Running ${KECCAK_BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
+        )
+
+        # DECODE MICRO-BENCH target  (bench_decode_hqc${LEVEL}_${POLYMUL}) ───
+        # Benchmarks reed_muller_decode + reed_solomon_decode in isolation.
+        # Use for Amdahl's Law analysis of the decode bottleneck.
+        #   cmake --build build --target bench_decode_hqc128_ref_scalar
+        set(DECODE_BENCH_TARGET "bench_decode_hqc${LEVEL}_${POLYMUL}")
+
+        add_executable(${DECODE_BENCH_TARGET} EXCLUDE_FROM_ALL
+            ${STARTUP_S}
+            ${CMAKE_SOURCE_DIR}/tests/bench/bench_decode.c
+            ${CMAKE_SOURCE_DIR}/src/common/bench.c
+            ${VARIANT_DECODE_SOURCES}
+            ${HQC_REF}/src/common/fft.c
+            ${HQC_REF}/src/ref/gf.c
+            ${HQC_REF}/src/common/crypto_memset.c
+            ${CMAKE_SOURCE_DIR}/sim/common/mem.c
+            ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
+        )
+        target_include_directories(${DECODE_BENCH_TARGET} BEFORE PRIVATE
+            ${HQC_REF}/src/common/${VARIANT}
+            ${HQC_REF}/src/ref/${VARIANT}
+            ${HQC_REF}/src/ref
+            ${HQC_REF}/src/common
+            ${CMAKE_SOURCE_DIR}/src/common
+        )
+        target_compile_definitions(${DECODE_BENCH_TARGET} PRIVATE
+            HQC_BENCH_MODE=1
+            SECURITY_LEVEL=${LEVEL}
+            HQC_${LEVEL}
+            ${SIM_DEFINES}
+            N_ITER=${BENCH_N_ITER}
+            DECODE_NAME="${HQC_DECODE_IMPL}"
+        )
+        if(VARIANT_COMPILE_OPTIONS)
+            target_compile_options(${DECODE_BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
+        endif()
+        set_target_properties(${DECODE_BENCH_TARGET} PROPERTIES
+            SUFFIX ".elf"
+            LINK_DEPENDS "${LINKER_SCRIPT}"
+        )
+        target_link_options(${DECODE_BENCH_TARGET} PRIVATE
+            "-T${LINKER_SCRIPT}"
+            "-Wl,-Map=${CMAKE_BINARY_DIR}/${DECODE_BENCH_TARGET}.map"
+        )
+        if(VARIANT_REF_PROFILE)
+            hqc_apply_ref_lto_pgo(${DECODE_BENCH_TARGET})
+        endif()
+        add_custom_target(run_${DECODE_BENCH_TARGET}
+            COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${DECODE_BENCH_TARGET}>
+            DEPENDS ${DECODE_BENCH_TARGET}
+            USES_TERMINAL
+            COMMENT "Running ${DECODE_BENCH_TARGET} with HQC_SIM=${HQC_SIM}"
+        )
+
         # ── Per-VLEN vector-variant targets (P-02 multi-VLEN matrix) ─────────
         # For each variant that contains RVV code, generate a distinct
         # bench_polymul ELF per entry in VLEN_LIST.  The ELFs are compiled with
@@ -493,7 +596,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
 
                 add_executable(${VLEN_BENCH_TARGET} EXCLUDE_FROM_ALL
                     ${STARTUP_S}
-                    ${CMAKE_SOURCE_DIR}/tests/bench/bench_poly_mul.c
+                    ${CMAKE_SOURCE_DIR}/tests/bench/bench_mul.c
                     ${CMAKE_SOURCE_DIR}/src/common/bench.c
                     ${POLYMUL_SOURCES}
                     ${CMAKE_SOURCE_DIR}/sim/common/mem.c

@@ -2,15 +2,17 @@
 # scripts/bench/run_benchmarks.sh
 # Unified Spike benchmark runner.
 #
-# Modes:
-#   --isolated : foreground polymul micro-benchmark (formerly async mode)
-#   --suite    : synchronous suite mode (formerly run_spike_suite_sync.sh)
+# Modes (--mode <mode>):
+#   mul     : polynomial-multiply micro-benchmark (default)
+#   kem     : full KEM (keypair / encaps / decaps) benchmark
+#   keccak  : SHAKE-256 micro-benchmark
+#   decode  : Reed-Muller + Reed-Solomon decode micro-benchmark
+#   suite   : run all variants across all ops and write per-op CSVs
 #
-# Isolated usage:
-#   run_benchmarks.sh --isolated [<bench_set>] [--mul <regex>] [--keccak <impl>] [--decode <impl>]
-#
-# Suite usage:
-#   run_benchmarks.sh --suite [--run-id ID] [--levels "128 192 256"]
+# Usage:
+#   run_benchmarks.sh [--mode <mul|kem|keccak|decode>] [--mul <variant>]
+#                     [--keccak <ref|opt>] [--decode <ref|opt>]
+#   run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
 #                     [--mul <regex>] [--promote NAME]
 
 set -euo pipefail
@@ -33,11 +35,7 @@ BUILD_DIR="${REPO_ROOT}/build/spike/bench_k${KECCAK_IMPL}_d${DECODE_IMPL}"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
 # Shared/default flags.
-MODE="isolated"
-
-# Isolated mode flags.
-BENCH_SET=""
-DO_KEM=0
+MODE="mul"
 
 # Suite mode flags.
 RUN_ID=""
@@ -46,69 +44,37 @@ LEVELS="128 192 256"
 PROMOTE_FLAG=0
 PROMOTE_NAME=""
 
-# Benchmark set mappings (isolated mode).
-declare -A BENCH_SET_VARIANT_MAP
-BENCH_SET_VARIANT_MAP=(
-    [baseline_ref]="ref_scalar"
-    [baseline_ref_vector]="ref_vector"
-    [polymul_zbc]="karatsuba_zbc"
-    [fafft_zbc]="fafft_zbc"
-    [hybrid]="hybrid"
-    [hybrid_zbc]="hybrid"
-    [hybrid_zbc_v2]="hybrid"
-    [hybrid_2way_zbc]="hybrid"
-    [polymul_zvbc]="karatsuba_zvbc"
-    [polymul_zvbc_v2]="karatsuba_zvbc"
-)
-
-declare -A BENCH_SET_TRACK_MAP
-BENCH_SET_TRACK_MAP=(
-    [baseline_ref]="scalar"
-    [polymul_zbc]="scalar"
-    [fafft_zbc]="scalar"
-    [hybrid]="scalar"
-    [hybrid_zbc]="scalar"
-    [hybrid_zbc_v2]="scalar"
-    [hybrid_2way_zbc]="scalar"
-    [polymul_zvbc]="vector"
-    [polymul_zvbc_v2]="vector"
-    [fafft_zvbc]="vector"
-)
-
 usage() {
     cat <<'EOF'
 Usage:
-    run_benchmarks.sh --isolated [<bench_set>] [--mul <regex>] [--keccak <impl>] [--decode <impl>] [--kem]
-    run_benchmarks.sh --suite [--run-id ID] [--level "128 192 256"]
-                    [--mul <regex>] [--promote NAME]
+    run_benchmarks.sh [--mode <mul|kem|keccak|decode>] [--mul <variant>]
+                      [--keccak <ref|opt>] [--decode <ref|opt>]
+    run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
+                      [--mul <regex>] [--promote NAME]
 
 Modes:
-  isolated  Run polymul micro-benchmarks (or full KEM with --kem) synchronously in the foreground.
-  suite     Run polymul + KEM benchmarks synchronously and write per-op summaries.
+  mul     Polynomial-multiply micro-benchmark (default)
+  kem     Full KEM (keypair/encaps/decaps) benchmark
+  keccak  SHAKE-256 micro-benchmark
+  decode  Reed-Muller + Reed-Solomon decode micro-benchmark
+  suite   Run all ops for all variants and write per-op CSVs
 EOF
 }
 
 # Parse args.
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --isolated)
-            MODE="isolated"
-            shift 1
-            ;;
-        --suite)
-            MODE="suite"
-            shift 1
+        --mode)
+            MODE="$2"
+            shift 2
             ;;
         --variant|--mul)
             MUL_VARIANT="$2"
             shift 2
             ;;
         --keccak|--decode)
+            # Already consumed by bench_parse_track_args above; skip here.
             shift 2
-            ;;
-        --kem)
-            DO_KEM=1
-            shift
             ;;
         --run-id)
             RUN_ID="$2"
@@ -143,21 +109,15 @@ while [[ $# -gt 0 ]]; do
             exit 2
             ;;
         *)
-            # Positional bench_set for isolated mode.
-            if [[ -z "$BENCH_SET" ]]; then
-                BENCH_SET="$1"
-                shift
-            else
-                echo "ERROR: Unexpected positional argument: $1" >&2
-                usage >&2
-                exit 2
-            fi
+            echo "ERROR: Unexpected positional argument: $1" >&2
+            usage >&2
+            exit 2
             ;;
     esac
 done
 
-if [[ "$MODE" != "isolated" && "$MODE" != "suite" ]]; then
-    echo "ERROR: mode must be 'isolated' or 'suite'" >&2
+if [[ "$MODE" != "mul" && "$MODE" != "kem" && "$MODE" != "keccak" && "$MODE" != "decode" && "$MODE" != "suite" ]]; then
+    echo "ERROR: --mode must be one of: mul, kem, keccak, decode, suite" >&2
     usage >&2
     exit 2
 fi
@@ -219,7 +179,7 @@ parse_spike_to_csv() {
 
     # Parse raw log and append clean rows
     awk -F',' -v level="$level" -v codesize="$codesize" '
-        /^(vect_mul|keypair|encaps|decaps),/ {
+        /^(vect_mul|keccak|decode|keypair|encaps|decaps),/ {
             op = $1
             instructions = $7
             printf "%s,%s,%s,%s\n", level, op, instructions, codesize >> csv_out
@@ -236,52 +196,66 @@ parse_spike_to_csv() {
     ' csv_out="$csv_out" "$raw_log"
 }
 
-run_isolated_mode() {
+run_single_mode() {
     local variant="${MUL_VARIANT}"
     local variant_slug="${variant//_/-}"
 
-    # Determine track type and output directory
+    # Determine track type (scalar / vector) for mul/kem output dirs
     local track
     track="$(bench_variant_track "$variant")"
 
-    # Use variant filter or derive from first matched variant
-    local variant_label first_variant
+    local variant_label
     if [[ -z "$variant" ]]; then
         variant_label="all"
     else
         variant_label="$(bench_sanitize_label "${variant}")"
     fi
 
-    local out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${track}/${variant_label}"
+    # Determine output directory based on MODE
+    local out_dir
+    case "$MODE" in
+        mul|kem)
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${track}/${variant_label}"
+            ;;
+        keccak)
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/keccak/k${KECCAK_IMPL}"
+            ;;
+        decode)
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/decode/d${DECODE_IMPL}"
+            ;;
+    esac
     mkdir -p "$out_dir"
 
-    # Determine operation kind for file naming
-    local kind="polymul"
-    if [[ "$DO_KEM" -eq 1 ]]; then
-        kind="kem"
-    fi
-
-    # Single CSV file per run containing all levels and variants
-    local csv="${out_dir}/isolated_${kind}_${variant_slug}_${BENCH_TIME}.csv"
+    # Single CSV file per run containing all levels
+    local csv="${out_dir}/isolated_${MODE}_${variant_slug}_${BENCH_TIME}.csv"
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv"
     echo "# commit: ${GIT_HASH}" >> "$csv"
     echo "# variant: ${variant}" >> "$csv"
     echo "level,op,instructions,codesize" >> "$csv"
 
-    echo -e "\n📦 ${variant} (${kind})"
+    echo -e "\n📦 ${variant} (${MODE})"
 
     # Loop through security levels
     for level in 128 192 256; do
-        local elf target run_kind
-        if [[ $DO_KEM -eq 1 ]]; then
-            elf="${BUILD_DIR}/bench_hqc${level}_${variant}.elf"
-            target="bench_hqc${level}_${variant}"
-            run_kind="kem"
-        else
-            elf="${BUILD_DIR}/bench_polymul_hqc${level}_${variant}.elf"
-            target="bench_polymul_hqc${level}_${variant}"
-            run_kind="polymul"
-        fi
+        local elf target
+        case "$MODE" in
+            kem)
+                elf="${BUILD_DIR}/bench_hqc${level}_${variant}.elf"
+                target="bench_hqc${level}_${variant}"
+                ;;
+            mul)
+                elf="${BUILD_DIR}/bench_polymul_hqc${level}_${variant}.elf"
+                target="bench_polymul_hqc${level}_${variant}"
+                ;;
+            keccak)
+                elf="${BUILD_DIR}/bench_keccak_hqc${level}_${variant}.elf"
+                target="bench_keccak_hqc${level}_${variant}"
+                ;;
+            decode)
+                elf="${BUILD_DIR}/bench_decode_hqc${level}_${variant}.elf"
+                target="bench_decode_hqc${level}_${variant}"
+                ;;
+        esac
 
         bench_build_target_if_configured "$BUILD_DIR" "$target" "bench" || continue
         if ! bench_auto_configure_and_build "$BUILD_DIR" "$REPO_ROOT" "$target" "spike" "0" "bench"; then
@@ -319,7 +293,7 @@ run_isolated_mode() {
         parse_spike_to_csv "$tmp_log" "$csv" "$level" "$text_bytes"
 
         local ins_str=""
-        if [[ "$DO_KEM" -eq 1 ]]; then
+        if [[ "$MODE" == "kem" ]]; then
             local kp_raw enc_raw dec_raw total
             kp_raw="$(awk -F',' '/^keypair,/ {print $7; exit}' "$tmp_log")"
             enc_raw="$(awk -F',' '/^encaps,/ {print $7; exit}' "$tmp_log")"
@@ -339,7 +313,11 @@ run_isolated_mode() {
             ins_str="$(printf 'Kp: %11s | Enc: %11s | Dec: %11s | Total: %11s' "$kp" "$enc" "$dec" "$total_fmt")"
         else
             local vm_raw vm
-            vm_raw="$(awk -F',' '/^vect_mul,/ {print $7; exit}' "$tmp_log")"
+            case "$MODE" in
+                mul)    vm_raw="$(awk -F',' '/^vect_mul,/ {print $7; exit}' "$tmp_log")" ;;
+                keccak) vm_raw="$(awk -F',' '/^keccak,/   {print $7; exit}' "$tmp_log")" ;;
+                decode) vm_raw="$(awk -F',' '/^decode,/   {print $7; exit}' "$tmp_log")" ;;
+            esac
             vm_raw="${vm_raw:-0}"
             vm="$(format_int_dot "$vm_raw")"
             ins_str="${vm} instructions"
@@ -352,7 +330,7 @@ run_isolated_mode() {
     done
 
     echo ""
-    bench_refresh_tracked_csv "$csv" "${out_dir}/isolated_${kind}_${variant_slug}_latest.csv" || true
+    bench_refresh_tracked_csv "$csv" "${out_dir}/isolated_${MODE}_${variant_slug}_latest.csv" || true
 }
 
 run_suite_mode() {
@@ -566,36 +544,18 @@ run_suite_mode() {
 }
 
 case "$MODE" in
-    isolated)
+    mul|kem|keccak|decode)
         if [[ "${MUL_VARIANT:-}" == "all" ]]; then
             if ! command -v parallel >/dev/null 2>&1; then
-                echo "ERROR: GNU parallel is required for --isolated --variant all" >&2
+                echo "ERROR: GNU parallel is required for --mul all" >&2
                 echo "       Install parallel and retry" >&2
                 exit 2
             fi
 
             declare -a cmds=()
-            v=""
-            cmd=""
-            bench_set_arg=""
-            kem_arg=""
-            if [[ -n "${BENCH_SET:-}" ]]; then
-                bench_set_arg="${BENCH_SET}"
-            fi
-            if [[ "$DO_KEM" -eq 1 ]]; then
-                kem_arg="--kem"
-            fi
-
+            local_mode="$MODE"
             for v in "${IMPLEMENTED_VARIANTS[@]}"; do
-                cmd="${SCRIPT_DIR}/run_benchmarks.sh --isolated"
-                if [[ -n "$bench_set_arg" ]]; then
-                    cmd+=" ${bench_set_arg}"
-                fi
-                if [[ -n "$kem_arg" ]]; then
-                    cmd+=" ${kem_arg}"
-                fi
-                cmd+=" --mul ${v}"
-                cmds+=("$cmd")
+                cmds+=("${SCRIPT_DIR}/run_benchmarks.sh --mode ${local_mode} --mul ${v}")
             done
 
             printf '%s\n' "${cmds[@]}" | parallel --jobs 4
@@ -605,7 +565,7 @@ case "$MODE" in
                 echo "ERROR: Variant '${MUL_VARIANT}' is not valid." >&2
                 exit 1
             fi
-            run_isolated_mode
+            run_single_mode
         fi
         ;;
     suite)

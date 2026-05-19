@@ -54,12 +54,20 @@ bench_parse_track_args() {
                 shift 2
                 ;;
             --keccak)
-                KECCAK_IMPL="${2:-}"
+                case "${2:-}" in
+                    opt) KECCAK_IMPL="zvbb_gather" ;;
+                    ref) KECCAK_IMPL="ref" ;;
+                    *)   KECCAK_IMPL="${2:-}" ;;
+                esac
                 _keccak_explicit=1
                 shift 2
                 ;;
             --decode)
-                DECODE_IMPL="${2:-}"
+                case "${2:-}" in
+                    opt) DECODE_IMPL="rvv" ;;
+                    ref) DECODE_IMPL="ref" ;;
+                    *)   DECODE_IMPL="${2:-}" ;;
+                esac
                 _decode_explicit=1
                 shift 2
                 ;;
