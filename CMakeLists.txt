@@ -572,6 +572,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
         N_ITER=${BENCH_N_ITER}
         KECCAK_NAME="${HQC_KECCAK_IMPL}"
     )
+    target_compile_options(${KECCAK_BENCH_TARGET} PRIVATE
+        -O3
+        -march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb
+        -mabi=lp64d
+    )
     set_target_properties(${KECCAK_BENCH_TARGET} PROPERTIES
         SUFFIX ".elf"
         LINK_DEPENDS "${LINKER_SCRIPT}"
@@ -618,6 +623,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
         ${SIM_DEFINES}
         N_ITER=${BENCH_N_ITER}
         DECODE_NAME="${HQC_DECODE_IMPL}"
+    )
+    target_compile_options(${DECODE_BENCH_TARGET} PRIVATE
+        -O3
+        -march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb
+        -mabi=lp64d
     )
     set_target_properties(${DECODE_BENCH_TARGET} PROPERTIES
         SUFFIX ".elf"
