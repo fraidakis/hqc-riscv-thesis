@@ -118,7 +118,7 @@ if(HQC_KECCAK_IMPL STREQUAL "rvv_only")
     set(KECCAK_SOURCES ${CMAKE_SOURCE_DIR}/src/keccak/fips202_rvv_only.c)
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_rvv_only.c
-        PROPERTIES COMPILE_FLAGS "-march=rv64gcv -mrvv-vector-bits=256"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_gather")
@@ -148,7 +148,7 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
-        PROPERTIES COMPILE_FLAGS "-march=rv64gcv -mrvv-vector-bits=256"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon
@@ -516,7 +516,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 )
                 target_compile_options(${VLEN_BENCH_TARGET} PRIVATE
                     ${VARIANT_COMPILE_OPTIONS}
-                    "-mrvv-vector-bits=${VLEN}"
+                    $<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${VLEN}>
+                    $<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>
                 )
                 if(POLYMUL STREQUAL "karatsuba_zvbc")
                     target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
