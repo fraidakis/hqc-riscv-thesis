@@ -237,16 +237,31 @@ run_single_mode() {
             out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/${track}/${variant_label}"
             ;;
         keccak)
-            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/keccak/k${KECCAK_IMPL}"
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/keccak"
             ;;
         decode)
-            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/decode/d${DECODE_IMPL}"
+            out_dir="${REPO_ROOT}/analysis/benchmarks/isolated/decode"
             ;;
     esac
     mkdir -p "$out_dir"
 
     # Single CSV file per run containing all levels
-    local csv="${out_dir}/isolated_${MODE}_${variant_slug}_${BENCH_TIME}.csv"
+    local csv
+    local csv_latest
+    if [[ "$MODE" == "keccak" ]]; then
+        local impl_flag="ref"
+        if [[ "$KECCAK_IMPL" == "zvbb_gather" ]]; then impl_flag="opt"; fi
+        csv="${out_dir}/isolated_keccak_${impl_flag}_${BENCH_TIME}.csv"
+        csv_latest="${out_dir}/isolated_keccak_${impl_flag}_latest.csv"
+    elif [[ "$MODE" == "decode" ]]; then
+        local impl_flag="ref"
+        if [[ "$DECODE_IMPL" == "rvv" ]]; then impl_flag="opt"; fi
+        csv="${out_dir}/isolated_decode_${impl_flag}_${BENCH_TIME}.csv"
+        csv_latest="${out_dir}/isolated_decode_${impl_flag}_latest.csv"
+    else
+        csv="${out_dir}/isolated_${MODE}_${variant_slug}_${BENCH_TIME}.csv"
+        csv_latest="${out_dir}/isolated_${MODE}_${variant_slug}_latest.csv"
+    fi
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv"
     echo "# commit: ${GIT_HASH}" >> "$csv"
     echo "# variant: ${variant}" >> "$csv"
@@ -355,7 +370,7 @@ run_single_mode() {
     done
 
     echo ""
-    bench_refresh_tracked_csv "$csv" "${out_dir}/isolated_${MODE}_${variant_slug}_latest.csv" || true
+    bench_refresh_tracked_csv "$csv" "$csv_latest" || true
 }
 
 run_suite_mode() {

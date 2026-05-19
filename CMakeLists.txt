@@ -602,7 +602,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
         ${STARTUP_S}
         ${CMAKE_SOURCE_DIR}/tests/bench/bench_decode.c
         ${CMAKE_SOURCE_DIR}/src/common/bench.c
-        ${DECODE_SOURCES}
+        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
+        ${HQC_REF}/src/ref/reed_solomon.c
         ${HQC_REF}/src/common/fft.c
         ${CMAKE_SOURCE_DIR}/sim/common/mem.c
         ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
