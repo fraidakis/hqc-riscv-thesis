@@ -7,7 +7,7 @@
 #   analysis/benchmarks/vlen_sweep/vector/<variant>/vlen_sweep_L<level>_<variant-slug>_latest.csv
 #   analysis/benchmarks/vlen_sweep/vector/<variant>/archive/vlen_sweep_L<level>_<variant-slug>_<timestamp>.csv
 #
-# CSV schema: vlen,op,instructions
+# CSV schema: op,vlen,instructions
 #
 # Usage:
 #   ./scripts/bench/run_vlen_sweep.sh [--mul <regex>] [--level <N|"128 192 256"|all>]
@@ -181,13 +181,14 @@ for variant in "${VARIANTS[@]}"; do
         tmp_csv="${out_dir}/${csv_archive_basename}"
         mkdir -p "$out_dir"
 
-        # Write metadata header + column header into temp CSV.
+        tmp_rows="$(mktemp)"
+
+        # Write metadata header (data rows appended after op-major ordering).
         {
             echo "# date: $(date +'%Y-%m-%d %H:%M')"
             echo "# commit: ${GIT_HASH}"
             echo "# variant: ${variant}"
             echo "# level: ${level}"
-            echo "vlen,op,instructions"
         } > "$tmp_csv"
 
         echo ""
@@ -239,10 +240,10 @@ for variant in "${VARIANTS[@]}"; do
 
             rm -f "$tmp_log"
 
-            echo "${vlen},keypair,${kp_inst}" >> "$tmp_csv"
-            echo "${vlen},encaps,${enc_inst}" >> "$tmp_csv"
-            echo "${vlen},decaps,${dec_inst}" >> "$tmp_csv"
-            echo "${vlen},total,${total_instructions}" >> "$tmp_csv"
+            echo "keypair,${vlen},${kp_inst}" >> "$tmp_rows"
+            echo "encaps,${vlen},${enc_inst}" >> "$tmp_rows"
+            echo "decaps,${vlen},${dec_inst}" >> "$tmp_rows"
+            echo "total,${vlen},${total_instructions}" >> "$tmp_rows"
 
             kp_fmt="$(format_int_dot "$kp_inst")"
             enc_fmt="$(format_int_dot "$enc_inst")"
@@ -252,6 +253,12 @@ for variant in "${VARIANTS[@]}"; do
             printf " Kp: %s | Enc: %11s | Dec: %11s | Total: %11s\n" \
                 "$kp_fmt" "$enc_fmt" "$dec_fmt" "$total_fmt"
         done
+
+            echo "op,vlen,instructions" >> "$tmp_csv"
+            for op in keypair encaps decaps total; do
+                awk -F',' -v op="$op" '$1 == op { print }' "$tmp_rows" | sort -t',' -k2,2n >> "$tmp_csv"
+            done
+            rm -f "$tmp_rows"
 
         # Commit the temp CSV to the archival system.
         bench_refresh_tracked_csv "$tmp_csv" "$csv_latest" || true

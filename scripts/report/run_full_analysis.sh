@@ -143,16 +143,23 @@ append_table_or_note() {
 
 generate_report() {
     local report_file="${REPO_ROOT}/analysis/reports/${MUL_VARIANT}_L${REPORT_LEVEL}_report.md"
+    local variant_slug
+    local level_tag
+    variant_slug="${MUL_VARIANT//_/-}"
+    level_tag="Lall"
+    if [[ "$LEVEL" != "all" ]]; then
+        level_tag="L${LEVEL}"
+    fi
 
-    local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/polymul_latest.csv"
-    local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/kem_latest.csv"
+    local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/isolated_polymul_${variant_slug}_latest.csv"
+    local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/isolated_kem_${variant_slug}_latest.csv"
 
-    local cache_csv="${REPO_ROOT}/analysis/profiles/cache/${TRACK}/${MUL_VARIANT}/kem_latest.csv"
-    local memory_csv="${REPO_ROOT}/analysis/profiles/memory/${TRACK}/${MUL_VARIANT}/kem_latest.csv"
+    local cache_csv="${REPO_ROOT}/analysis/profiles/cache/${TRACK}/${MUL_VARIANT}/cache_kem_Lall_${variant_slug}_latest.csv"
+    local memory_csv="${REPO_ROOT}/analysis/profiles/memory/${TRACK}/${MUL_VARIANT}/memory_kem_Lall_${variant_slug}_latest.csv"
 
-    local trace_hotspots_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/kem_hqc${REPORT_LEVEL}_hotspots_latest.csv"
-    local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/kem_hqc${REPORT_LEVEL}_lines_latest.csv"
-    local histogram_csv="${REPO_ROOT}/analysis/profiles/histograms/${TRACK}/${MUL_VARIANT}/kem_hqc${REPORT_LEVEL}_latest.csv"
+    local trace_hotspots_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_hotspots_latest.csv"
+    local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_lines_latest.csv"
+    local histogram_csv="${REPO_ROOT}/analysis/profiles/histograms/${TRACK}/${MUL_VARIANT}/histogram_kem_L${REPORT_LEVEL}_${variant_slug}_latest.csv"
 
     local tmp_poly
     local tmp_kem

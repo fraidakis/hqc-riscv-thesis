@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Generate thesis speedup summary table from isolated benchmark CSVs.
 
-Reads the most recent polymul_latest.csv and kem_latest.csv for each variant
+Reads the most recent isolated_polymul_*_latest.csv and
+isolated_kem_*_latest.csv for each variant
 and computes exact speedup multipliers:
 
     Speedup = Baseline_instret / Champion_instret
@@ -12,10 +13,8 @@ Three hardware tiers:
   Tier 3 (High-End) ref_vector → karatsuba_zvbc
 
 Usage:
-  python3 scripts/report/generate_thesis_table.py
-  python3 scripts/report/generate_thesis_table.py --level 128
-  python3 scripts/report/generate_thesis_table.py --level all   # default
-  python3 scripts/report/generate_thesis_table.py --out path/to/output.md
+    python3 scripts/report/generate_thesis_table.py
+    python3 scripts/report/generate_thesis_table.py --out path/to/output.md
 """
 
 from __future__ import annotations
@@ -23,7 +22,6 @@ from __future__ import annotations
 import argparse
 import csv
 import io
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -85,9 +83,10 @@ def read_csv(path: Path) -> dict[tuple[int, str], int]:
 def load_variant(base_dir: Path, variant: str) -> dict[str, dict[tuple[int, str], int]]:
     """Load both polymul and kem CSVs for a variant."""
     variant_dir = base_dir / variant
+    variant_slug = variant.replace("_", "-")
     return {
-        "polymul": read_csv(variant_dir / "polymul_latest.csv"),
-        "kem": read_csv(variant_dir / "kem_latest.csv"),
+        "polymul": read_csv(variant_dir / f"isolated_polymul_{variant_slug}_latest.csv"),
+        "kem": read_csv(variant_dir / f"isolated_kem_{variant_slug}_latest.csv"),
     }
 
 
@@ -104,7 +103,7 @@ def fmt_speedup(base: Optional[int], champ: Optional[int]) -> str:
     return f"x{ratio:.2f}"
 
 
-def build_table(levels: list[int]) -> str:
+def build_table() -> str:
     buf = io.StringIO()
 
     for tier in TIERS:
@@ -123,7 +122,7 @@ def build_table(levels: list[int]) -> str:
             f"| Level | {base_name} (instret) | {champ_name} (instret) | Speedup |\n"
         )
         buf.write("|-------|----------------------|------------------------|--------|\n")
-        for lvl in levels:
+        for lvl in LEVELS:
             key = (lvl, "vect_mul")
             b = base_data["polymul"].get(key)
             c = champ_data["polymul"].get(key)
@@ -138,7 +137,7 @@ def build_table(levels: list[int]) -> str:
             f"| Level | Op | {base_name} (instret) | {champ_name} (instret) | Speedup |\n"
         )
         buf.write("|-------|-----|----------------------|------------------------|--------|\n")
-        for lvl in levels:
+        for lvl in LEVELS:
             level_base_total = 0
             level_champ_total = 0
             has_all_totals = True
@@ -169,34 +168,32 @@ def main() -> None:
         description="Generate thesis speedup table from isolated benchmark CSVs."
     )
     parser.add_argument(
-        "--level",
-        choices=["128", "192", "256", "all"],
-        default="all",
-        help="Security level(s) to include (default: all)",
-    )
-    parser.add_argument(
         "--out",
         type=Path,
         default=None,
-        help="Write output to this Markdown file instead of stdout",
+        help="Write output to this Markdown file",
     )
     args = parser.parse_args()
-
-    levels = LEVELS if args.level == "all" else [int(args.level)]
 
     header = (
         "# HQC-RISC-V Thesis Speedup Summary\n\n"
         "Speedup = Baseline instret / Champion instret (higher is better).\n"
         "All measurements are deterministic instruction-retired counts from Spike ISS.\n\n"
     )
-    table = header + build_table(levels)
+    table = header + build_table()
 
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(table)
-        print(f"Written: {args.out}")
+    out_path = args.out if args.out else REPO_ROOT / "analysis" / "reports" / "speedups.md"
+    resolved_out_path = out_path.resolve()
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    existing = out_path.read_text() if out_path.exists() else None
+    out_path.write_text(table)
+
+    if existing == table:
+        print(f" ⏭ Unchanged: {resolved_out_path}")
     else:
-        sys.stdout.write(table)
+        print(f" 🔄 Updated: {resolved_out_path}")
 
 
 if __name__ == "__main__":

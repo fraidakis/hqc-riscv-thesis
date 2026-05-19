@@ -1,21 +1,21 @@
-# date: 2026-05-19 14:38
-# commit: 6e7ef93
+# date: 2026-05-19 16:42
+# commit: 1db6bfa
 # variant: karatsuba_rvv
 # level: 192
-vlen,op,instructions
-256,keypair,733476
-256,encaps,1538040
-256,decaps,3042118
-256,total,5313634
-512,keypair,721064
-512,encaps,1510994
-512,decaps,2994384
-512,total,5226442
-1024,keypair,738689
-1024,encaps,1555661
-1024,decaps,3318298
-1024,total,5612648
-2048,keypair,783072
-2048,encaps,1660275
-2048,decaps,3451480
-2048,total,5894827
+op,vlen,instructions
+keypair,256,733476
+keypair,512,721064
+keypair,1024,738689
+keypair,2048,783072
+encaps,256,1538040
+encaps,512,1510994
+encaps,1024,1555661
+encaps,2048,1660275
+decaps,256,3042118
+decaps,512,2994384
+decaps,1024,3318298
+decaps,2048,3451480
+total,256,5313634
+total,512,5226442
+total,1024,5612648
+total,2048,5894827
