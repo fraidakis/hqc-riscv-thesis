@@ -1,4 +1,32 @@
 experiments:
+  - id: EXP-mem-fastpath
+    date: 2026-05-20
+    hypothesis: "Add memcpy/memmove fast paths (RVV + aligned word copy) for freestanding bare-metal runtime without data-dependent branches."
+    status: promoted_to_stable
+    promoted_date: 2026-05-20
+    verdict: "Promoted after A/B Spike KEM checks: no regression on ref_scalar (HQC-128) and consistent gains on karatsuba_zvbc across all levels."
+    path: experiments/EXP-mem-fastpath
+    promoted_to: sim/common/mem.c
+    hardware_class: crypto_vector_zvbc
+    tracks: [AP-2]
+    metrics:
+      hqc128_ref_scalar:
+        total_off: 117411071
+        total_on: 117411071
+        delta_percent: 0.00
+      hqc128_karatsuba_zvbc:
+        total_off: 1541397
+        total_on: 1516409
+        delta_percent: -1.62
+      hqc192_karatsuba_zvbc:
+        total_off: 3289062
+        total_on: 3240444
+        delta_percent: -1.48
+      hqc256_karatsuba_zvbc:
+        total_off: 5253817
+        total_on: 5168475
+        delta_percent: -1.62
+
   - id: EXP-toomcook3-gf2x-zbc
     date: 2026-05-17
     hypothesis: >
