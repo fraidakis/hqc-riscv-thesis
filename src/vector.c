@@ -28,20 +28,9 @@
 #include <string.h>
 #include "parameters.h"
 
-static inline uint32_t compare_u32(const uint32_t v1, const uint32_t v2);
-
-/**
- * @brief Constant-time comparison of two integers v1 and v2
- *
- * Returns 1 if v1 is equal to v2 and 0 otherwise
- * https://gist.github.com/sneves/10845247
- *
- * @param[in] v1
- * @param[in] v2
- */
-static inline uint32_t compare_u32(const uint32_t v1, const uint32_t v2) {
-    return 1 ^ (((v1 - v2) | (v2 - v1)) >> 31);
-}
+#if defined(__riscv_vector)
+#include <riscv_vector.h>
+#endif
 
 /**
  * @brief Constant-time Barrett reduction modulo PARAM_N.
@@ -59,6 +48,33 @@ static inline uint32_t barrett_reduce(uint32_t x) {
     uint32_t mask = -reduce_flag;
     r -= mask & PARAM_N;
     return r;
+}
+
+/**
+ * @brief Returns 1 if `value` appears in support[begin, end), else 0.
+ */
+static inline uint32_t support_contains_value(const uint32_t *support, size_t begin, size_t end, uint32_t value) {
+#if defined(__riscv_vector)
+    size_t i = begin;
+    while (i < end) {
+        size_t vl = __riscv_vsetvl_e32m8(end - i);
+        vuint32m8_t candidates = __riscv_vle32_v_u32m8(&support[i], vl);
+        vbool4_t matches = __riscv_vmseq_vx_u32m8_b4(candidates, value, vl);
+
+        if (__riscv_vfirst_m_b4(matches, vl) >= 0) {
+            return 1;
+        }
+
+        i += vl;
+    }
+#else
+    for (size_t i = begin; i < end; i++) {
+        if (support[i] == value) {
+            return 1;
+        }
+    }
+#endif
+    return 0;
 }
 
 /**
@@ -101,12 +117,7 @@ void vect_generate_random_support1(shake256_xof_ctx *ctx, uint32_t *support, uin
 
         support[i] = barrett_reduce(support[i]);
 
-        inc = 1;
-        for (size_t k = 0; k < i; k++) {
-            if (support[k] == support[i]) {
-                inc = 0;
-            }
-        }
+        inc = (uint8_t)!support_contains_value(support, 0, i, support[i]);
         i += inc;
     }
 }
@@ -131,11 +142,7 @@ void vect_generate_random_support2(shake256_xof_ctx *ctx, uint32_t *support, uin
     }
 
     for (int32_t i = (weight - 1); i-- > 0;) {
-        uint32_t found = 0;
-
-        for (size_t j = i + 1; j < weight; ++j) {
-            found |= compare_u32(support[j], support[i]);
-        }
+        uint32_t found = support_contains_value(support, (size_t)i + 1, weight, support[i]);
 
         uint32_t mask = -found;
         support[i] = (mask & i) ^ (~mask & support[i]);
