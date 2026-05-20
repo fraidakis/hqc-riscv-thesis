@@ -1,8 +1,10 @@
 # Optimization Roadmap: Decoder Acceleration (Section 3.4)
 ## Reed-Muller (Fast Hadamard Transform) + Reed-Solomon
 
-> **Status:** Phase 3a (RM vectorization) — **PROMOTED**.  Phase 3b (RS
-> vectorization) — **NOT STARTED** (stub in `src/decode/rvv/reed_solomon_rvv.c`).
+> **Status:** Phase 3a (RM vectorization) — **PROMOTED**.  Phase 3b Axis A (RS
+> syndrome vectorization) — **IMPLEMENTED** (`src/decode/rvv/reed_solomon_rvv.c`).
+>
+> **Phase 3b Axis A commit:** `feat(decode): implement vectorized GF(2^8) syndrome computation using Zvbc lane-packing.`
 >
 > **Profile date:** 2026-05-20  
 > **Commit:** `6d51344`  
@@ -39,7 +41,7 @@ reed_solomon_decode(rs_msg, rm_msg)
 | RM decoder — scalar reference | `vendor/hqc-ref/src/ref/reed_muller.c` |
 | RM decoder — RVV (Phase 3a, **active**) | `src/decode/rvv/reed_muller_rvv.c` |
 | RS decoder — scalar reference | `vendor/hqc-ref/src/ref/reed_solomon.c` |
-| RS decoder — RVV (Phase 3b, **stub**) | `src/decode/rvv/reed_solomon_rvv.c` |
+| RS decoder — RVV (Phase 3b Axis A, **active**) | `src/decode/rvv/reed_solomon_rvv.c` |
 | GF(2⁸) arithmetic (Zbc-accelerated) | `src/common/gf.c` |
 | Additive FFT (Gao-Mateer) | `vendor/hqc-ref/src/common/fft.c` |
 | Concatenated decode wrapper | `vendor/hqc-ref/src/common/code.c` |
@@ -49,7 +51,7 @@ reed_solomon_decode(rs_msg, rm_msg)
 
 ```
 HQC_DECODE_IMPL=ref   → scalar reed_muller.c + scalar reed_solomon.c
-HQC_DECODE_IMPL=rvv   → reed_muller_rvv.c   + scalar reed_solomon.c (Phase 3b TODO)
+HQC_DECODE_IMPL=rvv   → reed_muller_rvv.c   + reed_solomon_rvv.c (Phase 3b Axis A active)
 ```
 
 ---
@@ -108,19 +110,19 @@ ISA `rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b`. Commit `6d51344` (2026-05-20).
 | HQC-192 | 577,483 − 231,901 = **345,582** | **59.8%** |
 | HQC-256 | 1,080,683 − 525,287 = **555,396** | **51.4%** |
 
-### 2.4 Remaining Scalar RS Bottleneck (Phase 3b target)
+### 2.4 Phase 3b Axis A — Vectorized Syndrome Computation (IMPLEMENTED)
 
-The `rvv` build links `reed_muller_rvv.c` + **scalar** `reed_solomon.c`.  The
-entire remaining `decode` instret budget after Phase 3a is dominated by the
-scalar RS path.  The RM_rvv overhead itself is low (a handful of strided
-vector loads + VADD/VSUB butterflies per symbol), so RS accounts for the
-large majority of the Phase 3a residual:
+Implemented in `src/decode/rvv/reed_solomon_rvv.c` using Zvbc `vclmul.vv`
+lane-packing (SEW=64, LMUL=4, one GF(2⁸) element per lane).  KAT gate:
+**300/300 vectors matched** across HQC-128/192/256.
 
-| Level | Phase 3a residual | RS ≈ dominant fraction |
-|-------|------------------:|------------------------|
-| HQC-128 | 178,360 | ~85–90% (≈152K–161K instret) |
-| HQC-192 | 231,901 | ~88–92% (≈204K–213K instret) |
-| HQC-256 | 525,287 | ~90–93% (≈473K–489K instret) |
+| Level | Phase 3a residual | Phase 3b Axis A | Axis A speedup | vs ref baseline |
+|-------|------------------:|----------------:|---------------:|----------------:|
+| HQC-128 | 178,360 | **134,879** | **1.32×** | **2.94×** |
+| HQC-192 | 231,901 | **175,270** | **1.32×** | **3.30×** |
+| HQC-256 | 525,287 | **360,313** | **1.46×** | **3.00×** |
+
+> Measured 2026-05-20 on Spike, VLEN=256, `-O3`, Clang RISC-V cross-compiler.
 
 The RS fraction grows with DELTA because the BM and Forney loops dominate at
 higher correction capacity.
@@ -493,12 +495,12 @@ scan (`vmul.vv` prefix product), then using `vdot` with `z[j]` coefficients.
 Before any RS rvv experiment is promoted to replace `reed_solomon.c` in the
 `rvv` decode path:
 
-- [ ] All three KAT suites pass (`tests/kat/`, all levels).
+- [x] All three KAT suites pass (`tests/kat/`, all levels). ✓ **300/300 @ 2026-05-20**
 - [ ] `bench_decode --decode opt` shows ≥ 3× improvement over current partial-rvv
-      baseline at each level.
+      baseline at each level. *(Axis A alone: 1.32–1.46×; full-RS target pending Axes B/C/D)*
 - [ ] CT property verified: no `vfirst_m` or other variable-exit instructions
       inside RS code paths (or documented exception with hardware timing evidence).
-- [ ] `volatile` discipline preserved for all BM outer-loop control masks.
+- [x] `volatile` discipline preserved for all BM outer-loop control masks. ✓ (`volatile uint16_t mask12__` kept)
 - [ ] Code size does not exceed scalar size by more than 2× (avoid cache pressure).
 
 ---

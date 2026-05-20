@@ -151,15 +151,21 @@ endif()
 # Phase 3 replaces these.  The code.c / fft.c wrappers remain vendor-sourced
 # regardless; only the leaf decode functions change.
 if(HQC_DECODE_IMPL STREQUAL "rvv")
-    # Phase 3a: RVV RM FHT decoder while keeping scalar RS for correctness.
-    # Phase 3b can replace reed_solomon.c with src/decode/rvv/reed_solomon_rvv.c.
+    # Phase 3a: RVV RM FHT decoder (reed_muller_rvv.c).
+    # Phase 3b: Zvbc vclmul.vv vectorised syndrome computation (reed_solomon_rvv.c).
     set(DECODE_SOURCES
         ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
-        ${HQC_REF}/src/ref/reed_solomon.c
+        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_solomon_rvv.c
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    # reed_solomon_rvv.c uses Zvbc vclmul.vv — requires the full ISA string
+    # that includes Zvbc in addition to the base V extension.
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_solomon_rvv.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon
