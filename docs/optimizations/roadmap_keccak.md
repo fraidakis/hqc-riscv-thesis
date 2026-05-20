@@ -256,24 +256,21 @@ VLEN portability.
 **Experiment slot:** `EXP-keccak-zvbb-no-gather-chi`  
 **Note:** B1 is the prerequisite; measure B1 alone before attempting B3.
 
-**Result (2026-05-20):** Row-boundary corruption in the gather-free Chi path
-was removed by enforcing strict per-row (5-lane) isolation before constructing
-the `x+1` and `x+2` rotations.
+**Result (2026-05-20):** **DROPPED / MINIMAL SIMULATOR PAYOFF**.
 
-- Spike sanity gate (`--mul karatsuba_zvbc --keccak opt --level 128`):
-  **PASS 100/100** (terminates; no rejection-sampling stall observed).
-- QEMU correctness matrix (`--level all --qemu`):
+Technical note: although cross-lane `vrgather.vv` can cause crossbar pressure
+on physical vector hardware, enforcing strict row boundaries in a flat
+single-instance `vl=25` layout required additional row-local slide, wrap, and
+patch sequences. On Spike's instruction-accurate model this replacement raised
+retired-instruction count enough to outweigh any potential gather-related
+microarchitectural benefit.
+
+Rollback outcome (restored from `b35e5cc`):
+
+- Full KEM totals returned to prior champion baseline:
+  HQC-128 **1,214,207**, HQC-192 **2,660,915**, HQC-256 **4,262,263**.
+- Functional validation (`run_kat.sh --mul karatsuba_zvbc --keccak opt`):
   **PASS 100/100** for HQC-128/192/256.
-
-Performance outcome (full KEM, `run_benchmarks.sh --mode kem karatsuba_zvbc`):
-
-- HQC-128: **1,819,430** instret (**+49.84%** vs 1,214,207 baseline)
-- HQC-192: **3,822,965** instret (**+43.67%** vs 2,660,915 baseline)
-- HQC-256: **6,079,946** instret (**+42.65%** vs 4,262,263 baseline)
-
-Status: **correctness fixed, performance target missed**. B3 remains
-**IN PROGRESS** until a gather-free Chi variant beats the 1,214,207 L128
-milestone.
 
 ---
 
@@ -471,7 +468,7 @@ order is:
 | 5 | `EXP-keccak-x2-rvv / EXP-keccak-x2-soa` (DONE: Option A x2-SoA implemented; L128 total -3.87%) | C2 | C1 | +3.1–3.9% total KEM instret reduction |
 | 6 | `EXP-keccak-lane-complement` | A2 | A1 | +2–5% on top of A1 |
 | 7 | `EXP-keccak-hybrid-1plus3` | C3 | A1 + C2 | hardware-dependent |
-| 8 | `EXP-keccak-zvbb-no-gather-chi` (IN PROGRESS) | B3 | B1 + B2 | +5–10% on top of B1+B2 |
+| 8 | `EXP-keccak-zvbb-no-gather-chi` (DROPPED / MINIMAL SIMULATOR PAYOFF) | B3 | B1 + B2 | +5–10% on top of B1+B2 |
 
 Items 1 and 2 are independent and can be developed in parallel branches.
 Item 4 (the call-graph audit) can overlap with any other experiment as it is
