@@ -449,10 +449,10 @@ order is:
 | 2 | `EXP-keccak-rv64imb-asm` | A1+A3 | none | ~50–60% |
 | 3 | `EXP-keccak-zvbb-vectorized-theta` (IN PROGRESS) | B2 | B1 | +5–15% on top of B1 |
 | 4 | `EXP-keccak-batch-audit` (DONE: max-active audit completed; N=2 baseline established) | C1 | none (analysis only) | baseline for C2 |
-| 5 | `EXP-keccak-x2-rvv / EXP-keccak-x2-soa` (DONE: Option A x2-SoA implemented, benchmarked, KAT-passed) | C2 | C1 | +3.1–3.9% total KEM instret reduction |
+| 5 | `EXP-keccak-x2-rvv / EXP-keccak-x2-soa` (DONE: Option A x2-SoA implemented; L128 total -3.87%) | C2 | C1 | +3.1–3.9% total KEM instret reduction |
 | 6 | `EXP-keccak-lane-complement` | A2 | A1 | +2–5% on top of A1 |
 | 7 | `EXP-keccak-hybrid-1plus3` | C3 | A1 + C2 | hardware-dependent |
-| 8 | `EXP-keccak-zvbb-no-gather-chi` | B3 | B1 + B2 | +5–10% on top of B1+B2 |
+| 8 | `EXP-keccak-zvbb-no-gather-chi` (IN PROGRESS) | B3 | B1 + B2 | +5–10% on top of B1+B2 |
 
 Items 1 and 2 are independent and can be developed in parallel branches.
 Item 4 (the call-graph audit) can overlap with any other experiment as it is
