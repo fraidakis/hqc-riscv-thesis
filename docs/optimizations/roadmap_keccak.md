@@ -256,6 +256,25 @@ VLEN portability.
 **Experiment slot:** `EXP-keccak-zvbb-no-gather-chi`  
 **Note:** B1 is the prerequisite; measure B1 alone before attempting B3.
 
+**Result (2026-05-20):** Row-boundary corruption in the gather-free Chi path
+was removed by enforcing strict per-row (5-lane) isolation before constructing
+the `x+1` and `x+2` rotations.
+
+- Spike sanity gate (`--mul karatsuba_zvbc --keccak opt --level 128`):
+  **PASS 100/100** (terminates; no rejection-sampling stall observed).
+- QEMU correctness matrix (`--level all --qemu`):
+  **PASS 100/100** for HQC-128/192/256.
+
+Performance outcome (full KEM, `run_benchmarks.sh --mode kem karatsuba_zvbc`):
+
+- HQC-128: **1,819,430** instret (**+49.84%** vs 1,214,207 baseline)
+- HQC-192: **3,822,965** instret (**+43.67%** vs 2,660,915 baseline)
+- HQC-256: **6,079,946** instret (**+42.65%** vs 4,262,263 baseline)
+
+Status: **correctness fixed, performance target missed**. B3 remains
+**IN PROGRESS** until a gather-free Chi variant beats the 1,214,207 L128
+milestone.
+
 ---
 
 ### Track C — Multi-Way Batched Keccak (N-Way Parallel Instances)
