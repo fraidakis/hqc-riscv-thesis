@@ -60,6 +60,9 @@ EOF
 # Parse args.
 declare -a REBUILT_ARGS=()
 TARGET_ARG=""
+MUL_ARG_SET=0
+KECCAK_ARG_SET=0
+DECODE_ARG_SET=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --mode)
@@ -72,10 +75,16 @@ while [[ $# -gt 0 ]]; do
             ;;
         --variant|--mul)
             REBUILT_ARGS+=("--mul" "$2")
+            MUL_ARG_SET=1
             shift 2
             ;;
         --keccak|--decode)
             REBUILT_ARGS+=("$1" "$2")
+            if [[ "$1" == "--keccak" ]]; then
+                KECCAK_ARG_SET=1
+            else
+                DECODE_ARG_SET=1
+            fi
             shift 2
             ;;
         --run-id)
@@ -121,15 +130,37 @@ done
 # Map positional TARGET_ARG into the correct REBUILT_ARGS slot.
 case "$MODE" in
     kem|mul|suite)
-        REBUILT_ARGS+=("--mul" "${TARGET_ARG:-karatsuba_zbc}")
+        if [[ -n "$TARGET_ARG" ]]; then
+            REBUILT_ARGS+=("--mul" "$TARGET_ARG")
+            MUL_ARG_SET=1
+        fi
+        if [[ "$MUL_ARG_SET" -eq 0 ]]; then
+            REBUILT_ARGS+=("--mul" "karatsuba_zbc")
+        fi
         ;;
     keccak)
-        REBUILT_ARGS+=("--keccak" "${TARGET_ARG:-ref}")
-        REBUILT_ARGS+=("--mul" "karatsuba_zbc")
+        if [[ -n "$TARGET_ARG" ]]; then
+            REBUILT_ARGS+=("--keccak" "$TARGET_ARG")
+            KECCAK_ARG_SET=1
+        fi
+        if [[ "$KECCAK_ARG_SET" -eq 0 ]]; then
+            REBUILT_ARGS+=("--keccak" "ref")
+        fi
+        if [[ "$MUL_ARG_SET" -eq 0 ]]; then
+            REBUILT_ARGS+=("--mul" "karatsuba_zbc")
+        fi
         ;;
     decode)
-        REBUILT_ARGS+=("--decode" "${TARGET_ARG:-ref}")
-        REBUILT_ARGS+=("--mul" "karatsuba_zbc")
+        if [[ -n "$TARGET_ARG" ]]; then
+            REBUILT_ARGS+=("--decode" "$TARGET_ARG")
+            DECODE_ARG_SET=1
+        fi
+        if [[ "$DECODE_ARG_SET" -eq 0 ]]; then
+            REBUILT_ARGS+=("--decode" "ref")
+        fi
+        if [[ "$MUL_ARG_SET" -eq 0 ]]; then
+            REBUILT_ARGS+=("--mul" "karatsuba_zbc")
+        fi
         ;;
 esac
 bench_parse_track_args "${REBUILT_ARGS[@]}"
@@ -248,23 +279,29 @@ run_single_mode() {
     # Single CSV file per run containing all levels
     local csv
     local csv_latest
+    local variant_header
+    variant_header="# variant: ${variant}"
     if [[ "$MODE" == "keccak" ]]; then
         local impl_flag="ref"
-        if [[ "$KECCAK_IMPL" == "zvbb_gather" ]]; then impl_flag="opt"; fi
+        case "$KECCAK_IMPL" in
+            opt|zvbb_* ) impl_flag="opt" ;;
+        esac
         csv="${out_dir}/isolated_keccak_${impl_flag}_${BENCH_TIME}.csv"
         csv_latest="${out_dir}/isolated_keccak_${impl_flag}_latest.csv"
+        variant_header="# variant: ${variant} (Keccak: ${KECCAK_IMPL})"
     elif [[ "$MODE" == "decode" ]]; then
         local impl_flag="ref"
         if [[ "$DECODE_IMPL" == "rvv" ]]; then impl_flag="opt"; fi
         csv="${out_dir}/isolated_decode_${impl_flag}_${BENCH_TIME}.csv"
         csv_latest="${out_dir}/isolated_decode_${impl_flag}_latest.csv"
+        variant_header="# variant: ${variant} (Decode: ${DECODE_IMPL})"
     else
         csv="${out_dir}/isolated_${MODE}_${variant_slug}_${BENCH_TIME}.csv"
         csv_latest="${out_dir}/isolated_${MODE}_${variant_slug}_latest.csv"
     fi
     echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv"
     echo "# commit: ${GIT_HASH}" >> "$csv"
-    echo "# variant: ${variant}" >> "$csv"
+    echo "$variant_header" >> "$csv"
     echo "level,op,instructions,codesize" >> "$csv"
 
     if [[ "$MODE" == "keccak" ]]; then

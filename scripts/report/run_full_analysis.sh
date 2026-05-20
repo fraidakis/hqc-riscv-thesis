@@ -325,10 +325,10 @@ run_variant_analysis() {
     cd "$REPO_ROOT"
 
     run_step_with_timer 1 8 "Isolated polymul benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
+        ./scripts/bench/run_benchmarks.sh --mode mul --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
     run_step_with_timer 2 8 "Isolated KEM benchmark" \
-        ./scripts/bench/run_benchmarks.sh --isolated --kem --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
+        ./scripts/bench/run_benchmarks.sh --mode kem --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
     run_step_with_timer 3 8 "Cache profiler" \
         ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
