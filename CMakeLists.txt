@@ -107,11 +107,12 @@ set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
 # All polymul variants automatically pick up the chosen Keccak impl.
-# Stable options: ref | rvv_only (Track B) | zvbb_gather (Track C)
+# Stable options: ref | rvv_only (Track B) | zvbb_gather (Track C) | zvbb_x2_soa (Track C2)
 #
 # KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
 #                        (appended to every KAT / bench target)
 set(KECCAK_INCLUDE_DIRS "")
+set(KECCAK_COMPILE_DEFINES "")
 
 if(HQC_KECCAK_IMPL STREQUAL "rvv_only")
     # Track B: Base V extension — Zhang et al. RVV Keccak-f + HQC SHAKE wrapper
@@ -130,6 +131,16 @@ elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_gather")
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_gather.c
         PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zvbb_zbkb"
     )
+
+elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
+    # Track C2: 2-way SoA Keccak backend with parallel wrappers for paired streams.
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_zvbb_x2.c)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_zvbb_x2.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbkb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
 else()
     # Default (ref): vendor scalar fips202
@@ -162,7 +173,7 @@ endif()
 # These change only in Phase 2 (symmetric.c → fips202 dependency) or Phase 3
 # (code.c → RM/RS dependency), but at symbol level, not source level.
 set(VENDOR_INVARIANT_SOURCES
-    ${HQC_REF}/src/ref/hqc.c            # PKE encrypt/decrypt (calls gf2x + rs)
+    ${CMAKE_SOURCE_DIR}/src/hqc.c       # PKE encrypt/decrypt (calls gf2x + rs)
     ${HQC_REF}/src/common/code.c        # HQC encode/decode (wraps RM/RS)
     ${HQC_REF}/src/common/fft.c         # RS polynomial evaluation over GF(2^m)
     ${HQC_REF}/src/common/symmetric.c   # SHAKE-256 absorb/squeeze wrapper
@@ -337,6 +348,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             HQC_KAT_MODE=1
             SECURITY_LEVEL=${LEVEL}
             HQC_${LEVEL}
+            ${KECCAK_COMPILE_DEFINES}
             ${SIM_DEFINES}
         )
         if(VARIANT_COMPILE_OPTIONS)
@@ -399,6 +411,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             HQC_BENCH_MODE=1
             SECURITY_LEVEL=${LEVEL}
             HQC_${LEVEL}
+            ${KECCAK_COMPILE_DEFINES}
             ${SIM_DEFINES}
             N_ITER=${BENCH_N_ITER}
             POLYMUL_NAME="${POLYMUL}"
@@ -568,6 +581,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         HQC_BENCH_MODE=1
         SECURITY_LEVEL=${LEVEL}
         HQC_${LEVEL}
+        ${KECCAK_COMPILE_DEFINES}
         ${SIM_DEFINES}
         N_ITER=${BENCH_N_ITER}
         KECCAK_NAME="${HQC_KECCAK_IMPL}"

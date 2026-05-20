@@ -111,7 +111,7 @@ else
 fi
 
 # ── Determine simulator type and QEMU-safe Keccak impl ────────────────────────
-# zvbb_gather requires Zvbb which is not enabled in the QEMU virt CPU flags.
+# zvbb_gather/zvbb_x2_soa require Zvbb which is not enabled in the QEMU virt CPU flags.
 # For QEMU KAT tests, down-map to rvv_only (RVV 1.0 only; always supported
 # by our QEMU CPU spec).  The KAT vectors are Keccak-implementation-agnostic:
 # any correct Keccak implementation produces identical output for the same input.
@@ -120,7 +120,7 @@ if [[ "$USE_SPIKE" -eq 1 ]]; then
     eff_keccak="${KECCAK_IMPL:-ref}"
 else
     sim_type="qemu"
-    if [[ "${KECCAK_IMPL:-ref}" == "zvbb_gather" ]]; then
+    if [[ "${KECCAK_IMPL:-ref}" == "zvbb_gather" || "${KECCAK_IMPL:-ref}" == "zvbb_x2_soa" ]]; then
         eff_keccak="rvv_only"
     else
         eff_keccak="${KECCAK_IMPL:-ref}"

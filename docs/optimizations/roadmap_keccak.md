@@ -334,7 +334,32 @@ Conclusions for batching roadmap:
   element-wise shift + OR (since `vror.vv` with Zvbb replaces two shifts);
   χ uses `vandn.vv` from Zvbb; ι uses `vxor.vx` with the round constant.
 
-**Experiment slot:** `EXP-keccak-x4-rvv`
+**Experiment slot:** `EXP-keccak-x2-rvv` / `EXP-keccak-x2-soa`
+
+**Result (2026-05-20):** Completed for Option A (`EXP-keccak-x2-soa`).
+
+Implemented:
+
+- `HQC_KECCAK_IMPL=zvbb_x2_soa` backend and dedicated source wrapper
+  `src/keccak/rvv/fips202_zvbb_x2.c`.
+- 2-way SoA permutation core operating at fixed `vl=2` (`vuint64m1_t state[25]`).
+- Paired streaming wrappers: `shake256_x2_absorb()` and
+  `shake256_x2_squeezeblocks()`.
+- Keygen call-site integration: paired XOF context initialization for
+  `dk_xof_ctx` and `ek_xof_ctx` in `hqc_pke_keygen`.
+
+Measured Spike KEM instret (`--mode kem karatsuba_zvbc`):
+
+| Level | Previous total | x2-SoA total | Delta |
+|-------|----------------|--------------|-------|
+| HQC-128 | 1,263,122 | 1,214,207 | -3.87% |
+| HQC-192 | 2,750,318 | 2,660,915 | -3.25% |
+| HQC-256 | 4,399,620 | 4,262,263 | -3.12% |
+
+Correctness gate:
+
+- `./scripts/test/run_kat.sh --mul karatsuba_zvbc --keccak opt` passed
+  (`100/100` vectors for HQC-128/192/256).
 
 #### C3 — Hybrid 1+3 Scalar/Vector (PQRV Style)
 
@@ -424,7 +449,7 @@ order is:
 | 2 | `EXP-keccak-rv64imb-asm` | A1+A3 | none | ~50–60% |
 | 3 | `EXP-keccak-zvbb-vectorized-theta` (IN PROGRESS) | B2 | B1 | +5–15% on top of B1 |
 | 4 | `EXP-keccak-batch-audit` (DONE: max-active audit completed; N=2 baseline established) | C1 | none (analysis only) | baseline for C2 |
-| 5 | `EXP-keccak-x4-rvv` | C2 | C1 | up to 4× on batched path |
+| 5 | `EXP-keccak-x2-rvv / EXP-keccak-x2-soa` (DONE: Option A x2-SoA implemented, benchmarked, KAT-passed) | C2 | C1 | +3.1–3.9% total KEM instret reduction |
 | 6 | `EXP-keccak-lane-complement` | A2 | A1 | +2–5% on top of A1 |
 | 7 | `EXP-keccak-hybrid-1plus3` | C3 | A1 + C2 | hardware-dependent |
 | 8 | `EXP-keccak-zvbb-no-gather-chi` | B3 | B1 + B2 | +5–10% on top of B1+B2 |
