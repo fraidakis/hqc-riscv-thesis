@@ -1,0 +1,7 @@
+# date: 2026-05-20 23:04
+# commit: a96a6ff
+# variant: ref_scalar
+level,op,instructions,codesize
+128,vect_mul,19214281,2292
+192,vect_mul,58433901,2316
+256,vect_mul,142641044,2314
