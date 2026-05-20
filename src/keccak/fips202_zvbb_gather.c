@@ -120,16 +120,29 @@ static const uint64_t chi_x2[25] = {
  * vsetvl_e64m8(25) returns 25 on any hardware with VLEN≥256.
  *
  * Register groups used simultaneously (max 4 with LMUL=8 in 32 regs):
- *   group 0 (v0-v7 )  : v0 — main state, live throughout all rounds
- *   group 1 (v8-v15)  : temporaries (t / vB)
- *   group 2 (v16-v23) : temporaries (idx_pi, idx_x1, idx_x2)
- *   group 3 (v24-v31) : temporaries (idx_ror, vC)
+ *   group 0 (v0-v7 )  : v0    — main state, live throughout all rounds
+ *   group 1 (v8-v15)  : t/vB  — round temporaries (reused each step)
+ *   group 2 (v16-v23) : vC    — round temporary (Chi second gather)
+ *   group 3 (v24-v31) : (spill target for pre-loaded index vectors)
+ *
+ * The four constant index tables (idx_pi, idx_ror, idx_x1, idx_x2) are
+ * loaded once before the round loop and held as C variables.  The compiler
+ * keeps them in whichever groups are free or spills them to the vector
+ * stack; either way the 4 × 24 = 96 repeated vle64.v instructions inside
+ * the loop are eliminated, saving ~364 K instret per permutation call site.
  */
 static void KeccakF1600_StatePermute(uint64_t *state)
 {
     size_t vl = __riscv_vsetvl_e64m8(25);
 
     vuint64m8_t v0 = __riscv_vle64_v_u64m8(state, vl);
+
+    /* ── Pre-load constant index tables (once per permutation call) ─────── *
+     * Eliminates 4 × 24 = 96 vle64.v instructions from the hot round loop. */
+    vuint64m8_t idx_pi  = __riscv_vle64_v_u64m8(pi_src,      vl);
+    vuint64m8_t idx_ror = __riscv_vle64_v_u64m8(ror_amounts,  vl);
+    vuint64m8_t idx_x1  = __riscv_vle64_v_u64m8(chi_x1,       vl);
+    vuint64m8_t idx_x2  = __riscv_vle64_v_u64m8(chi_x2,       vl);
 
     for (int round = 0; round < NROUNDS; round++) {
 
@@ -152,19 +165,14 @@ static void KeccakF1600_StatePermute(uint64_t *state)
 
         /* ── Rho + Pi: vrgather (Pi) then vror (Rho) ────────────────────── */
         {
-            vuint64m8_t idx_pi  = __riscv_vle64_v_u64m8(pi_src,     vl);
-            vuint64m8_t t       = __riscv_vrgather_vv_u64m8(v0, idx_pi,  vl);
-            vuint64m8_t idx_ror = __riscv_vle64_v_u64m8(ror_amounts, vl);
+            vuint64m8_t t = __riscv_vrgather_vv_u64m8(v0, idx_pi, vl);
             v0 = __riscv_vror_vv_u64m8(t, idx_ror, vl);
         }
 
         /* ── Chi: vrgather + vandn ──────────────────────────────────────── */
         {
-            /* Load Chi indices inside the loop as required. */
-            vuint64m8_t idx_x1 = __riscv_vle64_v_u64m8(chi_x1, vl);
-            vuint64m8_t vB     = __riscv_vrgather_vv_u64m8(v0, idx_x1, vl);
-            vuint64m8_t idx_x2 = __riscv_vle64_v_u64m8(chi_x2, vl);
-            vuint64m8_t vC     = __riscv_vrgather_vv_u64m8(v0, idx_x2, vl);
+            vuint64m8_t vB = __riscv_vrgather_vv_u64m8(v0, idx_x1, vl);
+            vuint64m8_t vC = __riscv_vrgather_vv_u64m8(v0, idx_x2, vl);
             /* vandn(op1,op2)=op1&~op2, so vandn(vC,vB)=vC&~vB=~vB&vC=~A[x+1]&A[x+2] */
             v0 = __riscv_vxor_vv_u64m8(
                      v0,
