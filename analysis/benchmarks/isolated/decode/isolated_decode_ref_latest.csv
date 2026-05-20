@@ -1,7 +1,7 @@
-# date: 2026-05-20 00:10
-# commit: 375d802
-# variant: karatsuba_zbc
+# date: 2026-05-20 19:32
+# commit: 6d51344
+# variant: karatsuba_zbc (Decode: ref)
 level,op,instructions,codesize
-128,decode,400787,18762
-192,decode,583821,19468
-256,decode,1099622,26940
+128,decode,395808,18590
+192,decode,577483,19296
+256,decode,1080683,26768

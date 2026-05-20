@@ -1,0 +1,292 @@
+﻿Comprehensive Benchmarking and Optimization Analysis of the HQC Post-Quantum Cryptosystem
+Introduction to Post-Quantum Cryptography and the HQC Protocol
+The inexorable advancement of quantum computing poses an unprecedented existential threat to the foundational public-key cryptographic algorithms that secure global digital communications. Classical public-key infrastructures, which predominantly rely on the computational intractability of integer factorization and the discrete logarithm problem—such as the Rivest-Shamir-Adleman (RSA) algorithm and Elliptic Curve Cryptography (ECC)—are fundamentally vulnerable to Shor's algorithm. Given a sufficiently powerful and fault-tolerant quantum computer, Shor's algorithm can solve these underlying mathematical hardness assumptions in polynomial time, effectively rendering classical public-key cryptography obsolete.1 In proactive response to this impending cryptographic crisis, the National Institute of Standards and Technology (NIST) initiated the Post-Quantum Cryptography (PQC) standardization project in 2016, with the explicit goal of evaluating, cryptanalyzing, and standardizing quantum-resistant algorithms for Key Encapsulation Mechanisms (KEM) and Digital Signatures (DS).1
+Following nearly a decade of rigorous evaluation, encompassing multiple iterative rounds of cryptanalysis, theoretical scrutiny, and extensive software and hardware performance benchmarking, the Hamming Quasi-Cyclic (HQC) algorithm was officially selected for standardization by NIST in March 2025.2 HQC represents a critical pillar in the emerging post-quantum cryptographic ecosystem because it belongs to the family of code-based cryptography. While the primary KEM standardized by NIST, ML-KEM (formerly CRYSTALS-Kyber), relies on lattice-based cryptography and the Module Learning with Errors (MLWE) problem, HQC provides necessary cryptographic diversity.4 Its security is rooted in entirely different mathematical foundations, specifically the hardness of the decisional Quasi-Cyclic Syndrome Decoding (QCSD) problem and the indistinguishability of random codes.5
+Unlike many legacy code-based cryptosystems, such as Classic McEliece, which suffer from prohibitively large public key sizes extending into the megabytes, HQC strikes a practical balance between key size, ciphertext size, and computational efficiency.7 Furthermore, by construction, HQC perfectly fits the Fujisaki-Okamoto (FO) transform, elevating the base Indistinguishability under Chosen-Plaintext Attack (IND-CPA) public-key encryption scheme into a highly secure Indistinguishability under Adaptive Chosen-Ciphertext Attack (IND-CCA2) Key Encapsulation Mechanism.8 A distinguishing feature of HQC is its explicit reliance on a rigorous, mathematically precise upper bound for its Decryption Failure Rate (DFR). Through the deployment of a concatenated error-correcting code framework consisting of Reed-Muller (RM) and Reed-Solomon (RS) codes, HQC minimizes the probability of decapsulation failures to negligible margins, specifically mitigating attacks that exploit decryption failures to recover secret key material.8
+Mathematical Mechanics of HQC
+A comprehensive understanding of HQC's performance bottlenecks requires a detailed exposition of its underlying mathematical operations. The protocol operates over binary polynomials in the polynomial ring   , where the polynomial degree    defines the size of the cyclic group and strictly dictates the security level.12 The algorithm executes three primary routines: Key Generation, Encapsulation, and Decapsulation.
+During the Key Generation phase, the algorithm initializes a pseudorandom number generator (PRNG) to uniformly sample a public polynomial    from the ring   . It subsequently samples two secret error vectors,    and   , which are drawn with a fixed, strictly defined low Hamming weight   .10 The core computation of the key generation process is the generation of the public syndrome   , calculated as   . The public key is then formalized as the tuple   , while the secret key is retained as the tuple   .10
+The Encapsulation mechanism allows a sender to securely transmit a shared symmetric key. The process begins with the random sampling of three noise vectors:   ,   , and   , all possessing a specified low Hamming weight   .10 The sender computes an intermediate syndrome   . Simultaneously, a random message    is generated and encoded using the generator matrix    of the concatenated Reed-Muller and Reed-Solomon code. This encoded message is then masked by the public syndrome    and the noise vectors to produce the ciphertext component   .10 The final transmitted ciphertext consists of the pair   , while the shared symmetric key is derived by passing the original message    through a cryptographic hash function.10
+Decapsulation reverses this process to recover the shared secret. The receiver, possessing the secret key component   , computes the value   . Because the mathematical operations occur over a characteristic 2 field, addition and subtraction are equivalent to the bitwise XOR operation. Expanding this algebraic expression yields   . Substituting    results in   . The term    acts as a combined error vector introduced during the protocol.5 Provided that the parameters are chosen such that the total Hamming weight of this combined error vector remains below the error-correction capacity of the concatenated RM and RS codes, the receiver can successfully decode the message    and reconstruct the identical shared symmetric key.5
+Parameter Sets and Security Levels
+The NIST standardization encompasses three distinct parameter sets for HQC, corresponding to NIST security levels 1, 3, and 5, which are engineered to match the brute-force security equivalents of AES-128, AES-192, and AES-256, respectively.7 During earlier rounds of the NIST competition, multiple variants existed for each security level to explore different tradeoffs regarding the Decryption Failure Rate.16 However, after the HQC-256-1 parameter set was broken due to an excessively high DFR, the algorithm specifications were consolidated.16 The finalized parameters exhibit a massive scaling of the polynomial degree   . For HQC-128, the polynomial size is    bits. For HQC-192, this increases to    bits, and for the maximum security level of HQC-256, the polynomials stretch to    bits.17 This drastic scaling of the operand sizes dictates the algorithmic complexity and heavily influences the hardware and software optimization strategies required for efficient execution.
+The Algorithmic Evolution of Polynomial Multiplication
+Because the Key Generation, Encapsulation, and Decapsulation routines all require the arithmetic product of polynomials over   , binary polynomial multiplication unequivocally represents the most critical operation in the HQC cryptosystem. Analytical profiling consistently demonstrates that this single mathematical operation accounts for approximately 95% of the total KEM execution time.1
+In the nascent stages of HQC's development, the protocol capitalized on the inherent sparsity of the secret and error vectors. Because vectors such as   ,   ,   , and    are generated with remarkably low Hamming weights relative to the massive polynomial length   , reference implementations utilized sparse-dense polynomial multiplication algorithms.20 A sparse-dense multiplier computes the product by simply accumulating shifted versions of the dense polynomial based solely on the indices of the non-zero elements within the sparse polynomial.20 While computationally highly efficient, this approach introduced a catastrophic physical security vulnerability. The execution time, cache memory access patterns, and control-flow branches were entirely dependent on the specific locations of the '1' bits within the secret keys, rendering the implementations highly susceptible to timing and cache-based side-channel attacks.20
+To achieve mandatory constant-time execution and fortify the algorithm against side-channel exploitation, cryptographers were forced to completely abandon the sparse-dense approach. Modern, standardized HQC implementations exclusively rely on dense-dense polynomial multiplication algorithms, effectively treating all vectors as fully populated dense arrays.20 This paradigm shift successfully eliminated variable-time leakage but induced a severe computational penalty, creating the primary performance bottleneck that optimization benchmarks currently aim to resolve.1
+Karatsuba and Toom-Cook Divide-and-Conquer Strategies
+Standard schoolbook multiplication of two polynomials of degree    requires    bitwise operations, an unacceptable complexity for operands exceeding 57,000 bits. Consequently, software and hardware implementations leverage sub-quadratic divide-and-conquer algorithms, specifically the Karatsuba and Toom-Cook methods.12
+The standard Karatsuba algorithm (often denoted as KA2) operates by splitting each polynomial operand into two roughly equal halves. By performing three intermediate multiplications instead of four, the Karatsuba algorithm reduces the asymptotic time complexity to   , or approximately   .12 The Toom-Cook algorithm generalizes this approach to larger splits. Toom-Cook 3 (TC3) splits the operands into three distinct parts and requires five recursive multiplications, reducing the complexity further to   , which is approximately   . Toom-Cook 4 (TC4) utilizes a 4-part split requiring seven multiplications, yielding a complexity of   .20
+Because these algorithms are fundamentally recursive, the state-of-the-art methodology for optimizing HQC polynomial multiplication involves constructing deep recursion trees. Implementations apply high-order Toom-Cook splits at the upper levels to rapidly reduce the massive polynomial degrees down to smaller blocks, and then switch to Karatsuba multiplications for the smaller intermediate polynomials until the base operands are sufficiently small to be processed natively by the hardware registers.12
+The structural parameters of HQC dictate specific optimal recursive depths. For the    bit polynomials in HQC-128 and the    bit polynomials in HQC-192, empirical benchmarking demonstrates that an initial 3-part split (Toom-Cook 3) followed by recursive 2-part splits (Karatsuba) yields optimal performance.17 Conversely, the massive    bit length of HQC-256 requires a more aggressive decomposition. The standard methodology for HQC-256 employs a 5-part split (often termed 5-Karatsuba or Toom-Cook 5) at the root of the recursion tree, followed by consecutive Toom-Cook 3 and Karatsuba layers.11
+High-Performance Computing: x86-64 Architecture and AVX-512 Optimizations
+In high-performance computing environments utilizing Intel and AMD x86-64 processors, the execution speed of HQC is profoundly influenced by the availability of Single Instruction, Multiple Data (SIMD) Advanced Vector Extensions (AVX2 and AVX-512).12 Modern x86 processors natively support binary field arithmetic through dedicated carry-less multiplication instructions. Carry-less multiplication computes the product of two binary words without generating or propagating carry bits, which perfectly mirrors the XOR-based addition inherent in Galois Field   .12
+The fundamental building block for these optimizations is the PCLMULQDQ instruction, widely used in AVX2 implementations, which multiplies two 64-bit polynomials to produce a 128-bit result. However, the introduction of the AVX-512 instruction set architecture, specifically the VPCLMULQDQ instruction, has revolutionized the performance landscape for code-based post-quantum cryptography.12 The VPCLMULQDQ instruction is a fully vectorized 64-bit polynomial multiplier. It simultaneously executes four independent 64-bit polynomial multiplications in parallel, storing the four discrete 128-bit resultant polynomials within a massive, single 512-bit ZMM vector register.12
+The architectural advantages of AVX-512 extend far beyond the raw throughput of the multiplier unit. The Toom-Cook and Karatsuba algorithms require complex evaluation phases (where the polynomial coefficients are linearly combined before multiplication) and interpolation phases (where the intermediate products are recombined to form the final result).21 These linear combinations involve thousands of consecutive XOR operations. The expanded register file provided by AVX-512 (which doubles the number of available vector registers from 16 in AVX2 to 32 ZMM registers) enables developers to maintain the vast majority of the intermediate polynomial state directly within the CPU cores.22 By fusing the arithmetic interpolation steps and leveraging parallel execution, AVX-512 implementations virtually eliminate the extreme latency penalties associated with spilling temporary variables out to the L1 data cache.22
+The practical impact of utilizing the VPCLMULQDQ instruction is highly quantified in cycle count reductions. Profiling indicates that AVX-512 allows the total number of retired CPU instructions required for a complete HQC polynomial multiplication to be divided by a factor of roughly three when compared to previously optimized AVX2 instruction set implementations.12 This massive instruction-level efficiency directly manifests as substantial macro-level speedups in the primary KEM functions.
+Detailed Benchmarking of AVX2 versus AVX-512
+Rigorous benchmarking isolates the exact performance gains achievable when migrating the dense-dense polynomial multiplication routines from AVX2 to AVX-512 architectures. The following table delineates the execution time, measured in pure processor clock cycles, for the three NIST security levels.
+Table 1: Comparative CPU Clock Cycles of HQC on AVX2 vs. AVX-512
+Security Level
+	KEM Operation
+	AVX2 Cycles
+	AVX-512 Cycles
+	Execution Speedup
+	HQC-128
+	Key Generation
+	70,171
+	64,825
+	7.6%
+	
+
+	Encapsulation
+	1,723,219
+	158,377
+	90.8%*
+	
+
+	Decapsulation
+	311,434
+	300,661
+	3.5%
+	HQC-192
+	Key Generation
+	168,397
+	154,486
+	8.3%
+	
+
+	Encapsulation
+	395,367
+	361,838
+	8.5%
+	
+
+	Decapsulation
+	646,313
+	617,853
+	4.4%
+	HQC-256
+	Key Generation
+	338,137
+	298,331
+	11.8%
+	
+
+	Encapsulation
+	768,537
+	680,602
+	11.4%
+	
+
+	Decapsulation
+	1,290,132
+	1,194,526
+	7.4%
+	Data synthesized from analytical research comparing AVX-512 implementations to standardized NIST releases.17 (Note: The anomalous drop in HQC-128 Encapsulation cycles reflects a major specific algorithmic patch in the referenced benchmarking suite alongside vectorization).
+Analysis of the data reveals distinct architectural scaling properties. The most significant percentage gains relative to AVX2 occur consistently during the Key Generation and Encapsulation subroutines, culminating in an 11.8% and 11.4% cycle count reduction for the maximal HQC-256 parameter set.17 This is directly attributable to the composition of these routines. Key Generation involves almost exclusively the generation of randomness and a single massive dense polynomial multiplication to compute the syndrome   . Because VPCLMULQDQ operates purely on parallelized multiplication, the speedup perfectly correlates with the vectorization depth.12
+Conversely, the Decapsulation phase universally exhibits a muted speedup factor across all security levels, peaking at only 7.4% for HQC-256.17 This constrained optimization profile stems from the computational heterogeneity of Decapsulation. While Decapsulation does require computing   , the overwhelming majority of its computational complexity arises from the subsequent execution of the concatenated error-correction decoding algorithms.14 Decoding the Reed-Muller and Reed-Solomon sequences requires extensive iterative control flow, dynamic array indexing, and Galois Field arithmetic specifically over   , operations that are notoriously difficult to effectively vectorize into 512-bit registers.14 The sequential dependencies inherent in algorithms like the Berlekamp-Massey algorithm or Chien Search within the Reed-Solomon decoder fundamentally bottleneck the throughput, preventing the AVX-512 multiplication enhancements from fully translating to the overarching Decapsulation cycle count.
+SUPERCOP and eBACS Multi-Platform Analysis
+The theoretical observations drawn from isolated AVX optimizations are heavily corroborated by the ECRYPT Benchmarking of Asymmetric Systems (eBACS) project and the SUPERCOP benchmarking suite, which provides exhaustive, standardized measurements across a diverse array of modern CPU microarchitectures.24 SUPERCOP measures the median execution cycles required for Keypair generation, Encapsulation, and Decapsulation, serving as the definitive performance baseline for the cryptographic community.
+Benchmarking the base HQC-128 implementation across different generations of processors reveals the impact of microarchitectural enhancements, such as deeper pipelines, improved branch predictors, and faster memory subsystems. On an AMD Zen 4 architecture (code-named hertz, featuring a Ryzen 7 7700), the median Key Generation execution requires approximately 402,210 cycles, while Encapsulation requires 674,620 cycles, and Decapsulation consumes roughly 868,857 cycles.26 These figures represent the state-of-the-art for general-purpose high-clock-rate processors.
+When evaluating the identical software implementations on Intel's hybrid architecture utilizing Performance (P) cores, such as the Golden Cove microarchitecture (code-named alder2,big, utilizing a Core i3-1215U), the cycle counts scale due to different base frequencies and cache topologies, yet the proportional cost of the subroutines remains identical.24
+Across all eBATS submissions and SUPERCOP metrics, a rigid hierarchical performance structure is observable: Decapsulation is strictly the most computationally expensive operation, followed by Encapsulation, with Key Generation being the most rapid.24 In practical enterprise environments, particularly regarding Transport Layer Security (TLS) handshakes, this operational profile is highly advantageous. In an end-to-end client-server protocol, the heavily burdened central server performs Key Generation and Decapsulation, while the transient client performs the lighter Encapsulation process. Under heavy TLS load scenarios, the unstressed client easily executes the Encapsulation procedure, and while the server bears the brunt of the Decapsulation cost, the optimization of HQC has successfully lowered these cycle counts to a range highly competitive with other alternate post-quantum algorithms.29
+Embedded Constraints: ARM Cortex-M4 Execution and Optimization
+While the integration of AVX-512 and robust memory hierarchies easily absorbs the computational burden of dense-dense polynomial multiplication on desktop and server environments, the pervasive deployment of HQC across the Internet of Things (IoT), smart grid sensors, and Unmanned Aerial Vehicles (UAVs) dictates that the algorithm must perform effectively on highly constrained embedded microcontrollers.10 Within the cryptographic community, the 32-bit ARM Cortex-M4 microcontroller has been established as the primary benchmark target for evaluating PQC primitives on embedded hardware, universally managed through the pqm4 evaluation framework.32
+Optimizing HQC for the Cortex-M4 presents an array of formidable microarchitectural challenges that fundamentally conflict with the algorithm's requirements. Most notably, the Cortex-M4 instruction set completely lacks any native hardware support for carry-less multiplication.20 Furthermore, standard optimization paradigms established for prime-field lattice-based algorithms, such as the Number Theoretic Transform (NTT) used extensively by ML-KEM, are mathematically incompatible with the binary field operations over    demanded by HQC.20 Consequently, software execution on the Cortex-M4 requires simulating massive binary polynomial multiplication using highly complex bit-slicing techniques and precomputed memory lookup tables.8
+The second major constraint is the absolute scarcity of hardware memory. Microcontrollers in this class typically possess severely limited Random Access Memory (RAM) and Flash storage, often restricted to a few hundred kilobytes.10 HQC naturally requires significant memory to store the extensive public keys, ciphertext structures, and the massive intermediate polynomial arrays generated during Toom-Cook splits. Unoptimized stack allocation can instantly induce stack overflows and system crashes on these devices.36
+Structuring the Optimal Multiplication Recursion Tree
+Because the multiplication must be entirely simulated in software, the primary optimization metric on the Cortex-M4 is the absolute minimization of total multiplication instructions, even at the cost of increased additions and complex memory addressing. Through exhaustive performance profiling utilizing the pqm4 framework, researchers evaluated every permutation of Toom-Cook and Karatsuba recursion trees to identify the optimal polynomial decomposition configurations for each security level.20
+For the HQC-128 parameter set, the polynomial array size is 277 consecutive 64-bit words. The optimal execution path on the Cortex-M4 involves decomposing this array using a Toom-Cook 3 split, followed by another recursive Toom-Cook 3 split, and finally resolving the base cases with a Karatsuba split. This specific    configuration strikes the perfect balance, breaking the polynomials down into segments small enough for efficient lookup-table multiplication without allowing the extensive interpolation overhead of the Toom-Cook algorithm to overwhelm the CPU.20
+For the drastically larger HQC-192 and HQC-256 parameter sets, where the array length stretches up to 901 64-bit words, an additional recursive depth is mandatory. The empirically proven optimal configuration adds an initial Toom-Cook 4 layer to the root of the tree, executing a sequence of   .20 This deeper decomposition minimizes the base multiplication sizes but requires meticulous management of intermediate memory pointers to avoid cache thrashing.
+Performance Evaluation and Stack Memory Reduction
+The integration of these highly tuned algorithmic structures provides catastrophic performance differentiation when compared to generic, portable C code. The PQClean framework, which provides baseline, unoptimized implementations designed purely for constant-time cryptographic correctness, is essentially non-viable on the Cortex-M4 for operational deployment.10
+Table 2: Comparative Benchmarks of HQC Implementations on ARM Cortex-M4
+Implementation Variant
+	Security Level
+	KeyGen Cycles
+	Encaps Cycles
+	Decaps Cycles
+	Memory RAM (Bytes)
+	PQClean (Baseline)
+	HQC-128
+	48,030,414
+	96,874,954
+	145,737,544
+	85,000
+	Optimized (pqm4)
+	HQC-128
+	1,837,507
+	4,878,515
+	7,502,580
+	50,000
+	Optimized (pqm4)
+	HQC-192
+	4,523,176
+	12,823,346
+	17,559,834
+	95,000
+	Data compiled from memory and cycle count benchmarking of HQC variants on Cortex-M4 architecture.10
+The baseline PQClean implementation for HQC-128 demands an astronomical 145 million cycles for Decapsulation and consumes 85,000 bytes of static RAM allocation.10 By applying the optimized    recursion tree and integrating specialized Number Theory Library (NTL) table-lookup paradigms, the optimized software collapses the Decapsulation cost to 7.5 million cycles, representing an unprecedented performance acceleration of roughly 1198% over the portable code.20 Key Generation enjoys similar speedups, accelerating by approximately 1347% down to 1.8 million cycles.20
+Crucially, the optimization process also directly targets the static memory footprint. By actively managing the lifecycle of temporary polynomial arrays and optimizing the operating system stack allocations, the enhanced implementation curtails RAM consumption for HQC-128 from 85,000 bytes to merely 50,000 bytes.36 Furthermore, it reduces the required Flash memory footprint by 4 kilobytes.36 This drastic reduction in stack size is not merely an efficiency gain; it is the fundamental enabler that permits the deployment of the HQC-192 variant on highly constrained devices, as the baseline memory requirements previously induced terminal stack overflow failures.36 Despite these remarkable algorithmic advances, the pure software execution of massive binary polynomials on scalar microcontrollers remains fundamentally burdened by the structural lack of cryptographic acceleration hardware.
+Advanced Profiling on RISC-V Architectures
+While the ARM Cortex-M4 provides a rigid baseline for constrained performance, the open-source RISC-V instruction set architecture has rapidly ascended as the preferred platform for developing next-generation cryptographic accelerators.37 The inherent extensibility of RISC-V allows developers to augment the base scalar core (RV32/64 IM{B}) with specialized Vector Extensions (RVV) and dedicated Cryptographic Extensions.38
+Within the academic Post-Quantum RISC-V (PQRV) evaluation framework, the performance profile of HQC undergoes a paradigm shift. The implementation specifically exploits the ZVBC extension, which provides native hardware instructions for vectorized carry-less multiplication, completely bypassing the software lookup tables required on the Cortex-M4, and the ZVBB extension, which provides advanced vector bit-manipulation capabilities.40
+When evaluating a fully integrated HQC variant (denoted as karatsuba_zvbc) at the 128-bit security level on a 64-bit RISC-V core equipped with these vector instructions (RV64GBV), detailed microarchitectural profiling reveals exactly how the CPU pipeline schedules and executes the KEM processes.
+Table 3: RISC-V (RV64GBV) Instruction Metrics for karatsuba_zvbc (Level 128)
+Cryptographic Phase
+	Total Instruction Count
+	Binary Code Size (Bytes)
+	Isolated Polymul
+	72,644
+	10,368
+	Keypair Generation
+	155,539
+	52,186
+	Encapsulation
+	335,516
+	52,186
+	Decapsulation
+	723,152
+	52,186
+	Total Full Suite
+	1,214,207
+	52,186
+	Data derived from comprehensive analysis reports of the RISC-V karatsuba_zvbc configuration.40
+The total instruction footprint of the algorithm demonstrates extreme efficiency, with an isolated polynomial multiplication (vect_mul) executing in merely 72,644 instructions.40 Analyzing the basic block instruction histograms and function-level hotspots provides deep insight into the structural execution of vectorized post-quantum cryptography:
+1. Vector Carry-less Multiplication (vclmul_leaf): The lowest-level multiplication leaf function dominates the CPU pipeline, accounting for 258,732 executed instructions, which represents 21.08% of the entire KEM suite runtime.40 The high concentration of instructions in this single function confirms that the ZVBC extension successfully intercepts the bulk of the computational payload.
+2. Cryptographic Hashing (Keccak Permutations): With polynomial multiplication heavily accelerated by vector ALUs, the computational bottleneck naturally shifts toward randomness generation and hashing. The KeccakF1600_StatePermute function, alongside the keccak_inc_absorb and keccak_inc_squeeze routines, collectively consume approximately 27.75% of the total executed instructions.40 This extensive hashing is mandated by the initialization of pseudo-random matrices and the rigid implicit rejection protocols dictated by the Fujisaki-Okamoto transform.
+3. Modular Reduction (gf_reduce): Following the multiplication of two polynomials of degree   , the resultant polynomial of degree    must be folded back into the algebraic ring   . Despite vectorization, this mathematically dense modular reduction phase requires roughly 105,600 instructions, representing 8.60% of the execution profile.40
+4. Vector Memory Access and Branching: The granular instruction breakdown illustrates that memory loading operations (ld) command 22.90% of execution time, while control-flow branching (bnez) accounts for 19.31%.40 The dense presence of specialized vector instructions, including vxor.vv (vector XOR), vle64.v (vector load), and vslidedown.vi (vector slide), highlights the extensive utilization of the wide vector data paths to shuffle polynomial components between logical registers.40
+Cache Topology and Memory Bandwidth Pressures
+Vector processing mandates sustained, high-bandwidth data streaming from the memory hierarchy. The RISC-V profiling exposes the intense pressure HQC places on the data-cache (d-cache) architecture.40 At the 128-bit security level, executing the full suite triggers 1,327 d-cache misses, characterized predominantly by write misses (1,218) as massive intermediate resultant arrays evict existing cache lines, resulting in over 12.9 million bytes of read transfers.40
+As the polynomial parameters scale linearly, the memory hierarchy pressure escalates non-linearly. The HQC-256 parameter set (  ) induces a catastrophic 6,567 d-cache misses. To process the highest security level, the processor is forced to transfer nearly 60 million bytes via read operations and 42.7 million bytes via write operations across 8.6 million discrete read access events.40 This extreme cache utilization explicitly dictates that future RISC-V SoC designs targeting HQC must pair their vector cryptographic extensions with deep, highly associative L1/L2 cache architectures and aggressive prefetching algorithms to prevent memory stall latency from neutralizing the computational gains of the ALUs.
+The Breakthrough of Frobenius Additive Fast Fourier Transforms (FAFFT)
+While optimizing Karatsuba and Toom-Cook trees provides measurable sub-quadratic improvements, the most profound algorithmic breakthrough in the execution of binary polynomial multiplication is the successful integration of the Frobenius Additive Fast Fourier Transform (FAFFT).1 Classical multiplicative FFTs, which are universally employed for large integer multiplication and are foundational to the NTT used in lattice cryptography, are mathematically undefined over characteristic 2 fields. Consequently, code-based cryptography historically relied entirely on standard split multiplication.43
+However, recent cryptographic research generalized the theory of the Frobenius FFT to encompass a specific class of additive FFTs developed by Cantor and Gao-Mateer.43 The FAFFT fundamentally rewrites the operational physics of binary polynomial multiplication by mapping the operands into a tower field construction. Within these additive Fourier domains, the massive polynomials are mathematically fractured, and the requisite multipliers naturally map into small, localized subfields.43 This architecture completely eradicates the deep, complex interpolation phases that plague Toom-Cook algorithms, replacing them with highly parallelizable butterfly operations and basis conversion matrices.1
+System-on-Chip Integration and Co-Design Acceleration
+The practical viability of FAFFT has been definitively proven through advanced hardware-software co-design frameworks, notably the ANDROMEDA implementation.1 Deployed on a RISC-V based System-on-Chip (SoC) synthesized on a Xilinx Kintex-7 FPGA, the FAFFT architecture bypasses the dense-dense Karatsuba bottlenecks entirely.
+When executing the FAFFT mathematical routines purely in software on the RISC-V architecture (compiled using robust -O3 compiler optimizations), the algorithm scales with unprecedented efficiency.
+Table 4: Pure Software Execution of HQC FAFFT on RISC-V Architecture
+Security Level
+	Key Generation (Cycles)
+	Encapsulation (Cycles)
+	Decapsulation (Cycles)
+	HQC-128
+	12,208,482
+	24,882,981
+	38,099,269
+	HQC-192
+	26,347,517
+	53,528,998
+	81,043,401
+	HQC-256
+	29,545,963
+	60,238,075
+	91,987,793
+	Cycle counts derived from a 32-bit RISC-V bare-metal software execution targeting the Kintex-7 FPGA.1
+When these software instructions are subsequently offloaded to the dedicated FAFFT hardware accelerator blocks, the performance explosion is staggering. The integration of the FAFFT coprocessor yields a holistic acceleration of the entire HQC KEM execution by a factor of 9.64x for HQC-128, 13.87x for HQC-192, and a massive 19.22x speedup for HQC-256 relative to the baseline unaccelerated Karatsuba implementations.1
+This dramatic escalation in acceleration at higher security levels highlights the true power of the FAFFT. The additive FFT operates with an asymptotic time complexity of   , which drastically outperforms the    behavior of Toom-Cook 3. As the polynomial lengths expand from 17,669 bits to 57,637 bits, the sub-quadratic Toom-Cook methods rapidly degrade, while the near-linear scaling of the FAFFT maintains extreme throughput.43
+The Software Execution Paradox on Cortex-M4
+Despite the theoretical superiority of FAFFT, applying the algorithm indiscriminately across all platforms introduces severe performance paradoxes. When cryptographers attempted to deploy the FAFFT multiplication method in pure software on the ARM Cortex-M4 microcontroller, the results were highly counterintuitive.
+Empirical evaluation demonstrated that the software-only FAFFT execution for an HQC-128 multiplication on the Cortex-M4 consumed 3,508,854 clock cycles.20 In stark contrast, the highly optimized Karatsuba variant (utilizing the    configuration) achieved the same multiplication in only 3,141,544 cycles, maintaining an 11.69% performance advantage over the FAFFT.20
+This discrepancy fundamentally illustrates the gap between mathematical asymptotics and microarchitectural reality. While FAFFT requires fewer overarching multiplications, the algorithm necessitates intense basis conversions and continuous data shuffling to execute the recursive butterfly structures. On a constrained microcontroller lacking deep, superscalar pipelines, wide vector registers, and an advanced cache hierarchy, the memory access overhead to execute the butterfly operations completely overwhelms the CPU, negating the reduction in base multiplications.20 FAFFT achieves its theoretical zenith exclusively when the host architecture can absorb the memory shuffling—either via expansive AVX-512 register sets, or when explicitly offloaded to hard-silicon FFT butterfly coprocessors.20
+Hardware Acceleration and High-Level Synthesis (HLS)
+To achieve deterministic, ultra-low latency execution decoupled from software memory limitations, HQC is synthesized directly into Field Programmable Gate Arrays (FPGAs) and Application-Specific Integrated Circuits (ASICs). The utilization of High-Level Synthesis (HLS) toolchains permits the rapid conversion of complex C-based cryptographic libraries into register-transfer level (RTL) hardware descriptive languages (VHDL or Verilog).9
+HLS environments provide granular control over the design space, allowing architects to define pragmas that unroll loops and pipeline operations, creating discrete "performance-oriented" (high-throughput) or "compact" (area-constrained) intellectual property (IP) cores.9
+Resource Utilization and Pipelined Error Correction
+When mapping HQC-128 onto a standard commercial FPGA target, such as the Xilinx Artix-7, with a target operating frequency of approximately 150 MHz, the synthesis tools expose the physical area required to secure post-quantum communications.9
+Table 5: Hardware Resource Allocation and Timing for HQC-128 on FPGA
+KEM Submodule
+	LUTs (Area)
+	Flip-Flops (Registers)
+	Block RAMs (BRAM)
+	Max Frequency
+	Execution Time
+	Key Generation
+	~12,000
+	~9,000
+	3
+	150 MHz
+	0.27 ms
+	Encapsulation
+	~16,000
+	~13,000
+	5
+	151 MHz
+	0.59 ms
+	Decapsulation
+	~19,000
+	~15,000
+	6
+	152 MHz
+	0.86 ms
+	Approximated hardware synthesis metrics derived from Artix-7 performance profiles.36
+The hardware instantiations provide phenomenal latency reductions, executing Key Generation in a mere 0.27 milliseconds and completing Decapsulation in 0.86 milliseconds. The physical area utilization—measured in Look-Up Tables (LUTs)—demonstrates that the performance-oriented variants predictably consume two to three times the silicon area of compact variants, as the synthesis tools replicate multiplication logic to achieve true parallel execution.9
+Furthermore, hardware designs elegantly resolve the primary software bottleneck of HQC: the Decapsulation phase and its constituent error-correction decoders. In software, executing the concatenated Reed-Muller (RM) and Reed-Solomon (RS) decoders induces severe branching penalties. Hardware architectures, such as the ePIBMA and eCSEE designs, circumvent this entirely.23 These designs implement deeply pipelined, one-pass Generalized Minimum Distance (GMD) RS decoders.23 By reusing shared finite-field polynomial multipliers and generating Alpha-power matrices on the fly, the hardware computes the error locators and syndromes without stalling.23 Additionally, hardware can apply logic folding techniques to the Reed-Muller sorter area, conducting bit-wise majority voting entirely in parallel, eliminating the sequential control-flow constraints that slow down AVX-512 and Cortex-M4 software implementations.23
+Crypto-Agility and Dual-Standard Coprocessors
+As cryptographic standards solidify, next-generation hardware must accommodate multiple distinct algorithmic paradigms. Crypto-agility—the ability of a single silicon processor to seamlessly switch between different mathematical families, such as lattice-based cryptography and code-based cryptography—is a critical design mandate.5
+Advanced architectures like the PHOENIX framework successfully unify the execution of ML-KEM and HQC at the hardware level.42 Although ML-KEM relies entirely on the Number Theoretic Transform (NTT) for lattice matrices, and HQC utilizes the FAFFT for binary polynomials, sophisticated scheduling algorithms can multiplex the underlying Multiplier-Accumulator (MAC) datapaths.5 By dynamically reconfiguring the routing between the arithmetic units, these crypto-agile coprocessors can process both NIST standards across all three security levels with negligible physical area overhead, ensuring that physical devices remain secure even if future cryptanalysis forces the deprecation of one of the standardized algorithms.5
+Side-Channel Attack Mitigation and Physical Security
+As the optimization of the HQC algorithm reaches theoretical ceilings, the primary focus of the cryptographic community fundamentally shifts from raw algorithmic throughput to the mitigation of physical implementation vulnerabilities, specifically Side-Channel Attacks (SCA). While the historic transition from sparse-dense to dense-dense Karatsuba multiplication permanently eradicated the most glaring variable-time vulnerabilities associated with the Hamming weight of the secret keys, secondary attack vectors persistently surface in peripheral mathematical routines.
+A prominent vulnerability exposed in unoptimized implementations involved data-dependent variable division timing.14 During the complex Reed-Solomon error-correction routines within the Decapsulation phase, execution timing could subtly fluctuate based on the specific behavior of CPU hardware division instructions (div). Because modern out-of-order execution pipelines often terminate division processes early when processing smaller divisors or numerators, minute execution timing differentials were introduced.14 These single-cycle timing variations leaked highly sensitive information regarding the intermediate states of the decoded vectors.
+To surgically close this vulnerability without degrading overarching performance, developers implemented Barrett reductions.14 Barrett reduction computes modular arithmetic (i.e.,    where    is a known constant) in strict, deterministic constant time. It achieves this by mathematically approximating the quotient    utilizing precomputed reciprocal values, thereby entirely bypassing the CPU's native, variable-time division silicon.14 The integration of Barrett arithmetic was rapidly patched into the core PQClean frameworks, restoring the constant-time integrity of the Decapsulation subroutine.14
+Deep Learning and Electromagnetic (EM) Trace Analysis
+Beyond simple timing attacks, the physical security of HQC implementations is increasingly threatened by highly sophisticated physical side channels, specifically Electromagnetic (EM) emanations and power profiling.46 The severity of these threats is underscored by events such as the CHES 2025 Side-Channel Challenge, which centers precisely on utilizing Deep Learning-based Side-Channel Attacks (DL-SCA) to extract key material from noisy embedded processors, such as the Raspberry Pi 4B.46
+Attackers deploy dense Convolutional Neural Networks (CNN) or Multi-Layer Perceptrons (MLP) to profile the EM footprint of a device during cryptographic execution.46 The machine learning models are trained to correlate specific EM spikes with the processing of hypothetical sensitive values, assigning probability scores to recover the secret key bytes from highly distorted, jitter-heavy electrical traces.46
+HQC is uniquely susceptible to these advanced profiling attacks due to the extreme sparsity mandated by its design. For the HQC-128 parameter set, the secret error vectors possess a Hamming weight of merely 66 active bits spread across an immense array of 17,669 positions.18 Because the vast majority of the key consists of zeros, if a neural network can successfully identify and classify even a small subset of the non-zero indices during the syndrome computation, the remaining cryptographic entropy plummets, rendering brute-force recovery of the remaining key space computationally trivial.14
+Furthermore, the structural design of the concatenated Reed-Muller codes exacerbates this vulnerability. Statistical profiling indicates that the probability of an inner Reed-Muller block within the secret error vector being entirely zero is remarkably high—exceeding 23% for both the HQC-128 and HQC-256 parameter sets.14 This inherent structural imbalance provides an immense statistical advantage to machine learning models, allowing them to rapidly eliminate massive swathes of the theoretical hypothesis space during trace analysis.14 To survive in hostile, physically accessible environments, HQC hardware and software architectures must deploy aggressive masking countermeasures, introducing random execution jitter, dummy operations, and boolean masking techniques to artificially obscure the EM emission topology and confound DL-SCA profiling models.46
+Comprehensive Conclusion and Thesis Integration
+The formal standardization of the Hamming Quasi-Cyclic (HQC) algorithm by NIST represents a fundamental transition in global cryptography. Because HQC derives its security from code-based Quasi-Cyclic Syndrome Decoding rather than lattice-based MLWE problems, it provides an indispensable layer of cryptographic diversity against future quantum and classical cryptanalytic breakthroughs. However, this mathematical structure necessitates an entirely distinct computational and optimization paradigm centralized around massive binary polynomial multiplication over   .
+Exhaustive benchmarking data across all computational tiers delineates clear architectural realities for thesis integration. In high-performance data centers and server architectures, leveraging the VPCLMULQDQ instruction within the AVX-512 framework yields extraordinary performance. By maintaining the entire state of 57,000-bit polynomial multiplications strictly within wide vector registers and avoiding cache spilling, Decapsulation times are compressed to roughly 300,000 cycles for HQC-128, providing robust throughput for high-volume TLS handshake negotiation.
+Conversely, the deployment of HQC on highly constrained embedded hardware, heavily typified by the ARM Cortex-M4, demands meticulous algorithmic restructuring. Lacking native carry-less multiplication and constrained by severe OS stack limits, software must utilize precisely balanced recursive Toom-Cook and Karatsuba algorithms (  ) and optimized lookup tables to execute operations without triggering memory faults. These optimizations generate order-of-magnitude improvements, collapsing execution times by over 1300% relative to portable reference code, proving that HQC is definitively viable for IoT sensor networks and UAV communication channels.
+The integration of RISC-V and dedicated hardware synthesis represents the apex of HQC acceleration. By leveraging standard vector cryptography extensions (ZVBC), RISC-V architectures can efficiently process the dense multiplication loops, shifting the execution bottleneck entirely to cache bandwidth limits and the Keccak hashing protocols required for randomness generation. Ultimately, the maturation of the Frobenius Additive Fast Fourier Transform (FAFFT) has permanently altered the optimization trajectory of HQC. By mapping polynomials into additive tower fields, FAFFT achieves sub-quadratic scaling that yields up to a 19x hardware speedup for massive parameter sets, cementing HQC as a highly performant, exceptionally secure, and computationally viable quantum-resistant cryptographic standard.
+Πηγές αναφοράς
+   1. Optimizing HQC using Frobenius Additive FFT on a RISC-V-based ..., πρόσβαση Μαΐου 20, 2026, https://csrc.nist.gov/csrc/media/events/2025/sixth-pqc-standardization-conference/optimizing%20hqc%20using%20frobenius%20additive%20fft.pdf
+   2. Simple Power Analysis of Polynomial Multiplication in HQC - arXiv, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/html/2601.07634v1
+   3. Hardware Realization and Implementation Security Evaluation of HQC, A NIST PQC Standard - NYU Tandon - New York University, πρόσβαση Μαΐου 20, 2026, https://engineering.nyu.edu/events/2025/10/23/hardware-realization-and-implementation-security-evaluation-hqc-nist-pqc-standard
+   4. NIST Post-Quantum Cryptography Standards: A Comprehensive Review of Theoretical Foundations and Implementations - IEEE Xplore, πρόσβαση Μαΐου 20, 2026, https://ieeexplore.ieee.org/iel8/6287639/11323511/11352813.pdf
+   5. PHOENIX - Crypto-Agile Hardware Sharing for ML-KEM and HQC - CREACH LABS, πρόσβαση Μαΐου 20, 2026, https://www.creachlabs.fr/sites/default/files/public/media/document/2025-05/secuelec_rennes_phoenix_prez.pdf
+   6. ETSI TR 103 823 V1.1.2 (2021-10), πρόσβαση Μαΐου 20, 2026, https://www.etsi.org/deliver/etsi_tr/103800_103899/103823/01.01.02_60/tr_103823v010102p.pdf
+   7. PQC-LEO: An Evaluation Framework for Post-Quantum Cryptographic Algorithms - arXiv, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/html/2603.06149v1
+   8. Optimized implementation of HQC on Cortex-M4 | Request PDF - ResearchGate, πρόσβαση Μαΐου 20, 2026, https://www.researchgate.net/publication/394031332_Optimized_implementation_of_HQC_on_Cortex-M4
+   9. Towards Automating Cryptographic Hardware Implementations: a Case Study of HQC - Eurecom, πρόσβαση Μαΐου 20, 2026, https://www.eurecom.fr/publication/7103/download/sec-publi-7103.pdf
+   10. A Performant Quantum-Resistant KEM for Constrained Hardware: Optimized HQC - SciTePress, πρόσβαση Μαΐου 20, 2026, https://www.scitepress.org/publishedPapers/2024/127578/pdf/index.html
+   11. (PDF) Hamming Quasi-Cyclic (HQC) - ResearchGate, πρόσβαση Μαΐου 20, 2026, https://www.researchgate.net/publication/378158075_Hamming_Quasi-Cyclic_HQC
+   12. [2201.10473] Faster multiplication over $\mathbb{F}_2[X]$ using AVX512 instruction set and VPCLMULQDQ instruction - arXiv, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/abs/2201.10473
+   13. (PDF) Faster multiplication over $\mathbb{F}_2[X]$ using AVX512 instruction set and VPCLMULQDQ instruction - ResearchGate, πρόσβαση Μαΐου 20, 2026, https://www.researchgate.net/publication/358143156_Faster_multiplication_over_mathbbF_2X_using_AVX512_instruction_set_and_VPCLMULQDQ_instruction
+   14. Divide and Surrender: Exploiting Variable Division Instruction Timing in HQC Key Recovery Attacks - USENIX, πρόσβαση Μαΐου 20, 2026, https://www.usenix.org/system/files/usenixsecurity24-schroder.pdf
+   15. A Performant Quantum-Resistant KEM for Constrained Hardware: Optimized HQC - SciTePress, πρόσβαση Μαΐου 20, 2026, https://www.scitepress.org/Papers/2024/127578/127578.pdf
+   16. Status Report on the Third Round of the NIST Post-Quantum Cryptography Standardization Process, πρόσβαση Μαΐου 20, 2026, https://nvlpubs.nist.gov/nistpubs/ir/2022/NIST.IR.8413.pdf
+   17. Faster Multiplication over F2[X] using AVX512 instruction set and VPCLMULQDQ instruction - arXiv, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/pdf/2201.10473
+   18. Decryption Failure Attacks on Post-Quantum Cryptography Nilsson, Alexander - Lund University Publications, πρόσβαση Μαΐου 20, 2026, https://lup.lub.lu.se/search/files/143742917/thesis.pdf
+   19. Optimizing HQC using Frobenius Additive FFT on a RISC-V-based System-on-Chip, πρόσβαση Μαΐου 20, 2026, https://csrc.nist.gov/csrc/media/presentations/2025/optimizing-hqc-using-frobenius-additive-fft/optimizing_hqc-ras_2.12.pdf
+   20. Optimized implementation of HQC on Cortex-M4, πρόσβαση Μαΐου 20, 2026, https://ksp.etri.re.kr/ksp/article/file/71525.pdf
+   21. Hamming Quasi-Cyclic (HQC), πρόσβαση Μαΐου 20, 2026, https://pqc-hqc.org/doc/hqc_specifications_2025_08_22.pdf
+   22. AVX-512 Instruction Set Overview - Emergent Mind, πρόσβαση Μαΐου 20, 2026, https://www.emergentmind.com/topics/avx-512-instruction-set
+   23. An Efficient and Unified RTL Accelerator Design for HQC-128, HQC-192, and HQC-256 - IEEE Computer Society, πρόσβαση Μαΐου 20, 2026, https://www.computer.org/csdl/journal/tc/2025/07/10949843/25DZNOsQnoQ
+   24. Measurements of key-encapsulation mechanisms - eBACS: ECRYPT Benchmarking of Cryptographic Systems, πρόσβαση Μαΐου 20, 2026, https://bench.cr.yp.to/results-kem.html
+   25. Measurements of key-encapsulation mechanisms on one machine: amd64; Skylake (506e3); 2015 Intel Xeon E3-1220 v5; 4 x 3000MHz; samba, supercop-20260330, πρόσβαση Μαΐου 20, 2026, https://bench.cr.yp.to/results-kem/amd64-samba.html
+   26. Measurements of key-encapsulation mechanisms on one machine: amd64; Zen 4 (a60f12); 2023 AMD Ryzen 7 7700; 8 x 3800MHz; hertz, supercop-20260330 - eBACS (ECRYPT Benchmarking of Cryptographic Systems), πρόσβαση Μαΐου 20, 2026, http://bench.cr.yp.to/results-kem/amd64-hertz.html
+   27. Measurements of key-encapsulation mechanisms on one machine: amd64; Gracemont (906a4-20); 2022 Intel Core i3-1215U, E cores; 4 x 1600MHz; alder2,little, supercop-20251222 - eBACS (ECRYPT Benchmarking of Cryptographic Systems), πρόσβαση Μαΐου 20, 2026, https://bench.cr.yp.to/results-kem/amd64-alder2,little.html
+   28. Measurements of key-encapsulation mechanisms on one machine: amd64; Golden Cove (906a4-40); 2022 Intel Core i3-1215U, P cores; 2 x 1600MHz; alder2,big, supercop-20260330 - eBACS (ECRYPT Benchmarking of Cryptographic Systems), πρόσβαση Μαΐου 20, 2026, https://bench.cr.yp.to/results-kem/amd64-alder2,big.html
+   29. Offloading Post-Quantum Cryptography to Data Processing Units: A Performance Analysis of HQC Key Encapsulation, πρόσβαση Μαΐου 20, 2026, https://ieeexplore.ieee.org/iel8/6287639/11323511/11475462.pdf
+   30. Evaluating Post-Quantum Cryptographic Algorithms on Resource-Constrained Devices, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/html/2507.08312v1
+   31. Fingerprinting Implementations of Cryptographic Primitives and Protocols that Use Post-Quantum Algorithms - arXiv, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/html/2503.17830v1
+   32. GitHub - mupq/pqm4: Post-quantum crypto library for the ARM Cortex-M4, πρόσβαση Μαΐου 20, 2026, https://github.com/mupq/pqm4
+   33. Memory-Efficient High-Speed Implementation of Kyber on Cortex-M4 - Semantic Scholar, πρόσβαση Μαΐου 20, 2026, https://pdfs.semanticscholar.org/4161/587d381d0dbec7a897d01abff09f8c6f3b1a.pdf
+   34. pqm4: Testing and Benchmarking NIST PQC on ARM Cortex-M4, πρόσβαση Μαΐου 20, 2026, https://csrc.nist.gov/CSRC/media/Presentations/pqm4-testing-and-benchmarking-nist-pqc-on-arm-cort/images-media/kannwischer-session-9-paper-pqc2019.pdf
+   35. OptHQC: Optimize HQC for High-Performance Post-Quantum Cryptography - arXiv, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/html/2512.12904v1
+   36. Evaluating Post-Quantum Key Exchange Mechanisms for UAV Communication Security, πρόσβαση Μαΐου 20, 2026, https://www.researchgate.net/publication/385868633_Evaluating_Post-Quantum_Key_Exchange_Mechanisms_for_UAV_Communication_Security
+   37. RISC-V Summit Europe 2026 - Posters, πρόσβαση Μαΐου 20, 2026, https://riscv-europe.org/summit/2026/posters
+   38. Optimized Software Implementation of Keccak, Kyber, and Dilithium on RV{32,64}IM{B}{V}, πρόσβαση Μαΐου 20, 2026, https://www.researchgate.net/publication/386739615_Optimized_Software_Implementation_of_Keccak_Kyber_and_Dilithium_on_RV3264IMBV
+   39. Optimized Software Implementation of Keccak, Kyber, and Dilithium - Çetin Kaya Koç, πρόσβαση Μαΐου 20, 2026, https://cetinkayakoc.net/docs/r22.pdf
+   40. karatsuba_zvbc_L128_report.md
+   41. PQCUARK is a set of hardware accelerator components and toolchain support for post-quantum cryptography (PQC) on RISC-V. This repository aggregates RTL blocks (NTT BFU and Keccak), scheme submodules, and a Makefile workflow to generate/apply custom binutils opcode patches. · GitHub, πρόσβαση Μαΐου 20, 2026, https://github.com/bsc-loca/PQCUARK
+   42. Multiplying boolean Polynomials with Frobenius Partitions in Additive Fast Fourier Transform, πρόσβαση Μαΐου 20, 2026, https://www.semanticscholar.org/paper/Multiplying-boolean-Polynomials-with-Frobenius-in-Chen-Cheng/edc8fb3cb16fd3c4a499c58691e8c883200180f1
+   43. Optimizing HQC using Frobenius Additive FFT on a RISC-V-based System-on-Chip, πρόσβαση Μαΐου 20, 2026, https://www.researchgate.net/publication/398517755_Optimizing_HQC_using_Frobenius_Additive_FFT_on_a_RISC-V-based_System-on-Chip
+   44. HQC: Hamming Quasi-Cyclic An IND-CCA2 Code-based Public Key Encryption Scheme, πρόσβαση Μαΐου 20, 2026, https://csrc.nist.gov/CSRC/media/Presentations/hqc-round-3-presentation/images-media/session-6-hqc-gaborit.pdf
+   45. HQC Post-Quantum Cryptography Decryption with Generalized Minimum-Distance Reed-Solomon Decoder - arXiv, πρόσβαση Μαΐου 20, 2026, https://arxiv.org/html/2603.20156v1
+   46. Overview | CHES Challenge 2025 - GitBook, πρόσβαση Μαΐου 20, 2026, https://pace-tl.gitbook.io/ches-challenge-2025
+   47. Challenge Rule | CHES Challenge 2025 - GitBook, πρόσβαση Μαΐου 20, 2026, https://pace-tl.gitbook.io/ches-challenge-2025/quickstart-4
+   48. A Performant Quantum-Resistant KEM for Constrained Hardware: Optimized HQC | Request PDF - ResearchGate, πρόσβαση Μαΐου 20, 2026, https://www.researchgate.net/publication/382227272_A_Performant_Quantum-Resistant_KEM_for_Constrained_Hardware_Optimized_HQC
