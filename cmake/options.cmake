@@ -13,15 +13,17 @@
 # ref         : vendor scalar fips202 (default — no dependency on RVV Keccak)
 # rvv_only    : Track B — Base V extension only (Zhang et al. intrinsics)
 #               src/keccak/fips202_rvv_only.c
+# rvv_x2_soa  : Track B2 — pure RVV 1.0 2-way SoA backend (no Zvbb/Zvbc)
+#               src/keccak/rvv/fips202_rvv_x2.c
 # zvbb_gather : Track C — Vector Crypto Zvbb; custom LMUL=8 vrgather/vror/vandn
 #               single-state permute; src/keccak/fips202_zvbb_gather.c
 #               requires -march=..._zbkb_zvbb (zvl256b mandatory for vl=25)
 # zvbb_x2_soa : Track C2 — 2-way SoA vector Keccak backend with paired-stream
 #               wrappers; src/keccak/rvv/fips202_zvbb_x2.c
 set(HQC_KECCAK_IMPL "ref" CACHE STRING
-    "Keccak/SHAKE backend: ref | rvv_only | zvbb_gather | zvbb_x2_soa")
+    "Keccak/SHAKE backend: ref | rvv_only | rvv_x2_soa | zvbb_gather | zvbb_x2_soa")
 set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
-    "ref" "rvv_only" "zvbb_gather" "zvbb_x2_soa")
+    "ref" "rvv_only" "rvv_x2_soa" "zvbb_gather" "zvbb_x2_soa")
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
@@ -39,6 +41,8 @@ if(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "ref")
     message(STATUS "  → Phase 1 build: polynomial multiplication head-to-head comparison")
 elseif(HQC_KECCAK_IMPL STREQUAL "rvv_only" AND HQC_DECODE_IMPL STREQUAL "ref")
     message(STATUS "  → Track B build: base V extension Keccak (fips202_rvv_only.c)")
+elseif(HQC_KECCAK_IMPL STREQUAL "rvv_x2_soa")
+    message(STATUS "  → Track B2 build: pure RVV 2-way SoA Keccak (fips202_rvv_x2.c)")
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_gather")
     message(STATUS "  → Track C build: Zvbb LMUL=8 vrgather permute (fips202_zvbb_gather.c)")
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
@@ -114,10 +118,11 @@ message(STATUS "  reference PGO : ${HQC_REF_PGO}")
 # ── Validation ────────────────────────────────────────────────────────────────
 if(NOT HQC_KECCAK_IMPL STREQUAL "ref"          AND
    NOT HQC_KECCAK_IMPL STREQUAL "rvv_only"     AND
+   NOT HQC_KECCAK_IMPL STREQUAL "rvv_x2_soa"   AND
    NOT HQC_KECCAK_IMPL STREQUAL "zvbb_gather"  AND
    NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     message(FATAL_ERROR
-    "HQC_KECCAK_IMPL must be one of: ref | rvv_only | zvbb_gather | zvbb_x2_soa, "
+    "HQC_KECCAK_IMPL must be one of: ref | rvv_only | rvv_x2_soa | zvbb_gather | zvbb_x2_soa, "
         "got '${HQC_KECCAK_IMPL}'")
 endif()
 if(NOT HQC_DECODE_IMPL STREQUAL "ref" AND NOT HQC_DECODE_IMPL STREQUAL "rvv")

@@ -107,7 +107,8 @@ set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
 # All polymul variants automatically pick up the chosen Keccak impl.
-# Stable options: ref | rvv_only (Track B) | zvbb_gather (Track C) | zvbb_x2_soa (Track C2)
+# Stable options: ref | rvv_only (Track B) | rvv_x2_soa (Track B2)
+#                 | zvbb_gather (Track C) | zvbb_x2_soa (Track C2)
 #
 # KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
 #                        (appended to every KAT / bench target)
@@ -121,6 +122,16 @@ if(HQC_KECCAK_IMPL STREQUAL "rvv_only")
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_rvv_only.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
+
+elseif(HQC_KECCAK_IMPL STREQUAL "rvv_x2_soa")
+    # Track B2: pure RVV 1.0 2-way SoA Keccak backend (no Vector Crypto ISA).
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_x2.c)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_x2.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_gather")
     # Track C: Zvbb — custom LMUL=8 vrgather/vror/vandn single-state Keccak-f
