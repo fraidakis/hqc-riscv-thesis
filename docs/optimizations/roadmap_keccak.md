@@ -291,6 +291,30 @@ sizes, to select the optimal batch width N.
 
 **Experiment slot:** `EXP-keccak-batch-audit`
 
+**Result (2026-05-20):** Completed (`EXP-keccak-batch-audit`).
+
+Measured from Spike KEM runs (`karatsuba_zvbc`, `HQC_KECCAK_IMPL=zvbb_gather`,
+`HQC_DECODE_IMPL=rvv`) with temporary runtime SHAKE context audit hooks:
+
+| Level | max_active_global | keygen max_active | encrypt max_active | decrypt max_active |
+|-------|-------------------|-------------------|--------------------|--------------------|
+| HQC-128 | 2 | 2 | 2 | 1 |
+| HQC-192 | 2 | 2 | 2 | 1 |
+| HQC-256 | 2 | 2 | 2 | 1 |
+
+Absorb-size histogram (all levels, non-zero bins only):
+
+- `shake256_absorb`: no calls observed (`0`)
+- `shake256_inc_absorb`: `len=1 (count=8)`, `len=32 (count=8)`
+
+Conclusions for batching roadmap:
+
+1. The observed concurrency ceiling is **N=2** for single KEM flows.
+2. A native **x4** path will be under-utilised unless callers are restructured
+  to batch across multiple independent KEM requests.
+3. Track C2 should start with a `shake256_x2()` fast path (especially for the
+  keygen dual-context pattern), with scalar fallback for singleton contexts.
+
 #### C2 — N-Way shake256_xN() API + SHAKE State AoS→SoA
 
 **Design (following Zhang et al., §3.3):**
@@ -399,7 +423,7 @@ order is:
 | 1 | `EXP-keccak-zvbb-gather-v2` (DONE: hoisted + KAT + merged to `main`) | B1 | none | ~30–40% |
 | 2 | `EXP-keccak-rv64imb-asm` | A1+A3 | none | ~50–60% |
 | 3 | `EXP-keccak-zvbb-vectorized-theta` (IN PROGRESS) | B2 | B1 | +5–15% on top of B1 |
-| 4 | `EXP-keccak-batch-audit` | C1 | none (analysis only) | baseline for C2 |
+| 4 | `EXP-keccak-batch-audit` (DONE: max-active audit completed; N=2 baseline established) | C1 | none (analysis only) | baseline for C2 |
 | 5 | `EXP-keccak-x4-rvv` | C2 | C1 | up to 4× on batched path |
 | 6 | `EXP-keccak-lane-complement` | A2 | A1 | +2–5% on top of A1 |
 | 7 | `EXP-keccak-hybrid-1plus3` | C3 | A1 + C2 | hardware-dependent |
@@ -432,10 +456,11 @@ All Keccak experiments must pass the following before promotion to `src/`:
    on real hardware or a cycle-accurate model. Spike counts retired instructions,
    not wall-clock cycles.
 
-2. **What is the minimal batch size N for HQC?**  
-   The batch audit (C1) needs to determine whether HQC ever has ≥ 2 truly
-   independent SHAKE instances active simultaneously. If the answer is "only
-   sometimes", the x4 path needs a scalar fallback for the tail instances.
+2. **What is the minimal batch size N for HQC? (Resolved by C1)**  
+  C1 measured `max_active_global=2` at all three security levels. This makes
+  `x2` the practical baseline for in-flow batching. An `x4` backend remains
+  possible, but only with cross-request batching or other caller-side
+  restructuring; it should not be the first promoted batched API.
 
 3. **Can we apply the hybrid approach to our ISA (rv64gcv_zbc_zbb_zbkb_zvbc_zvbb)?**  
    PQRV targets `rv64imbv` (B extension); our ISA additionally includes `Zvbc`
