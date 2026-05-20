@@ -15,14 +15,14 @@ Examples
 --------
   python scripts/report/generate_figures.py extract
   python scripts/report/generate_figures.py extract --latex > analysis/report/table_results.tex
-  python scripts/report/generate_figures.py extract --mix --bench-set baseline_ref polymul_zbc
+    python scripts/report/generate_figures.py extract --mix --bench-set isolated compiler_compare
   python scripts/report/generate_figures.py extract --write-summary-csv
-  python scripts/report/generate_figures.py complexity analysis/benchmarks/cycle_counts.csv
+    python scripts/report/generate_figures.py complexity
   python scripts/report/generate_figures.py complexity analysis/benchmarks/cycle_counts.csv --output docs/figures/complexity.pdf
   python scripts/report/generate_figures.py dashboard
-  python scripts/report/generate_figures.py vlen_sweep analysis/benchmarks/isolated/vector
-  python scripts/report/generate_figures.py instruction_mix analysis/profiles/traces/my_trace.log
-  python scripts/report/generate_figures.py instruction_mix analysis/profiles/traces/my_trace.log --label fafft_zbc_128
+    python scripts/report/generate_figures.py vlen_sweep
+    python scripts/report/generate_figures.py instruction_mix --mul karatsuba_rvv --level 128
+    python scripts/report/generate_figures.py instruction_mix analysis/profiles/traces/my_trace.log --label karatsuba_rvv_128
 """
 
 from __future__ import annotations
@@ -45,22 +45,37 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 REPO_ROOT   = SCRIPT_DIR.parent.parent
 DEFAULT_BENCH_DIR = REPO_ROOT / "analysis" / "benchmarks"
 DEFAULT_HIST_DIR  = REPO_ROOT / "analysis" / "profiles" / "histograms"
+DEFAULT_TRACE_DIR = REPO_ROOT / "analysis" / "profiles" / "traces"
 DEFAULT_FIGURE_DIR = REPO_ROOT / "docs" / "figures"
+DEFAULT_REPORT_DIR = REPO_ROOT / "analysis" / "reports"
+DEFAULT_VLEN_SWEEP_DIR = DEFAULT_BENCH_DIR / "isolated" / "vector"
+DEFAULT_INSTRUCTION_MIX_CSV = DEFAULT_TRACE_DIR / "instruction_mix.csv"
 
 # ── Benchmark domain constants ────────────────────────────────────────────────
 ALL_VARIANTS = [
-    "karatsuba_ref",
+    "ref_scalar",
+    "ref_vector",
+    "karatsuba_rvv",
     "karatsuba_zbc",
-    "fafft_zbc",
-    "hybrid",
     "karatsuba_zvbc",
+    "karatsuba_ref",
+    "fafft_zbc",
     "fafft_zvbc",
+    "hybrid",
 ]
 ALL_LEVELS = [128, 192, 256]
 ALL_OPS    = ["keypair", "encaps", "decaps", "vect_mul"]
 
 VARIANT_ALIASES: dict[str, str] = {
     "hybrid_zbc": "hybrid",
+    "ref-scalar": "ref_scalar",
+    "ref-vector": "ref_vector",
+}
+
+LEVEL_TO_N: dict[int, int] = {
+    128: 512,
+    192: 768,
+    256: 1024,
 }
 
 # Instruction-mix histogram categories (grep patterns → friendly name)
@@ -83,14 +98,237 @@ CodeSizes = dict[tuple[str, int, str], int | None]
 # § 1  SHARED DATA EXTRACTION UTILITIES  (ported from extract_results.py)
 # ═════════════════════════════════════════════════════════════════════════════
 
+def _safe_int(value: Any) -> int | None:
+    try:
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text:
+            return None
+        return int(float(text))
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text:
+            return None
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_variant_name(name: str | None) -> str:
+    if not name:
+        return ""
+    normalized = name.strip().lower().replace("-", "_")
+    return VARIANT_ALIASES.get(normalized, normalized)
+
+
+def _extract_level_from_name(name: str) -> int | None:
+    m = re.search(r"(?:^|[_-])L?(128|192|256)(?:[_-]|$)", name, re.IGNORECASE)
+    if not m:
+        return None
+    return int(m.group(1))
+
+
+def _infer_bench_set(path: Path) -> str:
+    parts = path.parts
+    if "benchmarks" in parts:
+        idx = parts.index("benchmarks")
+        if idx + 1 < len(parts):
+            top = parts[idx + 1]
+            if top == "suites" and idx + 2 < len(parts):
+                suite_name = parts[idx + 2]
+                if "curated" in parts:
+                    return f"suite:{suite_name}"
+            return top
+    return path.parent.name
+
+
+def _extract_variant_from_path(path: Path) -> str:
+    candidate_dirs = [path.parent.name, path.parent.parent.name if len(path.parents) > 1 else ""]
+    for candidate in candidate_dirs:
+        normalized = _normalize_variant_name(candidate)
+        if normalized in ALL_VARIANTS:
+            return normalized
+
+    stem = _normalize_variant_name(path.stem)
+    for variant in sorted(ALL_VARIANTS, key=len, reverse=True):
+        if variant and variant in stem:
+            return variant
+    return stem
+
+
+def _match_variant_filter(variant: str, selected: list[str] | None) -> bool:
+    if not selected:
+        return True
+    selected_norm = {_normalize_variant_name(v) for v in selected}
+    return _normalize_variant_name(variant) in selected_norm
+
+
+def _resolve_complexity_csv(csv_arg: str | None, bench_dir: Path) -> Path | None:
+    if csv_arg:
+        path = Path(csv_arg)
+        return path if path.is_file() else None
+
+    candidates: list[Path] = [
+        bench_dir / "cycle_counts.csv",
+        DEFAULT_BENCH_DIR / "cycle_counts.csv",
+        bench_dir / "curated" / "cycle_counts.csv",
+    ]
+
+    candidates.extend(sorted((bench_dir / "isolated").glob("**/isolated_polymul_*_latest.csv")))
+    candidates.extend(sorted((bench_dir / "compiler_compare").glob("**/compiler_compare_*_latest.csv")))
+
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _discover_trace_input(
+    trace_arg: str | None,
+    mul: str | None,
+    level: int | None,
+    trace_dir: Path,
+    hist_dir: Path,
+) -> Path | None:
+    if trace_arg:
+        path = Path(trace_arg)
+        return path if path.is_file() else None
+
+    variant = _normalize_variant_name(mul)
+    variant_tokens = {variant}
+    if variant:
+        variant_tokens.add(variant.replace("_", "-"))
+        variant_tokens.add(variant.replace("_", ""))
+
+    def score(path: Path, require_variant: bool) -> int:
+        name = path.name.lower()
+        norm_name = name.replace("-", "_")
+        s = 0
+        if level is not None:
+            if f"l{level}" in norm_name or str(level) in norm_name:
+                s += 6
+            else:
+                return -1
+        if variant:
+            if any(token and token in norm_name for token in variant_tokens):
+                s += 8
+            elif require_variant:
+                return -1
+        if "latest" in norm_name:
+            s += 2
+        if "trace" in norm_name:
+            s += 1
+        if path.suffix.lower() in {".log", ".trace", ".txt"}:
+            s += 3
+        return s
+
+    trace_candidates = [p for p in trace_dir.rglob("*") if p.is_file()]
+    ranked = [(score(p, require_variant=True), p) for p in trace_candidates]
+    ranked = [entry for entry in ranked if entry[0] >= 0]
+    if ranked:
+        ranked.sort(key=lambda item: (item[0], item[1].stat().st_mtime), reverse=True)
+        return ranked[0][1]
+
+    # Fallback: instruction histogram CSVs preserve instruction mnemonics and counts.
+    hist_candidates = [p for p in hist_dir.rglob("*.csv") if "histogram" in p.name.lower()]
+    ranked_hist = [(score(p, require_variant=False), p) for p in hist_candidates]
+    ranked_hist = [entry for entry in ranked_hist if entry[0] >= 0]
+    if ranked_hist:
+        ranked_hist.sort(key=lambda item: (item[0], item[1].stat().st_mtime), reverse=True)
+        return ranked_hist[0][1]
+    return None
+
+
+def _parse_markdown_report_file(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError as exc:
+        print(f"[extract] WARNING: cannot read {path}: {exc}", file=sys.stderr)
+        return rows
+
+    variant = ""
+    for line in lines:
+        if line.startswith("- Variant:"):
+            variant = _normalize_variant_name(line.split(":", 1)[1].strip())
+            break
+    if not variant:
+        variant = _extract_variant_from_path(path)
+
+    i = 0
+    while i < len(lines):
+        header = lines[i].strip()
+        divider = lines[i + 1].strip() if i + 1 < len(lines) else ""
+        if not (header.startswith("|") and divider.startswith("|")):
+            i += 1
+            continue
+
+        headers = [col.strip().lower() for col in header.strip("|").split("|")]
+        if "level" not in headers or "op" not in headers or "instructions" not in headers:
+            i += 1
+            continue
+
+        i += 2
+        while i < len(lines):
+            line = lines[i].strip()
+            if not line.startswith("|"):
+                break
+            cells = [col.strip() for col in line.strip("|").split("|")]
+            if len(cells) < len(headers):
+                cells.extend([""] * (len(headers) - len(cells)))
+            elif len(cells) > len(headers):
+                cells = cells[:len(headers)]
+            row_map = {headers[idx]: cells[idx] for idx in range(len(headers))}
+
+            level = _safe_int(row_map.get("level"))
+            op = (row_map.get("op") or "").strip().lower()
+            instructions = _safe_int(row_map.get("instructions"))
+            codesize = _safe_int(row_map.get("codesize"))
+            row_variant = _normalize_variant_name(row_map.get("variant") or variant)
+
+            if level is not None and op and instructions is not None:
+                rows.append({
+                    "bench_set": "reports",
+                    "level": level,
+                    "variant": row_variant,
+                    "op": op,
+                    "iterations": 1,
+                    "min_cycles": instructions,
+                    "median_cycles": instructions,
+                    "max_cycles": instructions,
+                    "median_instret": instructions,
+                    "codesize_text": codesize,
+                })
+            i += 1
+    return rows
+
 def parse_metadata_comment(line: str) -> dict[str, str]:
-    """Parse '# level=128,polymul=karatsuba_ref,n_iter=1' → {'level': '128', ...}"""
+    """Parse metadata comments in both 'k=v' and 'k: v' styles."""
     meta: dict[str, str] = {}
     line = line.lstrip("#").strip()
-    for kv in line.split(","):
-        if "=" in kv:
-            k, v = kv.split("=", 1)
-            meta[k.strip()] = v.strip()
+    if not line:
+        return meta
+
+    if "," in line:
+        chunks = [chunk.strip() for chunk in line.split(",")]
+    else:
+        chunks = [line]
+
+    for chunk in chunks:
+        if "=" in chunk:
+            k, v = chunk.split("=", 1)
+            meta[k.strip().lower()] = v.strip()
+        elif ":" in chunk:
+            k, v = chunk.split(":", 1)
+            meta[k.strip().lower()] = v.strip()
     return meta
 
 
@@ -111,46 +349,70 @@ def parse_csv_file(path: Path) -> list[dict[str, Any]]:
     data_lines: list[str] = []
     for line in lines:
         if line.startswith("#"):
-            if not meta:
-                meta = parse_metadata_comment(line)
+            meta.update(parse_metadata_comment(line))
         else:
             data_lines.append(line)
 
-    if not meta:
-        print(f"[extract] WARNING: no metadata header in {path}", file=sys.stderr)
+    if not data_lines:
         return rows
 
-    try:
-        level   = int(meta.get("level", "0"))
-        variant = meta.get("polymul", "")
-        variant = VARIANT_ALIASES.get(variant, variant)
-    except ValueError:
-        print(f"[extract] WARNING: bad metadata in {path}: {meta}", file=sys.stderr)
-        return rows
-
-    bench_set = path.parent.name
-    run_label_re = re.compile(r"^[A-Za-z0-9_]+_[A-Za-z0-9_]+_[0-9]{8}_[0-9]{4}$")
-    if run_label_re.fullmatch(bench_set):
-        bench_set = path.parent.parent.name
-
-    if path.parent.name == "curated" and len(path.parents) >= 3 and path.parents[2].name == "suites":
-        bench_set = f"suite:{path.parent.parent.name}"
+    bench_set = _infer_bench_set(path)
+    default_level = _safe_int(meta.get("level")) or _extract_level_from_name(path.name)
+    default_variant = _normalize_variant_name(
+        meta.get("polymul") or meta.get("variant") or _extract_variant_from_path(path)
+    )
+    default_codesize = _safe_int(meta.get("codesize_text") or meta.get("codesize"))
 
     try:
         reader = csv.DictReader(data_lines)
         for row in reader:
             try:
+                op = (row.get("op") or "").strip().lower()
+                if not op:
+                    continue
+
+                level = _safe_int(row.get("level")) or default_level
+                if level is None:
+                    continue
+
+                variant = _normalize_variant_name(row.get("variant") or row.get("polymul") or default_variant)
+                if not variant:
+                    continue
+
+                instructions = _safe_int(row.get("instructions"))
+                median_cycles = (
+                    _safe_int(row.get("median_cycles"))
+                    or _safe_int(row.get("cycles"))
+                    or instructions
+                )
+                median_instret = _safe_int(row.get("median_instret")) or instructions or median_cycles
+                if median_cycles is None and median_instret is None:
+                    continue
+
+                min_cycles = _safe_int(row.get("min_cycles"))
+                max_cycles = _safe_int(row.get("max_cycles"))
+                if min_cycles is None:
+                    min_cycles = median_cycles
+                if max_cycles is None:
+                    max_cycles = median_cycles
+
+                codesize = (
+                    _safe_int(row.get("codesize_text"))
+                    or _safe_int(row.get("codesize"))
+                    or default_codesize
+                )
+
                 rows.append({
                     "bench_set":      bench_set,
                     "level":          level,
                     "variant":        variant,
-                    "op":             row["op"].strip(),
-                    "iterations":     int(row.get("iterations", 1)),
-                    "min_cycles":     int(row["min_cycles"]),
-                    "median_cycles":  int(row["median_cycles"]),
-                    "max_cycles":     int(row["max_cycles"]),
-                    "median_instret": int(row["median_instret"]) if "median_instret" in row else None,
-                    "codesize_text":  int(meta["codesize_text"]) if "codesize_text" in meta else None,
+                    "op":             op,
+                    "iterations":     _safe_int(row.get("iterations")) or _safe_int(meta.get("n_iter")) or 1,
+                    "min_cycles":     min_cycles,
+                    "median_cycles":  median_cycles,
+                    "max_cycles":     max_cycles,
+                    "median_instret": median_instret,
+                    "codesize_text":  codesize,
                 })
             except (KeyError, ValueError) as e:
                 print(f"[extract] WARNING: skipping row in {path}: {e}", file=sys.stderr)
@@ -168,7 +430,7 @@ def collect_results(
     ops: list[str] | None,
     metric: str = "cycles",
 ) -> tuple[Results, CodeSizes]:
-    """Walk bench_dir, parse all *_N*.csv files, return (Results, CodeSizes)."""
+    """Walk bench_dir, parse CSV benchmark artifacts, return (Results, CodeSizes)."""
     results: Results = {}
     code_sizes: CodeSizes = {}
 
@@ -176,31 +438,23 @@ def collect_results(
         print(f"[extract] ERROR: bench directory not found: {bench_dir}", file=sys.stderr)
         sys.exit(1)
 
-    csv_patterns = [
-        "isolated/*/*/*_N*.csv",
-        "isolated/*/*/*/*_N*.csv",
-        "isolated/*/*_N*.csv",
-        "suites/*/curated/*_N*.csv",
-        "canonical/*/*_N*.csv",
-        "canonical/*/*/*_N*.csv",
-    ]
-
-    csv_files: list[Path] = []
-    for pattern in csv_patterns:
-        csv_files.extend(path for path in bench_dir.glob(pattern) if path.parent.is_dir())
-    csv_files = sorted(set(csv_files))
+    csv_files = sorted({path for path in bench_dir.rglob("*.csv") if path.parent.is_dir()})
 
     if not csv_files:
         print(f"[extract] No CSV files found in subdirectories of {bench_dir}", file=sys.stderr)
         return results, code_sizes
 
+    selected_variants = [_normalize_variant_name(v) for v in variants] if variants else None
+
     for csv_path in sorted(csv_files):
+        if csv_path.name in {"cycle_counts.csv", "instruction_mix.csv"}:
+            continue
         for row in parse_csv_file(csv_path):
             if bench_sets and row["bench_set"] not in bench_sets:
                 continue
             if levels and row["level"] not in levels:
                 continue
-            if variants and row["variant"] not in variants:
+            if not _match_variant_filter(row["variant"], selected_variants):
                 continue
             if ops and row["op"] not in ops:
                 continue
@@ -211,6 +465,22 @@ def collect_results(
             sz_key = (row["bench_set"], row["level"], row["variant"])
             if sz_key not in code_sizes:
                 code_sizes[sz_key] = row["codesize_text"]
+
+    if not results:
+        report_files = sorted(DEFAULT_REPORT_DIR.glob("*_report.md"))
+        for report_path in report_files:
+            for row in _parse_markdown_report_file(report_path):
+                if levels and row["level"] not in levels:
+                    continue
+                if not _match_variant_filter(row["variant"], selected_variants):
+                    continue
+                if ops and row["op"] not in ops:
+                    continue
+                key = (row["bench_set"], row["level"], row["variant"], row["op"])
+                results[key] = row["median_instret"] if metric == "instret" else row["median_cycles"]
+                sz_key = (row["bench_set"], row["level"], row["variant"])
+                if sz_key not in code_sizes:
+                    code_sizes[sz_key] = row["codesize_text"]
 
     return results, code_sizes
 
@@ -602,51 +872,117 @@ def write_summary_csvs(
 def _parse_complexity_csv(csv_path: Path) -> Dict[str, List[Tuple[float, float]]]:
     data: Dict[str, List[Tuple[float, float]]] = {}
     try:
-        with csv_path.open("r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            if reader.fieldnames is None:
+        with csv_path.open("r", encoding="utf-8", errors="ignore") as f:
+            raw_lines = f.readlines()
+
+        meta: dict[str, str] = {}
+        data_lines: list[str] = []
+        for line in raw_lines:
+            if line.startswith("#"):
+                meta.update(parse_metadata_comment(line))
+            else:
+                data_lines.append(line)
+
+        reader = csv.DictReader(data_lines)
+        if reader.fieldnames is None:
+            return data
+
+        field_map = {field.lower().strip(): field for field in reader.fieldnames if field}
+        lower_fields = set(field_map)
+
+        # Summary format produced by "extract --write-summary-csv".
+        if {"impl", "hqc128", "hqc192", "hqc256"}.issubset(lower_fields):
+            for row in reader:
+                raw_algo = row.get(field_map["impl"], "") or "unknown"
+                algorithm = _normalize_variant_name(raw_algo.split("/")[-1]) or raw_algo
+                for level in ALL_LEVELS:
+                    col = field_map.get(f"hqc{level}")
+                    value = _safe_float(row.get(col)) if col else None
+                    if value is not None:
+                        data.setdefault(algorithm, []).append((float(LEVEL_TO_N[level]), value))
+
+        # Flat benchmark format (level, op, instructions, ...).
+        elif "level" in lower_fields and (
+            "instructions" in lower_fields or "median_cycles" in lower_fields or "cycles" in lower_fields
+        ):
+            rows = list(reader)
+            if not rows:
                 return data
+
+            op_field = field_map.get("op")
+            selected_rows = rows
+            if op_field:
+                ops = {(row.get(op_field) or "").strip().lower() for row in rows}
+                if "vect_mul" in ops:
+                    selected_rows = [row for row in rows if (row.get(op_field) or "").strip().lower() == "vect_mul"]
+                elif "total" in ops:
+                    selected_rows = [row for row in rows if (row.get(op_field) or "").strip().lower() == "total"]
+
+            level_field = field_map["level"]
+            inst_field = field_map.get("instructions")
+            cyc_field = field_map.get("median_cycles") or field_map.get("cycles")
+            variant_field = field_map.get("variant") or field_map.get("polymul")
+            default_variant = _normalize_variant_name(meta.get("variant") or meta.get("polymul") or csv_path.stem)
+
+            for row in selected_rows:
+                level = _safe_int(row.get(level_field))
+                if level not in LEVEL_TO_N:
+                    continue
+                raw_variant = row.get(variant_field) if variant_field else default_variant
+                algorithm = _normalize_variant_name(raw_variant) or default_variant or "unknown"
+                value = _safe_float(row.get(inst_field)) if inst_field else None
+                if value is None and cyc_field:
+                    value = _safe_float(row.get(cyc_field))
+                if value is None:
+                    continue
+                data.setdefault(algorithm, []).append((float(LEVEL_TO_N[level]), value))
+
+        # Legacy complexity format (algorithm + N + cycles columns).
+        else:
             for row in reader:
                 if not row:
                     continue
                 algorithm = None
                 for key in ["algorithm", "variant", "polymul", "category"]:
-                    if key in reader.fieldnames:
-                        algorithm = row.get(key)
-                        if algorithm:
+                    field = field_map.get(key)
+                    if field:
+                        candidate = row.get(field)
+                        if candidate:
+                            algorithm = candidate
                             break
                 if not algorithm:
                     algorithm = "unknown"
 
                 problem_size = None
-                for key in ["N", "input_size", "problem_size", "n"]:
-                    if key in reader.fieldnames and row.get(key):
-                        try:
-                            problem_size = float(row[key])
+                for key in ["n", "input_size", "problem_size"]:
+                    field = field_map.get(key)
+                    if field and row.get(field):
+                        problem_size = _safe_float(row.get(field))
+                        if problem_size is not None:
                             break
-                        except ValueError:
-                            continue
                 if problem_size is None:
                     continue
 
                 cycles = None
-                for key in ["cycles", "median_cycles", "total_cycles", "cycle_count"]:
-                    if key in reader.fieldnames and row.get(key):
-                        try:
-                            cycles = float(row[key])
+                for key in ["cycles", "median_cycles", "total_cycles", "cycle_count", "instructions"]:
+                    field = field_map.get(key)
+                    if field and row.get(field):
+                        cycles = _safe_float(row.get(field))
+                        if cycles is not None:
                             break
-                        except ValueError:
-                            continue
                 if cycles is None:
                     continue
 
-                data.setdefault(algorithm, []).append((problem_size, cycles))
+                data.setdefault(_normalize_variant_name(algorithm) or algorithm, []).append((problem_size, cycles))
     except Exception as e:
         print(f"[complexity] Error reading {csv_path}: {e}", file=sys.stderr)
         return {}
 
     for algo in data:
-        data[algo].sort(key=lambda x: x[0])
+        dedup: dict[float, float] = {}
+        for n_value, cycles in data[algo]:
+            dedup[n_value] = cycles
+        data[algo] = sorted(dedup.items(), key=lambda x: x[0])
     return data
 
 
@@ -697,10 +1033,15 @@ def cmd_complexity(args: argparse.Namespace) -> int:
     except ImportError:
         sys.exit("[complexity] matplotlib and numpy are required: pip install matplotlib numpy")
 
-    csv_path = Path(args.csv)
-    if not csv_path.exists():
-        print(f"[complexity] File not found: {csv_path}", file=sys.stderr)
+    bench_dir = Path(args.bench_dir)
+    csv_path = _resolve_complexity_csv(args.csv, bench_dir)
+    if csv_path is None:
+        print(
+            "[complexity] No input CSV found. Provide one explicitly or generate analysis/benchmarks/cycle_counts.csv",
+            file=sys.stderr,
+        )
         return 1
+    print(f"[complexity] Using data source: {csv_path}")
 
     data = _parse_complexity_csv(csv_path)
     if not data:
@@ -929,11 +1270,61 @@ def _collect_vlen_data(benchmark_dir: Path) -> Dict[str, List[Tuple[int, float]]
     for csv_file in benchmark_dir.rglob("*.csv"):
         if csv_file.name.startswith("final_") or csv_file.name in ["instruction_mix.csv", "cycle_counts.csv"]:
             continue
+
+        try:
+            raw_lines = csv_file.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError as exc:
+            print(f"[vlen_sweep] Warning: could not read {csv_file}: {exc}", file=sys.stderr)
+            continue
+
+        meta: dict[str, str] = {}
+        data_lines: list[str] = []
+        for line in raw_lines:
+            if line.startswith("#"):
+                meta.update(parse_metadata_comment(line))
+            else:
+                data_lines.append(line)
+
+        reader = csv.DictReader(data_lines)
+        if reader.fieldnames is None:
+            continue
+
+        field_map = {field.lower().strip(): field for field in reader.fieldnames if field}
+        rows = list(reader)
+        if not rows:
+            continue
+
+        variant = _normalize_variant_name(meta.get("variant") or _extract_variant_from_path(csv_file))
+        level = _safe_int(meta.get("level")) or _extract_level_from_name(csv_file.name)
+
+        if "vlen" in field_map and "instructions" in field_map:
+            op_field = field_map.get("op")
+            selected_rows = rows
+            if op_field:
+                ops = {(row.get(op_field) or "").strip().lower() for row in rows}
+                if "vect_mul" in ops:
+                    selected_rows = [r for r in rows if (r.get(op_field) or "").strip().lower() == "vect_mul"]
+                elif "total" in ops:
+                    selected_rows = [r for r in rows if (r.get(op_field) or "").strip().lower() == "total"]
+
+            for row in selected_rows:
+                vlen = _safe_int(row.get(field_map["vlen"]))
+                inst = _safe_float(row.get(field_map["instructions"]))
+                if vlen is None or inst is None or inst <= 0:
+                    continue
+                lvl = level or _safe_int(row.get(field_map.get("level", "")))
+                if lvl not in LEVEL_TO_N:
+                    continue
+                # Use a monotonic proxy when only instruction counts are available.
+                throughput = 1_000_000.0 / inst
+                data[f"{variant}_hqc{lvl}"].append((vlen, throughput))
+            continue
+
         m = re.search(r"hqc(\d+)_([a-z0-9_]+)_polymul", csv_file.name)
         if not m:
             continue
-        variant_base = m.group(2)
-        dir_name     = csv_file.parent.name
+        variant_base = _normalize_variant_name(m.group(2))
+        dir_name = csv_file.parent.name
         vlen = _extract_vlen_from_csv(csv_file)
         if vlen is None:
             if "zvbc" in variant_base or "zvbc" in dir_name:
@@ -966,6 +1357,11 @@ def cmd_vlen_sweep(args: argparse.Namespace) -> int:
     bench_dir = Path(args.bench_dir)
     print(f"[vlen_sweep] Scanning: {bench_dir}")
     data = _collect_vlen_data(bench_dir)
+    if not data and bench_dir == DEFAULT_VLEN_SWEEP_DIR:
+        alt_dir = DEFAULT_BENCH_DIR / "vlen_sweep" / "vector"
+        if alt_dir.exists():
+            print(f"[vlen_sweep] Falling back to curated sweep directory: {alt_dir}")
+            data = _collect_vlen_data(alt_dir)
     if not data:
         print("[vlen_sweep] No benchmark data found", file=sys.stderr)
         return 1
@@ -1028,6 +1424,40 @@ def _parse_spike_trace(trace_path: Path) -> "Counter[str]":
         print(f"[instruction_mix] Failed to read {trace_path}: {exc}", file=sys.stderr)
         return Counter()
     return counts
+
+
+def _parse_trace_csv(trace_path: Path) -> "Counter[str]":
+    counts: Counter[str] = Counter()
+    try:
+        with trace_path.open("r", encoding="utf-8", errors="ignore") as fh:
+            lines = [line for line in fh if not line.startswith("#")]
+        reader = csv.DictReader(lines)
+        if reader.fieldnames is None:
+            return counts
+
+        field_map = {field.lower().strip(): field for field in reader.fieldnames if field}
+        key_field = field_map.get("instruction") or field_map.get("mnemonic") or field_map.get("function")
+        count_field = field_map.get("count") or field_map.get("instructions")
+        if not key_field or not count_field:
+            return counts
+
+        for row in reader:
+            key = (row.get(key_field) or "").strip().lower()
+            value = _safe_int(row.get(count_field))
+            if key and value is not None:
+                counts[key] += value
+    except OSError as exc:
+        print(f"[instruction_mix] Failed to read {trace_path}: {exc}", file=sys.stderr)
+        return Counter()
+    return counts
+
+
+def _parse_instruction_input(trace_path: Path) -> "Counter[str]":
+    if trace_path.suffix.lower() == ".csv":
+        counts = _parse_trace_csv(trace_path)
+        if counts:
+            return counts
+    return _parse_spike_trace(trace_path)
 
 
 def _classify_instruction(mnemonic: str) -> str:
@@ -1101,20 +1531,37 @@ def _write_distribution_csv(
 
 
 def cmd_instruction_mix(args: argparse.Namespace) -> int:
-    trace_path = Path(args.trace)
+    trace_path = _discover_trace_input(
+        args.trace,
+        args.mul,
+        args.level,
+        args.trace_dir,
+        args.hist_dir,
+    )
+    if trace_path is None:
+        print(
+            "[instruction_mix] Could not resolve input trace/histogram. Use --trace or provide --mul/--level.",
+            file=sys.stderr,
+        )
+        return 1
     if not trace_path.is_file():
         print(f"[instruction_mix] Trace not found: {trace_path}", file=sys.stderr)
         return 1
 
-    counts = _parse_spike_trace(trace_path)
+    counts = _parse_instruction_input(trace_path)
     if not counts:
         print(f"[instruction_mix] No instructions parsed from {trace_path}", file=sys.stderr)
         return 1
 
-    label  = args.label or trace_path.stem
+    if args.label:
+        label = args.label
+    elif args.mul and args.level:
+        label = f"{_normalize_variant_name(args.mul)}_L{args.level}"
+    else:
+        label = trace_path.stem
     total  = sum(counts.values())
     dist   = _build_distribution(counts)
-    output = Path(args.output)
+    output = args.output
     _write_distribution_csv(output, label, trace_path, total, len(counts), dist)
     print(f"[instruction_mix] Wrote {output}")
     return 0
@@ -1155,6 +1602,10 @@ def cmd_extract(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 0
 
+    active_bench_sets = sorted({key[0] for key in results.keys()})
+    if active_bench_sets:
+        bench_sets = active_bench_sets
+
     if args.latex:
         print_latex_table(results, args.baseline, bench_sets, levels, variants, ops,
                           metric=args.metric)
@@ -1194,7 +1645,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_ext.add_argument("--build-dir",  type=Path, default=REPO_ROOT / "build/spike")
     p_ext.add_argument("--bench-set",  nargs="+", metavar="NAME")
     p_ext.add_argument("--level",      nargs="+", type=int, choices=[128, 192, 256], metavar="{128,192,256}")
-    p_ext.add_argument("--variant",    nargs="+", metavar="VARIANT")
+    p_ext.add_argument("--variant", "--mul", dest="variant", nargs="+", metavar="VARIANT")
     p_ext.add_argument("--op",         nargs="+", choices=ALL_OPS, metavar="OP")
     p_ext.add_argument("--baseline",   default="karatsuba_ref")
     p_ext.add_argument("--metric",     choices=["cycles", "instret"], default="cycles")
@@ -1205,7 +1656,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # ── complexity ────────────────────────────────────────────────────────────
     p_cpx = sub.add_parser("complexity", help="Plot O(n^α) theory vs empirical cycles")
-    p_cpx.add_argument("csv", help="Benchmark CSV with algorithm, N, cycles columns")
+    p_cpx.add_argument("csv", nargs="?", default=None,
+                       help="Optional input CSV path. If omitted, auto-resolves from benchmark outputs.")
+    p_cpx.add_argument("--bench-dir", type=Path, default=DEFAULT_BENCH_DIR,
+                       help=f"Benchmark root used for auto-discovery (default: {DEFAULT_BENCH_DIR})")
     p_cpx.add_argument("--output", "-o", default=None,
                        help="Output path (PDF/PNG). Omit to show interactively.")
 
@@ -1218,16 +1672,27 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # ── vlen_sweep ────────────────────────────────────────────────────────────
     p_vlen = sub.add_parser("vlen_sweep", help="Plot throughput vs VLEN sweep")
-    p_vlen.add_argument("bench_dir", help="Benchmark directory to scan for CSV files")
+    p_vlen.add_argument("bench_dir", nargs="?", default=DEFAULT_VLEN_SWEEP_DIR,
+                        help=f"Benchmark directory to scan (default: {DEFAULT_VLEN_SWEEP_DIR})")
     p_vlen.add_argument("--output", "-o", default=None,
                         help="Output path (PDF/PNG). Omit to show interactively.")
 
     # ── instruction_mix ───────────────────────────────────────────────────────
     p_mix = sub.add_parser("instruction_mix", help="Parse a Spike trace → instruction-mix CSV")
-    p_mix.add_argument("trace", help="Spike trace file generated with -l or -d")
+    p_mix.add_argument("trace", nargs="?", default=None,
+                       help="Optional explicit trace path. If omitted, use --mul/--level auto-discovery.")
+    p_mix.add_argument("--mul", default=None,
+                       help="Multiplier variant used to auto-resolve trace/histogram input (e.g. karatsuba_rvv)")
+    p_mix.add_argument("--level", type=int, choices=ALL_LEVELS, default=None,
+                       help="Security level used for auto-resolution (128|192|256)")
+    p_mix.add_argument("--trace-dir", type=Path, default=DEFAULT_TRACE_DIR,
+                       help=f"Trace root for auto-discovery (default: {DEFAULT_TRACE_DIR})")
+    p_mix.add_argument("--hist-dir", type=Path, default=DEFAULT_HIST_DIR,
+                       help=f"Histogram fallback root (default: {DEFAULT_HIST_DIR})")
     p_mix.add_argument("--output", "-o",
-                       default="analysis/profiles/traces/instruction_mix.csv",
-                       help="Output CSV path (default: analysis/profiles/traces/instruction_mix.csv)")
+                       type=Path,
+                       default=DEFAULT_INSTRUCTION_MIX_CSV,
+                       help=f"Output CSV path (default: {DEFAULT_INSTRUCTION_MIX_CSV})")
     p_mix.add_argument("--label", default="",
                        help="Row label (default: trace filename stem)")
 
