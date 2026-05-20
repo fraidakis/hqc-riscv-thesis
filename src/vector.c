@@ -51,30 +51,37 @@ static inline uint32_t barrett_reduce(uint32_t x) {
 }
 
 /**
- * @brief Returns 1 if `value` appears in support[begin, end), else 0.
+ * @brief Constant-time vectorized check to see if `value` appears in support[begin, end).
+ * This routine guarantees constant-time compliance by completely eliminating data-dependent
+ * early exits; it always scans the entire range and aggregates hits using vector population counts.
  */
 static inline uint32_t support_contains_value(const uint32_t *support, size_t begin, size_t end, uint32_t value) {
 #if defined(__riscv_vector)
+    long global_match_count = 0;
     size_t i = begin;
+
+    // Execute the loop fully across the entire range with zero data-dependent breaks
     while (i < end) {
         size_t vl = __riscv_vsetvl_e32m8(end - i);
         vuint32m8_t candidates = __riscv_vle32_v_u32m8(&support[i], vl);
         vbool4_t matches = __riscv_vmseq_vx_u32m8_b4(candidates, value, vl);
 
-        if (__riscv_vfirst_m_b4(matches, vl) >= 0) {
-            return 1;
-        }
+        // Accumulate matches using static-time vector count population
+        global_match_count += __riscv_vcpop_m_b4(matches, vl);
 
         i += vl;
     }
+
+    // Branchless scalar conversion (maps straight to a constant-time 'snez' assembly instruction)
+    return (global_match_count != 0);
 #else
+    // Fallback scalar reference implementation
+    uint32_t global_match = 0;
     for (size_t i = begin; i < end; i++) {
-        if (support[i] == value) {
-            return 1;
-        }
+        global_match |= (support[i] == value);
     }
+    return global_match;
 #endif
-    return 0;
 }
 
 /**
