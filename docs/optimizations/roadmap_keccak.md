@@ -398,7 +398,7 @@ order is:
 |----------|-----------|-------|--------------|-----------------------------|
 | 1 | `EXP-keccak-zvbb-gather-v2` (DONE: hoisted + KAT + merged to `main`) | B1 | none | ~30–40% |
 | 2 | `EXP-keccak-rv64imb-asm` | A1+A3 | none | ~50–60% |
-| 3 | `EXP-keccak-zvbb-vectorized-theta` | B2 | B1 | +5–15% on top of B1 |
+| 3 | `EXP-keccak-zvbb-vectorized-theta` (IN PROGRESS) | B2 | B1 | +5–15% on top of B1 |
 | 4 | `EXP-keccak-batch-audit` | C1 | none (analysis only) | baseline for C2 |
 | 5 | `EXP-keccak-x4-rvv` | C2 | C1 | up to 4× on batched path |
 | 6 | `EXP-keccak-lane-complement` | A2 | A1 | +2–5% on top of A1 |

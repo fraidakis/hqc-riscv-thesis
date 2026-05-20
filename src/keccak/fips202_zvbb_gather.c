@@ -4,7 +4,8 @@
  *
  * Design (one-instance, VLEN=256, SEW=64, LMUL=8 → vl=25):
  *   v0           : all 25 Keccak state lanes packed into one register group
- *   Theta        : pure scalar (store v0 → stack, compute 5-column XORs, reload)
+ *   Theta        : in-register (vslidedown + vmv.x.s parity extraction,
+ *                  scalar D[x] with Zbb rotate, vector diffusion back to v0)
  *   Rho + Pi     : vrgather.vv (Pi permutation) then vror.vv (Rho rotations) [Zvbb]
  *   Chi          : vrgather.vv (x+1, x+2 per row) + vandn.vv (~B & C) [Zvbb]
  *   Iota         : vxor.vx on lane 0 with vl=1, then restore vl=25
@@ -113,6 +114,22 @@ static const uint64_t chi_x2[25] = {
     22, 23, 24, 20, 21
 };
 
+/* Theta diffusion index pattern: maps 5-lane D[x] to 25-lane row-major state. */
+static const uint64_t theta_col_idx[25] = {
+    0, 1, 2, 3, 4,
+    0, 1, 2, 3, 4,
+    0, 1, 2, 3, 4,
+    0, 1, 2, 3, 4,
+    0, 1, 2, 3, 4
+};
+
+static inline uint64_t rol1_zbb(uint64_t x)
+{
+    uint64_t y;
+    __asm__("rori %0, %1, 63" : "=r"(y) : "r"(x));
+    return y;
+}
+
 /*
  * KeccakF1600_StatePermute — LMUL=8 vrgather implementation.
  *
@@ -123,9 +140,10 @@ static const uint64_t chi_x2[25] = {
  *   group 0 (v0-v7 )  : v0    — main state, live throughout all rounds
  *   group 1 (v8-v15)  : t/vB  — round temporaries (reused each step)
  *   group 2 (v16-v23) : vC    — round temporary (Chi second gather)
- *   group 3 (v24-v31) : (spill target for pre-loaded index vectors)
+ *   group 3 (v24-v31) : free / compiler allocation for extra temporaries
  *
- * The four constant index tables (idx_pi, idx_ror, idx_x1, idx_x2) are
+ * The five constant index tables (idx_pi, idx_ror, idx_x1, idx_x2, idx_theta)
+ * are
  * loaded once before the round loop and held as C variables.  The compiler
  * keeps them in whichever groups are free or spills them to the vector
  * stack; either way the 4 × 24 = 96 repeated vle64.v instructions inside
@@ -143,24 +161,46 @@ static void KeccakF1600_StatePermute(uint64_t *state)
     vuint64m8_t idx_ror = __riscv_vle64_v_u64m8(ror_amounts,  vl);
     vuint64m8_t idx_x1  = __riscv_vle64_v_u64m8(chi_x1,       vl);
     vuint64m8_t idx_x2  = __riscv_vle64_v_u64m8(chi_x2,       vl);
+    vuint64m8_t idx_theta = __riscv_vle64_v_u64m8(theta_col_idx, vl);
 
     for (int round = 0; round < NROUNDS; round++) {
 
-        /* ── Theta: pure scalar ─────────────────────────────────────────── */
+        /* ── Theta: in-register parity extraction + diffusion ───────────── */
         {
-            uint64_t s[25];
-            __riscv_vse64_v_u64m8(s, v0, vl);
+            size_t vl5 = __riscv_vsetvl_e64m8(5);
 
-            uint64_t C[5], D[5];
-            for (int x = 0; x < 5; x++)
-                C[x] = s[x] ^ s[x+5] ^ s[x+10] ^ s[x+15] ^ s[x+20];
-            for (int x = 0; x < 5; x++)
-                D[x] = C[(x+4)%5] ^ ROL(C[(x+1)%5], 1);
-            for (int y = 0; y < 5; y++)
-                for (int x = 0; x < 5; x++)
-                    s[x + 5*y] ^= D[x];
+            vuint64m8_t vC = v0;
+            vC = __riscv_vxor_vv_u64m8(vC, __riscv_vslidedown_vx_u64m8(v0, 5,  vl5), vl5);
+            vC = __riscv_vxor_vv_u64m8(vC, __riscv_vslidedown_vx_u64m8(v0, 10, vl5), vl5);
+            vC = __riscv_vxor_vv_u64m8(vC, __riscv_vslidedown_vx_u64m8(v0, 15, vl5), vl5);
+            vC = __riscv_vxor_vv_u64m8(vC, __riscv_vslidedown_vx_u64m8(v0, 20, vl5), vl5);
 
-            v0 = __riscv_vle64_v_u64m8(s, vl);
+            uint64_t C0 = __riscv_vmv_x_s_u64m8_u64(vC);
+            vC = __riscv_vslidedown_vx_u64m8(vC, 1, vl5);
+            uint64_t C1 = __riscv_vmv_x_s_u64m8_u64(vC);
+            vC = __riscv_vslidedown_vx_u64m8(vC, 1, vl5);
+            uint64_t C2 = __riscv_vmv_x_s_u64m8_u64(vC);
+            vC = __riscv_vslidedown_vx_u64m8(vC, 1, vl5);
+            uint64_t C3 = __riscv_vmv_x_s_u64m8_u64(vC);
+            vC = __riscv_vslidedown_vx_u64m8(vC, 1, vl5);
+            uint64_t C4 = __riscv_vmv_x_s_u64m8_u64(vC);
+
+            uint64_t D0 = C4 ^ rol1_zbb(C1);
+            uint64_t D1 = C0 ^ rol1_zbb(C2);
+            uint64_t D2 = C1 ^ rol1_zbb(C3);
+            uint64_t D3 = C2 ^ rol1_zbb(C4);
+            uint64_t D4 = C3 ^ rol1_zbb(C0);
+
+            vuint64m8_t vD = __riscv_vmv_v_x_u64m8(D4, vl5);
+            vD = __riscv_vslide1up_vx_u64m8(vD, D3, vl5);
+            vD = __riscv_vslide1up_vx_u64m8(vD, D2, vl5);
+            vD = __riscv_vslide1up_vx_u64m8(vD, D1, vl5);
+            vD = __riscv_vslide1up_vx_u64m8(vD, D0, vl5);
+
+            vuint64m8_t vDfull = __riscv_vrgather_vv_u64m8(vD, idx_theta, vl);
+            v0 = __riscv_vxor_vv_u64m8(v0, vDfull, vl);
+
+            vl = __riscv_vsetvl_e64m8(25);
         }
 
         /* ── Rho + Pi: vrgather (Pi) then vror (Rho) ────────────────────── */
