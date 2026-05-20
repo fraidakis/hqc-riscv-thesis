@@ -237,16 +237,72 @@ static void KeccakF1600_StatePermute(uint64_t *state)
 
 static inline uint64_t load64_le(const uint8_t *x)
 {
-    uint64_t r = 0;
-    for (size_t i = 0; i < 8; i++)
-        r |= (uint64_t)x[i] << (8 * i);
+    uint64_t r;
+    memcpy(&r, x, sizeof(r));
     return r;
 }
 
 static inline void store64_le(uint8_t *x, uint64_t u)
 {
-    for (size_t i = 0; i < 8; i++)
-        x[i] = (uint8_t)(u >> (8 * i));
+    memcpy(x, &u, sizeof(u));
+}
+
+/* XOR len bytes into the Keccak state at byte offset pos. */
+static inline void keccak_xor_bytes(uint64_t *s_inc,
+                                    size_t pos,
+                                    const uint8_t *in,
+                                    size_t len)
+{
+    size_t i = 0;
+
+    while (i < len && ((pos + i) & 0x07)) {
+        size_t p = pos + i;
+        s_inc[p >> 3] ^= (uint64_t)in[i] << (8 * (p & 0x07));
+        i++;
+    }
+
+    if (i < len) {
+        size_t word = (pos + i) >> 3;
+        while (i + 8 <= len) {
+            s_inc[word++] ^= load64_le(in + i);
+            i += 8;
+        }
+    }
+
+    while (i < len) {
+        size_t p = pos + i;
+        s_inc[p >> 3] ^= (uint64_t)in[i] << (8 * (p & 0x07));
+        i++;
+    }
+}
+
+/* Extract len bytes from the Keccak state starting at byte offset pos. */
+static inline void keccak_extract_bytes(const uint64_t *s_inc,
+                                        size_t pos,
+                                        uint8_t *out,
+                                        size_t len)
+{
+    size_t i = 0;
+
+    while (i < len && ((pos + i) & 0x07)) {
+        size_t p = pos + i;
+        out[i] = (uint8_t)(s_inc[p >> 3] >> (8 * (p & 0x07)));
+        i++;
+    }
+
+    if (i < len) {
+        size_t word = (pos + i) >> 3;
+        while (i + 8 <= len) {
+            store64_le(out + i, s_inc[word++]);
+            i += 8;
+        }
+    }
+
+    while (i < len) {
+        size_t p = pos + i;
+        out[i] = (uint8_t)(s_inc[p >> 3] >> (8 * (p & 0x07)));
+        i++;
+    }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -302,19 +358,15 @@ static void keccak_inc_init(uint64_t *s_inc)
 static void keccak_inc_absorb(uint64_t *s_inc, uint32_t r,
                                const uint8_t *m, size_t mlen)
 {
-    size_t i;
     while (mlen + s_inc[25] >= r) {
-        for (i = 0; i < r - (uint32_t)s_inc[25]; i++)
-            s_inc[(s_inc[25] + i) >> 3] ^=
-                (uint64_t)m[i] << (8 * ((s_inc[25] + i) & 0x07));
-        mlen -= (size_t)(r - s_inc[25]);
-        m    += r - s_inc[25];
+        size_t chunk = (size_t)(r - s_inc[25]);
+        keccak_xor_bytes(s_inc, (size_t)s_inc[25], m, chunk);
+        mlen -= chunk;
+        m += chunk;
         s_inc[25] = 0;
         KeccakF1600_StatePermute(s_inc);
     }
-    for (i = 0; i < mlen; i++)
-        s_inc[(s_inc[25] + i) >> 3] ^=
-            (uint64_t)m[i] << (8 * ((s_inc[25] + i) & 0x07));
+    keccak_xor_bytes(s_inc, (size_t)s_inc[25], m, mlen);
     s_inc[25] += mlen;
 }
 
@@ -328,21 +380,21 @@ static void keccak_inc_finalize(uint64_t *s_inc, uint32_t r, uint8_t p)
 static void keccak_inc_squeeze(uint8_t *h, size_t outlen,
                                 uint64_t *s_inc, uint32_t r)
 {
-    size_t i;
-    for (i = 0; i < outlen && i < s_inc[25]; i++)
-        h[i] = (uint8_t)(s_inc[(r - s_inc[25] + i) >> 3]
-                         >> (8 * ((r - s_inc[25] + i) & 0x07)));
-    h      += i;
-    outlen -= i;
-    s_inc[25] -= i;
+    size_t take = outlen < (size_t)s_inc[25] ? outlen : (size_t)s_inc[25];
+    if (take > 0) {
+        keccak_extract_bytes(s_inc, (size_t)(r - s_inc[25]), h, take);
+        h += take;
+        outlen -= take;
+        s_inc[25] -= take;
+    }
 
     while (outlen > 0) {
         KeccakF1600_StatePermute(s_inc);
-        for (i = 0; i < outlen && i < r; i++)
-            h[i] = (uint8_t)(s_inc[i >> 3] >> (8 * (i & 0x07)));
-        h      += i;
-        outlen -= i;
-        s_inc[25] = r - i;
+        take = outlen < (size_t)r ? outlen : (size_t)r;
+        keccak_extract_bytes(s_inc, 0, h, take);
+        h += take;
+        outlen -= take;
+        s_inc[25] = r - take;
     }
 }
 

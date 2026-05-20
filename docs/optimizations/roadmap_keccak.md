@@ -272,6 +272,31 @@ Rollback outcome (restored from `b35e5cc`):
 - Functional validation (`run_kat.sh --mul karatsuba_zvbc --keccak opt`):
   **PASS 100/100** for HQC-128/192/256.
 
+#### B4 — Fast-Path Incremental Absorb/Squeeze I/O Loops
+
+**Problem.** `keccak_inc_absorb` and `keccak_inc_squeeze` were spending a large
+share of total KEM instruction count in scalar byte-by-byte XOR/copy loops,
+especially for long absorb/squeeze phases in HQC keygen/encaps/decaps.
+
+**Solution.** Added 64-bit block fast paths with scalar tail handling in
+`fips202_zvbb_gather.c`:
+
+- `keccak_xor_bytes(...)` for block XOR into the incremental state.
+- `keccak_extract_bytes(...)` for block extraction from the incremental state.
+- Updated `keccak_inc_absorb` and `keccak_inc_squeeze` to use these helpers.
+- `load64_le` / `store64_le` switched to `memcpy`-based 64-bit transfers.
+
+This preserves correctness for unaligned byte offsets while replacing the
+majority of byte-wise operations with 8-byte transfers.
+
+**Result (2026-05-20):** Completed and validated.
+
+- Full KEM benchmark (`--mode kem karatsuba_zvbc`):
+  HQC-128 **988,467**, HQC-192 **2,248,591**, HQC-256 **3,528,568**.
+- HQC-128 delta vs prior baseline 1,214,207: **-225,740 instret (-18.59%)**.
+- Functional validation (`run_kat.sh --mul karatsuba_zvbc --keccak opt`):
+  **PASS 100/100** for HQC-128/192/256.
+
 ---
 
 ### Track C — Multi-Way Batched Keccak (N-Way Parallel Instances)
@@ -469,6 +494,7 @@ order is:
 | 6 | `EXP-keccak-lane-complement` | A2 | A1 | +2–5% on top of A1 |
 | 7 | `EXP-keccak-hybrid-1plus3` | C3 | A1 + C2 | hardware-dependent |
 | 8 | `EXP-keccak-zvbb-no-gather-chi` (DROPPED / MINIMAL SIMULATOR PAYOFF) | B3 | B1 + B2 | +5–10% on top of B1+B2 |
+| 9 | `EXP-keccak-io-fastpath` (DONE: inc absorb/squeeze loops block-optimized; L128 total 988,467) | B4 | B1 | high ROI (I/O-bound) |
 
 Items 1 and 2 are independent and can be developed in parallel branches.
 Item 4 (the call-graph audit) can overlap with any other experiment as it is
