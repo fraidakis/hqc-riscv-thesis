@@ -59,22 +59,6 @@ void gf_generate(uint16_t *exp, uint16_t *log, const int16_t m) {
 }
 
 /**
- * @brief Feedback bit positions used for modular reduction by PARAM_GF_POLY = 0x11D.
- *
- * These values are derived from the binary form of the polynomial:
- *     0x11D = 0b100011101 → bits set at positions: 8, 4, 3, 1, 0
- *
- * To reduce a polynomial modulo this irreducible polynomial:
- * - Bit 8 (the leading term) is handled via shifting: mod = x >> 8
- * - Bit 0 (constant term) is handled by the initial XOR
- *
- * The remaining set bits at positions 4, 3, and 2 define where the shifted
- * high bits (mod) must be XORed back into the result. These represent the
- * feedback positions used during reduction.
- */
-static const uint8_t gf_reduction_taps[] = {4, 3, 2};
-
-/**
  * @brief Reduce a polynomial modulo PARAM_GF_POLY in GF(2^8).
  *
  * This function performs modular reduction of a 16-bit polynomial `x`
@@ -89,26 +73,10 @@ static const uint8_t gf_reduction_taps[] = {4, 3, 2};
  * @return Reduced 8-bit polynomial modulo PARAM_GF_POLY (deg(x) < 8)
  */
 uint16_t gf_reduce(uint16_t x) {
-    uint64_t mod;
-    const int reduction_steps = 2;            // For deg(x) = 2 * (8 - 1) = 14, reduce twice to bring degree < 8
-    const size_t gf_reduction_tap_count = 3;  // Number of feedback positions
-
-    for (int i = 0; i < reduction_steps; ++i) {
-        mod = x >> PARAM_M;       // Extract upper bits
-        x &= (1 << PARAM_M) - 1;  // Keep lower bits
-        x ^= mod;                 // Pre-XOR with no shift
-
-        uint16_t z1 = 0;
-        for (size_t j = gf_reduction_tap_count; j; --j) {
-            uint16_t z2 = gf_reduction_taps[j - 1];
-            uint16_t dist = z2 - z1;
-            mod <<= dist;
-            x ^= mod;
-            z1 = z2;
-        }
-    }
-
-    return x;
+    uint16_t mod = x >> 8;
+    x = (x & 0xFF) ^ mod ^ (mod << 2) ^ (mod << 3) ^ (mod << 4);
+    mod = x >> 8;
+    return (x & 0xFF) ^ mod ^ (mod << 2) ^ (mod << 3) ^ (mod << 4);
 }
 
 /**
@@ -194,6 +162,15 @@ uint16_t gf_mul(uint16_t a, uint16_t b) {
  * @param[in] a Element of GF(2^GF_M)
  */
 uint16_t gf_square(uint16_t a) {
+#ifdef __riscv_zbc
+    uint64_t s;
+    __asm__ volatile (
+        "clmul %0, %1, %1\n\t"
+        : "=r"(s)
+        : "r"((uint64_t)(a & 0xFFu))
+    );
+    return gf_reduce((uint16_t)s);
+#else
     uint32_t b = a;
     uint32_t s = b & 1;
     for (size_t i = 1; i < PARAM_M; ++i) {
@@ -202,6 +179,7 @@ uint16_t gf_square(uint16_t a) {
     }
 
     return gf_reduce(s);
+#endif
 }
 
 /**
