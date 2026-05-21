@@ -1,4 +1,4 @@
-/* src/keccak/rvv/fips202_rvv_gather.c
+/* experiments/EXP-keccak-zvbb-gather-legacy/src/fips202_zvbb_gather.c
  *
  * fips202.h drop-in with a custom LMUL=8 vrgather-based Keccak-f[1600].
  *

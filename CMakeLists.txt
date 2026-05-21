@@ -107,8 +107,8 @@ set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
 # All polymul variants automatically pick up the chosen Keccak impl.
-# Stable options: ref | rvv_only (Track B) | rvv_x2_soa (Track B2)
-#                 | zvbb_gather (Track C) | zvbb_x2_soa (Track C2)
+# Stable options: ref | rvv_only (Track B) | zvbb_x2_soa (Track C2)
+# Legacy variants are archived under experiments/ and not selectable by default.
 #
 # KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
 #                        (appended to every KAT / bench target)
@@ -123,32 +123,12 @@ if(HQC_KECCAK_IMPL STREQUAL "rvv_only")
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 
-elseif(HQC_KECCAK_IMPL STREQUAL "rvv_x2_soa")
-    # Track B2: pure RVV 1.0 2-way SoA Keccak backend (no Vector Crypto ISA).
-    set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_x2.c)
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_rvv_x2.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
-    )
-    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
-
-elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_gather")
-    # Track C: Zvbb — custom LMUL=8 vrgather/vror/vandn single-state Keccak-f
-    # Requires zvbb + zvl256b (vl=25 at e64/LMUL=8 needs VLEN≥256).
-    set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_gather.c)
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_gather.c
-        PROPERTIES COMPILE_FLAGS "-march=rv64gcv_zvbb_zbkb"
-    )
-
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
-    # Track C2: 2-way SoA Keccak backend with parallel wrappers for paired streams.
+    # Track C2: top-performing Zvbb backend with paired-stream x2 wrappers.
     set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_zvbb_x2.c)
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
     set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/rvv/fips202_zvbb_x2.c
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbkb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
     set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)

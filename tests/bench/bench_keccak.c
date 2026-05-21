@@ -19,7 +19,7 @@
  *
  * Compile-time knobs (set by CMakeLists.txt):
  *   SECURITY_LEVEL  128 | 192 | 256
- *   KECCAK_NAME     string literal e.g. "ref" or "zvbb_gather"
+ *   KECCAK_NAME     string literal e.g. "ref" or "zvbb_x2_soa"
  *   N_ITER          (optional, default 1)
  *   HQC_SILENT      suppresses HTIF metadata headers
  */

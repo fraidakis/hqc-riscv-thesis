@@ -55,7 +55,7 @@ bench_parse_track_args() {
                 ;;
             --keccak)
                 case "${2:-}" in
-                    opt) KECCAK_IMPL="rvv_x2_soa" ;;
+                    opt) KECCAK_IMPL="zvbb_x2_soa" ;;
                     ref) KECCAK_IMPL="ref" ;;
                     *)   KECCAK_IMPL="${2:-}" ;;
                 esac
@@ -81,8 +81,8 @@ bench_parse_track_args() {
     if [[ "$_keccak_explicit" -eq 0 ]] && [[ -n "$MUL_VARIANT" ]]; then
         case "$MUL_VARIANT" in
             ref_scalar|ref_vector) KECCAK_IMPL="ref"         ;;
-            *_zvbc)             KECCAK_IMPL="zvbb_x2_soa" ;;
-            *_rvv)              KECCAK_IMPL="rvv_x2_soa" ;;
+            *_zvbc)               KECCAK_IMPL="zvbb_x2_soa" ;;
+            *_rvv)                KECCAK_IMPL="rvv_only"    ;;
             *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;
             *)                  KECCAK_IMPL="ref"          ;;
         esac
@@ -98,7 +98,7 @@ bench_parse_track_args() {
         esac
     fi
 
-    if [[ "$KECCAK_IMPL" == "opt" ]]; then KECCAK_IMPL="rvv_x2_soa"; fi
+    if [[ "$KECCAK_IMPL" == "opt" ]]; then KECCAK_IMPL="zvbb_x2_soa"; fi
     if [[ "$DECODE_IMPL" == "opt" ]]; then DECODE_IMPL="rvv"; fi
     export MUL_VARIANT KECCAK_IMPL DECODE_IMPL
 }

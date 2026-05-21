@@ -1,4 +1,4 @@
-/* src/keccak/rvv/fips202_zvbb_x2.c
+/* src/keccak/fips202_zvbb_x2.c
  *
  * Track C2 (EXP-keccak-x2-soa): 2-way SoA vector Keccak helpers.
  *
@@ -14,8 +14,8 @@
 
 #include "fips202.h"
 
-/* Reuse the full single-stream API and incremental glue unchanged. */
-#include "../fips202_zvbb_gather.c"
+/* Reuse the internal single-stream Zvbb core and incremental glue unchanged. */
+#include "fips202_zvbb_core.c"
 
 /* Clang requires fixed-width RVV aliases for arrays of vector values. */
 typedef vuint64m1_t vu64m1_fixed_t __attribute__((riscv_rvv_vector_bits(256)));

@@ -1,4 +1,4 @@
-/* src/keccak/rvv/fips202_rvv_x2.c
+/* experiments/EXP-keccak-rvv-x2-legacy/src/fips202_rvv_x2.c
  *
  * Track B2: pure RVV 1.0 x2 SoA Keccak backend.
  *
@@ -17,7 +17,7 @@
 #include "fips202.h"
 
 /* Reuse the full single-stream API and incremental glue unchanged. */
-#include "../fips202_rvv_only.c"
+#include "../../../src/keccak/fips202_rvv_only.c"
 
 static const uint8_t rvv_x2_pi_src[25] = {
      0,  6, 12, 18, 24,
