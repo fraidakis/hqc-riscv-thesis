@@ -2,7 +2,7 @@
 
 - Variant: karatsuba_zbc
 - Level: 128
-- Date: 2026-05-20 23:31:42
+- Date: 2026-05-22 15:12:55
 
 ## 1. Cycle Counts
 

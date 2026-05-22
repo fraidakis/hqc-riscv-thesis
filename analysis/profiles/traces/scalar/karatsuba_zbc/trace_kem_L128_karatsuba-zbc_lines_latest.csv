@@ -1,5 +1,5 @@
-# date: 2026-05-20 23:31
-# commit: a96a6ff
+# date: 2026-05-22 15:12
+# commit: 721d412
 # variant: karatsuba_zbc
 # level: 128
 function,instructions,percentage
@@ -32,12 +32,12 @@ expand_and_sum at reed_muller.c:125,22448,0.66
 clmul_leaf at gf2x_clmul.c:359,22248,0.65
 clmul_leaf at gf2x_clmul.c:397,19776,0.58
 clmul_leaf at gf2x_clmul.c:398,19776,0.58
-vect_compare at vector.c:264,17732,0.52
+vect_compare at vector.c:277,17732,0.52
 kmul_35 at karatsuba_specialized_gen.h:486,14916,0.44
 kmul_35 at karatsuba_specialized_gen.h:487,14916,0.44
 kmul_35 at karatsuba_specialized_gen.h:485,14388,0.42
 kmul_35 at karatsuba_specialized_gen.h:484,14124,0.41
-vect_compare at vector.c:263,13308,0.39
+vect_compare at vector.c:276,13308,0.39
 clmul_leaf at gf2x_clmul.c:401,12360,0.36
 find_peaks at reed_muller.c:156,11776,0.35
 kmul_35 at karatsuba_specialized_gen.h:436,11616,0.34
@@ -60,9 +60,9 @@ kmul_18 at karatsuba_specialized_gen.h:109,9504,0.28
 compute_syndromes at reed_solomon.c:123,9450,0.28
 kmul_17 at karatsuba_specialized_gen.h:74,9102,0.27
 gf_mul at gf.c:150,9076,0.27
-vect_add at vector.c:244,8884,0.26
+vect_add at vector.c:256,8884,0.26
 kmul_17 at karatsuba_specialized_gen.h:75,8880,0.26
-vect_add at vector.c:245,8852,0.26
+vect_add at vector.c:257,8852,0.26
 kmul_17 at karatsuba_specialized_gen.h:77,8658,0.25
 clmul_leaf at gf2x_clmul.c:338,8652,0.25
 KeccakF1600_StatePermute at fips202.c:110,8520,0.25
@@ -971,7 +971,7 @@ xof_get_bytes at symmetric.c:81,12,0.00
 hash_h at symmetric.c:112,12,0.00
 vect_set_random at vector.c:232,12,0.00
 vect_set_random at vector.c:233,12,0.00
-vect_compare at vector.c:267,12,0.00
+vect_compare at vector.c:280,12,0.00
 crypto_kem_enc at kem.c:122,12,0.00
 crypto_kem_enc at kem.c:151,12,0.00
 crypto_kem_dec at kem.c:192,12,0.00
@@ -1052,7 +1052,7 @@ xof_init at symmetric.c:56,8,0.00
 hash_h at symmetric.c:116,8,0.00
 hash_h at symmetric.c:118,8,0.00
 hash_g at symmetric.c:138,8,0.00
-vect_add at vector.c:247,8,0.00
+vect_add at vector.c:260,8,0.00
 crypto_kem_keypair at kem.c:39,8,0.00
 crypto_kem_keypair at kem.c:84,8,0.00
 crypto_kem_enc at kem.c:147,8,0.00
@@ -1135,7 +1135,7 @@ hash_g at symmetric.c:133,6,0.00
 hash_j at symmetric.c:157,6,0.00
 vect_sample_fixed_weight2 at vector.c:0,6,0.00
 vect_compare at vector.c:0,6,0.00
-vect_truncate at vector.c:290,6,0.00
+vect_truncate at vector.c:303,6,0.00
 hqc_rdcycle at bench.c:32,6,0.00
 hqc_rdcycle at bench.c:33,6,0.00
 hqc_rdinstret at bench.c:44,6,0.00
@@ -1257,7 +1257,7 @@ fft at fft.c:315,3,0.00
 prng_init at symmetric.c:33,3,0.00
 hash_i at symmetric.c:100,3,0.00
 hash_j at symmetric.c:153,3,0.00
-vect_truncate at vector.c:292,3,0.00
+vect_truncate at vector.c:305,3,0.00
 hqc_htif_exit at bench.c:112,3,0.00
 crypto_kem_keypair at kem.c:0,3,0.00
 hqc_c_kem_to_string at parsing.c:51,3,0.00
