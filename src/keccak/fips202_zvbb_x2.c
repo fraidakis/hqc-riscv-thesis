@@ -219,18 +219,20 @@ static void KeccakF1600_StatePermute(uint64_t *state)
 
 static inline uint64_t load64_le(const uint8_t *x)
 {
-    uint64_t r = 0;
-    for (size_t i = 0; i < 8; i++) {
-        r |= (uint64_t)x[i] << (8 * i);
-    }
+    uint64_t r;
+    /* __builtin_memcpy with a compile-time constant size is handled entirely
+     * by the compiler front-end (not dispatched to the custom sim/common/mem.c
+     * memcpy).  At -O3 on rv64 (little-endian, no strict-align) Clang/GCC
+     * lowers this to a single native unaligned 'ld' instruction, eliminating
+     * the 8-iteration byte-shift loop and all associated scalar overhead. */
+    __builtin_memcpy(&r, x, sizeof(r));
     return r;
 }
 
 static inline void store64_le(uint8_t *x, uint64_t u)
 {
-    for (size_t i = 0; i < 8; i++) {
-        x[i] = (uint8_t)(u >> (8 * i));
-    }
+    /* Same rationale as load64_le: forces compiler emission of 'sd'. */
+    __builtin_memcpy(x, &u, sizeof(u));
 }
 
 /* XOR len bytes into the Keccak state at byte offset pos. */
