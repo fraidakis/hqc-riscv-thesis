@@ -55,7 +55,7 @@ BIOS="none"
 #              would break the fixed-width grouping without code changes.
 #   elen=64  — maximum element width; required for vd.vv 64-bit ops.
 #   vext_spec=v1.0 — ratified vector ISA; older v0.7/v0.8 drafts behave differently.
-#   zbkb/zbc/zvbc — bit-manipulation and carryless-multiply extensions used by
+#   zbc/zvbc/zbb — bit-manipulation and carryless-multiply extensions used by
 #                   the polynomial-mul kernels.
 #
 # Serial: plain -serial stdio (no mon: mux) so automated capture
@@ -66,7 +66,7 @@ BIOS="none"
 echo "[qemu/run] Running: $ELF"
 "$QEMU_BIN" \
     -machine virt \
-    -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zvbc=true,zvbb=true \
+    -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbc=true,zvbc=true,zvbb=true \
     -m 128M \
     -nographic \
     -monitor none \

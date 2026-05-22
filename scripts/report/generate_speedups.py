@@ -39,7 +39,7 @@ TIERS = [
         "baseline_dir": _SCALAR_DIR,
         "champion_variant": "karatsuba_zbc",
         "champion_dir": _SCALAR_DIR,
-        "note": "rv64gc_zbc_zbb_zbkb, no vector",
+        "note": "rv64gc_zbc_zbb, no vector",
     },
     {
         "label": "Table 2 — Tier 2 (Edge RVV)",
@@ -47,7 +47,7 @@ TIERS = [
         "baseline_dir": _VECTOR_DIR,
         "champion_variant": "karatsuba_rvv",
         "champion_dir": _VECTOR_DIR,
-        "note": "rv64gcv + Zbc/Zbb/Zbkb; AP-2 fixed-tree polymul, scalar Keccak",
+        "note": "rv64gcv + Zbc/Zbb; AP-2 fixed-tree polymul, scalar Keccak",
     },
     {
         "label": "Table 3 — Tier 3 (High-End Zvbc)",

@@ -32,9 +32,9 @@ set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv")
 # ── Scalar ISA override (ablation experiments) ───────────────────────────────
 # Overrides the -march for scalar-only variants (ref_scalar, karatsuba_zbc).
 # Default is the fully optimized baseline including bit-manipulation extensions.
-# Set to e.g. "rv64gc_zbc" to strip zbb/zbkb and measure auto-lowering impact.
-set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb_zbkb" CACHE STRING
-    "ISA march for scalar variants (ablation: set to rv64gc_zbc to strip zbb/zbkb)")
+# Set to e.g. "rv64gc_zbc" to strip zbb and measure auto-lowering impact.
+set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb" CACHE STRING
+    "ISA march for scalar variants (ablation: set to rv64gc_zbc to strip zbb)")
 
 # ── Diagnostic messages ───────────────────────────────────────────────────────
 message(STATUS "HQC configuration:")

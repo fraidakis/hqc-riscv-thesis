@@ -10,7 +10,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND
    NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     message(STATUS "Applying fallback RISC-V GCC flags for direct cross-compile configure")
     add_compile_options(
-    -march=rv64gc_zbc_zbb_zbkb
+    -march=rv64gc_zbc_zbb
         -mabi=lp64d
         -mcmodel=medany
         -mno-relax
@@ -123,7 +123,7 @@ if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbkb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
     set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
@@ -151,7 +151,7 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
     # that includes Zvbc in addition to the base V extension.
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zbb_zvbc_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon
@@ -266,7 +266,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 ${HQC_REF}/src/ref/reed_muller.c
                 ${HQC_REF}/src/ref/reed_solomon.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zbkb
+                -march=rv64gcv_zbc_zbb
                 -mabi=lp64d
                 -O3
                 $<$<C_COMPILER_ID:GNU>:-ftree-vectorize>
@@ -291,14 +291,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zbkb
+                -march=rv64gcv_zbc_zbb
                 -mabi=lp64d
                 -O3)
         elseif(POLYMUL STREQUAL "karatsuba_zvbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zvbc/gf2x_vclmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb
+                -march=rv64gcv_zbc_zbb_zvbc_zvbb
                 -mabi=lp64d
                 -O3)
         endif()
@@ -580,7 +580,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
     )
     target_compile_options(${KECCAK_BENCH_TARGET} PRIVATE
         -O3
-        -march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb
+        -march=rv64gcv_zbc_zbb_zvbc_zvbb
         -mabi=lp64d
     )
     set_target_properties(${KECCAK_BENCH_TARGET} PROPERTIES
@@ -632,7 +632,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
     )
     target_compile_options(${DECODE_BENCH_TARGET} PRIVATE
         -O3
-        -march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb
+        -march=rv64gcv_zbc_zbb_zvbc_zvbb
         -mabi=lp64d
     )
     set_target_properties(${DECODE_BENCH_TARGET} PROPERTIES

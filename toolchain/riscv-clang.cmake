@@ -86,7 +86,13 @@ endif()
 set(RISCV_TARGET_TRIPLE "riscv64-unknown-elf")
 
 # ── Aggressive bare-metal compile flags ──────────────────────────────────────
-set(RISCV_MARCH "rv64gc_zbc_zbb_zbkb")
+# Allow external override for ablation studies (e.g. strip zbb)
+if(DEFINED ENV{RISCV_MARCH_OVERRIDE} AND NOT "$ENV{RISCV_MARCH_OVERRIDE}" STREQUAL "")
+  set(RISCV_MARCH "$ENV{RISCV_MARCH_OVERRIDE}")
+  message(STATUS "[toolchain] RISCV_MARCH overridden via env: ${RISCV_MARCH}")
+else()
+  set(RISCV_MARCH "rv64gc_zbc_zbb")
+endif()
 set(RISCV_MABI  "lp64d")
 set(RISCV_OPT_LEVEL "-O3" CACHE STRING "Optimization flag for Clang (e.g. -O2, -O3, -Os)")
 
@@ -127,7 +133,7 @@ set(RISCV_FORCE_FLAGS
   " --sysroot=${RISCV_SYSROOT}"
   " --gcc-toolchain=${RISCV}"
   " -isystem ${RISCV_SYSROOT}/include"
-  " -march=rv64gc_zbc_zbb_zbkb"
+  " -march=${RISCV_MARCH}"
   " -mabi=lp64d"
   " -menable-experimental-extensions"
   " -mcmodel=medany"

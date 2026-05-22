@@ -9,7 +9,7 @@ three implementation strategies on a RISC-V rv64gcv target:
 | Implementation     | ISA extensions used            | Description                          |
 |--------------------|-------------------------------|--------------------------------------|
 | `baseline`         | rv64gc                        | Portable C reference                 |
-| `scalar_zbc`       | rv64gc + Zbc/Zbkb             | Carry-less multiply (CLMUL)          |
+| `scalar_zbc`       | rv64gc + Zbc/Zbb              | Carry-less multiply (CLMUL)          |
 | `vector_zvbc`      | rv64gcv + Zvbc                | Vectorised CLMUL (vclmul/vclmulh)   |
 
 ---
@@ -74,11 +74,11 @@ The table below mirrors `scripts/implemented_variants.txt`.
 | Variant | Required ISA Extensions | Status |
 |---------|-------------------------|--------|
 | `karatsuba_ref` | `rv64gc` | implemented |
-| `karatsuba_zbc` | `rv64gc + zbc + zbkb` | implemented |
-| `fafft_zbc` | `rv64gcv + zbc + zbkb` | implemented |
-| `hybrid` | `rv64gcv + zbc + zbkb` | implemented |
-| `fafft_zvbc` | `rv64gcv + zbc + zbkb + zvbc` | implemented |
-| `karatsuba_zvbc` | `rv64gcv + zbc + zbkb + zvbc` | implemented |
+| `karatsuba_zbc` | `rv64gc + zbc + zbb` | implemented |
+| `fafft_zbc` | `rv64gcv + zbc + zbb` | implemented |
+| `hybrid` | `rv64gcv + zbc + zbb` | implemented |
+| `fafft_zvbc` | `rv64gcv + zbc + zbb + zvbc` | implemented |
+| `karatsuba_zvbc` | `rv64gcv + zbc + zbb + zvbc` | implemented |
 
 ## Requirements
 
