@@ -5,20 +5,24 @@
 # Usage:
 #   cmake -B build -DHQC_KECCAK_IMPL=ref -DHQC_DECODE_IMPL=rvv  # Track B
 #   cmake -B build -DHQC_KECCAK_IMPL=zvbb_x2_soa -DHQC_DECODE_IMPL=rvv  # Track C2
+#   cmake -B build -DHQC_KECCAK_IMPL=zvbb_x2_soa_rvv_xor -DHQC_DECODE_IMPL=rvv  # EXP-keccak-xor-bytes-rvv
 #
 # All five POLYMUL_VARIANTS are always built regardless of these flags.
 # The flags control which Keccak and Decoder sources are linked into every target.
 
 # ── Phase 2 flag: Keccak / SHAKE implementation ───────────────────────────────
-# ref         : vendor scalar fips202 (default; used for Track A and Track B)
-# zvbb_x2_soa : Track C2 — 2-way SoA vector Keccak backend with paired-stream
-#               wrappers; src/keccak/fips202_zvbb_x2.c
+# ref                 : vendor scalar fips202 (default; used for Track A and Track B)
+# zvbb_x2_soa         : Track C2 — 2-way SoA vector Keccak backend with paired-stream
+#                       wrappers; src/keccak/fips202_zvbb_x2.c
+# zvbb_x2_soa_rvv_xor : EXP-keccak-xor-bytes-rvv — Track C2 with keccak_xor_bytes
+#                       vectorized via RVV 1.0 vle8/vxor/vse8 LMUL=8 byte streaming;
+#                       experiments/EXP-keccak-xor-bytes-rvv/src/fips202_zvbb_x2.c
 # Legacy keccak variants are archived under experiments/ and are not selectable
 # in the default stable build.
 set(HQC_KECCAK_IMPL "ref" CACHE STRING
-    "Keccak/SHAKE backend: ref | zvbb_x2_soa")
+    "Keccak/SHAKE backend: ref | zvbb_x2_soa | zvbb_x2_soa_rvv_xor")
 set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
-    "ref" "zvbb_x2_soa")
+    "ref" "zvbb_x2_soa" "zvbb_x2_soa_rvv_xor")
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
@@ -38,6 +42,8 @@ elseif(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "rvv")
     message(STATUS "  → Track B build: RVV polymul/decoder with scalar reference Keccak")
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     message(STATUS "  → Track C2 build: Zvbb 2-way SoA vector backend (fips202_zvbb_x2.c)")
+elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa_rvv_xor")
+    message(STATUS "  → EXP-keccak-xor-bytes-rvv build: Track C2 + RVV byte-streaming keccak_xor_bytes")
 endif()
 
 # ── Multi-VLEN build matrix (P-02) ───────────────────────────────────────────
@@ -105,10 +111,11 @@ message(STATUS "  reference LTO : ${HQC_REF_LTO}")
 message(STATUS "  reference PGO : ${HQC_REF_PGO}")
 
 # ── Validation ────────────────────────────────────────────────────────────────
-if(NOT HQC_KECCAK_IMPL STREQUAL "ref"          AND
-   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
+if(NOT HQC_KECCAK_IMPL STREQUAL "ref"                  AND
+   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa"          AND
+   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa_rvv_xor")
     message(FATAL_ERROR
-    "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa, "
+    "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa | zvbb_x2_soa_rvv_xor, "
         "got '${HQC_KECCAK_IMPL}'")
 endif()
 if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND

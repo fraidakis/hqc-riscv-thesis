@@ -1,4 +1,58 @@
 experiments:
+  - id: EXP-keccak-xor-bytes-rvv
+    date: 2026-05-22
+    hypothesis: >
+      Replace the scalar word-aligned loop + scalar byte-tail in keccak_xor_bytes
+      (fips202_zvbb_x2.c) with an RVV 1.0 VLA byte-streaming loop using
+      vle8.v / vxor.vv / vse8.v (LMUL=8).  At VLEN=256, vlmax=256 bytes covers
+      any Keccak-rate block (<=168 bytes) in one vector iteration, eliminating
+      17-21 scalar word-retire boundaries per full-rate absorb call.
+      Profiling shows keccak_xor_bytes accounts for ~24,528 instret (2.84% of
+      total KEM suite) at the karatsuba_zvbc level.
+    status: promoted_to_stable
+    promoted_date: 2026-05-22
+    promoted_to: src/keccak/fips202_zvbb_x2.c
+    verdict: >
+      Promoted after 300/300 KAT pass. All three security levels improved.
+      L128 total: 854,062 → 824,344 (-29,718, -3.48%);
+      L192 total: 2,035,646 → 1,976,866 (-58,780, -2.89%);
+      L256 total: 3,136,979 → 3,043,319 (-93,660, -2.99%).
+      Decaps improvement largest as expected (most keccak_xor_bytes calls).
+    path: experiments/EXP-keccak-xor-bytes-rvv
+    cmake_keccak_impl: zvbb_x2_soa_rvv_xor
+    hardware_class: crypto_vector_zvbb
+    baseline_keccak_xor_instret: 24528
+    tracks: [AP-4]
+    target_levels: [HQC-128, HQC-192, HQC-256]
+    metrics:
+      hqc128:
+        baseline_total: 854062
+        optimized_total: 824344
+        delta_instret: -29718
+        delta_percent: -3.48
+        baseline_decaps: 485507
+        optimized_decaps: 463581
+        decaps_delta: -21926
+      hqc192:
+        baseline_total: 2035646
+        optimized_total: 1976866
+        delta_instret: -58780
+        delta_percent: -2.89
+        baseline_decaps: 1110836
+        optimized_decaps: 1067117
+        decaps_delta: -43719
+      hqc256:
+        baseline_total: 3136979
+        optimized_total: 3043319
+        delta_instret: -93660
+        delta_percent: -2.99
+        baseline_decaps: 1726034
+        optimized_decaps: 1656148
+        decaps_delta: -69886
+      measured: 2026-05-22
+      tool: spike
+      isa: rv64gcv_zvbb_zbkb
+
   - id: EXP-decode-rs-zvbc
     date: 2026-05-22
     hypothesis: >

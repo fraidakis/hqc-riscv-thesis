@@ -107,7 +107,9 @@ set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
 # All polymul variants automatically pick up the chosen Keccak impl.
-# Stable options: ref (Track A/B) | zvbb_x2_soa (Track C2)
+# Stable options: ref (Track A/B) | zvbb_x2_soa (Track C2, promoted 2026-05-22)
+# Experiment (historical): zvbb_x2_soa_rvv_xor (EXP-keccak-xor-bytes-rvv —
+#   isolated experiment; promoted into zvbb_x2_soa on 2026-05-22)
 # Legacy variants are archived under experiments/ and not selectable by default.
 #
 # KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
@@ -122,6 +124,18 @@ if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbkb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
+
+elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa_rvv_xor")
+    # EXP-keccak-xor-bytes-rvv: same as zvbb_x2_soa but keccak_xor_bytes is
+    # vectorized via RVV 1.0 vle8/vxor/vse8 byte streaming (LMUL=8).
+    # Source is isolated in experiments/ — does NOT appear in default builds.
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/experiments/EXP-keccak-xor-bytes-rvv/src/fips202_zvbb_x2.c)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/experiments/EXP-keccak-xor-bytes-rvv/src/fips202_zvbb_x2.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbkb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
     set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)

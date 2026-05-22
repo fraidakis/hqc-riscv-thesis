@@ -235,7 +235,24 @@ static inline void store64_le(uint8_t *x, uint64_t u)
     __builtin_memcpy(x, &u, sizeof(u));
 }
 
-/* XOR len bytes into the Keccak state at byte offset pos. */
+/* XOR len bytes into the Keccak state at byte offset pos.
+ *
+ * Promoted from EXP-keccak-xor-bytes-rvv (2026-05-22): the word-aligned main
+ * loop and scalar byte-tail are replaced by an RVV 1.0 VLA byte-streaming loop.
+ *
+ * Correctness: RISC-V is little-endian, so a flat uint8_t* view of the
+ * uint64_t state array is bit-for-bit equivalent to word-level XOR.  After
+ * the scalar pre-alignment phase guarantees (pos+i) ≡ 0 (mod 8), casting
+ * (uint8_t*)(s_inc) + (pos+i) is a safe alias for s_inc[(pos+i)/8].
+ *
+ * Constant-time: all branch conditions depend only on pos (public absorb
+ * position, 0..r-1) and len (public chunk size).  No secret-dependent
+ * branches or memory-access patterns are introduced.
+ *
+ * Performance: at VLEN=256, LMUL=8 → vlmax=256 bytes.  A full SHAKE-256
+ * rate block (136 bytes) or SHAKE-128 rate block (168 bytes) is processed
+ * in a single vle8/vxor/vse8 triple, replacing 17–21 scalar word iterations.
+ */
 static inline void keccak_xor_bytes(uint64_t *s_inc,
                                     size_t pos,
                                     const uint8_t *in,
@@ -243,24 +260,30 @@ static inline void keccak_xor_bytes(uint64_t *s_inc,
 {
     size_t i = 0;
 
+    /* Scalar pre-alignment: advance i until (pos+i) is 8-byte aligned. */
     while (i < len && ((pos + i) & 0x07)) {
         size_t p = pos + i;
         s_inc[p >> 3] ^= (uint64_t)in[i] << (8 * (p & 0x07));
         i++;
     }
 
-    if (i < len) {
-        size_t word = (pos + i) >> 3;
-        while (i + 8 <= len) {
-            s_inc[word++] ^= load64_le(in + i);
-            i += 8;
-        }
-    }
+    /* RVV VLA byte-streaming: handles the aligned main block and any sub-word
+     * tail in one unified loop.  vsetvl_e8m8 returns the exact element count
+     * for any remaining byte count, so no separate scalar tail is needed. */
+    {
+        uint8_t       *dst       = (uint8_t *)s_inc + (pos + i);
+        const uint8_t *src       = in + i;
+        size_t         remaining = len - i;
 
-    while (i < len) {
-        size_t p = pos + i;
-        s_inc[p >> 3] ^= (uint64_t)in[i] << (8 * (p & 0x07));
-        i++;
+        while (remaining > 0) {
+            size_t vl = __riscv_vsetvl_e8m8(remaining);
+            vuint8m8_t vdst = __riscv_vle8_v_u8m8(dst, vl);
+            vuint8m8_t vsrc = __riscv_vle8_v_u8m8(src, vl);
+            __riscv_vse8_v_u8m8(dst, __riscv_vxor_vv_u8m8(vdst, vsrc, vl), vl);
+            dst       += vl;
+            src       += vl;
+            remaining -= vl;
+        }
     }
 }
 
