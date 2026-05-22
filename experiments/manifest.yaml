@@ -6,7 +6,13 @@ experiments:
       inner loops (Axis D) using Zvbc vclmul.vv lane-packing and inline GF(2^8)
       Barrett reduction, eliminating the scalar gf_reduce overhead that accounts
       for ~8.85% of total KEM-128 instructions.
-    status: active
+    status: promoted_to_stable
+    promoted_date: 2026-05-22
+    promoted_to: src/decode/rvv/reed_solomon_zvbc.c
+    verdict: >
+      Promoted after 300/300 KAT pass. decaps improvements: HQC-128 -36,106
+      (-6.9%), HQC-192 -39,982 (-3.5%), HQC-256 -134,998 (-7.3%). Keypair and
+      encaps unchanged, confirming clean decode isolation.
     path: experiments/EXP-decode-rs-zvbc
     hardware_class: crypto_vector_zvbc
     tracks: [AP-3]
