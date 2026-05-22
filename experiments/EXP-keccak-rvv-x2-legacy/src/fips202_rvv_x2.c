@@ -17,7 +17,7 @@
 #include "fips202.h"
 
 /* Reuse the full single-stream API and incremental glue unchanged. */
-#include "../../../src/keccak/fips202_rvv_only.c"
+#include "../../EXP-keccak-rvv-only-legacy/src/fips202_rvv_only.c"
 
 static const uint8_t rvv_x2_pi_src[25] = {
      0,  6, 12, 18, 24,

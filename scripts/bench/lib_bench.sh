@@ -82,7 +82,7 @@ bench_parse_track_args() {
         case "$MUL_VARIANT" in
             ref_scalar|ref_vector) KECCAK_IMPL="ref"         ;;
             *_zvbc)               KECCAK_IMPL="zvbb_x2_soa" ;;
-            *_rvv)                KECCAK_IMPL="rvv_only"    ;;
+            *_rvv)                KECCAK_IMPL="ref"         ;;
             *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;
             *)                  KECCAK_IMPL="ref"          ;;
         esac
@@ -203,14 +203,9 @@ bench_run_spike_timed() {
 bench_strip_leading_csv_comments() {
     local file="$1"
     awk '
-        BEGIN { in_preamble = 1 }
-        {
-            if (in_preamble && $0 ~ /^#/) {
-                next
-            }
-            in_preamble = 0
-            print
-        }
+        /^# date:/ { next }
+        /^# commit:/ { next }
+        { print }
     ' "$file"
 }
 

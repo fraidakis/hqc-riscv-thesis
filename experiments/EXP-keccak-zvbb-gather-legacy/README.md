@@ -10,11 +10,11 @@ Archived single-state Zvbb gather Keccak variant moved out of stable selectable 
 ## Why Archived
 Isolated Keccak benchmarking (2026-05-21, Spike) showed zvbb_x2_soa is consistently faster:
 
-- L128: zvbb_gather 2838 vs zvbb_x2_soa 2489
-- L192: zvbb_gather 2838 vs zvbb_x2_soa 2489
-- L256: zvbb_gather 2838 vs zvbb_x2_soa 2489
+- L128: zvbb_gather 2838 vs zvbb_x2_soa 2114
+- L192: zvbb_gather 2838 vs zvbb_x2_soa 2114
+- L256: zvbb_gather 2838 vs zvbb_x2_soa 2114
 
-This is a +14.02% instruction overhead for zvbb_gather relative to the stable x2 backend.
+This is a +34.25% instruction overhead for zvbb_gather relative to the stable x2 backend.
 
 ## Notes
 - This archive is not linked into default CMake targets.

@@ -1,4 +1,4 @@
-/* src/keccak/rvv/fips202_rvv.c
+/* experiments/EXP-keccak-rvv-only-legacy/src/fips202_rvv_only.c
  *
  * Phase 2 — RVV-vectorised Keccak-f[1600] and full fips202.h drop-in.
  *

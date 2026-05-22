@@ -112,8 +112,8 @@ fi
 
 # ── Determine simulator type and QEMU-safe Keccak impl ────────────────────────
 # zvbb_x2_soa requires Zvbb which is not enabled in the QEMU virt CPU flags.
-# For QEMU KAT tests, down-map to rvv_only (RVV 1.0 only; always supported
-# by our QEMU CPU spec).  The KAT vectors are Keccak-implementation-agnostic:
+# For QEMU KAT tests, down-map to ref (portable scalar Keccak).
+# The KAT vectors are Keccak-implementation-agnostic:
 # any correct Keccak implementation produces identical output for the same input.
 if [[ "$USE_SPIKE" -eq 1 ]]; then
     sim_type="spike"
@@ -121,7 +121,7 @@ if [[ "$USE_SPIKE" -eq 1 ]]; then
 else
     sim_type="qemu"
     if [[ "${KECCAK_IMPL:-ref}" == "zvbb_x2_soa" ]]; then
-        eff_keccak="rvv_only"
+        eff_keccak="ref"
     else
         eff_keccak="${KECCAK_IMPL:-ref}"
     fi

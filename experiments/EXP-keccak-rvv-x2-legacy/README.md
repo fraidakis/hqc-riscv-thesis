@@ -5,7 +5,7 @@ Archived RVV x2 SoA Keccak backend moved out of stable src/keccak.
 ## Scope
 - Original location: src/keccak/rvv/fips202_rvv_x2.c
 - Archived location: experiments/EXP-keccak-rvv-x2-legacy/src/fips202_rvv_x2.c
-- Stable replacement: src/keccak/fips202_rvv_only.c (Track B)
+- Stable replacement: ref Keccak selection (Track B uses HQC_KECCAK_IMPL=ref)
 
 ## Why Archived
 Isolated Keccak benchmarking (2026-05-21, Spike) showed no throughput gain over rvv_only:
@@ -18,4 +18,6 @@ Given equivalent instructions and higher maintenance complexity, rvv_x2_soa was 
 
 ## Notes
 - This archive is not linked into default CMake targets.
+- This source now includes the archived rvv_only drop-in from
+	experiments/EXP-keccak-rvv-only-legacy/src/fips202_rvv_only.c.
 - To re-evaluate, add an experiment-only CMake option and wire this file explicitly in an experiment build directory.

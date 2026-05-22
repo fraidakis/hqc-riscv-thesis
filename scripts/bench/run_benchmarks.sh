@@ -280,7 +280,7 @@ run_single_mode() {
     local csv
     local csv_latest
     local variant_header
-    variant_header="# variant: ${variant}"
+    variant_header="# Multiplication variant: ${variant}"
     if [[ "$MODE" == "keccak" ]]; then
         local impl_flag="ref"
         case "$KECCAK_IMPL" in
@@ -288,13 +288,13 @@ run_single_mode() {
         esac
         csv="${out_dir}/isolated_keccak_${impl_flag}_${BENCH_TIME}.csv"
         csv_latest="${out_dir}/isolated_keccak_${impl_flag}_latest.csv"
-        variant_header="# variant: ${variant} (Keccak: ${KECCAK_IMPL})"
+        variant_header="# Keccak variant: ${KECCAK_IMPL}"
     elif [[ "$MODE" == "decode" ]]; then
         local impl_flag="ref"
         if [[ "$DECODE_IMPL" == "rvv" ]]; then impl_flag="opt"; fi
         csv="${out_dir}/isolated_decode_${impl_flag}_${BENCH_TIME}.csv"
         csv_latest="${out_dir}/isolated_decode_${impl_flag}_latest.csv"
-        variant_header="# variant: ${variant} (Decode: ${DECODE_IMPL})"
+        variant_header="# Decode variant: ${DECODE_IMPL}"
     else
         csv="${out_dir}/isolated_${MODE}_${variant_slug}_${BENCH_TIME}.csv"
         csv_latest="${out_dir}/isolated_${MODE}_${variant_slug}_latest.csv"

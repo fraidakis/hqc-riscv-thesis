@@ -208,8 +208,23 @@ experiments:
     date: 2026-05-21
     hypothesis: "Archive the RVV x2 SoA Keccak backend after stable cleanup if it does not outperform rvv_only in isolated Keccak measurements."
     status: archived
-    verdict: "Not promoted: isolated Keccak median instret is identical to rvv_only (7100 at L128/L192/L256) while adding maintenance overhead."
+    verdict: "Not promoted: isolated Keccak median instret is identical to rvv_only (7100 at L128/L192/L256) while adding maintenance overhead. Track B now maps to reference Keccak."
     path: experiments/EXP-keccak-rvv-x2-legacy
+    hardware_class: standard_vector_rvv_only
+    metrics:
+      level_128:
+        keccak_instructions: 7100
+      level_192:
+        keccak_instructions: 7100
+      level_256:
+        keccak_instructions: 7100
+
+  - id: EXP-keccak-rvv-only-legacy
+    date: 2026-05-21
+    hypothesis: "Archive rvv_only Keccak if it is consistently slower than both reference Keccak and the stable zvbb_x2_soa backend."
+    status: archived
+    verdict: "Archived: rvv_only is slower than ref (7100 vs 4680) and much slower than zvbb_x2_soa (2114) on isolated Keccak benchmarks."
+    path: experiments/EXP-keccak-rvv-only-legacy
     hardware_class: standard_vector_rvv_only
     metrics:
       level_128:
@@ -223,7 +238,7 @@ experiments:
     date: 2026-05-21
     hypothesis: "Archive the single-state Zvbb gather backend if the x2 SoA backend remains faster in isolated Keccak benchmarking."
     status: archived
-    verdict: "Superseded by zvbb_x2_soa: isolated Keccak median instret 2838 vs 2489 (+14.02% instructions)."
+    verdict: "Superseded by zvbb_x2_soa: isolated Keccak median instret 2838 vs 2114 (+34.25% instructions)."
     path: experiments/EXP-keccak-zvbb-gather-legacy
     hardware_class: crypto_vector_zvbc
     metrics:
