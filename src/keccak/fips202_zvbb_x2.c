@@ -570,17 +570,63 @@ static void KeccakF1600_StatePermute_x2(vu64m1_fixed_t *state)
         D[3] = __riscv_vxor_vv_u64m1(C[2], __riscv_vror_vx_u64m1(C[4], 63, vl), vl);
         D[4] = __riscv_vxor_vv_u64m1(C[3], __riscv_vror_vx_u64m1(C[0], 63, vl), vl);
 
-        for (int x = 0; x < 5; x++) {
-            state[x]      = __riscv_vxor_vv_u64m1(state[x], D[x], vl);
-            state[x + 5]  = __riscv_vxor_vv_u64m1(state[x + 5], D[x], vl);
-            state[x + 10] = __riscv_vxor_vv_u64m1(state[x + 10], D[x], vl);
-            state[x + 15] = __riscv_vxor_vv_u64m1(state[x + 15], D[x], vl);
-            state[x + 20] = __riscv_vxor_vv_u64m1(state[x + 20], D[x], vl);
-        }
+        /* ── Theta: apply D[x] across all 5 rows — fully unrolled ──────────── */
+        /* Eliminates loop-driven D[] array index reload (5 scalar ld/round).   */
+        state[ 0] = __riscv_vxor_vv_u64m1(state[ 0], D[0], vl);
+        state[ 5] = __riscv_vxor_vv_u64m1(state[ 5], D[0], vl);
+        state[10] = __riscv_vxor_vv_u64m1(state[10], D[0], vl);
+        state[15] = __riscv_vxor_vv_u64m1(state[15], D[0], vl);
+        state[20] = __riscv_vxor_vv_u64m1(state[20], D[0], vl);
+        state[ 1] = __riscv_vxor_vv_u64m1(state[ 1], D[1], vl);
+        state[ 6] = __riscv_vxor_vv_u64m1(state[ 6], D[1], vl);
+        state[11] = __riscv_vxor_vv_u64m1(state[11], D[1], vl);
+        state[16] = __riscv_vxor_vv_u64m1(state[16], D[1], vl);
+        state[21] = __riscv_vxor_vv_u64m1(state[21], D[1], vl);
+        state[ 2] = __riscv_vxor_vv_u64m1(state[ 2], D[2], vl);
+        state[ 7] = __riscv_vxor_vv_u64m1(state[ 7], D[2], vl);
+        state[12] = __riscv_vxor_vv_u64m1(state[12], D[2], vl);
+        state[17] = __riscv_vxor_vv_u64m1(state[17], D[2], vl);
+        state[22] = __riscv_vxor_vv_u64m1(state[22], D[2], vl);
+        state[ 3] = __riscv_vxor_vv_u64m1(state[ 3], D[3], vl);
+        state[ 8] = __riscv_vxor_vv_u64m1(state[ 8], D[3], vl);
+        state[13] = __riscv_vxor_vv_u64m1(state[13], D[3], vl);
+        state[18] = __riscv_vxor_vv_u64m1(state[18], D[3], vl);
+        state[23] = __riscv_vxor_vv_u64m1(state[23], D[3], vl);
+        state[ 4] = __riscv_vxor_vv_u64m1(state[ 4], D[4], vl);
+        state[ 9] = __riscv_vxor_vv_u64m1(state[ 9], D[4], vl);
+        state[14] = __riscv_vxor_vv_u64m1(state[14], D[4], vl);
+        state[19] = __riscv_vxor_vv_u64m1(state[19], D[4], vl);
+        state[24] = __riscv_vxor_vv_u64m1(state[24], D[4], vl);
 
-        for (int i = 0; i < 25; i++) {
-            B[i] = __riscv_vror_vx_u64m1(state[pi_src[i]], ror_amounts[i], vl);
-        }
+        /* ── Rho + Pi: statically-resolved — compile-time immediates ─────── */
+        /* pi_src[] and ror_amounts[] are fully inlined below; the compiler    */
+        /* can emit vror.vi (≤31) or vror.vx+li (32-63) with ZERO ld from     */
+        /* memory, eliminating 25×2×24 = 1,200 scalar ld per permutation.     */
+        B[ 0] = state[ 0];  /* pi_src=0,  ror=0  → identity, no rotation */
+        B[ 1] = __riscv_vror_vx_u64m1(state[ 6], 20, vl);
+        B[ 2] = __riscv_vror_vx_u64m1(state[12], 21, vl);
+        B[ 3] = __riscv_vror_vx_u64m1(state[18], 43, vl);
+        B[ 4] = __riscv_vror_vx_u64m1(state[24], 50, vl);
+        B[ 5] = __riscv_vror_vx_u64m1(state[ 3], 36, vl);
+        B[ 6] = __riscv_vror_vx_u64m1(state[ 9], 44, vl);
+        B[ 7] = __riscv_vror_vx_u64m1(state[10], 61, vl);
+        B[ 8] = __riscv_vror_vx_u64m1(state[16], 19, vl);
+        B[ 9] = __riscv_vror_vx_u64m1(state[22],  3, vl);
+        B[10] = __riscv_vror_vx_u64m1(state[ 1], 63, vl);
+        B[11] = __riscv_vror_vx_u64m1(state[ 7], 58, vl);
+        B[12] = __riscv_vror_vx_u64m1(state[13], 39, vl);
+        B[13] = __riscv_vror_vx_u64m1(state[19], 56, vl);
+        B[14] = __riscv_vror_vx_u64m1(state[20], 46, vl);
+        B[15] = __riscv_vror_vx_u64m1(state[ 4], 37, vl);
+        B[16] = __riscv_vror_vx_u64m1(state[ 5], 28, vl);
+        B[17] = __riscv_vror_vx_u64m1(state[11], 54, vl);
+        B[18] = __riscv_vror_vx_u64m1(state[17], 49, vl);
+        B[19] = __riscv_vror_vx_u64m1(state[23],  8, vl);
+        B[20] = __riscv_vror_vx_u64m1(state[ 2],  2, vl);
+        B[21] = __riscv_vror_vx_u64m1(state[ 8],  9, vl);
+        B[22] = __riscv_vror_vx_u64m1(state[14], 25, vl);
+        B[23] = __riscv_vror_vx_u64m1(state[15], 23, vl);
+        B[24] = __riscv_vror_vx_u64m1(state[21], 62, vl);
 
 #define CHI_ROW(base) \
         state[(base) + 0] = __riscv_vxor_vv_u64m1(B[(base) + 0], __riscv_vandn_vv_u64m1(B[(base) + 2], B[(base) + 1], vl), vl); \
