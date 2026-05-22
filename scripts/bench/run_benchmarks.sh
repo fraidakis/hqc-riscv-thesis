@@ -27,7 +27,7 @@ GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 SPIKE_RUNNER="${REPO_ROOT}/sim/spike/run.sh"
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
+ISA="rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b_zicntr_zihpm"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 
 # Shared/default flags.

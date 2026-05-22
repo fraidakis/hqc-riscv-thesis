@@ -123,7 +123,7 @@ if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
     set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
