@@ -241,9 +241,22 @@ void vect_set_random(shake256_xof_ctx *ctx, uint64_t *v) {
  * @param[in] size Integer that is the size of the vectors
  */
 void vect_add(uint64_t *o, const uint64_t *v1, const uint64_t *v2, uint32_t size) {
+#if defined(__riscv_vector)
+    size_t n = size;
+    size_t i = 0;
+    while (i < n) {
+        size_t vl = __riscv_vsetvl_e64m8(n - i);
+        vuint64m8_t a = __riscv_vle64_v_u64m8(v1 + i, vl);
+        vuint64m8_t b = __riscv_vle64_v_u64m8(v2 + i, vl);
+        vuint64m8_t c = __riscv_vxor_vv_u64m8(a, b, vl);
+        __riscv_vse64_v_u64m8(o + i, c, vl);
+        i += vl;
+    }
+#else
     for (uint32_t i = 0; i < size; ++i) {
         o[i] = v1[i] ^ v2[i];
     }
+#endif
 }
 
 /**
