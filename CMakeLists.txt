@@ -151,6 +151,23 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
         ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_solomon_rvv.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
+elseif(HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
+    # EXP-decode-rs-zvbc: Zvbc lane-packed GF(2^8) vectorisation for
+    # Berlekamp-Massey (Axis B) and Forney (Axis D) inner loops.
+    # Uses RVV RM decoder (unchanged) + experimental RS decoder.
+    set(DECODE_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
+        ${CMAKE_SOURCE_DIR}/experiments/EXP-decode-rs-zvbc/reed_solomon_zvbc.c
+    )
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    # reed_solomon_zvbc.c requires the full Zvbc ISA string.
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/experiments/EXP-decode-rs-zvbc/reed_solomon_zvbc.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon
     set(DECODE_SOURCES

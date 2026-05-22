@@ -111,6 +111,10 @@ if(NOT HQC_KECCAK_IMPL STREQUAL "ref"          AND
     "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa, "
         "got '${HQC_KECCAK_IMPL}'")
 endif()
-if(NOT HQC_DECODE_IMPL STREQUAL "ref" AND NOT HQC_DECODE_IMPL STREQUAL "rvv")
-    message(FATAL_ERROR "HQC_DECODE_IMPL must be 'ref' or 'rvv', got '${HQC_DECODE_IMPL}'")
+if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND
+   NOT HQC_DECODE_IMPL STREQUAL "rvv"         AND
+   NOT HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
+    message(FATAL_ERROR
+        "HQC_DECODE_IMPL must be one of: ref | rvv | rs_zvbc_exp, "
+        "got '${HQC_DECODE_IMPL}'")
 endif()
