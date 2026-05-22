@@ -1,8 +1,8 @@
-/* src/poly_mul/vector/rvv_only/karatsuba_rvv/gf2x_clmul.c
+/* src/mult/karatsuba_rvv/gf2x_clmul.c
  *
  * karatsuba_rvv — Track B standard RVV variant.
  *
- * Forked from src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
+ * Forked from src/mult/karatsuba_zbc/gf2x_clmul.c
  * (scalar baseline with Target 1/3/4 Track A applied).
  *
  * Track B additions layered on top of the full scalar baseline:

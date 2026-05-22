@@ -14,15 +14,17 @@ three implementation strategies on a RISC-V rv64gcv target:
 
 ---
 
-## Polynomial Source Layout
+## Source Layout
 
-- Scalar variants: `src/poly_mul/scalar/`
+- Polynomial multiplication: `src/mult/`
 	- `karatsuba_zbc/`
-	- `fafft_zbc/`
-	- `hybrid_zbc/`
-- Vector variants: `src/poly_mul/vector/`
+	- `karatsuba_rvv/`
 	- `karatsuba_zvbc/`
-	- `fafft_zvbc/`
+- Decoder: `src/decode/`
+	- `reed_muller_rvv.c`
+	- `reed_solomon_rvv.c`
+	- `reed_solomon_zvbc.c`
+- Keccak: `src/keccak/`
 - Archived experiments: `experiments/` (catalogued in `experiments/manifest.yaml`)
 
 Repository layout and file-by-file documentation are maintained in:

@@ -1,4 +1,4 @@
-/* src/decode/rvv/reed_solomon_rvv.c
+/* src/decode/reed_solomon_rvv.c
  *
  * Phase 3b — RVV-accelerated Reed-Solomon decoder for HQC.
  *

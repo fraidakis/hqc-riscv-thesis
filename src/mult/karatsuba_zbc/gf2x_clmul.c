@@ -1,4 +1,4 @@
-/* src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
+/* src/mult/karatsuba_zbc/gf2x_clmul.c
  *
  * Official karatsuba_zbc implementation — V2-A3 ablation applied (2026-05-17).
  *

@@ -146,7 +146,7 @@ case "$VARIANT" in
         POLYMUL_SRCS=("${VENDOR}/src/ref/gf2x.c")
         ;;
     karatsuba_zbc)
-        POLYMUL_SRCS=("src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c")
+        POLYMUL_SRCS=("src/mult/karatsuba_zbc/gf2x_clmul.c")
         RISCV_ONLY=1
         ;;
     fafft_zbc)
@@ -165,7 +165,7 @@ case "$VARIANT" in
         RISCV_ONLY=1
         ;;
     karatsuba_zvbc)
-        POLYMUL_SRCS=("src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul.c")
+        POLYMUL_SRCS=("src/mult/karatsuba_zvbc/gf2x_vclmul.c")
         RISCV_ONLY=1
         ;;
     *)

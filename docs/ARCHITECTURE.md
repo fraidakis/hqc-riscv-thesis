@@ -15,8 +15,8 @@ hqc-riscv is a bare-metal RISC-V evaluation framework for HQC (Hamming Quasi-Cyc
 | fafft_zvbc       | Polynomial multiply | Vector CLMUL butterflies (Zvbc)  | [fafft_vclmul.c](../src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c)   |
 | karatsuba_zvbc   | Polynomial multiply | Vectorized Karatsuba path (Zvbc) | [gf2x_vclmul.c](../src/poly_mul/vector/karatsuba_zvbc/gf2x_vclmul.c) |
 | keccak_rvv       | Keccak/SHAKE        | RVV Keccak-f[1600] path          | [fips202_rvv.c](../src/keccak/rvv/fips202_rvv.c)                     |
-| reed_muller_rvv  | Decoder             | RVV Reed-Muller path             | [reed_muller_rvv.c](../src/decode/rvv/reed_muller_rvv.c)             |
-| reed_solomon_rvv | Decoder             | RVV Reed-Solomon path            | [reed_solomon_rvv.c](../src/decode/rvv/reed_solomon_rvv.c)           |
+| reed_muller_rvv  | Decoder             | RVV Reed-Muller path             | [reed_muller_rvv.c](../src/decode/reed_muller_rvv.c)             |
+| reed_solomon_rvv | Decoder             | RVV Reed-Solomon path            | [reed_solomon_rvv.c](../src/decode/reed_solomon_rvv.c)           |
 
 Implemented polymul set is tracked in [scripts/implemented_variants.txt](../scripts/implemented_variants.txt).
 
@@ -369,12 +369,12 @@ hqc-riscv/
 - **Why:** The KEM's `seed_expand()` function calls SHAKE-256 O(n) times. RVV interleaving processes 4 instances per instruction cycle, reducing the per-call amortized latency. This is the post-polymul bottleneck targeting phase.
 - **Where:** Compiled into KEM targets when `HQC_KECCAK_IMPL=rvv`. Replaces `vendor/hqc-ref/lib/fips202/fips202.c` at link time via CMake target configuration.
 
-#### [src/decode/rvv/reed_muller_rvv.c](../src/decode/rvv/reed_muller_rvv.c)
+#### [src/decode/reed_muller_rvv.c](../src/decode/reed_muller_rvv.c)
 - **Usage:** RVV Reed-Muller decoder implementing the 128-point Fast Hadamard Transform (FHT) using vectorized butterfly stages (`vadd.vv`/`vsub.vv` with LMUL=4, processing 32 butterfly pairs per iteration). Replaces `vendor/hqc-ref/src/ref/reed_muller.c` when `HQC_DECODE_IMPL=rvv`.
 - **Why:** The RM decoder's FHT is a perfectly regular 7-stage butterfly structure with high data parallelism. RVV's wide vector adds/subtracts can exploit this to achieve 3–6× speedup over scalar baseline on typical RVV implementations.
 - **Where:** Compiled into decode targets when `HQC_DECODE_IMPL=rvv`. Called from vendor KEM code via `reed_muller_decode()` symbol substitution.
 
-#### [src/decode/rvv/reed_solomon_rvv.c](../src/decode/rvv/reed_solomon_rvv.c)
+#### [src/decode/reed_solomon_rvv.c](../src/decode/reed_solomon_rvv.c)
 - **Usage:** RVV-accelerated Reed-Solomon decoder targeting syndrome computation and Chien search parallelization. Uses `vluxei8.v` for 32 simultaneous GF(2^8) multiplications (via table lookup), and vectorizes the 256 independent polynomial evaluations in Chien search. Berlekamp-Massey step remains scalar due to sequential data dependencies.
 - **Why:** RS syndrome computation and Chien search are the most expensive parts of RS decoding and have high data parallelism. Zvbc is not needed; RVV table-driven GF(2^8) multiplies via `vluxei8.v` suffice for significant speedup.
 - **Where:** Compiled into decode targets when `HQC_DECODE_IMPL=rvv`. Replaces reference RS decoder via link-time symbol substitution.

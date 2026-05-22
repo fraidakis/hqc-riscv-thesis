@@ -1,4 +1,4 @@
-/* src/poly_mul/karatsuba_zvbc/gf2x_vclmul_c3.c
+/* src/mult/karatsuba_zvbc/gf2x_vclmul.c
  *
  * C-3a sandbox: assign-first-write discipline in vclmul_leaf.
  * Derived from gf2x_vclmul.c — only vclmul_leaf is modified.

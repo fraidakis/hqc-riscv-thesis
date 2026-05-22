@@ -28,17 +28,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _MODE_CONFIG: dict[str, dict] = {
     "zbc": {
-        "out": REPO_ROOT / "src/poly_mul/scalar/karatsuba_zbc/karatsuba_specialized_gen.h",
+        "out": REPO_ROOT / "src/mult/karatsuba_zbc/karatsuba_specialized_gen.h",
         "guard": "HQC_KARATSUBA_SPECIALIZED_GEN_H",
         "leaf_fn": "scalar",
     },
     "rvv": {
-        "out": REPO_ROOT / "src/poly_mul/vector/rvv_only/karatsuba_rvv/karatsuba_rvv_specialized_gen.h",
+        "out": REPO_ROOT / "src/mult/karatsuba_rvv/karatsuba_rvv_specialized_gen.h",
         "guard": "HQC_KARATSUBA_RVV_SPECIALIZED_GEN_H",
         "leaf_fn": "scalar",
     },
     "zvbc": {
-        "out": REPO_ROOT / "src/poly_mul/vector/zvbc/karatsuba_zvbc/karatsuba_zvbc_specialized_gen.h",
+        "out": REPO_ROOT / "src/mult/karatsuba_zvbc/karatsuba_zvbc_specialized_gen.h",
         "guard": "HQC_KARATSUBA_ZVBC_SPECIALIZED_GEN_H",
         "leaf_fn": "zvbc",
     },

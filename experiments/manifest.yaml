@@ -18,8 +18,8 @@ experiments:
       L192 total: 2,035,646 → 1,976,866 (-58,780, -2.89%);
       L256 total: 3,136,979 → 3,043,319 (-93,660, -2.99%).
       Decaps improvement largest as expected (most keccak_xor_bytes calls).
-    path: experiments/EXP-keccak-xor-bytes-rvv
-    cmake_keccak_impl: zvbb_x2_soa_rvv_xor
+    path: experiments/promoted/EXP-keccak-xor-bytes-rvv
+    cmake_keccak_impl: zvbb_x2_soa  # merged into stable option
     hardware_class: crypto_vector_zvbb
     baseline_keccak_xor_instret: 24528
     tracks: [AP-4]
@@ -62,12 +62,12 @@ experiments:
       for ~8.85% of total KEM-128 instructions.
     status: promoted_to_stable
     promoted_date: 2026-05-22
-    promoted_to: src/decode/rvv/reed_solomon_zvbc.c
+    promoted_to: src/decode/reed_solomon_zvbc.c
     verdict: >
       Promoted after 300/300 KAT pass. decaps improvements: HQC-128 -36,106
       (-6.9%), HQC-192 -39,982 (-3.5%), HQC-256 -134,998 (-7.3%). Keypair and
       encaps unchanged, confirming clean decode isolation.
-    path: experiments/EXP-decode-rs-zvbc
+    path: experiments/promoted/EXP-decode-rs-zvbc
     hardware_class: crypto_vector_zvbc
     tracks: [AP-3]
     baseline_decode_impl: rvv
@@ -113,17 +113,17 @@ experiments:
     baseline_polymul_instructions_l128: 274131
     tracks: [AP-1]
 
-  # ── Scalar (fafft_zbc) losers ──────────────────────────────────────────────
+  # ── Scalar FAFFT losers ─────────────────────────────────────────────────────
 
 
-  # ── ZVBC (fafft_zvbc) losers ───────────────────────────────────────────────
+  # ── ZVBC FAFFT losers ───────────────────────────────────────────────────────
 
   - id: EXP-fafft-zvbc-towerfield
     date: 2026-05-13
-    hypothesis: "Original fafft_zvbc using tower-field FAFFT ref/ sources with Zvbc compile flags."
+    hypothesis: "Original Zvbc tower-field FAFFT path using ref/ sources with Zvbc compile flags."
     status: deprecated
     verdict: "ZVBC LOSER — tower-field FAFFT (Jang et al. additive-FFT, GF(2^32) bit-sliced tower-field) is semantically incompatible with vclmul.vv; 8.97x slower than the vclmul.vv schoolbook winner."
-    path: experiments/EXP-fafft-zvbc-towerfield
+    path: experiments/dropped/EXP-fafft-zvbc-towerfield
     hardware_class: crypto_vector_zvbc
     metrics:
       level_128:
@@ -141,14 +141,14 @@ experiments:
     date: 2026-05-05
     hypothesis: "Promote scalar hybrid v3 thresholded recursion as stable hybrid backend."
     status: promoted_to_stable
-    path: src/poly_mul/scalar/hybrid_zbc/hybrid_v3.c
+    path: experiments/dropped/archive_hybrid_zbc/hybrid_v3.c
 
   - id: EXP-fafft-rvv-blueprint
     date: 2026-05-13
     hypothesis: "Preserve RVV-only FAFFT helper blueprint as archived reference outside stable src/."
     status: deprecated
-    verdict: "Archived for reference; removed from stable fafft_zbc build path for ZVBC-focused scope cleanup."
-    path: experiments/EXP-fafft-rvv-blueprint
+    verdict: "Archived for reference; removed from stable FAFFT build path for ZVBC-focused scope cleanup."
+    path: experiments/dropped/EXP-fafft-rvv-blueprint
     hardware_class: standard_vector_rvv_only
 
   - id: EXP-zvbc-schoolbook
@@ -156,7 +156,7 @@ experiments:
     hypothesis: "Retain the historical ZVBC schoolbook baseline in experiments after retiring it from default builds."
     status: deprecated
     verdict: "Defeated by Karatsuba ZVBC (156k)."
-    path: experiments/EXP-zvbc-schoolbook
+    path: experiments/dropped/EXP-zvbc-schoolbook
     hardware_class: crypto_vector_zvbc
     metrics:
       level_128:
@@ -168,7 +168,7 @@ experiments:
     status: promoted_to_stable
     promoted_date: 2026-05-17
     verdict: "Ultimate scalar champion baseline after AP-2 fixed-tree promotion."
-    path: src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
+    path: src/mult/karatsuba_zbc/gf2x_clmul.c
     hardware_class: scalar_zbc
     metrics:
       level_128:
@@ -187,7 +187,7 @@ experiments:
     status: promoted_to_stable
     promoted_date: 2026-05-17
     verdict: "Ultimate ZVBC champion baseline after AP-2 fixed-tree promotion and RVV Reed-Muller reactivation."
-    path: src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c
+    path: src/mult/karatsuba_zvbc/gf2x_vclmul.c
     hardware_class: crypto_vector_zvbc
     metrics:
       level_128:
@@ -205,7 +205,7 @@ experiments:
     hypothesis: "Preserve the final pre-AP2 dynamic-recursion karatsuba_zvbc implementation before the fixed-tree generator replaced it."
     status: archived
     verdict: "Archived historical source from commit bd040b9a6bd8bd5c0e7d64bfd0a9867f8fa4cea9 for thesis provenance and regression comparisons."
-    path: experiments/archive_karatsuba_zvbc_pre_ap2
+    path: experiments/dropped/archive_karatsuba_zvbc_pre_ap2
     hardware_class: crypto_vector_zvbc
 
   # ── Target 2 \u2014 vect_write_support_to_vector (Track A) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -216,7 +216,7 @@ experiments:
     status: promoted_to_stable
     promoted_date: 2026-05-14
     verdict: "WINNER — function dropped from 20.99% to not in top 20 hotspots. KEM-128 encaps: 1,165,906 → 988,672 (−15.2%). Promoted to src/vector.c and src/vector.c wired into all variants via VECTOR_SOURCES. Pre-target2 archive at experiments/archive_karatsuba_zbc_pre_target2/."
-    path: experiments/EXP-target2-bitmanip-scatter
+    path: experiments/promoted/EXP-target2-bitmanip-scatter
     promoted_to: src/vector.c
     hardware_class: scalar_zbc
     target_variant: karatsuba_zbc_exp
@@ -257,10 +257,10 @@ experiments:
       −3.21% vs baseline 283,686). T=8: 312,396 (worse — extra recursion
       overhead dominates). T=4: 409,104 (worse). Fixed-size n=8 leaf at the
       natural T=16 base case captures all the branch-elimination gain without
-      adding recursion depth. Promoted to src/poly_mul/scalar/karatsuba_zbc/.
+      adding recursion depth. Promoted to src/mult/karatsuba_zbc/.
       Pre-promotion archive at experiments/archive_karatsuba_zbc_pre_leaffixed/.
-    path: experiments/EXP-karatsuba-zbc-leaf-fixed
-    promoted_to: src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c
+    path: experiments/promoted/EXP-karatsuba-zbc-leaf-fixed
+    promoted_to: src/mult/karatsuba_zbc/gf2x_clmul.c
     hardware_class: scalar_zbc
     cmake_variant: karatsuba_zbc_exp
     cmake_flag: -DHQC_KARATSUBA_THRESHOLD=16
@@ -283,7 +283,7 @@ experiments:
     hypothesis: "Archive the RVV x2 SoA Keccak backend after stable cleanup if it does not outperform rvv_only in isolated Keccak measurements."
     status: archived
     verdict: "Not promoted: isolated Keccak median instret is identical to rvv_only (7100 at L128/L192/L256) while adding maintenance overhead. Track B now maps to reference Keccak."
-    path: experiments/EXP-keccak-rvv-x2-legacy
+    path: experiments/dropped/EXP-keccak-rvv-x2-legacy
     hardware_class: standard_vector_rvv_only
     metrics:
       level_128:
@@ -298,7 +298,7 @@ experiments:
     hypothesis: "Archive rvv_only Keccak if it is consistently slower than both reference Keccak and the stable zvbb_x2_soa backend."
     status: archived
     verdict: "Archived: rvv_only is slower than ref (7100 vs 4680) and much slower than zvbb_x2_soa (2114) on isolated Keccak benchmarks."
-    path: experiments/EXP-keccak-rvv-only-legacy
+    path: experiments/dropped/EXP-keccak-rvv-only-legacy
     hardware_class: standard_vector_rvv_only
     metrics:
       level_128:
@@ -313,7 +313,7 @@ experiments:
     hypothesis: "Archive the single-state Zvbb gather backend if the x2 SoA backend remains faster in isolated Keccak benchmarking."
     status: archived
     verdict: "Superseded by zvbb_x2_soa: isolated Keccak median instret 2838 vs 2114 (+34.25% instructions)."
-    path: experiments/EXP-keccak-zvbb-gather-legacy
+    path: experiments/dropped/EXP-keccak-zvbb-gather-legacy
     hardware_class: crypto_vector_zvbc
     metrics:
       level_128:

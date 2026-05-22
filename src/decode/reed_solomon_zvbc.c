@@ -1,4 +1,4 @@
-/* src/decode/rvv/reed_solomon_zvbc.c
+/* src/decode/reed_solomon_zvbc.c
  *
  * Phase 3b+ — Zvbc lane-packed GF(2^8) vectorisation for Reed-Solomon
  * Berlekamp-Massey (Axis B) and Forney (Axis D) phases.

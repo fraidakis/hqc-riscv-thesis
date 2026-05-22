@@ -66,7 +66,7 @@ else()
 endif()
 
 # ── Benchmark iteration count ────────────────────────────────────────────────
-# Controls N_ITER in bench_kem.c / bench_poly_mul.c.
+# Controls N_ITER in benchmark harness targets.
 # Spike runs in this repository are deterministic, so N=1 is sufficient for
 # canonical instruction-count collection and keeps turnaround low.
 set(BENCH_N_ITER 1 CACHE STRING "Iterations per benchmark operation (N_ITER)")
@@ -107,10 +107,9 @@ set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
 # All polymul variants automatically pick up the chosen Keccak impl.
-# Stable options: ref (Track A/B) | zvbb_x2_soa (Track C2, promoted 2026-05-22)
-# Experiment (historical): zvbb_x2_soa_rvv_xor (EXP-keccak-xor-bytes-rvv —
-#   isolated experiment; promoted into zvbb_x2_soa on 2026-05-22)
-# Legacy variants are archived under experiments/ and not selectable by default.
+# Stable options: ref (Track A/B) | zvbb_x2_soa (Track C2, promoted 2026-05-22;
+#   includes keccak_xor_bytes RVV byte-streaming from EXP-keccak-xor-bytes-rvv)
+# Legacy variants are archived under experiments/dropped/ and not selectable by default.
 #
 # KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
 #                        (appended to every KAT / bench target)
@@ -128,18 +127,6 @@ if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     )
     set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
-elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa_rvv_xor")
-    # EXP-keccak-xor-bytes-rvv: same as zvbb_x2_soa but keccak_xor_bytes is
-    # vectorized via RVV 1.0 vle8/vxor/vse8 byte streaming (LMUL=8).
-    # Source is isolated in experiments/ — does NOT appear in default builds.
-    set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/experiments/EXP-keccak-xor-bytes-rvv/src/fips202_zvbb_x2.c)
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/experiments/EXP-keccak-xor-bytes-rvv/src/fips202_zvbb_x2.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbkb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
-    )
-    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
-
 else()
     # Default (ref): vendor scalar fips202
     set(KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -153,17 +140,17 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
     # Phase 3b+: Zvbc lane-packed GF(2^8) vectorisation for BM + Forney
     #            (reed_solomon_zvbc.c — promoted from EXP-decode-rs-zvbc).
     set(DECODE_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
-        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_solomon_zvbc.c
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
     )
     set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_muller_rvv.c
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
     # reed_solomon_zvbc.c uses Zvbc vclmul.vv — requires the full ISA string
     # that includes Zvbc in addition to the base V extension.
     set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/decode/rvv/reed_solomon_zvbc.c
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
@@ -288,7 +275,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(VARIANT_REF_PROFILE ON)
         elseif(POLYMUL STREQUAL "karatsuba_zbc")
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/scalar/karatsuba_zbc/gf2x_clmul.c)
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
@@ -302,14 +289,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>)
         elseif(POLYMUL STREQUAL "karatsuba_rvv")
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/rvv_only/karatsuba_rvv/gf2x_clmul.c)
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gcv_zbc_zbb_zbkb
                 -mabi=lp64d
                 -O3)
         elseif(POLYMUL STREQUAL "karatsuba_zvbc")
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/poly_mul/vector/zvbc/karatsuba_zvbc/gf2x_vclmul.c)
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zvbc/gf2x_vclmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gcv_zbc_zbb_zbkb_zvbc_zvbb
                 -mabi=lp64d
