@@ -18,9 +18,9 @@
 # Legacy keccak variants are archived under experiments/dropped/ and are not
 # selectable in the default stable build.
 set(HQC_KECCAK_IMPL "ref" CACHE STRING
-    "Keccak/SHAKE backend: ref | zvbb_x2_soa | scalar_opt_exp")
+    "Keccak/SHAKE backend: ref | zvbb_x2_soa")
 set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
-    "ref" "zvbb_x2_soa" "scalar_opt_exp")
+    "ref" "zvbb_x2_soa")
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
@@ -47,8 +47,6 @@ elseif(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "rvv")
     message(STATUS "  → Track B build: RVV polymul/decoder with scalar reference Keccak")
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     message(STATUS "  → Track C2 build: Zvbb 2-way SoA vector backend (fips202_zvbb_x2.c)")
-elseif(HQC_KECCAK_IMPL STREQUAL "scalar_opt_exp")
-    message(STATUS "  → EXP-keccak-scalar-zbb: explicit __builtin_rotateleft64 + __builtin_memcpy scalar Keccak")
 endif()
 
 # ── Multi-VLEN build matrix (P-02) ───────────────────────────────────────────
@@ -116,11 +114,10 @@ message(STATUS "  reference LTO : ${HQC_REF_LTO}")
 message(STATUS "  reference PGO : ${HQC_REF_PGO}")
 
 # ── Validation ────────────────────────────────────────────────────────────────
-if(NOT HQC_KECCAK_IMPL STREQUAL "ref"             AND
-   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa"     AND
-   NOT HQC_KECCAK_IMPL STREQUAL "scalar_opt_exp")
+if(NOT HQC_KECCAK_IMPL STREQUAL "ref"         AND
+   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     message(FATAL_ERROR
-    "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa | scalar_opt_exp, "
+        "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa, "
         "got '${HQC_KECCAK_IMPL}'")
 endif()
 if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND

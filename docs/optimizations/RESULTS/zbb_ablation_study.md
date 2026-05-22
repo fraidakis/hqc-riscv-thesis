@@ -4,6 +4,8 @@
 **Date:** 2026-05-22  
 **Simulator:** Spike  
 **ISA (execution):** `rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm`  
+**Status:** data extracted — experiment directory `experiments/EXP-keccak-scalar-zbb/` intentionally
+removed 2026-05-22. Insights and build artifacts preserved below.
 
 ---
 
@@ -110,6 +112,49 @@ saving is within measurement noise and likely reflects minor load/store folding 
 
 ---
 
+#### Zbb vs. Zbkb Extension Overlap
+
+**Hypothesis:** `rori` is defined in both `_zbb` (Basic Bit-Manipulation) and `_zbkb`
+(Cryptography Bit-Manipulation) with identical encoding and semantics. Building
+scalar Keccak with `-march=rv64gc_zbc_zbb` (Zbb only) should produce the same code
+as `-march=rv64gc_zbc_zbkb` (Zbkb only).
+
+**Method:** Two separate CMake builds of `bench_hqc{128,192,256}_ref_scalar.elf`
+with `HQC_SCALAR_MARCH` set to `rv64gc_zbc_zbb` and `rv64gc_zbc_zbkb` respectively.
+Both ELFs executed on Spike with full ISA `rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm`.
+
+**`rori` emission (llvm-objdump count per ELF):**
+
+| Level | `_zbb`-compiled | `_zbkb`-compiled | Match |
+| :---- | :-------------- | :--------------- | :---- |
+| HQC-128 | 58 | 58 | ✓ |
+| HQC-192 | 58 | 58 | ✓ |
+| HQC-256 | 58 | 58 | ✓ |
+
+**Spike `instret` results (single-iteration bench):**
+
+| Level | Variant | keypair | encaps | decaps | total |
+| :---- | :------ | ------: | -----: | -----: | ----: |
+| HQC-128 | `zbb_only` | 19,454,626 | 38,875,925 | 59,013,743 | 117,344,294 |
+| HQC-128 | `zbkb_only` | 19,454,304 | 38,875,243 | 59,030,131 | 117,359,678 |
+| HQC-192 | `zbb_only` | 58,895,392 | 117,744,966 | 177,662,495 | 354,302,853 |
+| HQC-192 | `zbkb_only` | 58,894,379 | 117,742,867 | 177,680,446 | 354,317,692 |
+| HQC-256 | `zbb_only` | 143,382,635 | 286,701,285 | 431,890,526 | 861,974,446 |
+| HQC-256 | `zbkb_only` | 143,381,673 | 286,699,232 | 431,921,602 | 862,002,507 |
+
+**Δ (zbb − zbkb total instret):** −15,384 / −14,839 / −28,061 at L128/L192/L256 — all
+< 0.02% and consistent with simulation startup/alignment noise. There is **no
+meaningful performance difference** between the two extensions for scalar Keccak.
+
+**Architectural recommendation:** Retain both `_zbb` and `_zbkb` in `HQC_SCALAR_MARCH`
+(current default `rv64gc_zbc_zbb_zbkb`). `_zbkb` carries crypto-semantic intent for
+the `rori`-based Keccak rotations; `_zbb` is additionally useful for general integer
+bit-manipulation (`clz`, `ctz`, `cpop`, `min`, `max`) that may appear elsewhere in the
+scalar reference code. The overlap on `rori` is harmless; neither extension is
+redundant.
+
+---
+
 #### Build Artifacts
 
 | Artifact | Path |
@@ -117,5 +162,7 @@ saving is within measurement noise and likely reflects minor load/store folding 
 | Baseline bench ELFs | `build/spike/bench_kref_dref/bench_hqc{128,192,256}_ref_scalar.elf` |
 | No-Zbb ablation bench ELFs | `build/spike_ablation_nozbb/bench_hqc{128,192,256}_ref_scalar.elf` |
 | scalar_opt_exp bench ELFs | `build/spike_scalar_opt_exp/bench_hqc{128,192,256}_ref_scalar.elf` |
-| Experiment source | `experiments/EXP-keccak-scalar-zbb/fips202_scalar_opt.c` |
+| ISA overlap bench ELFs (Zbb) | `build/isa_overlap_zbb/bench_hqc{128,192,256}_ref_scalar.elf` |
+| ISA overlap bench ELFs (Zbkb) | `build/isa_overlap_zbkb/bench_hqc{128,192,256}_ref_scalar.elf` |
+| Experiment source | `experiments/EXP-keccak-scalar-zbb/` (removed 2026-05-22) |
 | Experiment manifest entry | `experiments/manifest.yaml` — id: `EXP-keccak-scalar-zbb` |

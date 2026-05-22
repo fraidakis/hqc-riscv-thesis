@@ -127,8 +127,17 @@ experiments:
       Hypothesis: explicit builtins match or surpass the auto-lowering that Clang
       already performs for constant rotations, and additionally save instructions
       in the load64/store64 paths.
-    status: in-progress
-    path: experiments/EXP-keccak-scalar-zbb
+    status: data_extracted
+    code_removed: true
+    code_removed_date: 2026-05-22
+    verdict: >
+      Data-extraction complete. Explicit __builtin_rotateleft64 + __builtin_memcpy
+      produce identical code to Clang auto-lowering (~58 rori per ELF, -546 instret
+      vs baseline — within noise). KAT 300/300 passed. Zbb impact on scalar Keccak
+      is ≤0.30% of total KEM instret across all levels. Code directory intentionally
+      removed after data extraction; insights documented in
+      docs/optimizations/RESULTS/zbb_ablation_study.md.
+    path: experiments/EXP-keccak-scalar-zbb  # removed — see code_removed
     cmake_keccak_impl: scalar_opt_exp
     hardware_class: scalar_zbb
     tracks: [AP-5]
