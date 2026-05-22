@@ -1,6 +1,6 @@
-# date: 2026-05-20 23:04
-# commit: a96a6ff
-# variant: ref_scalar
+# date: 2026-05-22 11:04
+# commit: c02eb49
+# Multiplication variant: ref_scalar
 level,op,instructions,codesize
 128,keypair,19454626,32158
 128,encaps,38875925,32158

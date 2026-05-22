@@ -1,7 +1,7 @@
-# date: 2026-05-20 19:59
-# commit: 2e88ab1
-# variant: karatsuba_zbc (Decode: rvv)
+# date: 2026-05-22 11:03
+# commit: c02eb49
+# Decode variant: rvv
 level,op,instructions,codesize
-128,decode,134879,14534
-192,decode,175270,15460
-256,decode,360313,23058
+128,decode,124057,15118
+192,decode,159912,16088
+256,decode,339235,23364

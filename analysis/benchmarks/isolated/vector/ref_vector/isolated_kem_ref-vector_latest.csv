@@ -1,6 +1,6 @@
-# date: 2026-05-20 23:17
-# commit: a96a6ff
-# variant: ref_vector
+# date: 2026-05-22 11:04
+# commit: c02eb49
+# Multiplication variant: ref_vector
 level,op,instructions,codesize
 128,keypair,18655515,35374
 128,encaps,37330685,35374
