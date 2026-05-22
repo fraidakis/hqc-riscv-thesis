@@ -127,6 +127,14 @@ if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     )
     set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
+elseif(HQC_KECCAK_IMPL STREQUAL "scalar_opt_exp")
+    # EXP-keccak-scalar-zbb: explicit __builtin_rotateleft64 + __builtin_memcpy
+    # variant of the reference scalar Keccak, isolated in experiments/.
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/experiments/EXP-keccak-scalar-zbb/fips202_scalar_opt.c)
+    set(KECCAK_INCLUDE_DIRS
+        ${CMAKE_SOURCE_DIR}/experiments/EXP-keccak-scalar-zbb)
+
 else()
     # Default (ref): vendor scalar fips202
     set(KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -246,12 +254,17 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "ref_scalar")
             # Reference scalar baseline: vendor unoptimized polymul/keccak/decode.
             set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
-            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            # scalar_opt_exp: substitute explicit-builtin Keccak; otherwise vendor
+            if(HQC_KECCAK_IMPL STREQUAL "scalar_opt_exp")
+                set(VARIANT_KECCAK_SOURCES ${KECCAK_SOURCES})
+            else()
+                set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            endif()
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
                 ${HQC_REF}/src/ref/reed_solomon.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gc_zbc_zbb_zbkb
+                -march=${HQC_SCALAR_MARCH}
                 -mabi=lp64d
                 $<$<C_COMPILER_ID:Clang>:-mno-zvector>
                 -fno-tree-vectorize
@@ -276,12 +289,17 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "karatsuba_zbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul.c)
-            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            # scalar_opt_exp: substitute explicit-builtin Keccak; otherwise vendor
+            if(HQC_KECCAK_IMPL STREQUAL "scalar_opt_exp")
+                set(VARIANT_KECCAK_SOURCES ${KECCAK_SOURCES})
+            else()
+                set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            endif()
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
                 ${HQC_REF}/src/ref/reed_solomon.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gc_zbc_zbb_zbkb
+                -march=${HQC_SCALAR_MARCH}
                 -mabi=lp64d
                 $<$<C_COMPILER_ID:Clang>:-mno-zvector>
                 -fno-tree-vectorize

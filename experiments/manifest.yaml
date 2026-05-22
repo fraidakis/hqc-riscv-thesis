@@ -115,6 +115,46 @@ experiments:
 
   # ── Scalar FAFFT losers ─────────────────────────────────────────────────────
 
+  - id: EXP-keccak-scalar-zbb
+    date: 2026-05-22
+    hypothesis: >
+      Replace the shift-or ROL macro in the reference scalar Keccak
+      (vendor/hqc-ref/lib/fips202/fips202.c) with __builtin_rotateleft64 and
+      replace the load64/store64 byte-loops with __builtin_memcpy.
+      __builtin_rotateleft64 guarantees rori emission under -march including zbb/zbkb
+      regardless of compiler heuristics.  __builtin_memcpy lets the compiler
+      emit a single 8-byte aligned ld/sd on the little-endian RISC-V target.
+      Hypothesis: explicit builtins match or surpass the auto-lowering that Clang
+      already performs for constant rotations, and additionally save instructions
+      in the load64/store64 paths.
+    status: in-progress
+    path: experiments/EXP-keccak-scalar-zbb
+    cmake_keccak_impl: scalar_opt_exp
+    hardware_class: scalar_zbb
+    tracks: [AP-5]
+    target_levels: [HQC-128, HQC-192, HQC-256]
+    ablation_baseline:
+      description: >
+        ref fips202.c compiled with rv64gc_zbc_zbb_zbkb (WITH Zbb) vs rv64gc_zbc (NO Zbb).
+        Measures cost of relying on Clang auto-lowering for rori vs falling back to slli+srli.
+        Spike ISA rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm used for all runs.
+      ref_scalar_with_zbb:
+        hqc128:  { keypair: 19454626,  encaps: 38875925,  decaps: 59013715,  total: 117344266 }
+        hqc192:  { keypair: 58895392,  encaps: 117744966, decaps: 177662247, total: 354302605 }
+        hqc256:  { keypair: 143382635, encaps: 286701285, decaps: 431890526, total: 861974446 }
+      ref_scalar_no_zbb:
+        hqc128:  { keypair: 19506994,  encaps: 38975833,  decaps: 59214979,  total: 117697806 }
+        hqc192:  { keypair: 58990179,  encaps: 117936862, decaps: 178040987, total: 354968028 }
+        hqc256:  { keypair: 143534953, encaps: 286996212, decaps: 432488190, total: 863019355 }
+      overhead_no_zbb_vs_with_zbb:
+        hqc128_delta:  +353540   # +0.30%
+        hqc192_delta:  +665423   # +0.19%
+        hqc256_delta:  +1044909  # +0.12%
+      measured: 2026-05-22
+      tool: spike
+      isa_with_zbb: rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm
+      isa_no_zbb:   rv64gc_zbc  # via HQC_SCALAR_MARCH=rv64gc_zbc ablation build
+
 
   # ── ZVBC FAFFT losers ───────────────────────────────────────────────────────
 

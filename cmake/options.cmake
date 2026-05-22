@@ -18,9 +18,9 @@
 # Legacy keccak variants are archived under experiments/dropped/ and are not
 # selectable in the default stable build.
 set(HQC_KECCAK_IMPL "ref" CACHE STRING
-    "Keccak/SHAKE backend: ref | zvbb_x2_soa")
+    "Keccak/SHAKE backend: ref | zvbb_x2_soa | scalar_opt_exp")
 set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
-    "ref" "zvbb_x2_soa")
+    "ref" "zvbb_x2_soa" "scalar_opt_exp")
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
@@ -28,6 +28,13 @@ set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
 set(HQC_DECODE_IMPL "ref" CACHE STRING
     "RM/RS decoder backend: ref (vendor scalar) | rvv (RVV vectorised, Phase 3)")
 set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv")
+
+# ── Scalar ISA override (ablation experiments) ───────────────────────────────
+# Overrides the -march for scalar-only variants (ref_scalar, karatsuba_zbc).
+# Default is the fully optimized baseline including bit-manipulation extensions.
+# Set to e.g. "rv64gc_zbc" to strip zbb/zbkb and measure auto-lowering impact.
+set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb_zbkb" CACHE STRING
+    "ISA march for scalar variants (ablation: set to rv64gc_zbc to strip zbb/zbkb)")
 
 # ── Diagnostic messages ───────────────────────────────────────────────────────
 message(STATUS "HQC configuration:")
@@ -40,6 +47,8 @@ elseif(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "rvv")
     message(STATUS "  → Track B build: RVV polymul/decoder with scalar reference Keccak")
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     message(STATUS "  → Track C2 build: Zvbb 2-way SoA vector backend (fips202_zvbb_x2.c)")
+elseif(HQC_KECCAK_IMPL STREQUAL "scalar_opt_exp")
+    message(STATUS "  → EXP-keccak-scalar-zbb: explicit __builtin_rotateleft64 + __builtin_memcpy scalar Keccak")
 endif()
 
 # ── Multi-VLEN build matrix (P-02) ───────────────────────────────────────────
@@ -107,10 +116,11 @@ message(STATUS "  reference LTO : ${HQC_REF_LTO}")
 message(STATUS "  reference PGO : ${HQC_REF_PGO}")
 
 # ── Validation ────────────────────────────────────────────────────────────────
-if(NOT HQC_KECCAK_IMPL STREQUAL "ref"         AND
-   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
+if(NOT HQC_KECCAK_IMPL STREQUAL "ref"             AND
+   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa"     AND
+   NOT HQC_KECCAK_IMPL STREQUAL "scalar_opt_exp")
     message(FATAL_ERROR
-    "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa, "
+    "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa | scalar_opt_exp, "
         "got '${HQC_KECCAK_IMPL}'")
 endif()
 if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND
