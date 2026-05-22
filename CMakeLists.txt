@@ -116,7 +116,8 @@ set(KECCAK_INCLUDE_DIRS "")
 set(KECCAK_COMPILE_DEFINES "")
 
 if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
-    # Track C2: top-performing Zvbb backend with paired-stream x2 wrappers.
+    # Track C2: top-performing consolidated Zvbb backend (single TU).
+    # Contains both single-stream fips202 API and paired-stream x2 wrappers.
     set(KECCAK_SOURCES
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
     set_source_files_properties(
