@@ -257,7 +257,7 @@ Every multiplier variant belongs to exactly one **track**. Tracks define which K
 | Track | Multiplier Suffix(es) | Keccak Impl | Decode Impl | Notes |
 |-------|----------------------|-------------|-------------|-------|
 | **A — Scalar/Zbc** | `_ref`, `_zbc`, `hybrid` | `ref` | `ref` | Pure scalar; Zbc clmul; no RVV |
-| **B — Base RVV** | `_rvv` | `rvv_only` | `rvv` | Standard RVV 1.0 vector extension |
+| **B — Base RVV** | `_rvv` | `ref` | `rvv` | RVV polymul/decoder with scalar Keccak |
 | **C — Vector Crypto** | `_zvbc` | `zvbb_x2_soa` | `rvv` | Zvbc vclmul.vv + Zvbb x2 SoA |
 
 ### Auto-Mapping Rules (implemented in `bench_parse_track_args`)
@@ -265,7 +265,7 @@ Every multiplier variant belongs to exactly one **track**. Tracks define which K
 ```bash
 case "$MUL_VARIANT" in
     *_zvbc)             KECCAK_IMPL="zvbb_x2_soa" ;;  # Track C
-    *_rvv)              KECCAK_IMPL="rvv_only"    ;;  # Track B
+  *_rvv)              KECCAK_IMPL="ref"         ;;  # Track B
     *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;  # Track A
     *)                  KECCAK_IMPL="ref"          ;;  # Safe default
 esac
@@ -284,6 +284,6 @@ esac
 
 3. **CLI usage:** All benchmark, profile, KAT, and analysis scripts accept `--mul <variant>`. Never pass `--variant`. The `--keccak` and `--decode` flags override auto-mapping and should only be used for explicit experiments.
 
-4. **No cross-track mixing:** Do not combine a Track A multiplier with `rvv_only` Keccak, or a Track B multiplier with `zvbb_x2_soa` Keccak, unless running an intentional cross-track experiment documented in `experiments/manifest.yaml`.
+4. **No cross-track mixing:** Do not combine a Track A multiplier with `zvbb_x2_soa` Keccak, or a Track B multiplier with `zvbb_x2_soa` Keccak, unless running an intentional cross-track experiment documented in `experiments/manifest.yaml`.
 
 5. **Reconfiguration detection:** `bench_auto_configure_and_build` reads `CMakeCache.txt` to detect Keccak/Decode impl changes and forces full CMake reconfiguration when a mismatch is found. Do not bypass this by manually editing cached build dirs.

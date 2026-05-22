@@ -1,6 +1,6 @@
-# date: 2026-05-20 00:14
-# commit: 0adaa34
-# variant: karatsuba_zbc
+# date: 2026-05-21 15:50
+# commit: ea4572e
+# Keccak variant: ref
 level,op,instructions,codesize
 128,keccak,4680,11002
 192,keccak,4680,11002

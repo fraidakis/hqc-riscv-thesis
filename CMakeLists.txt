@@ -107,7 +107,7 @@ set(SECURITY_LEVELS 128 192 256)
 
 # ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
 # All polymul variants automatically pick up the chosen Keccak impl.
-# Stable options: ref | rvv_only (Track B) | zvbb_x2_soa (Track C2)
+# Stable options: ref (Track A/B) | zvbb_x2_soa (Track C2)
 # Legacy variants are archived under experiments/ and not selectable by default.
 #
 # KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
@@ -115,15 +115,7 @@ set(SECURITY_LEVELS 128 192 256)
 set(KECCAK_INCLUDE_DIRS "")
 set(KECCAK_COMPILE_DEFINES "")
 
-if(HQC_KECCAK_IMPL STREQUAL "rvv_only")
-    # Track B: Base V extension — Zhang et al. RVV Keccak-f + HQC SHAKE wrapper
-    set(KECCAK_SOURCES ${CMAKE_SOURCE_DIR}/src/keccak/fips202_rvv_only.c)
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_rvv_only.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
-    )
-
-elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
+if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     # Track C2: top-performing Zvbb backend with paired-stream x2 wrappers.
     set(KECCAK_SOURCES
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)

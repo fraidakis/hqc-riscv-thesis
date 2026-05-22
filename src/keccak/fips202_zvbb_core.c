@@ -239,14 +239,18 @@ static void KeccakF1600_StatePermute(uint64_t *state)
 
 static inline uint64_t load64_le(const uint8_t *x)
 {
-    uint64_t r;
-    memcpy(&r, x, sizeof(r));
+    uint64_t r = 0;
+    for (size_t i = 0; i < 8; i++) {
+        r |= (uint64_t)x[i] << (8 * i);
+    }
     return r;
 }
 
 static inline void store64_le(uint8_t *x, uint64_t u)
 {
-    memcpy(x, &u, sizeof(u));
+    for (size_t i = 0; i < 8; i++) {
+        x[i] = (uint8_t)(u >> (8 * i));
+    }
 }
 
 /* XOR len bytes into the Keccak state at byte offset pos. */
