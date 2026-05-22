@@ -19,26 +19,6 @@ void *memcpy(void *dst, const void *src, size_t n)
     unsigned char       *d = (unsigned char *)dst;
     const unsigned char *s = (const unsigned char *)src;
 
-    if (n <= 16) {
-        if (n > 0)  d[0]  = s[0];
-        if (n > 1)  d[1]  = s[1];
-        if (n > 2)  d[2]  = s[2];
-        if (n > 3)  d[3]  = s[3];
-        if (n > 4)  d[4]  = s[4];
-        if (n > 5)  d[5]  = s[5];
-        if (n > 6)  d[6]  = s[6];
-        if (n > 7)  d[7]  = s[7];
-        if (n > 8)  d[8]  = s[8];
-        if (n > 9)  d[9]  = s[9];
-        if (n > 10) d[10] = s[10];
-        if (n > 11) d[11] = s[11];
-        if (n > 12) d[12] = s[12];
-        if (n > 13) d[13] = s[13];
-        if (n > 14) d[14] = s[14];
-        if (n > 15) d[15] = s[15];
-        return dst;
-    }
-
 #ifdef __riscv_v
     while (n > 0) {
         size_t vl = __riscv_vsetvl_e8m8(n);
@@ -60,45 +40,6 @@ void *memmove(void *dst, const void *src, size_t n)
 {
     unsigned char       *d = (unsigned char *)dst;
     const unsigned char *s = (const unsigned char *)src;
-
-    if (n <= 16) {
-        if (d < s || d >= s + n) {
-            if (n > 0)  d[0]  = s[0];
-            if (n > 1)  d[1]  = s[1];
-            if (n > 2)  d[2]  = s[2];
-            if (n > 3)  d[3]  = s[3];
-            if (n > 4)  d[4]  = s[4];
-            if (n > 5)  d[5]  = s[5];
-            if (n > 6)  d[6]  = s[6];
-            if (n > 7)  d[7]  = s[7];
-            if (n > 8)  d[8]  = s[8];
-            if (n > 9)  d[9]  = s[9];
-            if (n > 10) d[10] = s[10];
-            if (n > 11) d[11] = s[11];
-            if (n > 12) d[12] = s[12];
-            if (n > 13) d[13] = s[13];
-            if (n > 14) d[14] = s[14];
-            if (n > 15) d[15] = s[15];
-        } else {
-            if (n > 15) d[15] = s[15];
-            if (n > 14) d[14] = s[14];
-            if (n > 13) d[13] = s[13];
-            if (n > 12) d[12] = s[12];
-            if (n > 11) d[11] = s[11];
-            if (n > 10) d[10] = s[10];
-            if (n > 9)  d[9]  = s[9];
-            if (n > 8)  d[8]  = s[8];
-            if (n > 7)  d[7]  = s[7];
-            if (n > 6)  d[6]  = s[6];
-            if (n > 5)  d[5]  = s[5];
-            if (n > 4)  d[4]  = s[4];
-            if (n > 3)  d[3]  = s[3];
-            if (n > 2)  d[2]  = s[2];
-            if (n > 1)  d[1]  = s[1];
-            if (n > 0)  d[0]  = s[0];
-        }
-        return dst;
-    }
 
     if (d < s || d >= s + n) {
 #ifdef __riscv_v
@@ -125,29 +66,6 @@ void *memmove(void *dst, const void *src, size_t n)
 
 void *memset(void *dst, int c, size_t n)
 {
-    unsigned char *d = (unsigned char *)dst;
-
-    if (n <= 16) {
-        unsigned char v = (unsigned char)c;
-        if (n > 0)  d[0]  = v;
-        if (n > 1)  d[1]  = v;
-        if (n > 2)  d[2]  = v;
-        if (n > 3)  d[3]  = v;
-        if (n > 4)  d[4]  = v;
-        if (n > 5)  d[5]  = v;
-        if (n > 6)  d[6]  = v;
-        if (n > 7)  d[7]  = v;
-        if (n > 8)  d[8]  = v;
-        if (n > 9)  d[9]  = v;
-        if (n > 10) d[10] = v;
-        if (n > 11) d[11] = v;
-        if (n > 12) d[12] = v;
-        if (n > 13) d[13] = v;
-        if (n > 14) d[14] = v;
-        if (n > 15) d[15] = v;
-        return dst;
-    }
-
 #ifdef __riscv_v
     /* Fast-path: 8-byte aligned zero-fill using LMUL=8 (VLEN=256 -> 256 B/iter). */
     if (c == 0 && ((uintptr_t)dst & 7u) == 0 && (n & 7u) == 0) {
@@ -162,6 +80,7 @@ void *memset(void *dst, int c, size_t n)
         return dst;
     }
 #endif
+    unsigned char *d = (unsigned char *)dst;
     for (size_t i = 0; i < n; i++)
         d[i] = (unsigned char)c;
     return dst;
