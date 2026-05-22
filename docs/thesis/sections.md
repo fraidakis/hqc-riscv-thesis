@@ -1,56 +1,60 @@
+# Πλήρης Διάρθρωση Διπλωματικής Εργασίας
+
+## Προκαταρκτικές Σελίδες
+* **Περίληψη (Ελληνικά)**
+* **Abstract (Αγγλικά)**
+* **Περιεχόμενα**
+
 ## Κεφάλαιο 1: Εισαγωγή
-* **1.1 Η Ανάγκη για Post-Quantum Κρυπτογραφία (PQC):** Η κβαντική απειλή, ο αλγόριθμος του Shor και η αναγκαιότητα άμεσης μετάβασης από τα κλασικά σχήματα (RSA, ECC) στα μετα-κβαντικά.
-* **1.2 Ο Αλγόριθμος HQC και το Πλαίσιο Standardization του NIST:** Code-based κρυπτογραφία, η εξέλιξη του διαγωνισμού PQC του NIST και η θεσμοθέτηση του HQC ως επίσημο standard.
-* **1.3 Το Οικοσύστημα του RISC-V και το Cryptographic Agility:** Η σημασία των ανοιχτών αρχιτεκτονικών και η έννοια του cryptographic agility μέσω ανοιχτών, ratified επεκτάσεων.
-* **1.4 Σκοπός και Συνεισφορά της Διατριβής:** Ανάπτυξη αμιγώς βελτιστοποιημένου λογισμικού (pure software acceleration) με χρήση standard επεκτάσεων, αποφεύγοντας την ανάγκη για custom/proprietary hardware coprocessors.
-* **1.5 Δομή της Εργασίας:** Σύντομη περιγραφή των περιεχομένων των επόμενων κεφαλαίων.
+* **1.1 Η Κβαντική Απειλή και η Post-Quantum Κρυπτογραφία:** Ο αλγόριθμος του Shor και η αναγκαιότητα μετάβασης από τα κλασικά σχήματα (RSA, ECC) σε μετα-κβαντικά.
+* **1.2 Το Πλαίσιο Standardization του NIST και ο Αλγόριθμος HQC:** Η θέση της code-based κρυπτογραφίας και η ανάδειξη του HQC ως επίσημου προτύπου.
+* **1.3 Cryptographic Agility & Ανοιχτές Αρχιτεκτονικές (Γιατί RISC-V):** Το πλεονέκτημα του "Pure Software Acceleration" μέσω ευέλικτων επεκτάσεων (ISA extensions) έναντι εξειδικευμένων κυκλωμάτων (ASIC/Hardware).
+* **1.4 Σκοπός και Συνεισφορά της Διατριβής:** Ανάπτυξη αμιγώς βελτιστοποιημένου λογισμικού για τον HQC στο οικοσύστημα του RISC-V.
+* **1.5 Δομή της Εργασίας:** Σύντομη περιγραφή των επόμενων κεφαλαίων.
 
 ## Κεφάλαιο 2: Θεωρητικό Υπόβαθρο HQC & Κρυπτογραφίας
 * **2.1 Key Encapsulation Mechanism (KEM) του HQC:** Μαθηματική θεμελίωση και λειτουργική ανάλυση των διεργασιών Keygen, Encapsulation και Decapsulation.
-* **2.2 Πολυωνυμικός Πολλαπλασιασμός σε Δυαδικά Πεδία:** Ανάλυση της υπολογιστικής πράξης στον δακτύλιο $GF(2)[x] / (x^N - 1)$, μαθηματική ανάλυση του αλγορίθμου Karatsuba και ανάδειξή του ως το αρχικό bottleneck του συστήματος.
-* **2.3 Συναρτήσεις Hash SHA-3 / Keccak:** Αρχιτεκτονική σπόγγου (Sponge Construction), ανάλυση των φάσεων Absorbing και Squeezing, και η δομή της εσωτερικής μετάθεσης Keccak-f[1600].
-* **2.4 Κώδικες Διόρθωσης Σφαλμάτων (Error-Correcting Codes):** Θεωρία συνδυασμένης αποκωδικοποίησης (Concatenated Decoding) με χρήση κωδίκων Reed-Muller (RM) και Reed-Solomon (RS) μέσω του Fast Hadamard Transform.
+* **2.2 Πολυωνυμικός Πολλαπλασιασμός σε Δυαδικά Πεδία:** Ανάλυση της πράξης στον δακτύλιο $GF(2)[x] / (x^N - 1)$ και μαθηματική ανάλυση του αλγορίθμου Karatsuba ως το κύριο υπολογιστικό εμπόδιο.
+* **2.3 Συναρτήσεις Hash SHA-3 / Keccak:** Αρχιτεκτονική σπόγγου (Sponge Construction) και η δομή της εσωτερικής μετάθεσης Keccak-f[1600].
+* **2.4 Κώδικες Διόρθωσης Σφαλμάτων (Error-Correcting Codes):** Θεωρία συνδυασμένης αποκωδικοποίησης (Concatenated Decoding) κωδίκων Reed-Muller (RM) και Reed-Solomon (RS).
 
 ## Κεφάλαιο 3: Μικροαρχιτεκτονική & Επεκτάσεις Κρυπτογραφίας RISC-V
 * **3.1 Αρχιτεκτονική Φιλοσοφία και Σχεδιαστικές Αρχές του RISC-V**
 * **3.2 Scalar Cryptographic Extensions:** Ανάλυση των Zbc (Carry-less multiplication) και Zbb/Zbkb (Bit manipulation instructions).
-* **3.3 Vector Unit Architecture (RVV 1.0):** Η αρχιτεκτονική της διανυσματικής μονάδας, διαχείριση καταχωρητών και οι έννοιες VLEN, LMUL και Vector Chaining.
-* **3.4 Vector Cryptographic Extensions:** Αναλυτική παρουσίαση των διανυσματικών κρυπτογραφικών επεκτάσεων Zvbc και Zvbb.
-* **3.5 Σχετικές Εργασίες (Related Work):** Ανασκόπηση της σύγχρονης βιβλιογραφίας. Ανάλυση των AVX2 x86_64 υλοποιήσεων αναφοράς, του PQRV framework (TCHES 2025) και της προσέγγισης Frobenius Additive FFT (2025).
+* **3.3 Vector Unit Architecture (RVV 1.0):** Η αρχιτεκτονική της διανυσματικής μονάδας (VLEN, LMUL, Vector-Length Agnosticism).
+* **3.4 Vector Cryptographic Extensions:** Αναλυτική παρουσίαση των διανυσματικών επεκτάσεων Zvbc και Zvbb.
+* **3.5 Σχετικές Εργασίες (Related Work):** Ανασκόπηση της βιβλιογραφίας. Σύγκριση με τις x86_64 AVX2 υλοποιήσεις αναφοράς, το PQRV framework και την προσέγγιση Frobenius Additive FFT.
 
 ## Κεφάλαιο 4: Περιβάλλον Εξομοίωσης & Μεθοδολογία Μετρήσεων
-* **4.1 Αρχιτεκτονική του Εξομοιωτή Spike ISS και του QEMU:** Λειτουργία και παραμετροποίηση κατά την αρχιτεκτονική εξομοίωση διανυσματικών διεργασιών.
-* **4.2 Cross-Compilation Toolchains & Compiler Profiles:** Σύγκριση Clang/LLVM vs GCC, optimization flags (`-O3`, `-march`) και επίδραση στην αυτόματη διανυσματοποίηση.
-* **4.3 Μεθοδολογία Benchmarking & Καταμέτρηση Δυναμικών Εντολών:** Καταγραφή του instruction footprint μέσω dynamic instruction counts (`instret`). Ανάλυση line-level hotspots μέσω DWARF debug symbols.
-* **4.4 Framework Επαλήθευσης Ορθότητας:** Αυτοματοποιημένος έλεγχος συμμόρφωσης με τα επίσημα Known Answer Tests (KAT) του NIST για τα επίπεδα ασφαλείας HQC-128, 192 και 256.
+* **4.1 Αρχιτεκτονική του Εξομοιωτή Spike ISS και του QEMU**
+* **4.2 Cross-Compilation Toolchains & Compiler Profiles:** Σύγκριση Clang/LLVM vs GCC, optimization flags (`-O3`, `-march`).
+* **4.3 Μεθοδολογία Benchmarking:** Καταμέτρηση δυναμικών εντολών (`instret`) και profiling μέσω DWARF debug symbols.
+* **4.4 Framework Επαλήθευσης Ορθότητας:** Αυτοματοποιημένος έλεγχος μέσω των Known Answer Tests (KAT) του NIST.
 
 ## Κεφάλαιο 5: Αρχιτεκτονική Σχεδίαση και Βελτιστοποίηση Υλοποίησης
 * **5.1 Αρχικό Προφίλ Εκτέλεσης (Reference Profiling) & Στρατηγική Bottleneck Shifting:** Παρουσίαση του αρχικού πίνακα Share εκτέλεσης και ανάλυση της μετατόπισης των hotspots βάσει του Νόμου του Amdahl.
-* **5.2 Διανυσματική Επιτάχυνση Πολυωνυμικού Πολλαπλασιασμού (Polymul):**
-    * 5.2.1 Σχεδίαση Διανυσματικών Δέντρων Karatsuba και Διαχείριση Καταχωρητών.
-    * 5.2.2 Βελτιστοποίηση Φύλλων μέσω `vclmul.vv` (Zvbc) και 4× Unrolled Register Combine Loops.
+* **5.2 Διανυσματική Επιτάχυνση Πολυωνυμικού Πολλαπλασιασμού:**
+    * 5.2.1 Διανυσματικά Δέντρα Karatsuba & Διαχείριση Καταχωρητών (RVV 1.0).
+    * 5.2.2 Βελτιστοποίηση Φύλλων μέσω `vclmul.vv` (Zvbc) και 4× Unrolled Combine Loops.
 * **5.3 Βελτιστοποίηση του Πυρήνα Keccak / SHA-3:**
-    * 5.3.1 Hoisting Πινάκων Μετάθεσης έξω από το Round Loop και εξάλειψη των Redundant Memory Loads (`vle64.v`).
-    * 5.3.2 Διανυσματοποίηση του Theta Step μέσω In-Register Parity Diffusion (`vslidedown`, `vmv.x.s`).
-    * 5.3.3 Σχεδίαση και Υλοποίηση του Δικαναλικού 2-way Parallel SoA (Paired-Stream Keygen) έναντι του Single-Stream Local Fast-Path.
-    * 5.3.4 Ελαχιστοποίηση των I/O Overheads μέσω Aligned 64-bit Block Transfers.
+    * 5.3.1 Εξέλιξη της Διανυσματοποίησης: Από το Gather-Based Interleaving στο Δικαναλικό 2-way Parallel SoA (Paired-Stream Keygen).
+    * 5.3.2 Constant-Time Unrolling: Εξάλειψη των Loop-Carried Memory Loads μέσω Vector Immediates (`vror.vi`).
+    * 5.3.3 Ελαχιστοποίηση των I/O Overheads με Aligned 64-bit Block Transfers.
 * **5.4 Διανυσματική Σχεδίαση Σταδίου Αποκωδικοποίησης (Decode):**
-    * 5.4.1 Επιτάχυνση του Reed-Muller List Decoder με χρήση Strided Loads (`vlse16`) για την κατάργηση των Register Permutations.
-    * 5.4.2 One-Pass Διανυσματική Εύρεση Μεγίστου (`vfirst_m`, `vcpop`) έναντι του Σειριακού Binary Search.
-    * 5.4.3 Πλήρες Loop Unrolling της `gf_reduce` και Inline Assembly `clmul` επιτάχυνση στη `gf_square`.
+    * 5.4.1 Fast Hadamard Transform με Strided Loads (`vlse16`).
+    * 5.4.2 One-Pass Εύρεση Μεγίστου (`vfirst_m`, `vcpop`).
 
 ## Κεφάλαιο 6: Αποτελέσματα και Αξιολόγηση Απόδοσης
 * **6.1 Ανάλυση Απομονωμένων Μικρο-αξιολογήσεων (Isolated Micro-benchmarks):** Σύγκριση Reference vs Optimized επιδόσεων για τα `vect_mul`, `keccak` και `decode`.
-* **6.2 Αξιολόγηση Πλήρους Κρυπτοσυστήματος (End-to-End KEM Suite):** Παρουσίαση των τελικών αποτελεσμάτων (Keypair, Encaps, Decaps) και της μείωσης του footprint κάτω από το όριο του 1M εντολών (~926K).
-* **6.3 Αρχιτεκτονική Αξιολόγηση Επεκτάσεων (Ablation Study):** Ποσοτικός προσδιορισμός της συνεισφοράς των επεκτάσεων Zbc, Zvbc, Zbb και Zvbb στα επιμέρους hotspots.
-* **6.4 Σύγκριση Μεταγλωττιστών (Compiler Profiling):** Αξιολόγηση των Clang/LLVM και GCC ως προς το LICM και το Register Allocation.
+* **6.2 Αξιολόγηση Πλήρους Κρυπτοσυστήματος (End-to-End KEM Suite):** Παρουσίαση των τελικών KEM benchmarks και της πτώσης του HQC-128 κάτω από 1M εντολές.
+* **6.3 Αρχιτεκτονική Αξιολόγηση Επεκτάσεων (Ablation Study):** Ποσοτικός προσδιορισμός της συνεισφοράς των επεκτάσεων Zbc, Zvbc, Zbb και Zvbb.
+* **6.4 Σύγκριση Μεταγλωττιστών:** Clang/LLVM vs GCC στην παραγωγή βελτιστοποιημένου διανυσματικού κώδικα.
 
 ## Κεφάλαιο 7: Συμπεράσματα και Μελλοντικές Επεκτάσεις
-* **7.1 Σύνοψη και Αποτίμηση:** Ανακεφαλαίωση των speedups και αξιολόγηση της στρατηγικής "pure software acceleration".
+* **7.1 Σύνοψη και Αποτίμηση:** Ανακεφαλαίωση των speedups.
 * **7.2 Περιορισμοί της Υλοποίησης:** Αναφορά στις τρέχουσες συνθήκες της αγοράς υλικού (διαθεσιμότητα native Zvbc) και στους εγγενείς περιορισμούς των instruction-accurate εξομοιωτών (Spike) έναντι cycle-accurate μοντέλων.
-* **7.3 Προτάσεις για Μελλοντική Έρευνα:** Ενσωμάτωση constant-time ελέγχων (dudect/ctgrind), μεταφορά του κώδικα σε RTL soft-cores (CVA6) σε FPGA για cycle-accurate μετρήσεις και διερεύνηση Toom-Cook 3-way σχεδιάσεων.
+* **7.3 Προτάσεις για Μελλοντική Έρευνα:** Constant-time έλεγχοι (dudect) και εκτέλεση σε RTL soft-cores (FPGA) 
 
 ## Παράρτημα Α: Οδηγός Εγκατάστασης και Παραμετροποίησης Περιβάλλοντος
-* **Α.1 Μεταγλώττιση του RISC-V GNU/LLVM Cross-Compilation Toolchain**
-* **Α.2 Εγκατάσταση και Παραμετροποίηση του Spike ISS και του PK (Proxy Kernel)**
-* **Α.3 Ρύθμιση του Αυτοματοποιημένου Framework Δοκιμών και Benchmarking**
+* **Α.1 Μεταγλώττιση του RISC-V Toolchain**
+* **Α.2 Εγκατάσταση του Spike ISS**
