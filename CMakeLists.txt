@@ -117,16 +117,17 @@ set(KECCAK_INCLUDE_DIRS "")
 set(KECCAK_COMPILE_DEFINES "")
 
 if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
-    # Track C2: top-performing consolidated Zvbb backend (single TU).
-    # Contains both single-stream fips202 API and paired-stream x2 wrappers.
+    # Track C2: VLEN-adaptive xN Zvbb backend (single TU).
+    # Contains single-stream fips202 API and adaptive xN parallel wrappers.
+    # Backward-compatible: provides shake256_x2_absorb/squeezeblocks wrappers.
     set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_xN.c)
     set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_xN.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
                    COMPILE_DEFINITIONS "HQC_VECTOR_BITS=${HQC_VECTOR_BITS}"
     )
-    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
+    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1 HQC_KECCAK_XN_SOA=1)
 
 else()
     # Default (ref): vendor scalar fips202
@@ -363,7 +364,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(POLYMUL STREQUAL "karatsuba_zvbc")
             # Zvbc variants require --isa=rv64gcv_zvbc on Spike at runtime.
             # run_kat.sh detects this compile-time definition and adjusts accordingly.
-            target_compile_definitions(${KAT_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+            target_compile_definitions(${KAT_TARGET} PRIVATE
+                HQC_POLYMUL_ZVBC=1
+                HQC_VECTOR_BITS=${HQC_VECTOR_BITS}
+            )
         endif()
         set_target_properties(${KAT_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -426,7 +430,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
             target_compile_options(${BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
         if(POLYMUL STREQUAL "karatsuba_zvbc")
-            target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+            target_compile_definitions(${BENCH_TARGET} PRIVATE
+                HQC_POLYMUL_ZVBC=1
+                HQC_VECTOR_BITS=${HQC_VECTOR_BITS}
+            )
         endif()
         set_target_properties(${BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -479,7 +486,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
             target_compile_options(${POLYMUL_BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
         if(POLYMUL STREQUAL "karatsuba_zvbc")
-            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+            target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE
+                HQC_POLYMUL_ZVBC=1
+                HQC_VECTOR_BITS=${HQC_VECTOR_BITS}
+            )
         endif()
         set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
             SUFFIX ".elf"
@@ -532,6 +542,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                     N_ITER=${BENCH_N_ITER}
                     POLYMUL_NAME="${POLYMUL}_vlen${VLEN}"
                     HQC_VLEN=${VLEN}
+                    HQC_VECTOR_BITS=${VLEN}
                 )
                 target_compile_options(${VLEN_BENCH_TARGET} PRIVATE
                     ${VARIANT_COMPILE_OPTIONS}
@@ -554,6 +565,65 @@ foreach(LEVEL ${SECURITY_LEVELS})
                     DEPENDS ${VLEN_BENCH_TARGET}
                     USES_TERMINAL
                     COMMENT "Running ${VLEN_BENCH_TARGET} (VLEN=${VLEN}) with HQC_SIM=${HQC_SIM}"
+                )
+
+                # ── Per-VLEN KAT target (full-KEM KAT at specific VLEN) ──────
+                # Mirrors the per-VLEN bench targets but runs the full KEM KAT
+                # harness.  Ensures HQC_VECTOR_BITS is passed to ALL vector
+                # sources (GF2x, RS, Keccak) so vlen_config.h resolves correctly.
+                set(VLEN_KAT_TARGET "hqc${LEVEL}_${POLYMUL}_vlen${VLEN}")
+
+                add_executable(${VLEN_KAT_TARGET} EXCLUDE_FROM_ALL
+                    ${STARTUP_S}
+                    ${CMAKE_SOURCE_DIR}/tests/kat/kat_gen.c
+                    ${POLYMUL_SOURCES}
+                    ${VARIANT_KECCAK_SOURCES}
+                    ${VARIANT_DECODE_SOURCES}
+                    ${VENDOR_INVARIANT_SOURCES}
+                    ${VECTOR_SOURCES}
+                    ${LOCAL_COMMON_SOURCES}
+                )
+                target_link_libraries(${VLEN_KAT_TARGET} PRIVATE
+                    $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
+                target_include_directories(${VLEN_KAT_TARGET} BEFORE PRIVATE
+                    ${HQC_REF}/src/common/${VARIANT}
+                    ${HQC_REF}/src/common
+                    ${HQC_REF}/src/ref/${VARIANT}
+                    ${HQC_REF}/src/ref
+                    ${HQC_REF}/lib/fips202
+                    ${CMAKE_SOURCE_DIR}/src/common
+                    ${CMAKE_SOURCE_DIR}/tests/kat
+                    ${KECCAK_INCLUDE_DIRS}
+                )
+                target_compile_definitions(${VLEN_KAT_TARGET} PRIVATE
+                    HQC_KAT_MODE=1
+                    SECURITY_LEVEL=${LEVEL}
+                    HQC_${LEVEL}
+                    ${KECCAK_COMPILE_DEFINES}
+                    ${SIM_DEFINES}
+                    HQC_VLEN=${VLEN}
+                    HQC_VECTOR_BITS=${VLEN}
+                )
+                target_compile_options(${VLEN_KAT_TARGET} PRIVATE
+                    ${VARIANT_COMPILE_OPTIONS}
+                    $<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${VLEN}>
+                    $<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>
+                )
+                if(POLYMUL STREQUAL "karatsuba_zvbc")
+                    target_compile_definitions(${VLEN_KAT_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+                endif()
+                set_target_properties(${VLEN_KAT_TARGET} PROPERTIES
+                    SUFFIX ".elf"
+                    LINK_DEPENDS "${LINKER_SCRIPT}"
+                )
+                target_link_options(${VLEN_KAT_TARGET} PRIVATE
+                    "-T${LINKER_SCRIPT}"
+                    "-Wl,-Map=${CMAKE_BINARY_DIR}/${VLEN_KAT_TARGET}.map"
+                )
+                add_test(
+                    NAME "kat_${VLEN_KAT_TARGET}"
+                    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test/run_kat.sh
+                            $<TARGET_FILE:${VLEN_KAT_TARGET}> ${LEVEL} ${POLYMUL}
                 )
             endforeach()  # VLEN
         endif()  # POLYMUL IN VECTOR_POLYMUL_VARIANTS
@@ -670,13 +740,17 @@ endforeach()  # LEVEL
 # a given security level:  cmake --build build --target vlen_matrix_hqc128
 foreach(LEVEL ${SECURITY_LEVELS})
     set(_VLEN_DEPS "")
+    set(_VLEN_KAT_DEPS "")
     foreach(POLYMUL ${VECTOR_POLYMUL_VARIANTS})
         foreach(VLEN ${VLEN_LIST})
             list(APPEND _VLEN_DEPS "bench_polymul_hqc${LEVEL}_${POLYMUL}_vlen${VLEN}")
+            list(APPEND _VLEN_KAT_DEPS "hqc${LEVEL}_${POLYMUL}_vlen${VLEN}")
         endforeach()
     endforeach()
     add_custom_target(vlen_matrix_hqc${LEVEL} DEPENDS ${_VLEN_DEPS}
         COMMENT "Building VLEN={${VLEN_LIST}} matrix for HQC-${LEVEL} vector variants")
+    add_custom_target(vlen_kat_matrix_hqc${LEVEL} DEPENDS ${_VLEN_KAT_DEPS}
+        COMMENT "Building VLEN={${VLEN_LIST}} KAT matrix for HQC-${LEVEL} vector variants")
 endforeach()
 
 # ── Symlink compile_commands.json to project root ─────────────────────────────

@@ -17,10 +17,11 @@
  *     - Two-pass inline Barrett reduction (vsrl/vand/vxor) folds back modulo
  *       PARAM_GF_POLY = 0x11D (x^8+x^4+x^3+x^2+1).
  *
- *   LMUL=4, SEW=64: vl=16 at VLEN=256; VLA — correct at any VLEN≥64.
- *     DELTA=15 (HQC-128): 1 pass per inner loop.
- *     DELTA=16 (HQC-192): 1 pass per inner loop.
- *     DELTA=29 (HQC-256): 2 passes per inner loop.
+ *   LMUL-adaptive via vlen_config.h, SEW=64: vl determined by RS_LMUL at
+ *   compile time.  At VLEN=256 (LMUL=4): vl=16; at VLEN=2048 (LMUL=1): vl=32.
+ *     DELTA=15 (HQC-128): 1 pass per inner loop (all VLENs).
+ *     DELTA=16 (HQC-192): 1 pass per inner loop (all VLENs).
+ *     DELTA=29 (HQC-256): 2 passes at VLEN≤1024, 1 pass at VLEN=2048.
  *
  * Axis B — compute_elp inner loops:
  *   1. Sigma SAXPY:      sigma[1..n] ^= dd * X_sigma_p[1..n]
@@ -49,6 +50,7 @@
 #include <string.h>
 #include <riscv_vector.h>
 
+#include "vlen_config.h"    /* rs_vec_t, rs_vsetvl, rs_vclmul_vv, etc. */
 #include "reed_solomon.h"   /* alpha_ij_pow (level-specific) */
 #include "gf.h"             /* gf_mul, gf_inverse, gf_exp, gf_log */
 #include "fft.h"            /* fft, fft_retrieve_error_poly */
@@ -66,27 +68,28 @@
  *            Result: degree ≤ 10.
  *   Pass 2: extract bits [10:8], fold again. Result: degree < 8. ✓
  *
+ * Uses rs_vec_t (LMUL-adaptive via vlen_config.h).
  * Constant-time: no data-dependent branches.
  */
-static inline vuint64m4_t gf_reduce_vec_u64m4(vuint64m4_t v, size_t vl)
+static inline rs_vec_t gf_reduce_vec(rs_vec_t v, size_t vl)
 {
-    vuint64m4_t high;
+    rs_vec_t high;
 
     /* Pass 1 — fold bits [14:8] */
-    high = __riscv_vsrl_vx_u64m4(v, 8, vl);
-    v    = __riscv_vand_vx_u64m4(v, 0xFFu, vl);
-    v    = __riscv_vxor_vv_u64m4(v, high, vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 2, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 3, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 4, vl), vl);
+    high = rs_vsrl_vx(v, 8, vl);
+    v    = rs_vand_vx(v, 0xFFu, vl);
+    v    = rs_vxor_vv(v, high, vl);
+    v    = rs_vxor_vv(v, rs_vsll_vx(high, 2, vl), vl);
+    v    = rs_vxor_vv(v, rs_vsll_vx(high, 3, vl), vl);
+    v    = rs_vxor_vv(v, rs_vsll_vx(high, 4, vl), vl);
 
     /* Pass 2 — fold bits [10:8] left by pass 1 */
-    high = __riscv_vsrl_vx_u64m4(v, 8, vl);
-    v    = __riscv_vand_vx_u64m4(v, 0xFFu, vl);
-    v    = __riscv_vxor_vv_u64m4(v, high, vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 2, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 3, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 4, vl), vl);
+    high = rs_vsrl_vx(v, 8, vl);
+    v    = rs_vand_vx(v, 0xFFu, vl);
+    v    = rs_vxor_vv(v, high, vl);
+    v    = rs_vxor_vv(v, rs_vsll_vx(high, 2, vl), vl);
+    v    = rs_vxor_vv(v, rs_vsll_vx(high, 3, vl), vl);
+    v    = rs_vxor_vv(v, rs_vsll_vx(high, 4, vl), vl);
 
     return v;
 }
@@ -106,19 +109,19 @@ static void compute_syndromes_rvv(uint16_t *syndromes, const uint8_t *cdw)
         size_t          rem = PARAM_N1 - 1u;
 
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
+            size_t vl = rs_vsetvl(rem);
 
-            vuint8mf2_t  a8  = __riscv_vle8_v_u8mf2(pa, vl);
-            vuint64m4_t  a64 = __riscv_vzext_vf8_u64m4(a8, vl);
+            rs_vec_u8_t  a8  = rs_vle8(pa, vl);
+            rs_vec_t     a64 = rs_vzext_u8_to_u64(a8, vl);
 
-            vuint16m1_t  b16 = __riscv_vle16_v_u16m1(pb, vl);
-            vuint64m4_t  b64 = __riscv_vzext_vf4_u64m4(b16, vl);
+            rs_vec_u16_t b16 = rs_vle16(pb, vl);
+            rs_vec_t     b64 = rs_vzext_u16_to_u64(b16, vl);
 
-            vuint64m4_t prod = __riscv_vclmul_vv_u64m4(a64, b64, vl);
-            prod = gf_reduce_vec_u64m4(prod, vl);
+            rs_vec_t prod = rs_vclmul_vv(a64, b64, vl);
+            prod = gf_reduce_vec(prod, vl);
 
             vuint64m1_t zero_v = __riscv_vmv_v_x_u64m1(0u, 1);
-            vuint64m1_t red    = __riscv_vredxor_vs_u64m4_u64m1(prod, zero_v, vl);
+            vuint64m1_t red    = rs_vredxor(prod, zero_v, vl);
             acc ^= (uint16_t)__riscv_vmv_x_s_u64m1_u64(red);
 
             pa  += vl;
@@ -181,28 +184,28 @@ static uint16_t compute_elp_zvbc(uint16_t *sigma, const uint16_t *syndromes)
             size_t          rem  = (size_t)n_elts;
 
             while (rem > 0) {
-                size_t vl = __riscv_vsetvl_e64m4(rem);
+                size_t vl = rs_vsetvl(rem);
 
                 /* load X_sigma_p[1..n], zero-extend to 64-bit lanes */
-                vuint16m1_t xsp16 = __riscv_vle16_v_u16m1(pxsp, vl);
-                vuint64m4_t xsp64 = __riscv_vzext_vf4_u64m4(xsp16, vl);
+                rs_vec_u16_t xsp16 = rs_vle16(pxsp, vl);
+                rs_vec_t     xsp64 = rs_vzext_u16_to_u64(xsp16, vl);
 
                 /* broadcast scalar dd to all lanes */
-                vuint64m4_t dd64  = __riscv_vmv_v_x_u64m4((uint64_t)(dd & 0xFFu), vl);
+                rs_vec_t dd64  = rs_vmv_v_x((uint64_t)(dd & 0xFFu), vl);
 
                 /* carry-less multiply, inline GF(2^8) reduction */
-                vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(dd64, xsp64, vl);
-                prod = gf_reduce_vec_u64m4(prod, vl);
+                rs_vec_t prod  = rs_vclmul_vv(dd64, xsp64, vl);
+                prod = gf_reduce_vec(prod, vl);
 
                 /* load sigma, XOR with product */
-                vuint16m1_t sig16 = __riscv_vle16_v_u16m1(psig, vl);
-                vuint64m4_t sig64 = __riscv_vzext_vf4_u64m4(sig16, vl);
-                vuint64m4_t res64 = __riscv_vxor_vv_u64m4(sig64, prod, vl);
+                rs_vec_u16_t sig16 = rs_vle16(psig, vl);
+                rs_vec_t     sig64 = rs_vzext_u16_to_u64(sig16, vl);
+                rs_vec_t     res64 = rs_vxor_vv(sig64, prod, vl);
 
-                /* narrow u64m4 → u32m2 → u16m1 (values fit in 8 bits) */
-                vuint32m2_t res32 = __riscv_vnsrl_wx_u32m2(res64, 0, vl);
-                vuint16m1_t res16 = __riscv_vnsrl_wx_u16m1(res32, 0, vl);
-                __riscv_vse16_v_u16m1(psig, res16, vl);
+                /* narrow u64 → u32 → u16 (values fit in 8 bits) */
+                rs_vec_u32_t res32 = rs_vnsrl_u32(res64, 0, vl);
+                rs_vec_u16_t res16 = rs_vnsrl_u16(res32, 0, vl);
+                rs_vse16(psig, res16, vl);
 
                 pxsp += vl;  psig += vl;  rem -= vl;
             }
@@ -227,7 +230,7 @@ static uint16_t compute_elp_zvbc(uint16_t *sigma, const uint16_t *syndromes)
         /* ── Loop 2: X_sigma_p blend ─────────────────────────────────────── *
          * X_sigma_p[1..DELTA] = mask12 ? sigma_copy[0..DELTA-1]             *
          *                              : X_sigma_p[0..DELTA-1]              *
-         * blend = (mask12 & sc) ^ (~mask12 & xsp)  (integer SIMD, u16m4)   */
+         * blend = (mask12 & sc) ^ (~mask12 & xsp)  (integer SIMD)          */
         {
             uint16_t       *pout = X_sigma_p + 1;
             const uint16_t *psc  = sigma_copy;
@@ -235,12 +238,12 @@ static uint16_t compute_elp_zvbc(uint16_t *sigma, const uint16_t *syndromes)
             size_t          rem  = PARAM_DELTA;
 
             while (rem > 0) {
-                size_t vl = __riscv_vsetvl_e16m4(rem);
-                vuint16m4_t sc16   = __riscv_vle16_v_u16m4(psc, vl);
-                vuint16m4_t xsp16  = __riscv_vle16_v_u16m4(pxsp, vl);
-                vuint16m4_t vmask  = __riscv_vmv_v_x_u16m4(mask12, vl);
-                vuint16m4_t nvmask = __riscv_vmv_v_x_u16m4((uint16_t)~mask12, vl);
-                vuint16m4_t res    = __riscv_vxor_vv_u16m4(
+                size_t vl = rs_blend_vsetvl(rem);
+                rs_blend_vec_t sc16   = __riscv_vle16_v_u16m4(psc, vl);
+                rs_blend_vec_t xsp16  = __riscv_vle16_v_u16m4(pxsp, vl);
+                rs_blend_vec_t vmask  = __riscv_vmv_v_x_u16m4(mask12, vl);
+                rs_blend_vec_t nvmask = __riscv_vmv_v_x_u16m4((uint16_t)~mask12, vl);
+                rs_blend_vec_t res    = __riscv_vxor_vv_u16m4(
                                          __riscv_vand_vv_u16m4(vmask,  sc16,  vl),
                                          __riscv_vand_vv_u16m4(nvmask, xsp16, vl),
                                          vl);
@@ -265,24 +268,24 @@ static uint16_t compute_elp_zvbc(uint16_t *sigma, const uint16_t *syndromes)
             size_t rem = (size_t)n_elts;
 
             while (rem > 0) {
-                size_t vl = __riscv_vsetvl_e64m4(rem);
+                size_t vl = rs_vsetvl(rem);
 
                 /* sigma[1..n] */
-                vuint16m1_t sig16 = __riscv_vle16_v_u16m1(psig, vl);
-                vuint64m4_t sig64 = __riscv_vzext_vf4_u64m4(sig16, vl);
+                rs_vec_u16_t sig16 = rs_vle16(psig, vl);
+                rs_vec_t     sig64 = rs_vzext_u16_to_u64(sig16, vl);
 
                 /* syndromes[mu..mu+1-n] with stride -2 bytes (reverse) */
-                vuint16m1_t syn16 = __riscv_vlse16_v_u16m1(
+                rs_vec_u16_t syn16 = rs_vlse16(
                                         psyn,
                                         -(ptrdiff_t)sizeof(uint16_t),
                                         vl);
-                vuint64m4_t syn64 = __riscv_vzext_vf4_u64m4(syn16, vl);
+                rs_vec_t syn64 = rs_vzext_u16_to_u64(syn16, vl);
 
-                vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(sig64, syn64, vl);
-                prod = gf_reduce_vec_u64m4(prod, vl);
+                rs_vec_t prod  = rs_vclmul_vv(sig64, syn64, vl);
+                prod = gf_reduce_vec(prod, vl);
 
                 vuint64m1_t zero_v = __riscv_vmv_v_x_u64m1(0u, 1);
-                vuint64m1_t red    = __riscv_vredxor_vs_u64m4_u64m1(prod, zero_v, vl);
+                vuint64m1_t red    = rs_vredxor(prod, zero_v, vl);
                 d ^= (uint16_t)__riscv_vmv_x_s_u64m1_u64(red);
 
                 psig += vl;  psyn -= vl;  rem -= vl;
@@ -387,18 +390,18 @@ static void compute_error_values_zvbc(uint16_t *error_values,
             size_t          rem = PARAM_DELTA;
 
             while (rem > 0) {
-                size_t vl = __riscv_vsetvl_e64m4(rem);
+                size_t vl = rs_vsetvl(rem);
 
-                vuint16m1_t vi16  = __riscv_vle16_v_u16m1(pi, vl);
-                vuint64m4_t vi64  = __riscv_vzext_vf4_u64m4(vi16, vl);
-                vuint16m1_t vz16  = __riscv_vle16_v_u16m1(pz, vl);
-                vuint64m4_t vz64  = __riscv_vzext_vf4_u64m4(vz16, vl);
+                rs_vec_u16_t vi16  = rs_vle16(pi, vl);
+                rs_vec_t     vi64  = rs_vzext_u16_to_u64(vi16, vl);
+                rs_vec_u16_t vz16  = rs_vle16(pz, vl);
+                rs_vec_t     vz64  = rs_vzext_u16_to_u64(vz16, vl);
 
-                vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(vi64, vz64, vl);
-                prod = gf_reduce_vec_u64m4(prod, vl);
+                rs_vec_t prod  = rs_vclmul_vv(vi64, vz64, vl);
+                prod = gf_reduce_vec(prod, vl);
 
                 vuint64m1_t zero_v = __riscv_vmv_v_x_u64m1(0u, 1);
-                vuint64m1_t red    = __riscv_vredxor_vs_u64m4_u64m1(prod, zero_v, vl);
+                vuint64m1_t red    = rs_vredxor(prod, zero_v, vl);
                 tmp1 ^= (uint16_t)__riscv_vmv_x_s_u64m1_u64(red);
 
                 pi += vl;  pz += vl;  rem -= vl;
@@ -425,19 +428,19 @@ static void compute_error_values_zvbc(uint16_t *error_values,
                 const uint16_t *pb = beta_j + i + 1;
                 size_t          rem = len_A;
                 while (rem > 0) {
-                    size_t vl = __riscv_vsetvl_e64m4(rem);
-                    vuint64m4_t vinv  = __riscv_vmv_v_x_u64m4(
+                    size_t vl = rs_vsetvl(rem);
+                    rs_vec_t vinv  = rs_vmv_v_x(
                                            (uint64_t)(inverse & 0xFFu), vl);
-                    vuint16m1_t b16   = __riscv_vle16_v_u16m1(pb, vl);
-                    vuint64m4_t b64   = __riscv_vzext_vf4_u64m4(b16, vl);
-                    vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(vinv, b64, vl);
-                    prod = gf_reduce_vec_u64m4(prod, vl);
+                    rs_vec_u16_t b16   = rs_vle16(pb, vl);
+                    rs_vec_t     b64   = rs_vzext_u16_to_u64(b16, vl);
+                    rs_vec_t     prod  = rs_vclmul_vv(vinv, b64, vl);
+                    prod = gf_reduce_vec(prod, vl);
                     /* XOR product with 1 → (1 ^ gf_mul(inv, beta)) */
-                    vuint64m4_t one64 = __riscv_vmv_v_x_u64m4(1u, vl);
-                    vuint64m4_t res64 = __riscv_vxor_vv_u64m4(prod, one64, vl);
-                    vuint32m2_t res32 = __riscv_vnsrl_wx_u32m2(res64, 0, vl);
-                    vuint16m1_t res16 = __riscv_vnsrl_wx_u16m1(res32, 0, vl);
-                    __riscv_vse16_v_u16m1(out, res16, vl);
+                    rs_vec_t     one64 = rs_vmv_v_x(1u, vl);
+                    rs_vec_t     res64 = rs_vxor_vv(prod, one64, vl);
+                    rs_vec_u32_t res32 = rs_vnsrl_u32(res64, 0, vl);
+                    rs_vec_u16_t res16 = rs_vnsrl_u16(res32, 0, vl);
+                    rs_vse16(out, res16, vl);
                     pb += vl;  out += vl;  rem -= vl;
                 }
             }
@@ -447,18 +450,18 @@ static void compute_error_values_zvbc(uint16_t *error_values,
                 const uint16_t *pb  = beta_j;
                 size_t          rem = len_B;
                 while (rem > 0) {
-                    size_t vl = __riscv_vsetvl_e64m4(rem);
-                    vuint64m4_t vinv  = __riscv_vmv_v_x_u64m4(
+                    size_t vl = rs_vsetvl(rem);
+                    rs_vec_t vinv  = rs_vmv_v_x(
                                            (uint64_t)(inverse & 0xFFu), vl);
-                    vuint16m1_t b16   = __riscv_vle16_v_u16m1(pb, vl);
-                    vuint64m4_t b64   = __riscv_vzext_vf4_u64m4(b16, vl);
-                    vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(vinv, b64, vl);
-                    prod = gf_reduce_vec_u64m4(prod, vl);
-                    vuint64m4_t one64 = __riscv_vmv_v_x_u64m4(1u, vl);
-                    vuint64m4_t res64 = __riscv_vxor_vv_u64m4(prod, one64, vl);
-                    vuint32m2_t res32 = __riscv_vnsrl_wx_u32m2(res64, 0, vl);
-                    vuint16m1_t res16 = __riscv_vnsrl_wx_u16m1(res32, 0, vl);
-                    __riscv_vse16_v_u16m1(out, res16, vl);
+                    rs_vec_u16_t b16   = rs_vle16(pb, vl);
+                    rs_vec_t     b64   = rs_vzext_u16_to_u64(b16, vl);
+                    rs_vec_t     prod  = rs_vclmul_vv(vinv, b64, vl);
+                    prod = gf_reduce_vec(prod, vl);
+                    rs_vec_t     one64 = rs_vmv_v_x(1u, vl);
+                    rs_vec_t     res64 = rs_vxor_vv(prod, one64, vl);
+                    rs_vec_u32_t res32 = rs_vnsrl_u32(res64, 0, vl);
+                    rs_vec_u16_t res16 = rs_vnsrl_u16(res32, 0, vl);
+                    rs_vse16(out, res16, vl);
                     pb += vl;  out += vl;  rem -= vl;
                 }
             }

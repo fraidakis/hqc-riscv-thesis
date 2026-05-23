@@ -20,6 +20,7 @@
 #include <string.h>
 #include <riscv_vector.h>
 #include "parameters.h"
+#include "vlen_config.h"
 
 #ifndef HQC_POLYMUL_ZVBC
 #  error "gf2x_vclmul.c must be compiled with -DHQC_POLYMUL_ZVBC=1"
@@ -46,7 +47,7 @@
 
 /* rvv_copy_u64: Direct-assign n_words uint64_t words from src → dst.
  * Used for Loop 1 (r = z0) and Loop 2 (r+2m = z2) in Karatsuba assemble.
- * LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
+ * Uses adaptive LMUL via gf2x_vec_t / gf2x_vsetvl from vlen_config.h.
  */
 static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
                                 const uint64_t * __restrict__ src,
@@ -54,9 +55,9 @@ static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
 {
     size_t n = n_words;
     while (n > 0) {
-        size_t vl = __riscv_vsetvl_e64m4(n);
-        vuint64m4_t v = __riscv_vle64_v_u64m4(src, vl);
-        __riscv_vse64_v_u64m4(dst, v, vl);
+        size_t vl = gf2x_vsetvl(n);
+        gf2x_vec_t v = gf2x_vle64(src, vl);
+        gf2x_vse64(dst, v, vl);
         src += vl;
         dst += vl;
         n   -= vl;
@@ -127,8 +128,8 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
      *   full scalar memset byte-loop (saves ~2n scalar instructions).
      */
     {
-        size_t vlz = __riscv_vsetvl_e64m4(n);
-        __riscv_vse64_v_u64m4(r + n, __riscv_vmv_v_x_u64m4(0, vlz), vlz);
+        size_t vlz = gf2x_vsetvl(n);
+        gf2x_vse64(r + n, gf2x_vmv_v_x(0, vlz), vlz);
     }
 
     /* ── i=0 peeled: lo uses direct store (r[0..n-1] uninitialised) ─── */
@@ -136,17 +137,17 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
         uint64_t a0 = a[0];
         size_t j = 0;
         while (j < n) {
-            size_t vl = __riscv_vsetvl_e64m4(n - j);
-            vuint64m4_t vb   = __riscv_vle64_v_u64m4(b + j, vl);
-            vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
-            vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
-            vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+            size_t vl = gf2x_vsetvl(n - j);
+            gf2x_vec_t vb   = gf2x_vle64(b + j, vl);
+            gf2x_vec_t va0  = gf2x_vmv_v_x(a0, vl);
+            gf2x_vec_t vlo0 = gf2x_vclmul_vv(va0, vb, vl);
+            gf2x_vec_t vhi0 = gf2x_vclmulh_vv(va0, vb, vl);
             /* lo: ASSIGN — r[j..j+vl-1] have not been written yet */
-            __riscv_vse64_v_u64m4(r + j, vlo0, vl);
+            gf2x_vse64(r + j, vlo0, vl);
             /* hi: load-XOR-store — r[j+1..j+vl-1] hold lo; r[j+vl] pre-zeroed */
-            vuint64m4_t vr = __riscv_vle64_v_u64m4(r + j + 1, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vhi0, vl);
-            __riscv_vse64_v_u64m4(r + j + 1, vr, vl);
+            gf2x_vec_t vr = gf2x_vle64(r + j + 1, vl);
+            vr = gf2x_vxor_vv(vr, vhi0, vl);
+            gf2x_vse64(r + j + 1, vr, vl);
             j += vl;
         }
     }
@@ -162,62 +163,62 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
 
         size_t j = 0;
         while (j < n) {
-            size_t vl = __riscv_vsetvl_e64m4(n - j);
+            size_t vl = gf2x_vsetvl(n - j);
 
-            vuint64m4_t vb = __riscv_vle64_v_u64m4(b + j, vl);
+            gf2x_vec_t vb = gf2x_vle64(b + j, vl);
 
             /* Strip 0: a[i] */
-            vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
-            vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
-            vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+            gf2x_vec_t va0  = gf2x_vmv_v_x(a0, vl);
+            gf2x_vec_t vlo0 = gf2x_vclmul_vv(va0, vb, vl);
+            gf2x_vec_t vhi0 = gf2x_vclmulh_vv(va0, vb, vl);
 
             /* Strip 1: a[i+1] */
-            vuint64m4_t va1  = __riscv_vmv_v_x_u64m4(a1, vl);
-            vuint64m4_t vlo1 = __riscv_vclmul_vv_u64m4(va1, vb, vl);
-            vuint64m4_t vhi1 = __riscv_vclmulh_vv_u64m4(va1, vb, vl);
+            gf2x_vec_t va1  = gf2x_vmv_v_x(a1, vl);
+            gf2x_vec_t vlo1 = gf2x_vclmul_vv(va1, vb, vl);
+            gf2x_vec_t vhi1 = gf2x_vclmulh_vv(va1, vb, vl);
 
             /* Strip 2: a[i+2] */
-            vuint64m4_t va2  = __riscv_vmv_v_x_u64m4(a2, vl);
-            vuint64m4_t vlo2 = __riscv_vclmul_vv_u64m4(va2, vb, vl);
-            vuint64m4_t vhi2 = __riscv_vclmulh_vv_u64m4(va2, vb, vl);
+            gf2x_vec_t va2  = gf2x_vmv_v_x(a2, vl);
+            gf2x_vec_t vlo2 = gf2x_vclmul_vv(va2, vb, vl);
+            gf2x_vec_t vhi2 = gf2x_vclmulh_vv(va2, vb, vl);
 
             /* Strip 3: a[i+3] */
-            vuint64m4_t va3  = __riscv_vmv_v_x_u64m4(a3, vl);
-            vuint64m4_t vlo3 = __riscv_vclmul_vv_u64m4(va3, vb, vl);
-            vuint64m4_t vhi3 = __riscv_vclmulh_vv_u64m4(va3, vb, vl);
+            gf2x_vec_t va3  = gf2x_vmv_v_x(a3, vl);
+            gf2x_vec_t vlo3 = gf2x_vclmul_vv(va3, vb, vl);
+            gf2x_vec_t vhi3 = gf2x_vclmulh_vv(va3, vb, vl);
 
             /* Accumulate strip 0 */
-            vuint64m4_t vr;
-            vr = __riscv_vle64_v_u64m4(r + (i + 0) + j, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vlo0, vl);
-            __riscv_vse64_v_u64m4(r + (i + 0) + j, vr, vl);
-            vr = __riscv_vle64_v_u64m4(r + (i + 0) + j + 1, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vhi0, vl);
-            __riscv_vse64_v_u64m4(r + (i + 0) + j + 1, vr, vl);
+            gf2x_vec_t vr;
+            vr = gf2x_vle64(r + (i + 0) + j, vl);
+            vr = gf2x_vxor_vv(vr, vlo0, vl);
+            gf2x_vse64(r + (i + 0) + j, vr, vl);
+            vr = gf2x_vle64(r + (i + 0) + j + 1, vl);
+            vr = gf2x_vxor_vv(vr, vhi0, vl);
+            gf2x_vse64(r + (i + 0) + j + 1, vr, vl);
 
             /* Accumulate strip 1 */
-            vr = __riscv_vle64_v_u64m4(r + (i + 1) + j, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vlo1, vl);
-            __riscv_vse64_v_u64m4(r + (i + 1) + j, vr, vl);
-            vr = __riscv_vle64_v_u64m4(r + (i + 1) + j + 1, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vhi1, vl);
-            __riscv_vse64_v_u64m4(r + (i + 1) + j + 1, vr, vl);
+            vr = gf2x_vle64(r + (i + 1) + j, vl);
+            vr = gf2x_vxor_vv(vr, vlo1, vl);
+            gf2x_vse64(r + (i + 1) + j, vr, vl);
+            vr = gf2x_vle64(r + (i + 1) + j + 1, vl);
+            vr = gf2x_vxor_vv(vr, vhi1, vl);
+            gf2x_vse64(r + (i + 1) + j + 1, vr, vl);
 
             /* Accumulate strip 2 */
-            vr = __riscv_vle64_v_u64m4(r + (i + 2) + j, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vlo2, vl);
-            __riscv_vse64_v_u64m4(r + (i + 2) + j, vr, vl);
-            vr = __riscv_vle64_v_u64m4(r + (i + 2) + j + 1, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vhi2, vl);
-            __riscv_vse64_v_u64m4(r + (i + 2) + j + 1, vr, vl);
+            vr = gf2x_vle64(r + (i + 2) + j, vl);
+            vr = gf2x_vxor_vv(vr, vlo2, vl);
+            gf2x_vse64(r + (i + 2) + j, vr, vl);
+            vr = gf2x_vle64(r + (i + 2) + j + 1, vl);
+            vr = gf2x_vxor_vv(vr, vhi2, vl);
+            gf2x_vse64(r + (i + 2) + j + 1, vr, vl);
 
             /* Accumulate strip 3 */
-            vr = __riscv_vle64_v_u64m4(r + (i + 3) + j, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vlo3, vl);
-            __riscv_vse64_v_u64m4(r + (i + 3) + j, vr, vl);
-            vr = __riscv_vle64_v_u64m4(r + (i + 3) + j + 1, vl);
-            vr = __riscv_vxor_vv_u64m4(vr, vhi3, vl);
-            __riscv_vse64_v_u64m4(r + (i + 3) + j + 1, vr, vl);
+            vr = gf2x_vle64(r + (i + 3) + j, vl);
+            vr = gf2x_vxor_vv(vr, vlo3, vl);
+            gf2x_vse64(r + (i + 3) + j, vr, vl);
+            vr = gf2x_vle64(r + (i + 3) + j + 1, vl);
+            vr = gf2x_vxor_vv(vr, vhi3, vl);
+            gf2x_vse64(r + (i + 3) + j + 1, vr, vl);
 
             j += vl;
         }
@@ -228,21 +229,21 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
         uint64_t ai = a[i];
         size_t j = 0;
         while (j < n) {
-            size_t vl = __riscv_vsetvl_e64m4(n - j);
+            size_t vl = gf2x_vsetvl(n - j);
 
-            vuint64m4_t vai = __riscv_vmv_v_x_u64m4(ai, vl);
-            vuint64m4_t vb  = __riscv_vle64_v_u64m4(b + j, vl);
+            gf2x_vec_t vai = gf2x_vmv_v_x(ai, vl);
+            gf2x_vec_t vb  = gf2x_vle64(b + j, vl);
 
-            vuint64m4_t vlo = __riscv_vclmul_vv_u64m4(vai, vb, vl);
-            vuint64m4_t vhi = __riscv_vclmulh_vv_u64m4(vai, vb, vl);
+            gf2x_vec_t vlo = gf2x_vclmul_vv(vai, vb, vl);
+            gf2x_vec_t vhi = gf2x_vclmulh_vv(vai, vb, vl);
 
-            vuint64m4_t vr0 = __riscv_vle64_v_u64m4(r + i + j, vl);
-            vr0 = __riscv_vxor_vv_u64m4(vr0, vlo, vl);
-            __riscv_vse64_v_u64m4(r + i + j, vr0, vl);
+            gf2x_vec_t vr0 = gf2x_vle64(r + i + j, vl);
+            vr0 = gf2x_vxor_vv(vr0, vlo, vl);
+            gf2x_vse64(r + i + j, vr0, vl);
 
-            vuint64m4_t vr1 = __riscv_vle64_v_u64m4(r + i + j + 1, vl);
-            vr1 = __riscv_vxor_vv_u64m4(vr1, vhi, vl);
-            __riscv_vse64_v_u64m4(r + i + j + 1, vr1, vl);
+            gf2x_vec_t vr1 = gf2x_vle64(r + i + j + 1, vl);
+            vr1 = gf2x_vxor_vv(vr1, vhi, vl);
+            gf2x_vse64(r + i + j + 1, vr1, vl);
 
             j += vl;
         }

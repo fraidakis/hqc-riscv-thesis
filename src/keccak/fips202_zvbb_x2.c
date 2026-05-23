@@ -130,15 +130,13 @@ static inline uint64_t rol1_zbb(uint64_t x)
  * keeps them in whichever groups are free or spills them to the vector
  * stack; either way the 4 × 24 = 96 repeated vle64.v instructions inside
  * the loop are eliminated, saving ~364 K instret per permutation call site.
- */
-static void KeccakF1600_StatePermute(uint64_t *state)
+*/
+ static void KeccakF1600_StatePermute(uint64_t *state)
 {
     size_t vl = __riscv_vsetvl_e64m8(25);
 
     vuint64m8_t v0 = __riscv_vle64_v_u64m8(state, vl);
 
-    /* ── Pre-load constant index tables (once per permutation call) ─────── *
-     * Eliminates 4 × 24 = 96 vle64.v instructions from the hot round loop. */
     vuint64m8_t idx_pi  = __riscv_vle64_v_u64m8(pi_src,      vl);
     vuint64m8_t idx_ror = __riscv_vle64_v_u64m8(ror_amounts,  vl);
     vuint64m8_t idx_x1  = __riscv_vle64_v_u64m8(chi_x1,       vl);
@@ -147,7 +145,7 @@ static void KeccakF1600_StatePermute(uint64_t *state)
 
     for (int round = 0; round < NROUNDS; round++) {
 
-        /* ── Theta: in-register parity extraction + diffusion ───────────── */
+        /* ── Theta ──────────────────────────────────────────────────────── */
         {
             size_t vl5 = __riscv_vsetvl_e64m8(5);
 
@@ -185,24 +183,23 @@ static void KeccakF1600_StatePermute(uint64_t *state)
             vl = __riscv_vsetvl_e64m8(25);
         }
 
-        /* ── Rho + Pi: vrgather (Pi) then vror (Rho) ────────────────────── */
+        /* ── Rho + Pi ───────────────────────────────────────────────────── */
         {
             vuint64m8_t t = __riscv_vrgather_vv_u64m8(v0, idx_pi, vl);
             v0 = __riscv_vror_vv_u64m8(t, idx_ror, vl);
         }
 
-        /* ── Chi: vrgather + vandn ──────────────────────────────────────── */
+        /* ── Chi ────────────────────────────────────────────────────────── */
         {
             vuint64m8_t vB = __riscv_vrgather_vv_u64m8(v0, idx_x1, vl);
             vuint64m8_t vC = __riscv_vrgather_vv_u64m8(v0, idx_x2, vl);
-            /* vandn(op1,op2)=op1&~op2, so vandn(vC,vB)=vC&~vB=~vB&vC=~A[x+1]&A[x+2] */
             v0 = __riscv_vxor_vv_u64m8(
                      v0,
                      __riscv_vandn_vv_u64m8(vC, vB, vl),
                      vl);
         }
 
-        /* ── Iota: XOR round constant into lane 0 only ──────────────────── */
+        /* ── Iota ───────────────────────────────────────────────────────── */
         {
             size_t vl1 = __riscv_vsetvl_e64m8(1);
             v0  = __riscv_vxor_vx_u64m8(v0, KeccakF_RoundConstants[round], vl1);
@@ -212,6 +209,9 @@ static void KeccakF1600_StatePermute(uint64_t *state)
 
     __riscv_vse64_v_u64m8(state, v0, vl);
 }
+
+
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Section 2 — Helper: load/store 64-bit words in little-endian order

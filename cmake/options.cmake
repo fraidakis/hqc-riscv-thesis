@@ -76,6 +76,22 @@ set(VLEN_LIST "256" CACHE STRING
     "VLEN values for vector-variant build matrix (semicolon-separated, e.g. 128;256;512)")
 message(STATUS "  VLEN matrix: ${VLEN_LIST}")
 
+# ── VLEN_LIST validation (P-02, Requirement 8.4) ─────────────────────────────
+# Each entry must be a power of two in the range [128, 2048].
+foreach(VLEN ${VLEN_LIST})
+    # Range check
+    if(VLEN LESS 128 OR VLEN GREATER 2048)
+        message(FATAL_ERROR
+            "Invalid VLEN value: ${VLEN}. Must be a power of two in [128, 2048].")
+    endif()
+    # Power-of-two check: VLEN & (VLEN - 1) == 0 for powers of two
+    math(EXPR _check "${VLEN} & (${VLEN} - 1)")
+    if(NOT _check EQUAL 0)
+        message(FATAL_ERROR
+            "Invalid VLEN value: ${VLEN}. Must be a power of two in [128, 2048].")
+    endif()
+endforeach()
+
 # Variants that participate in the per-VLEN matrix.  These are the polymul
 # strategies that contain RVV code whose performance is VLEN-sensitive.
 set(VECTOR_POLYMUL_VARIANTS karatsuba_zvbc karatsuba_rvv)
