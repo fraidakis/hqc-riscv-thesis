@@ -75,7 +75,7 @@ SINGLE_BENCH_TABLES = [
         "title": "`decode`",
         "subdir": ISOLATED / "decode",
         "baseline_file": "isolated_decode_ref_latest.csv",
-        "champion_file": "isolated_decode_opt_latest.csv",
+        "champion_file": "isolated_decode_zvbc_latest.csv",
         "op": "decode",
     },
 ]
@@ -113,6 +113,10 @@ def load_single_benchmark(
     base_dir: Path, baseline_file: str, champion_file: str
 ) -> tuple[dict[tuple[int, str], int], dict[tuple[int, str], int]]:
     """Load a reference/optimized CSV pair for an isolated benchmark."""
+    if not (base_dir / champion_file).exists() and champion_file == "isolated_decode_zvbc_latest.csv":
+        legacy = "isolated_decode_opt_latest.csv"
+        if (base_dir / legacy).exists():
+            champion_file = legacy
     return (
         read_csv(base_dir / baseline_file),
         read_csv(base_dir / champion_file),

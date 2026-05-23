@@ -3,6 +3,7 @@ docs/BASELINE.md
 docs/PROPOSALS.md
 prompts/
 repo_*.txt
+proposals/
 
 # Build outputs — hierarchical matrix lives under build/<sim>/<context>/
 build/
