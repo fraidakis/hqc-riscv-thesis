@@ -137,8 +137,23 @@ endif()
 # regardless; only the leaf decode functions change.
 if(HQC_DECODE_IMPL STREQUAL "rvv")
     # Phase 3a: RVV RM FHT decoder (reed_muller_rvv.c).
-    # Phase 3b+: Zvbc lane-packed GF(2^8) vectorisation for BM + Forney
-    #            (reed_solomon_zvbc.c — promoted from EXP-decode-rs-zvbc).
+    # Phase 3b baseline: RVV RS path with Axis A syndrome vectorisation only
+    #                   (reed_solomon_rvv.c).
+    set(DECODE_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
+    )
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    # reed_solomon_rvv.c still uses Zvbc for RS syndrome vclmul.vv (Axis A).
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
+    # Phase 3b+ promoted path: Zvbc vectorised BM + Forney RS implementation.
     set(DECODE_SOURCES
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
@@ -147,11 +162,9 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
-    # reed_solomon_zvbc.c uses Zvbc vclmul.vv — requires the full ISA string
-    # that includes Zvbc in addition to the base V extension.
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zbb_zvbc_zvbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon

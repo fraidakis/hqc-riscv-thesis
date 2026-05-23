@@ -1,7 +1,7 @@
-# date: 2026-05-21 15:48
-# commit: ea4572e
+# date: 2026-05-23 12:45
+# commit: e00a87a
 # Decode variant: ref
 level,op,instructions,codesize
-128,decode,384986,18204
-192,decode,562125,18910
-256,decode,1059605,26382
+128,decode,384986,18200
+192,decode,562125,18906
+256,decode,1059605,26410

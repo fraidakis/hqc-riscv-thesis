@@ -1,0 +1,7 @@
+# date: 2026-05-23 12:57
+# commit: e00a87a
+# Decode variant: rvv
+level,op,instructions,codesize
+128,decode,124324,15234
+192,decode,160027,16110
+256,decode,340618,23534

@@ -1,0 +1,7 @@
+# date: 2026-05-23 13:05
+# commit: e00a87a
+# Decode variant: zvbc
+level,op,instructions,codesize
+128,decode,88011,14420
+192,decode,119982,15600
+256,decode,204354,23964

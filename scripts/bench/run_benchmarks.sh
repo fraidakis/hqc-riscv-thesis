@@ -11,7 +11,7 @@
 #
 # Usage:
 #   run_benchmarks.sh [--mode <mul|kem|keccak|decode>] [--mul <variant>]
-#                     [--keccak <ref|opt>] [--decode <ref|opt>]
+#                     [--keccak <ref|opt>] [--decode <ref|rvv|zvbc|opt>]
 #   run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
 #                     [--mul <regex>] [--promote NAME]
 
@@ -46,7 +46,7 @@ usage() {
     cat <<'EOF'
 Usage:
     run_benchmarks.sh [--mode <mul|kem|keccak|decode>] [--mul <variant>]
-                      [--keccak <ref|opt>] [--decode <ref|opt>]
+                      [--keccak <ref|opt>] [--decode <ref|rvv|zvbc|opt>]
     run_benchmarks.sh --mode suite [--run-id ID] [--levels "128 192 256"]
                       [--mul <regex>] [--promote NAME]
 
@@ -293,7 +293,11 @@ run_single_mode() {
         variant_header="# Keccak variant: ${KECCAK_IMPL}"
     elif [[ "$MODE" == "decode" ]]; then
         local impl_flag="ref"
-        if [[ "$DECODE_IMPL" == "rvv" ]]; then impl_flag="opt"; fi
+        if [[ "$DECODE_IMPL" == "rvv" ]]; then
+            impl_flag="rvv"
+        elif [[ "$DECODE_IMPL" == "zvbc" || "$DECODE_IMPL" == "rs_zvbc_exp" ]]; then
+            impl_flag="zvbc"
+        fi
         csv="${out_dir}/isolated_decode_${impl_flag}_${BENCH_TIME}.csv"
         csv_latest="${out_dir}/isolated_decode_${impl_flag}_latest.csv"
         variant_header="# Decode variant: ${DECODE_IMPL}"

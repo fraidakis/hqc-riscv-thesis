@@ -24,10 +24,12 @@ set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
-# rvv : RVV-vectorised 128-pt FHT + vluxei8.v RS syndrome computation (Phase 3)
+# rvv : RVV-vectorised 128-pt FHT + baseline RS path (reed_solomon_rvv.c)
+# zvbc : RVV RM + promoted Zvbc RS path (reed_solomon_zvbc.c)
+# rs_zvbc_exp : legacy alias of zvbc (kept for backward compatibility)
 set(HQC_DECODE_IMPL "ref" CACHE STRING
-    "RM/RS decoder backend: ref (vendor scalar) | rvv (RVV vectorised, Phase 3)")
-set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv")
+    "RM/RS decoder backend: ref | rvv | zvbc")
+set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv" "zvbc")
 
 # ── Scalar ISA override (ablation experiments) ───────────────────────────────
 # Overrides the -march for scalar-only variants (ref_scalar, karatsuba_zbc).
@@ -45,6 +47,8 @@ if(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "ref")
     message(STATUS "  → Phase 1 build: polynomial multiplication head-to-head comparison")
 elseif(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "rvv")
     message(STATUS "  → Track B build: RVV polymul/decoder with scalar reference Keccak")
+elseif(HQC_KECCAK_IMPL STREQUAL "ref" AND (HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp"))
+    message(STATUS "  → Track B+ build: RVV polymul with Zvbc RS decode backend")
 elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     message(STATUS "  → Track C2 build: Zvbb 2-way SoA vector backend (fips202_zvbb_x2.c)")
 endif()
@@ -122,8 +126,9 @@ if(NOT HQC_KECCAK_IMPL STREQUAL "ref"         AND
 endif()
 if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND
    NOT HQC_DECODE_IMPL STREQUAL "rvv"         AND
+   NOT HQC_DECODE_IMPL STREQUAL "zvbc"        AND
    NOT HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
     message(FATAL_ERROR
-        "HQC_DECODE_IMPL must be one of: ref | rvv | rs_zvbc_exp, "
+    "HQC_DECODE_IMPL must be one of: ref | rvv | zvbc, "
         "got '${HQC_DECODE_IMPL}'")
 endif()
