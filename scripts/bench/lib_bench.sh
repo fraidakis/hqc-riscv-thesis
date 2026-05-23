@@ -134,6 +134,9 @@ bench_auto_configure_and_build() {
     local build_dir="$1" repo_root="$2" target="$3" sim_type="${4:-spike}" trace_mode="${5:-0}" tag="${6:-bench}"
     local _keccak="${KECCAK_IMPL:-ref}"
     local _decode="${DECODE_IMPL:-ref}"
+    local _scalar_march="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
+    local need_config=0
+    local config_reason=""
     local lock_fd=""
 
     mkdir -p "$build_dir"
@@ -143,21 +146,38 @@ bench_auto_configure_and_build() {
     fi
 
     if [[ ! -f "${build_dir}/CMakeCache.txt" ]]; then
-        echo " ├── ⚙️  Auto-configuring missing build dir: ${build_dir}..."
-        # Construct the cmake command based on sim_type and trace_mode.
+        need_config=1
+        config_reason="missing build dir"
+    else
+        local cache_file="${build_dir}/CMakeCache.txt"
+        local cached_keccak cached_decode cached_scalar
+        cached_keccak="$(awk -F'=' '/^HQC_KECCAK_IMPL:STRING=/{print $2; exit}' "$cache_file")"
+        cached_decode="$(awk -F'=' '/^HQC_DECODE_IMPL:STRING=/{print $2; exit}' "$cache_file")"
+        cached_scalar="$(awk -F'=' '/^HQC_SCALAR_MARCH:STRING=/{print $2; exit}' "$cache_file")"
+
+        if [[ -z "$cached_keccak" || -z "$cached_decode" || -z "$cached_scalar" ]]; then
+            need_config=1
+            config_reason="incomplete cache"
+        elif [[ "$cached_keccak" != "$_keccak" || "$cached_decode" != "$_decode" || "$cached_scalar" != "$_scalar_march" ]]; then
+            need_config=1
+            config_reason="cache mismatch"
+        fi
+    fi
+
+    if [[ "$need_config" -eq 1 ]]; then
+        echo " ├── ⚙️  Auto-configuring ${config_reason}: ${build_dir}..."
         local cmake_cmd="cmake -S \"$repo_root\" -B \"$build_dir\" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DHQC_SIM=${sim_type} \
         -DHQC_KECCAK_IMPL=${_keccak} \
-        -DHQC_DECODE_IMPL=${_decode}"
+        -DHQC_DECODE_IMPL=${_decode} \
+        -DHQC_SCALAR_MARCH=${_scalar_march}"
 
-        # Add trace mode flag if needed.
         if [[ "$trace_mode" == "1" ]]; then
             cmake_cmd="${cmake_cmd} -DHQC_TRACE_MODE=1"
         fi
 
-        # Execute cmake configuration.
         if ! eval "$cmake_cmd" >/dev/null 2>&1; then
             if [[ -n "$lock_fd" ]]; then
                 eval "exec ${lock_fd}>&-"
