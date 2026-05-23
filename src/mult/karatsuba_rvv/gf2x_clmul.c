@@ -91,6 +91,28 @@ static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
     }
 }
 
+/* rvv_xor_u64: dst[i] = src1[i] ^ src2[i] for n_words elements.
+ *   Used for the ta/tb preparation in Karatsuba split.
+ *   LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
+ */
+static inline void rvv_xor_u64(uint64_t * __restrict__ dst,
+                                const uint64_t * __restrict__ src1,
+                                const uint64_t * __restrict__ src2,
+                                size_t n_words)
+{
+    size_t n = n_words;
+    while (n > 0) {
+        size_t vl = __riscv_vsetvl_e64m4(n);
+        vuint64m4_t v1 = __riscv_vle64_v_u64m4(src1, vl);
+        vuint64m4_t v2 = __riscv_vle64_v_u64m4(src2, vl);
+        __riscv_vse64_v_u64m4(dst, __riscv_vxor_vv_u64m4(v1, v2, vl), vl);
+        src1 += vl;
+        src2 += vl;
+        dst  += vl;
+        n    -= vl;
+    }
+}
+
 /* rvv_xor3_u64: Compute dst[i] ^= src0[i] ^ src1[i] ^ src2[i] using LMUL=m2.
  *   Used for the middle XOR accumulation loop (Loop 3) in Karatsuba assembly.
  *   LMUL=m2 allows loading three source groups (m2 each = 6 registers) plus

@@ -63,37 +63,59 @@ static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
     }
 }
 
-/* rvv_xor3_u64: dst[i] ^= zmid[i] ^ (z0 ? z0[i] : 0) ^ z2[i].
- * Used for Loop 3A (src_z0 != NULL) and Loop 3B (src_z0 == NULL, odd n).
- * LMUL=m2 accommodates four register groups (dst, zmid, z0, z2) within
- * the 32-register file.  At VLEN=256: 8 uint64_t per iteration.
+/* rvv_xor_u64: dst[i] = src1[i] ^ src2[i] for n_words elements.
+ * Used for the ta/tb preparation in Karatsuba split:
+ *   ta[0..n1-1] = a[0..n1-1] ^ a[n0..n0+n1-1]
+ * LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
+ */
+static inline void rvv_xor_u64(uint64_t * __restrict__ dst,
+                               const uint64_t * __restrict__ src1,
+                               const uint64_t * __restrict__ src2,
+                               size_t n_words)
+{
+    size_t n = n_words;
+    while (n > 0) {
+        size_t vl = __riscv_vsetvl_e64m4(n);
+        vuint64m4_t v1 = __riscv_vle64_v_u64m4(src1, vl);
+        vuint64m4_t v2 = __riscv_vle64_v_u64m4(src2, vl);
+        __riscv_vse64_v_u64m4(dst, __riscv_vxor_vv_u64m4(v1, v2, vl), vl);
+        src1 += vl;
+        src2 += vl;
+        dst  += vl;
+        n    -= vl;
+    }
+}
+
+/* rvv_xor3_u64: dst[i] ^= zmid[i] ^ (z0 ? z0[i] : 0) ^ (z2 ? z2[i] : 0).
+ * Used for Loop 3A (both non-NULL) and Loop 3B (z2 == NULL, odd n tail).
+ * LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
  */
 static inline void rvv_xor3_u64(uint64_t       * __restrict__ dst,
                                 const uint64_t * __restrict__ src_zmid,
                                 const uint64_t * __restrict__ src_z0,   /* NULL → 0 */
-                                const uint64_t * __restrict__ src_z2,
+                                const uint64_t * __restrict__ src_z2,   /* NULL → 0 */
                                 size_t n_words)
 {
     size_t n = n_words;
     while (n > 0) {
-        size_t vl = __riscv_vsetvl_e64m2(n);
-        vuint64m2_t vdst = __riscv_vle64_v_u64m2(dst,      vl);
-        vuint64m2_t vmid = __riscv_vle64_v_u64m2(src_zmid, vl);
-        vuint64m2_t vz2  = __riscv_vle64_v_u64m2(src_z2,   vl);
-        vuint64m2_t acc;
+        size_t vl = __riscv_vsetvl_e64m4(n);
+        vuint64m4_t vdst = __riscv_vle64_v_u64m4(dst,      vl);
+        vuint64m4_t vmid = __riscv_vle64_v_u64m4(src_zmid, vl);
+        vuint64m4_t acc = vmid;
         if (src_z0 != (const uint64_t *)0) {
-            vuint64m2_t vz0 = __riscv_vle64_v_u64m2(src_z0, vl);
-            acc = __riscv_vxor_vv_u64m2(vmid, vz0, vl);
-        } else {
-            acc = vmid;
+            vuint64m4_t vz0 = __riscv_vle64_v_u64m4(src_z0, vl);
+            acc = __riscv_vxor_vv_u64m4(acc, vz0, vl);
         }
-        acc  = __riscv_vxor_vv_u64m2(acc,  vz2,  vl);
-        vdst = __riscv_vxor_vv_u64m2(vdst, acc,  vl);
-        __riscv_vse64_v_u64m2(dst, vdst, vl);
+        if (src_z2 != (const uint64_t *)0) {
+            vuint64m4_t vz2 = __riscv_vle64_v_u64m4(src_z2, vl);
+            acc = __riscv_vxor_vv_u64m4(acc, vz2, vl);
+        }
+        vdst = __riscv_vxor_vv_u64m4(vdst, acc,  vl);
+        __riscv_vse64_v_u64m4(dst, vdst, vl);
         dst      += vl;
         src_zmid += vl;
         if (src_z0 != (const uint64_t *)0) src_z0 += vl;
-        src_z2   += vl;
+        if (src_z2 != (const uint64_t *)0) src_z2 += vl;
         n        -= vl;
     }
 }
@@ -127,8 +149,14 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
      *   full scalar memset byte-loop (saves ~2n scalar instructions).
      */
     {
-        size_t vlz = __riscv_vsetvl_e64m4(n);
-        __riscv_vse64_v_u64m4(r + n, __riscv_vmv_v_x_u64m4(0, vlz), vlz);
+        size_t rem = n;
+        uint64_t *dst = r + n;
+        while (rem > 0) {
+            size_t vlz = __riscv_vsetvl_e64m4(rem);
+            __riscv_vse64_v_u64m4(dst, __riscv_vmv_v_x_u64m4(0, vlz), vlz);
+            dst += vlz;
+            rem -= vlz;
+        }
     }
 
     /* ── i=0 peeled: lo uses direct store (r[0..n-1] uninitialised) ─── */

@@ -28,6 +28,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ── CTest ─────────────────────────────────────────────────────────────────────
 enable_testing()
 
+# ── Python interpreter (used by code generators) ─────────────────────────────
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
 # ── Global include paths ──────────────────────────────────────────────────────
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
@@ -508,6 +511,31 @@ foreach(LEVEL ${SECURITY_LEVELS})
         #   cmake --build build --target vlen_matrix_hqc${LEVEL}
         if(POLYMUL IN_LIST VECTOR_POLYMUL_VARIANTS)
             foreach(VLEN ${VLEN_LIST})
+                # ── Per-VLEN Karatsuba threshold (karatsuba_zvbc) ──
+                if(POLYMUL STREQUAL "karatsuba_zvbc")
+                    set(KARATSUBA_THRESHOLD 16)
+
+                    # ── Per-VLEN header generation ─────────────────────────────
+                    set(VLEN_GEN_DIR "${CMAKE_BINARY_DIR}/generated/vlen${VLEN}")
+                    set(VLEN_GEN_HEADER "${VLEN_GEN_DIR}/karatsuba_zvbc_specialized_gen.h")
+
+                    if(NOT TARGET gen_karatsuba_vlen${VLEN})
+                        add_custom_command(
+                            OUTPUT ${VLEN_GEN_HEADER}
+                            COMMAND ${Python3_EXECUTABLE}
+                                    ${CMAKE_SOURCE_DIR}/scripts/gen/gen_karatsuba_specialized.py
+                                    --mode zvbc
+                                    --threshold ${KARATSUBA_THRESHOLD}
+                                    --output ${VLEN_GEN_HEADER}
+                            DEPENDS ${CMAKE_SOURCE_DIR}/scripts/gen/gen_karatsuba_specialized.py
+                            COMMENT "Generating Karatsuba tree for VLEN=${VLEN} (threshold=${KARATSUBA_THRESHOLD})"
+                        )
+                        add_custom_target(gen_karatsuba_vlen${VLEN}
+                            DEPENDS ${VLEN_GEN_HEADER}
+                        )
+                    endif()
+                endif()
+
                 set(VLEN_BENCH_TARGET "bench_polymul_hqc${LEVEL}_${POLYMUL}_vlen${VLEN}")
 
                 add_executable(${VLEN_BENCH_TARGET} EXCLUDE_FROM_ALL
@@ -540,6 +568,9 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 )
                 if(POLYMUL STREQUAL "karatsuba_zvbc")
                     target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
+                    target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE ${VLEN_GEN_DIR})
+                    target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE KARATSUBA_THRESHOLD=${KARATSUBA_THRESHOLD})
+                    add_dependencies(${VLEN_BENCH_TARGET} gen_karatsuba_vlen${VLEN})
                 endif()
                 set_target_properties(${VLEN_BENCH_TARGET} PROPERTIES
                     SUFFIX ".elf"
