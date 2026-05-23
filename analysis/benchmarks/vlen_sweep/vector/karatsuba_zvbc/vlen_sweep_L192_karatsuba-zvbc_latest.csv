@@ -1,21 +1,21 @@
-# date: 2026-05-19 16:42
-# commit: 1db6bfa
+# date: 2026-05-23 16:13
+# commit: 90416b7
 # variant: karatsuba_zvbc
 # level: 192
 op,vlen,instructions
-keypair,256,455663
-keypair,512,459244
-keypair,1024,490056
-keypair,2048,543033
-encaps,256,981947
-encaps,512,986887
-encaps,1024,1057928
-encaps,2048,1179730
-decaps,256,2196365
-decaps,512,2196610
-decaps,1024,2560085
-decaps,2048,2719049
-total,256,3633975
-total,512,3642741
-total,1024,4108069
-total,2048,4441812
+keypair,256,297157
+keypair,512,292387
+keypair,1024,309824
+keypair,2048,331115
+encaps,256,612347
+encaps,512,602420
+encaps,1024,637587
+encaps,2048,677420
+decaps,256,1066967
+decaps,512,1050414
+decaps,1024,1104369
+decaps,2048,1168172
+total,256,1976471
+total,512,1945221
+total,1024,2051780
+total,2048,2176707

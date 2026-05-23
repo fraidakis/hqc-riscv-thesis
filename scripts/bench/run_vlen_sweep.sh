@@ -154,25 +154,6 @@ for variant in "${VARIANTS[@]}"; do
     local_decode="$DECODE_IMPL"
     variant_slug="${variant//_/-}"
 
-    # Full-KEM VLEN sweep should isolate polymul scaling. The RVV decoder path
-    # currently hangs for VLEN > 256 on this benchmark flow, so pin decode to ref.
-    if [[ "$local_decode" == "rvv" ]]; then
-        local_decode="ref"
-    fi
-
-    BUILD_DIR="${REPO_ROOT}/build/spike/bench_k${local_keccak}_d${local_decode}"
-
-    # Ensure this build dir exposes the full requested VLEN target matrix.
-    if ! cmake -S "$REPO_ROOT" -B "$BUILD_DIR" \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DHQC_SIM=spike \
-            -DHQC_KECCAK_IMPL="$local_keccak" \
-            -DHQC_DECODE_IMPL="$local_decode" \
-            -DVLEN_LIST="$VLEN_LIST_CMAKE" >/dev/null 2>&1; then
-        echo "[vlen_sweep] AUTO-CONFIG FAIL ${BUILD_DIR}" >&2
-        continue
-    fi
 
     for level in "${selected_levels[@]}"; do
         out_dir="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${variant}"
@@ -194,23 +175,33 @@ for variant in "${VARIANTS[@]}"; do
         echo ""
         echo "📦 ${variant} (HQC-${level})"
 
-        target="bench_hqc${level}_${variant}"
-        elf="${BUILD_DIR}/${target}.elf"
-
-        # Build the full KEM bench ELF once per (variant, level).
-        if ! bench_auto_configure_and_build \
-                "$BUILD_DIR" "$REPO_ROOT" "$target" "spike" "0" "vlen_sweep"; then
-            echo "    [HQC-${level}] SKIP (build failed for ${target})"
-            continue
-        fi
-
-        if [[ ! -f "$elf" ]]; then
-            echo "    [HQC-${level}] SKIP (ELF missing after build for ${target})"
-            continue
-        fi
-
         for i in "${!VLENS[@]}"; do
             vlen="${VLENS[$i]}"
+
+            # Each VLEN needs its own build dir compiled with -mrvv-vector-bits=<vlen>.
+            # This ensures RVV sources (keccak, decoder, polymul) are all generated
+            # for the correct register width, preserving the canonical pairings.
+            BUILD_DIR="${REPO_ROOT}/build/spike/bench_k${local_keccak}_d${local_decode}_vlen${vlen}"
+
+            # Export HQC_VECTOR_BITS so bench_auto_configure_and_build picks it up.
+            HQC_VECTOR_BITS="${vlen}"
+            export HQC_VECTOR_BITS
+
+            target="bench_hqc${level}_${variant}"
+            elf="${BUILD_DIR}/${target}.elf"
+
+            # Configure + build (auto-reconfigures if vlen changed).
+            if ! bench_auto_configure_and_build \
+                    "$BUILD_DIR" "$REPO_ROOT" "$target" "spike" "0" "vlen_sweep"; then
+                echo "    [HQC-${level}] SKIP (build failed for ${target} VLEN=${vlen})"
+                continue
+            fi
+
+            if [[ ! -f "$elf" ]]; then
+                printf " %s VLEN=%4s ⋯ SKIP (ELF missing)\n" \
+                    "${branch}" "${vlen}"
+                continue
+            fi
 
             # ISA must include the zvl constraint matching the VLEN being tested.
             isa="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl${vlen}b_zicntr_zihpm"

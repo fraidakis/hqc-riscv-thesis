@@ -53,6 +53,17 @@ elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
     message(STATUS "  → Track C2 build: Zvbb 2-way SoA vector backend (fips202_zvbb_x2.c)")
 endif()
 
+# ── RVV vector-bits assumption ────────────────────────────────────────────────
+# HQC_VECTOR_BITS controls the -mrvv-vector-bits=N Clang flag applied to all
+# RVV-compiled sources (Keccak zvbb_x2_soa, decode rvv/zvbc).
+# Default is 256 (matches the reference hardware VLEN and the full-KEM build).
+# The VLEN sweep sets this to the target VLEN per build dir so the same
+# pairings (karatsuba_rvv+ref+rvv, karatsuba_zvbc+zvbb+zvbc) produce correct
+# results at every VLEN without sacrificing performance at VLEN=256.
+set(HQC_VECTOR_BITS "256" CACHE STRING
+    "RVV vector register width assumed by -mrvv-vector-bits= (default: 256)")
+message(STATUS "  HQC_VECTOR_BITS: ${HQC_VECTOR_BITS}")
+
 # ── Multi-VLEN build matrix (P-02) ───────────────────────────────────────────
 # VLEN_LIST: semicolon-separated VLEN values for which vector-variant bench
 # targets are generated.  Each entry produces a distinct ELF compiled with

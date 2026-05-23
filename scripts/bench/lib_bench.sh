@@ -137,6 +137,7 @@ bench_auto_configure_and_build() {
     local _keccak="${KECCAK_IMPL:-ref}"
     local _decode="${DECODE_IMPL:-ref}"
     local _scalar_march="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
+    local _vector_bits="${HQC_VECTOR_BITS:-256}"
     local need_config=0
     local config_reason=""
     local lock_fd=""
@@ -152,15 +153,17 @@ bench_auto_configure_and_build() {
         config_reason="missing build dir"
     else
         local cache_file="${build_dir}/CMakeCache.txt"
-        local cached_keccak cached_decode cached_scalar
+        local cached_keccak cached_decode cached_scalar cached_vbits
         cached_keccak="$(awk -F'=' '/^HQC_KECCAK_IMPL:STRING=/{print $2; exit}' "$cache_file")"
         cached_decode="$(awk -F'=' '/^HQC_DECODE_IMPL:STRING=/{print $2; exit}' "$cache_file")"
         cached_scalar="$(awk -F'=' '/^HQC_SCALAR_MARCH:STRING=/{print $2; exit}' "$cache_file")"
+        cached_vbits="$(awk -F'=' '/^HQC_VECTOR_BITS:STRING=/{print $2; exit}' "$cache_file")"
+        cached_vbits="${cached_vbits:-256}"
 
         if [[ -z "$cached_keccak" || -z "$cached_decode" || -z "$cached_scalar" ]]; then
             need_config=1
             config_reason="incomplete cache"
-        elif [[ "$cached_keccak" != "$_keccak" || "$cached_decode" != "$_decode" || "$cached_scalar" != "$_scalar_march" ]]; then
+        elif [[ "$cached_keccak" != "$_keccak" || "$cached_decode" != "$_decode" || "$cached_scalar" != "$_scalar_march" || "$cached_vbits" != "$_vector_bits" ]]; then
             need_config=1
             config_reason="cache mismatch"
         fi
@@ -174,7 +177,8 @@ bench_auto_configure_and_build() {
         -DHQC_SIM=${sim_type} \
         -DHQC_KECCAK_IMPL=${_keccak} \
         -DHQC_DECODE_IMPL=${_decode} \
-        -DHQC_SCALAR_MARCH=${_scalar_march}"
+        -DHQC_SCALAR_MARCH=${_scalar_march} \
+        -DHQC_VECTOR_BITS=${_vector_bits}"
 
         if [[ "$trace_mode" == "1" ]]; then
             cmake_cmd="${cmake_cmd} -DHQC_TRACE_MODE=1"

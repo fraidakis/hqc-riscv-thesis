@@ -123,7 +123,8 @@ if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+                   COMPILE_DEFINITIONS "HQC_VECTOR_BITS=${HQC_VECTOR_BITS}"
     )
     set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
@@ -145,12 +146,12 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
     # reed_solomon_rvv.c still uses Zvbc for RS syndrome vclmul.vv (Axis A).
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
     # Phase 3b+ promoted path: Zvbc vectorised BM + Forney RS implementation.
@@ -160,11 +161,11 @@ elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp"
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=256>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon

@@ -543,8 +543,9 @@ void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen)
         output[i] = t[i];
 }
 
-/* Clang requires fixed-width RVV aliases for arrays of vector values. */
-typedef vuint64m1_t vu64m1_fixed_t __attribute__((riscv_rvv_vector_bits(256)));
+/* Clang requires fixed-width RVV aliases for arrays of vector values.
+ * HQC_VECTOR_BITS is injected by CMake as -DHQC_VECTOR_BITS=N */
+typedef vuint64m1_t vu64m1_fixed_t __attribute__((riscv_rvv_vector_bits(HQC_VECTOR_BITS)));
 
 static inline size_t keccak_x2_setvl(void)
 {
