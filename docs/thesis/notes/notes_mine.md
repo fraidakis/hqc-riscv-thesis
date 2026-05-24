@@ -1,4 +1,5 @@
 - Διαθεσιμοτητα του καθε extension? eg zvbc and Zvbb? 
+- Zbb, V, Zvbb part of the RVA23 standard!
 
 ---
 

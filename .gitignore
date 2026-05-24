@@ -4,6 +4,7 @@ docs/PROPOSALS.md
 prompts/
 repo_*.txt
 proposals/
+.kiro/*
 
 # Build outputs — hierarchical matrix lives under build/<sim>/<context>/
 build/

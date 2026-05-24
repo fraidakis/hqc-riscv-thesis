@@ -1,0 +1,30 @@
+﻿Migration σε PQCs πρεπει να γινει αμεσα λογω "Harvest/Store now - Decrypt later". Αποθηκευουν τα δεδομενα τωρα, πριν κρυποτφραφηθούν με PQC, ώστε όταν υλοποιηθεί quantum computing που θα μπορεί να τα αποκρυπτογραφίσει να το κάνουν στα ήδη αποθηκευμένα με παλία πρότυπα. 
+
+Crypto agility σημαντικο → να μπορούμε να αλλάξουμε τον αλγόριθμο κρυπτογράφισης σχετικά εύκολα και χωρίς να δημιουργηθούν προβλήματα
+
+The United States National Security Agency (NSA) has mandated through the Commercial National Security Algorithm Suite 2.0 (CNSA 2.0) that all National Security Systems transition to pure post-quantum algorithms by 2035, accelerating the urgency for highly optimized implementations across all computing domains
+
+While the highest absolute performance metrics and extreme energy efficiencies are typically achieved through dedicated hardware accelerators or tightly coupled domain-specific coprocessors , pure software implementations retain distinct, overriding advantages. Software implementations ensure vital crypto-agility, allowing deployed systems to be updated seamlessly as standards evolve, parameter sets are tweaked, or newly discovered algorithmic vulnerabilities require immediate patching. Furthermore, relying on standardized ISA extensions rather than custom hardware ensures that cryptographic libraries can be compiled and executed uniformly across a heterogeneous landscape of RISC-V devices, from highly constrained embedded microcontrollers to high-performance data center processors.
+
+Lattice based: αντί παραδοσιακό αλγεβρικό πρόβλημα → γεωμετρικό  με πλέγματα. Όσο μεγαλύτερη η διάσταση πχ (2D, 3D, ...) τόσο πιο ασφαλές. Minimal computational resources compared to the other 2 methods and smaller key sizes. Παραδείγματα αποτελούν τα: ML-DSA (DiLithium) και ML-KEM (Kyber).
+
+2016 NIST συκγεντρωσε 82 προτεινομενους αλγοριθμους. Απ αυτους κρατησαν 7 (+8 εναλλακτικους που θελουν λιγες τροποποιησεις ακομη, συνολο 15). 
+2023 επιλεχθηκαν 3+1 για standariazation.
+2024 standarized: ML-KEM (Kyber -καιμπερ | Signatures: ML-DSA (DiLithium) | SLH-DSA, Stateless hash based (SPHINCS+) | +Falcon υπο επεξεργασία για standardize
+SPHINCS+ → Digital signature. 2 variants for hashing : SHA2, SHAKE. Εχει 6 set parameters , 3 για perfromance (πχ 128f) και 3 για small signature size (πχ 128s)
+Falcon → Digital signature βάση Lattice, βασίζεται στo Short Integer Solution over NTRU. Δημιουργεί τις πιο μικρές υπογραφές σε μέγεθος και απαιτεί πολύ λιγη μνήμη να τρέξει και γρήγορη εκτέλεση. 2 set parameters: Level 1 security και Level 5
+The Fundamental Problems with Custom Hardware Solutions
+Problem 1 - Crypto Agility is Destroyed
+This is the most critical argument for software. Consider what happened historically:
+* AES accelerators were baked into silicon (AES-NI on x86, for example)
+* When AES modes like CBC were found vulnerable to padding oracle attacks, software could switch to GCM overnight - the hardware couldn't adapt
+* If a mathematical break is found in ML-KEM tomorrow (which has happened to NIST candidates before - see SIKE, broken in 2022 by a classical computer attack), a hardware accelerator becomes instantly worthless silicon
+* A software implementation is patched, recompiled, and deployed
+Problem 2 - SIKE is the Perfect Horror Story
+SIKE (Supersingular Isogeny Key Encapsulation) was a NIST Round 4 candidate. Organizations had already started building custom FPGA accelerators for it. In July 2022, it was completely broken by a classical algorithm running on a single laptop in under an hour. Every hardware investment became waste overnight. Software implementations were simply removed from repositories.
+
+Problem 5 - RISC-V's Own Philosophy Supports Software
+RISC-V was designed with the explicit philosophy that ISA extensions replace the need for fixed-function accelerators. The fact that RISC-V ratified Zvkned (vector AES), Zknh (SHA-2), Zvkb (vector bitmanip for crypto) is the architecture community saying: "use the ISA, not custom silicon." A pure software implementation targeting these standard extensions is exactly the intended use model.
+
+Hardware accelerators maximize performance at the cost of agility; pure software implementations on standard ISA extensions represent the only path to cryptographic agility in a post-quantum transition where algorithm stability cannot be assumed.
+

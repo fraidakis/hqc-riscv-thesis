@@ -1,0 +1,320 @@
+﻿CRYSTALS
+
+Profiling
+
+Kyber → 60% Keccak | 25% NTT | 10% polynomial multiply  | 5% rest
+DiLithium → 20% Keccak | 50% NTT | 12%  polynomial multiply | 20% rest
+
+
+ECO-CRYSTALS (25/07/2024)
+Επιταχύνει CRYSTALS (Kyber & Dilithium) χρησιμοποιώντας RV64IMB → Bit manipulation
+Speedup ×2.5 Keccak, ×5 σε NTT και ×2 για matrix mult. 
+End to end: ×2.5 για Kyber και ×2.2 για Dilithium. 
+Απόδοση ×9 σε σχέση με [Kyber_RV32IM], the most high-performing 32bit RISC-V ISA implementation of Kyber currently available. Large speed-ups because their platform is a 32-bit single-issue RISC-V platform.
+
+
+RV{32+64}IMB+RVV (30/09/2024)
+
+Keccak με RVV & Bit-manipulation ×4 σε 32-bit και ×3 σε 64-bit
+NTT: για Kyber ×4 ενώ Dilithium NTT ×2
+
+Kyber768 (extension IM vs IM+BV)
+32bit: ×3 χωρίς RVV και ×5 με RVV
+64bit: ×3.5 χωρίς RVV και ×5.5 με RVV
+
+Dilithium3
+32bit: ×2.5 χωρίς RVV και ×4.5 με RVV
+64bit: ×2.5 χωρίς RVV και ×4 με RVV
+
+Document “Thesis” found that while the Banana Pi F3 board has a 256-bit vector length (VLEN) that should make it incredibly fast, it performed very similarly to the slower K230 board. This is because the optimized code from Document 1 was hardcoded specifically for a 128-bit VLEN, meaning it could not take full advantage of the Banana Pi's superior hardware.
+
+• Δεν βρήκα paper να χρησιμοποιεί Vector Cryptography Extensions (Zvkb). Θα έδινε επιπλέον περίπου ×1.5 για Keccak. Μπορω να το μελετησω!
+
+FALCON
+
+Vectorized Falcon-Sign using ... RVV (published 01/26)
+Από τον ίδιο συγγραφέα με CRYSTALS RVV (J. Zhang)
+Optimizes FFT-related (40% of the time) and BaseSampler (30%). 
+The remaining 20% is Keccak which has already been optimized in CRYSTALS paper.
+FFT → ×3 χωρίς RVV και ×4.5 με RVV
+BaseSampler → ×2 με RVV
+
+End to end ×1.6 speedup for Sign.
+
+Δεν εξετάστηκε Verify που είναι το πιο κοινως χρησιμοποιουμενο στην πραξη. Αλλα είναι και τουλαχιστον 60 φορες πιο γρηγορο από sign και 100 φορές από το Key-gen (σπάνιο).
+
+
+SPHINCS+
+
+
+SPHINCS+ : over 90% for hashing Keccak/SHA-2 → bottlenck για RVV.
+
+Stateless Hash-Based Digital Signature.  Already standardized by NIST.
+Hash-based digital signature algorithms are seen by the international cryptographic community as the most conservative choice in terms of security. 
+They are not the best choice in terms of performance or dimensions of public keys/signatures.
+Cryptographic hash function is a function f:{0,1}^\ast\rightarrow{0,1}^n that can map arbitrary long strings in strings of fixed length
+Hash-based signature schemes rely entirely on the security of a cryptographic hash function (like SHA-256 or SHAKE256) used inside the algorithm, rather than the difficulty of factoring primes (like RSA) or solving discrete logarithms (like ECC), which quantum computers will easily break. So, they could be attacked if it were possible to compromise the security of the hash function used to define it, but in that case an attacker could also compromise every other scheme that uses the same hash function.
+The term stateful identifies the need for keeping track of all signatures performed starting from the same private key. Indeed, the reuse of certain signature parameters for different messages can be catastrophic. Therefore, the NIST standardization process is focused on stateless solutions, which do not require tracking the performed signatures.
+Best video: Από την αρχή έως λεπτό 14:00 
+Algorithm Explanation
+WOTS+
+Winternitz One-Time Signature Plus (WOTS+) is the first building block in the SPHINCS+ design.
+A "one-time signature" means that a private key can only be used to sign a single message securely. If you sign two different messages with the same private key, an attacker can combine the information from both signatures to forge new ones.
+The number of times you can hash is determined by the Winternitz parameter, $w$ (usually 16 or 256). If $w = 16$, each hash chain signs log2(16) = 4 bits of the message at a time, significantly shrinking the key and signature sizes compared to Lamport.
+The number of times a chunk is hashed is determined by the numeric value of the message being signed.
+Because hash functions are "one-way" (easy to compute forward, practically impossible to reverse), anyone can verify the signature by hashing it further to reach the public key, but an attacker cannot reverse the signature to find the private key.
+
+Let n be the byte length of the message \mathrm{msg} to be signed and let w be a positive integer number, w is called Winternitz parameter. \mathrm{msg} is split into lg_w:={\log\funcapply}_2w bit blocks:
+
+The public key pk is obtained from secret key (sk) and a hash function \mathrm{H} through the below-described chains:
+
+It’s easy to “unroll” these chains from the left side to the right side. Indeed, given a chain element, it’s enough to repeatedly apply the hash function to obtain other elements to its right. On the other hand, moving to the left is impractical due to the hash function “pre-image resistance” property. WOTS+ usability and security are based on this asymmetry.
+
+
+XMSS (eXtended Merkle Signature Scheme)
+Consist of binary trees, named Merkle trees. 
+Given a certain hash function \mathrm{H}, each Merkle tree node is obtained by computing the hash value of the two nodes (the children) at the lower level. Therefore, the Merkle tree is completely determined by its leaves.
+
+It is "Stateful". There is one major quirk with XMSS: you can only use each leaf once. If your tree has 1,000 leaves, you can sign exactly 1,000 messages.
+
+Phase 1: Key Generation (Building the Tree)
+1. Creating the Secrets: Your computer generates thousands of distinct, random, one-time-use private keys. In XMSS, these are called WOTS+ keys. These are the bottom layer — the leaves.
+2. Hashing Upward: You don't want to share all those private keys with the world, so you run them through your hash function. You hash leaf A and leaf B together to make a branch. You hash leaf C and D together to make another etc
+3. The Root: You keep hashing upward until you are left with just one single hash at the very top. This is the XMSS Public Key. You publish this Root to the world.
+
+• The Secret (Private Key): Generated randomly and kept securely on your computer. It is never placed in the tree and never sent to anyone.
+• The Leaf (WOTS+ Public Key): Created by running the Private Key through a hash function a strict, maximum number of times (for example, 15 times). This final output is the Leaf at the bottom of tree. Public key for the specific message
+• The Tree & Root: The rest of the tree is built by hashing the Leaves together into branches, moving upward until you get one final hash at the very top: the Root. Public key for you as a person/system. The entire tree, including the Root (your master Public Key), is completely public.
+
+Phase 2: Signing a Message (The Path)
+Now, you want to send a secure message (like "Transfer $100") and prove you wrote it.
+1. Grab a Leaf: You take the very first unused WOTS+ private key (Leaf A) from your tree and use it to mathematically scramble your message. This creates the actual signature. You must delete Leaf A so you never use it again!
+2. Provide the Map: If you just send the signature to your friend, they won't know it belongs to your tree. But you also cannot send them your entire tree of millions of branches, it would be too huge! Instead, you provide an Authentication Path " showing how that leaf connects all the way to the root.
+
+The Authentication Path is a clever shortcut. It is just the specific sibling branches needed to trace a line directly from Leaf A up to the Root. You are essentially saying, "Here is my signature from Leaf A, and here are the three puzzle pieces you need to connect Leaf A to the Public Key everyone knows."
+Phase 3: Verification (Climbing the Tree)
+Your friend receives your message, your one-time signature from Leaf A, and the Authentication Path. Now, they need to verify it.
+1. The Climb: Your friend uses the exact same public hash function you did. They hash your message and signature together, and then they combine it with the first puzzle piece from your Authentication Path. They take that result, combine it with the next puzzle piece, and so on.
+2. The Final Match: They grind the math all the way to the top. If their final result perfectly matches the Public Key (Root) you shared with the world in Phase 1, the signature is 100% valid!
+Because hash functions are a one-way street, it is mathematically impossible for a hacker to fake a signature that will perfectly hash its way up to your specific Root.
+
+• The Message's Role: The message itself is not part of the tree. It is simply hashed to convert it into a set of instructions/numbers (e.g., the number 3).
+• The Signature: You take your secret Private Key and hash it exactly the number of times the message dictates (e.g., 3 times). This partially-hashed string of data is your Signature.
+• The Magic Trick (Reconstructing the Leaf): Your friend receives the Signature and the message (3). They know the system rule requires 15 hashes total. They take your Signature and hash it the remaining 12 times (3 + 12 = 15). This step mathematically reconstructs the original public Leaf node without them ever seeing your Private Key!
+• Climbing the Tree: Your friend takes that freshly reconstructed Leaf, pairs it with the Authentication Path (the sibling branches you sent along with the message), and hashes their way up the tree.
+• The Final Check: If their final math perfectly matches the public Root you shared long before the message was ever sent, the signature is 100% verified.
+
+
+Each leaf is a WOTS+ public key (that is private key hashed certain number of times eg 15 times). So according to the message, we hash the private key lets say 3 times and now send to receiver: the hashed message (named signature), the original message and the authentication path. 
+From original message he finds how many times we have hashed (3) and hash the remaining (15-3 = 12 times). So now he has the public key of that leaf and can climb up the tree using the given authentication path. 
+
+HyperTree
+A Merkle tree where the leaves, corresponding to WOTS+ public keys, are used (with the respective private key) to sign and validate the roots of other trees on a lower layer. It is hence defined as a hierarchy formed by different layers of Merkle trees: each leaf of an intermediate tree signs the root of a tree at the lower layer, while the leaves of the lowest layer trees are used to sign messages. 
+
+
+
+The root of the highest layer tree of the HyperTree represents the public key of scheme.
+
+
+FORS (Forest Of Random Subset)
+The use of FORS makes it possible to turn SPHINCS+ into a stateless digital signature algorithm, thus overcoming the main problems of other hash-based signatures eg XMSS
+It is a scheme that allows one to sign a limited number of different messages with the same private key. When the number of signatures grows, the scheme undergoes a gradual decrease in its security but without incurring the catastrophic and abrupt security loss that happens whenever two or more messages are signed using a one-time signature like WOTS+.
+
+Rest
+
+SHAKE is most difficult to optimize, can migrate the implementation of CRYSTALS acceleration for Keccak. 
+On the other hand, SHA-2 offers many optimization options eg x4-8
+
+SHA-2 -> exists ready extension with harware ratified instruction!
+SHA-3 (Keccak) -> already optimized on other paper from CRYSTALS 
+So, the primary bottleneck has already been studied!
+
+Proposals
+Part 1 – Important 
+Proposal 1 – Data Layout
+
+Pre-step for vectorization + extra gain from overheads
+
+Proposal 2 - Vector Register Tiling
+Chain-level pipelining: Within a single WOTS+ chain (`w - 1` hash iterations), the chain links are serial. However, across the `len` chains, each link at step `i` is independent. The proposal interleaves chain step `i` of chains `{0..N-1}` before proceeding to step `i+1`, maximizing vector utilization at each step.
+
+
+The Zvknha instructions (vsha2ms.vv, vsha2cl.vv, vsha2ch.vv) process one 128-bit element group (= one SHA-256 block) per instruction, but with VLEN ≥ 256, multiple blocks from different hash instances can be packed into a single vector register group.
+•  If VLEN = 128: The vector register holds exactly one 128-bit block. You compute 1 SHA-256 instance. (You get hardware acceleration, but zero parallel batching).
+•  If VLEN = 256: The vector register holds two 128-bit blocks. You compute 2 SHA-256 instances simultaneously.
+…
+•  If VLEN = 1024 → 8 instances simultaneously. Real chosen N may be smaller due to cache/register constraints and tail handling.
+
+FORS parallel leaf hashing: The same SoA layout and tiling apply to FORS
+Expected speedup for hashing part → ~3x from custom instruction and eg extra x2 ideally for VLEN=256, so in total x6 at best.
+⇒ Hashing part is 90% of algorithm, so end-to-end speedup: ~5x
+
+Part 2 – Secondary
+Proposal 3 - Partial-state precomputation
+ Within a single WOTS+ signing operation, many ADRS fields remain identical across hash calls (same layer_address, tree_address, type); only the chain_address, hash_address, and key_pair_address change. This means the SHA-2 intermediate state (the 256-bit chaining value after compressing the first block) can be precomputed once and reused across many hash calls.
+
+Proposal 4 – Prefetching
+The key insight is that the hypertree traversal has a predictable access pattern — the next nodes to be hashed are always the children of the current level — so data prefetching can be overlapped with computation.
+Using RISC-V's Zicbop cache-management instructions (prefetch.r for data prefetching), load the next level's node data into L1 cache while the current level's hash computation is in progress.
+
+
+
+
+ΗQC
+Intro
+Επιλέχθηκε για standardization 11/03/2025 (πριν 1 χρόνο).
+Round 4 of the NIST Post-Quantum Cryptography standardization process was specifically focused on finding a non-lattice-based Key Encapsulation Mechanism (KEM). Because NIST had already chosen a lattice-based algorithm (Kyber/ML-KEM) as their primary standard, they wanted a mathematically completely different backup in case a future flaw was discovered in lattice cryptography.
+NIST officials highlighted that HQC is being designated as a “backup” encryption standard rather than a replacement for the primary algorithms finalized last year.
+A draft standard specifying HQC will be published for public comment in about a year, with the final standard expected in 2027 after feedback is incorporated​.
+HQC, short for Hamming Quasi-Cyclic, is a code-based cryptographic algorithm. 
+HQC is a type of Key-Encapsulation Mechanism (KEM) – a method for exchanging encryption keys securely – whose security relies on problems from error-correcting code theory​​.
+Error-Correcting Codes: When you transmit data, you add redundant information to it so that even if some bits get corrupted, the receiver can figure out what the original was.
+HQC’s hardness comes from the difficulty of decoding a message that has been mixed with random errors, problem believed to be resistant to quantum attacks.
+This approach builds on decades of research in coding theory: error-correcting codes (such as Hamming, Reed-Solomon, or Reed-Muller codes) are normally used to detect and fix errors in data transmissions, but they can also be repurposed to hide data within noise in a way that only someone with the secret key can efficiently decode​​.
+HQC generates a public key that anyone can use to encode (encrypt) a message with extra random noise; only the holder of the private key knows how to strip away just enough of that noise to recover the original message​​.
+HQC did come with some performance trade-offs – for example, it demands more computational resources and produces larger ciphertexts than lattice-based Kyber – but these were expected for a code-based scheme (acceptable price for its security)​.
+HQC-1, the lowest security level variant, requires 7kB of data on the wire. This is almost double the 3kB required for ML-KEM-1024, the highest security level variant. There is a similar gap in CPU performance.  Also, HQC scales worse with security level: where ML-KEM-1024 is about double the cost of ML-KEM-512, the highest security level of HQC requires three times the data (21kB!) and more than four times the compute.
+Algorithm Breakdown - Steps
+🏗️ Key Generation: Building Your Lock and Your Key
+
+Step 1 — Choose a Public Structure (the "Ring")
+The "Quasi-Cyclic" trick: Normally, code-based cryptography requires massive, gigabyte-sized keys, which is too slow for the internet. HQC uses a mathematical shortcut called a "Quasi-Cyclic" structure. This means if you shift the bits of a mathematical matrix over by one spot in a cycle, you get the next row of the matrix. Because of this predictable shifting pattern, Bob only must share the first row of the data, and Alice's computer can instantly figure out the rest. This shrinks the key size.  
+
+Step 2 — Generate Private Key
+Pick two short, sparse binary strings — let's call them x and y.
+🔑 "Sparse" means most of the bits are 0, and only a few are 1. Specifically, these strings have a low Hamming weight. Think of a string of 1,000 bits where only 67 of them are 1. Sparseness is the secret.
+These two strings x and y form your private key. Keep them secret!
+
+Step 3 — Generate the Public Key
+1. Generate a random string h (this will be public — anyone can see it).
+2. Compute a new string: s = x + h·y (in the quasi-cyclic ring, this "multiplication" is a fast cyclic operation).
+3. Your public key is the pair (h, s).
+🧠 Why is this safe? Given just h and s, figuring out the sparse secrets x and y that generated them is believed to be computationally hard — even for quantum computers. We can find a relation y = ax + b , but not the exact (x, y) pair.
+
+
+
+
+
+
+
+
+🔒 Encryption: Sending a Secret Message
+
+Alice wants to send Bob a message. She has Bob's public key (h, s).
+
+Step 1 — Encode the Message
+Alice takes her plaintext message m and runs it through an error-correcting code ENCODER. This adds structured redundancy to the message, turning it into a longer codeword m_encoded. Think of this as "fortifying" the message so it can survive the noise about to be added.
+
+Step 2 — Generate Fresh Randomness
+Alice generates three fresh, sparse random bit-strings: r₁, r₂, and e. These are her "noise ingredients" — used once and thrown away.
+
+Step 3 — Compute the Ciphertext
+Alice computes two values:
+• u = r₁ + h·r₂ — This looks like a fake public key, made from Alice's random noise. It gives Bob the tools to remove the noise layer.
+• v = m_encoded + s·r₂ + e — This is the message, hidden under layers of noise. It uses Bob's public value s (which secretly encodes his private key) plus extra noise e.
+The ciphertext Alice sends is the pair (u, v).
+
+🎭 Analogy Recap: Alice is essentially sending Bob a "noisy radio signal". She knows how to generate the specific kind of noise that Bob's private key can filter out — but an eavesdropper has no idea how to separate the signal from the static.
+
+
+
+
+
+
+
+
+
+🔓 Decryption: Recovering the Message
+Bob receives (u, v) and uses his private key (x, y) to decrypt it.
+Step 1 — Compute an Intermediate Value
+Bob computes: v - u·y
+Let's expand what this does mathematically (in simplified terms):
+
+This simplifies to: m_encoded + (some combined noise)
+The combined noise term e + x·r₂ - r₁·y is the key insight. Because x, y, r₁, r₂, and e are all sparse, their combination has a bounded, manageable Hamming weight.
+
+
+Step 2 — Apply the Error-Correcting Decoder
+Bob now has m_encoded + bounded_noise. He runs this through his error-correcting code DECODER — using the same code Alice used to encode the message in Step 1.
+The decoder's entire job is to take a noisy codeword and recover the original. If the noise is within the code's correction capacity (which it is, by careful design of HQC's parameters), the decoder strips away all the noise and outputs the clean m — Alice's original message!
+🎯 The beautiful symmetry: The error-correcting code is both the mechanism for hiding the message and the mechanism for recovering it. Without the private key y, you can't isolate the noise from the message (v – u*y). With the private key, the noise collapses into something manageable that any good decoder can handle.
+Error Code Techniques
+The Outer Layer: Reed-Solomon (RS) Codes
+The Goal: Fix the "Burst Errors."
+How it works: Symbols over Bits Most codes look at data bit-by-bit (0 or 1). Reed-Solomon groups bits together into "symbols" (like grouping letters into words).
+• If a burst of noise corrupts 8 bits right next to each other, a standard code sees 8 massive errors and panics.
+• Reed-Solomon, however, looks at chunks. If those 8 bits belong to the same "symbol," RS just says, "Oh, that's just one corrupted symbol." It turns a massive burst error into a single, easily fixable mistake.
+
+The Inner Layer: Reed-Muller (RM) Codes
+The Goal: Fix the "Background Static."
+How it works: The Sophisticated Voting System Reed-Muller works beautifully for scattered, low-weight bit flips. It uses a concept based on Boolean algebra, creating deeply intertwined equations of 0s and 1s.
+In simple terms, RM creates a highly structured mathematical "voting system" for your bits. If you want to send a single bit of data, RM doesn't just repeat it; it embeds that bit into a larger mathematical matrix where multiple different equations all "vote" on what that original bit was supposed to be. If scattered background noise flips a few bits, the majority of the mathematical "votes" will still point to the correct original answer, instantly fixing the static.
+
+
+
+
+
+
+
+
+
+Putting it Together: The HQC Pipeline
+Here is how Alice and Bob use this tag-team to secure the message:
+Alice's Encoding (Building the Shield)
+1. The Core: Alice starts with her raw message, $m$.
+2. Apply RS: She runs the message through the Reed-Solomon generator. This adds the "extra points on the curve" to protect against bursts.
+3. Apply RM: She takes that RS-encoded data and runs it through the Reed-Muller generator. This adds the complex voting matrices to protect against static.
+4. She now has $m.G$. She proceeds to add the HQC noise and send it.
+Bob's Decoding (Peeling the Onion)
+1. Algebraic Strip: Bob uses his private key to cancel out Alice's encryption, leaving him with the noisy $m.G$.
+2. RM Decoding First: Bob runs the Reed-Muller decoder. It acts like a fine-toothed comb, looking at the mathematical votes and perfectly clearing out all the scattered "background static" bit-flips. However, a few of the dense "burst" errors might be too clustered for RM to fix, leaving some corrupted symbols behind.
+3. RS Decoding Second: Bob takes what's left and runs the Reed-Solomon decoder. RS looks at the data, sees the remaining dense bursts of errors as just a few "bad symbols," and uses its oversampled curve trick to instantly correct them.
+The result? A Decryption Failure Rate (DFR) that is practically zero. The message is perfectly recovered every single time.
+
+
+ 
+
+Compatibility. Previous works focused on implementing hardware solutions or accelerators for older HQC versions, such as round 3 (2021) and round 4 (2023). These versions are characterized by the usage of a dense-sparse implementation of the polynomial multiplication, which opens to more optimization opportunities than the latest implementation, based on a dense-dense approach for polynomial multiplication.
+
+
+
+
+
+Proposals
+
+Profiling: Multiplication is the bottleneck in HQC taking 95% of the total execution time.
+
+Proposal 1 - Zbc-Accelerated (Karatsuba vs FAFFT vs Hybrid)
+Simple FAFFT on RISC-V without any extension gave speedup 3.5x (HQC-128) and 8x (HQC-256) from baseline. Used Cantor version of FAFTT which is not optimal for software but is easier to accelerate in hardware.. We can use the TOWER based instead for extra speedup.
+Optimize the 3 mulitplication methods taking benefit of clmul  (carry less multiplication instruction) in Zbc. Karatsuba become competitive as well. 
+What abou hybrid method from paper “Efficient Polynomial Multiplication for HQC on ARM Cortex-M4”? 
+Zbc addition gave 5x speedup to AES !
+What about Toom-Cook (like Karatsuba but divide into 3 instead of 2).
+
+After finding optimal multiplication algorithm → vectorize using RVV.
+
+Proposal 2 - RVV-Vectorized Decoding
+Once polynomial multiplication is accelerated (by Proposal 1), the concatenated RM/RS decoding stage becomes the dominant remaining bottleneck.
+
+Proposal 3 – Optimize Keccak 
+Adopt the optimized Keccak implementation of Crystals “Optimized Software Implementation of Keccak, Kyber, and Dilithium on RV{32,64}IM{B}{V}”.
+
+
+
+HQC vs SPHINCS+
+
+HQC is the only alternative to ML-KEM. 
+While ML-DSA has also Falcon alternative, not only SPHINCS+. 
+
+SPHINCS+: Already standardized by NIST, we have final version. 
+HQC: Selected for standardization 11/03/2025. A draft standard specifying HQC will be published for public comment in 2026, with the final standard expected in 2027 after feedback is incorporated.
+
+SPHINCS+ need big VLEN > 128 to give good speedup → more difficult than Zbc
+
+SPHINCS+ is basically speed up of SHA2 after date organization restructuring.
+HQC is acceleration and comparison of different implementations, more appealing!
+
+Assembly opportunity: 
+SPHINCS+ → Limited. The Zvknha instructions are accessed via intrinsics (__riscv_vsha2ms_vv, etc.), not hand-written assembly. The SoA layout refactoring is structural C code. The partial-state precomputation is algorithmic C code.
+HQC → Excellent. The clmul/clmulh + Barrett reduction butterfly kernel is a tight ~10–20 instruction loop that benefits enormously from hand scheduling, lazy reduction, and register allocation across RV64's 31 GPRs. The tower-field table lookup via vluxei8.v is another assembly-level optimization. The Karatsuba base case is another assembly target.
+

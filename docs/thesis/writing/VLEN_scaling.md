@@ -118,6 +118,11 @@ vrgather-based implementation (Zvbb).
 - At VLEN=256, LMUL=8 gives VLMAX=32 ≥ 25 — the entire state fits in one vector group
 - Wider VLEN cannot process more state elements because there are only 25
 - The permutation is called ~710 times per HQC-128 KEM operation (SHA3/SHAKE)
+- The `x2` Keccak path is used once: in keygen (`hqc_xof_init_pair`) for a single paired absorb that initializes two XOF contexts
+- After that initialization, keygen continues with single-stream squeeze/absorb calls
+- Encaps uses single-stream Keccak exclusively (no `x2` path)
+- Decaps uses single-stream Keccak exclusively (no `x2` path)
+- Therefore, `x2` Keccak has near-zero impact on total end-to-end KEM instret in the current production call graph
 - Each call executes a fixed number of instructions regardless of VLEN
 - The `rol1_zbb` helper (2% of instret) is a scalar rotate — not vectorizable
 
