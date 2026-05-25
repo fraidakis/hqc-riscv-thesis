@@ -1,0 +1,61 @@
+% =============================================================================
+% Diploma Thesis: Optimizing HQC Post-Quantum Cryptography on RISC-V
+% Author: Fraidakis G.
+% Engine: LuaLaTeX
+% =============================================================================
+\documentclass[
+  a4paper,
+  12pt,
+  twoside,
+  openright,
+  bibliography=totoc,
+  listof=totoc,
+  chapterprefix=true,
+  numbers=noenddot
+]{scrbook}
+
+% --- Preamble ---
+\input{preamble/packages}
+\input{preamble/settings}
+\input{preamble/macros}
+
+% --- Document ---
+\begin{document}
+
+% --- Front Matter ---
+\frontmatter
+\input{frontmatter/titlepage}
+\cleardoublepage
+
+\input{frontmatter/abstract-el}
+\cleardoublepage
+\input{frontmatter/abstract-en}
+\cleardoublepage
+
+\tableofcontents
+% \listoffigures    % Uncomment when figures are added
+% \listoftables     % Uncomment when tables are added
+% \lstlistoflistings % Uncomment when code listings are added
+
+% --- Main Matter ---
+\mainmatter
+\include{chapters/01-introduction}
+\include{chapters/02-theoretical-background}
+\include{chapters/03-risc-v-architecture}
+\include{chapters/04-related-work}
+\include{chapters/05-experimental-setup}
+\include{chapters/06-polymul-optimization}
+\include{chapters/07-kernel-optimization}
+\include{chapters/08-results}
+\include{chapters/09-discussion}
+\include{chapters/10-conclusions}
+
+% --- Back Matter ---
+\backmatter
+\printbibliography[heading=bibintoc, title={Βιβλιογραφία}]
+
+\appendix
+\include{appendices/appendix-a}
+\include{appendices/acronyms}
+
+\end{document}

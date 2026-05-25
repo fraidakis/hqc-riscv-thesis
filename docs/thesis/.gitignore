@@ -1,0 +1,57 @@
+# =============================================================================
+# LaTeX build artifacts
+# =============================================================================
+
+# Core output
+*.pdf
+*.dvi
+*.ps
+
+# Auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.lol
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+
+# Bibliography
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+
+# Glossaries
+*.glo
+*.gls
+*.glg
+*.ist
+
+# Index
+*.idx
+*.ilg
+*.ind
+
+# Minted cache
+_minted-*/
+
+# Latexmk
+*.latexmk
+
+# Editor backups
+*~
+*.swp
+*.swo
+\#*\#
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build directory (if using $out_dir)
+build/

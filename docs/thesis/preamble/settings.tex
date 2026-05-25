@@ -1,0 +1,168 @@
+% =============================================================================
+% Document Settings
+% =============================================================================
+
+% --- Fonts ---
+% Main: Libertinus Serif — modern, elegant, full Greek, matched math
+\setmainfont{Libertinus Serif}[
+  Ligatures=TeX,
+  BoldFont=Libertinus Serif Bold,
+  ItalicFont=Libertinus Serif Italic,
+  BoldItalicFont=Libertinus Serif Bold Italic
+]
+
+% Sans: Libertinus Sans — for chapter/section headings
+\setsansfont{LibertinusSans-Regular.otf}[
+  Scale=MatchLowercase,
+  BoldFont=LibertinusSans-Bold.otf,
+  ItalicFont=LibertinusSans-Italic.otf,
+  Path=/usr/share/texlive/texmf-dist/fonts/opentype/public/libertinus-fonts/,
+]
+
+% Mono: Fira Mono — clear code readability, good char disambiguation
+\setmonofont{FiraMono-Regular.otf}[
+  Scale=MatchLowercase,
+  BoldFont=FiraMono-Bold.otf,
+  ItalicFont=FiraMono-Oblique.otf,
+  BoldItalicFont=FiraMono-BoldOblique.otf,
+  Path=/usr/share/texlive/texmf-dist/fonts/opentype/public/fira/,
+]
+
+% Math: Libertinus Math — matched companion to Libertinus Serif
+\setmathfont{Libertinus Math}
+
+% --- KOMA-Script heading font: use sans for headings ---
+\addtokomafont{disposition}{\sffamily}
+
+% --- Page geometry ---
+\geometry{
+  a4paper,
+  inner=3.0cm,
+  outer=2.5cm,
+  top=2.5cm,
+  bottom=3.0cm,
+  headheight=14pt,
+  headsep=1.2cm,
+  footskip=1.5cm
+}
+
+% --- Headers and footers ---
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\automark[chapter]{chapter}
+\ihead{\headmark}
+\cfoot{\pagemark}              % Page number bottom center
+\KOMAoptions{
+  headsepline=0.5pt,           % Header rule
+  footsepline=0.5pt            % Footer rule
+}
+
+% --- Chapter styling: oversized number left + thick underrule ---
+\renewcommand*{\chapterformat}{%
+  \scalebox{2.5}{\sffamily\bfseries\thechapter}\enskip%
+}
+\renewcommand*{\chapterheadstartvskip}{\vspace*{0.5cm}}
+\renewcommand*{\chapterheadendvskip}{\nobreak\vskip 0.3cm
+  \noindent\rule{\textwidth}{0.8pt}\vskip 1.2cm}
+\setkomafont{chapter}{\LARGE\sffamily\bfseries}
+
+% --- Section styling: Large bold + gray underrule ---
+\setkomafont{section}{\sffamily\bfseries\Large}
+\RedeclareSectionCommand[afterskip=0.8em]{section}
+\renewcommand{\sectionlinesformat}[4]{%
+  #3#4\par\nobreak\vskip 0.15em
+  {\color{gray!50}\noindent\rule{\textwidth}{0.3pt}}%
+}
+
+% --- Subsection: large bold sans, NO rule ---
+\RedeclareSectionCommand[
+  font=\sffamily\bfseries\large,
+  beforeskip=1\baselineskip,
+  afterskip=0.5em
+]{subsection}
+
+% --- Subsubsection: run-in (inline with paragraph), bold italic ---
+\RedeclareSectionCommand[
+  runin=true,
+  afterskip=1em,
+  beforeskip=0.8\baselineskip,
+  font=\sffamily\bfseries\itshape\normalsize
+]{subsubsection}
+
+% --- Paragraph formatting ---
+\setlength{\parindent}{1.5em}
+\setlength{\parskip}{0pt plus 1pt}
+
+% --- Line spacing: 1.15× (between single and 1.5) ---
+\setstretch{1.15}
+
+% --- Caption styling: bold label, normal size ---
+\captionsetup{labelfont=bf}
+
+% --- Hyperref ---
+\hypersetup{
+  colorlinks=false,
+  pdfborder={0 0 0},
+  bookmarksnumbered=true,
+  bookmarksopen=true,
+  pdfauthor={Φραϊδάκης Γ.},
+  pdftitle={Βελτιστοποίηση HQC Post-Quantum Κρυπτογραφίας σε RISC-V μέσω ISA Extensions},
+  pdfsubject={Διπλωματική Εργασία},
+  pdfkeywords={HQC, PQC, RISC-V, Karatsuba, RVV, Zbc, Zvbc}
+}
+
+% --- Listings ---
+\lstdefinestyle{thesis}{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{blue!70!black},
+  commentstyle=\itshape\color{green!50!black},
+  stringstyle=\color{red!60!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4,
+  showstringspaces=false,
+  captionpos=b
+}
+\lstset{style=thesis}
+
+% --- RISC-V assembly language ---
+\lstdefinelanguage[RISC-V]{Assembler}{
+  morekeywords={clmul, clmulh, clmulr, rori, andn, vsetvli, vle64, vse64,
+    vxor, vadd, vmul, vsll, vsrl, vclmul, vclmulh, vror, vandn, vbrev8,
+    vrgather, vslidedown, vredxor, li, mv, add, sub, xor, and, or, sll, srl,
+    beq, bne, blt, bge, jal, jalr, ecall, ret, la, ld, sd, lw, sw},
+  sensitive=true,
+  morecomment=[l]{\#},
+  morecomment=[l]{//},
+}
+
+% --- Algorithm2e ---
+\SetAlCapSkip{1em}
+\SetAlgoSkip{medskip}
+\SetKwInput{KwInput}{Είσοδος}
+\SetKwInput{KwOutput}{Έξοδος}
+\SetKwFor{For}{για}{:}{}
+\SetKwIF{If}{ElseIf}{Else}{αν}{τότε}{αλλιώς αν}{αλλιώς}{τέλος}
+\SetKw{Return}{επιστροφή}
+
+% --- Float placement ---
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.70}
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\floatpagefraction}{0.80}
+
+% --- Autoref Greek names ---
+\addto\extrasgreek{%
+  \def\chapterautorefname{Κεφάλαιο}%
+  \def\sectionautorefname{Ενότητα}%
+  \def\subsectionautorefname{Υποενότητα}%
+  \def\figureautorefname{Σχήμα}%
+  \def\tableautorefname{Πίνακας}%
+  \def\equationautorefname{Εξίσωση}%
+}

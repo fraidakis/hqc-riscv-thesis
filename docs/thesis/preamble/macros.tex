@@ -1,0 +1,73 @@
+% =============================================================================
+% Custom Macros
+% =============================================================================
+\usepackage{xspace}
+
+% --- Mathematical notation ---
+\newcommand{\GF}[1]{\mathrm{GF}(#1)}              % \GF{2}
+\newcommand{\GFpoly}{\GF{2}[x]}                    % GF(2)[x]
+\newcommand{\GFquot}[1]{\GF{2}[x]/(x^{#1}-1)}     % Quotient ring
+\newcommand{\polymul}{\otimes}                      % Polynomial multiplication
+\newcommand{\xorop}{\oplus}                         % XOR operation
+\DeclareMathOperator{\hw}{hw}                       % Hamming weight
+
+% --- HQC-specific ---
+\newcommand{\HQC}{\textsc{hqc}\xspace}
+\newcommand{\KEM}{\textsc{kem}\xspace}
+\newcommand{\KeyGen}{\textsc{KeyGen}\xspace}
+\newcommand{\Encaps}{\textsc{Encaps}\xspace}
+\newcommand{\Decaps}{\textsc{Decaps}\xspace}
+
+% --- RISC-V instructions ---
+\newcommand{\insn}[1]{\texttt{#1}}                 % \insn{clmul}
+\newcommand{\clmul}{\insn{clmul}}
+\newcommand{\clmulh}{\insn{clmulh}}
+\newcommand{\vclmul}{\insn{vclmul.vv}}
+\newcommand{\vclmulh}{\insn{vclmulh.vv}}
+\newcommand{\vror}{\insn{vror}}
+\newcommand{\rori}{\insn{rori}}
+
+% --- RISC-V extensions ---
+\newcommand{\ext}[1]{\textsf{\textbf{#1}}}
+\newcommand{\Zbc}{\ext{Zbc}\xspace}
+\newcommand{\Zbb}{\ext{Zbb}\xspace}
+\newcommand{\Zvbc}{\ext{Zvbc}\xspace}
+\newcommand{\Zvbb}{\ext{Zvbb}\xspace}
+\newcommand{\RVV}{\ext{RVV}\xspace}
+
+% --- Performance metrics ---
+\newcommand{\instret}{\texttt{instret}\xspace}
+\newcommand{\VLEN}{\texttt{VLEN}\xspace}
+\newcommand{\VLMAX}{\texttt{VLMAX}\xspace}
+\newcommand{\SEW}{\texttt{SEW}\xspace}
+\newcommand{\LMUL}{\texttt{LMUL}\xspace}
+
+% --- Abbreviations ---
+\newcommand{\ie}{i.e.\@\xspace}
+\newcommand{\eg}{e.g.\@\xspace}
+\newcommand{\cf}{cf.\@\xspace}
+
+% --- Emphasis ---
+\newcommand{\defterm}[1]{\textbf{\textit{#1}}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% --- Complexity ---
+\newcommand{\BigO}[1]{\mathcal{O}(#1)}
+
+
+% --- tcolorbox environments (use sparingly: 5-10 per thesis) ---
+\newtcolorbox{definitionbox}[1][]{%
+  colback=blue!3, colframe=blue!40!black,
+  fonttitle=\bfseries\sffamily, title={#1},
+  breakable, sharp corners, boxrule=0.5pt, left=6pt, right=6pt
+}
+\newtcolorbox{keyresultbox}[1][]{%
+  colback=green!3, colframe=green!50!black,
+  fonttitle=\bfseries\sffamily, title={#1},
+  breakable, sharp corners, boxrule=0.5pt, left=6pt, right=6pt
+}
+\newtcolorbox{remarkbox}[1][]{%
+  colback=yellow!5, colframe=orange!60!black,
+  fonttitle=\bfseries\sffamily, title={#1},
+  breakable, sharp corners, boxrule=0.5pt, left=6pt, right=6pt
+}

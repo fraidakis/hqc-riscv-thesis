@@ -1,0 +1,90 @@
+% =============================================================================
+% Package Imports — LuaLaTeX + Greek/English
+% =============================================================================
+
+% --- Engine & font setup ---
+\usepackage{fontspec}           % OpenType/TrueType font loading
+\usepackage{unicode-math}       % Unicode math fonts (must load before math pkgs)
+
+% --- Language ---
+\usepackage{polyglossia}        % Multilingual support
+\setdefaultlanguage[variant=monotonic]{greek}
+\setotherlanguage{english}
+
+% Greek monospace fallback (Fira Mono lacks Greek glyphs)
+\newfontfamily\greekfonttt{DejaVu Sans Mono}[Scale=MatchLowercase]
+
+% --- Typography ---
+\usepackage{microtype}          % Microtypographic improvements
+\usepackage{csquotes}           % Context-sensitive quotes (biblatex needs this)
+
+% --- Page layout ---
+\usepackage{scrlayer-scrpage}   % KOMA-Script headers/footers
+\usepackage{geometry}           % Page geometry
+
+% --- Math ---
+\usepackage{amsmath}            % Math environments
+% amssymb NOT needed — unicode-math provides all symbols
+\usepackage{mathtools}          % Extensions to amsmath
+
+% --- Figures and graphics ---
+\usepackage{graphicx}           % Image inclusion
+\usepackage{tikz}               % Programmable graphics
+\usepackage{pgfplots}           % Plots from data
+\pgfplotsset{compat=1.18}
+\usepackage{subcaption}         % Sub-figures
+
+% --- Tables ---
+\usepackage{booktabs}           % Professional table rules
+\usepackage{longtable}          % Multi-page tables
+\usepackage{tabularx}           % Auto-width columns
+\usepackage{multirow}           % Multi-row cells
+\usepackage{siunitx}            % SI units and number formatting
+
+% --- Code listings ---
+\usepackage{listings}           % Code listings (primary)
+% \usepackage{minted}           % Pygments-based (uncomment if preferred)
+
+% --- Algorithms ---
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+
+% --- Cross-references and links ---
+\usepackage{hyperref}           % Clickable links, PDF metadata
+% NOTE: cleveref omitted due to polyglossia incompatibility in TL2023.
+% Use \autoref{label} for smart refs, or plain \ref{label}.
+% After upgrading to TL2024+, you can add: \usepackage[nameinlink]{cleveref}
+
+% --- Bibliography ---
+\usepackage[
+  backend=biber,
+  style=ieee,
+  sorting=nyt,
+  maxbibnames=99,
+  dashed=false
+]{biblatex}
+\addbibresource{bibliography/references.bib}
+
+% --- Miscellaneous ---
+\usepackage{enumitem}           % List customization
+\usepackage{xcolor}             % Colors
+\usepackage{float}              % Float placement control
+\usepackage{pdfpages}           % Include external PDFs
+\usepackage{setspace}           % Line spacing control
+\usepackage{caption}            % Caption formatting
+
+% --- Colored boxes (definitions, key results, remarks) ---
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
+
+% --- TikZ libraries ---
+\usetikzlibrary{
+  arrows.meta,
+  calc,
+  chains,
+  decorations.pathreplacing,
+  fit,
+  matrix,
+  positioning,
+  shapes.geometric,
+  shapes.misc
+}
