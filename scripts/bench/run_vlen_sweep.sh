@@ -204,7 +204,7 @@ for variant in "${VARIANTS[@]}"; do
             fi
 
             # ISA must include the zvl constraint matching the VLEN being tested.
-            isa="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl${vlen}b_zicntr_zihpm"
+            isa="rv64gcv_zbc_zbb_zba_zbkb_zvbc_zvbb_zvl${vlen}b_zicntr_zihpm"
 
             branch=" ├──"
             if [[ "$i" -eq $((${#VLENS[@]} - 1)) ]]; then

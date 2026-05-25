@@ -17,7 +17,7 @@ LEVEL=""
 
 RISCV="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
+ISA="rv64gcv_zbc_zbb_zba_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
 SPIKE_TIMEOUT_SEC="${SPIKE_TIMEOUT_SEC:-30}"
 
 if [[ ! -x "$SPIKE" ]]; then

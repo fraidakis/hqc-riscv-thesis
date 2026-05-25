@@ -5,7 +5,7 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 ## Table 1 — Tier 1 (IoT Scalar)
 
-> rv64gc_zbc_zbb_zbkb, no vector
+> rv64gc_zbc_zbb, no vector
 
 ### `vect_mul` (polynomial multiply)
 
@@ -34,7 +34,7 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 ## Table 2 — Tier 2 (Edge RVV)
 
-> rv64gcv + Zbc/Zbb/Zbkb; AP-2 fixed-tree polymul, scalar Keccak
+> rv64gcv + Zbc/Zbb; AP-2 fixed-tree polymul, scalar Keccak
 
 ### `vect_mul` (polynomial multiply)
 
@@ -77,18 +77,18 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 | Level | Op | ref_vector (instret) | karatsuba_zvbc (instret) | Speedup |
 |-------|-----|----------------------|------------------------|--------|
-| HQC-128 | keypair | 18,655,515 | 118,025 | x158.06 |
-| HQC-128 | encaps | 37,330,685 | 242,738 | x153.79 |
-| HQC-128 | decaps | 56,400,528 | 463,581 | x121.66 |
-| HQC-128 | **Total KEM** | **112,386,728** | **824,344** | **x136.33** |
-| HQC-192 | keypair | 56,547,117 | 297,213 | x190.26 |
-| HQC-192 | encaps | 113,137,214 | 612,536 | x184.70 |
-| HQC-192 | decaps | 170,303,459 | 1,067,117 | x159.59 |
-| HQC-192 | **Total KEM** | **339,987,790** | **1,976,866** | **x171.98** |
-| HQC-256 | keypair | 139,482,222 | 446,316 | x312.52 |
-| HQC-256 | encaps | 279,052,508 | 940,855 | x296.59 |
-| HQC-256 | decaps | 419,696,191 | 1,656,148 | x253.42 |
-| HQC-256 | **Total KEM** | **838,230,921** | **3,043,319** | **x275.43** |
+| HQC-128 | keypair | 18,655,515 | 107,408 | x173.69 |
+| HQC-128 | encaps | 37,330,685 | 221,511 | x168.53 |
+| HQC-128 | decaps | 56,400,528 | 404,316 | x139.50 |
+| HQC-128 | **Total KEM** | **112,386,728** | **733,235** | **x153.28** |
+| HQC-192 | keypair | 56,547,117 | 262,108 | x215.74 |
+| HQC-192 | encaps | 113,137,214 | 542,410 | x208.58 |
+| HQC-192 | decaps | 170,303,459 | 919,397 | x185.23 |
+| HQC-192 | **Total KEM** | **339,987,790** | **1,723,915** | **x197.22** |
+| HQC-256 | keypair | 139,482,222 | 389,753 | x357.87 |
+| HQC-256 | encaps | 279,052,508 | 827,937 | x337.05 |
+| HQC-256 | decaps | 419,696,191 | 1,442,149 | x291.02 |
+| HQC-256 | **Total KEM** | **838,230,921** | **2,659,839** | **x315.14** |
 
 ## Table 4 — Keccak Speedups
 
@@ -106,7 +106,7 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 | Level | reference (instret) | optimized (instret) | Speedup |
 |-------|----------------------|---------------------|--------|
-| HQC-128 | 384,986 | 87,951 | x4.38 |
-| HQC-192 | 562,125 | 119,930 | x4.69 |
-| HQC-256 | 1,059,605 | 204,237 | x5.19 |
+| HQC-128 | 384,986 | 60,353 | x6.38 |
+| HQC-192 | 562,125 | 77,114 | x7.29 |
+| HQC-256 | 1,059,605 | 159,206 | x6.66 |
 

@@ -10,7 +10,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND
    NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     message(STATUS "Applying fallback RISC-V GCC flags for direct cross-compile configure")
     add_compile_options(
-    -march=rv64gc_zbc_zbb
+    -march=rv64gc_zbc_zbb_zba
         -mabi=lp64d
         -mcmodel=medany
         -mno-relax
@@ -157,10 +157,14 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
-    # Phase 3b+ promoted path: Zvbc vectorised BM + Forney RS implementation.
+    # Phase 3b+ promoted path: Zvbc vectorised BM + Forney RS implementation,
+    # plus iterative Zvbc-vectorised Gao-Mateer additive FFT (Axis C).
+    # fft_zvbc.c replaces vendor common/fft.c for this backend — see FFT_SOURCES
+    # selection below.
     set(DECODE_SOURCES
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
+        ${CMAKE_SOURCE_DIR}/src/decode/fft_zvbc.c
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
@@ -168,6 +172,10 @@ elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp"
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/fft_zvbc.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
@@ -178,13 +186,26 @@ else()
     )
 endif()
 
+# ── FFT source selection — selected by HQC_DECODE_IMPL ───────────────────────
+# When HQC_DECODE_IMPL=zvbc, the Zvbc backend ships its own iterative FFT in
+# src/decode/fft_zvbc.c (linked via DECODE_SOURCES above) and the vendor
+# common/fft.c MUST be excluded from the link to avoid duplicate symbols.
+# All other DECODE backends keep the vendor scalar fft.c.
+if(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
+    set(FFT_SOURCES "")  # fft.c provided by fft_zvbc.c in DECODE_SOURCES
+else()
+    set(FFT_SOURCES ${HQC_REF}/src/common/fft.c)
+endif()
+
 # ── Vendor sources invariant to polymul strategy ──────────────────────────────
 # These change only in Phase 2 (symmetric.c → fips202 dependency) or Phase 3
 # (code.c → RM/RS dependency), but at symbol level, not source level.
+# NOTE: common/fft.c is NOT included here — it is selected per-variant via
+# VARIANT_FFT_SOURCES so that HQC_DECODE_IMPL=zvbc can substitute fft_zvbc.c
+# while the scalar/auto-vectorised reference variants keep vendor fft.c.
 set(VENDOR_INVARIANT_SOURCES
     ${CMAKE_SOURCE_DIR}/src/hqc.c       # PKE encrypt/decrypt (calls gf2x + rs)
     ${HQC_REF}/src/common/code.c        # HQC encode/decode (wraps RM/RS)
-    ${HQC_REF}/src/common/fft.c         # RS polynomial evaluation over GF(2^m)
     ${HQC_REF}/src/common/symmetric.c   # SHAKE-256 absorb/squeeze wrapper
 )
 
@@ -256,6 +277,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         set(VECTOR_SOURCES ${CMAKE_SOURCE_DIR}/src/vector.c)
         set(VARIANT_KECCAK_SOURCES ${KECCAK_SOURCES})
         set(VARIANT_DECODE_SOURCES ${DECODE_SOURCES})
+        set(VARIANT_FFT_SOURCES ${FFT_SOURCES})
         set(VARIANT_COMPILE_OPTIONS "")
         set(VARIANT_REF_PROFILE OFF)
 
@@ -267,6 +289,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
                 ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=${HQC_SCALAR_MARCH}
                 -mabi=lp64d
@@ -282,6 +305,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
                 ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gcv_zbc_zbb
                 -mabi=lp64d
@@ -297,6 +321,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
                 ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=${HQC_SCALAR_MARCH}
                 -mabi=lp64d
@@ -308,14 +333,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb
+                -march=rv64gcv_zbc_zbb_zba
                 -mabi=lp64d
                 -O3)
         elseif(POLYMUL STREQUAL "karatsuba_zvbc")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zvbc/gf2x_vclmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zvbc_zvbb
+                -march=rv64gcv_zbc_zbb_zba_zvbc_zvbb
                 -mabi=lp64d
                 -O3)
         endif()
@@ -337,6 +362,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${POLYMUL_SOURCES}
             ${VARIANT_KECCAK_SOURCES}
             ${VARIANT_DECODE_SOURCES}
+            ${VARIANT_FFT_SOURCES}
             ${VENDOR_INVARIANT_SOURCES}
             ${VECTOR_SOURCES}
             ${LOCAL_COMMON_SOURCES}
@@ -401,6 +427,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             ${POLYMUL_SOURCES}
             ${VARIANT_KECCAK_SOURCES}
             ${VARIANT_DECODE_SOURCES}
+            ${VARIANT_FFT_SOURCES}
             ${VENDOR_INVARIANT_SOURCES}
             ${VECTOR_SOURCES}
             ${LOCAL_BENCH_SOURCES}
@@ -654,7 +681,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         ${CMAKE_SOURCE_DIR}/tests/bench/bench_decode.c
         ${CMAKE_SOURCE_DIR}/src/common/bench.c
         ${DECODE_SOURCES}
-        ${HQC_REF}/src/common/fft.c
+        ${FFT_SOURCES}
         ${CMAKE_SOURCE_DIR}/sim/common/mem.c
         ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
     )

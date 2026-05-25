@@ -86,7 +86,7 @@ profile_cache_mode() {
 
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local spike="${riscv}/bin/spike"
-    local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm}"
+    local isa="${ISA:-rv64gcv_zbc_zbb_zba_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm}"
 
     if [[ ! -x "$spike" ]]; then
         echo "[profile_cache_spike] ERROR: spike not found at $spike" >&2
@@ -333,7 +333,7 @@ profile_trace_mode() {
     }
     local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
     local spike="${riscv}/bin/spike"
-    local isa="${ISA:-rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm}"
+    local isa="${ISA:-rv64gcv_zbc_zbb_zba_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm}"
     local build_dir="$REPO_ROOT/build/spike/trace"
 
     if [[ ! -x "$spike" ]]; then
@@ -453,7 +453,7 @@ profile_histogram_mode() {
 
     local riscv="${RISCV:-$HOME/Thesis/installed-tools}"
     local spike="${riscv}/bin/spike"
-    local isa="rv64gcv_zbc_zbb_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
+    local isa="rv64gcv_zbc_zbb_zba_zbkb_zvbc_zvbb_zvl256b_zicntr_zihpm"
     local build_dir="$REPO_ROOT/build/spike/trace"
     local target_levels=()
     if [[ "$LEVEL" == "all" ]]; then

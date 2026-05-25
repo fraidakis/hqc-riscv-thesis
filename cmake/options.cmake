@@ -35,6 +35,12 @@ set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv" "zvbc")
 # Overrides the -march for scalar-only variants (ref_scalar, karatsuba_zbc).
 # Default is the fully optimized baseline including bit-manipulation extensions.
 # Set to e.g. "rv64gc_zbc" to strip zbb and measure auto-lowering impact.
+#
+# Note: vector variants (karatsuba_rvv, karatsuba_zvbc) have their own -march
+# strings set in CMakeLists.txt (rv64gcv_zbc_zbb_zba and rv64gcv_zbc_zbb_zba_zvbc_zvbb
+# respectively).  Zba (address-generation: sh1add/sh2add/sh3add) was promoted
+# on 2026-05-25 after ablation showed −5.6% polymul improvement on karatsuba_zvbc
+# and −2.6% on karatsuba_rvv (see docs/thesis-helper/optimizations/zba_ablation.md).
 set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb" CACHE STRING
     "ISA march for scalar variants (ablation: set to rv64gc_zbc to strip zbb)")
 
@@ -135,6 +141,7 @@ if(NOT HQC_KECCAK_IMPL STREQUAL "ref"         AND
         "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa, "
         "got '${HQC_KECCAK_IMPL}'")
 endif()
+
 if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND
    NOT HQC_DECODE_IMPL STREQUAL "rvv"         AND
    NOT HQC_DECODE_IMPL STREQUAL "zvbc"        AND
