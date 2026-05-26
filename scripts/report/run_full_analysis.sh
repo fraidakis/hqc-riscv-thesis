@@ -91,33 +91,81 @@ run_step_with_timer() {
 
 csv_to_markdown() {
     local csv_file="$1"
-
-    if [[ ! -f "$csv_file" ]]; then
-        return 1
-    fi
+    [[ -f "$csv_file" ]] || return 1
 
     awk -F',' '
-        BEGIN { printed = 0 }
-        NR == 1 {
-            print "| " $1 " | " $2 " | " $3 " | " $4 (NF >= 5 ? " | " $5 : "") (NF >= 6 ? " | " $6 : "") (NF >= 7 ? " | " $7 : "") (NF >= 8 ? " | " $8 : "") (NF >= 9 ? " | " $9 : "") " |"
-            sep = "| --- | --- | --- | ---"
-            if (NF >= 5) sep = sep " | ---"
-            if (NF >= 6) sep = sep " | ---"
-            if (NF >= 7) sep = sep " | ---"
-            if (NF >= 8) sep = sep " | ---"
-            if (NF >= 9) sep = sep " | ---"
-            print sep " |"
-            printed = 1
-            next
+    function fmt_int(n,    s, r) {
+        s = sprintf("%d", n + 0)
+        r = ""
+        while (length(s) > 3) {
+            r = "," substr(s, length(s) - 2) r
+            s = substr(s, 1, length(s) - 3)
         }
-        {
-            print "| " $1 " | " $2 " | " $3 " | " $4 (NF >= 5 ? " | " $5 : "") (NF >= 6 ? " | " $6 : "") (NF >= 7 ? " | " $7 : "") (NF >= 8 ? " | " $8 : "") (NF >= 9 ? " | " $9 : "") " |"
+        return s r
+    }
+    function humanize(col,    m) {
+        m["instructions"]          = "Instructions"
+        m["codesize"]              = "Code (B)"
+        m["percentage"]            = "% Total"
+        m["level"]                 = "Level"
+        m["op"]                    = "Operation"
+        m["vlen"]                  = "VLEN"
+        m["compiler"]              = "Compiler"
+        m["opt"]                   = "Opt"
+        m["variant"]               = "Variant"
+        m["status"]                = "Status"
+        m["text_bytes"]            = "Text (B)"
+        m["function"]              = "Function"
+        m["dc_misses"]             = "D$ Misses"
+        m["dc_read_misses"]        = "D$ Read Miss"
+        m["dc_write_misses"]       = "D$ Write Miss"
+        m["dc_writebacks"]         = "D$ Writebacks"
+        m["dc_bytes_read"]         = "D$ Bytes Read"
+        m["dc_bytes_written"]      = "D$ Bytes Written"
+        m["dc_read_accesses"]      = "D$ Read Acc."
+        m["dc_write_accesses"]     = "D$ Write Acc."
+        m["load_instructions"]     = "Load Insns"
+        m["store_instructions"]    = "Store Insns"
+        m["load_bytes"]            = "Load Bytes"
+        m["store_bytes"]           = "Store Bytes"
+        m["est_cache_lines_load"]  = "CL Load"
+        m["est_cache_lines_store"] = "CL Store"
+        return (col in m) ? m[col] : col
+    }
+    BEGIN { have_hdr = 0; printed = 0; ncols = 0 }
+    /^#/ { next }
+    !have_hdr {
+        have_hdr = 1
+        ncols = NF
+        for (i = 1; i <= ncols; i++) {
+            gsub(/\r/, "", $i)
+            hdr[i] = $i
         }
-        END {
-            if (printed == 0) {
-                exit 1
-            }
+        next
+    }
+    !printed {
+        for (i = 1; i <= ncols; i++) {
+            gsub(/\r/, "", $i)
+            is_num[i] = ($i ~ /^[0-9]+(\.[0-9]*)?$/ && $i != "") ? 1 : 0
         }
+        printf "|"
+        for (i = 1; i <= ncols; i++) printf " %s |", humanize(hdr[i])
+        printf "\n|"
+        for (i = 1; i <= ncols; i++) printf " %s |", (is_num[i] ? "---:" : "---")
+        printf "\n"
+        printed = 1
+    }
+    have_hdr {
+        printf "|"
+        for (i = 1; i <= ncols; i++) {
+            gsub(/\r/, "", $i)
+            val = $i
+            if (is_num[i] == 1 && val ~ /^[0-9]+$/ && length(val) > 4) val = fmt_int(val + 0)
+            printf " %s |", val
+        }
+        printf "\n"
+    }
+    END { if (!printed) exit 1 }
     ' "$csv_file"
 }
 
@@ -126,19 +174,18 @@ append_table_or_note() {
     local title="$2"
     local csv_file="$3"
 
-    echo "### ${title}" >> "$report_file"
+    printf "### %s\n\n" "${title}" >> "$report_file"
 
     if [[ ! -f "$csv_file" ]]; then
-        echo "No data found: ${csv_file}" >> "$report_file"
-        echo "" >> "$report_file"
+        printf "> _No data available._\n\n" >> "$report_file"
         return
     fi
 
     if ! csv_to_markdown "$csv_file" >> "$report_file"; then
-        echo "No tabular rows available in: ${csv_file}" >> "$report_file"
+        printf "> _No data rows._\n\n" >> "$report_file"
+    else
+        printf "\n" >> "$report_file"
     fi
-
-    echo "" >> "$report_file"
 }
 
 generate_report() {
@@ -161,6 +208,15 @@ generate_report() {
     local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_lines_latest.csv"
     local histogram_csv="${REPO_ROOT}/analysis/profiles/histograms/${TRACK}/${MUL_VARIANT}/histogram_kem_L${REPORT_LEVEL}_${variant_slug}_latest.csv"
 
+    local compiler_csv="${REPO_ROOT}/analysis/benchmarks/compiler_compare/${TRACK}/${MUL_VARIANT}/compiler_compare_Lall_${variant_slug}_latest.csv"
+
+    local vlen_csv_128="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L128_${variant_slug}_latest.csv"
+    local vlen_csv_192="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L192_${variant_slug}_latest.csv"
+    local vlen_csv_256="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L256_${variant_slug}_latest.csv"
+
+    local speedups_md="${REPO_ROOT}/analysis/reports/speedups.md"
+    local compiler_analysis_md="${REPO_ROOT}/analysis/reports/compiler_analysis.md"
+
     local tmp_poly
     local tmp_kem
     local tmp_cache
@@ -168,6 +224,13 @@ generate_report() {
     local tmp_trace_hot
     local tmp_trace_lines
     local tmp_histogram
+    local tmp_compiler
+    local tmp_vlen_128
+    local tmp_vlen_192
+    local tmp_vlen_256
+    local tmp_cc_128
+    local tmp_cc_192
+    local tmp_cc_256
 
     tmp_poly="$(mktemp)"
     tmp_kem="$(mktemp)"
@@ -176,8 +239,15 @@ generate_report() {
     tmp_trace_hot="$(mktemp)"
     tmp_trace_lines="$(mktemp)"
     tmp_histogram="$(mktemp)"
+    tmp_compiler="$(mktemp)"
+    tmp_vlen_128="$(mktemp)"
+    tmp_vlen_192="$(mktemp)"
+    tmp_vlen_256="$(mktemp)"
+    tmp_cc_128="$(mktemp)"
+    tmp_cc_192="$(mktemp)"
+    tmp_cc_256="$(mktemp)"
 
-    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}" "${tmp_histogram:-}"' RETURN
+    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}" "${tmp_histogram:-}" "${tmp_compiler:-}" "${tmp_vlen_128:-}" "${tmp_vlen_192:-}" "${tmp_vlen_256:-}" "${tmp_cc_128:-}" "${tmp_cc_192:-}" "${tmp_cc_256:-}"' RETURN
 
     if [[ -f "$poly_csv" ]]; then
         awk -F',' '
@@ -192,13 +262,14 @@ generate_report() {
     fi
 
     {
-        echo "level,variant,op,instructions,codesize"
+        echo "level,op,instructions,codesize"
         if [[ -f "$kem_csv" ]]; then
             awk -F',' '
                 BEGIN { OFS=","; hdr=0 }
                 /^#/ { next }
                 !hdr { hdr=1; next }
-                { print $1,$2,$3,$4,$5 }
+                $2 == "total" { print $1, "**" $2 "**", $3, $4; next }
+                { print $1,$2,$3,$4 }
             ' "$kem_csv"
         fi
     } > "$tmp_kem"
@@ -266,15 +337,67 @@ generate_report() {
         rm -f "$tmp_histogram"
     fi
 
+    # compiler compare CSV — drop elf path (col 8) and error message (col 9)
+    if [[ -f "$compiler_csv" ]]; then
+        awk -F',' '
+            BEGIN { OFS=","; hdr=0 }
+            /^#/ { next }
+            !hdr { print $1,$2,$3,$4,$5,$6,$7; hdr=1; next }
+            { print $1,$2,$3,$4,$5,$6,$7 }
+        ' "$compiler_csv" > "$tmp_compiler"
+    fi
+    if [[ ! -s "$tmp_compiler" ]]; then
+        rm -f "$tmp_compiler"
+    fi
+
+    # per-level compiler compare splits (level col dropped — redundant with section title)
+    for _level in 128 192 256; do
+        local _cc_tmp
+        eval "_cc_tmp=\"\$tmp_cc_${_level}\""
+        if [[ -f "$compiler_csv" ]]; then
+            awk -F',' -v lvl="$_level" '
+                BEGIN { OFS=","; hdr=0 }
+                /^#/ { next }
+                !hdr { print $1,$2,$4,$5,$6,$7; hdr=1; next }
+                $3 == lvl { print $1,$2,$4,$5,$6,$7 }
+            ' "$compiler_csv" > "$_cc_tmp"
+        fi
+        if [[ ! -s "$_cc_tmp" ]]; then
+            rm -f "$_cc_tmp"
+        fi
+    done
+
+    # VLEN sweep CSVs (vector variants only)
+    for _lvl in 128 192 256; do
+        local _vlen_csv _tmp_var
+        _vlen_csv="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L${_lvl}_${variant_slug}_latest.csv"
+        eval "_tmp_var=\"\$tmp_vlen_${_lvl}\""
+        if [[ -f "$_vlen_csv" ]]; then
+            awk -F',' '
+                BEGIN { OFS=","; hdr=0 }
+                /^#/ { next }
+                !hdr { print $0; hdr=1; next }
+                $1 == "total" { print $0 }
+            ' "$_vlen_csv" > "$_tmp_var"
+        fi
+        if [[ ! -s "$_tmp_var" ]]; then
+            rm -f "$_tmp_var"
+        fi
+    done
+
+    local _git_sha
+    _git_sha="$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
     {
-        echo "# Full Analysis Report"
-        echo ""
-        echo "- Variant: ${MUL_VARIANT}"
-        echo "- Level: ${REPORT_LEVEL}"
-        echo "- Date: $(date +'%Y-%m-%d %H:%M:%S')"
-        echo ""
-        echo "## 1. Cycle Counts"
-        echo ""
+        printf "# HQC-RISC-V Analysis: \`%s\`\n\n" "${MUL_VARIANT}"
+        printf "| Property | Value |\n"
+        printf "| --- | --- |\n"
+        printf "| Track | %s |\n" "${TRACK}"
+        printf "| Security levels | 128 · 192 · 256 |\n"
+        printf "| Report level (profiles) | %s |\n" "${REPORT_LEVEL}"
+        printf "| Generated | %s |\n" "$(date +'%Y-%m-%d %H:%M:%S')"
+        printf "| Commit | \`%s\` |\n" "${_git_sha}"
+        printf "\n---\n\n"
+        printf "## 1. Cycle Counts\n\n"
     } > "$report_file"
 
     append_table_or_note "$report_file" "Polymul Isolated" "$tmp_poly"
@@ -296,6 +419,37 @@ generate_report() {
     append_table_or_note "$report_file" "Function-Level Hotspots (Top 20 Rows)" "$tmp_trace_hot"
     append_table_or_note "$report_file" "Line-Level Hotspots (Top 20 Rows)" "$tmp_trace_lines"
     append_table_or_note "$report_file" "Basic Block Histogram (Top 20)" "$tmp_histogram"
+
+    if [[ "$TRACK" == "vector" ]]; then
+        {
+            echo "## 4. VLEN Scaling Sweep"
+            echo ""
+        } >> "$report_file"
+
+        append_table_or_note "$report_file" "VLEN Sweep — HQC-128" "$tmp_vlen_128"
+        append_table_or_note "$report_file" "VLEN Sweep — HQC-192" "$tmp_vlen_192"
+        append_table_or_note "$report_file" "VLEN Sweep — HQC-256" "$tmp_vlen_256"
+    fi
+
+    {
+        echo "## 5. Compiler Comparison"
+        echo ""
+    } >> "$report_file"
+
+    append_table_or_note "$report_file" "HQC-128" "$tmp_cc_128"
+    append_table_or_note "$report_file" "HQC-192" "$tmp_cc_192"
+    append_table_or_note "$report_file" "HQC-256" "$tmp_cc_256"
+
+    {
+        echo "## 6. Cross-Variant Reports"
+        echo ""
+        echo "The following reports aggregate data across all variants and are regenerated"
+        echo "each time a full analysis runs:"
+        echo ""
+        echo "- Speedup summary: \`analysis/reports/speedups.md\`"
+        echo "- Compiler showdown: \`analysis/reports/compiler_analysis.md\`"
+        echo ""
+    } >> "$report_file"
 
     echo "[done] Report written: ${report_file}"
 }
@@ -324,28 +478,44 @@ run_variant_analysis() {
 
     cd "$REPO_ROOT"
 
-    run_step_with_timer 1 8 "Isolated polymul benchmark" \
+    run_step_with_timer 1 12 "Isolated polymul benchmark" \
         ./scripts/bench/run_benchmarks.sh --mode mul --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
-    run_step_with_timer 2 8 "Isolated KEM benchmark" \
+    run_step_with_timer 2 12 "Isolated KEM benchmark" \
         ./scripts/bench/run_benchmarks.sh --mode kem --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
-    run_step_with_timer 3 8 "Cache profiler" \
+    run_step_with_timer 3 12 "Cache profiler" \
         ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    run_step_with_timer 4 8 "Memory profiler" \
+    run_step_with_timer 4 12 "Memory profiler" \
         ./scripts/bench/run_profile.sh --memory --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    run_step_with_timer 5 8 "Trace profiler (function-level)" \
+    run_step_with_timer 5 12 "Trace profiler (function-level)" \
         ./scripts/bench/run_profile.sh --trace --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_step_with_timer 6 8 "Trace profiler (line-level)" \
+    run_step_with_timer 6 12 "Trace profiler (line-level)" \
         ./scripts/bench/run_profile.sh --trace --lines --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_step_with_timer 7 8 "Histogram profiler" \
+    run_step_with_timer 7 12 "Histogram profiler" \
         ./scripts/bench/run_profile.sh --histogram --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_step_with_timer 8 8 "Generate Markdown report" \
+    if [[ "$TRACK" == "vector" ]]; then
+        run_step_with_timer 8 12 "VLEN scaling sweep (256/512/1024/2048)" \
+            ./scripts/bench/run_benchmarks.sh --mode vlen --mul "$MUL_VARIANT"
+    else
+        printf "[8/12] ⏭  VLEN scaling sweep (skipped: scalar variant)\n"
+    fi
+
+    run_step_with_timer 9 12 "Compiler comparison (Clang vs GCC)" \
+        ./scripts/bench/run_benchmarks.sh --mode compiler --mul "$MUL_VARIANT"
+
+    run_step_with_timer 10 12 "Generate speedups report" \
+        python3 ./scripts/report/generate_speedups.py
+
+    run_step_with_timer 11 12 "Generate compiler analysis report" \
+        python3 ./scripts/report/generate_compiler_compare.py
+
+    run_step_with_timer 12 12 "Generate Markdown report" \
         generate_report
 }
 

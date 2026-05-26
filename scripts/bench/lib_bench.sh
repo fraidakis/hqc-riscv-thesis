@@ -138,6 +138,8 @@ bench_auto_configure_and_build() {
     local _decode="${DECODE_IMPL:-ref}"
     local _scalar_march="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
     local _vector_bits="${HQC_VECTOR_BITS:-256}"
+    local _toolchain_file="${HQC_TOOLCHAIN_FILE:-toolchain/riscv-clang.cmake}"
+    local _opt_level="${HQC_OPT_LEVEL:-}"
     local need_config=0
     local config_reason=""
     local lock_fd=""
@@ -159,20 +161,29 @@ bench_auto_configure_and_build() {
         cached_scalar="$(awk -F'=' '/^HQC_SCALAR_MARCH:STRING=/{print $2; exit}' "$cache_file")"
         cached_vbits="$(awk -F'=' '/^HQC_VECTOR_BITS:STRING=/{print $2; exit}' "$cache_file")"
         cached_vbits="${cached_vbits:-256}"
+        local cached_toolchain_base want_toolchain_base cached_opt
+        cached_toolchain_base="$(awk -F'=' '/^CMAKE_TOOLCHAIN_FILE:FILEPATH=/{print $2; exit}' "$cache_file" | xargs basename 2>/dev/null || true)"
+        want_toolchain_base="$(basename "$_toolchain_file")"
+        cached_opt="$(awk -F'=' '/^RISCV_OPT_LEVEL:STRING=/{print $2; exit}' "$cache_file")"
 
         if [[ -z "$cached_keccak" || -z "$cached_decode" || -z "$cached_scalar" ]]; then
             need_config=1
             config_reason="incomplete cache"
-        elif [[ "$cached_keccak" != "$_keccak" || "$cached_decode" != "$_decode" || "$cached_scalar" != "$_scalar_march" || "$cached_vbits" != "$_vector_bits" ]]; then
+        elif [[ "$cached_keccak" != "$_keccak" || "$cached_decode" != "$_decode" || \
+                "$cached_scalar" != "$_scalar_march" || "$cached_vbits" != "$_vector_bits" || \
+                "$cached_toolchain_base" != "$want_toolchain_base" ]]; then
             need_config=1
             config_reason="cache mismatch"
+        elif [[ -n "$_opt_level" && "$cached_opt" != "$_opt_level" ]]; then
+            need_config=1
+            config_reason="opt-level mismatch"
         fi
     fi
 
     if [[ "$need_config" -eq 1 ]]; then
         echo " ├── ⚙️  Auto-configuring ${config_reason}: ${build_dir}..."
         local cmake_cmd="cmake -S \"$repo_root\" -B \"$build_dir\" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DCMAKE_TOOLCHAIN_FILE=${_toolchain_file} \
         -DCMAKE_BUILD_TYPE=Release \
         -DHQC_SIM=${sim_type} \
         -DHQC_KECCAK_IMPL=${_keccak} \
@@ -180,6 +191,9 @@ bench_auto_configure_and_build() {
         -DHQC_SCALAR_MARCH=${_scalar_march} \
         -DHQC_VECTOR_BITS=${_vector_bits}"
 
+        if [[ -n "$_opt_level" ]]; then
+            cmake_cmd="${cmake_cmd} -DRISCV_OPT_LEVEL=${_opt_level}"
+        fi
         if [[ "$trace_mode" == "1" ]]; then
             cmake_cmd="${cmake_cmd} -DHQC_TRACE_MODE=1"
         fi
