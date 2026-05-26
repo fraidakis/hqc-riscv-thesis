@@ -328,6 +328,48 @@ RISC-V ISA. Η γεφύρωση του εναπομένοντος χάσματο
 
 ---
 
+### Discovery 8 — GCC 15.x Zvbb Incompatibility (Investigated & Documented)
+
+**What**: The `fips202_zvbb_x2.c` Keccak backend cannot be compiled by GCC. Two distinct issues were identified:
+
+1. **Array-of-vector-type limitation (compile-time):** The x2 SoA path declares `vu64m1_fixed_t state[25]` — arrays of fixed-length RVV vector types via `__attribute__((riscv_rvv_vector_bits(N)))`. GCC rejects this because it treats all RVV types as *sizeless* (scalable) per the RVV spec. This attribute is a Clang-only language extension.
+
+2. **LMUL=8 vrgather/vror codegen bug (runtime):** Even after implementing a GCC-compatible x2 path (using `uint64_t[50]` flat buffer with named `vuint64m1_t` locals), the single-stream `KeccakF1600_StatePermute` function — which uses LMUL=8 `vrgather.vv` + `vror.vv` (Zvbb) — produces code that runs forever on Spike. GCC 15.2 emits only 4 `vrgather` instructions (vs Clang's 52) and 1 `vror.vv` (vs Clang's 42), indicating severely broken codegen for this pattern.
+
+**Investigation performed (2026-05-26):**
+- Implemented a dual-path `#if defined(__clang__)` / `#elif defined(__GNUC__)` architecture
+- GCC x2 path: `uint64_t[50]` flat buffer, 25 named `vuint64m1_t` locals, load-once/store-once around the 24-round loop
+- GCC single-stream: linked vendor scalar `fips202.c` (since the Zvbb LMUL=8 path is broken)
+- **Correctness verified:** KAT outputs bit-for-bit identical between Clang and GCC (100/100 vectors)
+- **Performance measured:**
+
+| Level | Clang (Zvbb) | GCC (scalar fallback) | GCC overhead |
+|-------|-------------|----------------------|--------------|
+| 128 | 1,041,630 | 1,997,817 | +91.8% |
+| 192 | 2,179,392 | 3,894,183 | +78.7% |
+| 256 | 3,520,201 | 6,302,705 | +79.0% |
+
+Keccak micro-bench: Clang Zvbb = 2,033 instret, GCC scalar = 5,694 instret (+180%)
+
+**Decision:** The ~80-90% overhead from the scalar Keccak fallback makes the GCC path not useful for performance comparison. The pre-build skip guard in `run_compiler_mode()` is retained:
+```bash
+if [[ "$compiler" == "gcc" && "$KECCAK_IMPL" == "zvbb_x2_soa" ]]; then
+    echo "SKIP (gcc_zvbb_incompatible)"
+    # ... write SKIP row to CSV
+    continue
+fi
+```
+
+**Root cause classification:**
+- Issue 1 (array-of-vector): **Language extension gap** — GCC follows the RVV spec strictly (sizeless types), Clang extends it with `riscv_rvv_vector_bits`. No GCC fix expected without spec change.
+- Issue 2 (LMUL=8 codegen): **GCC compiler bug** — the generated code enters an infinite loop. Likely a register allocation or instruction scheduling issue with LMUL=8 register groups (4 groups × 8 registers = all 32 vector registers consumed, leaving no room for temporaries without spilling, and the spill/reload logic appears broken).
+
+**Thesis relevance (§8.4 Compiler Comparison):** Document as a known GCC limitation. The Zvbb Keccak backend is Clang-only. For GCC compiler comparison benchmarks, use `HQC_KECCAK_IMPL=ref` (vendor scalar) which works correctly on both compilers.
+
+**Key lesson:** RISC-V vector crypto extensions (Zvbb/Zvbc) are still maturing in GCC's backend. For production crypto code targeting these extensions, Clang/LLVM is currently the only viable compiler. This is consistent with the broader RISC-V ecosystem where LLVM leads GCC in RVV extension support.
+
+---
+
 ## Conventions Reminder
 
 - All benchmark numbers are **instruction-retired counts** from Spike ISS (deterministic, not cycle counts).

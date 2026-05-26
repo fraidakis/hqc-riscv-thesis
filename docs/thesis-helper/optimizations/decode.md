@@ -46,7 +46,7 @@ The decode acceleration proceeded through a sequence of increasingly targeted in
 
 2. **Phase 3a — Full Reed-Muller vectorization** (Tracks B and C). The three RM sub-functions (`expand_and_sum`, `hadamard`, `find_peaks`) were rewritten using RVV 1.0 intrinsics. The FHT butterfly structure maps naturally to strided vector loads and paired add/subtract operations, yielding the single largest instruction reduction in the decode pipeline. This phase was promoted to `src/decode/reed_muller_rvv.c`.
 
-3. **Phase 3b Axis A — RS syndrome computation** (Tracks B and C). The $2\delta$ independent GF(2^8) dot-products in `compute_syndromes` were vectorized using Zvbc `vclmul.vv` lane-packing with inline Barrett reduction. Each vector instruction computes multiple GF products simultaneously, replacing the per-element scalar `gf_mul` call chain. Promoted to `src/decode/reed_solomon_rvv.c`.
+3. **Phase 3b Axis A — RS syndrome computation** (Tracks B and C). The $2\delta$ independent GF(2^8) dot-products in `compute_syndromes` were vectorized. Track B uses RVV indexed gather loads on the `gf_log[]` and `gf_exp[]` tables (SEW=16, LMUL=4, vl=64 at VLEN=256), requiring only the V extension. Track C uses Zvbc `vclmul.vv` lane-packing with inline Barrett reduction (SEW=64, LMUL=4, vl=16 at VLEN=256). Both approaches replace the per-element scalar `gf_mul` call chain. Promoted to `src/decode/reed_solomon_rvv.c` (Track B) and `src/decode/reed_solomon_zvbc.c` (Track C).
 
 4. **Phase 3b Axes B+D — BM inner loops and Forney** (Track C only). The three inner loops of Berlekamp-Massey (`compute_elp`) and the two inner structures of the Forney formula (`compute_error_values`) were vectorized using the same Zvbc lane-packing strategy. The outer BM loop remains scalar due to sequential data dependencies. Promoted to `src/decode/reed_solomon_zvbc.c`.
 
@@ -131,36 +131,48 @@ $$S_i = \text{cdw}[0] \oplus \bigoplus_{j=1}^{N_1-1} \text{gf\_mul}(\text{cdw}[j
 
 The outer loop over $i$ remains scalar (each syndrome is reduced to a single accumulator), while the inner loop over $j$ is fully vectorized.
 
-#### ISA-Level: Zvbc `vclmul.vv` Lane-Packing
+#### ISA-Level: RVV Log/Exp Table Gather
 
-The vectorization strategy places one GF(2^8) element (8 bits) in bits [7:0] of each 64-bit vector lane, with the upper 56 bits zeroed. The Zvbc `vclmul.vv` instruction then computes the carry-less product of two such elements per lane, producing a 14-bit result in bits [14:0]. This "lane-packing" approach avoids the need for table lookups or log/antilog gather operations.
+The vectorization strategy computes GF(2^8) products using the logarithm/antilogarithm identity:
 
-The implementation loads codeword bytes via `vle8` and zero-extends to 64-bit lanes with `vzext.vf8`; precomputed alpha powers (stored as `uint16_t`) are loaded via `vle16` and extended with `vzext.vf4`. After `vclmul.vv`, an inline two-pass Barrett-style reduction folds the 14-bit products back to 8-bit GF elements. A `vredxor.vs` reduction accumulates the per-lane results into the scalar syndrome accumulator.
+$$\text{gf\_mul}(a, b) = \begin{cases} 0 & \text{if } a = 0 \text{ or } b = 0 \\ \text{gf\_exp}[(\text{gf\_log}[a] + \text{gf\_log}[b]) \bmod 255] & \text{otherwise} \end{cases}$$
+
+This approach uses only standard RVV instructions (no Zvbc vector carry-less multiply dependency), keeping the `rvv` decode tier compatible with hardware that implements the V extension without vector-crypto extensions.
+
+The implementation proceeds in five vectorized steps per inner-loop iteration:
+
+1. **Indexed gather on `gf_log[]`**: Load codeword bytes via `vle8` and zero-extend to `u16` for index computation. Compute byte offsets (`vsll_vx(..., 1)` since `gf_log` is `uint16_t[256]`) and gather via `vluxei16` to obtain `log_a[j]` and `log_b[j]` in parallel.
+
+2. **Modular log-sum**: Add the two log vectors (`vadd_vv`). Since $\max(\log_a + \log_b) = 254 + 254 = 508 > 255$, a branchless conditional subtract reduces mod 255: compare against 255 via `vmsgeu_vx`, then `vsub_vx` under mask-undisturbed policy (`_mu` suffix) to subtract 255 only from lanes where the sum exceeds the modulus.
+
+3. **Indexed gather on `gf_exp[]`**: Compute byte offsets from the reduced log-sum and gather `gf_exp[log_sum]` via `vluxei16`. The `gf_exp` table has 258 entries (indices 0–257), accommodating all possible reduced sums without bounds checking.
+
+4. **Zero-masking**: Generate a combined non-zero mask via `vmsne_vx(..., 0)` on both operands and `vmand_mm`. Apply `vmerge_vvm` to force the product to zero in lanes where either operand is zero, preserving the GF multiplication identity $0 \cdot x = 0$.
+
+5. **XOR-reduction**: Accumulate the masked products into the scalar syndrome accumulator via `vredxor_vs`.
 
 #### Micro-Level: LMUL/SEW Parameters and Register Layout
 
-The configuration uses SEW=64, LMUL=4, yielding vl=16 lanes at VLEN=256. Each vector pass processes 16 GF multiplications simultaneously. The pass counts per syndrome are:
+The configuration uses SEW=16, LMUL=4, yielding vl=64 lanes at VLEN=256. Each vector pass processes 64 GF multiplications simultaneously — a 4× improvement in elements-per-pass compared to the Zvbc lane-packing approach used in Track C (which requires SEW=64 for `vclmul.vv`, limiting vl to 16). The pass counts per syndrome are:
 
-- HQC-128: $\lceil 45/16 \rceil = 3$ passes × 30 syndromes
-- HQC-192: $\lceil 55/16 \rceil = 4$ passes × 32 syndromes
-- HQC-256: $\lceil 89/16 \rceil = 6$ passes × 58 syndromes
+- HQC-128: $\lceil 45/64 \rceil = 1$ pass × 30 syndromes ≈ ~30 vector passes total
+- HQC-192: $\lceil 55/64 \rceil = 1$ pass × 32 syndromes ≈ ~32 vector passes total
+- HQC-256: $\lceil 89/64 \rceil = 2$ passes × 58 syndromes ≈ ~116 vector passes total
 
-The implementation is vector-length agnostic (VLA): it uses `vsetvl_e64m4` to query the hardware vector length and processes the remainder in a tail pass, ensuring correctness at any VLEN ≥ 64.
+The implementation is vector-length agnostic (VLA): it uses `vsetvl_e16m4` to query the hardware vector length and processes the remainder in a tail pass, ensuring correctness at any VLEN ≥ 64.
 
-#### Inline Barrett Reduction
+#### Trade-offs vs. Zvbc Lane-Packing (Track C)
 
-The two-pass reduction exploits the structure of the irreducible polynomial $p(x) = x^8 + x^4 + x^3 + x^2 + 1$. Since $x^8 \equiv x^4 + x^3 + x^2 + 1 \pmod{p(x)}$, bits above position 7 are folded back using shifts by 0, 2, 3, and 4 positions:
+| Aspect | RVV Log/Exp Gather (Track B) | Zvbc `vclmul.vv` (Track C) |
+|--------|------------------------------|---------------------------|
+| ISA requirement | RVV (V ext only) | RVV + Zvbc |
+| Elements per pass (VLEN=256) | 64 (SEW=16, LMUL=4) | 16 (SEW=64, LMUL=4) |
+| Memory traffic | 2 indexed gathers per iteration | None (compute-only) |
+| Cache pressure | Requires gf_log (512B) + gf_exp (516B) in L1 | No table dependency |
+| Instruction count per element | ~12 (gather + add + gather + mask + xor) | ~8 (clmul + reduce) |
+| Hardware compatibility | Any RVV implementation | Requires vector-crypto |
 
-```c
-// Pass 1: fold bits [14:8]
-high = vsrl(v, 8);  v = vand(v, 0xFF);
-v ^= high ^ (high << 2) ^ (high << 3) ^ (high << 4);
-// Pass 2: fold residual bits [10:8]
-high = vsrl(v, 8);  v = vand(v, 0xFF);
-v ^= high ^ (high << 2) ^ (high << 3) ^ (high << 4);
-```
-
-Pass 1 reduces a degree-14 polynomial to at most degree 10; Pass 2 completes the reduction to degree < 8. The entire sequence uses only shift, mask, and XOR operations — no data-dependent branches — preserving constant-time semantics.
+The RVV gather approach trades higher per-element instruction count for wider parallelism (4× more elements per pass) and broader hardware compatibility. On implementations with efficient indexed-load units, the wider parallelism dominates; on implementations where `vluxei` is expensive (e.g., serialized gather), the Zvbc approach in Track C would be preferred.
 
 ## 5. Variant III — Track C: Zvbc Decode (`karatsuba_zvbc`)
 
@@ -402,9 +414,9 @@ The following ranking orders all decode optimizations by expected contribution t
 
 A hand-optimized RISC-V assembly implementation of KeccakF1600 using Zbb instructions (`rori` for Rho rotations, `andn` for Chi step) was implemented and validated (300/300 KAT vectors pass). The design rationale targeted cycle savings via dual-issue scheduling on in-order cores. However, benchmarking on Spike ISS showed 6,159 instret per permutation — 31.6% *worse* than the reference scalar (4,680 instret). The explanation: Spike measures retired instructions, not cycles. The compiler with `-march=rv64gc_zbc_zbb` already auto-lowers `rori` and `andn`, producing a tighter instruction count than the hand-scheduled assembly (which includes extra register moves and stack spills for the 25-lane state). The assembly backend's value would only manifest on a cycle-accurate model of an in-order dual-issue core, which Spike doesn't model. The implementation remains in the codebase (`src/keccak/fips202_asm.c` + `src/keccak/keccak_f1600.S`, selectable via `HQC_KECCAK_IMPL=asm`) but is not documented in the thesis as a performance improvement.
 
-### (b) Log/Antilog Table-Lookup Syndrome Computation
+### (b) Zvbc `vclmul.vv` Lane-Packing for Track B Syndromes
 
-An alternative syndrome vectorization strategy was considered that would use `vluxei8.v` gather loads into precomputed `gf_log` and `gf_exp` tables, computing GF products as $\exp[\log[a] + \log[b] \bmod 255]$. This approach avoids the Zvbc extension dependency but requires the 256-byte log and exp tables to remain in L1 cache throughout the syndrome computation. The Zvbc lane-packing approach was preferred because it eliminates table-lookup latency, avoids potential cache-miss penalties on in-order cores, and provides a uniform strategy applicable to all RS axes without modification.
+An alternative syndrome vectorization strategy was considered that would use Zvbc `vclmul.vv` carry-less multiply instructions with inline Barrett reduction, placing one GF(2^8) element per 64-bit lane. This approach eliminates table-lookup latency entirely but requires the Zvbc vector-crypto extension, which would violate the architectural separation between the `rvv` tier (V extension only) and the `zvbc` tier (V + vector-crypto). The Zvbc lane-packing approach is used in Track C where the extension is already required for Axes B, C, and D; for Track B, the RVV log/exp gather approach was preferred to maintain hardware compatibility with RVV-only implementations. The trade-off is: Zvbc processes fewer elements per pass (16 at SEW=64 vs. 64 at SEW=16) but avoids indexed-load latency.
 
 ### (c) Batched Outer-Loop BM Parallelization
 
