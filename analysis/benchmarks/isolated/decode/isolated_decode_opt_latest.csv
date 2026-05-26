@@ -1,7 +1,0 @@
-# date: 2026-05-22 16:24
-# commit: 255bd59
-# Decode variant: rvv
-level,op,instructions,codesize
-128,decode,87951,14340
-192,decode,119930,15602
-256,decode,204237,23778

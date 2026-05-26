@@ -1,7 +1,7 @@
-# date: 2026-05-22 16:24
-# commit: 255bd59
+# date: 2026-05-26 23:05
+# commit: c56c136
 # Keccak variant: zvbb_x2_soa
 level,op,instructions,codesize
-128,keccak,2127,16488
-192,keccak,2127,16488
-256,keccak,2127,16488
+128,keccak,131944,20562
+192,keccak,249581,20902
+256,keccak,383277,20332

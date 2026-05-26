@@ -1,7 +1,7 @@
-# date: 2026-05-22 15:13
-# commit: 721d412
+# date: 2026-05-26 18:17
+# commit: c56c136
 # variant: karatsuba_rvv
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1950,1999,33190,25844,519,404
-192,2226,2282,30460,26722,476,418
-256,2147,2250,28294,24867,443,389
+128,1999,2206,26936,23788,421,372
+192,2336,2365,35940,29174,562,456
+256,2215,2319,31216,26885,488,421

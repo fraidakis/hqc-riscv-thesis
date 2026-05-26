@@ -1,7 +1,7 @@
 # Compiler Showdown Analysis
 
 Derived from compare_compilers CSVs under analysis/benchmarks/compiler_compare.
-Scanned CSV files: 74
+Scanned CSV files: 86
 
 | Variant | Level | Best Clang | Best GCC | Winner | Margin |
 |---|---:|---|---|---|---:|
