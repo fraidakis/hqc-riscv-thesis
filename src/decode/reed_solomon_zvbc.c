@@ -55,38 +55,55 @@
 #include "parameters.h"     /* PARAM_DELTA, PARAM_N1, PARAM_M, PARAM_FFT, PARAM_K, PARAM_G */
 #include "crypto_memset.h"  /* memset_zero */
 
-/* ── GF(2^8) inline Barrett reduction ───────────────────────────────────────
+/* ── GF(2^8) inline Barrett reduction (shared with fft_zvbc.c) ──────────────
  *
- * Reduces a vector of 14-bit carry-less products (each in bits [14:0] of a
+ * Reduces a vector of 14-bit carry-less products (each in bits [13:0] of a
  * 64-bit lane) modulo PARAM_GF_POLY = 0x11D (x^8+x^4+x^3+x^2+1).
- *
- * x^8 ≡ x^4 + x^3 + x^2 + 1  mod poly.
- * Two passes suffice for degree ≤ 14:
- *   Pass 1: extract bits [14:8], fold into [7:0] via shifts 0,2,3,4.
- *            Result: degree ≤ 10.
- *   Pass 2: extract bits [10:8], fold again. Result: degree < 8. ✓
- *
+ * Single-pass Barrett via vclmul: 6 vector instructions.
  * Constant-time: no data-dependent branches.
  */
 static inline vuint64m4_t gf_reduce_vec_u64m4(vuint64m4_t v, size_t vl)
 {
-    vuint64m4_t high;
+    /*
+     * Single-pass Barrett reduction in GF(2)[x] mod 0x11D.
+     *
+     * Given v with 14-bit carry-less products (degree ≤ 13), reduce mod
+     * p(x) = x^8 + x^4 + x^3 + x^2 + 1 (0x11D) using Barrett's method:
+     *
+     *   high = v >> 8                    (overflow bits [13:8], degree ≤ 5)
+     *   q    = clmul(high, μ) >> 8       (quotient estimate)
+     *   corr = clmul(q, poly)            (correction = q × poly)
+     *   r    = (v XOR corr) & 0xFF       (remainder in [0, 255])
+     *
+     * Barrett reciprocal: μ = floor(x^16 / poly) = 0x11C in GF(2)[x].
+     * However, using poly (0x11D) as μ also produces correct results for
+     * all 14-bit inputs because the +1 difference (bit 0) does not affect
+     * the quotient after the >> 8 shift for operands of degree ≤ 5.
+     * This allows reusing a single constant vector for both clmul operations.
+     *
+     * Instruction count: 6 vector instructions (+ 1 vmv_v_x broadcast that
+     * can be hoisted out of loops by the compiler).
+     *
+     * Constant-time: no data-dependent branches; all operations are
+     * fixed-latency regardless of input values.
+     */
+    const uint64_t BARRETT_POLY = 0x11Du;
 
-    /* Pass 1 — fold bits [14:8] */
-    high = __riscv_vsrl_vx_u64m4(v, 8, vl);
-    v    = __riscv_vand_vx_u64m4(v, 0xFFu, vl);
-    v    = __riscv_vxor_vv_u64m4(v, high, vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 2, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 3, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 4, vl), vl);
+    vuint64m4_t mu_vec = __riscv_vmv_v_x_u64m4(BARRETT_POLY, vl);
 
-    /* Pass 2 — fold bits [10:8] left by pass 1 */
-    high = __riscv_vsrl_vx_u64m4(v, 8, vl);
-    v    = __riscv_vand_vx_u64m4(v, 0xFFu, vl);
-    v    = __riscv_vxor_vv_u64m4(v, high, vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 2, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 3, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 4, vl), vl);
+    /* Step 1: Extract overflow bits [13:8] */
+    vuint64m4_t high = __riscv_vsrl_vx_u64m4(v, 8, vl);
+
+    /* Step 2: Quotient estimate = (high × μ) >> 8 */
+    vuint64m4_t q = __riscv_vclmul_vv_u64m4(high, mu_vec, vl);
+    q = __riscv_vsrl_vx_u64m4(q, 8, vl);
+
+    /* Step 3: Correction = q × poly */
+    vuint64m4_t correction = __riscv_vclmul_vv_u64m4(q, mu_vec, vl);
+
+    /* Step 4–5: XOR correction and mask to 8 bits */
+    v = __riscv_vxor_vv_u64m4(v, correction, vl);
+    v = __riscv_vand_vx_u64m4(v, 0xFFu, vl);
 
     return v;
 }

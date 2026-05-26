@@ -166,6 +166,7 @@ elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp"
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
         ${CMAKE_SOURCE_DIR}/src/decode/fft_zvbc.c
     )
+    # When HQC_DECODE_IMPL=zvbc, compile decode sources with Zvbc extensions.
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"

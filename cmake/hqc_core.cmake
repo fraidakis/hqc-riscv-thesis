@@ -51,10 +51,12 @@ function(hqc_add_core LEVEL)
         # See the VECTOR_SOURCES variable in the target matrix loop.
 
         # Base field GF(2^8) arithmetic — Target 3 Track A promoted (2026-05-14).
-        # src/common/gf.c replaces the upstream reference gf.c; it injects a native
-        # Zbc clmul instruction into gf_mul() (guarded by #ifdef __riscv_zbc for
-        # portability) while keeping all other functions unchanged.
-        ${CMAKE_SOURCE_DIR}/src/common/gf.c
+        # Default (HQC_GF_IMPL=asm): src/common/gf.c — inline __asm__ volatile clmul.
+        # Experiment (HQC_GF_IMPL=intrinsic): uses __riscv_clmul() from
+        # <riscv_bitmanip.h> — see experiments/EXP-intrinsics-vs-asm/.
+        $<IF:$<STREQUAL:${HQC_GF_IMPL},intrinsic>,
+            ${CMAKE_SOURCE_DIR}/experiments/EXP-intrinsics-vs-asm/gf_intrinsic.c,
+            ${CMAKE_SOURCE_DIR}/src/common/gf.c>
 
         # NOT included here — per-target source selection via HQC_*_IMPL flags:
         #   fips202.c / symmetric.c  ← HQC_KECCAK_IMPL  (Phase 2)

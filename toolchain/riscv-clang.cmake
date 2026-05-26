@@ -91,7 +91,7 @@ if(DEFINED ENV{RISCV_MARCH_OVERRIDE} AND NOT "$ENV{RISCV_MARCH_OVERRIDE}" STREQU
   set(RISCV_MARCH "$ENV{RISCV_MARCH_OVERRIDE}")
   message(STATUS "[toolchain] RISCV_MARCH overridden via env: ${RISCV_MARCH}")
 else()
-  set(RISCV_MARCH "rv64gc_zbc_zbb")
+  set(RISCV_MARCH "rv64gc_zbc_zbb_zbs")
 endif()
 set(RISCV_MABI  "lp64d")
 set(RISCV_OPT_LEVEL "-O3" CACHE STRING "Optimization flag for Clang (e.g. -O2, -O3, -Os)")

@@ -41,7 +41,7 @@ set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv" "zvbc")
 # respectively).  Zba (address-generation: sh1add/sh2add/sh3add) was promoted
 # on 2026-05-25 after ablation showed −5.6% polymul improvement on karatsuba_zvbc
 # and −2.6% on karatsuba_rvv (see docs/thesis-helper/optimizations/zba_ablation.md).
-set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb" CACHE STRING
+set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb_zbs" CACHE STRING
     "ISA march for scalar variants (ablation: set to rv64gc_zbc to strip zbb)")
 
 # ── Diagnostic messages ───────────────────────────────────────────────────────

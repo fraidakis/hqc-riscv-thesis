@@ -27,9 +27,12 @@ lint:
 	@chktex -q main.tex chapters/*.tex 2>/dev/null || \
 		echo "Install chktex: sudo apt install chktex"
 
-# Clean all build artifacts
+# Clean all build artifacts (including biber state files that can get corrupted)
+# The leading - on latexmk -C tells make to ignore its exit code, so that
+# rm -rf build always runs even when the build state is broken (which is
+# exactly the situation where a clean is needed most).
 clean:
-	latexmk -C
+	-latexmk -C
 	rm -rf $(BUILD_DIR)
 	rm -rf _minted-main
 
