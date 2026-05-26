@@ -15,7 +15,12 @@
 \newfontfamily\greekfonttt{DejaVu Sans Mono}[Scale=MatchLowercase]
 
 % --- Typography ---
-\usepackage{microtype}          % Microtypographic improvements
+\usepackage[                    % Full microtypographic improvements
+  protrusion=true,
+  expansion=true,
+  tracking=true
+]{microtype}
+\usepackage{selnolig}           % Suppress cross-morpheme ligatures (LuaLaTeX)
 \usepackage{csquotes}           % Context-sensitive quotes (biblatex needs this)
 
 % --- Page layout ---
@@ -32,6 +37,7 @@
 \usepackage{tikz}               % Programmable graphics
 \usepackage{pgfplots}           % Plots from data
 \pgfplotsset{compat=1.18}
+\usepackage{pgfplotstable}      % Import CSV/TSV data directly into LaTeX tables
 \usepackage{subcaption}         % Sub-figures
 
 % --- Tables ---
@@ -40,6 +46,8 @@
 \usepackage{tabularx}           % Auto-width columns
 \usepackage{multirow}           % Multi-row cells
 \usepackage{siunitx}            % SI units and number formatting
+\usepackage{tabularray}         % Modern table environment
+\UseTblrLibrary{booktabs}       % booktabs-style rules in tabularray
 
 % --- Code listings ---
 \usepackage{listings}           % Code listings (primary)
@@ -50,9 +58,46 @@
 
 % --- Cross-references and links ---
 \usepackage{hyperref}           % Clickable links, PDF metadata
-% NOTE: cleveref omitted due to polyglossia incompatibility in TL2023.
-% Use \autoref{label} for smart refs, or plain \ref{label}.
-% After upgrading to TL2024+, you can add: \usepackage[nameinlink]{cleveref}
+\usepackage[nameinlink,noabbrev]{cleveref}  % Smart cross-references (TL2026+)
+
+% Fix cleveref + polyglossia Greek: cleveref has no Greek language support
+% and \cref@language is left undefined with polyglossia. We set it to
+% "english" as a fallback (our explicit \crefname defs override the names).
+\makeatletter
+\def\cref@language{english}
+\makeatother
+
+% Greek cross-reference names
+\crefname{chapter}{κεφάλαιο}{κεφάλαια}
+\Crefname{chapter}{Κεφάλαιο}{Κεφάλαια}
+\crefname{section}{ενότητα}{ενότητες}
+\Crefname{section}{Ενότητα}{Ενότητες}
+\crefname{subsection}{υποενότητα}{υποενότητες}
+\Crefname{subsection}{Υποενότητα}{Υποενότητες}
+\crefname{figure}{σχήμα}{σχήματα}
+\Crefname{figure}{Σχήμα}{Σχήματα}
+\crefname{table}{πίνακα}{πίνακες}
+\Crefname{table}{Πίνακας}{Πίνακες}
+\crefname{equation}{εξίσωση}{εξισώσεις}
+\Crefname{equation}{Εξίσωση}{Εξισώσεις}
+\crefname{listing}{κώδικα}{κώδικες}
+\Crefname{listing}{Κώδικας}{Κώδικες}
+\crefname{algorithm}{αλγόριθμο}{αλγόριθμοι}
+\Crefname{algorithm}{Αλγόριθμος}{Αλγόριθμοι}
+\crefname{appendix}{παράρτημα}{παραρτήματα}
+\Crefname{appendix}{Παράρτημα}{Παραρτήματα}
+\crefname{page}{σελίδα}{σελίδες}
+\Crefname{page}{Σελίδα}{Σελίδες}
+
+% --- Glossaries: first-use acronym expansion ---
+% \gls{key}  → "Full Name (ABBR)" on first use, then "ABBR" — no external tool needed
+% \Gls{key}  → sentence-start form  |  \glspl{key} → plural
+% All definitions live in preamble/glossary.tex
+\usepackage[
+  acronym,          % dedicated acronym glossary type
+  nomain,           % suppress unused main glossary
+  nopostdot,        % no trailing period after descriptions
+]{glossaries-extra}
 
 % --- Bibliography ---
 \usepackage[
@@ -60,7 +105,11 @@
   style=ieee,
   sorting=nyt,
   maxbibnames=99,
-  dashed=false
+  dashed=false,
+  doi=true,
+  url=false,
+  isbn=false,
+  eprint=false
 ]{biblatex}
 \addbibresource{bibliography/references.bib}
 
@@ -71,6 +120,7 @@
 \usepackage{pdfpages}           % Include external PDFs
 \usepackage{setspace}           % Line spacing control
 \usepackage{caption}            % Caption formatting
+\usepackage[colorinlistoftodos,prependcaption]{todonotes}  % Visible TODO markers (\todo{text}, \missingfigure{text})
 
 % --- Colored boxes (definitions, key results, remarks) ---
 \usepackage{tcolorbox}

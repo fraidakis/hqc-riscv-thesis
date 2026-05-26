@@ -43,8 +43,8 @@
 \newcommand{\LMUL}{\texttt{LMUL}\xspace}
 
 % --- Abbreviations ---
-\newcommand{\ie}{i.e.\@\xspace}
-\newcommand{\eg}{e.g.\@\xspace}
+\newcommand{\ie}{i.e.\@,\xspace}
+\newcommand{\eg}{e.g.\@,\xspace}
 \newcommand{\cf}{cf.\@\xspace}
 
 % --- Emphasis ---
@@ -54,6 +54,65 @@
 % --- Complexity ---
 \newcommand{\BigO}[1]{\mathcal{O}(#1)}
 
+% --- Results & measurements ---
+% Speedup ratio: \speedup{1.47} -> "\times1.47"
+\newcommand{\speedup}[1]{$\times$#1}
+% Cycle count with thousands grouping via siunitx: \cycles{1234567}
+\newcommand{\cycles}[1]{\num{#1}}
+% Percent improvement: \pct{32.5} -> "32.5\,\%"
+\newcommand{\pct}[1]{\SI{#1}{\percent}}
+% Shorthand for \enquote (csquotes): canonical Greek/English quoting
+\newcommand{\q}[1]{\enquote{#1}}
+
+
+% --- Abstract / front-matter environments (t12) ---
+\newenvironment{thesiskeywords}{%
+  \par\vspace{0.8em}
+  \noindent\begin{tcolorbox}[
+    enhanced, colback=thesisblue!5, colframe=thesisblue!40,
+    arc=2pt, boxrule=0.5pt, left=6pt, right=6pt, top=3pt, bottom=3pt
+  ]\textbf{Keywords:}\enspace\itshape
+}{\end{tcolorbox}}
+
+\newenvironment{thesiskeywordsel}{%
+  \par\vspace{0.8em}
+  \noindent\begin{tcolorbox}[
+    enhanced, colback=thesisblue!5, colframe=thesisblue!40,
+    arc=2pt, boxrule=0.5pt, left=6pt, right=6pt, top=3pt, bottom=3pt
+  ]\textbf{Λέξεις-κλειδιά:}\enspace\itshape
+}{\end{tcolorbox}}
+
+\newcommand{\thesismetabox}{%
+  \begin{tcolorbox}[
+    enhanced, colback=gray!4, colframe=gray!40,
+    arc=3pt, boxrule=0.5pt, left=8pt, right=8pt, top=5pt, bottom=5pt
+  ]
+  \small\sffamily
+  \begin{tabular}{@{}ll@{}}
+    \textbf{Author:}      & Fraidakis Ioannis \\
+    \textbf{Supervisor:}  & Papaeustathiou Ioannis, Professor, A.U.Th.\ \\
+    \textbf{Institution:} & Aristotle University of Thessaloniki \\
+    \textbf{Department:}  & Electrical \& Computer Engineering \\
+    \textbf{Submitted:}   & June 2026 \\
+  \end{tabular}
+  \end{tcolorbox}%
+}
+
+\newcommand{\thesismetaboxel}{%
+  \begin{tcolorbox}[
+    enhanced, colback=gray!4, colframe=gray!40,
+    arc=3pt, boxrule=0.5pt, left=8pt, right=8pt, top=5pt, bottom=5pt
+  ]
+  \small\sffamily
+  \begin{tabular}{@{}ll@{}}
+    \textbf{Συγγραφέας:}     & Φραϊδάκης Ιωάννης \\
+    \textbf{Επιβλέπων:}      & Παπαευσταθίου Ιωάννης, Καθηγητής, Α.Π.Θ.\ \\
+    \textbf{Ίδρυμα:}         & Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης \\
+    \textbf{Τμήμα:}          & Ηλεκτρολόγων Μηχανικών \& Μηχανικών Υπολογιστών \\
+    \textbf{Υποβολή:}        & Ιούνιος 2026 \\
+  \end{tabular}
+  \end{tcolorbox}%
+}
 
 % --- tcolorbox environments (use sparingly: 5-10 per thesis) ---
 \newtcolorbox{definitionbox}[1][]{%
@@ -71,3 +130,13 @@
   fonttitle=\bfseries\sffamily, title={#1},
   breakable, sharp corners, boxrule=0.5pt, left=6pt, right=6pt
 }
+
+% =============================================================================
+% Draft helpers — remove before final submission
+% (todonotes provides \todo{} and \missingfigure{}; macros below add shortcuts)
+% =============================================================================
+\newcommand{\missingfig}[1]{\missingfigure[figwidth=\linewidth]{#1}}
+\newcommand{\missingcite}{\todo[color=orange!25, inline]{CITATION NEEDED}}
+\newcommand{\placeholder}[1]{\todo[color=gray!20, inline]{PLACEHOLDER: #1}}
+% Invisible TODO for quick notes without margin noise (still listed)
+\newcommand{\itodo}[1]{\todo[color=blue!15, inline]{#1}}

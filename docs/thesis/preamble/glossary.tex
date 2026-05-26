@@ -1,0 +1,70 @@
+% =============================================================================
+% Glossary / Acronym Definitions
+% =============================================================================
+%
+% Usage in text:
+%   \gls{hqc}   → first use: "Hamming Quasi-Cyclic (HQC)"
+%               → subsequent: "HQC"  (small caps, matching \HQC macro)
+%   \Gls{hqc}   → sentence-start form (capitalised long form on first use)
+%   \glspl{hqc} → plural short form
+%   \glsreset{hqc}   → mark as unseen (for reuse in abstract, etc.)
+%   \glsresetall     → reset all entries (useful after abstract)
+%
+% The tblr table in appendices/acronyms.tex is the printed list.
+% To switch to the auto-generated list with page back-references, uncomment
+% the \printnoidxglossary line in acronyms.tex.
+% =============================================================================
+
+% --- Abbreviation style: "Full Name (ABBR)" on first use, then "ABBR" ---
+\setabbreviationstyle[acronym]{long-short}
+
+% Short form uses small caps to match the \HQC / \Zbc macro style
+\renewcommand*{\glsabbrvfont}[1]{\textsc{\MakeLowercase{#1}}}
+
+% Enable auto-processing without an external tool (no makeglossaries needed)
+\makenoidxglossaries
+
+% =============================================================================
+% Cryptography
+% =============================================================================
+\newabbreviation{aes}{AES}{Advanced Encryption Standard}
+\newabbreviation{ecc}{ECC}{Elliptic Curve Cryptography}
+\newabbreviation{hqc}{HQC}{Hamming Quasi-Cyclic}
+\newabbreviation{kat}{KAT}{Known Answer Test}
+\newabbreviation{kem}{KEM}{Key Encapsulation Mechanism}
+\newabbreviation{nist}{NIST}{National Institute of Standards and Technology}
+\newabbreviation{pqc}{PQC}{Post-Quantum Cryptography}
+\newabbreviation{rsa}{RSA}{Rivest--Shamir--Adleman}
+\newabbreviation{sha3}{SHA-3}{Secure Hash Algorithm 3 (Keccak)}
+
+% =============================================================================
+% Error-Correction Codes
+% =============================================================================
+\newabbreviation{rm}{RM}{Reed--Muller code}
+\newabbreviation{rs}{RS}{Reed--Solomon code}
+
+% =============================================================================
+% RISC-V Architecture
+% =============================================================================
+\newabbreviation{isa}{ISA}{Instruction Set Architecture}
+\newabbreviation{rvv}{RVV}{RISC-V Vector Extension v1.0}
+\newabbreviation{zbb}{Zbb}{RISC-V Basic Bit-Manipulation Extension}
+\newabbreviation{zbc}{Zbc}{RISC-V Carry-less Multiplication Extension}
+\newabbreviation{zbkb}{Zbkb}{RISC-V Bitmanip for Cryptography Extension}
+\newabbreviation{zvbb}{Zvbb}{RISC-V Vector Basic Bit-Manipulation Extension}
+\newabbreviation{zvbc}{Zvbc}{RISC-V Vector Carry-less Multiplication Extension}
+\newabbreviation{vlen}{VLEN}{Vector Register Length}
+\newabbreviation{vla}{VLA}{Vector-Length Agnostic}
+
+% =============================================================================
+% Metrics and Tools
+% =============================================================================
+\newabbreviation{cpi}{CPI}{Cycles Per Instruction}
+\newabbreviation{iss}{ISS}{Instruction Set Simulator}
+\newabbreviation{lto}{LTO}{Link-Time Optimization}
+
+% =============================================================================
+% Mathematics
+% =============================================================================
+\newabbreviation{fft}{FFT}{Fast Fourier Transform}
+\newabbreviation{gf}{GF}{Galois Field}

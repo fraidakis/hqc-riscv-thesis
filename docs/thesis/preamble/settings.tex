@@ -2,6 +2,18 @@
 % Document Settings
 % =============================================================================
 
+% --- Output version toggle -----------------------------------------------------------
+% \digitaltrue  (default) — screen PDF: colored links, hyperlinked TOC/refs
+% \digitalfalse           — print PDF / blind review: no visible link markup
+%
+%   Change the line below to switch versions:
+\newif\ifdigital
+\digitaltrue   % <-- comment out this line for print/submission PDF
+% ------------------------------------------------------------------------------------
+
+% --- Color palette (single source of truth) ---
+\definecolor{thesisblue}{RGB}{10,40,80}    % Primary accent: midnight navy — change here to restyle
+
 % --- Fonts ---
 % Main: Libertinus Serif — modern, elegant, full Greek, matched math
 \setmainfont{Libertinus Serif}[
@@ -12,20 +24,14 @@
 ]
 
 % Sans: Libertinus Sans — for chapter/section headings
-\setsansfont{LibertinusSans-Regular.otf}[
+\setsansfont{Libertinus Sans}[
   Scale=MatchLowercase,
-  BoldFont=LibertinusSans-Bold.otf,
-  ItalicFont=LibertinusSans-Italic.otf,
-  Path=/usr/share/texlive/texmf-dist/fonts/opentype/public/libertinus-fonts/,
+  Ligatures=TeX,
 ]
 
 % Mono: Fira Mono — clear code readability, good char disambiguation
-\setmonofont{FiraMono-Regular.otf}[
+\setmonofont{Fira Mono}[
   Scale=MatchLowercase,
-  BoldFont=FiraMono-Bold.otf,
-  ItalicFont=FiraMono-Oblique.otf,
-  BoldItalicFont=FiraMono-BoldOblique.otf,
-  Path=/usr/share/texlive/texmf-dist/fonts/opentype/public/fira/,
 ]
 
 % Math: Libertinus Math — matched companion to Libertinus Serif
@@ -96,19 +102,74 @@
 % --- Line spacing: 1.15× (between single and 1.5) ---
 \setstretch{1.15}
 
-% --- Caption styling: bold label, normal size ---
-\captionsetup{labelfont=bf}
+% --- Caption styling: bold coloured label, hang format, small text (t07) ---
+\captionsetup{
+  labelfont={bf, color=thesisblue},
+  textfont=small,
+  format=hang,
+  labelsep=quad,
+  justification=justified,
+  singlelinecheck=false
+}
+\captionsetup[subfigure]{
+  labelfont={bf, color=thesisblue!80},
+  textfont=small,
+  format=hang,
+  labelsep=space
+}
 
-% --- Hyperref ---
+% --- Hyperref: PDF metadata (version-independent) ---
 \hypersetup{
-  colorlinks=false,
-  pdfborder={0 0 0},
   bookmarksnumbered=true,
   bookmarksopen=true,
   pdfauthor={Φραϊδάκης Γ.},
   pdftitle={Βελτιστοποίηση HQC Post-Quantum Κρυπτογραφίας σε RISC-V μέσω ISA Extensions},
   pdfsubject={Διπλωματική Εργασία},
   pdfkeywords={HQC, PQC, RISC-V, Karatsuba, RVV, Zbc, Zvbc}
+}
+
+% --- Link color: digital (colored) vs print (invisible) ---
+\ifdigital
+  \hypersetup{
+    colorlinks  = true,
+    linkcolor   = thesisblue,       % internal links: sections, figures, tables
+    citecolor   = thesisblue!80,    % citation links
+    urlcolor    = thesisblue        % URL links
+  }
+\else
+  \hypersetup{hidelinks}            % no visible markup for print / blind review
+\fi
+
+% --- siunitx: unified number and unit formatting ---
+% Use \num{12345} for numbers, \SI{3.4}{\giga\hertz} for quantities
+\sisetup{
+  group-separator   = {\,},      % thin-space thousands separator: 123\,456
+  group-minimum-digits = 4,      % apply grouping from 4 digits: 1234 \to 1,234
+  per-mode          = symbol,    % produce m/s style (not m\,s^{-1})
+  binary-units      = true,      % enable GiB, MiB etc.
+  detect-all,                    % inherit surrounding font weight and shape
+  range-phrase      = {--},      % \SIrange{1}{4}{\mega\hertz} \to 1--4 MHz
+}
+
+% --- pgfplots: global thesis chart style ---
+\pgfplotsset{
+  thesis/.style={
+    width=0.85\linewidth,
+    height=0.52\linewidth,
+    grid=major,
+    grid style={line width=0.3pt, draw=gray!25},
+    tick align=outside,
+    tick label style={font=\small},
+    label style={font=\small},
+    title style={font=\small\bfseries},
+    legend style={
+      font=\small, draw=gray!40, fill=white!95,
+      at={(0.98,0.98)}, anchor=north east
+    },
+    every axis/.append style={font=\small},
+    cycle list name=color list,
+  },
+  every axis/.append style={thesis},   % apply to all axes by default
 }
 
 % --- Listings ---
@@ -157,7 +218,11 @@
 \renewcommand{\textfraction}{0.10}
 \renewcommand{\floatpagefraction}{0.80}
 
-% --- Autoref Greek names ---
+% --- TOC and numbering depth (set once, explicitly) ---
+\setcounter{tocdepth}{2}        % TOC shows: Chapter › Section › Subsection
+\setcounter{secnumdepth}{3}     % Numbers run: Chapter · Section · Subsection · Subsubsection
+
+% --- Autoref Greek names (for \autoref{} compatibility) ---
 \addto\extrasgreek{%
   \def\chapterautorefname{Κεφάλαιο}%
   \def\sectionautorefname{Ενότητα}%
@@ -166,3 +231,22 @@
   \def\tableautorefname{Πίνακας}%
   \def\equationautorefname{Εξίσωση}%
 }
+
+% --- cleveref Greek names (prefer \cref{} / \Cref{} in new text) ---
+% \cref{} outputs: σχήμα 3.1 | \Cref{} outputs: Σχήμα 3.1 (sentence start)
+\crefname{figure}{σχήμα}{σχήματα}
+\Crefname{figure}{Σχήμα}{Σχήματα}
+\crefname{table}{πίνακας}{πίνακες}
+\Crefname{table}{Πίνακας}{Πίνακες}
+\crefname{equation}{εξίσωση}{εξισώσεις}
+\Crefname{equation}{Εξίσωση}{Εξισώσεις}
+\crefname{chapter}{κεφάλαιο}{κεφάλαια}
+\Crefname{chapter}{Κεφάλαιο}{Κεφάλαια}
+\crefname{section}{ενότητα}{ενότητες}
+\Crefname{section}{Ενότητα}{Ενότητες}
+\crefname{appendix}{παράρτημα}{παραρτήματα}
+\Crefname{appendix}{Παράρτημα}{Παραρτήματα}
+\crefname{listing}{κατάλογος κώδικα}{κατάλογοι κώδικα}
+\Crefname{listing}{Κατάλογος Κώδικα}{Κατάλογοι Κώδικα}
+\crefname{algorithm}{αλγόριθμος}{αλγόριθμοι}
+\Crefname{algorithm}{Αλγόριθμος}{Αλγόριθμοι}

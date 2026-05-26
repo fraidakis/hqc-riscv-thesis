@@ -1,53 +1,57 @@
 % =============================================================================
-% Σελίδα Τίτλου — AUTH / Τμήμα ΗΜΜΥ 
+% Σελίδα Τίτλου — AUTH / Τμήμα ΗΜΜΥ  (v1-style blue-accent design)
 % =============================================================================
 \begin{titlepage}
-  \newgeometry{left=2.5cm, right=2.5cm, top=2cm, bottom=2cm}
-  \centering
+  \newgeometry{left=2.5cm, right=2.5cm, top=1.5cm, bottom=2cm}
 
-  \vspace*{0pt}
-  \includegraphics[width=3.2cm]{figures/auth-logo.pdf}\\[0.8cm]
-  {\large\scshape Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης}\\[0.25em]
-  {\normalsize Πολυτεχνική Σχολή}\\[0.2em]
-  {\normalsize Τμήμα Ηλεκτρολόγων Μηχανικών \& Μηχανικών Υπολογιστών}\\[0.2em]
-  {\small Τομέας Ηλεκτρονικής και Υπολογιστών}
+  \noindent{\color{thesisblue}\rule{\textwidth}{3pt}}
+  \vspace{0.3cm}
 
-  \vspace{2cm}
-  \noindent\rule{\textwidth}{1.5pt}
-  \vspace{0.6cm}
+  \begin{center}
+    \includegraphics[width=3.2cm]{figures/auth-logo.pdf}\\[0.5cm]
+    {\large\sffamily\bfseries\color{thesisblue!80}
+      Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης}\\[0.25em]
+    {\normalsize\sffamily Πολυτεχνική Σχολή}\\[0.2em]
+    {\normalsize\sffamily
+      Τμήμα Ηλεκτρολόγων Μηχανικών \& Μηχανικών Υπολογιστών}\\[0.2em]
+    {\small\sffamily Τομέας Ηλεκτρονικής και Υπολογιστών}
+  \end{center}
 
-  {\Large\scshape Διπλωματική Εργασία}
+  \vfill
 
-  \vspace{0.8cm}
-  {\LARGE\bfseries
-    Βελτιστοποίηση του Μετα-Κβαντικού\\[0.35em]
-    Κρυπτοσυστήματος HQC σε RISC-V\\[0.35em]
-    μέσω Επεκτάσεων ISA}
+  \begin{center}
+    {\color{thesisblue!60}\rule{0.5\textwidth}{0.6pt}}\par\vspace{0.6cm}
+    {\large\sffamily\scshape\color{thesisblue} Διπλωματική Εργασία}
+    \par\vspace{0.6cm}
+    {\LARGE\bfseries\sffamily
+      Βελτιστοποίηση του Μετα-Κβαντικού\\[0.35em]
+      Κρυπτοσυστήματος HQC σε RISC-V\\[0.35em]
+      μέσω Επεκτάσεων ISA}
+    \par\vspace{0.6cm}
+    {\color{thesisblue!60}\rule{0.5\textwidth}{0.6pt}}
+  \end{center}
 
-  \vspace{0.7cm}
-  \noindent\rule{\textwidth}{1.5pt}
-
-  \vspace{0pt plus 1fill}
+  \vfill
 
   \noindent
   \begin{minipage}[t]{0.45\textwidth}
-    {\itshape Εκπόνηση:}\\[0.3em]
-    {\bfseries Φραϊδάκης Ιωάννης}\\
-    {\small ΑΕΜ:~10736}
-  \end{minipage}%
-  \hfill
+    \itshape Εκπόνηση:\\[0.3em]
+    \upshape\bfseries Φραϊδάκης Ιωάννης\\
+    \normalfont\small ΑΕΜ: 10736
+  \end{minipage}\hfill
   \begin{minipage}[t]{0.45\textwidth}
     \raggedleft
-    {\itshape Επίβλεψη:}\\[0.3em]
-    {\bfseries Παπαευσταθίου Ιωάννης}\\
-    {\small Καθηγητής Α.Π.Θ.}
+    \itshape Επίβλεψη:\\[0.3em]
+    \upshape\bfseries Παπαευσταθίου Ιωάννης\\
+    \normalfont\small Καθηγητής Α.Π.Θ.
   \end{minipage}
 
-  \vspace{0pt plus 2fill}
-
-  \includegraphics[width=4.5cm]{figures/ece-logo.png}\\[0.5em]
-  {\normalsize Θεσσαλονίκη, Ιούνιος 2026}
-  \vspace{0.3cm}
+  \vspace{1.8cm}
+  \begin{center}
+    \includegraphics[width=3.5cm]{figures/ece-logo.png}\\[0.4em]
+    {\normalsize\sffamily\color{thesisblue!70} Θεσσαλονίκη, Ιούνιος 2026}
+  \end{center}
+  \noindent{\color{thesisblue!60}\rule{\textwidth}{1pt}}
 
   \restoregeometry
 \end{titlepage}
