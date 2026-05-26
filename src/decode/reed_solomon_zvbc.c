@@ -108,10 +108,17 @@ static inline vuint64m4_t gf_reduce_vec_u64m4(vuint64m4_t v, size_t vl)
     return v;
 }
 
-/* ── Axis A: Vectorised syndrome computation (inherited) ─────────────────────
+/* ── Axis A: Vectorised syndrome computation (RVV log/exp gather) ─────────────
  *
- * Identical to reed_solomon_rvv.c — included here so this file is a complete
- * drop-in replacement.
+ * Uses RVV indexed gather loads on gf_log[]/gf_exp[] tables for GF(2^8)
+ * multiplication. Operates at SEW=16, LMUL=4 (vl=64 at VLEN=256), providing
+ * 4× wider parallelism per pass compared to the Zvbc vclmul.vv approach
+ * (SEW=64, vl=16). This is faster for Axis A because the syndrome inner loop
+ * is a simple dot-product with no data reuse — the wider parallelism dominates.
+ *
+ * Axes B, C, D continue to use Zvbc vclmul.vv because their access patterns
+ * (broadcast-scalar × vector, negative-stride loads, segment decomposition)
+ * benefit from the compute-only pipeline without gather latency.
  */
 static void compute_syndromes_rvv(uint16_t *syndromes, const uint8_t *cdw)
 {
@@ -123,20 +130,43 @@ static void compute_syndromes_rvv(uint16_t *syndromes, const uint8_t *cdw)
         size_t          rem = PARAM_N1 - 1u;
 
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
+            size_t vl = __riscv_vsetvl_e16m4(rem);
 
-            vuint8mf2_t  a8  = __riscv_vle8_v_u8mf2(pa, vl);
-            vuint64m4_t  a64 = __riscv_vzext_vf8_u64m4(a8, vl);
+            /* Load codeword bytes, zero-extend u8 → u16 for table indexing. */
+            vuint8m2_t   a8    = __riscv_vle8_v_u8m2(pa, vl);
+            vuint16m4_t  a16   = __riscv_vzext_vf2_u16m4(a8, vl);
 
-            vuint16m1_t  b16 = __riscv_vle16_v_u16m1(pb, vl);
-            vuint64m4_t  b64 = __riscv_vzext_vf4_u64m4(b16, vl);
+            /* Load precomputed alpha powers (already uint16_t, values 0..255). */
+            vuint16m4_t  b16   = __riscv_vle16_v_u16m4(pb, vl);
 
-            vuint64m4_t prod = __riscv_vclmul_vv_u64m4(a64, b64, vl);
-            prod = gf_reduce_vec_u64m4(prod, vl);
+            /* Gather gf_log[a] and gf_log[b] via indexed loads.
+             * Byte offset = value << 1 (gf_log is uint16_t[256]). */
+            vuint16m4_t  idx_a = __riscv_vsll_vx_u16m4(a16, 1, vl);
+            vuint16m4_t  idx_b = __riscv_vsll_vx_u16m4(b16, 1, vl);
+            vuint16m4_t  log_a = __riscv_vluxei16_v_u16m4(gf_log, idx_a, vl);
+            vuint16m4_t  log_b = __riscv_vluxei16_v_u16m4(gf_log, idx_b, vl);
 
-            vuint64m1_t zero_v = __riscv_vmv_v_x_u64m1(0u, 1);
-            vuint64m1_t red    = __riscv_vredxor_vs_u64m4_u64m1(prod, zero_v, vl);
-            acc ^= (uint16_t)__riscv_vmv_x_s_u64m1_u64(red);
+            /* Sum of logs; reduce mod 255 branchlessly.
+             * if sum >= 255: sum -= 255. */
+            vuint16m4_t  log_sum = __riscv_vadd_vv_u16m4(log_a, log_b, vl);
+            vbool4_t     ge_mask = __riscv_vmsgeu_vx_u16m4_b4(log_sum, 255, vl);
+            log_sum = __riscv_vsub_vx_u16m4_mu(ge_mask, log_sum, log_sum, 255, vl);
+
+            /* Gather gf_exp[log_sum] to get the GF product. */
+            vuint16m4_t  idx_exp = __riscv_vsll_vx_u16m4(log_sum, 1, vl);
+            vuint16m4_t  prod    = __riscv_vluxei16_v_u16m4(gf_exp, idx_exp, vl);
+
+            /* Zero-mask: gf_mul(0, x) = gf_mul(x, 0) = 0. */
+            vbool4_t     a_nz   = __riscv_vmsne_vx_u16m4_b4(a16, 0, vl);
+            vbool4_t     b_nz   = __riscv_vmsne_vx_u16m4_b4(b16, 0, vl);
+            vbool4_t     nz     = __riscv_vmand_mm_b4(a_nz, b_nz, vl);
+            vuint16m4_t  zero16 = __riscv_vmv_v_x_u16m4(0, vl);
+            prod = __riscv_vmerge_vvm_u16m4(zero16, prod, nz, vl);
+
+            /* XOR-reduce into the running accumulator. */
+            vuint16m1_t  zero_v = __riscv_vmv_v_x_u16m1(0u, 1);
+            vuint16m1_t  red    = __riscv_vredxor_vs_u16m4_u16m1(prod, zero_v, vl);
+            acc ^= __riscv_vmv_x_s_u16m1_u16(red);
 
             pa  += vl;
             pb  += vl;

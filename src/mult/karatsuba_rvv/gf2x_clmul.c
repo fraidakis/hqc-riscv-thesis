@@ -30,21 +30,20 @@
 #include <stdint.h>
 #include <string.h>
 #include <riscv_vector.h>
+#include <riscv_bitmanip.h>
 #include "parameters.h"
 #include "hqc_parameters.h"
 
 /* ── RISC-V Zbc carry-less multiply base case ─────────────────────────────
  * Computes the full 128-bit carry-less product of two 64-bit words.
+ * Uses compiler intrinsics instead of inline asm — allows the compiler to
+ * freely schedule, allocate registers, and optimise across call sites.
  */
 static __attribute__((always_inline)) inline
 void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 {
-    __asm__ volatile (
-        "clmul  %0, %2, %3\n\t"
-        "clmulh %1, %2, %3\n\t"
-        : "=&r"(*lo), "=r"(*hi)
-        : "r"(a), "r"(b)
-    );
+    *lo = __riscv_clmul_64(a, b);
+    *hi = __riscv_clmulh_64(a, b);
 }
 
 /* ── Karatsuba threshold ──────────────────────────────────────────────────*/

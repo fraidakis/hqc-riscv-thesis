@@ -24,7 +24,7 @@ set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
-# rvv : RVV-vectorised 128-pt FHT + baseline RS path (reed_solomon_rvv.c)
+# rvv : RVV-vectorised 128-pt FHT + RVV log/exp gather RS syndromes (reed_solomon_rvv.c)
 # zvbc : RVV RM + promoted Zvbc RS path (reed_solomon_zvbc.c)
 # rs_zvbc_exp : legacy alias of zvbc (kept for backward compatibility)
 set(HQC_DECODE_IMPL "ref" CACHE STRING

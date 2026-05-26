@@ -20,6 +20,9 @@
 
 #include "gf.h"
 #include <stdint.h>
+#ifdef __riscv_zbc
+#include <riscv_bitmanip.h>
+#endif
 #include "parameters.h"
 
 static uint16_t gf_reduce(uint16_t x);
@@ -141,12 +144,7 @@ void gf_carryless_mul(uint8_t *c, uint8_t a, uint8_t b) {
  */
 uint16_t gf_mul(uint16_t a, uint16_t b) {
 #ifdef __riscv_zbc
-    uint64_t prod;
-    __asm__ volatile (
-        "clmul %0, %1, %2\n\t"
-        : "=r"(prod)
-        : "r"((uint64_t)(a & 0xFFu)), "r"((uint64_t)(b & 0xFFu))
-    );
+    uint64_t prod = __riscv_clmul_64((uint64_t)(a & 0xFFu), (uint64_t)(b & 0xFFu));
     return gf_reduce((uint16_t)prod);
 #else
     uint8_t c[2] = {0};
@@ -163,12 +161,7 @@ uint16_t gf_mul(uint16_t a, uint16_t b) {
  */
 uint16_t gf_square(uint16_t a) {
 #ifdef __riscv_zbc
-    uint64_t s;
-    __asm__ volatile (
-        "clmul %0, %1, %1\n\t"
-        : "=r"(s)
-        : "r"((uint64_t)(a & 0xFFu))
-    );
+    uint64_t s = __riscv_clmul_64((uint64_t)(a & 0xFFu), (uint64_t)(a & 0xFFu));
     return gf_reduce((uint16_t)s);
 #else
     uint32_t b = a;

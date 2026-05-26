@@ -2,8 +2,10 @@
  *
  * Phase 3b — RVV-accelerated Reed-Solomon decoder for HQC.
  *
- * Status (Axis A implemented, 2026-05-20):
- *   Axis A — compute_syndromes: DONE — vectorised via Zvbc vclmul.vv lane packing.
+ * Status:
+ *   Axis A — compute_syndromes: DONE — vectorised via RVV log/exp table gathers.
+ *            Pure RVV (no Zvbc/Zvbb dependency). Compiled with rv64gcv_zbc
+ *            (scalar Zbc for gf_mul in fallback axes).
  *   Axis B — compute_elp (Berlekamp-Massey): scalar fallback (sequential by design).
  *   Axis C — compute_roots / fft_rec: scalar fallback.
  *   Axis D — compute_error_values (Forney): scalar fallback.
@@ -15,18 +17,18 @@
  *
  *       syndromes[i] = cdw[0] ^ XOR_{j=1}^{N1-1} gf_mul(cdw[j], alpha_ij_pow[i][j-1])
  *
- *   GF(2^8) multiplication via Zvbc vclmul.vv (SEW=64):
- *     - Place one GF(2^8) element (8 bits) in bits [7:0] of each 64-bit lane
- *       (upper 56 bits zero).  vclmul.vv then gives the correct 14-bit
- *       carry-less product in bits [14:0] of each lane.
- *     - Apply a 2-step inline Barrett-style reduction using vsrl/vand/vxor to
- *       fold back modulo PARAM_GF_POLY = 0x11D (x^8+x^4+x^3+x^2+1).
+ *   GF(2^8) multiplication via RVV log/exp table lookups (SEW=16, LMUL=4):
+ *     - Load cdw[j] and alpha_ij_pow[i][j] as uint16_t values.
+ *     - Gather gf_log[cdw[j]] and gf_log[alpha[j]] via vluxei16 indexed loads.
+ *     - Add the two log values (mod 255) to get log(product).
+ *     - Gather gf_exp[log_sum] via vluxei16 to get the product.
+ *     - Mask out lanes where either operand is zero (gf_mul(0,x) = 0).
  *     - XOR-reduce across lanes with vredxor.vs to accumulate into syndromes[i].
  *
- *   With VLEN=256, SEW=64, LMUL=4: vl=16 elements per pass.
- *     L128: ceil(45/16)=3 passes × 30 syndromes ≈ ~90 vector passes total.
- *     L192: ceil(55/16)=4 passes × 32 syndromes ≈ ~128 vector passes total.
- *     L256: ceil(89/16)=6 passes × 58 syndromes ≈ ~348 vector passes total.
+ *   With VLEN=256, SEW=16, LMUL=4: vl = 256*4/16 = 64 elements per pass.
+ *     L128: ceil(45/64)=1 pass  × 30 syndromes ≈ ~30 vector passes total.
+ *     L192: ceil(55/64)=1 pass  × 32 syndromes ≈ ~32 vector passes total.
+ *     L256: ceil(89/64)=2 passes × 58 syndromes ≈ ~116 vector passes total.
  *
  * All remaining sub-functions (ELP, roots, z-poly, error values, correction)
  * are copied verbatim from vendor/hqc-ref/src/ref/reed_solomon.c.  Once Axis B
@@ -46,55 +48,26 @@
 #include "parameters.h"     /* PARAM_DELTA, PARAM_N1, PARAM_M, PARAM_FFT, PARAM_K, PARAM_G */
 #include "crypto_memset.h"  /* memset_zero */
 
-/* ── GF(2^8) vector reduction ────────────────────────────────────────────────
+/* ── Axis A: Vectorised syndrome computation (RVV log/exp gather) ────────────
  *
- * gf_reduce_vec_u64m4: reduce a vector of 14-bit carry-less products (each in
- * bits [14:0] of a 64-bit lane) modulo PARAM_GF_POLY = 0x11D.
- *
- * The irreducible polynomial is x^8 + x^4 + x^3 + x^2 + 1, so x^8 ≡ x^4+x^3+x^2+1.
- * Reduction of bit k (for k≥8): x^k ≡ x^(k-8) * (x^4+x^3+x^2+1).
- *
- * Two passes suffice for degree ≤ 14:
- *   Pass 1: extract bits [14:8], fold into [7:0] via shifts 0,2,3,4.
- *            Result: degree ≤ 10 (overflow from shifts on 6-bit high nibble).
- *   Pass 2: extract bits [10:8], fold again — result: degree < 8. ✓
- *
- * Constant-time: no data-dependent branches; all operations are fixed-width
- * vector arithmetic.
- */
-static inline vuint64m4_t gf_reduce_vec_u64m4(vuint64m4_t v, size_t vl)
-{
-    vuint64m4_t high;
-
-    /* Pass 1 — fold bits [14:8] */
-    high = __riscv_vsrl_vx_u64m4(v, 8, vl);
-    v    = __riscv_vand_vx_u64m4(v, 0xFFu, vl);
-    v    = __riscv_vxor_vv_u64m4(v, high, vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 2, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 3, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 4, vl), vl);
-
-    /* Pass 2 — fold bits [10:8] left by pass 1 */
-    high = __riscv_vsrl_vx_u64m4(v, 8, vl);
-    v    = __riscv_vand_vx_u64m4(v, 0xFFu, vl);
-    v    = __riscv_vxor_vv_u64m4(v, high, vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 2, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 3, vl), vl);
-    v    = __riscv_vxor_vv_u64m4(v, __riscv_vsll_vx_u64m4(high, 4, vl), vl);
-
-    return v;
-}
-
-/* ── Axis A: Vectorised syndrome computation ─────────────────────────────────
- *
- * Computes 2*PARAM_DELTA syndromes using Zvbc vclmul.vv per syndrome.
+ * Computes 2*PARAM_DELTA syndromes using RVV indexed gather loads on the
+ * gf_log[] and gf_exp[] tables for GF(2^8) multiplication.
  *
  * For each syndrome i:
  *   syndromes[i] = cdw[0] XOR (XOR_j gf_mul(cdw[j+1], alpha_ij_pow[i][j]))
  *
- * Inner loop vectorised over j; outer loop (i) remains scalar (independent
- * syndromes could be parallelised too, but the inner-loop reduction already
- * provides sufficient SIMD utilisation).
+ * GF(2^8) multiply via log/exp:
+ *   gf_mul(a, b) = (a == 0 || b == 0) ? 0 : gf_exp[(gf_log[a] + gf_log[b]) % 255]
+ *
+ * The gf_exp table has 258 entries (indices 0..257), so any sum of two logs
+ * (each in [0,254]) fits within bounds without explicit modular reduction —
+ * we use the identity: gf_exp[x % 255] == gf_exp[x] for x < 510 when the
+ * table is extended with gf_exp[255]=1, gf_exp[256]=2, gf_exp[257]=4.
+ * However, max(log_a + log_b) = 254+254 = 508 > 257, so we must reduce.
+ * Reduction: if sum >= 255, subtract 255.  This is a single conditional
+ * subtract implemented branchlessly with a mask.
+ *
+ * Inner loop vectorised over j; outer loop (i) remains scalar.
  *
  * @param[out] syndromes  Array of 2*PARAM_DELTA uint16_t syndrome values
  * @param[in]  cdw        Array of PARAM_N1 uint8_t codeword bytes
@@ -109,31 +82,51 @@ static void compute_syndromes_rvv(uint16_t *syndromes, const uint8_t *cdw)
         size_t          rem = PARAM_N1 - 1u;
 
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
+            size_t vl = __riscv_vsetvl_e16m4(rem);
 
-            /* Load PARAM_N1-1 codeword bytes, zero-extend each byte into a
-             * 64-bit lane (bits [7:0] occupied, upper 56 bits zero).          */
-            vuint8mf2_t  a8  = __riscv_vle8_v_u8mf2(pa, vl);
-            vuint64m4_t  a64 = __riscv_vzext_vf8_u64m4(a8, vl);
+            /* Load codeword bytes, zero-extend u8 → u16 for table indexing.  */
+            vuint8m2_t   a8    = __riscv_vle8_v_u8m2(pa, vl);
+            vuint16m4_t  a16   = __riscv_vzext_vf2_u16m4(a8, vl);
 
-            /* Load PARAM_N1-1 precomputed alpha powers (stored as uint16_t,
-             * values in [0,255]), zero-extend into 64-bit lanes.              */
-            vuint16m1_t  b16 = __riscv_vle16_v_u16m1(pb, vl);
-            vuint64m4_t  b64 = __riscv_vzext_vf4_u64m4(b16, vl);
+            /* Load precomputed alpha powers (already uint16_t, values 0..255).*/
+            vuint16m4_t  b16   = __riscv_vle16_v_u16m4(pb, vl);
 
-            /* Carry-less multiply: prod[j] = clmul(cdw[j], alpha[j]).
-             * Result fits in bits [14:0] because deg(cdw[j]) ≤ 7 and
-             * deg(alpha[j]) ≤ 7  →  deg(prod[j]) ≤ 14.
-             * Zero inputs are handled correctly: clmul(0, x) = 0.            */
-            vuint64m4_t prod = __riscv_vclmul_vv_u64m4(a64, b64, vl);
+            /* Gather gf_log[a] and gf_log[b] via indexed loads.
+             * Index = element_value * sizeof(uint16_t) = element_value * 2.
+             * gf_log is uint16_t[256], so byte offset = value << 1.          */
+            vuint16m4_t  idx_a = __riscv_vsll_vx_u16m4(a16, 1, vl);
+            vuint16m4_t  idx_b = __riscv_vsll_vx_u16m4(b16, 1, vl);
+            vuint16m4_t  log_a = __riscv_vluxei16_v_u16m4(gf_log, idx_a, vl);
+            vuint16m4_t  log_b = __riscv_vluxei16_v_u16m4(gf_log, idx_b, vl);
 
-            /* Reduce each 14-bit product modulo 0x11D.                       */
-            prod = gf_reduce_vec_u64m4(prod, vl);
+            /* Sum of logs; reduce mod 255 branchlessly.
+             * sum = log_a + log_b (max 254+254 = 508).
+             * if sum >= 255: sum -= 255.                                      */
+            vuint16m4_t  log_sum = __riscv_vadd_vv_u16m4(log_a, log_b, vl);
+            vbool4_t     ge_mask = __riscv_vmsgeu_vx_u16m4_b4(log_sum, 255, vl);
+            log_sum = __riscv_vsub_vx_u16m4_mu(ge_mask, log_sum, log_sum, 255, vl);
+
+            /* Gather gf_exp[log_sum] to get the GF product.
+             * gf_exp is uint16_t[258], byte offset = log_sum << 1.           */
+            vuint16m4_t  idx_exp = __riscv_vsll_vx_u16m4(log_sum, 1, vl);
+            vuint16m4_t  prod    = __riscv_vluxei16_v_u16m4(gf_exp, idx_exp, vl);
+
+            /* Zero-mask: gf_mul(0, x) = gf_mul(x, 0) = 0.
+             * Set product to 0 where either operand is zero.
+             * nz = (a != 0) AND (b != 0).
+             * Where nz is false (either operand zero), force product to 0.
+             * vmerge(op1, op2, mask, vl): result[i] = mask[i] ? op2 : op1.
+             * We want: nz ? prod : 0.                                        */
+            vbool4_t     a_nz   = __riscv_vmsne_vx_u16m4_b4(a16, 0, vl);
+            vbool4_t     b_nz   = __riscv_vmsne_vx_u16m4_b4(b16, 0, vl);
+            vbool4_t     nz     = __riscv_vmand_mm_b4(a_nz, b_nz, vl);
+            vuint16m4_t  zero16 = __riscv_vmv_v_x_u16m4(0, vl);
+            prod = __riscv_vmerge_vvm_u16m4(zero16, prod, nz, vl);
 
             /* XOR-reduce this pass into the running accumulator.             */
-            vuint64m1_t zero_v = __riscv_vmv_v_x_u64m1(0u, 1);
-            vuint64m1_t red    = __riscv_vredxor_vs_u64m4_u64m1(prod, zero_v, vl);
-            acc ^= (uint16_t)__riscv_vmv_x_s_u64m1_u64(red);
+            vuint16m1_t  zero_v = __riscv_vmv_v_x_u16m1(0u, 1);
+            vuint16m1_t  red    = __riscv_vredxor_vs_u16m4_u16m1(prod, zero_v, vl);
+            acc ^= __riscv_vmv_x_s_u16m1_u16(red);
 
             pa  += vl;
             pb  += vl;

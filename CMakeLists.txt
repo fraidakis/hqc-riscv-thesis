@@ -151,10 +151,13 @@ if(HQC_DECODE_IMPL STREQUAL "rvv")
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
-    # reed_solomon_rvv.c still uses Zvbc for RS syndrome vclmul.vv (Axis A).
+    # reed_solomon_rvv.c uses RVV log/exp gather vectorisation (no Zvbc/Zvbb).
+    # Scalar Zbc is included for consistency with the variant's ISA tier (rv64gcv_zbc).
+    # Note: gf_mul() is linked from hqc_core (always compiled with Zbc), so the
+    # TU-level flag has no measurable effect — confirmed via ablation (0 Δ instret).
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp")
     # Phase 3b+ promoted path: Zvbc vectorised BM + Forney RS implementation,
@@ -620,8 +623,12 @@ foreach(LEVEL ${SECURITY_LEVELS})
     endforeach()  # POLYMUL
 
     # KECCAK MICRO-BENCH target  (bench_keccak_hqc${LEVEL}) ──────────────────
-    # Benchmarks one SHAKE-256 absorb + squeezeblocks call in isolation.
-    # Use for Amdahl's Law analysis of the Keccak bottleneck.
+    # Replicates the FULL decaps Keccak/SHA-3 call pattern in isolation:
+    # xof_init + vect_sample_fixed_weight1 (sk reconstruction),
+    # hash_h (SHA3-256 over pk), hash_g (SHA3-512), re-encryption sampling
+    # (xof_init + 3× vect_sample_fixed_weight2 + vect_set_random),
+    # hash_j (SHA3-256 over ciphertext).
+    # Use for Amdahl's Law analysis of the Keccak + sampling bottleneck.
     #   cmake --build build --target bench_keccak_hqc128
     set(KECCAK_BENCH_TARGET "bench_keccak_hqc${LEVEL}")
 
@@ -630,7 +637,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
         ${CMAKE_SOURCE_DIR}/tests/bench/bench_keccak.c
         ${CMAKE_SOURCE_DIR}/src/common/bench.c
         ${KECCAK_SOURCES}
+        ${HQC_REF}/src/common/symmetric.c
+        ${VECTOR_SOURCES}
         ${CMAKE_SOURCE_DIR}/sim/common/mem.c
+        ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
     )
     target_link_libraries(${KECCAK_BENCH_TARGET} PRIVATE
         $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
@@ -638,6 +648,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         ${HQC_REF}/src/common/${VARIANT}
         ${HQC_REF}/src/ref/${VARIANT}
         ${HQC_REF}/src/common
+        ${HQC_REF}/src/ref
         ${HQC_REF}/lib/fips202
         ${CMAKE_SOURCE_DIR}/src/common
         ${KECCAK_INCLUDE_DIRS}
