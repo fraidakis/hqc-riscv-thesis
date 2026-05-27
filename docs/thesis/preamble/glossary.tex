@@ -24,6 +24,14 @@
 % Enable auto-processing without an external tool (no makeglossaries needed)
 \makenoidxglossaries
 
+% Suppress hypertargets for glossary entries (avoids "unreferenced destination"
+% warnings from the PDF backend when \printnoidxglossary is not active).
+% The targets are created by \gls on first use but nothing links back to them
+% until \printnoidxglossary is enabled. Safe to remove — re-enable when the
+% auto-generated glossary list is activated.
+\GlsXtrEnablePreLocationTag{}{}
+\renewcommand{\glslinkpresetkeys}{\setkeys{glslink}{hyper=false}}
+
 % =============================================================================
 % Cryptography
 % =============================================================================
@@ -33,28 +41,37 @@
 \newabbreviation{kat}{KAT}{Known Answer Test}
 \newabbreviation{kem}{KEM}{Key Encapsulation Mechanism}
 \newabbreviation{nist}{NIST}{National Institute of Standards and Technology}
+\newabbreviation{mlkem}{ML-KEM}{Module-Lattice Key Encapsulation Mechanism}
+\newabbreviation{ntt}{NTT}{Number Theoretic Transform}
 \newabbreviation{pqc}{PQC}{Post-Quantum Cryptography}
-\newabbreviation{rsa}{RSA}{Rivest--Shamir--Adleman}
+\newabbreviation{rsa}{RSA}{Rivest–Shamir–Adleman}
 \newabbreviation{sha3}{SHA-3}{Secure Hash Algorithm 3 (Keccak)}
 
 % =============================================================================
 % Error-Correction Codes
 % =============================================================================
-\newabbreviation{rm}{RM}{Reed--Muller code}
-\newabbreviation{rs}{RS}{Reed--Solomon code}
+\newabbreviation{bm}{BM}{Berlekamp–Massey algorithm}
+\newabbreviation{rm}{RM}{Reed–Muller code}
+\newabbreviation{rs}{RS}{Reed–Solomon code}
 
 % =============================================================================
 % RISC-V Architecture
 % =============================================================================
+\newabbreviation{csr}{CSR}{Control and Status Register}
+\newabbreviation{dlp}{DLP}{Data-Level Parallelism}
+\newabbreviation{gpr}{GPR}{General-Purpose Register}
 \newabbreviation{isa}{ISA}{Instruction Set Architecture}
+\newabbreviation{lmul}{LMUL}{Vector Length Multiplier}
 \newabbreviation{rvv}{RVV}{RISC-V Vector Extension v1.0}
+\newabbreviation{sew}{SEW}{Standard Element Width}
+\newabbreviation{vla}{VLA}{Vector-Length Agnostic}
+\newabbreviation{vlen}{VLEN}{Vector Register Length}
+\newabbreviation{vlmax}{VLMAX}{Maximum Vector Length}
 \newabbreviation{zbb}{Zbb}{RISC-V Basic Bit-Manipulation Extension}
 \newabbreviation{zbc}{Zbc}{RISC-V Carry-less Multiplication Extension}
 \newabbreviation{zbkb}{Zbkb}{RISC-V Bitmanip for Cryptography Extension}
 \newabbreviation{zvbb}{Zvbb}{RISC-V Vector Basic Bit-Manipulation Extension}
 \newabbreviation{zvbc}{Zvbc}{RISC-V Vector Carry-less Multiplication Extension}
-\newabbreviation{vlen}{VLEN}{Vector Register Length}
-\newabbreviation{vla}{VLA}{Vector-Length Agnostic}
 
 % =============================================================================
 % Metrics and Tools
@@ -66,5 +83,12 @@
 % =============================================================================
 % Mathematics
 % =============================================================================
+\newabbreviation{fafft}{FAFFT}{Frobenius Additive Fast Fourier Transform}
 \newabbreviation{fft}{FFT}{Fast Fourier Transform}
 \newabbreviation{gf}{GF}{Galois Field}
+
+% =============================================================================
+% Data Layout / Strategies
+% =============================================================================
+\newabbreviation{ap2}{AP-2}{Assign-on-first-write, Peel-to-depth-2}
+\newabbreviation{soa}{SoA}{Structure of Arrays}

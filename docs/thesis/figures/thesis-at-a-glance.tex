@@ -1,0 +1,62 @@
+% Thesis at a glance: Problem → Approach → Key Results
+% One-page visual summary of the thesis workflow
+\begin{tikzpicture}[
+  node distance=0.6cm and 1.2cm,
+  phase/.style={
+    draw, rounded corners=4pt, minimum width=3.0cm, minimum height=1.2cm,
+    align=center, font=\small\sffamily
+  },
+  problem/.style={phase, fill=red!8, draw=red!40},
+  approach/.style={phase, fill=thesisblue!8, draw=thesisblue!50},
+  result/.style={phase, fill=green!8, draw=green!50!black},
+  tierbox/.style={
+    draw, rounded corners=2pt, minimum width=2.6cm, minimum height=0.9cm,
+    align=center, font=\scriptsize\sffamily, fill=thesisblue!5, draw=thesisblue!30
+  },
+  arrow/.style={-{Stealth[length=2.5mm]}, thick, gray!60},
+  phaselabel/.style={font=\footnotesize\sffamily\bfseries, text=gray!70}
+]
+
+% Phase labels (top)
+\node[phaselabel] (plabel) at (0, 2.8) {Πρόβλημα};
+\node[phaselabel] (alabel) at (5.0, 2.8) {Προσέγγιση};
+\node[phaselabel] (rlabel) at (10.5, 2.8) {Αποτελέσματα};
+
+% Problem column
+\node[problem] (hqc) at (0, 1.8) {\HQC \KEM\\[-2pt]\scriptsize (NIST PQC, 2025)};
+\node[problem] (bottleneck) at (0, 0.0) {Polymul $\approx$ \pct{96}\\[-2pt]\scriptsize του υπολογιστικού κόστους};
+\node[problem] (nogap) at (0, -1.8) {Κανένα end-to-end\\[-2pt]\scriptsize RISC-V implementation};
+
+% Approach column
+\node[approach] (riscv) at (5.0, 1.8) {RISC-V ISA Extensions\\[-2pt]\scriptsize Zbc, Zvbc, Zvbb};
+\node[tierbox] (t1) at (5.0, 0.4) {Tier 1: Scalar\\[-1pt]\scriptsize rv64gc + Zbc/Zbb};
+\node[tierbox] (t2) at (5.0, -0.7) {Tier 2: Base-RVV\\[-1pt]\scriptsize rv64gcv};
+\node[tierbox] (t3) at (5.0, -1.8) {Tier 3: Vector-Crypto\\[-1pt]\scriptsize rv64gcv + Zvbc/Zvbb};
+
+% Results column
+\node[result] (r1) at (10.5, 0.4) {Tier 1: $\approx$\speedup{18}\\[-2pt]\scriptsize polymul speedup};
+\node[result] (r2) at (10.5, -0.7) {Tier 2: $\approx$\speedup{20}\\[-2pt]\scriptsize polymul speedup};
+\node[result] (r3) at (10.5, -1.8) {Tier 3: $\approx$\speedup{30}\\[-2pt]\scriptsize polymul speedup};
+\node[result] (kat) at (10.5, 1.8) {KAT-verified\\[-2pt]\scriptsize 3 security levels};
+
+% Arrows: Problem → Approach
+\draw[arrow] (hqc.east) -- (riscv.west);
+\draw[arrow] (bottleneck.east) -- ([yshift=0.2cm]t1.west);
+\draw[arrow] (nogap.east) -- (t3.west);
+
+% Arrows: Approach → Results
+\draw[arrow] (riscv.east) -- (kat.west);
+\draw[arrow] (t1.east) -- (r1.west);
+\draw[arrow] (t2.east) -- (r2.west);
+\draw[arrow] (t3.east) -- (r3.west);
+
+% Vertical connectors in approach column
+\draw[gray!40, thick] (t1.south) -- (t2.north);
+\draw[gray!40, thick] (t2.south) -- (t3.north);
+
+% Brace annotation: "Κεφ. 6–7"
+\draw[decorate, decoration={brace, amplitude=4pt, mirror}, gray!60]
+  ([xshift=1.5cm]t1.north east) -- ([xshift=1.5cm]t3.south east)
+  node[midway, right=5pt, font=\scriptsize\sffamily, text=gray!70] {Κεφ.~6–7};
+
+\end{tikzpicture}

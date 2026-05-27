@@ -1,0 +1,43 @@
+% Acceleration spectrum: Pure Software ← ISA Extensions ← FPGA ← ASIC
+% Shows the trade-off between flexibility and peak performance
+\begin{tikzpicture}[
+  node distance=0.8cm,
+  box/.style={
+    draw, rounded corners=3pt, minimum width=3.2cm, minimum height=1.4cm,
+    align=center, font=\small\sffamily
+  },
+  arrow/.style={-{Stealth[length=3mm]}, thick, gray!70},
+  label/.style={font=\footnotesize\sffamily, text=gray!80},
+  highlight/.style={box, fill=thesisblue!12, draw=thesisblue!60, line width=1pt}
+]
+
+% Boxes (left to right: most flexible → least flexible)
+\node[box, fill=gray!8] (sw) {Καθαρό Λογισμικό\\[-2pt]\footnotesize (χωρίς extensions)};
+\node[highlight, right=1.0cm of sw] (isa) {ISA Extensions\\[-2pt]\footnotesize (Zbc, Zvbc, Zvbb)};
+\node[box, fill=gray!8, right=1.0cm of isa] (fpga) {FPGA\\[-2pt]\footnotesize Accelerator};
+\node[box, fill=gray!8, right=1.0cm of fpga] (asic) {Custom ASIC\\[-2pt]\footnotesize (σταθερή λειτουργία)};
+
+% Top arrow: Flexibility increases ←
+\draw[arrow] ([yshift=1.2cm]asic.north east) -- ([yshift=1.2cm]sw.north west)
+  node[midway, above, label] {Ευελιξία αυξάνεται};
+
+% Bottom arrow: Peak performance increases →
+\draw[arrow] ([yshift=-1.2cm]sw.south west) -- ([yshift=-1.2cm]asic.south east)
+  node[midway, below, label] {Μέγιστη απόδοση αυξάνεται};
+
+% Annotation for "this work"
+\draw[thesisblue!80, thick, dashed]
+  ([xshift=-0.2cm, yshift=-0.6cm]isa.south west) --
+  ([xshift=0.2cm, yshift=-0.6cm]isa.south east);
+\node[font=\footnotesize\sffamily\bfseries, text=thesisblue!80, below=0.7cm of isa]
+  {Παρούσα εργασία};
+
+% Characteristics below each box
+\node[font=\scriptsize, text=gray!70, below=0.15cm of sw]
+  {Αλλαγή: λεπτά};
+\node[font=\scriptsize, text=gray!70, below=0.15cm of fpga]
+  {Αλλαγή: εβδομάδες};
+\node[font=\scriptsize, text=gray!70, below=0.15cm of asic]
+  {Αλλαγή: μήνες–έτη};
+
+\end{tikzpicture}

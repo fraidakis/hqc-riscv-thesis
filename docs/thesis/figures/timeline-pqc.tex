@@ -1,0 +1,57 @@
+% Timeline: Classical Cryptography → Quantum Threat → NIST Competition → Standardization
+% Used in §1.1 to visualize the urgency of PQC migration
+\begin{tikzpicture}[
+  x=2.8cm,
+  every node/.style={font=\small},
+  era/.style={fill=#1!15, draw=#1!60, rounded corners=2pt,
+              minimum height=1.2cm, text width=2.4cm, align=center,
+              font=\small\sffamily},
+  milestone/.style={circle, fill=#1!80, inner sep=2pt, minimum size=6pt},
+  yearlab/.style={font=\footnotesize\sffamily, below=3pt},
+  annotation/.style={font=\scriptsize, text width=2.2cm, align=center},
+]
+
+% Main timeline axis
+\draw[thick, -{Stealth[length=5pt]}] (-0.3,0) -- (5.3,0);
+
+% Era blocks (above the line)
+\node[era=gray]   at (0.5, 1.2) {Κλασική\\κρυπτογραφία\\(RSA, ECC)};
+\node[era=red]    at (1.8, 1.2) {Κβαντική\\απειλή\\(Shor, 1994)};
+\node[era=orange] at (3.1, 1.2) {NIST PQC\\Competition\\(2016–2024)};
+\node[era=green!60!black] at (4.4, 1.2) {Τυποποίηση\\PQC\\(2024–2035)};
+
+% Milestone dots on the axis
+\node[milestone=gray]          (m1) at (0.5, 0) {};
+\node[milestone=red]           (m2) at (1.8, 0) {};
+\node[milestone=orange]        (m3) at (3.1, 0) {};
+\node[milestone=green!60!black](m4) at (4.4, 0) {};
+
+% Year labels below
+\node[yearlab] at (m1) {1978};
+\node[yearlab] at (m2) {1994};
+\node[yearlab] at (m3) {2016};
+\node[yearlab] at (m4) {2024};
+
+% Additional deadline marker
+\node[milestone=green!60!black] (m5) at (5.0, 0) {};
+\node[yearlab] at (m5) {2035};
+
+% Annotations below the axis
+\node[annotation, below=14pt] at (m1) {RSA\\δημοσιεύεται};
+\node[annotation, below=14pt] at (m2) {Αλγόριθμος\\Shor};
+\node[annotation, below=14pt] at (m3) {NIST Call\\for Proposals};
+\node[annotation, below=14pt] at (m4) {ML-KEM/DSA\\τυποποιούνται};
+\node[annotation, below=14pt] at (m5) {CNSA 2.0\\deadline};
+
+% Connecting arrows from eras to milestones
+\foreach \m in {m1,m2,m3,m4} {
+  \draw[gray!50, thin] (\m) -- ++(0, 0.55);
+}
+
+% HNDL threat annotation (spanning arrow)
+\draw[red!70, thick, decorate, decoration={brace, amplitude=4pt, mirror}]
+  (1.8, -1.6) -- (5.0, -1.6)
+  node[midway, below=6pt, font=\scriptsize\sffamily, text=red!70, text width=3cm, align=center]
+  {Harvest Now, Decrypt Later\\(δεδομένα ήδη σε κίνδυνο)};
+
+\end{tikzpicture}
