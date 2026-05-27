@@ -96,17 +96,17 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 | Level | reference (instret) | optimized (instret) | Speedup |
 |-------|----------------------|---------------------|--------|
-| HQC-128 | 4,680 | 2,127 | x2.20 |
-| HQC-192 | 4,680 | 2,127 | x2.20 |
-| HQC-256 | 4,680 | 2,127 | x2.20 |
+| HQC-128 | 463,069 | 131,944 | x3.51 |
+| HQC-192 | 902,926 | 249,581 | x3.62 |
+| HQC-256 | 1,405,641 | 383,277 | x3.67 |
 
 ## Table 5 — Decode Speedups
 
 ### `decode`
 
-| Level | ref (instret) | rvv (instret / speedup) | zvbc (instret / speedup) |
-|-------|---------------|-------------------------|--------------------------|
-| HQC-128 | 384,986 | 124,324 (x3.10) | 60,353 (x6.38) |
-| HQC-192 | 562,125 | 160,027 (x3.51) | 77,114 (x7.29) |
-| HQC-256 | 1,059,605 | 340,618 (x3.11) | 159,206 (x6.66) |
+| Level | reference (instret) | optimized (instret) | Speedup |
+|-------|----------------------|---------------------|--------|
+| HQC-128 | 384,986 | 60,353 | x6.38 |
+| HQC-192 | 562,125 | 77,114 | x7.29 |
+| HQC-256 | 1,059,605 | 159,206 | x6.66 |
 
