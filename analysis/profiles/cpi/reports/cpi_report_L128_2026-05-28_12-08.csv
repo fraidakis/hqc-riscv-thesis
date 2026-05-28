@@ -1,0 +1,6 @@
+variant,track,speedup_instret,speedup_cycles,total_instret,estimated_cycles,CPI,ALU_1CYCLE%,LOAD%,STORE%,MUL%,DIV%,CLMUL%,VECTOR_ALU%,VECTOR_MUL%,VECTOR_MEM%,VECTOR_CRYPTO%,VECTOR_PERM%,Δ_estimated_cycles,Δ_CPI
+karatsuba-zvbc,vector,156.750,54.472,1485070,2512174,1.69,8.8,32.7*,0.6,0.1,0.0,0.3,7.9,0.0,18.5,6.3,1.6,-4297166,-0.20
+karatsuba-rvv,vector,56.892,33.337,2775089,4104796,1.48,19.9,33.6*,6.3,0.1,0.0,17.0,1.0,0.0,4.9,0.0,0.0,-19735072,-0.30
+karatsuba-zbc,scalar,34.015,24.412,4250029,5814733,1.37,24.3,37.5*,10.1,0.1,0.0,12.1,0.0,0.0,0.0,0.0,0.0,-20761720,-0.06
+ref-vector,vector,1.000,1.000,113327647,136842447,1.21,47.3*,33.9,10.7,0.0,0.1,0.0,0.1,0.0,0.1,0.0,0.0,-877574273,0.00
+ref-scalar,scalar,1.000,1.000,118295022,141950562,1.20,47.7*,33.3,10.9,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-897180843,0.00

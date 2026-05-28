@@ -59,6 +59,13 @@ REPORT_CLASSES: list[str] = [
     "VECTOR_PERM",
 ]
 
+# Baseline variant name for each track used when computing speedups.
+# Speedup = baseline_value / variant_value  (> 1 means variant is faster).
+TRACK_BASELINES: dict[str, str] = {
+    "scalar": "ref-scalar",
+    "vector": "ref-vector",
+}
+
 
 def discover_histograms(level: int, base_dir: Path) -> list[Path]:
     """Find all histogram_kem_L{level}_*_latest.csv files.
@@ -90,8 +97,15 @@ def discover_histograms(level: int, base_dir: Path) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
-# Variant name extraction
+# Variant name / track extraction
 # ---------------------------------------------------------------------------
+
+
+def _extract_track_from_histogram(csv_path: Path) -> str:
+    """Return 'vector' or 'scalar' based on the histogram CSV path."""
+    if "/vector/" in str(csv_path):
+        return "vector"
+    return "scalar"
 
 
 def _extract_variant_from_histogram(csv_path: Path) -> str:
@@ -114,6 +128,90 @@ def _extract_variant_from_histogram(csv_path: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Isolated KEM benchmark instret discovery
+# ---------------------------------------------------------------------------
+
+
+def _extract_variant_from_isolated_kem(csv_path: Path) -> str:
+    """Extract variant name from isolated_kem_{variant}_latest.csv filename."""
+    stem = csv_path.stem  # e.g., isolated_kem_karatsuba-zvbc_latest
+    prefix = "isolated_kem_"
+    suffix = "_latest"
+    if stem.startswith(prefix) and stem.endswith(suffix):
+        return stem[len(prefix) : -len(suffix)]
+    return stem
+
+
+def _parse_kem_total_instret(csv_path: Path, level: int) -> int | None:
+    """Parse isolated KEM CSV and return total instret for the given level.
+
+    File format (comments start with '#'):
+        level,op,instructions,codesize
+        128,total,716983,45570
+
+    Returns None if the file is unreadable or the level/total row is absent.
+    """
+    try:
+        with open(csv_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if not row or row[0].startswith("#"):
+                    continue
+                if row[0].strip() == "level":
+                    continue  # header line
+                try:
+                    row_level = int(row[0])
+                    row_op = row[1].strip()
+                    row_instret = int(row[2])
+                except (ValueError, IndexError):
+                    continue
+                if row_level == level and row_op == "total":
+                    return row_instret
+    except OSError:
+        return None
+    return None
+
+
+def discover_kem_instrets(level: int, base_dir: Path) -> dict[str, int]:
+    """Load per-variant total KEM instret from isolated benchmark CSVs.
+
+    Searches analysis/benchmarks/isolated/{scalar,vector}/{variant_dir}/
+    for isolated_kem_{variant}_latest.csv files.
+
+    Using benchmark instret (keypair+encaps+decaps) rather than histogram
+    total_instret avoids the ~1M benchmark-harness overhead that would
+    otherwise inflate the denominator for fast variants and underestimate
+    their speedup.
+
+    Args:
+        level: security level (128, 192, or 256).
+        base_dir: project root directory.
+
+    Returns:
+        Dict mapping variant name -> total KEM instret at the given level.
+        Only variants whose CSV exists and contains the requested level are
+        included.
+    """
+    benchmarks_root = base_dir / "analysis" / "benchmarks" / "isolated"
+    result: dict[str, int] = {}
+
+    for track in ("scalar", "vector"):
+        track_dir = benchmarks_root / track
+        if not track_dir.is_dir():
+            continue
+        for variant_dir in sorted(track_dir.iterdir()):
+            if not variant_dir.is_dir():
+                continue
+            for csv_file in variant_dir.glob("isolated_kem_*_latest.csv"):
+                variant = _extract_variant_from_isolated_kem(csv_file)
+                instret = _parse_kem_total_instret(csv_file, level)
+                if instret is not None:
+                    result[variant] = instret
+
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Comparative table generation
 # ---------------------------------------------------------------------------
 
@@ -123,15 +221,21 @@ class VariantRow:
     """A single row in the comparative report table."""
 
     variant: str
+    track: str
     total_instret: int
     estimated_cycles: int
     cpi: float
     class_percentages: dict[str, float]  # class_name -> percentage
+    speedup_instret: float | None = None  # baseline_instret / variant_instret
+    speedup_cycles: float | None = None   # baseline_cycles  / variant_cycles
 
 
 def _build_variant_row(
     variant: str,
     estimate: CycleEstimate,
+    track: str = "",
+    speedup_instret: float | None = None,
+    speedup_cycles: float | None = None,
 ) -> VariantRow:
     """Build a VariantRow from a CycleEstimate."""
     class_pcts: dict[str, float] = {}
@@ -140,10 +244,13 @@ def _build_variant_row(
 
     return VariantRow(
         variant=variant,
+        track=track,
         total_instret=estimate.total_instret,
         estimated_cycles=estimate.total_cycles,
         cpi=estimate.cpi,
         class_percentages=class_pcts,
+        speedup_instret=speedup_instret,
+        speedup_cycles=speedup_cycles,
     )
 
 
@@ -169,13 +276,81 @@ def _mark_dominant_class(pcts: dict[str, float]) -> dict[str, str]:
     return formatted
 
 
+def compute_speedups(
+    estimates: dict[str, CycleEstimate],
+    variant_tracks: dict[str, str],
+    kem_instrets: dict[str, int] | None = None,
+) -> dict[str, tuple[float | None, float | None]]:
+    """Compute instret and cycle speedups relative to the per-track baseline.
+
+    speedup_instret: uses actual KEM total instret from isolated benchmarks when
+        available (kem_instrets), otherwise falls back to histogram total_instret.
+        Benchmark instret avoids the harness-overhead inflation that makes fast
+        variants look slower than they are.
+    speedup_cycles: always computed from the CPI-model estimated cycles.
+
+    Speedup > 1 means the variant is faster than the baseline.
+    Baseline variants themselves receive speedup = 1.000.
+
+    Args:
+        estimates: variant -> CycleEstimate.
+        variant_tracks: variant -> 'scalar' or 'vector'.
+        kem_instrets: optional variant -> total KEM instret from benchmark CSVs.
+
+    Returns:
+        Dict mapping variant -> (speedup_instret, speedup_cycles).
+        Either value is None when data is unavailable.
+    """
+    def _instret(variant: str) -> int:
+        """Return the best available instret for a variant."""
+        if kem_instrets and variant in kem_instrets:
+            return kem_instrets[variant]
+        return estimates[variant].total_instret if variant in estimates else 0
+
+    # Identify per-track baselines
+    baseline_instrets: dict[str, int] = {}
+    baseline_cycles: dict[str, int] = {}
+    for variant, track in variant_tracks.items():
+        baseline_name = TRACK_BASELINES.get(track)
+        if baseline_name and variant == baseline_name and variant in estimates:
+            baseline_instrets[track] = _instret(variant)
+            baseline_cycles[track] = estimates[variant].total_cycles
+
+    result: dict[str, tuple[float | None, float | None]] = {}
+    for variant, estimate in estimates.items():
+        track = variant_tracks.get(variant, "")
+        b_instret = baseline_instrets.get(track)
+        b_cycles = baseline_cycles.get(track)
+        if b_instret is None or b_cycles is None:
+            result[variant] = (None, None)
+        else:
+            v_instret = _instret(variant)
+            sp_instret = (
+                round(b_instret / v_instret, 3)
+                if v_instret > 0
+                else None
+            )
+            sp_cycles = (
+                round(b_cycles / estimate.total_cycles, 3)
+                if estimate.total_cycles > 0
+                else None
+            )
+            result[variant] = (sp_instret, sp_cycles)
+
+    return result
+
+
 def generate_comparative_table(
     estimates: dict[str, CycleEstimate],
+    speedups: dict[str, tuple[float | None, float | None]] | None = None,
+    variant_tracks: dict[str, str] | None = None,
 ) -> str:
     """Generate the comparative report CSV content.
 
     Args:
         estimates: mapping of variant name -> CycleEstimate.
+        speedups: optional per-variant (speedup_instret, speedup_cycles) pairs.
+        variant_tracks: optional variant -> track mapping (used for row track field).
 
     Returns:
         CSV string with header and data rows sorted by estimated_cycles ascending.
@@ -183,23 +358,44 @@ def generate_comparative_table(
     # Build rows
     rows: list[VariantRow] = []
     for variant, estimate in estimates.items():
-        rows.append(_build_variant_row(variant, estimate))
+        sp = speedups.get(variant, (None, None)) if speedups else (None, None)
+        track = variant_tracks.get(variant, "") if variant_tracks else ""
+        rows.append(
+            _build_variant_row(
+                variant,
+                estimate,
+                track=track,
+                speedup_instret=sp[0],
+                speedup_cycles=sp[1],
+            )
+        )
 
     # Sort by estimated_cycles ascending
     rows.sort(key=lambda r: r.estimated_cycles)
 
     # Generate CSV
     output = io.StringIO()
-    # Header
+    # Header — speedup columns placed immediately after 'track'
     class_cols = [f"{cls}%" for cls in REPORT_CLASSES]
-    header = ["variant", "total_instret", "estimated_cycles", "CPI"] + class_cols
+    has_speedups = speedups is not None
+    header = ["variant", "track"]
+    if has_speedups:
+        header += ["speedup_instret", "speedup_cycles"]
+    header += ["total_instret", "estimated_cycles", "CPI"] + class_cols
     output.write(",".join(header) + "\n")
 
     # Data rows
     for row in rows:
         formatted_pcts = _mark_dominant_class(row.class_percentages)
-        fields = [
-            row.variant,
+        fields = [row.variant, row.track]
+        if has_speedups:
+            fields.append(
+                f"{row.speedup_instret:.3f}" if row.speedup_instret is not None else ""
+            )
+            fields.append(
+                f"{row.speedup_cycles:.3f}" if row.speedup_cycles is not None else ""
+            )
+        fields += [
             str(row.total_instret),
             str(row.estimated_cycles),
             f"{row.cpi:.2f}",
@@ -305,6 +501,8 @@ def generate_report_with_deltas(
     estimates: dict[str, CycleEstimate],
     output_dir: Path,
     level: int,
+    variant_tracks: dict[str, str] | None = None,
+    kem_instrets: dict[str, int] | None = None,
 ) -> str:
     """Generate comparative table and append delta columns if previous report exists.
 
@@ -312,12 +510,22 @@ def generate_report_with_deltas(
         estimates: current variant -> CycleEstimate mapping.
         output_dir: directory where reports are stored.
         level: security level.
+        variant_tracks: optional variant -> track mapping for speedup computation.
+        kem_instrets: optional variant -> total KEM instret from benchmark CSVs;
+            used to compute accurate speedup_instret free of harness overhead.
 
     Returns:
         Complete CSV report content (with or without delta columns).
     """
-    # Write base comparative table
-    base_csv = generate_comparative_table(estimates)
+    # Compute speedups when track information is available
+    speedups = (
+        compute_speedups(estimates, variant_tracks, kem_instrets=kem_instrets)
+        if variant_tracks
+        else None
+    )
+
+    # Write base comparative table (includes speedup columns when available)
+    base_csv = generate_comparative_table(estimates, speedups=speedups, variant_tracks=variant_tracks)
 
     # Find previous report
     now = datetime.now()
@@ -397,13 +605,16 @@ def run_report(level: int, base_dir: Path, cost_table: CostTable) -> int:
 
     # Process each histogram
     estimates: dict[str, CycleEstimate] = {}
+    variant_tracks: dict[str, str] = {}
     for hist_path in histograms:
         try:
             csv_content = hist_path.read_text(encoding="utf-8")
             instruction_mix = parse_instruction_csv(csv_content, filename=str(hist_path))
             estimate = compute_cycles(instruction_mix, cost_table)
             variant = _extract_variant_from_histogram(hist_path)
+            track = _extract_track_from_histogram(hist_path)
             estimates[variant] = estimate
+            variant_tracks[variant] = track
         except (OSError, ValueError) as e:
             print(f"Warning: skipping {hist_path}: {e}", file=sys.stderr)
             continue
@@ -415,11 +626,22 @@ def run_report(level: int, base_dir: Path, cost_table: CostTable) -> int:
         )
         return 1
 
+    # Load actual KEM instret from isolated benchmark CSVs (more accurate than histogram)
+    kem_instrets = discover_kem_instrets(level, base_dir)
+    if kem_instrets:
+        print(
+            f"Using benchmark KEM instret for {len(kem_instrets)} variant(s): "
+            + ", ".join(sorted(kem_instrets)),
+            file=sys.stderr,
+        )
+
     # Generate report
     output_dir = base_dir / "analysis" / "profiles" / "cpi" / "reports"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    report_csv = generate_report_with_deltas(estimates, output_dir, level)
+    report_csv = generate_report_with_deltas(
+        estimates, output_dir, level, variant_tracks, kem_instrets
+    )
 
     # Write output file
     now = datetime.now()
