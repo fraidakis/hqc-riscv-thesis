@@ -53,11 +53,11 @@ endif
 ifeq ($(POLYMUL),ref_scalar)
   MARCH := rv64gc_zbc_zbb_zbs
   POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
-  EXTRA_CFLAGS := -fno-tree-vectorize -fno-vectorize -fno-slp-vectorize
+  EXTRA_CFLAGS := -fno-tree-vectorize
 else ifeq ($(POLYMUL),karatsuba_zbc)
   MARCH := rv64gc_zbc_zbb_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul.c
-  EXTRA_CFLAGS := -fno-tree-vectorize -fno-vectorize -fno-slp-vectorize
+  EXTRA_CFLAGS := -fno-tree-vectorize
 else ifeq ($(POLYMUL),karatsuba_rvv)
   MARCH := rv64gcv_zbc_zbb_zba_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
