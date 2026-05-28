@@ -1,0 +1,27 @@
+% Table of the 5 Keccak-f[1600] round steps
+\begin{tabular}{@{} c l l l @{}}
+  \toprule
+  \textbf{Βήμα} & \textbf{Μαθηματικός Τύπος} & \textbf{Λειτουργία} & \textbf{Χαρακτήρας} \\
+  \midrule
+  $\theta$ &
+    $A[x,y,z] \mathrel{\oplus}= C[x{-}1,z] \oplus C[x{+}1, z{-}1]$ &
+    Column-parity diffusion &
+    Γραμμικός \\[4pt]
+  $\rho$ &
+    $A[x,y] \leftarrow A[x,y] \lll r[x,y]$ &
+    Lane rotation &
+    Γραμμικός \\[4pt]
+  $\pi$ &
+    $B[y, 2x{+}3y] \leftarrow A[x,y]$ &
+    Lane transposition &
+    Γραμμικός \\[4pt]
+  $\chi$ &
+    $A[x] \leftarrow B[x] \oplus (\lnot B[x{+}1] \land B[x{+}2])$ &
+    Row-wise nonlinear &
+    Μη-γραμμικός \\[4pt]
+  $\iota$ &
+    $A[0,0] \mathrel{\oplus}= RC[i_r]$ &
+    Round constant XOR &
+    Σταθερά \\
+  \bottomrule
+\end{tabular}

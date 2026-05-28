@@ -1,0 +1,43 @@
+% Karatsuba recursion tree — 2 levels showing 3 sub-problems per level
+% Used in §2.3 (sec:polymul-theory)
+\begin{tikzpicture}[
+  level distance=2.2cm,
+  sibling distance=4.2cm,
+  every node/.style={
+    draw, rounded corners=2pt, minimum width=2.2cm, minimum height=0.7cm,
+    font=\small, align=center
+  },
+  edge from parent/.style={draw, ->, >=stealth, thick},
+  level 2/.style={sibling distance=1.3cm, every node/.style={
+    draw, rounded corners=2pt, minimum width=1.0cm, minimum height=0.6cm,
+    font=\scriptsize, align=center, fill=blue!8
+  }},
+  annotation/.style={font=\scriptsize\itshape, draw=none, fill=none, minimum width=0pt, minimum height=0pt}
+]
+
+\node {$a(x) \cdot b(x)$}
+  child {
+    node {$a_L \cdot b_L$}
+    child { node {$a_{LL} \cdot b_{LL}$} }
+    child { node {$a_{LH} \cdot b_{LH}$} }
+    child { node {$(a_{LL}{\oplus}a_{LH})$\\$\cdot(b_{LL}{\oplus}b_{LH})$} }
+  }
+  child {
+    node {$a_H \cdot b_H$}
+    child { node {$a_{HL} \cdot b_{HL}$} }
+    child { node {$a_{HH} \cdot b_{HH}$} }
+    child { node {$(a_{HL}{\oplus}a_{HH})$\\$\cdot(b_{HL}{\oplus}b_{HH})$} }
+  }
+  child {
+    node {$(a_L{\oplus}a_H)$\\$\cdot(b_L{\oplus}b_H)$}
+    child { node {$c_L \cdot d_L$} }
+    child { node {$c_H \cdot d_H$} }
+    child { node {$(c_L{\oplus}c_H)$\\$\cdot(d_L{\oplus}d_H)$} }
+  };
+
+% Annotations
+\node[annotation, right=0.3cm] at (3.8, 0) {Επίπεδο 0: 1 πρόβλημα};
+\node[annotation, right=0.3cm] at (3.8, -2.2) {Επίπεδο 1: 3 υπο-προβλήματα};
+\node[annotation, right=0.3cm] at (3.8, -4.4) {Επίπεδο 2: 9 φύλλα};
+
+\end{tikzpicture}

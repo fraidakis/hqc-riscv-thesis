@@ -1,0 +1,13 @@
+% HQC parameter table per security level
+% Usage: \input{figures/hqc-params-table}
+\begin{tabular}{l S[table-format=5.0] S[table-format=3.0] S[table-format=3.0]
+                S[table-format=5.0] S[table-format=3.0] S[table-format=3.0]
+                S[table-format=3.0] S[table-format=2.0]}
+\toprule
+{Security Level} & {$N$} & {$n_1$} & {$n_2$} & {$n_1 \cdot n_2$} & {$\omega$} & {$\omega_r = \omega_e$} & {$\delta$} & {$k$ (bytes)} \\
+\midrule
+HQC-128 & 17669 & 46  & 384 & 17664 & 66  & 75  & 15 & 16 \\
+HQC-192 & 35851 & 56  & 640 & 35840 & 100 & 114 & 16 & 24 \\
+HQC-256 & 57637 & 90  & 640 & 57600 & 131 & 149 & 29 & 32 \\
+\bottomrule
+\end{tabular}

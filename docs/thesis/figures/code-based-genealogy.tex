@@ -1,0 +1,62 @@
+% Genealogy diagram: McEliece → Niederreiter → MDPC → QC-MDPC → HQC
+% Shows the evolution of code-based cryptography from 1978 to present
+\begin{tikzpicture}[
+  node distance=1.8cm and 2.5cm,
+  every node/.style={font=\small},
+  mainbox/.style={
+    rectangle, draw=thesisblue!70, fill=thesisblue!8,
+    rounded corners=3pt, minimum width=3.2cm, minimum height=0.9cm,
+    align=center, font=\small\sffamily
+  },
+  hqcbox/.style={
+    rectangle, draw=green!50!black, fill=green!8,
+    rounded corners=3pt, minimum width=3.2cm, minimum height=0.9cm,
+    align=center, font=\small\sffamily\bfseries
+  },
+  altbox/.style={
+    rectangle, draw=gray!60, fill=gray!8,
+    rounded corners=3pt, minimum width=3.0cm, minimum height=0.9cm,
+    align=center, font=\small\sffamily
+  },
+  arr/.style={-{Stealth[length=5pt]}, thick, thesisblue!70},
+  altarr/.style={-{Stealth[length=5pt]}, thick, gray!60},
+  yearlabel/.style={font=\scriptsize\itshape, text=gray!70}
+]
+
+% Main lineage (vertical)
+\node[mainbox] (mceliece) {McEliece\\(Goppa codes)};
+\node[yearlabel, right=2pt of mceliece.north east, anchor=north west] {1978};
+
+\node[mainbox, below=of mceliece] (niederreiter) {Niederreiter\\(syndrome-based)};
+\node[yearlabel, right=2pt of niederreiter.north east, anchor=north west] {1986};
+
+\node[mainbox, below=of niederreiter] (mdpc) {MDPC codes\\(moderate density)};
+\node[yearlabel, right=2pt of mdpc.north east, anchor=north west] {2012};
+
+\node[mainbox, below=of mdpc] (qcmdpc) {QC-MDPC\\(quasi-cyclic)};
+\node[yearlabel, right=2pt of qcmdpc.north east, anchor=north west] {2013};
+
+% Branching: HQC and alternatives
+\node[hqcbox, below left=1.5cm and 0.5cm of qcmdpc] (hqc) {\HQC\\(NIST Final)};
+\node[yearlabel, left=2pt of hqc.north west, anchor=north east] {2017–2025};
+
+\node[altbox, below right=1.5cm and 0.5cm of qcmdpc] (bike) {BIKE\\(NIST Round 4)};
+
+\node[altbox, right=2.5cm of mceliece] (classic) {Classic McEliece\\(NIST Final)};
+\node[yearlabel, right=2pt of classic.north east, anchor=north west] {conservative};
+
+% Arrows
+\draw[arr] (mceliece) -- (niederreiter);
+\draw[arr] (niederreiter) -- (mdpc);
+\draw[arr] (mdpc) -- (qcmdpc);
+\draw[arr] (qcmdpc) -- (hqc);
+\draw[arr] (qcmdpc) -- (bike);
+\draw[altarr] (mceliece) -- (classic);
+
+% Annotation
+\node[font=\scriptsize, text=gray!60, below=0.3cm of hqc]
+  {+ concatenated codes (RM+RS)};
+\node[font=\scriptsize, text=gray!60, below=0.3cm of bike]
+  {+ bit-flipping decoder};
+
+\end{tikzpicture}

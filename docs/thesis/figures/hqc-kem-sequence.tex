@@ -1,0 +1,47 @@
+% HQC KEM sequence diagram: Alice ↔ Bob key exchange
+% Usage: \input{figures/hqc-kem-sequence}
+\begin{tikzpicture}[
+  entity/.style={draw, rounded corners=3pt, fill=thesisblue!8,
+                 minimum width=2.2cm, minimum height=0.8cm, font=\sffamily\bfseries},
+  msg/.style={->, >=stealth, thick},
+  op/.style={font=\small, align=left},
+  note/.style={font=\scriptsize\itshape, text=gray!70!black},
+]
+
+% Entities
+\node[entity] (alice) at (0, 0) {Alice};
+\node[entity] (bob) at (8, 0) {Bob};
+
+% Lifelines
+\draw[dashed, gray!50] (alice.south) -- ++(0, -9.5);
+\draw[dashed, gray!50] (bob.south) -- ++(0, -9.5);
+
+% KeyGen (Bob)
+\node[op, right] at (6.5, -1.2) {\KeyGen};
+\node[note, right] at (6.5, -1.7) {$(ek, dk) \leftarrow \KeyGen()$};
+
+% Send public key
+\draw[msg, <-] (0, -2.5) -- node[above, font=\small] {$ek$} (8, -2.5);
+
+% Encaps (Alice)
+\node[op, left] at (1.5, -3.5) {\Encaps};
+\node[note, left] at (1.5, -4.0) {$(ct, ss) \leftarrow \Encaps(ek)$};
+
+% Send ciphertext
+\draw[msg] (0, -5.0) -- node[above, font=\small] {$ct$} (8, -5.0);
+
+% Decaps (Bob)
+\node[op, right] at (6.5, -6.0) {\Decaps};
+\node[note, right] at (6.5, -6.5) {$ss' \leftarrow \Decaps(dk, ct)$};
+
+% Shared secret
+\node[font=\small\bfseries, text=green!50!black] at (0, -7.8) {$ss$};
+\node[font=\small\bfseries, text=green!50!black] at (8, -7.8) {$ss' = ss$};
+\draw[thick, green!50!black, dashed] (0.5, -7.8) -- (7.5, -7.8);
+\node[note, above] at (4, -7.6) {κοινό μυστικό};
+
+% Annotations: which kernel is called where
+\node[note, left, text=red!60!black] at (-0.3, -4.5) {polymul, Keccak};
+\node[note, right, text=red!60!black] at (8.3, -6.8) {polymul, Keccak, decode};
+
+\end{tikzpicture}

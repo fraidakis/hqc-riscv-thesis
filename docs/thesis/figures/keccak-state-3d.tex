@@ -1,0 +1,90 @@
+% 3D visualization of the Keccak state: 5×5×64 (lanes, columns, planes)
+\begin{tikzpicture}[
+  x={(0.9cm, 0cm)},
+  y={(0.35cm, 0.35cm)},
+  z={(0cm, 0.8cm)},
+  >=stealth,
+  font=\small\sffamily
+]
+
+% Draw the 5x5 grid at z=0 (bottom plane)
+\def\cellsize{0.8}
+\def\depth{2.5}
+
+% Bottom face (5x5 grid)
+\foreach \x in {0,...,4} {
+  \foreach \y in {0,...,4} {
+    \draw[thin, fill=blue!5, fill opacity=0.3]
+      (\x*\cellsize, \y*\cellsize, 0) --
+      (\x*\cellsize+\cellsize, \y*\cellsize, 0) --
+      (\x*\cellsize+\cellsize, \y*\cellsize+\cellsize, 0) --
+      (\x*\cellsize, \y*\cellsize+\cellsize, 0) -- cycle;
+  }
+}
+
+% Highlight one lane (x=1, y=2) going up in z
+\fill[orange!30, opacity=0.6]
+  (1*\cellsize, 2*\cellsize, 0) --
+  (1*\cellsize+\cellsize, 2*\cellsize, 0) --
+  (1*\cellsize+\cellsize, 2*\cellsize, \depth) --
+  (1*\cellsize, 2*\cellsize, \depth) -- cycle;
+\fill[orange!20, opacity=0.6]
+  (1*\cellsize, 2*\cellsize, 0) --
+  (1*\cellsize, 2*\cellsize+\cellsize, 0) --
+  (1*\cellsize, 2*\cellsize+\cellsize, \depth) --
+  (1*\cellsize, 2*\cellsize, \depth) -- cycle;
+\fill[orange!40, opacity=0.6]
+  (1*\cellsize, 2*\cellsize, \depth) --
+  (1*\cellsize+\cellsize, 2*\cellsize, \depth) --
+  (1*\cellsize+\cellsize, 2*\cellsize+\cellsize, \depth) --
+  (1*\cellsize, 2*\cellsize+\cellsize, \depth) -- cycle;
+
+% Highlight one column (x=3) at all y, z=0 to depth
+\foreach \y in {0,...,4} {
+  \fill[green!20, opacity=0.4]
+    (3*\cellsize, \y*\cellsize, 0) --
+    (3*\cellsize+\cellsize, \y*\cellsize, 0) --
+    (3*\cellsize+\cellsize, \y*\cellsize+\cellsize, 0) --
+    (3*\cellsize, \y*\cellsize+\cellsize, 0) -- cycle;
+}
+
+% Vertical edges (showing depth = 64 bits)
+\foreach \x in {0,4} {
+  \foreach \y in {0,4} {
+    \draw[thin, gray!50]
+      (\x*\cellsize, \y*\cellsize, 0) --
+      (\x*\cellsize, \y*\cellsize, \depth);
+  }
+}
+% Corner edges
+\draw[thin, gray!50] (5*\cellsize, 0, 0) -- (5*\cellsize, 0, \depth);
+\draw[thin, gray!50] (5*\cellsize, 5*\cellsize, 0) -- (5*\cellsize, 5*\cellsize, \depth);
+\draw[thin, gray!50] (0, 5*\cellsize, 0) -- (0, 5*\cellsize, \depth);
+
+% Top face outline
+\draw[thin, gray!60]
+  (0, 0, \depth) -- (5*\cellsize, 0, \depth) --
+  (5*\cellsize, 5*\cellsize, \depth) -- (0, 5*\cellsize, \depth) -- cycle;
+
+% Axis labels
+\draw[<->, thick] (-0.5, 0, 0) -- (-0.5, 5*\cellsize, 0)
+  node[midway, left, font=\scriptsize] {$y$ (5)};
+\draw[<->, thick] (0, -0.5, 0) -- (5*\cellsize, -0.5, 0)
+  node[midway, below, font=\scriptsize] {$x$ (5)};
+\draw[<->, thick] (5*\cellsize+0.5, 0, 0) -- (5*\cellsize+0.5, 0, \depth)
+  node[midway, right, font=\scriptsize] {$z$ (64 bits)};
+
+% Annotations
+\node[font=\scriptsize, text=orange!70!black, anchor=west] at (6, 2.5*\cellsize, 1.2)
+  {Lane $A[x,y]$};
+\draw[->, thin, orange!70!black] (6, 2.5*\cellsize, 1.2) -- (1.5*\cellsize, 2.5*\cellsize, 1.2);
+
+\node[font=\scriptsize, text=green!50!black, anchor=west] at (6, 0.5*\cellsize, 0)
+  {Column $A[x,*,z]$};
+\draw[->, thin, green!50!black] (6, 0.5*\cellsize, 0) -- (3.5*\cellsize, 2*\cellsize, 0);
+
+% Title annotation
+\node[font=\footnotesize, anchor=north] at (2.5*\cellsize, -1.2, 0)
+  {Κατάσταση Keccak: $5 \times 5 \times 64 = \num{1600}$ bits};
+
+\end{tikzpicture}

@@ -1,0 +1,27 @@
+% Concatenated decoding pipeline: RM (inner) → RS (outer)
+\begin{tikzpicture}[
+  node distance=2.0cm,
+  block/.style={rectangle, draw, fill=#1, minimum width=3.0cm,
+    minimum height=1cm, text width=2.8cm, align=center,
+    rounded corners=2pt, font=\small},
+  block/.default={blue!8},
+  arrow/.style={->, >=stealth, thick},
+  lbl/.style={font=\scriptsize, midway, above}
+]
+
+% Nodes
+\node[block=yellow!15] (input) {Ληφθείσα λέξη ($n_1 \times n_2$ bits)};
+\node[block=orange!15, right=of input] (rm) {RM(1,7) Αποκωδικοποιητής (εσωτερικός)};
+\node[block=green!12, right=of rm] (rs) {Reed-Solomon Αποκωδικοποιητής (εξωτερικός)};
+\node[block=blue!10, right=of rs] (output) {Διορθωμένο μήνυμα $m$ ($k$ bytes)};
+
+% Arrows
+\draw[arrow] (input) -- (rm) node[lbl] {$n_1 \times n_2$ bits};
+\draw[arrow] (rm) -- (rs) node[lbl] {$n_1$ bytes};
+\draw[arrow] (rs) -- (output) node[lbl] {$k$ bytes};
+
+% Annotations below
+\node[font=\scriptsize, below=0.3cm of rm, text=gray] {bit-level};
+\node[font=\scriptsize, below=0.3cm of rs, text=gray] {symbol-level};
+
+\end{tikzpicture}

@@ -1,0 +1,37 @@
+% HQC standardization timeline
+% Usage: \input{figures/hqc-timeline}
+\begin{tikzpicture}[
+  x=1.8cm,
+  event/.style={fill=thesisblue!15, draw=thesisblue!60, rounded corners=2pt,
+                font=\small, inner sep=3pt, align=center},
+  specchange/.style={fill=red!10, draw=red!60, rounded corners=2pt,
+                     font=\small, inner sep=3pt, align=center},
+  final/.style={fill=green!15, draw=green!60!black, rounded corners=2pt,
+                font=\small\bfseries, inner sep=3pt, align=center},
+  timeline/.style={thick, ->, >=stealth},
+  yearmark/.style={font=\footnotesize\sffamily, below},
+]
+
+% Timeline axis
+\draw[timeline] (0,0) -- (8.5,0);
+
+% Year marks
+\foreach \x/\yr in {0/2017, 1.5/2019, 3/2020, 4.5/2022, 5.5/2024, 7/2025, 8.2/2027} {
+  \draw (\x, 0.1) -- (\x, -0.1) node[yearmark] {\yr};
+}
+
+% Events
+\node[event, above=0.5cm] at (0,0) {Υποβολή\\Round 1};
+\node[event, above=0.5cm] at (1.5,0) {Round 2};
+\node[event, above=0.5cm] at (3,0) {Round 3};
+\node[event, above=0.5cm] at (4.5,0) {Round 4};
+\node[specchange, above=0.5cm] at (5.5,0) {Spec change\\dense$\times$dense};
+\node[final, above=0.5cm] at (7,0) {Επιλογή\\τυποποίησης};
+\node[event, above=0.5cm] at (8.2,0) {Τελικό\\πρότυπο};
+
+% Annotation for spec change
+\draw[red!60, thick, dashed] (5.5, -0.3) -- (5.5, -1.0)
+  node[below, font=\scriptsize, text=red!70!black, align=center]
+  {Ακύρωση sparse$\times$dense\\υλοποιήσεων};
+
+\end{tikzpicture}
