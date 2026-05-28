@@ -1,0 +1,3 @@
+# level=128,polymul=karatsuba_rvv,n_iter=10000,n_warmup=100,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+vect_mul,10000,219313,221688,296928,222646.8,4617.8,158368,158368,183105,158573.7,1126.4
