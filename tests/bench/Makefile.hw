@@ -1,0 +1,161 @@
+# tests/bench/Makefile.hw
+#
+# Standalone Makefile for native compilation of hardware benchmarks on BPI-F3.
+# Does NOT require CMake — just GCC on the board.
+#
+# Usage (on the board):
+#   cd tests/bench
+#   make -f Makefile.hw LEVEL=128 POLYMUL=karatsuba_zbc
+#   sudo nice -n -20 taskset -c 7 ./bench_hw_kem_hqc128_karatsuba_zbc
+#
+# Variants:
+#   POLYMUL=ref_scalar      — vendor baseline (no Zbc, no RVV)
+#   POLYMUL=karatsuba_zbc   — scalar optimized with Zbc carry-less multiply
+#   POLYMUL=karatsuba_rvv   — RVV vectorized hybrid
+#
+# Security levels: LEVEL=128, LEVEL=192, LEVEL=256
+
+# ── Configuration ────────────────────────────────────────────────────────────
+CC       ?= gcc
+LEVEL    ?= 128
+POLYMUL  ?= karatsuba_zbc
+N_ITER   ?= 10000
+N_WARMUP ?= 100
+
+# ── Paths (relative to tests/bench/) ─────────────────────────────────────────
+ROOT     := ../..
+VENDOR   := $(ROOT)/vendor/hqc-ref
+SRC      := $(ROOT)/src
+
+# ── Security-level variant name mapping ──────────────────────────────────────
+ifeq ($(LEVEL),128)
+  VARIANT_DIR := hqc-1
+else ifeq ($(LEVEL),192)
+  VARIANT_DIR := hqc-3
+else ifeq ($(LEVEL),256)
+  VARIANT_DIR := hqc-5
+else
+  $(error Unsupported LEVEL=$(LEVEL). Use 128, 192, or 256)
+endif
+
+# ── ISA flags per polymul variant ────────────────────────────────────────────
+ifeq ($(POLYMUL),ref_scalar)
+  MARCH := rv64gc_zbc_zbb_zbs
+  POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
+  EXTRA_CFLAGS := -fno-tree-vectorize -fno-vectorize -fno-slp-vectorize
+else ifeq ($(POLYMUL),karatsuba_zbc)
+  MARCH := rv64gc_zbc_zbb_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul.c
+  EXTRA_CFLAGS := -fno-tree-vectorize -fno-vectorize -fno-slp-vectorize
+else ifeq ($(POLYMUL),karatsuba_rvv)
+  MARCH := rv64gcv_zbc_zbb_zba_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
+  EXTRA_CFLAGS :=
+else
+  $(error Unsupported POLYMUL=$(POLYMUL). Use ref_scalar, karatsuba_zbc, or karatsuba_rvv)
+endif
+
+# ── Compiler flags ───────────────────────────────────────────────────────────
+CFLAGS := -O3 -static -march=$(MARCH) -mabi=lp64d \
+          -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
+          -DHQC_BENCH_MODE=1 \
+          -DPOLYMUL_NAME=\"$(POLYMUL)\" \
+          -DN_ITER=$(N_ITER) -DN_WARMUP=$(N_WARMUP) \
+          $(EXTRA_CFLAGS)
+
+# ── Include paths ────────────────────────────────────────────────────────────
+INCLUDES := -I$(VENDOR)/src/common/$(VARIANT_DIR) \
+            -I$(VENDOR)/src/common \
+            -I$(VENDOR)/src/ref/$(VARIANT_DIR) \
+            -I$(VENDOR)/src/ref \
+            -I$(VENDOR)/lib/fips202 \
+            -I$(SRC)/common \
+            -I$(ROOT)/include \
+            -I.
+
+# ── Core sources (invariant across polymul variants — from hqc_core) ─────────
+CORE_SOURCES := $(VENDOR)/src/common/kem.c \
+                $(VENDOR)/src/common/crypto_memset.c \
+                $(VENDOR)/src/ref/parsing.c \
+                $(SRC)/common/gf.c
+
+# ── Source files for full KEM benchmark ──────────────────────────────────────
+KEM_SOURCES := bench_hw_kem.c \
+               $(CORE_SOURCES) \
+               $(SRC)/hqc.c \
+               $(VENDOR)/src/common/code.c \
+               $(VENDOR)/src/common/symmetric.c \
+               $(VENDOR)/src/ref/reed_muller.c \
+               $(VENDOR)/src/ref/reed_solomon.c \
+               $(VENDOR)/src/common/fft.c \
+               $(VENDOR)/lib/fips202/fips202.c \
+               $(SRC)/vector.c \
+               $(SRC)/common/randombytes.c \
+               $(POLYMUL_SRC)
+
+# ── Source files for polymul micro-benchmark ─────────────────────────────────
+MUL_SOURCES := bench_hw_mul.c \
+               $(POLYMUL_SRC)
+
+# ── Output binary names ──────────────────────────────────────────────────────
+KEM_BIN := bench_hw_kem_hqc$(LEVEL)_$(POLYMUL)
+MUL_BIN := bench_hw_mul_hqc$(LEVEL)_$(POLYMUL)
+
+# ── Targets ──────────────────────────────────────────────────────────────────
+.PHONY: all kem mul clean run_kem run_mul info
+
+all: kem mul
+
+kem: $(KEM_BIN)
+
+mul: $(MUL_BIN)
+
+$(KEM_BIN): bench_hw_kem.c perf_hw.h $(KEM_SOURCES)
+	$(CC) $(CFLAGS) $(INCLUDES) $(KEM_SOURCES) -lm -o $@
+	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
+	@echo "Verify Zbc/RVV instructions:"
+	@objdump -d $@ | grep -cE "clmul|clmulh" || true
+	@objdump -d $@ | grep -cE "vle|vse|vxor|vslide" || true
+
+$(MUL_BIN): bench_hw_mul.c perf_hw.h $(MUL_SOURCES)
+	$(CC) $(CFLAGS) $(INCLUDES) $(MUL_SOURCES) -lm -o $@
+	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
+
+run_kem: $(KEM_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(KEM_BIN)
+
+run_mul: $(MUL_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(MUL_BIN)
+
+info:
+	@echo "Configuration:"
+	@echo "  CC       = $(CC)"
+	@echo "  LEVEL    = $(LEVEL)"
+	@echo "  POLYMUL  = $(POLYMUL)"
+	@echo "  MARCH    = $(MARCH)"
+	@echo "  N_ITER   = $(N_ITER)"
+	@echo "  N_WARMUP = $(N_WARMUP)"
+	@echo "  KEM_BIN  = $(KEM_BIN)"
+	@echo "  MUL_BIN  = $(MUL_BIN)"
+
+clean:
+	rm -f bench_hw_kem_hqc* bench_hw_mul_hqc*
+
+# ── Convenience: build all variants for a given level ────────────────────────
+.PHONY: all_variants
+all_variants:
+	$(MAKE) -f Makefile.hw LEVEL=$(LEVEL) POLYMUL=ref_scalar
+	$(MAKE) -f Makefile.hw LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc
+	$(MAKE) -f Makefile.hw LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv
+
+# ── Convenience: run all polymul micro-benchmarks ────────────────────────────
+.PHONY: run_all_mul
+run_all_mul:
+	@echo "=== ref_scalar ==="
+	$(MAKE) -f Makefile.hw LEVEL=$(LEVEL) POLYMUL=ref_scalar run_mul
+	@echo ""
+	@echo "=== karatsuba_zbc ==="
+	$(MAKE) -f Makefile.hw LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc run_mul
+	@echo ""
+	@echo "=== karatsuba_rvv ==="
+	$(MAKE) -f Makefile.hw LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv run_mul
