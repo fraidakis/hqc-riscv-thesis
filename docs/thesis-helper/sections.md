@@ -89,7 +89,7 @@
     <!-- FIGURE: Πίνακας σύγκρισης 4 μεθόδων: Μέθοδος | Βαθμός Ελέγχου | Compiler Optimization | Portability | Error-Proneness | Τυπική Χρήση. -->
     <!-- FIGURE: Διάγραμμα "spectrum of abstraction" (οριζόντιο): Pure .S ←→ Inline Asm ←→ Intrinsics ←→ Auto-Lowering. Πάνω βέλος: "Έλεγχος αυξάνεται ←". Κάτω βέλος: "→ Βελτιστοποίηση compiler αυξάνεται". -->
 
-## Κεφάλαιο 4: Σχετικές Εργασίες (Related Work)
+## Κεφάλαιο 4: Σχετική Βιβλιογραφία (Related Work)
 * **4.1 Υλοποιήσεις HQC σε RISC-V:** Ανασκόπηση υπαρχουσών εργασιών. 
 * **4.2 Υλοποιήσεις HQC σε x86 και ARM:** Εργασίες με AVX2 `vpclmulqdq`, ARM NEON `pmull`.
 * **4.3 Γενικότερες PQC Εργασίες στο RISC-V:** ECO-CRYSTALS, TCHES 2025 Zhang et al., κ.ά.
