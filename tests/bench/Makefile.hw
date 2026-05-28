@@ -19,8 +19,19 @@
 CC       ?= gcc
 LEVEL    ?= 128
 POLYMUL  ?= karatsuba_zbc
-N_ITER   ?= 10000
-N_WARMUP ?= 100
+
+# MODE: dev (fast iteration) or publish (thesis-quality numbers)
+#   dev     → N_ITER=100,  N_WARMUP=10
+#   publish → N_ITER=10000, N_WARMUP=100
+MODE     ?= dev
+
+ifeq ($(MODE),publish)
+  N_ITER   ?= 10000
+  N_WARMUP ?= 100
+else
+  N_ITER   ?= 100
+  N_WARMUP ?= 10
+endif
 
 # ── Paths (relative to tests/bench/) ─────────────────────────────────────────
 ROOT     := ../..
@@ -132,6 +143,7 @@ info:
 	@echo "  CC       = $(CC)"
 	@echo "  LEVEL    = $(LEVEL)"
 	@echo "  POLYMUL  = $(POLYMUL)"
+	@echo "  MODE     = $(MODE)"
 	@echo "  MARCH    = $(MARCH)"
 	@echo "  N_ITER   = $(N_ITER)"
 	@echo "  N_WARMUP = $(N_WARMUP)"
