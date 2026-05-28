@@ -72,6 +72,9 @@ tests/kat/vectors/*.rsp
 tests/kat/vectors/*.req
 NOTES.md
 
+# Hardware credentials (secrets)
+docs/hardware/bpi-f3-credentials.env
+
 # ==========================================
 # Benchmarking & Profiling Data
 # ==========================================
