@@ -1,4 +1,4 @@
-# Literature Notes (Auto-Generated)
+# Literature Notes
 
 Markdown conversions of academic PDFs for AI agent consumption.
 
