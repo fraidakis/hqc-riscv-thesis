@@ -62,16 +62,16 @@ REPORT_CLASSES: list[str] = [
 # Baseline variant name for each track used when computing speedups.
 # Speedup = baseline_value / variant_value  (> 1 means variant is faster).
 TRACK_BASELINES: dict[str, str] = {
-    "scalar": "ref-scalar",
-    "vector": "ref-vector",
+    "scalar": "scalar_ref",
+    "vector": "vector_ref",
 }
 
 
 def discover_histograms(level: int, base_dir: Path) -> list[Path]:
     """Find all histogram_kem_L{level}_*_latest.csv files.
 
-    Searches both scalar and vector track directories under:
-        {base_dir}/analysis/profiles/histograms/{scalar,vector}/*/
+    Searches variant directories under:
+        {base_dir}/results/simulation/profiling/histograms/{variant}/
 
     Args:
         level: security level (128, 192, or 256).
@@ -80,18 +80,15 @@ def discover_histograms(level: int, base_dir: Path) -> list[Path]:
     Returns:
         Sorted list of Paths to matching histogram CSV files.
     """
-    histograms_root = base_dir / "analysis" / "profiles" / "histograms"
+    histograms_root = base_dir / "results" / "simulation" / "profiling" / "histograms"
     pattern = f"histogram_kem_L{level}_*_latest.csv"
 
     found: list[Path] = []
-    for track in ("scalar", "vector"):
-        track_dir = histograms_root / track
-        if track_dir.is_dir():
-            # Search in each variant subdirectory
-            for variant_dir in sorted(track_dir.iterdir()):
-                if variant_dir.is_dir():
-                    for csv_file in variant_dir.glob(pattern):
-                        found.append(csv_file)
+    if histograms_root.is_dir():
+        for variant_dir in sorted(histograms_root.iterdir()):
+            if variant_dir.is_dir():
+                for csv_file in variant_dir.glob(pattern):
+                    found.append(csv_file)
 
     return sorted(found)
 
@@ -102,44 +99,31 @@ def discover_histograms(level: int, base_dir: Path) -> list[Path]:
 
 
 def _extract_track_from_histogram(csv_path: Path) -> str:
-    """Return 'vector' or 'scalar' based on the histogram CSV path."""
-    if "/vector/" in str(csv_path):
+    """Return 'vector' or 'scalar' based on the variant directory name.
+
+    Under the new structure, the parent directory is the variant name
+    (e.g., 'vector_ref', 'scalar_Zb'). Track is encoded in the prefix.
+    """
+    variant_dir = csv_path.parent.name
+    if variant_dir.startswith("vector"):
         return "vector"
     return "scalar"
 
 
 def _extract_variant_from_histogram(csv_path: Path) -> str:
-    """Extract variant name from a histogram CSV filename.
+    """Extract variant name from a histogram CSV path.
 
-    Expects: histogram_kem_L{level}_{variant}_latest.csv
-    Returns the variant portion (e.g., 'karatsuba-zbc', 'ref-scalar').
+    Under the new structure, the parent directory IS the variant name
+    (e.g., 'scalar_ref', 'vector_Zvk'). Falls back to filename parsing
+    if needed.
     """
-    stem = csv_path.stem  # e.g., histogram_kem_L128_karatsuba-zbc_latest
-    parts = stem.split("_")
-    # Find the level marker and extract everything between it and 'latest'
-    for i, part in enumerate(parts):
-        if part.startswith("L") and part[1:].isdigit():
-            remaining = parts[i + 1:]
-            if remaining and remaining[-1] == "latest":
-                remaining = remaining[:-1]
-            if remaining:
-                return "_".join(remaining)
-    return stem
+    # The parent directory is the variant name in the new structure
+    return csv_path.parent.name
 
 
 # ---------------------------------------------------------------------------
 # Isolated KEM benchmark instret discovery
 # ---------------------------------------------------------------------------
-
-
-def _extract_variant_from_isolated_kem(csv_path: Path) -> str:
-    """Extract variant name from isolated_kem_{variant}_latest.csv filename."""
-    stem = csv_path.stem  # e.g., isolated_kem_karatsuba-zvbc_latest
-    prefix = "isolated_kem_"
-    suffix = "_latest"
-    if stem.startswith(prefix) and stem.endswith(suffix):
-        return stem[len(prefix) : -len(suffix)]
-    return stem
 
 
 def _parse_kem_total_instret(csv_path: Path, level: int) -> int | None:
@@ -175,7 +159,7 @@ def _parse_kem_total_instret(csv_path: Path, level: int) -> int | None:
 def discover_kem_instrets(level: int, base_dir: Path) -> dict[str, int]:
     """Load per-variant total KEM instret from isolated benchmark CSVs.
 
-    Searches analysis/benchmarks/isolated/{scalar,vector}/{variant_dir}/
+    Searches results/simulation/benchmarks/components/poly_mul/{variant}/
     for isolated_kem_{variant}_latest.csv files.
 
     Using benchmark instret (keypair+encaps+decaps) rather than histogram
@@ -192,21 +176,20 @@ def discover_kem_instrets(level: int, base_dir: Path) -> dict[str, int]:
         Only variants whose CSV exists and contains the requested level are
         included.
     """
-    benchmarks_root = base_dir / "analysis" / "benchmarks" / "isolated"
+    benchmarks_root = base_dir / "results" / "simulation" / "benchmarks" / "components" / "poly_mul"
     result: dict[str, int] = {}
 
-    for track in ("scalar", "vector"):
-        track_dir = benchmarks_root / track
-        if not track_dir.is_dir():
+    if not benchmarks_root.is_dir():
+        return result
+
+    for variant_dir in sorted(benchmarks_root.iterdir()):
+        if not variant_dir.is_dir():
             continue
-        for variant_dir in sorted(track_dir.iterdir()):
-            if not variant_dir.is_dir():
-                continue
-            for csv_file in variant_dir.glob("isolated_kem_*_latest.csv"):
-                variant = _extract_variant_from_isolated_kem(csv_file)
-                instret = _parse_kem_total_instret(csv_file, level)
-                if instret is not None:
-                    result[variant] = instret
+        for csv_file in variant_dir.glob("isolated_kem_*_latest.csv"):
+            variant = variant_dir.name
+            instret = _parse_kem_total_instret(csv_file, level)
+            if instret is not None:
+                result[variant] = instret
 
     return result
 
@@ -592,13 +575,10 @@ def run_report(level: int, base_dir: Path, cost_table: CostTable) -> int:
     histograms = discover_histograms(level, base_dir)
 
     if not histograms:
-        searched_dirs = [
-            str(base_dir / "analysis" / "profiles" / "histograms" / "scalar"),
-            str(base_dir / "analysis" / "profiles" / "histograms" / "vector"),
-        ]
+        searched_dir = str(base_dir / "results" / "simulation" / "profiling" / "histograms")
         print(
             f"Error: no histogram CSVs found for level {level}. "
-            f"Searched directories: {', '.join(searched_dirs)}",
+            f"Searched directory: {searched_dir}",
             file=sys.stderr,
         )
         return 1
@@ -636,7 +616,7 @@ def run_report(level: int, base_dir: Path, cost_table: CostTable) -> int:
         )
 
     # Generate report
-    output_dir = base_dir / "analysis" / "profiles" / "cpi" / "reports"
+    output_dir = base_dir / "results" / "simulation" / "profiling" / "cpi" / "reports"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     report_csv = generate_report_with_deltas(

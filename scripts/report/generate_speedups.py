@@ -8,9 +8,9 @@ and computes exact speedup multipliers:
     Speedup = Baseline_instret / Champion_instret
 
 Three hardware tiers:
-  Tier 1 (IoT)     ref_scalar  → karatsuba_zbc
-  Tier 2 (Edge)    ref_vector  → karatsuba_rvv   (hybrid: RVV polymul + scalar Keccak)
-  Tier 3 (High-End) ref_vector → karatsuba_zvbc
+  Tier 1 (IoT)     scalar_ref  → scalar_Zb
+  Tier 2 (Edge)    vector_ref  → vector_rvv   (hybrid: RVV polymul + scalar Keccak)
+  Tier 3 (High-End) vector_ref → vector_Zvk
 
 Usage:
     python3 scripts/report/generate_speedups.py
@@ -26,35 +26,29 @@ from pathlib import Path
 from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ISOLATED = REPO_ROOT / "analysis/benchmarks/isolated"
 
-# (subdir, variant_name)
-_SCALAR_DIR = ISOLATED / "scalar"
-_VECTOR_DIR = ISOLATED / "vector"
+# Component data directories (no intermediate scalar/vector level)
+POLY_MUL_DIR = REPO_ROOT / "results/simulation/benchmarks/components/poly_mul"
+KECCAK_DIR = REPO_ROOT / "results/simulation/benchmarks/components/keccak"
+DECODE_DIR = REPO_ROOT / "results/simulation/benchmarks/components/decode"
 
 TIERS = [
     {
         "label": "Table 1 — Tier 1 (IoT Scalar)",
-        "baseline_variant": "ref_scalar",
-        "baseline_dir": _SCALAR_DIR,
-        "champion_variant": "karatsuba_zbc",
-        "champion_dir": _SCALAR_DIR,
+        "baseline_variant": "scalar_ref",
+        "champion_variant": "scalar_Zb",
         "note": "rv64gc_zbc_zbb, no vector",
     },
     {
         "label": "Table 2 — Tier 2 (Edge RVV)",
-        "baseline_variant": "ref_vector",
-        "baseline_dir": _VECTOR_DIR,
-        "champion_variant": "karatsuba_rvv",
-        "champion_dir": _VECTOR_DIR,
+        "baseline_variant": "vector_ref",
+        "champion_variant": "vector_rvv",
         "note": "rv64gcv + Zbc/Zbb; AP-2 fixed-tree polymul, scalar Keccak",
     },
     {
         "label": "Table 3 — Tier 3 (High-End Zvbc)",
-        "baseline_variant": "ref_vector",
-        "baseline_dir": _VECTOR_DIR,
-        "champion_variant": "karatsuba_zvbc",
-        "champion_dir": _VECTOR_DIR,
+        "baseline_variant": "vector_ref",
+        "champion_variant": "vector_Zvk",
         "note": "rv64gcv + Zvbc/Zvbb/Zvl256b",
     },
 ]
@@ -65,7 +59,7 @@ SINGLE_BENCH_TABLES = [
     {
         "label": "Table 4 — Keccak Speedups",
         "title": "`keccak`",
-        "subdir": ISOLATED / "keccak",
+        "subdir": KECCAK_DIR,
         "baseline_file": "isolated_keccak_ref_latest.csv",
         "champion_file": "isolated_keccak_opt_latest.csv",
         "op": "keccak",
@@ -73,7 +67,7 @@ SINGLE_BENCH_TABLES = [
     {
         "label": "Table 5 — Decode Speedups",
         "title": "`decode`",
-        "subdir": ISOLATED / "decode",
+        "subdir": DECODE_DIR,
         "baseline_file": "isolated_decode_ref_latest.csv",
         "champion_file": "isolated_decode_zvbc_latest.csv",
         "op": "decode",
@@ -99,9 +93,12 @@ def read_csv(path: Path) -> dict[tuple[int, str], int]:
     return result
 
 
-def load_variant(base_dir: Path, variant: str) -> dict[str, dict[tuple[int, str], int]]:
-    """Load both polymul and kem CSVs for a variant."""
-    variant_dir = base_dir / variant
+def load_variant(variant: str) -> dict[str, dict[tuple[int, str], int]]:
+    """Load both polymul and kem CSVs for a variant.
+
+    Variants are directly under POLY_MUL_DIR (no intermediate scalar/vector level).
+    """
+    variant_dir = POLY_MUL_DIR / variant
     variant_slug = variant.replace("_", "-")
     return {
         "polymul": read_csv(variant_dir / f"isolated_polymul_{variant_slug}_latest.csv"),
@@ -143,8 +140,8 @@ def build_table() -> str:
         buf.write(f"## {tier['label']}\n\n")
         buf.write(f"> {tier['note']}\n\n")
 
-        base_data = load_variant(tier["baseline_dir"], tier["baseline_variant"])
-        champ_data = load_variant(tier["champion_dir"], tier["champion_variant"])
+        base_data = load_variant(tier["baseline_variant"])
+        champ_data = load_variant(tier["champion_variant"])
 
         base_name = tier["baseline_variant"]
         champ_name = tier["champion_variant"]
@@ -236,7 +233,7 @@ def main() -> None:
     )
     table = header + build_table()
 
-    out_path = args.out if args.out else REPO_ROOT / "analysis" / "reports" / "speedups.md"
+    out_path = args.out if args.out else REPO_ROOT / "results" / "reports" / "summaries" / "speedups_simulation.md"
     resolved_out_path = out_path.resolve()
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

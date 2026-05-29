@@ -19,6 +19,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${SCRIPT_DIR}/lib_bench.sh"
+
+variant_to_dir() {
+    case "$1" in
+        ref_scalar)      echo "scalar_ref" ;;
+        karatsuba_zbc)   echo "scalar_Zb" ;;
+        ref_vector)      echo "vector_ref" ;;
+        karatsuba_rvv)   echo "vector_rvv" ;;
+        karatsuba_zvbc)  echo "vector_Zvk" ;;
+        *)               echo "$1" ;;  # fallback
+    esac
+}
 bench_load_implemented_variants "$REPO_ROOT"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
@@ -93,9 +104,7 @@ profile_cache_mode() {
         exit 2
     fi
 
-    local track
-    track="$(bench_variant_track "$variant")"
-    local out_dir="$REPO_ROOT/analysis/profiles/cache/${track}/${variant}"
+    local out_dir="$REPO_ROOT/results/simulation/profiling/cache/$(variant_to_dir "$variant")"
     mkdir -p "$out_dir"
 
     local BENCH_TIME
@@ -203,9 +212,7 @@ profile_memory_mode() {
         exit 2
     fi
 
-    local track
-    track="$(bench_variant_track "$variant")"
-    local out_dir="$REPO_ROOT/analysis/profiles/memory/${track}/${variant}"
+    local out_dir="$REPO_ROOT/results/simulation/profiling/mem_access/$(variant_to_dir "$variant")"
     mkdir -p "$out_dir"
 
     local BENCH_TIME
@@ -314,8 +321,6 @@ END{printf "%d %d %d %d", lb, sb, li, si}
 profile_trace_mode() {
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
     local variant_slug="${variant//_/-}"
-    local track
-    track="$(bench_variant_track "$variant")"
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
@@ -341,7 +346,7 @@ profile_trace_mode() {
         exit 2
     fi
 
-    local out_dir="$REPO_ROOT/analysis/profiles/traces/${track}/${variant}"
+    local out_dir="$REPO_ROOT/results/simulation/profiling/traces/$(variant_to_dir "$variant")"
     mkdir -p "$out_dir"
     mkdir -p "$PROFILE_TMP_ROOT"
     trace_tmp_dir="$PROFILE_TMP_ROOT/run_profile_trace_${variant}_$$"
@@ -474,10 +479,8 @@ profile_histogram_mode() {
     fi
 
     local variant="${MUL_VARIANT:-karatsuba_zbc}"
-    local track
-    track="$(bench_variant_track "$variant")"
     local variant_slug="${variant//_/-}"
-    local out_dir="${REPO_ROOT}/analysis/profiles/histograms/${track}/${variant}"
+    local out_dir="${REPO_ROOT}/results/simulation/profiling/histograms/$(variant_to_dir "$variant")"
 
     if ! bench_require_executable "$spike" "Spike not found"; then
         echo "       Source toolchain/toolchain.env or set RISCV" >&2

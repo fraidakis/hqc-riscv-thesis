@@ -94,8 +94,8 @@ Examples:
   done
 
 Output:
-  - Valgrind report: analysis/ct_verify/ctgrind/ct_hqc{LEVEL}_{VARIANT}_valgrind.xml
-  - Dudect report:   analysis/ct_verify/dudect/dudect_hqc{LEVEL}_{VARIANT}.txt
+  - Valgrind report: results/ct_verify/valgrind_ct/ct_hqc{LEVEL}_{VARIANT}_valgrind.xml
+  - Dudect report:   results/ct_verify/dudect/dudect_hqc{LEVEL}_{VARIANT}.txt
 
 Note:
     RISC-V-only variants (with intrinsics) cannot be compiled natively and are
@@ -209,8 +209,8 @@ DECODE_SRCS=(
 # ── Output paths ─────────────────────────────────────────────────────────────
 BUILD_DIR="build/ct"
 BINARY="${BUILD_DIR}/ct_hqc${LEVEL}_${VARIANT}"
-REPORT_DIR_VG="analysis/ct_verify/ctgrind"
-REPORT_DIR_DUDECT="analysis/ct_verify/dudect"
+REPORT_DIR_VG="results/ct_verify/valgrind_ct"
+REPORT_DIR_DUDECT="results/ct_verify/dudect"
 REPORT_VG="${REPORT_DIR_VG}/ct_hqc${LEVEL}_${VARIANT}_valgrind.xml"
 REPORT_DUDECT="${REPORT_DIR_DUDECT}/dudect_hqc${LEVEL}_${VARIANT}.txt"
 

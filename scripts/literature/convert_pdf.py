@@ -2,13 +2,15 @@
 """Convert academic PDF papers to Markdown for AI agent consumption.
 
 Uses PyMuPDF4LLM for fast, reliable conversion of digitally-born academic PDFs.
-Output goes to docs/literature/notes/<slug>.md with metadata header.
+Output mirrors the source structure:
+  docs/references/pdf/<category>/paper.pdf
+    → docs/references/markdown/<category>/paper-slug.md
 
 Usage:
     # Convert a single PDF:
-    python3 scripts/literature/convert_pdf.py "docs/literature/RISC-V/paper.pdf"
+    python3 scripts/literature/convert_pdf.py "docs/references/pdf/riscv/paper.pdf"
 
-    # Convert all PDFs in a directory:
+    # Convert all PDFs under docs/references/pdf/:
     python3 scripts/literature/convert_pdf.py --all
 
     # Convert all PDFs referenced in Chapter 4 of reference_map.md:
@@ -26,8 +28,8 @@ from pathlib import Path
 
 # Project root
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_DIR = ROOT / "docs" / "literature" / "notes"
-LITERATURE_DIR = ROOT / "docs" / "literature"
+PDF_DIR = ROOT / "docs" / "references" / "pdf"
+MARKDOWN_DIR = ROOT / "docs" / "references" / "markdown"
 
 
 def slugify(name: str) -> str:
@@ -44,8 +46,25 @@ def slugify(name: str) -> str:
 
 
 def find_all_pdfs() -> list[Path]:
-    """Find all PDF files under docs/literature/."""
-    return sorted(LITERATURE_DIR.rglob("*.pdf"))
+    """Find all PDF files under docs/references/pdf/."""
+    return sorted(PDF_DIR.rglob("*.pdf"))
+
+
+def output_path_for(pdf_path: Path) -> Path:
+    """Compute the mirrored markdown output path for a given PDF.
+
+    docs/references/pdf/<category>/paper.pdf
+      → docs/references/markdown/<category>/<slug>.md
+
+    Falls back to MARKDOWN_DIR root for PDFs not under PDF_DIR.
+    """
+    try:
+        rel = pdf_path.relative_to(PDF_DIR)
+        # rel is e.g. riscv/paper.pdf  →  keep the category subdir
+        out_dir = MARKDOWN_DIR / rel.parent
+    except ValueError:
+        out_dir = MARKDOWN_DIR
+    return out_dir / f"{slugify(pdf_path.name)}.md"
 
 
 def find_chapter4_pdfs() -> list[Path]:
@@ -77,16 +96,21 @@ def find_chapter4_pdfs() -> list[Path]:
     return result
 
 
-def convert_single(pdf_path: Path, output_dir: Path) -> Path | None:
+def already_converted(pdf_path: Path) -> bool:
+    """Return True if the markdown output for this PDF already exists."""
+    return output_path_for(pdf_path).exists()
+
+
+def convert_single(pdf_path: Path, output_dir: Path | None = None) -> Path | None:
     """Convert a single PDF to Markdown using PyMuPDF4LLM.
 
     Fast and reliable for digitally-born academic PDFs.
     Preserves headings, tables (as markdown), and text structure.
+    If output_dir is None, the mirrored path under docs/references/markdown/ is used.
     """
     import pymupdf4llm
 
-    slug = slugify(pdf_path.name)
-    output_file = output_dir / f"{slug}.md"
+    output_file = output_path_for(pdf_path) if output_dir is None else output_dir / f"{slugify(pdf_path.name)}.md"
 
     print(f"  Converting: {pdf_path.name}")
     print(f"  Output:     {output_file.relative_to(ROOT)}")
@@ -110,7 +134,7 @@ tool: pymupdf4llm
 ---
 
 """
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     output_file.write_text(header + md_content)
 
     print(f"  Done in {elapsed:.1f}s ({len(md_content):,} chars)")
@@ -122,9 +146,10 @@ def main():
         description="Convert academic PDFs to Markdown for AI agent consumption"
     )
     parser.add_argument("pdf", nargs="?", help="Path to a single PDF file to convert")
-    parser.add_argument("--all", action="store_true", help="Convert all PDFs under docs/literature/")
+    parser.add_argument("--all", action="store_true", help="Convert all PDFs under docs/references/pdf/")
     parser.add_argument("--chapter4", action="store_true", help="Convert only Chapter 4 referenced PDFs")
-    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR, help="Output directory")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory (default: mirrors pdf/ structure under markdown/)")
+    parser.add_argument("--force", action="store_true", help="Re-convert even if markdown output already exists")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be converted without doing it")
     args = parser.parse_args()
 
@@ -145,15 +170,23 @@ def main():
     else:
         pdfs = find_all_pdfs()
 
+    # Filter already-converted unless --force
+    if not args.force and not args.dry_run:
+        pending = [p for p in pdfs if not already_converted(p)]
+        skipped = len(pdfs) - len(pending)
+        if skipped:
+            print(f"Skipping {skipped} already-converted PDF(s) (use --force to re-convert)")
+        pdfs = pending
+
     print(f"Found {len(pdfs)} PDF(s) to convert")
-    print(f"Output directory: {args.output_dir.relative_to(ROOT)}")
+    print(f"Output root: {MARKDOWN_DIR.relative_to(ROOT)}/")
     print()
 
     if args.dry_run:
         for pdf in pdfs:
-            slug = slugify(pdf.name)
+            out = output_path_for(pdf) if args.output_dir is None else args.output_dir / f"{slugify(pdf.name)}.md"
             print(f"  {pdf.relative_to(ROOT)}")
-            print(f"    → {args.output_dir.relative_to(ROOT)}/{slug}.md")
+            print(f"    → {out.relative_to(ROOT)}")
         return
 
     results = []
@@ -165,7 +198,7 @@ def main():
 
     print(f"Successfully converted {len(results)}/{len(pdfs)} files")
     if results:
-        print(f"Output in: {args.output_dir.relative_to(ROOT)}/")
+        print(f"Output in: {MARKDOWN_DIR.relative_to(ROOT)}/")
 
 
 if __name__ == "__main__":

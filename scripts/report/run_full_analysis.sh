@@ -67,7 +67,20 @@ if [[ "$LEVEL" != "128" && "$LEVEL" != "192" && "$LEVEL" != "256" && "$LEVEL" !=
     exit 2
 fi
 
-mkdir -p "${REPO_ROOT}/analysis/reports"
+mkdir -p "${REPO_ROOT}/results/reports/summaries"
+mkdir -p "${REPO_ROOT}/results/reports/variants"
+
+# Map old variant names to new directory names (extension-family tier naming).
+variant_to_dir() {
+    case "$1" in
+        ref_scalar)      echo "scalar_ref" ;;
+        karatsuba_zbc)   echo "scalar_Zb" ;;
+        ref_vector)      echo "vector_ref" ;;
+        karatsuba_rvv)   echo "vector_rvv" ;;
+        karatsuba_zvbc)  echo "vector_Zvk" ;;
+        *)               echo "$1" ;;  # fallback
+    esac
+}
 
 run_step_with_timer() {
     local step="$1"
@@ -189,7 +202,9 @@ append_table_or_note() {
 }
 
 generate_report() {
-    local report_file="${REPO_ROOT}/analysis/reports/${MUL_VARIANT}_L${REPORT_LEVEL}_report.md"
+    local new_variant_dir
+    new_variant_dir="$(variant_to_dir "$MUL_VARIANT")"
+    local report_file="${REPO_ROOT}/results/reports/variants/${new_variant_dir}_L${REPORT_LEVEL}_report.md"
     local variant_slug
     local level_tag
     variant_slug="${MUL_VARIANT//_/-}"
@@ -198,24 +213,24 @@ generate_report() {
         level_tag="L${LEVEL}"
     fi
 
-    local poly_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/isolated_polymul_${variant_slug}_latest.csv"
-    local kem_csv="${REPO_ROOT}/analysis/benchmarks/isolated/${TRACK}/${MUL_VARIANT}/isolated_kem_${variant_slug}_latest.csv"
+    local poly_csv="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul/${new_variant_dir}/isolated_polymul_${variant_slug}_latest.csv"
+    local kem_csv="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul/${new_variant_dir}/isolated_kem_${variant_slug}_latest.csv"
 
-    local cache_csv="${REPO_ROOT}/analysis/profiles/cache/${TRACK}/${MUL_VARIANT}/cache_kem_Lall_${variant_slug}_latest.csv"
-    local memory_csv="${REPO_ROOT}/analysis/profiles/memory/${TRACK}/${MUL_VARIANT}/memory_kem_Lall_${variant_slug}_latest.csv"
+    local cache_csv="${REPO_ROOT}/results/simulation/profiling/cache/${new_variant_dir}/cache_kem_Lall_${variant_slug}_latest.csv"
+    local memory_csv="${REPO_ROOT}/results/simulation/profiling/mem_access/${new_variant_dir}/memory_kem_Lall_${variant_slug}_latest.csv"
 
-    local trace_hotspots_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_hotspots_latest.csv"
-    local trace_lines_csv="${REPO_ROOT}/analysis/profiles/traces/${TRACK}/${MUL_VARIANT}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_lines_latest.csv"
-    local histogram_csv="${REPO_ROOT}/analysis/profiles/histograms/${TRACK}/${MUL_VARIANT}/histogram_kem_L${REPORT_LEVEL}_${variant_slug}_latest.csv"
+    local trace_hotspots_csv="${REPO_ROOT}/results/simulation/profiling/traces/${new_variant_dir}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_hotspots_latest.csv"
+    local trace_lines_csv="${REPO_ROOT}/results/simulation/profiling/traces/${new_variant_dir}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_lines_latest.csv"
+    local histogram_csv="${REPO_ROOT}/results/simulation/profiling/histograms/${new_variant_dir}/histogram_kem_L${REPORT_LEVEL}_${variant_slug}_latest.csv"
 
-    local compiler_csv="${REPO_ROOT}/analysis/benchmarks/compiler_compare/${TRACK}/${MUL_VARIANT}/compiler_compare_Lall_${variant_slug}_latest.csv"
+    local compiler_csv="${REPO_ROOT}/results/simulation/benchmarks/compiler_compare/${new_variant_dir}/compiler_compare_Lall_${variant_slug}_latest.csv"
 
-    local vlen_csv_128="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L128_${variant_slug}_latest.csv"
-    local vlen_csv_192="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L192_${variant_slug}_latest.csv"
-    local vlen_csv_256="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L256_${variant_slug}_latest.csv"
+    local vlen_csv_128="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L128_${variant_slug}_latest.csv"
+    local vlen_csv_192="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L192_${variant_slug}_latest.csv"
+    local vlen_csv_256="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L256_${variant_slug}_latest.csv"
 
-    local speedups_md="${REPO_ROOT}/analysis/reports/speedups.md"
-    local compiler_analysis_md="${REPO_ROOT}/analysis/reports/compiler_analysis.md"
+    local speedups_md="${REPO_ROOT}/results/reports/summaries/speedups_simulation.md"
+    local compiler_analysis_md="${REPO_ROOT}/results/reports/summaries/compiler_analysis.md"
 
     local tmp_poly
     local tmp_kem
@@ -370,7 +385,7 @@ generate_report() {
     # VLEN sweep CSVs (vector variants only)
     for _lvl in 128 192 256; do
         local _vlen_csv _tmp_var
-        _vlen_csv="${REPO_ROOT}/analysis/benchmarks/vlen_sweep/vector/${MUL_VARIANT}/vlen_sweep_L${_lvl}_${variant_slug}_latest.csv"
+        _vlen_csv="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L${_lvl}_${variant_slug}_latest.csv"
         eval "_tmp_var=\"\$tmp_vlen_${_lvl}\""
         if [[ -f "$_vlen_csv" ]]; then
             awk -F',' '
@@ -446,8 +461,8 @@ generate_report() {
         echo "The following reports aggregate data across all variants and are regenerated"
         echo "each time a full analysis runs:"
         echo ""
-        echo "- Speedup summary: \`analysis/reports/speedups.md\`"
-        echo "- Compiler showdown: \`analysis/reports/compiler_analysis.md\`"
+        echo "- Speedup summary: \`results/reports/summaries/speedups_simulation.md\`"
+        echo "- Compiler showdown: \`results/reports/summaries/compiler_analysis.md\`"
         echo ""
     } >> "$report_file"
 
@@ -478,45 +493,64 @@ run_variant_analysis() {
 
     cd "$REPO_ROOT"
 
-    run_step_with_timer 1 12 "Isolated polymul benchmark" \
+    run_step_with_timer 1 14 "Isolated polymul benchmark" \
         ./scripts/bench/run_benchmarks.sh --mode mul --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
-    run_step_with_timer 2 12 "Isolated KEM benchmark" \
+    run_step_with_timer 2 14 "Isolated KEM benchmark" \
         ./scripts/bench/run_benchmarks.sh --mode kem --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
-    run_step_with_timer 3 12 "Cache profiler" \
+    run_step_with_timer 3 14 "Cache profiler" \
         ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    run_step_with_timer 4 12 "Memory profiler" \
+    run_step_with_timer 4 14 "Memory profiler" \
         ./scripts/bench/run_profile.sh --memory --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
-    run_step_with_timer 5 12 "Trace profiler (function-level)" \
+    run_step_with_timer 5 14 "Trace profiler (function-level)" \
         ./scripts/bench/run_profile.sh --trace --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_step_with_timer 6 12 "Trace profiler (line-level)" \
+    run_step_with_timer 6 14 "Trace profiler (line-level)" \
         ./scripts/bench/run_profile.sh --trace --lines --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_step_with_timer 7 12 "Histogram profiler" \
+    run_step_with_timer 7 14 "Histogram profiler" \
         ./scripts/bench/run_profile.sh --histogram --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
     if [[ "$TRACK" == "vector" ]]; then
-        run_step_with_timer 8 12 "VLEN scaling sweep (256/512/1024/2048)" \
+        run_step_with_timer 8 14 "VLEN scaling sweep (256/512/1024/2048)" \
             ./scripts/bench/run_benchmarks.sh --mode vlen --mul "$MUL_VARIANT"
     else
-        printf "[8/12] ⏭  VLEN scaling sweep (skipped: scalar variant)\n"
+        printf "[8/14] ⏭  VLEN scaling sweep (skipped: scalar variant)\n"
     fi
 
-    run_step_with_timer 9 12 "Compiler comparison (Clang vs GCC)" \
+    run_step_with_timer 9 14 "Compiler comparison (Clang vs GCC)" \
         ./scripts/bench/run_benchmarks.sh --mode compiler --mul "$MUL_VARIANT"
 
-    run_step_with_timer 10 12 "Generate speedups report" \
+    run_step_with_timer 10 14 "Generate speedups report" \
         python3 ./scripts/report/generate_speedups.py
 
-    run_step_with_timer 11 12 "Generate compiler analysis report" \
+    run_step_with_timer 11 14 "Generate compiler analysis report" \
         python3 ./scripts/report/generate_compiler_compare.py
 
-    run_step_with_timer 12 12 "Generate Markdown report" \
+    run_step_with_timer 12 14 "Generate Markdown report" \
         generate_report
+
+    # Step 13: Generate hardware speedups report (conditional on hardware data)
+    local hw_data_dir="${REPO_ROOT}/results/hardware/benchmarks"
+    if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
+        run_step_with_timer 13 14 "Generate hardware speedups report" \
+            python3 ./scripts/report/generate_hw_speedups.py
+    else
+        printf "[13/14] ⏭  Hardware speedups report (skipped: no hardware data)\n"
+    fi
+
+    # Step 14: Generate cross-platform comparison report (conditional on both Spike + HW data)
+    local spike_data_dir="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul"
+    if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q . \
+       && find "$spike_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
+        run_step_with_timer 14 14 "Generate cross-platform comparison report" \
+            python3 ./scripts/report/generate_comparison.py
+    else
+        printf "[14/14] ⏭  Cross-platform comparison report (skipped: missing Spike or hardware data)\n"
+    fi
 }
 
 bench_load_implemented_variants "$REPO_ROOT"

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate a compiler showdown Markdown report from compare_compilers CSV files.
 
-The script scans analysis/benchmarks/compiler_compare for CSV outputs and, for
-each (variant, level), picks the best Clang and best GCC run by minimum
+The script scans results/simulation/benchmarks/compiler_compare for CSV outputs
+and, for each (variant, level), picks the best Clang and best GCC run by minimum
 instruction count among rows where status == OK. It then computes the winner and
 the percentage margin:
 
@@ -17,15 +17,15 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMPARE_ROOT = REPO_ROOT / "analysis" / "benchmarks" / "compiler_compare"
-OUT_PATH = REPO_ROOT / "analysis" / "reports" / "compiler_analysis.md"
+COMPARE_ROOT = REPO_ROOT / "results" / "simulation" / "benchmarks" / "compiler_compare"
+OUT_PATH = REPO_ROOT / "results" / "reports" / "summaries" / "compiler_analysis.md"
 TARGET_COMPILERS = {"clang", "gcc"}
 VARIANT_ORDER = [
-    "ref_scalar",
-    "ref_vector",
-    "karatsuba_zbc",
-    "karatsuba_rvv",
-    "karatsuba_zvbc",
+    "scalar_ref",
+    "scalar_Zb",
+    "vector_ref",
+    "vector_rvv",
+    "vector_Zvk",
 ]
 VARIANT_RANK = {name: idx for idx, name in enumerate(VARIANT_ORDER)}
 
@@ -134,7 +134,7 @@ def build_markdown(best: dict[tuple[str, int, str], BestRun], scanned_files: int
     lines.append("# Compiler Showdown Analysis")
     lines.append("")
     lines.append(
-        "Derived from compare_compilers CSVs under analysis/benchmarks/compiler_compare."
+        "Derived from compare_compilers CSVs under results/simulation/benchmarks/compiler_compare."
     )
     lines.append(f"Scanned CSV files: {scanned_files}")
     lines.append("")

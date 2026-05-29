@@ -3,7 +3,7 @@
 
 Consolidated chart generation script that produces 10 distinct chart types
 as PDF figures suitable for LaTeX inclusion. Reads benchmark CSV data from
-the analysis/ directory tree.
+the results/ directory tree.
 
 Usage:
     python3 scripts/report/generate_thesis_charts.py --all
@@ -31,7 +31,7 @@ import pandas as pd  # noqa: E402
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_DIR = REPO_ROOT / "analysis" / "reports" / "charts"
+OUTPUT_DIR = REPO_ROOT / "results" / "reports" / "figures"
 
 CHART_REGISTRY: dict[str, Callable] = {}
 
@@ -181,24 +181,40 @@ def variant_slug(variant: str) -> str:
 class DataLoader:
     """Central data layer that resolves CSV paths and provides parsed DataFrames."""
 
+    # Variant name mapping: old internal names → new directory names
+    VARIANT_MAP: dict[str, str] = {
+        "ref_scalar": "scalar_ref",
+        "karatsuba_zbc": "scalar_Zb",
+        "ref_vector": "vector_ref",
+        "karatsuba_rvv": "vector_rvv",
+        "karatsuba_zvbc": "vector_Zvk",
+    }
+
     def __init__(self, repo_root: Path) -> None:
         """Resolve all CSV paths relative to repo_root."""
         self._root = repo_root
 
-    def trace_hotspots(self, track: str, variant: str, level: int) -> pd.DataFrame | None:
-        """Load trace hotspot CSV for a given track/variant/level.
+    def _variant_dir(self, variant: str) -> str:
+        """Map a variant name to its directory name under results/."""
+        return self.VARIANT_MAP.get(variant, variant)
 
+    def trace_hotspots(self, track: str, variant: str, level: int) -> pd.DataFrame | None:
+        """Load trace hotspot CSV for a given variant/level.
+
+        The `track` parameter is accepted for API compatibility but ignored;
+        the variant name encodes the execution model.
         Returns DataFrame with columns: function, instructions, percentage.
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
+        var_dir = self._variant_dir(variant)
         path = (
             self._root
-            / "analysis"
-            / "profiles"
+            / "results"
+            / "simulation"
+            / "profiling"
             / "traces"
-            / track
-            / variant
+            / var_dir
             / f"trace_kem_L{level}_{slug}_hotspots_latest.csv"
         )
         return load_csv(path)
@@ -206,17 +222,21 @@ class DataLoader:
     def isolated_kem(self, track: str, variant: str) -> pd.DataFrame | None:
         """Load isolated KEM benchmark CSV.
 
+        The `track` parameter is accepted for API compatibility but ignored;
+        the variant name encodes the execution model.
         Returns DataFrame with columns: level, op, instructions, codesize.
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
+        var_dir = self._variant_dir(variant)
         path = (
             self._root
-            / "analysis"
+            / "results"
+            / "simulation"
             / "benchmarks"
-            / "isolated"
-            / track
-            / variant
+            / "components"
+            / "poly_mul"
+            / var_dir
             / f"isolated_kem_{slug}_latest.csv"
         )
         return load_csv(path)
@@ -224,17 +244,21 @@ class DataLoader:
     def isolated_polymul(self, track: str, variant: str) -> pd.DataFrame | None:
         """Load isolated polymul benchmark CSV.
 
+        The `track` parameter is accepted for API compatibility but ignored;
+        the variant name encodes the execution model.
         Returns DataFrame with columns: level, op, instructions, codesize.
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
+        var_dir = self._variant_dir(variant)
         path = (
             self._root
-            / "analysis"
+            / "results"
+            / "simulation"
             / "benchmarks"
-            / "isolated"
-            / track
-            / variant
+            / "components"
+            / "poly_mul"
+            / var_dir
             / f"isolated_polymul_{slug}_latest.csv"
         )
         return load_csv(path)
@@ -247,9 +271,10 @@ class DataLoader:
         """
         path = (
             self._root
-            / "analysis"
+            / "results"
+            / "simulation"
             / "benchmarks"
-            / "isolated"
+            / "components"
             / "keccak"
             / f"isolated_keccak_{variant}_latest.csv"
         )
@@ -263,9 +288,10 @@ class DataLoader:
         """
         path = (
             self._root
-            / "analysis"
+            / "results"
+            / "simulation"
             / "benchmarks"
-            / "isolated"
+            / "components"
             / "decode"
             / f"isolated_decode_{variant}_latest.csv"
         )
@@ -278,13 +304,14 @@ class DataLoader:
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
+        var_dir = self._variant_dir(variant)
         path = (
             self._root
-            / "analysis"
+            / "results"
+            / "simulation"
             / "benchmarks"
-            / "vlen_sweep"
-            / "vector"
-            / variant
+            / "vlen_scaling"
+            / var_dir
             / f"vlen_sweep_L{level}_{slug}_latest.csv"
         )
         return load_csv(path)
@@ -292,18 +319,21 @@ class DataLoader:
     def compiler_compare(self, track: str, variant: str) -> pd.DataFrame | None:
         """Load compiler comparison CSV.
 
+        The `track` parameter is accepted for API compatibility but ignored;
+        the variant name encodes the execution model.
         Returns DataFrame with columns: compiler, opt, level, variant, status,
         instructions, text_bytes, elf, error.
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
+        var_dir = self._variant_dir(variant)
         path = (
             self._root
-            / "analysis"
+            / "results"
+            / "simulation"
             / "benchmarks"
             / "compiler_compare"
-            / track
-            / variant
+            / var_dir
             / f"compiler_compare_Lall_{slug}_latest.csv"
         )
         return load_csv(path)

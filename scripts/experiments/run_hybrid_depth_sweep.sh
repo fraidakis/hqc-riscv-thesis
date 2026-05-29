@@ -5,13 +5,13 @@
 #
 # Builds bench_polymul_hqc{128,192,256}_hybrid for each Karatsuba depth
 # d in {0,1,2,3,4} using the existing build/spike directory, then runs Spike
-# and saves CSVs to analysis/benchmarks/scalar/hybrid/.
+# and saves CSVs to results/simulation/benchmarks/experiments/hybrid/.
 #
 # Usage:
 #   scripts/experiments/run_hybrid_depth_sweep.sh [--depths "0 1 2 3 4"] [--levels "128 192 256"]
 #
 # Output:
-#   analysis/benchmarks/scalar/hybrid/hqc{LEVEL}_hybrid_d{D}_polymul_N1.csv
+#   results/simulation/benchmarks/experiments/hybrid/hqc{LEVEL}_hybrid_d{D}_polymul_N1.csv
 #
 # The script reconfigures the build/spike CMake cache for each depth (only
 # the HYBRID_KARATSUBA_DEPTH cache variable changes; all other flags are
@@ -27,7 +27,7 @@ RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
 BUILD_DIR="${REPO_ROOT}/build/spike"
-OUT_DIR="${REPO_ROOT}/analysis/benchmarks/scalar/hybrid"
+OUT_DIR="${REPO_ROOT}/results/simulation/benchmarks/experiments/hybrid"
 
 DEPTHS="0 1 2 3 4"
 LEVELS="128 192 256"

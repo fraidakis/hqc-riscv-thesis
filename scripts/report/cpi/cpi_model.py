@@ -314,18 +314,16 @@ def format_csv_output(
     variant: str,
     level: int,
     cost_table_name: str,
-    track: str,
     base_dir: Path | None = None,
 ) -> str:
     """Format cycle estimate as CSV with metadata header comments.
 
     Args:
         estimate: the CycleEstimate result.
-        variant: variant name (e.g., "karatsuba_zbc").
+        variant: variant name (e.g., "scalar_Zb").
         level: security level (128, 192, or 256).
         cost_table_name: name of the cost table used.
-        track: "scalar" or "vector".
-        base_dir: base directory for output (defaults to project root analysis/).
+        base_dir: base directory for output (defaults to project root).
 
     Returns:
         The formatted CSV content as a string.
@@ -369,18 +367,16 @@ def format_csv_output(
 def write_csv_output(
     csv_content: str,
     variant: str,
-    track: str,
     base_dir: Path | None = None,
 ) -> Path:
     """Write CSV output to the standard directory structure.
 
-    Writes to: {base_dir}/analysis/profiles/cpi/{track}/{variant}/
+    Writes to: {base_dir}/results/simulation/profiling/cpi/{variant}/
     Creates directories if they don't exist.
 
     Args:
         csv_content: formatted CSV string.
-        variant: variant name.
-        track: "scalar" or "vector".
+        variant: variant name (new naming, e.g., "scalar_Zb").
         base_dir: project root directory (defaults to cwd).
 
     Returns:
@@ -389,7 +385,7 @@ def write_csv_output(
     if base_dir is None:
         base_dir = Path.cwd()
 
-    output_dir = base_dir / "analysis" / "profiles" / "cpi" / track / variant
+    output_dir = base_dir / "results" / "simulation" / "profiling" / "cpi" / variant
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Filename with timestamp
@@ -406,11 +402,39 @@ def write_csv_output(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Variant name mapping
+# ---------------------------------------------------------------------------
+
+# Maps old variant names to new extension-family tier names.
+VARIANT_NAME_MAP: dict[str, str] = {
+    "ref_scalar": "scalar_ref",
+    "ref-scalar": "scalar_ref",
+    "karatsuba_zbc": "scalar_Zb",
+    "karatsuba-zbc": "scalar_Zb",
+    "ref_vector": "vector_ref",
+    "ref-vector": "vector_ref",
+    "karatsuba_rvv": "vector_rvv",
+    "karatsuba-rvv": "vector_rvv",
+    "karatsuba_zvbc": "vector_Zvk",
+    "karatsuba-zvbc": "vector_Zvk",
+}
+
+
+def variant_to_dir(variant: str) -> str:
+    """Map an old variant name to the new directory name.
+
+    If the variant is already a new name or unknown, returns it unchanged.
+    """
+    return VARIANT_NAME_MAP.get(variant, variant)
+
+
 def _extract_variant_from_path(csv_path: Path) -> str:
     """Extract variant name from the CSV filename.
 
     Expects filenames like: histogram_kem_L128_karatsuba_zbc_latest.csv
     Falls back to the stem (filename without extension) if pattern doesn't match.
+    Returns the new variant name (mapped).
     """
     stem = csv_path.stem
     # Try to extract variant from histogram naming convention
@@ -425,21 +449,10 @@ def _extract_variant_from_path(csv_path: Path) -> str:
             if remaining and remaining[-1] == "latest":
                 remaining = remaining[:-1]
             if remaining:
-                return "_".join(remaining)
+                raw_variant = "_".join(remaining)
+                return variant_to_dir(raw_variant)
     # Fallback: use the full stem
     return stem
-
-
-def _determine_track_from_path(csv_path: Path) -> str:
-    """Determine track (scalar/vector) from the CSV file path.
-
-    Looks for 'vector' or 'scalar' in the path components.
-    Defaults to 'scalar' if neither is found.
-    """
-    path_str = str(csv_path.resolve()).lower()
-    if "/vector/" in path_str or "\\vector\\" in path_str:
-        return "vector"
-    return "scalar"
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -549,7 +562,6 @@ def main(argv: list[str] | None = None) -> int:
         print(output)
     elif args.output == "csv":
         variant = _extract_variant_from_path(input_path)
-        track = _determine_track_from_path(input_path)
         level = args.level
 
         csv_output = format_csv_output(
@@ -557,13 +569,11 @@ def main(argv: list[str] | None = None) -> int:
             variant=variant,
             level=level,
             cost_table_name=cost_table.name or "custom",
-            track=track,
         )
 
         output_path = write_csv_output(
             csv_content=csv_output,
             variant=variant,
-            track=track,
         )
         print(f"Output written to: {output_path}")
 

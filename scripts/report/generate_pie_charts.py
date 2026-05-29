@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Generate PDF pie charts showing instruction breakdown by category for HQC variants.
 
-Reads trace hotspot CSVs from analysis/profiles/traces/{track}/{variant}/,
+Reads trace hotspot CSVs from results/simulation/profiling/traces/{variant}/,
 classifies functions into high-level categories via a hardcoded pattern map,
 and renders PDF pie charts using matplotlib.
 
 Usage:
-    python3 scripts/report/generate_pie_charts.py --track scalar --variant karatsuba_zbc
+    python3 scripts/report/generate_pie_charts.py --variant scalar_Zb
     python3 scripts/report/generate_pie_charts.py --all
     python3 scripts/report/generate_pie_charts.py --all --level 192
 """
@@ -31,8 +31,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TRACES_DIR = REPO_ROOT / "analysis" / "profiles" / "traces"
-OUTPUT_DIR = REPO_ROOT / "analysis" / "reports" / "charts"
+TRACES_DIR = REPO_ROOT / "results" / "simulation" / "profiling" / "traces"
+OUTPUT_DIR = REPO_ROOT / "results" / "reports" / "figures"
 
 CATEGORY_MAP: dict[str, str] = {
     # Multiplication patterns
@@ -333,19 +333,14 @@ def build_parser() -> argparse.ArgumentParser:
         description="Generate PDF pie charts showing instruction breakdown by category."
     )
     parser.add_argument(
-        "--track",
-        choices=["scalar", "vector"],
-        help="Track to process (scalar or vector).",
-    )
-    parser.add_argument(
         "--variant",
         type=str,
-        help="Variant name within the selected track.",
+        help="Variant name (e.g., scalar_ref, scalar_Zb, vector_ref, vector_rvv, vector_Zvk).",
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Process all discovered variants across all tracks.",
+        help="Process all discovered variants.",
     )
     parser.add_argument(
         "--level",
@@ -357,13 +352,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def validate_args(args: argparse.Namespace) -> None:
-    """Validate CLI arguments: require --all OR both --track and --variant."""
+    """Validate CLI arguments: require --all OR --variant."""
     if args.all:
         return
-    if args.track and args.variant:
+    if args.variant:
         return
     print(
-        "Error: must specify either --all or both --track and --variant.",
+        "Error: must specify either --all or --variant.",
         file=sys.stderr,
     )
     sys.exit(2)
@@ -379,31 +374,27 @@ def variant_slug(variant: str) -> str:
     return variant.replace("_", "-")
 
 
-def discover_all_variants() -> list[tuple[str, str]]:
-    """Scan TRACES_DIR for all (track, variant) pairs.
+def discover_all_variants() -> list[str]:
+    """Scan TRACES_DIR for all variant directories.
 
-    Expects directory structure: TRACES_DIR/{track}/{variant}/
-    Returns a sorted list of (track, variant) tuples.
+    Expects directory structure: TRACES_DIR/{variant}/
+    Returns a sorted list of variant names.
     """
-    variants: list[tuple[str, str]] = []
+    variants: list[str] = []
     if not TRACES_DIR.is_dir():
         return variants
-    for track_dir in sorted(TRACES_DIR.iterdir()):
-        if not track_dir.is_dir():
+    for variant_dir in sorted(TRACES_DIR.iterdir()):
+        if not variant_dir.is_dir():
             continue
-        for variant_dir in sorted(track_dir.iterdir()):
-            if not variant_dir.is_dir():
-                continue
-            variants.append((track_dir.name, variant_dir.name))
+        variants.append(variant_dir.name)
     return variants
 
 
-def resolve_trace_path(track: str, variant: str, level: int = 128) -> Path:
-    """Build the path to a trace CSV for a given track/variant/level."""
+def resolve_trace_path(variant: str, level: int = 128) -> Path:
+    """Build the path to a trace CSV for a given variant/level."""
     slug = variant_slug(variant)
     return (
         TRACES_DIR
-        / track
         / variant
         / f"trace_kem_L{level}_{slug}_hotspots_latest.csv"
     )
@@ -424,15 +415,15 @@ def main() -> None:
     if getattr(args, "all"):
         variants = discover_all_variants()
     else:
-        variants = [(args.track, args.variant)]
+        variants = [args.variant]
 
     # Create output directory
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Process each variant
     all_data: list[tuple[str, dict[str, int]]] = []
-    for track, variant in variants:
-        csv_path = resolve_trace_path(track, variant, args.level)
+    for variant in variants:
+        csv_path = resolve_trace_path(variant, args.level)
         trace_data = parse_trace_csv(csv_path)
 
         # Handle empty CSV (no data rows) by skipping with a warning
