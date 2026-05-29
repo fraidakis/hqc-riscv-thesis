@@ -1,0 +1,16 @@
+# date: 2026-05-26 18:17
+# commit: c56c136
+# Multiplication variant: karatsuba_rvv
+level,op,instructions,codesize
+128,keypair,289001,40248
+128,encaps,591892,40248
+128,decaps,1094531,40248
+128,total,1975424,40248
+192,keypair,713518,43810
+192,encaps,1472419,43810
+192,decaps,2544365,43810
+192,total,4730302,43810
+256,keypair,1887450,47824
+256,encaps,3845194,47824
+256,decaps,6402858,47824
+256,total,12135502,47824

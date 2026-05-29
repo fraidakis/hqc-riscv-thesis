@@ -1,0 +1,7 @@
+# date: 2026-05-19 15:11
+# commit: db59cec
+# variant: karatsuba_zvbc
+level,op,instructions,codesize
+128,vect_mul,72644,10368
+192,vect_mul,219338,11830
+256,vect_mul,326260,13724

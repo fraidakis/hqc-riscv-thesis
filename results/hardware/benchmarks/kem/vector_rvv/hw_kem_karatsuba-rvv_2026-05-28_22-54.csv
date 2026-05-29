@@ -1,0 +1,5 @@
+# level=128,polymul=karatsuba_rvv,n_iter=10000,n_warmup=100,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+keypair,10000,313039,317021,424971,319405.6,6537.6,296683,296683,333996,301100.5,5745.8
+encaps,10000,622497,628510,769832,630694.6,8082.0,602883,602884,655099,604481.7,2735.1
+decaps,10000,1375655,1387386,1585382,1389164.5,12250.4,1337001,1337001,1409637,1338293.0,3034.4

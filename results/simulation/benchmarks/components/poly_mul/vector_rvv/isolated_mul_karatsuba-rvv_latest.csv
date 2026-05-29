@@ -1,0 +1,7 @@
+# date: 2026-05-26 14:18
+# commit: c56c136
+# Multiplication variant: karatsuba_rvv
+level,op,instructions,codesize
+128,vect_mul,160215,7924
+192,vect_mul,481715,10366
+256,vect_mul,1519801,7462

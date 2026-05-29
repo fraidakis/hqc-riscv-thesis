@@ -1,0 +1,7 @@
+# date: 2026-05-19 15:11
+# commit: db59cec
+# variant: karatsuba_rvv
+level,op,instructions,codesize
+128,vect_mul,157377,10442
+192,vect_mul,481065,11262
+256,vect_mul,1608062,9746
