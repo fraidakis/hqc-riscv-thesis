@@ -1,0 +1,81 @@
+% figures/clmul-semantics.tex
+% Diagram showing carry-less multiplication semantics at bit level:
+% XOR instead of ADD in partial products.
+%
+% Shows a 4-bit example: a(x) = x³+x+1 (1011) × b(x) = x²+1 (0101)
+% Partial products aligned and XOR'd (no carry propagation).
+
+\begin{tikzpicture}[
+  every node/.style={font=\ttfamily\small},
+  bit/.style={minimum width=0.7em, minimum height=1.4em, inner sep=0pt, anchor=center},
+  label/.style={font=\sffamily\small, anchor=east},
+  brace/.style={decorate, decoration={brace, amplitude=4pt, raise=2pt}},
+]
+
+% Title annotation
+\node[font=\sffamily\footnotesize, anchor=west] at (-0.5, 3.2)
+  {Carry-less multiplication: $a(x) \cdot b(x)$ σε $\GFpoly$};
+
+% Operands
+\node[label] at (-0.3, 2.4) {$a(x)$:};
+\node[bit] at (0.7, 2.4) {1};
+\node[bit] at (1.4, 2.4) {0};
+\node[bit] at (2.1, 2.4) {1};
+\node[bit] at (2.8, 2.4) {1};
+\node[font=\footnotesize, anchor=west] at (3.3, 2.4) {$= x^3 + x + 1$};
+
+\node[label] at (-0.3, 1.8) {$b(x)$:};
+\node[bit] at (0.7, 1.8) {0};
+\node[bit] at (1.4, 1.8) {1};
+\node[bit] at (2.1, 1.8) {0};
+\node[bit] at (2.8, 1.8) {1};
+\node[font=\footnotesize, anchor=west] at (3.3, 1.8) {$= x^2 + 1$};
+
+% Separator line
+\draw[thick] (-0.5, 1.4) -- (5.5, 1.4);
+
+% Partial products (shifted copies of a, gated by bits of b)
+\node[label] at (-0.3, 0.9) {$b_0 \cdot a$:};
+\node[bit] at (0.7, 0.9) {};
+\node[bit] at (1.4, 0.9) {};
+\node[bit] at (2.1, 0.9) {1};
+\node[bit] at (2.8, 0.9) {0};
+\node[bit] at (3.5, 0.9) {1};
+\node[bit] at (4.2, 0.9) {1};
+
+\node[label] at (-0.3, 0.3) {$b_1 \cdot a \cdot x$:};
+\node[bit] at (0.7, 0.3) {};
+\node[bit] at (1.4, 0.3) {0};
+\node[bit] at (2.1, 0.3) {0};
+\node[bit] at (2.8, 0.3) {0};
+\node[bit] at (3.5, 0.3) {0};
+\node[bit] at (4.2, 0.3) {};
+
+\node[label] at (-0.3, -0.3) {$b_2 \cdot a \cdot x^2$:};
+\node[bit] at (0.7, -0.3) {1};
+\node[bit] at (1.4, -0.3) {0};
+\node[bit] at (2.1, -0.3) {1};
+\node[bit] at (2.8, -0.3) {1};
+\node[bit] at (3.5, -0.3) {};
+\node[bit] at (4.2, -0.3) {};
+
+% XOR separator
+\draw[thick] (-0.5, -0.7) -- (5.5, -0.7);
+\node[font=\sffamily\footnotesize, anchor=east] at (5.5, -0.5) {$\oplus$ (XOR, no carry)};
+
+% Result
+\node[label] at (-0.3, -1.2) {$a \cdot b$:};
+\node[bit] at (0.7, -1.2) {1};
+\node[bit] at (1.4, -1.2) {0};
+\node[bit] at (2.1, -1.2) {0};
+\node[bit] at (2.8, -1.2) {0};
+\node[bit] at (3.5, -1.2) {1};
+\node[bit] at (4.2, -1.2) {1};
+\node[font=\footnotesize, anchor=west] at (4.7, -1.2) {$= x^5 + x + 1$};
+
+% Annotation: key difference from integer multiplication
+\draw[<-, thick, blue!60!black] (5.5, -0.5) -- (6.8, -0.5)
+  node[right, font=\footnotesize\sffamily, text width=3.5cm, align=left]
+  {Κρίσιμη διαφορά:\\πρόσθεση = XOR\\(χωρίς κρατούμενο)};
+
+\end{tikzpicture}

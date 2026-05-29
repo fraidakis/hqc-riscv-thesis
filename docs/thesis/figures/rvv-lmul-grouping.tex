@@ -1,0 +1,50 @@
+% figures/rvv-lmul-grouping.tex
+% Diagram: LMUL register grouping (LMUL=1 vs LMUL=4)
+\begin{tikzpicture}[
+  reg/.style={draw, minimum width=1.8cm, minimum height=0.32cm,
+              font=\ttfamily\tiny},
+  annot/.style={font=\sffamily\scriptsize},
+  group/.style={draw, thick, rounded corners=2pt, inner sep=2pt}
+]
+
+% === LMUL = 1 (left) ===
+\node[annot, font=\sffamily\small\bfseries] at (0, 1.0) {LMUL = 1};
+\node[annot] at (0, 0.6) {32 ανεξάρτητοι καταχωρητές};
+
+\foreach \i in {0,...,7} {
+  \pgfmathsetmacro{\ypos}{-\i * 0.4}
+  \pgfmathtruncatemacro{\hue}{mod(\i,4)*25}
+  \node[reg, fill=blue!\hue!white] (l1v\i) at (0, \ypos) {v\i};
+}
+\node[annot] at (0, -3.5) {$\vdots$};
+\node[annot] at (0, -4.0) {VLMAX = VLEN/SEW};
+
+% === LMUL = 4 (right) ===
+\node[annot, font=\sffamily\small\bfseries] at (5, 1.0) {LMUL = 4};
+\node[annot] at (5, 0.6) {8 ομάδες × 4 καταχωρητές};
+
+% Group 1: v0–v3
+\foreach [count=\idx from 0] \i in {0,1,2,3} {
+  \pgfmathsetmacro{\ypos}{-\idx * 0.4}
+  \node[reg, fill=blue!20] (l4v\i) at (5, \ypos) {v\i};
+}
+\node[group, draw=blue!60, fit=(l4v0)(l4v3)] {};
+\node[annot, anchor=west, text=blue!60!black] at (6.2, -0.6) {group 0};
+
+% Group 2: v4–v7
+\foreach [count=\idx from 0] \i in {4,5,6,7} {
+  \pgfmathsetmacro{\ypos}{-1.9 - \idx * 0.4}
+  \node[reg, fill=green!20] (l4v\i) at (5, \ypos) {v\i};
+}
+\node[group, draw=green!60!black, fit=(l4v4)(l4v7)] {};
+\node[annot, anchor=west, text=green!60!black] at (6.2, -2.5) {group 1};
+
+\node[annot] at (5, -3.5) {$\vdots$};
+\node[annot] at (5, -4.0) {VLMAX = (VLEN/SEW) $\times$ LMUL};
+
+% Trade-off annotation
+\node[annot, text=gray!60!black, text width=9cm, anchor=north west] at (-1.5, -4.8) {%
+  Αύξηση LMUL: περισσότερα στοιχεία ανά εντολή $\leftrightarrow$
+  λιγότεροι διαθέσιμοι ανεξάρτητοι τελεστέοι (register pressure).};
+
+\end{tikzpicture}

@@ -1,0 +1,35 @@
+% figures/riscv-programming-spectrum.tex
+% Horizontal spectrum diagram: Pure Assembly ←→ Inline Asm ←→ Intrinsics ←→ Auto-Lowering
+% Shows control vs compiler optimization trade-off
+
+\begin{tikzpicture}[
+    node distance=0.3cm,
+    method/.style={
+      draw, rounded corners=3pt, minimum height=1.4cm, minimum width=3.2cm,
+      font=\small\sffamily, align=center, thick
+    },
+    arrow label/.style={font=\footnotesize\itshape, text=black!70}
+  ]
+
+  % Method boxes
+  \node[method, fill=red!8, draw=red!50!black] (asm) {Pure Assembly\\(\texttt{.S})};
+  \node[method, fill=orange!8, draw=orange!50!black, right=0.6cm of asm] (inline) {Inline Assembly\\(\texttt{\_\_asm\_\_})};
+  \node[method, fill=blue!8, draw=blue!50!black, right=0.6cm of inline] (intrinsics) {C Intrinsics\\(\texttt{\_\_riscv\_*})};
+  \node[method, fill=green!8, draw=green!50!black, right=0.6cm of intrinsics] (auto) {Auto-Lowering\\(Plain C)};
+
+  % Connecting arrows between boxes
+  \draw[->, thick, gray!60] (asm) -- (inline);
+  \draw[->, thick, gray!60] (inline) -- (intrinsics);
+  \draw[->, thick, gray!60] (intrinsics) -- (auto);
+
+  % Top arrow: Control increases ←
+  \draw[<-, very thick, red!60!black]
+    ([yshift=1.1cm]asm.north west) -- ([yshift=1.1cm]auto.north east)
+    node[midway, above, arrow label, text=red!60!black] {Βαθμός ελέγχου αυξάνεται};
+
+  % Bottom arrow: Compiler optimization increases →
+  \draw[->, very thick, blue!60!black]
+    ([yshift=-1.1cm]asm.south west) -- ([yshift=-1.1cm]auto.south east)
+    node[midway, below, arrow label, text=blue!60!black] {Βελτιστοποίηση compiler αυξάνεται};
+
+\end{tikzpicture}

@@ -1,0 +1,49 @@
+% figures/rvv-xor-example.tex
+% Side-by-side: scalar C XOR loop vs RVV intrinsics implementation
+\begin{tikzpicture}[
+  code/.style={draw, rounded corners=3pt, fill=gray!5,
+               inner sep=6pt, font=\ttfamily\scriptsize,
+               text width=6.5cm, anchor=north west},
+  title/.style={font=\sffamily\small\bfseries, anchor=south west},
+  arrow/.style={->, thick, blue!60!black, >=stealth}
+]
+
+% Left: Scalar C
+\node[title] at (0, 4.2) {Scalar C};
+\node[code] (scalar) at (0, 4.0) {%
+\begin{tabular}{@{}l@{}}
+\textcolor{gray}{// XOR δύο arrays μεγέθους n}\\
+\textbf{for} (uint32\_t i = 0; i < n; ++i)\\
+\quad o[i] = v1[i] \^{} v2[i];\\
+\end{tabular}};
+
+% Right: RVV intrinsics
+\node[title] at (8, 4.2) {RVV Intrinsics};
+\node[code] (rvv) at (8, 4.0) {%
+\begin{tabular}{@{}l@{}}
+size\_t i = 0;\\
+\textbf{while} (i < n) \{\\
+\quad size\_t vl = \_\_riscv\_vsetvl\_e64m8(n-i);\\
+\quad vuint64m8\_t a = \_\_riscv\_vle64(v1+i, vl);\\
+\quad vuint64m8\_t b = \_\_riscv\_vle64(v2+i, vl);\\
+\quad vuint64m8\_t c = \_\_riscv\_vxor(a, b, vl);\\
+\quad \_\_riscv\_vse64(o+i, c, vl);\\
+\quad i += vl;\\
+\}\\
+\end{tabular}};
+
+% Annotations
+\node[font=\sffamily\tiny, text=blue!60!black, anchor=west] at (8, 2.3)
+  {vsetvl: ρυθμίζει vl $\leq$ VLMAX};
+\node[font=\sffamily\tiny, text=blue!60!black, anchor=west] at (8, 1.9)
+  {vle64: vector load (unit-stride)};
+\node[font=\sffamily\tiny, text=blue!60!black, anchor=west] at (8, 1.5)
+  {vxor: element-wise XOR};
+\node[font=\sffamily\tiny, text=blue!60!black, anchor=west] at (8, 1.1)
+  {vse64: vector store};
+
+% Comparison arrow
+\draw[arrow] (scalar.east) ++(0.3, -0.5) -- ++(0.8, 0)
+  node[midway, above, font=\sffamily\tiny] {VLA};
+
+\end{tikzpicture}

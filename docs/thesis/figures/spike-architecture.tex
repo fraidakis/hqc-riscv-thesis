@@ -1,0 +1,46 @@
+% figures/spike-architecture.tex
+% Spike ISS architecture diagram: Host CPU → Spike → instret counter
+\begin{tikzpicture}[
+    node distance=1.8cm and 2.5cm,
+    box/.style={
+        draw, rounded corners=3pt, minimum width=3.2cm, minimum height=1.2cm,
+        align=center, font=\sffamily\small
+    },
+    bigbox/.style={
+        draw, rounded corners=5pt, minimum width=4.5cm, minimum height=3.8cm,
+        align=center, font=\sffamily\small, dashed, thick, fill=blue!3
+    },
+    arr/.style={-{Stealth[length=3mm]}, thick},
+    note/.style={font=\sffamily\scriptsize, text=gray!70!black}
+]
+
+% Host system
+\node[box, fill=gray!10] (host) {Host CPU\\(x86-64)};
+
+% Spike ISS big container
+\node[bigbox, right=3cm of host] (spike_box) {};
+\node[font=\sffamily\small\bfseries, anchor=north] at (spike_box.north) {Spike ISS};
+
+% Internal Spike components
+\node[box, fill=orange!10, minimum width=2.8cm, minimum height=0.8cm]
+    (decode) at ([yshift=0.5cm]spike_box.center) {Decode \& Execute\\(sequential)};
+\node[box, fill=green!10, minimum width=2.8cm, minimum height=0.8cm]
+    (csr) at ([yshift=-1cm]spike_box.center) {\texttt{minstret} CSR\\(+1 per insn)};
+
+% Output
+\node[box, fill=yellow!10, right=2.5cm of spike_box] (output) {Retired\\Instruction\\Count};
+
+% ELF input
+\node[box, fill=violet!8, above=1.2cm of spike_box] (elf) {ELF Binary\\(\texttt{-{}-isa=rv64gcv\_zvbc...})};
+
+% Arrows
+\draw[arr] (host) -- node[above, note] {interprets} (spike_box.west);
+\draw[arr] (elf) -- (spike_box.north);
+\draw[arr] (decode) -- (csr);
+\draw[arr] (spike_box.east) -- node[above, note] {\texttt{rdcycle} $\equiv$ \texttt{rdinstret}} (output);
+
+% Annotations
+\node[note, below=0.3cm of spike_box] {No pipeline model, no cache, no branch predictor};
+\node[note, below=0.1cm of host] {Ντετερμινιστική εκτέλεση};
+
+\end{tikzpicture}

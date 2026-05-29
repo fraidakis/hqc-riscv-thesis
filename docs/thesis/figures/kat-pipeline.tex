@@ -1,0 +1,51 @@
+% figures/kat-pipeline.tex
+% KAT validation pipeline: from .rsp file to PASS/FAIL verdict
+\begin{tikzpicture}[
+  node distance=1.4cm and 2.0cm,
+  box/.style={
+    draw, rounded corners=2pt, minimum height=1.0cm,
+    minimum width=2.8cm, align=center, font=\small\sffamily
+  },
+  data/.style={box, fill=blue!8, draw=blue!50},
+  process/.style={box, fill=orange!8, draw=orange!50},
+  tool/.style={box, fill=green!8, draw=green!50},
+  result/.style={box, fill=gray!8, draw=gray!50},
+  arr/.style={->, >=stealth, thick},
+]
+
+% Row 1: Offline preparation
+\node[data] (rsp) {NIST \texttt{.rsp}\\(100 vectors)};
+\node[tool, right=of rsp] (gen) {\texttt{gen\_kat\_seeds.py}\\(offline)};
+\node[data, right=of gen] (header) {C header\\seeds + expected ss};
+
+\draw[arr] (rsp) -- (gen);
+\draw[arr] (gen) -- (header);
+
+% Row 2: Build and execution
+\node[process, below=1.8cm of rsp] (build) {CMake build\\(\texttt{HQC\_KAT\_MODE})};
+\node[process, right=of build] (elf) {Bare-metal ELF\\(\texttt{kat\_gen.c})};
+\node[tool, right=of elf] (sim) {Spike / QEMU\\execution};
+
+\draw[arr] (header) -- ++(0,-1.0) -| (build);
+\draw[arr] (build) -- (elf);
+\draw[arr] (elf) -- (sim);
+
+% Row 3: Validation
+\node[data, below=1.8cm of sim] (log) {Console output\\(\texttt{ss: <hex>} $\times$ 100)};
+\node[tool, left=of log] (check) {\texttt{kat\_check.py}\\(diff)};
+\node[result, left=of check] (verdict) {\textbf{PASS} / \textbf{FAIL}};
+
+\draw[arr] (sim) -- (log);
+\draw[arr] (log) -- (check);
+\draw[arr] (check) -- (verdict);
+\draw[arr] (rsp) -- ++(0,-4.6) -| (check);
+
+% Annotations
+\node[font=\scriptsize\itshape, above=0.1cm of gen, text=gray!70!black]
+  {εξαγωγή seeds};
+\node[font=\scriptsize\itshape, above=0.1cm of sim, text=gray!70!black]
+  {100 KEM κύκλοι};
+\node[font=\scriptsize\itshape, below=0.1cm of check, text=gray!70!black]
+  {byte-exact σύγκριση};
+
+\end{tikzpicture}

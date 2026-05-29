@@ -1,0 +1,41 @@
+% figures/rvv-register-file.tex
+% Diagram: RVV vector register file (v0–v31), each VLEN bits wide.
+\begin{tikzpicture}[
+  reg/.style={draw, minimum width=6cm, minimum height=0.35cm,
+              fill=blue!8, font=\ttfamily\scriptsize},
+  label/.style={font=\ttfamily\scriptsize, anchor=east},
+  annotation/.style={font=\sffamily\scriptsize, text=gray!70!black}
+]
+
+% Draw registers v0–v31 (show subset for clarity)
+\foreach \i in {0,1,2,3} {
+  \node[reg] (v\i) at (0, -\i*0.5) {};
+  \node[label] at ([xshift=-3mm]v\i.west) {v\i};
+}
+
+% Ellipsis
+\node[annotation] at (0, -2.25) {$\vdots$};
+
+% v28–v31
+\foreach [count=\idx from 0] \i in {28,29,30,31} {
+  \pgfmathsetmacro{\ypos}{-2.75 - \idx*0.5}
+  \node[reg] (v\i) at (0, \ypos) {};
+  \node[label] at ([xshift=-3mm]v\i.west) {v\i};
+}
+
+% VLEN annotation
+\draw[<->, thick, blue!60!black] ([yshift=2mm]v0.north west) -- ([yshift=2mm]v0.north east)
+  node[midway, above, font=\sffamily\small] {\VLEN\ bits};
+
+% Annotation: unknown at compile time
+\node[annotation, anchor=west] at ([xshift=5mm]v0.east) {%
+  \begin{tabular}{@{}l@{}}
+    VLEN = hardware parameter\\
+    (τυπικά 128–2048 bits)
+  \end{tabular}};
+
+% v0 special annotation
+\draw[->, gray, thick] ([xshift=5mm]v0.east) ++(0,-1.2) -- ++(0,0.7)
+  node[annotation, anchor=south west, xshift=1mm] {v0: mask register};
+
+\end{tikzpicture}

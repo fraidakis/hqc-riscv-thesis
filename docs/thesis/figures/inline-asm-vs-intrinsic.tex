@@ -1,0 +1,44 @@
+% figures/inline-asm-vs-intrinsic.tex
+% Side-by-side comparison: inline assembly vs C intrinsic for clmul
+
+\begin{tikzpicture}[
+    codebox/.style={
+      draw, rounded corners=2pt, minimum width=6.5cm, minimum height=3.2cm,
+      fill=#1, align=left, inner sep=8pt, font=\ttfamily\footnotesize
+    },
+    label/.style={font=\small\sffamily\bfseries, anchor=south}
+  ]
+
+  % Left box: inline assembly
+  \node[codebox=orange!5, draw=orange!40!black, anchor=north west] (left) at (0,0) {%
+    \begin{minipage}{6cm}
+\textcolor{gray}{// Inline assembly (opaque)}\\
+uint64\_t lo;\\
+\_\_asm\_\_ volatile(\\
+\quad "clmul \%0, \%1, \%2"\\
+\quad : "=r"(lo)\\
+\quad : "r"(a), "r"(b)\\
+);
+    \end{minipage}
+  };
+  \node[label, text=orange!50!black] at (left.north) {Inline Assembly};
+
+  % Right box: C intrinsic
+  \node[codebox=blue!5, draw=blue!40!black, anchor=north west] (right) at (7.5,0) {%
+    \begin{minipage}{6cm}
+\textcolor{gray}{// C intrinsic (optimizable)}\\[4pt]
+uint64\_t lo =\\
+\quad \_\_riscv\_clmul\_64(a, b);\\[12pt]
+\textcolor{gray}{// 1 γραμμή, typed, CSE/DCE}\\
+\textcolor{gray}{// register allocation ελεύθερη}
+    \end{minipage}
+  };
+  \node[label, text=blue!50!black] at (right.north) {C Intrinsic};
+
+  % Annotations below
+  \node[font=\scriptsize, text=orange!60!black, anchor=north, align=center]
+    at ([yshift=-0.3cm]left.south) {5 γραμμές, constraint syntax\\αδιαφανές στον optimizer};
+  \node[font=\scriptsize, text=blue!60!black, anchor=north, align=center]
+    at ([yshift=-0.3cm]right.south) {1 γραμμή, type-safe\\πλήρης ορατότητα στον compiler};
+
+\end{tikzpicture}

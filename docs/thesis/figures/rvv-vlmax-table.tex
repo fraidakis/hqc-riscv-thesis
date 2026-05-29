@@ -1,0 +1,19 @@
+% figures/rvv-vlmax-table.tex
+% Table: VLMAX for various VLEN/SEW/LMUL combinations
+\begin{tabular}{ccc|r}
+  \toprule
+  \textbf{\VLEN\ (bits)} & \textbf{\SEW\ (bits)} & \textbf{\LMUL} & \textbf{\VLMAX\ (elements)} \\
+  \midrule
+  128  & 64 & 1 & 2 \\
+  128  & 64 & 4 & 8 \\
+  256  & 64 & 1 & 4 \\
+  256  & 64 & 4 & 16 \\
+  256  & 64 & 8 & 32 \\
+  512  & 64 & 1 & 8 \\
+  512  & 64 & 4 & 32 \\
+  1024 & 64 & 4 & 64 \\
+  \midrule
+  256  & 32 & 8 & 64 \\
+  256  & 8  & 8 & 256 \\
+  \bottomrule
+\end{tabular}

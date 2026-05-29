@@ -1,0 +1,37 @@
+% figures/zvbc-zvbb-before-after.tex
+% Before/after comparison table for Zvbc/Zvbb vector crypto extensions
+\begin{tabular}{p{5.5cm}cc}
+  \toprule
+  \textbf{Πράξη} &
+  \textbf{Χωρίς Zvbc/Zvbb} &
+  \textbf{Με Zvbc/Zvbb} \\
+  \midrule
+  Carry-less multiply \newline
+  (\num{4} ζεύγη 64-bit, $\LMUL = 4$, $\VLEN = 256$) &
+  $4 \times 2 = 8$ scalar \clmul/\clmulh \newline
+  + 8 \insn{vmv.v.x} + 8 \insn{vse64} &
+  2 εντολές: \newline
+  \vclmul + \vclmulh \\
+  \addlinespace
+  64-bit rotation \newline
+  (\num{4} lanes, $\LMUL = 4$, $\VLEN = 256$) &
+  3 εντολές/lane: \newline
+  \insn{vsll} + \insn{vsrl} + \insn{vor} &
+  1 εντολή: \newline
+  \insn{vror.vv} ή \insn{vror.vi} \\
+  \addlinespace
+  AND-NOT \newline
+  (\num{4} lanes, $\LMUL = 4$, $\VLEN = 256$) &
+  2 εντολές: \newline
+  \insn{vnot} + \insn{vand} &
+  1 εντολή: \newline
+  \insn{vandn.vv} \\
+  \addlinespace
+  Byte-reverse per element \newline
+  (\num{4} lanes, $\LMUL = 4$, $\VLEN = 256$) &
+  $\sim$8 εντολές: \newline
+  shifts + masks + ORs &
+  1 εντολή: \newline
+  \insn{vbrev8.v} \\
+  \bottomrule
+\end{tabular}

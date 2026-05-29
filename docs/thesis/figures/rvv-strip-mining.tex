@@ -1,0 +1,63 @@
+% figures/rvv-strip-mining.tex
+% Visualization: strip-mining of a 20-element array at VLMAX=4 vs VLMAX=8
+\begin{tikzpicture}[
+  cell/.style={draw, minimum width=0.45cm, minimum height=0.5cm,
+               font=\tiny\ttfamily},
+  iter/.style={draw, thick, rounded corners=1pt, inner sep=1pt},
+  annot/.style={font=\sffamily\scriptsize},
+  itercolor1/.style={fill=blue!15},
+  itercolor2/.style={fill=green!15},
+  itercolor3/.style={fill=orange!15},
+  itercolor4/.style={fill=red!12},
+  itercolor5/.style={fill=purple!12},
+]
+
+% === VLMAX = 4 (top) ===
+\node[annot, anchor=west] at (-1.5, 0.8) {\textbf{VLMAX = 4} (VLEN=256, SEW=64, LMUL=1)};
+
+% Draw 20 cells
+\foreach \i in {0,...,19} {
+  \pgfmathsetmacro{\xpos}{\i * 0.5}
+  % Color by iteration (groups of 4)
+  \pgfmathtruncatemacro{\grp}{int(\i/4)+1}
+  \node[cell, itercolor\grp] at (\xpos, 0) {\i};
+}
+
+% Iteration brackets
+\foreach [count=\idx] \start in {0,2,4,6,8} {
+  \pgfmathsetmacro{\xstart}{\start * 1.0 - 0.2}
+  \pgfmathsetmacro{\xend}{\start * 1.0 + 1.6}
+  \draw[decorate, decoration={brace, amplitude=3pt, mirror}]
+    (\xstart, -0.4) -- (\xend, -0.4)
+    node[midway, below=3pt, annot] {vl=4};
+}
+\node[annot] at (4.75, -1.1) {5 iterations};
+
+% === VLMAX = 8 (bottom) ===
+\node[annot, anchor=west] at (-1.5, -2.0) {\textbf{VLMAX = 8} (VLEN=512, SEW=64, LMUL=1)};
+
+\foreach \i in {0,...,19} {
+  \pgfmathsetmacro{\xpos}{\i * 0.5}
+  \pgfmathtruncatemacro{\grp}{int(\i/8)+1}
+  \node[cell, itercolor\grp] at (\xpos, -2.8) {\i};
+}
+
+% Iteration brackets for VLMAX=8
+\draw[decorate, decoration={brace, amplitude=3pt, mirror}]
+  (-0.2, -3.2) -- (3.6, -3.2)
+  node[midway, below=3pt, annot] {vl=8};
+\draw[decorate, decoration={brace, amplitude=3pt, mirror}]
+  (3.8, -3.2) -- (7.6, -3.2)
+  node[midway, below=3pt, annot] {vl=8};
+\draw[decorate, decoration={brace, amplitude=3pt, mirror}]
+  (7.8, -3.2) -- (9.6, -3.2)
+  node[midway, below=3pt, annot] {vl=4};
+
+\node[annot] at (4.75, -3.9) {3 iterations (τελευταία: vl=4)};
+
+% Caption-like annotation
+\node[annot, text=gray!60!black, anchor=west, text width=7cm] at (-1.5, -4.6) {%
+  Ίδιος κώδικας, διαφορετικό hardware — ο μηχανισμός \texttt{vsetvl}
+  προσαρμόζει αυτόματα τον αριθμό στοιχείων ανά iteration.};
+
+\end{tikzpicture}

@@ -1,0 +1,63 @@
+% figures/instret-vs-cycles.tex
+% Diagram: instret vs cycles under different pipeline models
+% Shows three scenarios: ideal single-issue, real pipeline (stalls), dual-issue/superscalar
+
+\begin{tikzpicture}[
+  node distance=0.6cm and 2.0cm,
+  box/.style={
+    draw, rounded corners=3pt, minimum width=3.8cm, minimum height=1.6cm,
+    align=center, font=\small\sffamily
+  },
+  eqbox/.style={
+    draw=none, fill=gray!8, rounded corners=2pt,
+    minimum width=3.2cm, minimum height=0.7cm,
+    align=center, font=\small
+  },
+  arr/.style={-{Stealth[length=5pt]}, thick},
+  lbl/.style={font=\footnotesize, align=center},
+  note/.style={font=\scriptsize\itshape, text=gray!70!black},
+]
+
+% --- Scenario 1: Ideal single-issue (CPI = 1) ---
+\node[box, fill=blue!8] (ideal) {%
+  \textbf{Ιδανικό Single-Issue}\\[2pt]
+  \gls{cpi} $= 1$
+};
+\node[eqbox, below=0.4cm of ideal] (eq1) {%
+  $\text{cycles} = \text{instret}$
+};
+\node[note, below=0.2cm of eq1] (n1) {Spike ISS, in-order χωρίς stalls};
+
+% --- Scenario 2: Real pipeline (CPI > 1) ---
+\node[box, fill=orange!10, right=2.8cm of ideal] (real) {%
+  \textbf{Πραγματικό Pipeline}\\[2pt]
+  \gls{cpi} $> 1$
+};
+\node[eqbox, below=0.4cm of real] (eq2) {%
+  $\text{cycles} > \text{instret}$
+};
+\node[note, below=0.2cm of eq2] (n2) {Cache misses, stalls, branch mispredicts};
+
+% --- Scenario 3: Dual-issue / superscalar (CPI < 1) ---
+\node[box, fill=green!8, right=2.8cm of real] (dual) {%
+  \textbf{Dual-Issue / Superscalar}\\[2pt]
+  \gls{cpi} $< 1$
+};
+\node[eqbox, below=0.4cm of dual] (eq3) {%
+  $\text{cycles} < \text{instret}$
+};
+\node[note, below=0.2cm of eq3] (n3) {SpacemiT X60 (IPC $\approx 1{,}34$)};
+
+% --- Connecting arrows with labels ---
+\draw[arr, blue!60!black] (ideal.east) -- (real.west)
+  node[midway, above, lbl] {+ stalls};
+\draw[arr, green!50!black] (real.east) -- (dual.west)
+  node[midway, above, lbl] {+ παραλληλισμός};
+
+% --- Bottom summary ---
+\node[below=1.6cm of eq2, font=\small, align=center] (summary) {%
+  Η μετρική \instret αποτελεί \textbf{κάτω φράγμα} κύκλων σε single-issue pipelines\\
+  και \textbf{άνω φράγμα} σε superscalar αρχιτεκτονικές.
+};
+
+\end{tikzpicture}

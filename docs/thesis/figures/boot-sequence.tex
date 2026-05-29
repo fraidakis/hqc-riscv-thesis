@@ -1,0 +1,36 @@
+% figures/boot-sequence.tex
+% Boot sequence flowchart for §5.5.1
+\begin{tikzpicture}[
+  node distance=1.2cm,
+  startstop/.style={rectangle, rounded corners, draw=thesisblue!70, fill=thesisblue!8,
+    text width=3.8cm, minimum height=0.9cm, align=center, font=\small\sffamily},
+  process/.style={rectangle, draw=black!60, fill=gray!5,
+    text width=4.2cm, minimum height=0.9cm, align=center, font=\small\sffamily},
+  decision/.style={diamond, draw=orange!70, fill=orange!8, aspect=2.5,
+    text width=2.8cm, align=center, font=\small\sffamily},
+  arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!60},
+]
+
+% Nodes
+\node[startstop] (reset) {Reset vector\\(\texttt{0x80000000})};
+\node[process, below=of reset] (sp) {Set stack pointer\\(\texttt{la sp, \_stack\_top})};
+\node[decision, below=of sp] (vcheck) {\texttt{\_\_riscv\_vector}\\defined?};
+\node[process, right=2.5cm of vcheck] (venable) {Enable Vector Unit\\\texttt{csrs mstatus, 0x600}\\+ \texttt{vsetvli}};
+\node[process, below=1.5cm of vcheck] (bss) {Zero BSS segment\\(\texttt{\_bss\_start} → \texttt{\_bss\_end})};
+\node[process, below=of bss] (main) {Call \texttt{main()}\\(argc=0, argv=NULL)};
+\node[process, below=of main] (kem) {HQC KEM execution\\(KeyGen / Encaps / Decaps)};
+\node[process, below=of kem] (instret) {Read \texttt{minstret}\\(CSR \texttt{0xb02})};
+\node[startstop, below=of instret] (exit) {HTIF exit\\(\texttt{tohost} write)};
+
+% Arrows
+\draw[arrow] (reset) -- (sp);
+\draw[arrow] (sp) -- (vcheck);
+\draw[arrow] (vcheck) -- node[left, font=\scriptsize] {no} (bss);
+\draw[arrow] (vcheck) -- node[above, font=\scriptsize] {yes} (venable);
+\draw[arrow] (venable) |- (bss);
+\draw[arrow] (bss) -- (main);
+\draw[arrow] (main) -- (kem);
+\draw[arrow] (kem) -- (instret);
+\draw[arrow] (instret) -- (exit);
+
+\end{tikzpicture}

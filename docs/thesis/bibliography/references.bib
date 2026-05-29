@@ -337,10 +337,107 @@
   doi       = {10.1109/TIT.1965.1053825}
 }
 
+@techreport{Waterman2011-riscv,
+  author      = {Andrew Waterman and Yunsup Lee and David A. Patterson and Krste Asanovi\'{c}},
+  title       = {The {RISC-V} Instruction Set Manual, Volume {I}: Base User-Level {ISA}},
+  institution = {EECS Department, University of California, Berkeley},
+  year        = {2011},
+  number      = {UCB/EECS-2011-62},
+  month       = may,
+  url         = {http://www2.eecs.berkeley.edu/Pubs/TechRpts/2011/EECS-2011-62.html}
+}
+
+@misc{RISCV-unpriv2024,
+  author       = {Andrew Waterman and Krste Asanovi\'{c} and {RISC-V International}},
+  title        = {The {RISC-V} Instruction Set Manual, Volume {I}: Unprivileged Architecture},
+  year         = {2024},
+  howpublished = {\url{https://github.com/riscv/riscv-isa-manual}},
+  note         = {Document version 20240411. Ratified. Accessed: 2026}
+}
+
+@misc{RISCV-vector-spec,
+  author       = {{RISC-V International}},
+  title        = {{RISC-V} ``{V}'' Vector Extension, Version 1.0},
+  year         = {2021},
+  howpublished = {\url{https://github.com/riscv/riscv-v-spec}},
+  note         = {Ratified December 2021. Accessed: 2026}
+}
+
+@misc{RISCV-crypto-spec,
+  author       = {{RISC-V International}},
+  title        = {{RISC-V} Cryptography Extensions Volume {I}: Scalar \& Entropy Source Instructions},
+  year         = {2022},
+  howpublished = {\url{https://github.com/riscv/riscv-crypto}},
+  note         = {Scalar extensions ratified February 2022; Vector extensions (Volume~II, including Zvbc/Zvbb) ratified September 2023. Accessed: 2026}
+}
+
+@misc{RISCV-bitmanip-spec,
+  author       = {{RISC-V International}},
+  title        = {{RISC-V} Bit-Manipulation Extension ({Zba}, {Zbb}, {Zbc}, {Zbs}), Version 1.0},
+  year         = {2021},
+  howpublished = {\url{https://github.com/riscv/riscv-bitmanip}},
+  note         = {Ratified November 2021. Accessed: 2026}
+}
+
+@book{Patterson2017-COD,
+  author    = {David A. Patterson and John L. Hennessy},
+  title     = {Computer Organization and Design: The Hardware/Software Interface, {RISC-V} Edition},
+  publisher = {Morgan Kaufmann},
+  year      = {2017},
+  edition   = {1st},
+  isbn      = {978-0128122754}
+}
+
 @inproceedings{example-placeholder,
   author    = {Author, First and Author, Second},
   title     = {Placeholder Entry},
   booktitle = {Proceedings of Example Conference},
   year      = {2025},
   pages     = {1--10}
+}
+
+@misc{spike-github,
+  author       = {Andrew Waterman and {RISC-V Software Foundation}},
+  title        = {Spike {RISC-V} {ISA} Simulator},
+  year         = {2024},
+  howpublished = {\url{https://github.com/riscv-software-src/riscv-isa-sim}},
+  note         = {Official reference ISA simulator. Implements functional model of RISC-V harts with full V, Zvbc, Zvbb support. Accessed: 2026}
+}
+
+@misc{qemu-riscv,
+  author       = {{QEMU Project}},
+  title        = {{QEMU} --- {RISC-V} System Emulation},
+  year         = {2024},
+  howpublished = {\url{https://www.qemu.org/docs/master/system/target-riscv.html}},
+  note         = {Dynamic binary translation via Tiny Code Generator (TCG). Version 10.2.2 used. Accessed: 2026}
+}
+
+@article{zhang-tches2025,
+  author    = {Jipeng Zhang and Yuxing Yan and Junhao Huang and {\c{C}}etin Kaya Ko{\c{c}}},
+  title     = {Optimized Software Implementation of {Keccak}, {Kyber}, and {Dilithium} on {RV\{32,64\}IM\{B\}\{V\}}},
+  journal   = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
+  volume    = {2025},
+  number    = {1},
+  pages     = {340--364},
+  year      = {2025},
+  doi       = {10.46586/tches.v2025.i1.340-364},
+  note      = {Platform: T-Head C908 (VLEN=128), Linux perf events. Methodology template for ISS + CPI microbenchmarks}
+}
+
+@inproceedings{ras-nist2025,
+  author    = {Ras, Cl{\'e}ment and Loiseau, Antoine and Music, Lazar and Music, Damir and Music, Edin and Music, Jasmin},
+  title     = {Optimizing {HQC} using {Frobenius} Additive {FFT} on a {RISC-V}-based {SoC}},
+  booktitle = {Proceedings of the 6th NIST PQC Standardization Conference},
+  year      = {2025},
+  howpublished = {\url{https://csrc.nist.gov/presentations/2025/optimizing-hqc-using-frobenius-additive-fft}},
+  note      = {Platform: CV32E40P (RV32IMC), Xilinx Kintex-7 FPGA. CSR cycle counter. Accessed: 2026}
+}
+
+@inproceedings{pqm4,
+  author    = {Matthias J. Kannwischer and Joost Rijneveld and Peter Schwabe and Ko Stoffelen},
+  title     = {{pqm4}: Testing and Benchmarking {NIST} {PQC} on {ARM} {Cortex-M4}},
+  booktitle = {Second PQC Standardization Conference},
+  year      = {2019},
+  howpublished = {\url{https://github.com/mupq/pqm4}},
+  note      = {Cryptology ePrint Archive, Report 2019/844. Accessed: 2026}
 }

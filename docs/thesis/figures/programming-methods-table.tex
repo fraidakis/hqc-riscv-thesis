@@ -1,0 +1,41 @@
+% figures/programming-methods-table.tex
+% Comparison table of the four RISC-V programming methods
+
+\begin{tabular}{p{2.8cm}ccccp{3.5cm}}
+  \toprule
+  \textbf{Μέθοδος} &
+  \textbf{Έλεγχος} &
+  \textbf{Compiler Opt.} &
+  \textbf{Portability} &
+  \textbf{Error-Prone} &
+  \textbf{Τυπική Χρήση} \\
+  \midrule
+  Pure Assembly (\texttt{.S}) &
+  \scalebox{0.9}{$\bigstar\bigstar\bigstar$} &
+  Καμία &
+  Χαμηλή &
+  Υψηλή &
+  Boot code, interrupt handlers \\
+  \addlinespace
+  Inline Assembly &
+  \scalebox{0.9}{$\bigstar\bigstar\bigstar$} &
+  Καμία (opaque) &
+  Μέτρια &
+  Υψηλή &
+  CSR reads, privileged insns \\
+  \addlinespace
+  C Intrinsics &
+  \scalebox{0.9}{$\bigstar\bigstar$} &
+  Πλήρης &
+  Υψηλή &
+  Χαμηλή &
+  Crypto πυρήνες, vector code \\
+  \addlinespace
+  Auto-Lowering &
+  \scalebox{0.9}{$\bigstar$} &
+  Πλήρης &
+  Μέγιστη &
+  Ελάχιστη &
+  Bit-manipulation, addressing \\
+  \bottomrule
+\end{tabular}

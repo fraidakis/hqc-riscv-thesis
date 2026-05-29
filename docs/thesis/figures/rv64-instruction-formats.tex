@@ -1,0 +1,74 @@
+% RV64I Instruction Formats — 6 basic formats (R/I/S/B/U/J)
+% Shows bit fields with fixed positions for rs1, rs2, rd
+\begin{tikzpicture}[
+  field/.style={draw, minimum height=0.7cm, inner sep=0pt, anchor=south west,
+    font=\ttfamily\scriptsize},
+  label/.style={font=\sffamily\footnotesize\bfseries, anchor=east},
+  bitlabel/.style={font=\tiny\ttfamily, text=gray!70!black},
+]
+
+\pgfmathsetmacro{\totalwidth}{13}    % cm
+\pgfmathsetmacro{\bitwidth}{0.40625} % totalwidth / 32
+
+% Helper: draw a field from bit position 'start' to 'end' (inclusive, 0-indexed from right)
+% Arguments: y-offset, start-bit, end-bit, fill color, label text
+\newcommand{\bitfield}[5]{%
+  \pgfmathsetmacro{\xstart}{(31-#3)*\bitwidth}%
+  \pgfmathsetmacro{\w}{(#3-#2+1)*\bitwidth}%
+  \node[field, minimum width=\w cm, fill=#4] at (\xstart cm, #1) {\strut #5};%
+}
+
+% --- R-type (y=5.0) ---
+\node[label] at (-0.2, 5.35) {R-type};
+\bitfield{5.0}{25}{31}{blue!10}{funct7}
+\bitfield{5.0}{20}{24}{red!10}{rs2}
+\bitfield{5.0}{15}{19}{orange!10}{rs1}
+\bitfield{5.0}{12}{14}{green!10}{f3}
+\bitfield{5.0}{7}{11}{purple!10}{rd}
+\bitfield{5.0}{0}{6}{gray!15}{opcode}
+
+% --- I-type (y=4.0) ---
+\node[label] at (-0.2, 4.35) {I-type};
+\bitfield{4.0}{20}{31}{cyan!10}{imm[11:0]}
+\bitfield{4.0}{15}{19}{orange!10}{rs1}
+\bitfield{4.0}{12}{14}{green!10}{f3}
+\bitfield{4.0}{7}{11}{purple!10}{rd}
+\bitfield{4.0}{0}{6}{gray!15}{opcode}
+
+% --- S-type (y=3.0) ---
+\node[label] at (-0.2, 3.35) {S-type};
+\bitfield{3.0}{25}{31}{cyan!10}{imm[11:5]}
+\bitfield{3.0}{20}{24}{red!10}{rs2}
+\bitfield{3.0}{15}{19}{orange!10}{rs1}
+\bitfield{3.0}{12}{14}{green!10}{f3}
+\bitfield{3.0}{7}{11}{cyan!10}{imm[4:0]}
+\bitfield{3.0}{0}{6}{gray!15}{opcode}
+
+% --- B-type (y=2.0) ---
+\node[label] at (-0.2, 2.35) {B-type};
+\bitfield{2.0}{25}{31}{cyan!10}{imm[12|10:5]}
+\bitfield{2.0}{20}{24}{red!10}{rs2}
+\bitfield{2.0}{15}{19}{orange!10}{rs1}
+\bitfield{2.0}{12}{14}{green!10}{f3}
+\bitfield{2.0}{7}{11}{cyan!10}{imm[4:1|11]}
+\bitfield{2.0}{0}{6}{gray!15}{opcode}
+
+% --- U-type (y=1.0) ---
+\node[label] at (-0.2, 1.35) {U-type};
+\bitfield{1.0}{12}{31}{cyan!10}{imm[31:12]}
+\bitfield{1.0}{7}{11}{purple!10}{rd}
+\bitfield{1.0}{0}{6}{gray!15}{opcode}
+
+% --- J-type (y=0.0) ---
+\node[label] at (-0.2, 0.35) {J-type};
+\bitfield{0.0}{12}{31}{cyan!10}{imm[20|10:1|11|19:12]}
+\bitfield{0.0}{7}{11}{purple!10}{rd}
+\bitfield{0.0}{0}{6}{gray!15}{opcode}
+
+% Bit position labels at top
+\foreach \b/\pos in {31/0, 25/6, 20/11, 15/16, 12/19, 7/24, 0/31} {
+  \pgfmathsetmacro{\xpos}{\pos*\bitwidth}
+  \node[bitlabel] at (\xpos cm, 5.8) {\b};
+}
+
+\end{tikzpicture}
