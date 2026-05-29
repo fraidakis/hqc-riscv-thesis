@@ -67,8 +67,8 @@ Pipeline behavior:
 - Uses native sequential isolated executions only.
 - Calls run_benchmarks.sh with --isolated for polymul and --isolated --kem for full KEM.
 - Runs cache, memory, trace, and histogram profiling through run_profile.sh.
-- Aggregates results into a single Markdown report under analysis/reports/.
-- Reads and writes through canonical isolated paths under analysis/benchmarks/isolated/<track>/<variant>/.
+- Aggregates results into a single Markdown report under results/reports/.
+- Reads and writes through canonical paths under results/simulation/benchmarks/components/<category>/<variant>/.
 
 ### VLEN Scaling Matrix Benchmarks
 
@@ -121,7 +121,7 @@ For quick local iteration outside the full wrapper:
 
 ```bash
 python3 scripts/report/extract_results.py
-python3 scripts/report/extract_results.py --latex > analysis/report/table_results.tex
+python3 scripts/report/extract_results.py --latex > results/reports/tables/table_results.tex
 ```
 
 ## 7. Quick Checks

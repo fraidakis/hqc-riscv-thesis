@@ -299,7 +299,7 @@ whether a rerun with mixed benchmark-set handling changes the crossover story.
 1. Re-run the hybrid track using the same underlying hybrid implementation but
    preserve it as a separate benchmark set in the reporting pipeline.
 2. Keep the benchmark-set naming stable so the result remains reproducible in
-   `analysis/report/` and later thesis tables.
+   `results/reports/` and later thesis tables.
 3. Compare the alternate benchmark set against the original `hybrid_zbc`
    measurements and against the scalar winner `polymul_zbc`.
 4. Use this track as a guard against reporting artifacts: if the conclusions

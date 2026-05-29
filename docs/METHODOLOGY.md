@@ -210,12 +210,12 @@ analogue data as a conservative lower bound.
 # Polymul micro-bench (20–40 min for HQC-128)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build/spike-probe/bench_polymul_hqc128_karatsuba_ref.elf \
-  > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref_polymul.csv &
+  > results/simulation/benchmarks/components/poly_mul/scalar_ref/hqc128_karatsuba_ref_polymul.csv &
 
 # Full KEM bench (2–5 h, run at phase milestones)
 nohup $RISCV/bin/spike --isa=rv64gcv_zbc_zbb_zbkb_zvbc \
     build/spike-probe/bench_hqc128_karatsuba_ref.elf \
-  > analysis/benchmarks/baseline_ref/hqc128_karatsuba_ref.csv &
+  > results/simulation/benchmarks/components/poly_mul/scalar_ref/hqc128_karatsuba_ref.csv &
 
 # Instruction histogram (wrapper; direct spike --histogram is broken):
 scripts/bench/run_profile.sh --histogram --variant karatsuba_ref --wait
@@ -243,7 +243,7 @@ latency=1, throughput=1). Interpret output as a **theoretical lower-bound IPC**
 ```bash
 # Analyse the Zvbc hot loop
 ./scripts/verify/run_mca.sh src/poly_mul/fafft_zvbc/fafft_vclmul.c 128
-# Report: analysis/llvm_mca/reports/fafft_vclmul_mca.txt
+# Report: results/reports/llvm_mca/fafft_vclmul_mca.txt
 ```
 
 ### 13.3 QEMU — rank 3 (correctness only, NOT for benchmarking)

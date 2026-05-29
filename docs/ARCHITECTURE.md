@@ -30,7 +30,7 @@ flowchart LR
 
   A1[scripts/implemented_variants.txt] --> A
   B1[scripts/test/run_kat.sh] --> B
-  C1[analysis/benchmarks/*] --> C
+  C1[results/*] --> C
   D1[scripts/report/* + docs/figures/*] --> D
 ```
 
@@ -105,11 +105,13 @@ hqc-riscv/
 │   ├── debug/
 │   └── report/
 │
-├── analysis/                        # Benchmark artifacts, CT outputs, MCA reports, summaries
-│   ├── benchmarks/
+├── results/                         # Benchmark artifacts, CT outputs, reports, summaries
+│   ├── simulation/
+│   │   ├── benchmarks/
+│   │   └── profiling/
+│   ├── hardware/
 │   ├── ct_verify/
-│   ├── llvm_mca/
-│   └── report/
+│   └── reports/
 │
 ├── docs/                            # Methodology, runbook, plan, figures
 │   ├── ARCHITECTURE.md
@@ -413,7 +415,7 @@ hqc-riscv/
 #### [scripts/report/parse_commits.py](../scripts/report/parse_commits.py)
 - **Usage:** Python script parsing Spike `--log-commits` trace output into aggregated instruction statistics. Extracts opcode frequencies, identifies hot loops, and generates instruction-mix CSV files keyed by opcode category.
 - **Why:** Raw Spike commit logs are megabytes of per-instruction lines; this script aggregates them into actionable opcode counts for thesis instruction-mix analysis and bottleneck identification.
-- **Where:** Called after `sim/spike/run.sh --profile` produces a trace. Output feeds into [analysis/benchmarks/instruction_mix.csv](../analysis/benchmarks/instruction_mix.csv) and report generation.
+- **Where:** Called after `sim/spike/run.sh --profile` produces a trace. Output feeds into [results/simulation/benchmarks/instruction_mix.csv](../results/simulation/benchmarks/instruction_mix.csv) and report generation.
 
 #### [scripts/bench/run_benchmarks.sh](../scripts/bench/run_benchmarks.sh)
 - **Usage:** Unified benchmark launcher for sequential isolated runs (`--isolated`, optionally `--kem`) that feed canonical benchmark CSVs.
@@ -515,7 +517,7 @@ hqc-riscv/
 #### [scripts/bench/compare_compilers.sh](../scripts/bench/compare_compilers.sh)
 - **Usage:** Runs benchmark batches under different compilers (Clang vs. GCC) and aggregates outputs for compiler-effect analysis. Builds and runs variants with each toolchain in separate build directories.
 - **Why:** Separates algorithmic innovation from compiler codegen effects. Enables comparison of optimization quality between Clang and GCC.
-- **Where:** Writes comparison artifacts under [analysis/benchmarks/](../analysis/benchmarks/) for cross-compiler analysis.
+- **Where:** Writes comparison artifacts under [results/simulation/benchmarks/](../results/simulation/benchmarks/) for cross-compiler analysis.
 
 #### [scripts/bench/lib_bench.sh](../scripts/bench/lib_bench.sh)
 - **Usage:** Shared shell utility library containing common functions for bench orchestration: environment setup, logging, PID management, error handling.
@@ -540,7 +542,7 @@ hqc-riscv/
 #### [scripts/bench/run_benchmarks.sh](../scripts/bench/run_benchmarks.sh)
 - **Usage:** Unified benchmark launcher for isolated runs (`--isolated`, optionally `--kem`) across selected levels and variants.
 - **Why:** Provides a stable benchmark primitive used directly by developers and by higher-level stateless wrappers.
-- **Where:** Produces CSV/log artifacts under [analysis/benchmarks/isolated/](../analysis/benchmarks/isolated/). Used by benchmark campaigns and report generation.
+- **Where:** Produces CSV/log artifacts under [results/simulation/benchmarks/components/](../results/simulation/benchmarks/components/). Used by benchmark campaigns and report generation.
 
 #### [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh)
 - **Usage:** Entry script for constant-time verification checks. Runs ctgrind-based taint analysis or dudect statistical timing tests on KEM implementations and exits non-zero on CT violations.
@@ -590,17 +592,17 @@ hqc-riscv/
 #### [scripts/report/extract_results.py](../scripts/report/extract_results.py#L1)
 - **Usage:** Aggregates raw benchmark CSV files into normalized tables and summary artifacts. Computes speedup ratios relative to the `karatsuba_ref` baseline, generates formatted Markdown summaries and LaTeX tables for thesis inclusion.
 - **Why:** Converts run logs into thesis/report-ready result forms, enabling reproducible table generation from updated benchmark data.
-- **Where:** Called by [scripts/report/gen_report.sh](../scripts/report/gen_report.sh). Output stored in [analysis/report/](../analysis/report/).
+- **Where:** Called by [scripts/report/gen_report.sh](../scripts/report/gen_report.sh). Output stored in [results/reports/](../results/reports/).
 
 #### [scripts/report/generate_instruction_mix.py](../scripts/report/generate_instruction_mix.py)
 - **Usage:** Produces instruction-mix CSVs from parsed Spike trace data. Aggregates opcode counts per category (clmul, vxor, load, store, etc.) and computes percentages.
 - **Why:** Standardizes instruction-category metrics across campaigns for use in thesis methodology and bottleneck analysis.
-- **Where:** Used in [analysis/report/](../analysis/report/) instruction-mix pipelines.
+- **Where:** Used in [results/reports/](../results/reports/) instruction-mix pipelines.
 
 #### [scripts/report/gen_report.sh](../scripts/report/gen_report.sh)
 - **Usage:** End-to-end report orchestration script. Collects all benchmark CSV files from the current analysis corpus, calls `scripts/report/extract_results.py`, and produces markdown summaries and LaTeX tables.
 - **Why:** Creates reproducible markdown/latex outputs from the latest benchmark corpus without manual table editing.
-- **Where:** Run after benchmark campaigns: `./scripts/report/gen_report.sh`. Outputs written to [analysis/report/](../analysis/report/).
+- **Where:** Run after benchmark campaigns: `./scripts/report/gen_report.sh`. Outputs written to [results/reports/](../results/reports/).
 
 #### [scripts/report/plot_complexity.py](../scripts/report/plot_complexity.py)
 - **Usage:** Generates complexity/performance visualizations from collected data. Plots instruction counts vs. security level, variant speedups, and algorithmic scaling curves.
@@ -626,7 +628,7 @@ hqc-riscv/
 #### [docs/METHODOLOGY.md](../docs/METHODOLOGY.md#L1)
 - **Usage:** Formal measurement methodology for benchmark tools, metrics interpretation, and statistical justification. Explains: why retired instruction count is the primary metric (not wall-clock), the CPI dilemma resolution via instruction mix + LLVM-MCA, tool ranking (Spike ISS for reference, QEMU for functional tests, RTL for cycle-accurate bounds). Cites relevant literature (Zhang et al., TCHES 2025).
 - **Why:** Defends reproducibility and correctness of thesis-level claims. Provides the methodological foundation for all performance conclusions.
-- **Where:** Referenced by analysis/report documents and thesis material. Required reading for result interpretation.
+- **Where:** Referenced by results/reports documents and thesis material. Required reading for result interpretation.
 
 #### [docs/PLAN.md](../docs/PLAN.md)
 - **Usage:** Milestone and phase roadmap with optimization priorities and progression criteria. Defines phase 0–3+ sequencing, target speedups per phase, and pass/fail gates. Links each phase to corresponding prompts in [docs/prompts/](./prompts/).
@@ -713,7 +715,7 @@ hqc-riscv/
 #### [.github/workflows/ct-verify.yml](../.github/workflows/ct-verify.yml)
 - **Usage:** Dedicated workflow for constant-time verification tasks. Runs ctgrind and dudect analyses on KEM implementations and reports violations or passes.
 - **Why:** Ensures side-channel checks are continuously enforced, preventing CT regressions during optimization work.
-- **Where:** Executes [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh) and stores verification outputs in [analysis/ct_verify/](../analysis/ct_verify/).
+- **Where:** Executes [scripts/ci/check_ct.sh](../scripts/ci/check_ct.sh) and stores verification outputs in [results/ct_verify/](../results/ct_verify/).
 
 #### [.github/workflows/kat.yml](../.github/workflows/kat.yml)
 - **Usage:** KAT matrix workflow spanning levels/variants with a QEMU-default path and optional Spike fallback coverage.
@@ -730,9 +732,8 @@ hqc-riscv/
 - **Why:** Guards against silent compiler fallback from target opcodes or ISA string mismatches that would cause runtime traps.
 - **Where:** Runs [scripts/ci/check_opcodes.sh](../scripts/ci/check_opcodes.sh) and [scripts/ci/check_isa_string.sh](../scripts/ci/check_isa_string.sh) in CI jobs.
 
-### Analysis and Vendor Notes
-- [analysis/benchmarks](../analysis/benchmarks): Generated benchmark corpus (canonical runs, scalar/vector campaigns, profiling and compiler comparisons). High-churn artifacts; per-file enumeration is avoided here. Subdirectories track results per phase (phase0/, phase1a/, phase1b/, phase1c/, phase1plus/, phase2/, phase3b/). Key files: `hqc{128,192,256}_{variant}_{polymul|kem}_N1.csv`, `*.log` output, `pids.txt` process tracking.
-- [analysis/ct_verify](../analysis/ct_verify): Constant-time verification outputs and summaries from ctgrind/dudect-style workflows. Subdirectories: `ctgrind/` (taint-tracking outputs), `dudect/` (statistical timing analysis). Artifacts produced by CI workflows and manual verification runs.
-- [analysis/llvm_mca](../analysis/llvm_mca): Generated MCA reports used to complement instruction-count results with microarchitectural throughput/latency estimates. Key files: `reports/gf2x_*.s` assembly inputs, `reports/*_mca.txt` LLVM-MCA outputs. Execution script moved to [scripts/verify/run_mca.sh](../scripts/verify/run_mca.sh).
-- [analysis/report](../analysis/report): Aggregated scoreboards, markdown summaries, and latex table artifacts produced by report scripts. Key files: `report_YYYY-MM-DD.md` dated summaries, `table_results_YYYY-MM-DD.tex` thesis-ready tables. Generated by [scripts/report/gen_report.sh](../scripts/report/gen_report.sh).
+### Results and Vendor Notes
+- [results/](../results/): Generated benchmark corpus, profiling data, CT verification outputs, and report artifacts. Organized by platform (simulation/hardware), category (benchmarks/profiling), and variant. Key subdirectories: `simulation/benchmarks/components/` (polymul/keccak/decode CSVs), `simulation/profiling/` (traces/cpi/cache/mem_access/histograms), `hardware/benchmarks/` (kem/components), `ct_verify/` (valgrind_ct/dudect), `reports/` (figures/tables/scoreboards/variants/summaries).
+- [results/ct_verify](../results/ct_verify): Constant-time verification outputs and summaries from ctgrind/dudect-style workflows. Subdirectories: `valgrind_ct/` (taint-tracking outputs), `dudect/` (statistical timing analysis). Artifacts produced by CI workflows and manual verification runs.
+- [results/reports](../results/reports): Aggregated scoreboards, markdown summaries, figures, and variant reports produced by report scripts. Key subdirectories: `summaries/` (speedup reports), `variants/` (per-variant L128 reports), `figures/` (charts/plots), `scoreboards/`. Generated by [scripts/report/gen_report.sh](../scripts/report/gen_report.sh).
 - [vendor/hqc-ref](../vendor/hqc-ref): Upstream HQC reference implementation (git submodule pinned to v5.0.0). Provides invariant cryptographic skeleton and NIST KAT vectors. Key files: `src/common/*.c` (FO transform, memset, parsing), `src/ref/*.c` (baseline Karatsuba, Reed-Muller/Solomon reference decoders), `lib/fips202/fips202.c` (reference Keccak), `KAT/hqc-{1,3,5}/PQCkemKAT_*.rsp` (NIST vectors). Deeper internals documented upstream; local documentation focuses on integration points where variants replace baseline code.
