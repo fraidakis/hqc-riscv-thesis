@@ -1,7 +1,0 @@
-# date: 2026-05-13 13:34
-# commit: dc635a5
-# variant: fafft_zbc
-level,op,instructions,codesize
-128,keypair,821185,32476
-128,encaps,1564698,32476
-128,decaps,3299318,32476

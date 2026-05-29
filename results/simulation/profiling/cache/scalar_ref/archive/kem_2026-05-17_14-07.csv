@@ -1,0 +1,8 @@
+# date: 2026-05-17 14:07
+# commit: 35ceed7
+# variant: ref_scalar
+# cache_config: 512:8:64
+level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+128,1356,84,1272,129,373279822,237623983,46870833,31024255
+192,3286,276,3010,882,1124636411,720224971,140947689,93705919
+256,7808,1078,6730,3970,2809628946,1825178414,351835590,234044089

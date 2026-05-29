@@ -1,0 +1,8 @@
+# date: 2026-05-19 11:21
+# commit: 3bd8e14
+# variant: ref_vector
+# cache_config: 512:8:64
+level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+128,1374,105,1269,130,373249582,237250571,46894623,32212034
+192,3354,294,3060,910,1125116449,719596503,141036298,97403839
+256,7984,1156,6828,4086,2810292940,1824060598,351945905,240798632

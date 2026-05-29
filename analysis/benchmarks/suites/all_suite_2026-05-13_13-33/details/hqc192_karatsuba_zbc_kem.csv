@@ -1,7 +1,0 @@
-# date: 2026-05-13 13:34
-# commit: dc635a5
-# variant: karatsuba_zbc
-level,op,instructions,codesize
-192,keypair,3772998,33414
-192,encaps,7292940,33414
-192,decaps,12041076,33414

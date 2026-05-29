@@ -1,0 +1,8 @@
+# date: 2026-05-17 14:13
+# commit: 35ceed7
+# variant: karatsuba_rvv
+# cache_config: 512:8:64
+level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+128,1267,100,1167,112,13108119,6354767,1942337,984078
+192,3052,280,2772,777,31066816,17451903,4384898,2483234
+256,6868,1020,5848,3262,59857145,34670048,8307640,4826798

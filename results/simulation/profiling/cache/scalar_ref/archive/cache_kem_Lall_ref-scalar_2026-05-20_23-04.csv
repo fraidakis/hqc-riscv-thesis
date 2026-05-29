@@ -1,0 +1,8 @@
+# date: 2026-05-20 23:04
+# commit: a96a6ff
+# variant: ref_scalar
+# cache_config: 512:8:64
+level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
+128,1368,89,1279,134,372778750,237238975,46808199,30976101
+192,3338,297,3041,909,1123678443,719469355,140827943,93611439
+256,7736,1135,6601,3880,2808152658,1824016558,351651057,233898829
