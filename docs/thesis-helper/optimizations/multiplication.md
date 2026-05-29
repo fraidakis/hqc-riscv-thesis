@@ -38,7 +38,7 @@ targeting a different subset of the RISC-V ISA extension landscape:
 | Track | Label | ISA Extensions | Dominant Technique |
 |-------|-------|----------------|-------------------|
 | A | `karatsuba_zbc` | Zbc, Zbb | Scalar Karatsuba with `clmul`/`clmulh` leaf |
-| B | `karatsuba_rvv` | RVV 1.0 (no crypto) | RVV-assisted combine and data movement |
+| B | `karatsuba_rvv` | RVV 1.0 (no crypto) | Direct-write combine with overlap-save, inlined RVV ops |
 | C | `karatsuba_zvbc` | Zvbc + V | Vector carry-less multiply leaf |
 
 ---
@@ -90,12 +90,17 @@ resolved at compile time. The generated functions (`kmul_277`, `kmul_561`,
 and recursion overhead. The `vect_mul` entry point dispatches directly to the
 appropriate root via a compile-time `switch` on `VEC_N_SIZE_64`.
 
-**Phase 6 — RVV Combine Vectorisation (Track B divergence).**
-Track B forked from the Track A scalar champion and replaced the four-way
-unrolled scalar combine loops with RVV vector load/XOR/store sequences. Three
-helper functions (`rvv_copy_u64`, `rvv_xor3_u64`, `rvv_zero_u64`) encapsulate
-the vectorised memory operations at LMUL settings chosen to balance register
-pressure against throughput.
+**Phase 6 — RVV Direct-Write and Overlap-Save Combine (Track B divergence).**
+Track B forked from the Track A scalar champion and introduced a direct-write
+discipline: the $z_0$ and $z_2$ child multiplications write their results
+directly into the output buffer $r$, eliminating the two full-array copy loops
+that previously dominated the combine step. An overlap-save strategy resolves
+the resulting aliasing hazard by saving the overlap region to scratch before
+the combine XOR. All RVV operations are inlined directly into the generated
+`kmul_N` functions (via `--mode rvv_opt`) with per-operation LMUL tuning
+(LMUL=m8 for ta/tb preparation, LMUL=m4 for overlap save, LMUL=m2 for the
+four-source combine XOR). A vectorised modular reduction (`reduce_rvv`) at
+LMUL=m8 replaces the scalar `reduce()` loop.
 
 **Phase 7 — Vector Carry-Less Multiply Leaf (Track C divergence).**
 Track C replaced the scalar `clmul_leaf` with a `vclmul_leaf` function that
@@ -321,32 +326,131 @@ Karatsuba combine and data-movement operations differ.
 
 Same as Track A (Sections 3.1.1–3.1.3). The recursion structure, threshold,
 memset-free discipline, and AP-2 fixed-tree generation are shared. The code
-generator emits Track B combine code via `--mode rvv`.
+generator emits Track B combine code via `--mode rvv_opt`.
+
+#### 4.1.1 Direct-Write Discipline — Elimination of z0/z2 Copies (High Expected Impact)
+
+**Extensions used:** None (pure algorithmic restructuring of the Karatsuba combine step).
+
+In the original Track B implementation, the three child multiplications
+($z_0$, $z_2$, $z_{\text{mid}}$) were computed into temporary buffers within
+`tmp`, and then Loops 1 and 2 copied $z_0$ and $z_2$ into the output buffer
+$r$ using `rvv_copy_u64`. The direct-write discipline eliminates these two
+copy loops entirely by directing the child calls to write their results
+directly into the final output positions:
+
+- $z_0 = a_L \otimes b_L$ is written directly to $r[0 \ldots 2n_0{-}1]$.
+- $z_2 = a_H \otimes b_H$ is written directly to $r[2n_0 \ldots 2n_0{+}2n_1{-}1]$.
+- Only $z_{\text{mid}}$ remains in `tmp`, since it is consumed destructively
+  during the combine step.
+
+This restructuring eliminates two full-array RVV copy loops per recursion
+node across the entire tree. For HQC-128 ($N=277$), the recursion tree
+contains approximately 30 non-leaf nodes, each of which previously performed
+two copies of size $\sim n$ words — the direct-write discipline removes all
+of them.
+
+**Temporary buffer reduction:** Since $z_0$ and $z_2$ no longer occupy space
+in `tmp`, the per-level temporary footprint drops from $\sim 6n$ words
+(zmid + z0 + z2 + ta + tb) to $\sim 4n_0$ words (zmid + ta + tb). Summing
+the geometric series across recursion levels yields a total `tmp` requirement
+of $< 4N$ words, down from the previous multiplier. The `TMP_BUFFER_WORDS`
+constant is accordingly reduced to $4 \times \text{VEC\_N\_SIZE\_64}$.
+
+Stack budget verification (unreduced[$2N$] + tmp\_buf[$4N$], in bytes):
+- HQC-128 ($N=277$): $(554 + 1108) \times 8 = 13{,}296$ B $\approx 13.0$ KB
+- HQC-192 ($N=561$): $(1122 + 2244) \times 8 = 26{,}928$ B $\approx 26.3$ KB
+- HQC-256 ($N=901$): $(1802 + 3604) \times 8 = 43{,}248$ B $\approx 42.2$ KB
+
+All well under the 512 KB bare-metal stack limit.
+
+#### 4.1.2 Overlap-Save Combine Strategy (High Expected Impact)
+
+**Extensions used:** V (RVV 1.0) — `vle64.v`, `vse64.v` for the overlap save; no additional extensions.
+
+The direct-write discipline introduces an aliasing hazard in the combine step
+(Loop 3A): the XOR-accumulation $r[n_0{+}i] \mathrel{\oplus}= z_{\text{mid}}[i]
+\oplus z_0[i] \oplus z_2[i]$ reads $z_0[i]$ from $r[i]$ and $z_2[i]$ from
+$r[2n_0{+}i]$, but writes to $r[n_0{+}i]$ — which overlaps with both source
+regions when $i \geq n_0$ (for $z_0$) or when $n_0 + i \geq 2n_0$ (entering
+the $z_2$ region).
+
+The overlap-save strategy resolves this by:
+
+1. **Saving the overlap region:** Before the combine step, the $n_0$ words at
+   $r[n_0 \ldots 2n_0{-}1]$ (which contain the tail of $z_0$) are copied to
+   the `ta` scratch buffer using an inline RVV copy at LMUL=m4.
+
+2. **Splitting Loop 3A into two halves:**
+   - **First half** ($i \in [0, n_0)$): Reads $z_0[i]$ from $r[i]$ (safe —
+     source indices are strictly below the destination range $r[n_0 \ldots]$).
+   - **Second half** ($i \in [n_0, 2n_1)$): Reads $z_0[i]$ from the saved
+     `ta[i{-}n_0]` copy (safe — `ta` is a non-overlapping scratch buffer).
+
+3. **Loop 3B (odd-$n$ tail):** For odd-sized splits where $n_0 > n_1$, the
+   tail positions $r[n_0{+}2n_1 \ldots]$ are handled separately, reading
+   $z_0$ from `ta` and omitting the absent $z_2$ contribution.
+
+This approach preserves correctness without requiring any additional temporary
+buffers beyond the already-allocated `ta` (which is reused after the ta/tb
+XOR preparation is consumed by the $z_{\text{mid}}$ child call).
 
 ### 4.2 ISA-Level Optimizations
 
-#### 4.2.1 RVV Vectorised Combine Loops (Medium Expected Impact)
+#### 4.2.1 Inlined RVV Combine Operations with Tuned LMUL (Medium Expected Impact)
 
-**Extensions used:** V (RVV 1.0) — `vsetvl`, `vle64.v`, `vse64.v`, `vxor.vv`, `vmv.v.x`. No Zvbc or Zvbb.
+**Extensions used:** V (RVV 1.0) — `vsetvl`, `vle64.v`, `vse64.v`, `vxor.vv`. No Zvbc or Zvbb.
 
-The three combine loops in the Karatsuba assembly step are replaced by RVV
-helper functions that process multiple 64-bit words per vector instruction:
+The previous Track B implementation used three shared helper functions
+(`rvv_copy_u64`, `rvv_xor3_u64`, `rvv_xor_u64`) with fixed LMUL settings.
+The `rvv_opt` code generator now inlines all RVV operations directly into
+each generated `kmul_N` function, with LMUL settings tuned per operation
+based on the number of simultaneously-live vector register groups:
 
-- **`rvv_copy_u64`** (Loops 1 and 2): Uses `vle64.v` / `vse64.v` at LMUL=m4
-  to copy $2n_0$ or $2n_1$ words in $\lceil n / \text{VLMAX} \rceil$ iterations.
-  At VLEN=256 with LMUL=m4, each iteration processes 16 words.
+- **ta/tb XOR preparation** (LMUL=m8 for large nodes, LMUL=m4 for leaf-adjacent
+  nodes): Computes $t_a = a_L \oplus a_H$ and $t_b = b_L \oplus b_H$
+  simultaneously in a single loop, interleaving loads of both operand pairs.
+  At LMUL=m8 with VLEN=256, each iteration processes 32 words — covering the
+  full $n_1$ extent in 1–2 iterations for most tree levels.
 
-- **`rvv_xor3_u64`** (Loop 3): Loads four vectors (destination, $z_{\text{mid}}$,
-  $z_0$, $z_2$) at LMUL=m2, computes the three-way XOR, and stores the result.
-  LMUL=m2 was chosen to accommodate four simultaneous register groups (8
-  registers total) within the 32-register file. A `NULL` pointer sentinel for
-  $z_0$ handles the odd-$n$ tail where $z_0$ contributions are absent.
+- **Overlap save** (LMUL=m4): Copies $r[n_0 \ldots 2n_0{-}1]$ to `ta`. Only
+  two register groups are live (source, destination), so LMUL=m4 maximises
+  throughput without pressure.
 
-- **`rvv_zero_u64`**: Uses `vmv.v.x` (splat zero) + `vse64.v` at LMUL=m8 for
-  any residual bulk zeroing. At VLEN=256, this stores 32 words per iteration
-  versus one word per scalar store.
+- **Combine XOR (Loop 3A halves)** (LMUL=m2): Four source vectors are loaded
+  simultaneously (destination $r$, $z_{\text{mid}}$, $z_0$, $z_2$), requiring
+  four register groups. At LMUL=m2, each group occupies 2 registers (8 total),
+  fitting within the 32-register file with headroom for the accumulator.
 
-#### 4.2.2 Scalar Leaf Unchanged
+- **Loop 3B tail** (LMUL=m2): Same pattern as Loop 3A but without the $z_2$
+  source (only three loads), handling the 1–2 word odd-$n$ remainder.
+
+The inlining eliminates function-call overhead (argument setup, stack frame,
+return) at every recursion node and enables the compiler to perform
+cross-operation register allocation within each `kmul_N` body.
+
+#### 4.2.2 Vectorised Modular Reduction — `reduce_rvv` (Low Expected Impact)
+
+**Extensions used:** V (RVV 1.0) — `vsetvl`, `vle64.v`, `vse64.v`, `vsrl.vx`, `vsll.vx`, `vxor.vv`, `vmv.v.x`. No Zvbc or Zvbb.
+
+The final modular reduction $\text{unreduced}[0 \ldots 2N{-}1] \bmod (x^n - 1)$
+was previously performed by a scalar loop. The `reduce_rvv` function replaces
+it with an RVV strip-mining loop at LMUL=m8:
+
+For each strip of $\text{vl}$ words starting at position $i$:
+1. Load $a[i]$ (low half of unreduced product).
+2. Load $a[i + N - 1]$ and right-shift by $(n \bmod 64)$ bits → carries from
+   the high half.
+3. Load $a[i + N]$ and left-shift by $(64 - n \bmod 64)$ bits → continuation
+   carries.
+4. XOR all three vectors together and store to $o[i]$.
+5. Mask the final word: $o[N{-}1] \mathrel{\&}= \text{LAST\_WORD\_MASK}$.
+
+At VLEN=256 with LMUL=m8, each iteration processes 32 words, reducing the
+$N=277$ output in $\lceil 277/32 \rceil = 9$ iterations versus 277 scalar
+iterations.
+
+#### 4.2.3 Scalar Leaf Unchanged
 
 **Extensions used:** Zbc (`clmul`, `clmulh`) — identical to Track A; no vector instructions in the leaf path.
 
@@ -354,8 +458,18 @@ The `clmul`/`clmulh` leaf multiply cannot be vectorised without the Zvbc
 extension. Track B retains the identical scalar `clmul_leaf` and
 `clmul_leaf_n8` from Track A. This architectural constraint means that
 Track B's improvement over Track A is bounded by the fraction of total
-instructions spent in the combine loops — empirically a modest gain, since
-the leaf dominates.
+instructions spent in the combine and data-movement loops.
+
+#### 4.2.4 Aligned Buffer Declarations (Low Expected Impact)
+
+**Extensions used:** None (compiler attribute for memory alignment).
+
+The `unreduced` and `tmp_buf` stack arrays are declared with
+`__attribute__((aligned(32)))`, ensuring 256-bit alignment. This guarantees
+that all RVV vector loads and stores operate on naturally-aligned addresses,
+avoiding potential performance penalties from misaligned accesses on
+implementations that do not support efficient unaligned vector memory
+operations.
 
 ### 4.3 Micro-Level and Data-Layout Optimizations
 
@@ -364,11 +478,14 @@ and compile-time buffer layout are shared identically.
 
 ### 4.4 Track B Architectural Observation
 
-The empirical outcome of Track B confirmed a structural insight: when the
-leaf multiplier is the binding constraint (consuming the majority of total
-instructions), vectorising only the linear-cost combine loops yields
-diminishing returns. The combine loops are $O(n)$ per recursion level while
-the leaf is $O(n^2)$ per call; at the HQC parameter sizes, the leaf's
+The direct-write discipline with overlap-save significantly narrows the gap
+between Track B and Track A by eliminating the two dominant copy loops that
+previously constituted the bulk of Track B's non-leaf overhead. However, the
+fundamental architectural constraint remains: the scalar `clmul`/`clmulh`
+leaf is the binding constraint (consuming the majority of total instructions),
+and vectorising only the linear-cost combine and data-movement operations
+yields bounded returns. The combine loops are $O(n)$ per recursion level
+while the leaf is $O(n^2)$ per call; at the HQC parameter sizes, the leaf's
 quadratic cost dominates regardless of how efficiently the combines are
 executed. This observation motivated the transition to Track C, where the
 leaf itself is vectorised.
@@ -477,12 +594,14 @@ two result vectors (lo, hi) simultaneously. The combine helpers
 chosen to balance throughput against the number of simultaneously-live source
 vectors in the three-way XOR pattern.
 
-#### 5.4.2 Combine Loops — Same as Track B
+#### 5.4.2 Combine Loops — Same as Track B (Pre-Direct-Write)
 
-The Karatsuba combine loops use the same `rvv_copy_u64` and `rvv_xor3_u64`
-helpers as Track B (Section 4.2.1). The AP-2 generated tree for `--mode zvbc`
-emits these helpers at the combine sites while dispatching `vclmul_leaf` at
-the recursion leaves.
+The Karatsuba combine loops use `rvv_copy_u64` and `rvv_xor3_u64`
+helpers (the shared-function approach from Track B's earlier iteration).
+The AP-2 generated tree for `--mode zvbc` emits these helpers at the combine
+sites while dispatching `vclmul_leaf` at the recursion leaves. The direct-write
+discipline introduced in Track B's `--mode rvv_opt` has not yet been ported to
+Track C.
 
 ---
 
@@ -499,6 +618,8 @@ intuition based on hotspot proximity and algorithmic scope.
 | Word-granularity `clmul`/`clmulh` leaf (§3.1.1) | A, B | Zbc | Eliminates the bit-level inner loop entirely; two-order-of-magnitude leaf reduction |
 | Memset-free output discipline (§3.1.2) | A, B, C | None (algorithmic) | Removes the single largest hotspot (23% of baseline); affects every recursion level |
 | Fixed-size recursion tree — AP-2 (§3.1.3) | A, B, C | None (code generation) | Eliminates all runtime dispatch, threshold checks, and dynamic pointer arithmetic |
+| Direct-write discipline — z0/z2 copy elimination (§4.1.1) | B | None (algorithmic) | Eliminates two full-array copy loops per recursion node across the entire tree |
+| Overlap-save combine strategy (§4.1.2) | B | V | Resolves aliasing from direct-write without additional buffer allocation; enables safe in-place combine |
 | Vector carry-less multiply leaf — `vclmul.vv` (§5.2.1) | C | Zvbc, V | Collapses the $O(n^2)$ inner loop to $O(n^2/\text{VLMAX})$; vectorises the binding constraint |
 | Assign-first-write in vector leaf — C-3a (§5.2.2) | C | V | Eliminates the dominant `memset` from the vector leaf path |
 
@@ -509,7 +630,7 @@ intuition based on hotspot proximity and algorithmic scope.
 | Two-way software pipeline + hi⊕lo fusion (§3.3.1) | A, B | Zbc | Hides load-use latency; reduces store count per pair |
 | Four-way inner-loop unroll (§3.3.2) | A, B | None (scheduling) | Halves branch count in the leaf's hottest loop |
 | Fixed-size leaf specialisation — `clmul_leaf_n8` (§3.3.3) | A, B | Zbc | Eliminates all loop control from the dominant leaf size |
-| RVV vectorised combine loops (§4.2.1) | B, C | V | Reduces combine overhead by processing 8–16 words per instruction |
+| Inlined RVV combine with tuned LMUL (§4.2.1) | B | V | Eliminates function-call overhead; per-operation LMUL tuning maximises throughput within register budget |
 | Four-way outer-loop unroll in `vclmul_leaf` (§5.3.1) | C | Zvbc, V | Amortises $b$-vector load; saturates vector multiply pipeline |
 | Threshold sweep — V2-A1 (§3.2.2) | A, B, C | None (parameter tuning) | Confirms optimal recursion depth for the target cost model |
 | Compile-time buffer layout (§3.4.1) | A, B, C | None (code generation) | Eliminates per-node pointer arithmetic across the tree |
@@ -521,6 +642,8 @@ intuition based on hotspot proximity and algorithmic scope.
 |---|---|---|---|
 | Dead-code ablation (§3.3.4) | A, B | None (source cleanup) | Removes one comparison per leaf call; marginal |
 | Four-way unrolled combine loops in generated tree (§3.4.2) | A | None (loop unrolling) | Reduces branch count in linear-cost loops; dominated by leaf |
+| Vectorised modular reduction — `reduce_rvv` (§4.2.2) | B | V | Replaces scalar reduction loop with LMUL=m8 vector strip-mining; bounded by single invocation per `vect_mul` call |
+| Aligned buffer declarations (§4.2.4) | B | None (alignment attribute) | Ensures naturally-aligned vector accesses; marginal on implementations with efficient unaligned support |
 | Upper-half initialisation validation (§5.3.2) | C | V | Confirmed existing pattern is optimal; no change applied |
 
 ---

@@ -91,8 +91,8 @@
 * `notes/notes_detailed.md` (Discovery 6) - **Research Notes** - "polynomial multiplication was originally about 96% of decaps", pie chart data source
 * `src/hqc.c` - **Source Code** - Shows which kernels (vect_mul, hash_*, code_decode) are called in each KEM operation
 * `scripts/report/generate_pie_charts.py` - **Script** - Generates PDF pie charts showing instruction breakdown by category from trace hotspot CSVs; produces the §2.2.3 cost distribution pie chart
-* `analysis/profiles/traces/scalar/ref_scalar/` - **Data Report** - Trace hotspot CSVs consumed by the pie chart generator
-* `analysis/reports/charts/pie_ref-scalar.pdf` - **Figure** - Pre-rendered pie chart of reference scalar HQC instruction breakdown (polymul ~96%, Keccak, decode, misc)
+* `results/simulation/profiling/traces/scalar_ref/` - **Data Report** - Trace hotspot CSVs consumed by the pie chart generator
+* `results/reports/figures/pie_ref-scalar.pdf` - **Figure** - Pre-rendered pie chart of reference scalar HQC instruction breakdown (polymul ~96%, Keccak, decode, misc)
 
 ### §2.3 Πολυωνυμικός Πολλαπλασιασμός σε GF(2)[x]
 
@@ -189,32 +189,56 @@
 ### §4.1 Υλοποιήσεις HQC σε RISC-V
 
 * `notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Cross-architecture comparison data, prior RISC-V HQC work analysis
-* `docs/literature/RISC-V/!Optimizing HQC using Frobenius Additive FFT on a RISC-V-based SoC - Paper.pdf` - **Literature** - Bjørndal et al. FAFFT RISC-V SoC paper (canonical RISC-V HQC prior work)
-* `docs/literature/RISC-V/!Optimizing HQC using Frobenius Additive FFT on a RISC-V-based SoC - Presentation.pdf` - **Literature** - Companion presentation slides
-* `docs/literature/RISC-V/!!!secuelec_rennes_phoenix_prez.pdf` - **Literature** - PHOENIX crypto-agile HW-sharing presentation
-* `docs/literature/RISC-V/Code-based_Cryptography_in_IoT_A_HW_SW_Co-Design_of_HQC.pdf` - **Literature** - HQC HW/SW co-design IoT paper
+* `docs/references/markdown/riscv/optimizing-hqc-using-frobenius-additive-fft-on-a-risc-v-based-soc-paper.md` - **Literature** - Ras et al. 2026: FAFFT on CV32E40P RISC-V SoC, ANDROMEDA HW accelerator, 3.52×–8.08× SW, 9.64×–19.22× HW+SW
+* `docs/references/markdown/riscv/optimizing-hqc-using-frobenius-additive-fft-on-a-risc-v-based-soc-presentation.md` - **Literature** - Companion presentation slides for Ras et al. 2026
+* `docs/references/markdown/riscv/code-based-cryptography-in-iot-a-hw-sw-co-design-of-hqc.md` - **Literature** - Schöffel et al. 2022: First HW/SW co-design of HQC on RISC-V (RV32IC), sparse×dense (old spec)
+* `docs/references/markdown/riscv/secuelec-rennes-phoenix-prez.md` - **Literature** - PHOENIX crypto-agile presentation (CEA-Leti)
+* `docs/references/markdown/other-platforms/phoenix-crypto-agile-hardware-sharing.md` - **Literature** - PHOENIX: Crypto-agile ML-KEM+HQC HW sharing, SuperButterfly unit, FAFFT+NTT
+* `docs/references/pdf/riscv/!Optimizing HQC using Frobenius Additive FFT on a RISC-V-based SoC - Paper.pdf` - **Literature** - Ras et al. FAFFT RISC-V SoC paper (PDF source)
+* `docs/references/pdf/riscv/!Optimizing HQC using Frobenius Additive FFT on a RISC-V-based SoC - Presentation.pdf` - **Literature** - Companion presentation slides (PDF source)
+* `docs/references/pdf/riscv/!!!secuelec_rennes_phoenix_prez.pdf` - **Literature** - PHOENIX crypto-agile HW-sharing presentation (PDF source)
+* `docs/references/pdf/riscv/Code-based_Cryptography_in_IoT_A_HW_SW_Co-Design_of_HQC.pdf` - **Literature** - HQC HW/SW co-design IoT paper (PDF source)
 
 ### §4.2 Υλοποιήσεις HQC σε x86 και ARM
 
-* `docs/literature/Other/OptHQC Optimize HQC for High-Performance.pdf` - **Literature** - OptHQC x86/AVX2 paper (state-of-the-art x86 HQC)
-* `docs/literature/Other/!!!!!!!!! Faster GF(2)[x] polynomial multiplication using SIMD instructions.pdf` - **Literature** - SIMD GF(2)[x] multiplication techniques (vpclmulqdq context)
-* `docs/literature/Other/!Efficient Polynomial Multiplication for HQC on ARM Cortex-M4.pdf` - **Literature** - Cortex-M4 polymul optimization (FAFFT-CRT, radix-16+Karatsuba)
-* `docs/literature/Other/!BIKE optimization for the Intel Haswell and ARM Cortex-M4.pdf` - **Literature** - BIKE comparator workload on Haswell/M4
-* `docs/literature/Other/Accelerating HQC with Additive FFT.pdf` - **Literature** - Additive FFT acceleration approach analysis
-* `docs/literature/Other/A High Efficiency Hardware Design for the Post-Quantum KEM HQC.pdf` - **Literature** - HQC dedicated HW design contrast point
-* `docs/literature/Other/Efficient Hardware Implementation of Constant Time Sampling for HQC.pdf` - **Literature** - Sampling HW reference for §10.3 future-CT discussion
-* `docs/literature/Other/LEAP_Lightweight_and_Efficient_Accelerator_for_Sparse_Polynomial_Multiplication_of_HQC.pdf` - **Literature** - LEAP sparse-polymul accelerator (sparse×dense regime — superseded by NIST 2024 spec change)
-* `docs/literature/PHOENIX - Crypto-Agile Hardware Sharing.pdf` - **Literature** - PHOENIX FPGA crypto-agile sharing paper
-* `docs/literature/HQC Optimization Benchmarks Research.txt` - **Literature** - Aggregated benchmark numbers from published HQC implementations
+* `docs/references/markdown/other-platforms/opthqc-optimize-hqc-for-high-performance.md` - **Literature** - OptHQC: x86 AVX2, sparse×dense + threshold scheduling, 55% overall speedup
+* `docs/references/markdown/other-platforms/efficient-polynomial-multiplication-for-hqc-on-arm-cortex-m4.md` - **Literature** - Jang et al. 2026: Cortex-M4 FAFFT-CRT/Karatsuba/radix-16, 33.4% polymul reduction
+* `docs/references/markdown/other-platforms/faster-gf2x-polynomial-multiplication-using-simd-instructions.md` - **Literature** - SIMD GF(2)[x] multiplication techniques (vpclmulqdq)
+* `docs/references/markdown/other-platforms/accelerating-hqc-with-additive-fft.md` - **Literature** - Additive FFT acceleration analysis
+* `docs/references/markdown/other-platforms/bike-optimization-for-the-intel-haswell-and-arm-cortex-m4.md` - **Literature** - Chen et al. 2021: FAFFT in BIKE (Haswell/M4)
+* `docs/references/markdown/other-platforms/a-high-efficiency-hardware-design-for-the-post-quantum-kem-hqc.md` - **Literature** - Full HW HQC design (contrast point)
+* `docs/references/markdown/other-platforms/efficient-hardware-implementation-of-constant-time-sampling-for-hqc.md` - **Literature** - CT sampling HW (future work reference)
+* `docs/references/markdown/other-platforms/leap-lightweight-and-efficient-accelerator-for-sparse-polynomial-multiplication-.md` - **Literature** - LEAP sparse polymul accelerator (obsolete with 2024 spec change)
+* `docs/references/pdf/other-platforms/OptHQC Optimize HQC for High-Performance.pdf` - **Literature** - OptHQC x86/AVX2 paper (PDF source)
+* `docs/references/pdf/other-platforms/!!! Faster GF(2)[x] polynomial multiplication using SIMD instructions.pdf` - **Literature** - SIMD GF(2)[x] multiplication techniques (PDF source)
+* `docs/references/pdf/other-platforms/!Efficient Polynomial Multiplication for HQC on ARM Cortex-M4.pdf` - **Literature** - Cortex-M4 polymul optimization (PDF source)
+* `docs/references/pdf/other-platforms/!BIKE optimization for the Intel Haswell and ARM Cortex-M4.pdf` - **Literature** - BIKE comparator workload on Haswell/M4 (PDF source)
+* `docs/references/pdf/other-platforms/Accelerating HQC with Additive FFT.pdf` - **Literature** - Additive FFT acceleration approach analysis (PDF source)
+* `docs/references/pdf/other-platforms/A High Efficiency Hardware Design for the Post-Quantum KEM HQC.pdf` - **Literature** - HQC dedicated HW design contrast point (PDF source)
+* `docs/references/pdf/other-platforms/Efficient Hardware Implementation of Constant Time Sampling for HQC.pdf` - **Literature** - Sampling HW reference for §10.3 future-CT discussion (PDF source)
+* `docs/references/pdf/other-platforms/LEAP_Lightweight_and_Efficient_Accelerator_for_Sparse_Polynomial_Multiplication_of_HQC.pdf` - **Literature** - LEAP sparse-polymul accelerator (PDF source)
+* `docs/references/pdf/other-platforms/PHOENIX - Crypto-Agile Hardware Sharing.pdf` - **Literature** - PHOENIX FPGA crypto-agile sharing paper (PDF source)
+* `docs/references/notes/HQC Optimization Benchmarks Research.txt` - **Literature** - Aggregated benchmark numbers from published HQC implementations
 
 ### §4.3 Γενικότερες PQC Εργασίες στο RISC-V
 
 * `notes/PQC-Algorithms.txt` - **Research Notes** - "Compatibility. Previous works focused on older HQC versions"
+* `docs/references/markdown/prior-theses/1-dimitrios-konstantinidis-10106.md` - **Literature** - Konstantinidis 2025 (AUTh): llama.cpp vectorization for RISC-V Vitruvius+ RVV
+* `docs/references/markdown/prior-theses/2-chaseropoulos-grigorios.md` - **Literature** - Chaseropoulos 2025 (AUTh): Microsoft SEAL BFV on RISC-V RVV, NTT vectorization
+* `docs/references/markdown/prior-theses/3-evelzaman-panagiotis.md` - **Literature** - Evelzaman 2025 (AUTh): Homomorphic Encryption on RISC-V Spike, Zkr extensions
 
 ### §4.4 Αποτίμηση Κενού και Τοποθέτηση Παρούσας Εργασίας
 
 * `notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Evidence that no prior end-to-end RISC-V HQC implementation exists
 * `notes/PQC-Algorithms.txt` - **Research Notes** - Gap analysis: no Zbc/Zvbc exploitation in HQC literature
+* `docs/references/markdown/riscv/optimizing-hqc-using-frobenius-additive-fft-on-a-risc-v-based-soc-paper.md` - **Literature** - Gap evidence: Ras et al. uses FAFFT + custom HW (not pure SW, not ratified extensions)
+* `docs/references/markdown/riscv/code-based-cryptography-in-iot-a-hw-sw-co-design-of-hqc.md` - **Literature** - Gap evidence: Schöffel uses old spec + custom ISA (not ratified, not dense×dense)
+* `docs/references/markdown/other-platforms/phoenix-crypto-agile-hardware-sharing.md` - **Literature** - Gap evidence: PHOENIX uses custom HW coprocessor (not pure SW)
+* `docs/references/markdown/other-platforms/opthqc-optimize-hqc-for-high-performance.md` - **Literature** - Gap evidence: OptHQC targets x86 AVX2 (not RISC-V)
+* `docs/references/markdown/other-platforms/efficient-polynomial-multiplication-for-hqc-on-arm-cortex-m4.md` - **Literature** - Gap evidence: Jang et al. targets Cortex-M4 (not RISC-V, no clmul)
+* `docs/references/markdown/prior-theses/1-dimitrios-konstantinidis-10106.md` - **Literature** - Gap evidence: RVV methodology but not HQC/PQC code-based crypto
+* `docs/references/markdown/prior-theses/2-chaseropoulos-grigorios.md` - **Literature** - Gap evidence: RVV + lattice-based crypto but not code-based HQC
+* `docs/references/markdown/prior-theses/3-evelzaman-panagiotis.md` - **Literature** - Gap evidence: RISC-V crypto extensions but not HQC
 
 ---
 
@@ -248,11 +272,11 @@
 * `scripts/report/parse_histogram.py` - **Script** - Parses Spike PC histogram output into per-function instruction counts
 * `scripts/report/map_pcs.py` - **Script** - Maps program counter addresses to function names via DWARF debug symbols
 * `tests/report/cpi/conftest.py` - **Script** - pytest fixtures for the CPI reporting unit tests
-* `analysis/profiles/cpi/reports/` - **Data Report** - Generated CPI reports per security level with cycle estimates
-* `analysis/profiles/histograms/` - **Data Report** - PC histogram data for instruction mix analysis
-* `analysis/profiles/traces/` - **Data Report** - Spike instruction-trace dumps used for hot-path identification
-* `analysis/profiles/cache/` - **Data Report** - Cache simulation outputs (scalar/vector) used in CPI sensitivity discussion
-* `analysis/profiles/memory/` - **Data Report** - Memory access pattern profiles
+* `results/simulation/profiling/cpi/reports/` - **Data Report** - Generated CPI reports per security level with cycle estimates
+* `results/simulation/profiling/histograms/` - **Data Report** - PC histogram data for instruction mix analysis
+* `results/simulation/profiling/traces/` - **Data Report** - Spike instruction-trace dumps used for hot-path identification
+* `results/simulation/profiling/cache/` - **Data Report** - Cache simulation outputs (scalar/vector) used in CPI sensitivity discussion
+* `results/simulation/profiling/mem_access/` - **Data Report** - Memory access pattern profiles
 
 ### §5.4 Επαλήθευση Ορθότητας (KAT Tests)
 
@@ -300,11 +324,11 @@
 
 ### §5.7 Baseline Profiling
 
-* `analysis/benchmarks/isolated/scalar/ref_scalar/` - **Data Report** - Reference scalar baseline instret measurements per security level
-* `analysis/reports/ref_scalar_L128_report.md` - **Data Report** - Detailed profiling report for reference scalar HQC-128
-* `analysis/reports/ref_vector_L128_report.md` - **Data Report** - Detailed profiling report for reference vector HQC-128 (compiler auto-vectorization baseline)
-* `analysis/reports/charts/pie_ref-scalar.pdf` - **Figure** - Pie chart of reference scalar instruction breakdown (baseline denominator for all speedups)
-* `analysis/reports/charts/pie_ref-vector.pdf` - **Figure** - Pie chart of reference vector instruction breakdown (compiler auto-vectorization baseline)
+* `results/simulation/benchmarks/components/poly_mul/scalar_ref/` - **Data Report** - Reference scalar baseline instret measurements per security level
+* `results/reports/variants/scalar_ref_L128_report.md` - **Data Report** - Detailed profiling report for reference scalar HQC-128
+* `results/reports/variants/vector_ref_L128_report.md` - **Data Report** - Detailed profiling report for reference vector HQC-128 (compiler auto-vectorization baseline)
+* `results/reports/figures/pie_ref-scalar.pdf` - **Figure** - Pie chart of reference scalar instruction breakdown (baseline denominator for all speedups)
+* `results/reports/figures/pie_ref-vector.pdf` - **Figure** - Pie chart of reference vector instruction breakdown (compiler auto-vectorization baseline)
 * `notes/notes_detailed.md` (Discovery 6) - **Research Notes** - Baseline pie chart data: polymul ~96% of total instret
 
 ---
@@ -402,13 +426,13 @@
 
 ### §6.5 Αποτίμηση — Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση Polymul
 
-* `analysis/benchmarks/isolated/scalar/karatsuba_zbc/` - **Data Report** - Tier 1 polymul instret measurements
-* `analysis/benchmarks/isolated/vector/karatsuba_rvv/` - **Data Report** - Tier 2 polymul instret measurements
-* `analysis/benchmarks/isolated/vector/karatsuba_zvbc/` - **Data Report** - Tier 3 polymul instret measurements
-* `analysis/reports/charts/pie_karatsuba-zbc.pdf` - **Figure** - Pie chart showing Tier 1 profile redistribution after polymul optimization
-* `analysis/reports/charts/pie_karatsuba-rvv.pdf` - **Figure** - Pie chart showing Tier 2 profile redistribution after polymul optimization
-* `analysis/reports/charts/pie_karatsuba-zvbc.pdf` - **Figure** - Pie chart showing Tier 3 profile redistribution after polymul optimization
-* `analysis/reports/speedups.md` - **Data Report** - Computed speedup multipliers across all tiers and security levels
+* `results/simulation/benchmarks/components/poly_mul/scalar_Zb/` - **Data Report** - Tier 1 polymul instret measurements
+* `results/simulation/benchmarks/components/poly_mul/vector_rvv/` - **Data Report** - Tier 2 polymul instret measurements
+* `results/simulation/benchmarks/components/poly_mul/vector_Zvk/` - **Data Report** - Tier 3 polymul instret measurements
+* `results/reports/figures/pie_karatsuba-zbc.pdf` - **Figure** - Pie chart showing Tier 1 profile redistribution after polymul optimization
+* `results/reports/figures/pie_karatsuba-rvv.pdf` - **Figure** - Pie chart showing Tier 2 profile redistribution after polymul optimization
+* `results/reports/figures/pie_karatsuba-zvbc.pdf` - **Figure** - Pie chart showing Tier 3 profile redistribution after polymul optimization
+* `results/reports/summaries/speedups_simulation.md` - **Data Report** - Computed speedup multipliers across all tiers and security levels
 * `notes/notes_detailed.md` (Discovery 6) - **Research Notes** - Amdahl's law analysis: polymul reduction reveals Keccak/decode as new bottlenecks
 
 ---
@@ -531,10 +555,10 @@
 
 ### §7.5 Αποτίμηση — Τελικό Προφίλ μετά Βελτιστοποίηση Όλων των Πυρήνων
 
-* `analysis/benchmarks/isolated/keccak/` - **Data Report** - Keccak isolated benchmark CSVs (ref vs optimized)
-* `analysis/benchmarks/isolated/decode/` - **Data Report** - Decode isolated benchmark CSVs (ref vs rvv vs zvbc)
-* `analysis/reports/karatsuba_zvbc_L128_report.md` - **Data Report** - Full Tier 3 profiling report showing balanced final profile
-* `analysis/reports/charts/pie_karatsuba-zvbc.pdf` - **Figure** - Final Tier 3 pie chart showing balanced profile after all kernel optimizations (contrast with §2.2.3 baseline)
+* `results/simulation/benchmarks/components/keccak/` - **Data Report** - Keccak isolated benchmark CSVs (ref vs optimized)
+* `results/simulation/benchmarks/components/decode/` - **Data Report** - Decode isolated benchmark CSVs (ref vs rvv vs zvbc)
+* `results/reports/variants/vector_Zvk_L128_report.md` - **Data Report** - Full Tier 3 profiling report showing balanced final profile
+* `results/reports/figures/pie_karatsuba-zvbc.pdf` - **Figure** - Final Tier 3 pie chart showing balanced profile after all kernel optimizations (contrast with §2.2.3 baseline)
 
 ---
 
@@ -545,32 +569,32 @@
 #### §8.1.1 bench_mul — Πολυωνυμικός Πολλαπλασιασμός
 
 * `tests/bench/bench_mul.c` - **Source Code** - Polynomial multiply micro-benchmark: single vect_mul() call with dense/sparse inputs
-* `analysis/benchmarks/isolated/scalar/` - **Data Report** - Scalar polymul instret CSVs (ref_scalar, karatsuba_zbc)
-* `analysis/benchmarks/isolated/vector/` - **Data Report** - Vector polymul instret CSVs (ref_vector, karatsuba_rvv, karatsuba_zvbc)
+* `results/simulation/benchmarks/components/poly_mul/scalar_ref/` - **Data Report** - Scalar polymul instret CSVs (ref_scalar, karatsuba_zbc)
+* `results/simulation/benchmarks/components/poly_mul/` - **Data Report** - Vector polymul instret CSVs (ref_vector, karatsuba_rvv, karatsuba_zvbc)
 
 #### §8.1.2 bench_keccak — Πλήρες Decaps Keccak Call Pattern
 
 * `tests/bench/bench_keccak.c` - **Source Code** - Full decaps Keccak call pattern benchmark: ~6 XOF/hash initializations, ~30-50 permutations
-* `analysis/benchmarks/isolated/keccak/` - **Data Report** - Reference and optimized (Zvbb x2 SoA) Keccak instret CSVs per security level
+* `results/simulation/benchmarks/components/keccak/` - **Data Report** - Reference and optimized (Zvbb x2 SoA) Keccak instret CSVs per security level
 
 #### §8.1.3 bench_decode — Συνδυασμένη Αποκωδικοποίηση RM+RS
 
 * `tests/bench/bench_decode.c` - **Source Code** - Combined RM+RS decode benchmark with correct buffer sizes
-* `analysis/benchmarks/isolated/decode/` - **Data Report** - Reference / RVV / Zvbc decode instret CSVs
+* `results/simulation/benchmarks/components/decode/` - **Data Report** - Reference / RVV / Zvbc decode instret CSVs
 
 ### §8.2 Αξιολόγηση Πλήρους KEM (End-to-End)
 
 * `tests/bench/bench_kem.c` - **Source Code** - Full KEM benchmark harness: keypair/encaps/decaps with CSV output
-* `analysis/benchmarks/suites/all_suite_2026-05-13_13-33/` - **Data Report** - Full KEM suite (keypair/encaps/decaps/vect_mul) across variants × security levels
-* `analysis/reports/speedups.md` - **Data Report** - Computed speedup multipliers (ref→optimized) per tier/level/operation
+* `results/simulation/benchmarks/kem/` - **Data Report** - Full KEM suite (keypair/encaps/decaps/vect_mul) across variants × security levels
+* `results/reports/summaries/speedups_simulation.md` - **Data Report** - Computed speedup multipliers (ref→optimized) per tier/level/operation
 * `scripts/report/generate_speedups.py` - **Script** - Generates thesis speedup summary table from isolated benchmark CSVs
 
 ### §8.3 Κλιμάκωση ανά Security Level
 
-* `analysis/benchmarks/suites/all_suite_2026-05-13_13-33/` - **Data Report** - Full suite data for HQC-128/192/256 scaling analysis
-* `analysis/reports/karatsuba_zvbc_L128_report.md` - **Data Report** - HQC-128 detailed breakdown
-* `analysis/reports/karatsuba_rvv_L128_report.md` - **Data Report** - HQC-128 Tier 2 breakdown
-* `analysis/reports/karatsuba_zbc_L128_report.md` - **Data Report** - HQC-128 Tier 1 breakdown
+* `results/simulation/benchmarks/kem/` - **Data Report** - Full suite data for HQC-128/192/256 scaling analysis
+* `results/reports/variants/vector_Zvk_L128_report.md` - **Data Report** - HQC-128 detailed breakdown
+* `results/reports/variants/vector_rvv_L128_report.md` - **Data Report** - HQC-128 Tier 2 breakdown
+* `results/reports/variants/scalar_Zb_L128_report.md` - **Data Report** - HQC-128 Tier 1 breakdown
 
 ### §8.4 Ανάλυση Κλιμάκωσης VLEN (VLEN Scaling)
 
@@ -580,8 +604,8 @@
 
 #### §8.4.2 Πειραματικά Αποτελέσματα VLEN Sweep
 
-* `analysis/benchmarks/vlen_sweep/vector/karatsuba_zvbc/` - **Data Report** - VLEN sweep instret data for Zvbc variant (256/512/1024/2048)
-* `analysis/benchmarks/vlen_sweep/vector/karatsuba_rvv/` - **Data Report** - VLEN sweep instret data for RVV variant
+* `results/simulation/benchmarks/vlen_scaling/vector_Zvk/` - **Data Report** - VLEN sweep instret data for Zvbc variant (256/512/1024/2048)
+* `results/simulation/benchmarks/vlen_scaling/vector_rvv/` - **Data Report** - VLEN sweep instret data for RVV variant
 * `writing/VLEN_scaling.md` "Benchmark Results" - **Writing Draft** - Tables per security level, VLEN=512 sweet spot identification
 
 #### §8.4.3 Αρχιτεκτονικοί Περιορισμοί
@@ -593,9 +617,9 @@
 ### §8.5 Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)
 
 * `writing/compiler-comparison.md` - **Writing Draft** - Full GCC vs Clang codegen analysis, dual-compiler workflow, GCC Zvbb incompatibility
-* `analysis/benchmarks/compiler_compare/scalar/` - **Data Report** - Compiler comparison CSVs for scalar variants
-* `analysis/benchmarks/compiler_compare/vector/` - **Data Report** - Compiler comparison CSVs for vector variants
-* `analysis/reports/compiler_analysis.md` - **Data Report** - Generated compiler showdown report with winner/margin per variant
+* `results/simulation/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for scalar variants
+* `results/simulation/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for vector variants
+* `results/reports/summaries/compiler_analysis.md` - **Data Report** - Generated compiler showdown report with winner/margin per variant
 * `scripts/report/generate_compiler_compare.py` - **Script** - Generates compiler comparison Markdown from CSV data
 
 ---
@@ -607,8 +631,8 @@
 * `notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Cross-architecture table (AVX-512, Zen4, M4, FAFFT, ours), instret vs cycles methodology
 * `docs/METHODOLOGY.md` §11, §12 - **Documentation** - "We do NOT claim wall-clock time on real hardware", Spike limitations
 * `writing/mult_alternatives.md` - **Writing Draft** - FAFFT O(n log n) vs AP-2 Karatsuba comparison, tower-field incompatibility with vclmul.vv
-* `docs/literature/HQC Optimization Benchmarks Research.txt` - **Literature** - Aggregated cross-platform benchmark numbers
-* `analysis/profiles/cpi/reports/` - **Data Report** - CPI-derived cycle estimates supporting cross-architecture cycle-equivalent comparisons
+* `docs/references/notes/HQC Optimization Benchmarks Research.txt` - **Literature** - Aggregated cross-platform benchmark numbers
+* `results/simulation/profiling/cpi/reports/` - **Data Report** - CPI-derived cycle estimates supporting cross-architecture cycle-equivalent comparisons
 
 ### §9.2 ISA Ablation Study
 
@@ -637,8 +661,8 @@
 ### §9.3 Code Size vs Performance Trade-off
 
 * `scripts/gen/gen_karatsuba_specialized.py` - **Script** - Generator controls unroll depth; different depths produce different .text sizes
-* `analysis/reports/karatsuba_zbc_L128_report.md` - **Data Report** - Contains .text size data for scalar fully-unrolled path
-* `analysis/reports/karatsuba_zvbc_L128_report.md` - **Data Report** - Contains .text size data for vector path (compact VLA helpers)
+* `results/reports/variants/scalar_Zb_L128_report.md` - **Data Report** - Contains .text size data for scalar fully-unrolled path
+* `results/reports/variants/vector_Zvk_L128_report.md` - **Data Report** - Contains .text size data for vector path (compact VLA helpers)
 * `scripts/experiments/run_hybrid_depth_sweep.sh` - **Script** - Hybrid recursion depth sweep used to scan the depth × instret × .text trade-off
 
 ### §9.4 Σχεδιαστικές Αρχές που Γενικεύονται
@@ -654,7 +678,7 @@
 ### §10.1 Σύνοψη Συνεισφοράς
 
 * `notes/notes_detailed.md` (Discovery 3) - **Research Notes** - Summary speedup table (×91, ×118, ×255 vect_mul; ×28, ×41, ×63 decaps)
-* `analysis/reports/speedups.md` - **Data Report** - Final speedup numbers for thesis conclusion
+* `results/reports/summaries/speedups_simulation.md` - **Data Report** - Final speedup numbers for thesis conclusion
 * `docs/proposals/final_optim.md` - **Documentation** - Senior-author analysis of remaining ratified extensions and their (rejected/promoted) verdicts
 
 ### §10.2 Περιορισμοί
@@ -667,9 +691,8 @@
 
 * `writing/zkt_ct.md` - **Writing Draft** - Zkt constant-time formal model, engineering diagnostics — deferred to future work
 * `tests/ct/ct_harness.c` - **Source Code** - Constant-time verification harness using Valgrind/ctgrind — demonstrates CT testing methodology
-* `analysis/ct_verify/ctgrind/` - **Data Report** - Ctgrind XML results for various variants (karatsuba_ref, HQC-128/192/256)
-* `analysis/ct_verify/dudect/` - **Data Report** - Dudect timing analysis results and summary CSVs
-* `analysis/ct_verify/dudect/riscv_binaries/` - **Data Report** - Cross-compiled RISC-V binaries used for cross-platform dudect runs
+* `results/ct_verify/valgrind_ct/` - **Data Report** - Ctgrind XML results for various variants (karatsuba_ref, HQC-128/192/256)
+* `results/ct_verify/dudect/` - **Data Report** - Dudect timing analysis results and summary CSVs
 * `scripts/ci/check_ct.sh` - **Script** - CI script for automated constant-time verification via ctgrind/dudect
 * `notes/notes_mine.md` - **Research Notes** - "Future of RISC-V & SHA-3", PQC Task Group Keccak instructions
 * `sim/rtl-marian/README.md` - **Documentation** - RTL soft-core (Marian) integration notes for future FPGA work
@@ -785,21 +808,21 @@
 
 | Artifact Path | Σχετικές Ενότητες | Περιεχόμενο |
 |--------------|-------------------|-------------|
-| `analysis/benchmarks/suites/all_suite_2026-05-13_13-33/` | §8.2, §8.3 | Complete KEM suite: keypair/encaps/decaps/vect_mul CSVs |
-| `analysis/benchmarks/vlen_sweep/` | §8.4 | VLEN sweep data for karatsuba_rvv/zvbc/ref_vector |
-| `analysis/benchmarks/compiler_compare/` | §8.5 | GCC vs Clang instret per variant (scalar + vector subtrees) |
-| `analysis/benchmarks/isolated/keccak/` | §8.1.2 | Canonical Keccak benchmark CSVs (ref and opt) |
-| `analysis/benchmarks/isolated/decode/` | §8.1.3 | Canonical decode benchmark CSVs (ref, rvv, zvbc) |
-| `analysis/profiles/histograms/` | §5.3, §9.2 | PC histogram data for instruction mix analysis (scalar/vector) |
-| `analysis/profiles/traces/` | §5.3 | Spike execution traces for hotspot identification (scalar/vector) |
-| `analysis/profiles/cpi/reports/` | §5.3, §9.1 | CPI model reports per security level |
-| `analysis/profiles/cpi/scalar/` | §5.3 | CPI model inputs for scalar variants |
-| `analysis/profiles/cpi/vector/` | §5.3 | CPI model inputs for vector variants |
-| `analysis/profiles/cache/scalar/` | §5.3 | Cache simulation data for scalar variants |
-| `analysis/profiles/cache/vector/` | §5.3 | Cache simulation data for vector variants |
-| `analysis/profiles/memory/` | §5.3 | Memory access pattern profiles (scalar/vector) |
-| `analysis/reports/scoreboards/` | §6.2.6 | Historical scoreboard tracking for polymul experiments (fafft v4–v6, fafft_zbc, hybrid v3, hybrid_zbc, polymul_zbc) |
-| `analysis/reports/archive/` | §6–§8 | Archived intermediate profiling reports (task-level progression: karatsuba_zbc tasks 1–4, gather/x4 imv/imbv variants) |
+| `results/simulation/benchmarks/kem/` | §8.2, §8.3 | Complete KEM suite: keypair/encaps/decaps/vect_mul CSVs |
+| `results/simulation/benchmarks/vlen_scaling/` | §8.4 | VLEN sweep data for karatsuba_rvv/zvbc/ref_vector |
+| `results/simulation/benchmarks/compiler_compare/` | §8.5 | GCC vs Clang instret per variant (scalar + vector subtrees) |
+| `results/simulation/benchmarks/components/keccak/` | §8.1.2 | Canonical Keccak benchmark CSVs (ref and opt) |
+| `results/simulation/benchmarks/components/decode/` | §8.1.3 | Canonical decode benchmark CSVs (ref, rvv, zvbc) |
+| `results/simulation/profiling/histograms/` | §5.3, §9.2 | PC histogram data for instruction mix analysis (scalar/vector) |
+| `results/simulation/profiling/traces/` | §5.3 | Spike execution traces for hotspot identification (scalar/vector) |
+| `results/simulation/profiling/cpi/reports/` | §5.3, §9.1 | CPI model reports per security level |
+| `results/simulation/profiling/cpi/` | §5.3 | CPI model inputs for scalar variants |
+| `results/simulation/profiling/cpi/` | §5.3 | CPI model inputs for vector variants |
+| `results/simulation/profiling/cache/` | §5.3 | Cache simulation data for scalar variants |
+| `results/simulation/profiling/cache/` | §5.3 | Cache simulation data for vector variants |
+| `results/simulation/profiling/mem_access/` | §5.3 | Memory access pattern profiles (scalar/vector) |
+| `results/reports/scoreboards/` | §6.2.6 | Historical scoreboard tracking for polymul experiments (fafft v4–v6, fafft_zbc, hybrid v3, hybrid_zbc, polymul_zbc) |
+| `results/archive/` | §6–§8 | Archived intermediate profiling reports (task-level progression: karatsuba_zbc tasks 1–4, gather/x4 imv/imbv variants) |
 | `docs/proposals/RESULTS/keccak_unrolling_results.md` | §7.1, §7.1.4 | Keccak unrolling experiment results |
 | `docs/proposals/RESULTS/load64_intrinsic_results.md` | §7.1.4 | load64 intrinsic optimization results |
 | `docs/proposals/RESULTS/reed_solomon_zvbc_results.md` | §7.2.3 | RS Zvbc optimization results |
