@@ -9,7 +9,7 @@ on:
       - 'docs/**'
       - '.gitignore'
       - 'scripts/report/**'
-      - 'analysis/**'
+      - 'results/**'
       - 'experiments/**'
   pull_request:
     branches: [main]

@@ -97,9 +97,9 @@ Do not assume an optimization scales linearly. Validate thoroughly across all se
 ### Benchmarking Requirements
 
 - Benchmark implementations across HQC-128, HQC-192, HQC-256.
-- Log cycle counts and timing data in `analysis/benchmarks/`.
-- Update `analysis/benchmarks/cycle_counts.csv` and `analysis/benchmarks/instruction_mix.csv` with new measurements.
-- Include LLVM MCA reports (`analysis/llvm_mca/reports/`) for cycle prediction validation.
+- Log cycle counts and timing data in `results/simulation/benchmarks/`.
+- Update `results/simulation/benchmarks/cycle_counts.csv` and `results/simulation/benchmarks/instruction_mix.csv` with new measurements.
+- Include LLVM MCA reports (`results/reports/llvm_mca/`) for cycle prediction validation.
 - Compare baseline vs. optimized side-by-side in performance reports.
 
 ### Constant-Time Verification
@@ -214,7 +214,7 @@ feat(polymul): implement hybrid schoolbook-karatsuba
 - Uses schoolbook for small degrees, switches to Karatsuba above threshold
 - Performance delta: +8.5% on HQC-192
 
-Benchmark: analysis/benchmarks/cycle_counts.csv
+Benchmark: results/simulation/benchmarks/cycle_counts.csv
 ```
 
 ```
@@ -241,9 +241,9 @@ fix(decoder): ensure constant-time error correction on secret data
 ## References
 
 - **Experiments**: `experiments/manifest.yaml`
-- **Benchmarks**: `analysis/benchmarks/`
+- **Benchmarks**: `results/`
 - **Tests**: `tests/kat/`, `tests/ct/`
-- **Reports**: `analysis/report/`, `docs/`
+- **Reports**: `results/reports/`, `docs/`
 - **CMake**: `CMakeLists.txt`, `cmake/`
 
 ---

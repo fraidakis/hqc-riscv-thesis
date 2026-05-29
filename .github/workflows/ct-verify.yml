@@ -8,7 +8,7 @@ on:
       - 'docs/**'
       - '.gitignore'
       - 'scripts/report/**'
-      - 'analysis/**'
+      - 'results/**'
       - 'experiments/**'
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ on:
       - 'docs/**'
       - '.gitignore'
       - 'scripts/report/**'
-      - 'analysis/**'
+      - 'results/**'
       - 'experiments/**'
 
 jobs:
@@ -59,13 +59,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "ctgrind-hqc${{ matrix.level }}-${{ matrix.variant }}"
-          path: analysis/ct_verify/ctgrind/ct_hqc${{ matrix.level }}_${{ matrix.variant }}_valgrind.xml
+          path: results/ct_verify/valgrind_ct/ct_hqc${{ matrix.level }}_${{ matrix.variant }}_valgrind.xml
           if-no-files-found: ignore   # SKIP variants produce no report file
 
   # ── dudect: statistical CT test (not yet integrated) ───────────────────────
   dudect:
     name: CT check — dudect (statistical)
-    if: false   # TODO: add dudect submodule to analysis/ct_verify/dudect/
+    if: false   # TODO: add dudect submodule to results/ct_verify/dudect/
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -81,4 +81,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dudect-results
-          path: analysis/ct_verify/dudect/
+          path: results/ct_verify/dudect/

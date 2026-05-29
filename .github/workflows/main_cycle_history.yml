@@ -64,10 +64,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p analysis/benchmarks/main-history
+          mkdir -p results/simulation/benchmarks/main-history
 
           elf="build/spike/bench_polymul_hqc${{ matrix.level }}_${{ matrix.variant }}.elf"
-          out="analysis/benchmarks/main-history/hqc${{ matrix.level }}_${{ matrix.variant }}_${GITHUB_SHA::8}.csv"
+          out="results/simulation/benchmarks/main-history/hqc${{ matrix.level }}_${{ matrix.variant }}_${GITHUB_SHA::8}.csv"
 
           sim/spike/run.sh --bench "$elf" | tee "$out"
 
@@ -98,6 +98,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "cycle-history-${{ matrix.variant }}-${{ matrix.level }}"
-          path: analysis/benchmarks/main-history/
+          path: results/simulation/benchmarks/main-history/
           if-no-files-found: warn
 

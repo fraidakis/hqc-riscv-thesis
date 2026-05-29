@@ -54,17 +54,14 @@ __pycache__/
 *.orig
 .tmp/
 
-# Analysis outputs
-analysis/llvm_mca/reports/*.txt
-analysis/benchmarks/*.png
-analysis/benchmarks/**/profile/spike_trace.log
-analysis/benchmarks/**/run_events.log
-analysis/benchmarks/**/*.log
-analysis/benchmarks/runs/**/raw/
-analysis/benchmarks/runs/**/meta/
-analysis/ct_verify/ctgrind/*.xml
-analysis/ct_verify/dudect/*
-!analysis/ct_verify/**/.gitkeep
+# Results outputs
+results/simulation/benchmarks/**/*.png
+results/simulation/benchmarks/**/profile/spike_trace.log
+results/simulation/benchmarks/**/run_events.log
+results/simulation/benchmarks/**/*.log
+results/ct_verify/valgrind_ct/*.xml
+results/ct_verify/dudect/*
+!results/ct_verify/**/.gitkeep
 !scripts/verify/run_dudect_all_variants.sh
 
 # KAT test vectors (generated)
@@ -79,11 +76,14 @@ docs/hardware/bpi-f3-credentials.env
 # Benchmarking & Profiling Data
 # ==========================================
 # Ignore archived benchmark and trace history
-analysis/**/archive/*.csv
-analysis/**/archive/*.txt
-analysis/**/archive/tmp.*
+results/**/archive/*.csv
+results/**/archive/*.txt
+results/**/archive/tmp.*
 
 # Explicitly track ONLY the "latest" state files
-!analysis/**/*_latest.csv
-!analysis/**/*_latest.txt
-!analysis/**/latest.csv
+!results/**/*_latest.csv
+!results/**/*_latest.txt
+!results/**/latest.csv
+
+# Generated markdown conversions of reference PDFs (re-run convert_pdf.py to regenerate)
+docs/references/markdown/
