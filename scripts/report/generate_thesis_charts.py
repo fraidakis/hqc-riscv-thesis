@@ -1660,12 +1660,574 @@ def chart_code_size_tradeoff(loader: DataLoader, level: int) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Hardware Benchmark Charts (BPI-F3 SpacemiT K1 X60)
+# ---------------------------------------------------------------------------
+
+# Hardware-specific constants
+HW_CLOCK_HZ = 1_600_000_000  # 1.6 GHz SpacemiT K1 X60
+
+# Hardware chart registry (separate from simulation charts)
+HW_CHART_REGISTRY: dict[str, Callable] = {}
+
+
+def register_hw_chart(name: str) -> Callable:
+    """Decorator that registers a hardware chart function under the given name."""
+
+    def decorator(func: Callable) -> Callable:
+        HW_CHART_REGISTRY[name] = func
+        return func
+
+    return decorator
+
+
+# Variant display names and colors for hardware charts
+HW_VARIANT_DISPLAY: dict[str, str] = {
+    "ref_scalar": "Ref Scalar",
+    "karatsuba_zbc": "Karatsuba Zbc",
+    "karatsuba_rvv": "Karatsuba RVV",
+}
+
+HW_VARIANT_COLORS: dict[str, str] = {
+    "ref_scalar": "#6c757d",
+    "karatsuba_zbc": "#457b9d",
+    "karatsuba_rvv": "#2a9d8f",
+}
+
+# IPC chart color coding: scalar=blue family, vector=green family
+HW_IPC_COLORS: dict[str, str] = {
+    "ref_scalar": "#1f77b4",
+    "karatsuba_zbc": "#6baed6",
+    "karatsuba_rvv": "#2ca02c",
+}
+
+# Hardware variant → directory mapping
+HW_VARIANT_DIRS: dict[str, str] = {
+    "ref_scalar": "scalar_ref",
+    "karatsuba_zbc": "scalar_Zb",
+    "karatsuba_rvv": "vector_rvv",
+}
+
+# Operations in canonical order
+HW_OPS = ["keypair", "encaps", "decaps"]
+
+
+def _load_hw_kem_data(repo_root: Path) -> pd.DataFrame | None:
+    """Load and merge all hardware KEM benchmark CSVs into a single DataFrame.
+
+    Returns DataFrame with columns:
+        variant, op, median_cycles, mean_cycles, stddev_cycles,
+        min_cycles, max_cycles, median_instret, mean_instret, stddev_instret,
+        min_instret, max_instret
+    Returns None if no data files are found.
+    """
+    frames: list[pd.DataFrame] = []
+
+    for variant, dir_name in HW_VARIANT_DIRS.items():
+        slug = variant_slug(variant)
+        path = (
+            repo_root
+            / "results"
+            / "hardware"
+            / "benchmarks"
+            / "kem"
+            / dir_name
+            / f"hw_kem_{slug}_latest.csv"
+        )
+        df = load_csv(path)
+        if df is None or df.empty:
+            continue
+        # Normalize column name: 'op' → 'operation'
+        if "op" in df.columns:
+            df = df.rename(columns={"op": "operation"})
+        df["variant"] = variant
+        frames.append(df)
+
+    if not frames:
+        print(
+            "Error: No hardware KEM benchmark data found in "
+            "results/hardware/benchmarks/kem/",
+            file=sys.stderr,
+        )
+        return None
+
+    combined = pd.concat(frames, ignore_index=True)
+    return combined
+
+
+@register_hw_chart("spike_vs_hw_bars")
+def plot_spike_vs_hw_bars(loader: DataLoader, level: int) -> None:
+    """Grouped bar chart: Spike instret vs HW cycles side-by-side per variant.
+
+    Annotates each pair with IPC ratio (instret/cycles).
+    One subplot per security level would require multi-level data; currently
+    generates a single figure for the available level (128).
+    """
+    df = _load_hw_kem_data(loader._root)
+    if df is None:
+        return
+
+    variants = [v for v in HW_VARIANT_DIRS if v in df["variant"].unique()]
+    operations = [op for op in HW_OPS if op in df["operation"].unique()]
+
+    if not variants or not operations:
+        print("Warning: Insufficient data for spike_vs_hw_bars chart.", file=sys.stderr)
+        return
+
+    n_groups = len(variants) * len(operations)
+    x = np.arange(n_groups)
+    bar_width = 0.35
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    instret_vals: list[float] = []
+    cycle_vals: list[float] = []
+    labels: list[str] = []
+
+    for variant in variants:
+        for op in operations:
+            row = df[(df["variant"] == variant) & (df["operation"] == op)]
+            if row.empty:
+                instret_vals.append(0)
+                cycle_vals.append(0)
+            else:
+                instret_vals.append(float(row["median_instret"].iloc[0]))
+                cycle_vals.append(float(row["median_cycles"].iloc[0]))
+            labels.append(f"{HW_VARIANT_DISPLAY[variant]}\n{op}")
+
+    instret_arr = np.array(instret_vals)
+    cycle_arr = np.array(cycle_vals)
+
+    bars_instret = ax.bar(
+        x - bar_width / 2, instret_arr, bar_width,
+        label="Spike Instret", color="#457b9d", edgecolor="black", linewidth=0.5,
+    )
+    bars_cycles = ax.bar(
+        x + bar_width / 2, cycle_arr, bar_width,
+        label="HW Cycles", color="#e63946", edgecolor="black", linewidth=0.5,
+    )
+
+    # Annotate IPC ratio above each pair
+    for i in range(n_groups):
+        if cycle_arr[i] > 0:
+            ipc = instret_arr[i] / cycle_arr[i]
+            mid_x = x[i]
+            top_y = max(instret_arr[i], cycle_arr[i])
+            ax.annotate(
+                f"IPC={ipc:.2f}",
+                xy=(mid_x, top_y),
+                xytext=(0, 8),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                fontstyle="italic",
+            )
+
+    ax.set_xlabel("Variant / Operation")
+    ax.set_ylabel("Count")
+    ax.set_title("Spike Instret vs Hardware Cycles (HQC-128, BPI-F3 K1 X60)")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=7)
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / "hw_spike_vs_hw_bars.pdf"
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Generated: {output_path}")
+
+
+@register_hw_chart("ipc_chart")
+def plot_ipc_chart(loader: DataLoader, level: int) -> None:
+    """Horizontal bar chart showing IPC per variant per operation.
+
+    Color-coded: scalar variants in blue, RVV variants in green.
+    Vertical reference line at IPC=1.0 (ideal single-issue).
+    """
+    df = _load_hw_kem_data(loader._root)
+    if df is None:
+        return
+
+    variants = [v for v in HW_VARIANT_DIRS if v in df["variant"].unique()]
+    operations = [op for op in HW_OPS if op in df["operation"].unique()]
+
+    if not variants or not operations:
+        print("Warning: Insufficient data for ipc_chart.", file=sys.stderr)
+        return
+
+    # Build IPC data
+    bar_labels: list[str] = []
+    ipc_values: list[float] = []
+    bar_colors: list[str] = []
+
+    for variant in variants:
+        for op in operations:
+            row = df[(df["variant"] == variant) & (df["operation"] == op)]
+            if row.empty:
+                continue
+            instret = float(row["median_instret"].iloc[0])
+            cycles = float(row["median_cycles"].iloc[0])
+            if cycles > 0:
+                ipc = instret / cycles
+                bar_labels.append(f"{HW_VARIANT_DISPLAY[variant]} – {op}")
+                ipc_values.append(ipc)
+                bar_colors.append(HW_IPC_COLORS[variant])
+
+    if not ipc_values:
+        print("Warning: No IPC data computed for ipc_chart.", file=sys.stderr)
+        return
+
+    y = np.arange(len(bar_labels))
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    ax.barh(y, ipc_values, color=bar_colors, edgecolor="black", linewidth=0.5)
+    ax.set_yticks(y)
+    ax.set_yticklabels(bar_labels, fontsize=8)
+    ax.set_xlabel("Instructions Per Cycle (IPC)")
+    ax.set_title("IPC per Variant and Operation (BPI-F3 K1 X60)")
+
+    # Reference line at IPC=1.0
+    ax.axvline(x=1.0, color="red", linestyle="--", linewidth=1.0, label="IPC = 1.0")
+
+    # Annotate IPC values on bars
+    for i, val in enumerate(ipc_values):
+        ax.text(val + 0.02, i, f"{val:.3f}", va="center", fontsize=7)
+
+    # Caption annotation
+    ax.annotate(
+        "IPC > 1 indicates dual-issue utilization",
+        xy=(0.98, 0.02),
+        xycoords="axes fraction",
+        ha="right",
+        va="bottom",
+        fontsize=8,
+        fontstyle="italic",
+        color="#555555",
+    )
+
+    ax.legend(loc="lower right", fontsize=8)
+    ax.grid(axis="x", alpha=0.3)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / "hw_ipc_chart.pdf"
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Generated: {output_path}")
+
+
+@register_hw_chart("wallclock_bars")
+def plot_wallclock_bars(loader: DataLoader, level: int) -> None:
+    """Bar chart showing wall-clock time (μs) per KEM operation per variant.
+
+    Derives wall-clock = hw_cycles_median / 1_600_000_000 → seconds → μs.
+    Annotates decaps bar with "HQC-128 Decaps in X μs".
+    """
+    df = _load_hw_kem_data(loader._root)
+    if df is None:
+        return
+
+    variants = [v for v in HW_VARIANT_DIRS if v in df["variant"].unique()]
+    operations = [op for op in HW_OPS if op in df["operation"].unique()]
+
+    if not variants or not operations:
+        print("Warning: Insufficient data for wallclock_bars chart.", file=sys.stderr)
+        return
+
+    n_ops = len(operations)
+    x = np.arange(n_ops)
+    n_variants = len(variants)
+    bar_width = 0.8 / n_variants
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+
+    for i, variant in enumerate(variants):
+        times_us: list[float] = []
+        for op in operations:
+            row = df[(df["variant"] == variant) & (df["operation"] == op)]
+            if row.empty:
+                times_us.append(0)
+            else:
+                cycles = float(row["median_cycles"].iloc[0])
+                time_s = cycles / HW_CLOCK_HZ
+                times_us.append(time_s * 1_000_000)  # Convert to μs
+
+        offset = (i - (n_variants - 1) / 2) * bar_width
+        bars = ax.bar(
+            x + offset, times_us, bar_width,
+            label=HW_VARIANT_DISPLAY[variant],
+            color=HW_VARIANT_COLORS[variant],
+            edgecolor="black",
+            linewidth=0.5,
+        )
+
+        # Annotate each bar with value
+        for bar, val in zip(bars, times_us):
+            ax.annotate(
+                f"{val:.0f} μs",
+                xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+            )
+
+    ax.set_xlabel("KEM Operation")
+    ax.set_ylabel("Wall-Clock Time (μs)")
+    ax.set_title("HQC-128 Wall-Clock Latency @ 1.6 GHz (BPI-F3 K1 X60)")
+    ax.set_xticks(x)
+    ax.set_xticklabels([op.capitalize() for op in operations])
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_ylim(bottom=0)
+
+    fig.tight_layout()
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / "hw_wallclock_bars.pdf"
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Generated: {output_path}")
+
+
+@register_hw_chart("spike_hw_scatter")
+def plot_spike_hw_scatter(loader: DataLoader, level: int) -> None:
+    """Scatter plot: x=Spike speedup, y=HW speedup (ref_scalar as baseline).
+
+    Draws ideal line y=x (dashed). Annotates each point with variant name.
+    Caption: "Points above the line = HW outperforms Spike prediction".
+    """
+    df = _load_hw_kem_data(loader._root)
+    if df is None:
+        return
+
+    # Need ref_scalar as baseline
+    baseline_rows = df[df["variant"] == "ref_scalar"]
+    if baseline_rows.empty:
+        print(
+            "Warning: No ref_scalar baseline data for spike_hw_scatter chart.",
+            file=sys.stderr,
+        )
+        return
+
+    operations = [op for op in HW_OPS if op in df["operation"].unique()]
+    optimized_variants = [v for v in ["karatsuba_zbc", "karatsuba_rvv"]
+                          if v in df["variant"].unique()]
+
+    if not optimized_variants:
+        print("Warning: No optimized variant data for spike_hw_scatter.", file=sys.stderr)
+        return
+
+    # Compute speedups
+    points: list[dict] = []
+
+    for op in operations:
+        base_row = baseline_rows[baseline_rows["operation"] == op]
+        if base_row.empty:
+            continue
+        base_instret = float(base_row["median_instret"].iloc[0])
+        base_cycles = float(base_row["median_cycles"].iloc[0])
+
+        for variant in optimized_variants:
+            row = df[(df["variant"] == variant) & (df["operation"] == op)]
+            if row.empty:
+                continue
+            var_instret = float(row["median_instret"].iloc[0])
+            var_cycles = float(row["median_cycles"].iloc[0])
+
+            if var_instret > 0 and var_cycles > 0:
+                spike_speedup = base_instret / var_instret
+                hw_speedup = base_cycles / var_cycles
+
+                points.append({
+                    "variant": variant,
+                    "operation": op,
+                    "spike_speedup": spike_speedup,
+                    "hw_speedup": hw_speedup,
+                })
+
+    if not points:
+        print("Warning: No speedup data for spike_hw_scatter chart.", file=sys.stderr)
+        return
+
+    fig, ax = plt.subplots(figsize=(7, 7))
+
+    # Plot each point
+    for pt in points:
+        color = HW_VARIANT_COLORS[pt["variant"]]
+        ax.scatter(
+            pt["spike_speedup"], pt["hw_speedup"],
+            color=color, s=100, edgecolors="black", linewidths=0.5, zorder=5,
+        )
+        ax.annotate(
+            f"{HW_VARIANT_DISPLAY[pt['variant']]}\n({pt['operation']})",
+            xy=(pt["spike_speedup"], pt["hw_speedup"]),
+            xytext=(6, 6),
+            textcoords="offset points",
+            fontsize=7,
+            color=color,
+        )
+
+    # Ideal line y=x
+    all_speedups = [pt["spike_speedup"] for pt in points] + [pt["hw_speedup"] for pt in points]
+    lim_min = 0
+    lim_max = max(all_speedups) * 1.15
+    ax.plot([lim_min, lim_max], [lim_min, lim_max], "k--", linewidth=1.0, alpha=0.6, label="y = x (ideal)")
+
+    ax.set_xlabel("Spike Instret Speedup (×)")
+    ax.set_ylabel("Hardware Cycle Speedup (×)")
+    ax.set_title("Spike vs Hardware Speedup Correlation")
+    ax.set_xlim(lim_min, lim_max)
+    ax.set_ylim(lim_min, lim_max)
+    ax.set_aspect("equal")
+    ax.legend(loc="upper left", fontsize=8)
+    ax.grid(True, alpha=0.3)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Caption annotation
+    ax.annotate(
+        "Points above the line = HW outperforms Spike prediction",
+        xy=(0.98, 0.02),
+        xycoords="axes fraction",
+        ha="right",
+        va="bottom",
+        fontsize=8,
+        fontstyle="italic",
+        color="#555555",
+    )
+
+    fig.tight_layout()
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / "hw_spike_hw_scatter.pdf"
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Generated: {output_path}")
+
+
+@register_hw_chart("cycle_histogram")
+def plot_cycle_histogram(loader: DataLoader, level: int) -> None:
+    """Histogram of per-iteration cycle counts from raw dump files.
+
+    Input: results/hardware/benchmarks/kem/<dir>/raw/<variant>_<op>_cycles_raw.txt
+    Marks median (red), mean (blue dashed), annotates IQR and outlier count (>3σ).
+    Falls back gracefully if raw data is not yet available.
+    """
+    # Look for raw cycle dump files
+    raw_base = loader._root / "results" / "hardware" / "benchmarks" / "kem"
+
+    # Try to find any raw data file
+    raw_files: list[tuple[str, str, Path]] = []
+    for variant, dir_name in HW_VARIANT_DIRS.items():
+        raw_dir = raw_base / dir_name / "raw"
+        if not raw_dir.exists():
+            continue
+        for f in sorted(raw_dir.glob("*.txt")):
+            # Infer operation from filename
+            stem = f.stem
+            for op in HW_OPS:
+                if op in stem:
+                    raw_files.append((variant, op, f))
+                    break
+
+    if not raw_files:
+        print(
+            "Warning: No raw cycle dump files found in "
+            "results/hardware/benchmarks/kem/*/raw/. "
+            "Skipping cycle_histogram chart. "
+            "Expected format: one cycle value per line, 10000 lines.",
+            file=sys.stderr,
+        )
+        return
+
+    # Generate one histogram per raw file found
+    for variant, op, path in raw_files:
+        try:
+            data = np.loadtxt(path)
+        except Exception as e:
+            print(f"Warning: Could not load {path}: {e}", file=sys.stderr)
+            continue
+
+        if len(data) < 10:
+            print(f"Warning: Too few data points in {path}, skipping.", file=sys.stderr)
+            continue
+
+        median_val = np.median(data)
+        mean_val = np.mean(data)
+        std_val = np.std(data)
+        q1 = np.percentile(data, 25)
+        q3 = np.percentile(data, 75)
+        iqr = q3 - q1
+        outlier_count = int(np.sum(np.abs(data - mean_val) > 3 * std_val))
+
+        fig, ax = plt.subplots(figsize=(9, 5))
+
+        ax.hist(data, bins=100, color="#457b9d", edgecolor="black", linewidth=0.3, alpha=0.8)
+
+        # Median line (red solid)
+        ax.axvline(median_val, color="red", linewidth=1.5, label=f"Median = {median_val:,.0f}")
+        # Mean line (blue dashed)
+        ax.axvline(mean_val, color="blue", linestyle="--", linewidth=1.5, label=f"Mean = {mean_val:,.0f}")
+
+        ax.set_xlabel("Cycles")
+        ax.set_ylabel("Frequency")
+        ax.set_title(
+            f"Cycle Distribution: {HW_VARIANT_DISPLAY[variant]} – {op} "
+            f"(n={len(data):,})"
+        )
+        ax.legend(loc="upper right", fontsize=8)
+
+        # Annotate IQR and outliers
+        annotation_text = (
+            f"IQR = {iqr:,.0f}\n"
+            f"σ = {std_val:,.0f}\n"
+            f"Outliers (>3σ) = {outlier_count}"
+        )
+        ax.annotate(
+            annotation_text,
+            xy=(0.98, 0.75),
+            xycoords="axes fraction",
+            ha="right",
+            va="top",
+            fontsize=8,
+            fontfamily="monospace",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
+        )
+
+        ax.grid(axis="y", alpha=0.3)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        fig.tight_layout()
+
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        slug = variant_slug(variant)
+        output_path = OUTPUT_DIR / f"hw_cycle_histogram_{slug}_{op}.pdf"
+        fig.savefig(output_path, bbox_inches="tight")
+        plt.close(fig)
+        print(f"Generated: {output_path}")
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build argparse parser with --all, --chart, --list, --level flags."""
+    """Build argparse parser with --all, --chart, --list, --hardware, --level flags."""
     parser = argparse.ArgumentParser(
         description="Generate publication-quality PDF charts for the HQC RISC-V thesis."
     )
@@ -1673,19 +2235,31 @@ def build_parser() -> argparse.ArgumentParser:
     action_group.add_argument(
         "--all",
         action="store_true",
-        help="Generate all registered charts.",
+        help="Generate all registered charts (simulation only).",
     )
     action_group.add_argument(
         "--chart",
         type=str,
         choices=list(CHART_REGISTRY.keys()),
         metavar="NAME",
-        help="Generate a single chart by name.",
+        help="Generate a single simulation chart by name.",
     )
     action_group.add_argument(
         "--list",
         action="store_true",
         help="List all available chart names and exit.",
+    )
+    action_group.add_argument(
+        "--hardware",
+        action="store_true",
+        help="Generate all hardware benchmark charts (BPI-F3 K1 X60).",
+    )
+    action_group.add_argument(
+        "--hw-chart",
+        type=str,
+        choices=list(HW_CHART_REGISTRY.keys()),
+        metavar="NAME",
+        help="Generate a single hardware chart by name.",
     )
     parser.add_argument(
         "--level",
@@ -1704,11 +2278,28 @@ def main() -> None:
 
     # --list: print chart names and exit
     if args.list:
+        print("Simulation charts:")
         for name in sorted(CHART_REGISTRY.keys()):
-            print(name)
+            print(f"  {name}")
+        print("\nHardware charts (use --hardware or --hw-chart):")
+        for name in sorted(HW_CHART_REGISTRY.keys()):
+            print(f"  {name}")
         return
 
-    # --all: generate all charts
+    # --hardware: generate all hardware charts
+    if args.hardware:
+        loader = DataLoader(REPO_ROOT)
+        for name, func in HW_CHART_REGISTRY.items():
+            func(loader, args.level)
+        return
+
+    # --hw-chart NAME: generate a single hardware chart
+    if args.hw_chart:
+        loader = DataLoader(REPO_ROOT)
+        HW_CHART_REGISTRY[args.hw_chart](loader, args.level)
+        return
+
+    # --all: generate all simulation charts
     if args.all:
         loader = DataLoader(REPO_ROOT)
         for name, func in CHART_REGISTRY.items():
