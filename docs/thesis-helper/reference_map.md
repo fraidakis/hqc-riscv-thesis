@@ -52,6 +52,8 @@
 
 * `notes/PQC-Algorithms.txt` - **Research Notes** - HQC vs alternative PQC algorithms comparison
 * `notes/notes_detailed.md` (Discovery 3) - **Research Notes** - Summary speedup table establishing the contribution claims
+* `docs/references/markdown/riscv-other-algorithms/1-eco-crystals-rv64imb.md` - **Literature** - ECO-CRYSTALS: demonstrates RISC-V PQC optimization is active area but only for lattice-based (Kyber/Dilithium), not code-based HQC
+* `docs/references/markdown/riscv-other-algorithms/2-rv3264imbrvv.md` - **Literature** - Zhang et al. TCHES 2025: most comprehensive RISC-V PQC work — covers all ISA combos but only lattice-based, reinforcing the code-based gap
 
 ### §1.5 Δομή της Εργασίας
 
@@ -223,6 +225,12 @@
 ### §4.3 Γενικότερες PQC Εργασίες στο RISC-V
 
 * `notes/PQC-Algorithms.txt` - **Research Notes** - "Compatibility. Previous works focused on older HQC versions"
+* `docs/references/markdown/riscv-other-algorithms/1-eco-crystals-rv64imb.md` - **Literature** - ECO-CRYSTALS (Ji et al. 2024): First optimized Kyber+Dilithium on RV64IMB (VisionFive 2 dual-issue). Keccak 59.18% speedup via rori/andn + dual-issue scheduling. NTT 76–85% speedup via Montgomery/Plantard. Kyber end-to-end 399k/448k/479k cycles (60–65% speedup vs reference).
+* `docs/references/markdown/riscv-other-algorithms/2-rv3264imbrvv.md` - **Literature** - Zhang et al. TCHES 2025: Comprehensive Keccak/Kyber/Dilithium on RV{32,64}IM{B}{V} (C908 dual-issue, VLEN=128). New Keccak records (RV64IB: 1770 cycles). Hybrid vector/scalar Keccak. Improved Plantard arithmetic. Kyber768 RV64IMBV: 165k/197k/207k cycles.
+* `docs/references/markdown/riscv-other-algorithms/rvv-keccak-making-the-case-for-a-keccak-instructionpost-quantum-cryptography-on-.md` - **Literature** - Saarinen 2024 (RISC-V PQC TG): vkeccak.vi instruction proposal. Kyber-768 on SpacemiT X60 (VLEN=256): 12.74× speedup with Keccak insn. Keccak = 60–80% of Kyber/Dilithium cycles after NTT vectorization.
+* `docs/references/pdf/riscv-other-algorithms/1_ECO-CRYSTALS - RV64IMB.pdf` - **Literature** - ECO-CRYSTALS paper (PDF source)
+* `docs/references/pdf/riscv-other-algorithms/2_RV{32+64}IMB+RVV.pdf` - **Literature** - Zhang et al. TCHES 2025 paper (PDF source)
+* `docs/references/pdf/riscv-other-algorithms/RVV-keccak Making the Case for a Keccak InstructionPost-Quantum Cryptography on RVV.pdf` - **Literature** - Saarinen vkeccak.vi presentation (PDF source)
 * `docs/references/markdown/prior-theses/1-dimitrios-konstantinidis-10106.md` - **Literature** - Konstantinidis 2025 (AUTh): llama.cpp vectorization for RISC-V Vitruvius+ RVV
 * `docs/references/markdown/prior-theses/2-chaseropoulos-grigorios.md` - **Literature** - Chaseropoulos 2025 (AUTh): Microsoft SEAL BFV on RISC-V RVV, NTT vectorization
 * `docs/references/markdown/prior-theses/3-evelzaman-panagiotis.md` - **Literature** - Evelzaman 2025 (AUTh): Homomorphic Encryption on RISC-V Spike, Zkr extensions
@@ -236,6 +244,9 @@
 * `docs/references/markdown/other-platforms/phoenix-crypto-agile-hardware-sharing.md` - **Literature** - Gap evidence: PHOENIX uses custom HW coprocessor (not pure SW)
 * `docs/references/markdown/other-platforms/opthqc-optimize-hqc-for-high-performance.md` - **Literature** - Gap evidence: OptHQC targets x86 AVX2 (not RISC-V)
 * `docs/references/markdown/other-platforms/efficient-polynomial-multiplication-for-hqc-on-arm-cortex-m4.md` - **Literature** - Gap evidence: Jang et al. targets Cortex-M4 (not RISC-V, no clmul)
+* `docs/references/markdown/riscv-other-algorithms/1-eco-crystals-rv64imb.md` - **Literature** - Gap evidence: ECO-CRYSTALS targets Kyber/Dilithium (lattice-based, not code-based HQC)
+* `docs/references/markdown/riscv-other-algorithms/2-rv3264imbrvv.md` - **Literature** - Gap evidence: Zhang et al. targets Kyber/Dilithium (lattice-based, not code-based HQC, no Zbc/Zvbc for GF(2)[x])
+* `docs/references/markdown/riscv-other-algorithms/rvv-keccak-making-the-case-for-a-keccak-instructionpost-quantum-cryptography-on-.md` - **Literature** - Gap evidence: Saarinen focuses on Keccak instruction proposal for lattice-based PQC (not HQC polymul)
 * `docs/references/markdown/prior-theses/1-dimitrios-konstantinidis-10106.md` - **Literature** - Gap evidence: RVV methodology but not HQC/PQC code-based crypto
 * `docs/references/markdown/prior-theses/2-chaseropoulos-grigorios.md` - **Literature** - Gap evidence: RVV + lattice-based crypto but not code-based HQC
 * `docs/references/markdown/prior-theses/3-evelzaman-panagiotis.md` - **Literature** - Gap evidence: RISC-V crypto extensions but not HQC
@@ -244,11 +255,27 @@
 
 ## Κεφάλαιο 5: Πειραματική Υποδομή και Μεθοδολογία Αξιολόγησης
 
-### §5.1 Αρχιτεκτονική Εξομοιωτών (Spike ISS, QEMU)
+### §5.1 Πλατφόρμες Εκτέλεσης και Μέτρησης
+
+#### §5.1.1 Spike ISS
 
 * `docs/METHODOLOGY.md` §11, §13.1, §13.3 - **Documentation** - Spike ISS semantics, QEMU role, dual-simulator strategy
 * `sim/spike/run.sh` - **Script** - Spike invocation wrapper with ISA string and memory configuration
+
+#### §5.1.2 QEMU
+
 * `sim/qemu/run.sh` - **Script** - QEMU virt machine invocation for alternative simulation backend
+
+#### §5.1.3 Banana Pi BPI-F3 (SpacemiT K1 X60)
+
+* `docs/hardware/BENCHMARK_METHODOLOGY.md` - **Documentation** - Full hardware benchmarking methodology: metrics, iteration count, statistical treatment, system configuration, perf_event_open harness design, comparison table formats
+* `docs/hardware/banana-pi.md` - **Documentation** - BPI-F3 board documentation and setup notes
+* `.tmp/test_perf_event.c` - **Source Code** - perf_event_open prototype harness for cycle measurement on BPI-F3
+* `results/hardware/` - **Data Report** - Hardware cycle measurements (cycles, instructions, IPC) per variant per security level (TO BE COLLECTED)
+
+#### §5.1.4 Στρατηγική Τριπλής Πλατφόρμας
+
+* `docs/METHODOLOGY.md` §11 - **Documentation** - Role separation: Spike=benchmarking, QEMU=KAT, BPI-F3=validation
 
 ### §5.2 Cross-Compilation Toolchains και Ρυθμίσεις Μεταγλώττισης
 
@@ -261,9 +288,11 @@
 
 ### §5.3 Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής
 
-* `docs/METHODOLOGY.md` §11, §12 - **Documentation** - "Primary metric: retired instruction count", CPI dilemma, instret ≠ cycles analysisold
+* `docs/METHODOLOGY.md` §11, §12 - **Documentation** - "Primary metric: retired instruction count", CPI dilemma, instret ≠ cycles analysis
 * `src/common/bench.c` (`hqc_rdcycle`, `hqc_rdinstret`) - **Source Code** - CSR read implementation: mcycle (0xb00) and minstret (0xb02) in M-mode
 * `src/common/bench.h` - **Source Code** - Public bench API + Spike HTIF exit/print declarations
+* `docs/hardware/BENCHMARK_METHODOLOGY.md` §2, §3 - **Documentation** - Hardware measurement methodology: perf_event_open harness, iteration count, statistical treatment, system configuration
+* `.tmp/test_perf_event.c` - **Source Code** - perf_event_open prototype for BPI-F3 cycle measurement
 * `scripts/report/cpi/cpi_model.py` - **Script** - CPI estimation model from instruction mix histograms — converts instret to estimated cycles
 * `scripts/report/cpi/cost_table.py` - **Script** - Per-instruction-class cost table for CPI model parameterization
 * `scripts/report/cpi/cpi_report.py` - **Script** - Generates formatted CPI reports from model output
@@ -277,6 +306,7 @@
 * `results/simulation/profiling/traces/` - **Data Report** - Spike instruction-trace dumps used for hot-path identification
 * `results/simulation/profiling/cache/` - **Data Report** - Cache simulation outputs (scalar/vector) used in CPI sensitivity discussion
 * `results/simulation/profiling/mem_access/` - **Data Report** - Memory access pattern profiles
+* `results/hardware/` - **Data Report** - Hardware cycle measurements from BPI-F3 (TO BE COLLECTED)
 
 ### §5.4 Επαλήθευση Ορθότητας (KAT Tests)
 
@@ -614,7 +644,16 @@
 * `writing/VLEN_scaling.md` "Failed approach" - **Writing Draft** - "threshold = VLMAX → instret INCREASED by 4–11%"
 * `notes/notes_detailed.md` (Discovery 7) - **Research Notes** - Architectural limits of VLEN scaling
 
-### §8.5 Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)
+### §8.5 Αξιολόγηση σε Πραγματικό Hardware (BPI-F3 SpacemiT K1 X60)
+
+* `docs/hardware/BENCHMARK_METHODOLOGY.md` - **Documentation** - Full hardware benchmarking methodology, table formats, comparison approach
+* `.tmp/test_perf_event.c` - **Source Code** - perf_event_open harness prototype
+* `results/hardware/micro/` - **Data Report** - Per-kernel cycle measurements: polymul, keccak, decode (TO BE COLLECTED)
+* `results/hardware/kem/` - **Data Report** - Full KEM cycle measurements: keypair/encaps/decaps per variant per level (TO BE COLLECTED)
+* `results/hardware/ipc/` - **Data Report** - IPC analysis: Spike instret vs HW cycles per variant (TO BE COLLECTED)
+* `results/hardware/validation/` - **Data Report** - Spike vs HW speedup comparison table (TO BE COLLECTED)
+
+### §8.6 Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)
 
 * `writing/compiler-comparison.md` - **Writing Draft** - Full GCC vs Clang codegen analysis, dual-compiler workflow, GCC Zvbb incompatibility
 * `results/simulation/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for scalar variants
