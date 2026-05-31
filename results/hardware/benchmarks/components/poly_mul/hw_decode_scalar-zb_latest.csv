@@ -1,0 +1,10 @@
+# date: 2026-05-31 21:31
+# commit: b709a5f
+# variant: scalar_zb
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# level=128,decode=ref,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+decode,100,456082,456722,499778,459431.1,8614.3,615843,615843,623894,616321.5,1659.3

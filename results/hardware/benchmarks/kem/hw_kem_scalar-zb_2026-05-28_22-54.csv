@@ -1,5 +1,0 @@
-# level=128,polymul=karatsuba_zbc,n_iter=10000,n_warmup=100,platform=hw
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
-keypair,10000,252272,255499,350543,257736.5,6070.3,366040,366040,402886,370425.6,5771.6
-encaps,10000,504104,507729,649632,509847.4,7367.3,743748,743748,787026,745225.5,2550.6
-decaps,10000,1274801,1278607,1485572,1283567.2,11111.5,1827964,1827964,1898361,1829147.5,2871.3

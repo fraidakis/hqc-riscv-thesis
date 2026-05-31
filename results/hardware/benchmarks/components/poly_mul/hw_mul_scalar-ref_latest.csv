@@ -1,0 +1,10 @@
+# date: 2026-05-31 18:47
+# commit: b709a5f
+# variant: scalar_ref
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# level=128,polymul=ref_scalar,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+vect_mul,100,11617708,11664579,11764620,11664908.6,28552.7,18253011,18258882,18269656,18258667.7,2976.2

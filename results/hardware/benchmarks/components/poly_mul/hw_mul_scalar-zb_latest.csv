@@ -1,0 +1,10 @@
+# date: 2026-05-31 18:47
+# commit: b709a5f
+# variant: scalar_zb
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# level=128,polymul=karatsuba_zbc,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+vect_mul,100,145189,146123,156606,146317.8,1321.3,195403,195403,202509,195474.1,710.6

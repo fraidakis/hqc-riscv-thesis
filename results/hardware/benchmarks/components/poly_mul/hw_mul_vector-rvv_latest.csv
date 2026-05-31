@@ -1,0 +1,10 @@
+# date: 2026-05-31 18:46
+# commit: b709a5f
+# variant: vector_rvv
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# level=128,polymul=karatsuba_rvv,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+vect_mul,100,209129,209804,255251,211109.3,6227.2,152695,152695,160643,152911.6,1245.6

@@ -1,0 +1,13 @@
+# date: 2026-05-31 18:38
+# commit: b709a5f
+# variant: scalar_ref
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# level=128,polymul=ref_scalar,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+keypair,100,11732660,11756872,11874969,11761568.0,22877.7,18423645,18431071,18451394,18433551.1,6426.5
+encaps,100,23471719,23495960,23650039,23499687.1,23008.7,36864570,36871321,36911906,36871850.9,5723.6
+decaps,100,35720067,35753541,36093416,35781601.2,72900.0,56011625,56018462,56071280,56018876.6,7718.0
+    

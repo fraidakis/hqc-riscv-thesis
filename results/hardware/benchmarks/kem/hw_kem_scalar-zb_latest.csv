@@ -1,0 +1,12 @@
+# date: 2026-05-31 18:37
+# commit: b709a5f
+# variant: scalar_zb
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# level=128,polymul=karatsuba_zbc,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+keypair,100,254347,256661,303466,259742.4,8211.6,366044,366044,388386,370582.2,5981.6
+encaps,100,505791,508343,542456,510383.1,7334.4,743752,743752,754995,745226.0,2536.9
+decaps,100,1275498,1278709,1450985,1287216.6,25446.8,1827974,1827974,1876119,1829960.1,6536.4

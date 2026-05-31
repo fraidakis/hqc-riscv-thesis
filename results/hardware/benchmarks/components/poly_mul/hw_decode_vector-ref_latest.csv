@@ -1,0 +1,10 @@
+# date: 2026-05-31 21:32
+# commit: b709a5f
+# variant: vector_ref
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# level=128,decode=ref,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+decode,100,396559,397297,455866,399390.3,8544.1,350949,350949,361512,351361.2,1708.0
