@@ -1,0 +1,62 @@
+% Hardware deployment tiers — layered diagram
+% Used in §6.1 (sec:polymul-tiers)
+
+\begin{tikzpicture}[
+  tier/.style={
+    draw, rounded corners=4pt, minimum width=11cm, minimum height=1.6cm,
+    align=center, font=\sffamily, thick
+  },
+  extlabel/.style={
+    font=\scriptsize\ttfamily, anchor=west
+  },
+  arrow/.style={
+    ->, >=stealth, thick, gray!60
+  },
+  brace/.style={
+    decorate, decoration={brace, amplitude=6pt, mirror}, thick, gray!70
+  }
+]
+
+% Tier 1 (base layer)
+\node[tier, fill=blue!8, draw=blue!50] (t1) at (0, 0) {
+  \textbf{Tier 1 — Scalar Deployment}\\[2pt]
+  \footnotesize rv64gc + Zbc/Zbb/Zbs
+};
+
+% Tier 2 (middle layer)
+\node[tier, fill=teal!8, draw=teal!50] (t2) at (0, 2.2) {
+  \textbf{Tier 2 — Base-RVV Deployment}\\[2pt]
+  \footnotesize rv64gcv + Zbc/Zbb/Zba
+};
+
+% Tier 3 (top layer)
+\node[tier, fill=violet!8, draw=violet!50] (t3) at (0, 4.4) {
+  \textbf{Tier 3 — Full Vector-Crypto Deployment}\\[2pt]
+  \footnotesize rv64gcv + Zbc/Zbb/Zba/Zvbc/Zvbb
+};
+
+% Extension annotations (right side)
+\node[extlabel] at (5.9, 0) {clmul, clmulh, rori, andn};
+\node[extlabel] at (5.9, 2.2) {+ vle64, vse64, vxor, vsetvl};
+\node[extlabel] at (5.9, 4.4) {+ vclmul.vv, vclmulh.vv, vror.vv};
+
+% Variant labels (left side)
+\node[font=\footnotesize\sffamily, anchor=east, blue!70!black] at (-5.9, 0)
+  {\texttt{karatsuba\_zbc}};
+\node[font=\footnotesize\sffamily, anchor=east, teal!70!black] at (-5.9, 2.2)
+  {\texttt{karatsuba\_rvv}};
+\node[font=\footnotesize\sffamily, anchor=east, violet!70!black] at (-5.9, 4.4)
+  {\texttt{karatsuba\_zvbc}};
+
+% Superset arrows
+\draw[arrow] (t1.north) -- (t2.south)
+  node[midway, right, font=\scriptsize, gray!80] {$+$ RVV 1.0};
+\draw[arrow] (t2.north) -- (t3.south)
+  node[midway, right, font=\scriptsize, gray!80] {$+$ Zvbc/Zvbb};
+
+% Left brace with "ISA complexity increases" annotation
+\draw[brace] (-6.2, -0.8) -- (-6.2, 5.2)
+  node[midway, left=8pt, font=\scriptsize\sffamily, align=center, rotate=90]
+  {Αρχιτεκτονική πολυπλοκότητα αυξάνεται};
+
+\end{tikzpicture}
