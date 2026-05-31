@@ -62,23 +62,6 @@ jobs:
           path: results/ct_verify/valgrind_ct/ct_hqc${{ matrix.level }}_${{ matrix.variant }}_valgrind.xml
           if-no-files-found: ignore   # SKIP variants produce no report file
 
-  # ── dudect: statistical CT test (not yet integrated) ───────────────────────
-  dudect:
-    name: CT check — dudect (statistical)
-    if: false   # TODO: add dudect submodule to results/ct_verify/dudect/
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Install deps
-        run: sudo apt-get update -qq && sudo apt-get install -y gcc make
-
-      - name: Build & run dudect harness
-        run: cmake --build build --target ct_dudect
-
-      - name: Upload dudect results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dudect-results
-          path: results/ct_verify/dudect/
+  # NOTE: dudect constant-time verification runs on hardware (BPI-F3)
+  # using perf_event_open for cycle-accurate timing. It cannot run in CI.
+  # See tests/ct_dudect/README.md for hardware execution instructions.
