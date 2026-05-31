@@ -1,5 +1,5 @@
-ref_scalar
-ref_vector
-karatsuba_zbc
-karatsuba_rvv
-karatsuba_zvbc
+scalar_ref
+scalar_zb
+vector_ref
+vector_rvv
+vector_zvk

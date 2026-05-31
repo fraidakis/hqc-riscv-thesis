@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Generate publication-quality PDF charts for the HQC RISC-V diploma thesis.
+"""Generate publication-quality PDF charts for the HQC RISC-V project.
 
 Consolidated chart generation script that produces 10 distinct chart types
 as PDF figures suitable for LaTeX inclusion. Reads benchmark CSV data from
 the results/ directory tree.
 
 Usage:
-    python3 scripts/report/generate_thesis_charts.py --all
-    python3 scripts/report/generate_thesis_charts.py --chart three_stage_pie
-    python3 scripts/report/generate_thesis_charts.py --list
+    python3 scripts/report/generate_charts.py --all
+    python3 scripts/report/generate_charts.py --chart three_stage_pie
+    python3 scripts/report/generate_charts.py --list
 """
 
 from __future__ import annotations
@@ -165,12 +165,21 @@ def load_csv(path: Path) -> pd.DataFrame | None:
     return pd.read_csv(path, comment="#")
 
 
-def variant_slug(variant: str) -> str:
-    """Convert a variant name from underscore form to hyphen form for filenames.
+_VARIANT_SLUG_MAP: dict[str, str] = {
+    "ref_scalar": "scalar-ref",
+    "karatsuba_zbc": "scalar-zb",
+    "ref_vector": "vector-ref",
+    "karatsuba_rvv": "vector-rvv",
+    "karatsuba_zvbc": "vector-zvk",
+}
 
-    Example: 'karatsuba_zbc' → 'karatsuba-zbc'
+
+def variant_slug(variant: str) -> str:
+    """Convert a variant name to ISA-family-based slug for filenames.
+
+    Example: 'karatsuba_zbc' → 'scalar-zb'
     """
-    return variant.replace("_", "-")
+    return _VARIANT_SLUG_MAP.get(variant, variant.replace("_", "-"))
 
 
 # ---------------------------------------------------------------------------

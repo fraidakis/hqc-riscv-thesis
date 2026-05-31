@@ -410,14 +410,19 @@ def write_csv_output(
 VARIANT_NAME_MAP: dict[str, str] = {
     "ref_scalar": "scalar_ref",
     "ref-scalar": "scalar_ref",
+    "scalar-ref": "scalar_ref",
     "karatsuba_zbc": "scalar_Zb",
     "karatsuba-zbc": "scalar_Zb",
+    "scalar-zb": "scalar_Zb",
     "ref_vector": "vector_ref",
     "ref-vector": "vector_ref",
+    "vector-ref": "vector_ref",
     "karatsuba_rvv": "vector_rvv",
     "karatsuba-rvv": "vector_rvv",
+    "vector-rvv": "vector_rvv",
     "karatsuba_zvbc": "vector_Zvk",
     "karatsuba-zvbc": "vector_Zvk",
+    "vector-zvk": "vector_Zvk",
 }
 
 

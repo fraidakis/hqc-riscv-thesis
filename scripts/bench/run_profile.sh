@@ -9,10 +9,10 @@
 #   --histogram  Spike PC histogram pipeline
 #
 # Examples:
-#   scripts/bench/run_profile.sh --cache --mul karatsuba_zbc --level 128
+#   scripts/bench/run_profile.sh --cache --mul scalar_zb --level 128
 #   scripts/bench/run_profile.sh --memory --mul hybrid --level 192
-#   scripts/bench/run_profile.sh --trace --mul karatsuba_zbc
-#   scripts/bench/run_profile.sh --histogram --mul karatsuba_zbc --report
+#   scripts/bench/run_profile.sh --trace --mul scalar_zb
+#   scripts/bench/run_profile.sh --histogram --mul scalar_zb --report
 
 set -euo pipefail
 
@@ -22,11 +22,11 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 
 variant_to_dir() {
     case "$1" in
-        ref_scalar)      echo "scalar_ref" ;;
-        karatsuba_zbc)   echo "scalar_Zb" ;;
-        ref_vector)      echo "vector_ref" ;;
-        karatsuba_rvv)   echo "vector_rvv" ;;
-        karatsuba_zvbc)  echo "vector_Zvk" ;;
+        scalar_ref)      echo "scalar_ref" ;;
+        scalar_zb)       echo "scalar_Zb" ;;
+        vector_ref)      echo "vector_ref" ;;
+        vector_rvv)      echo "vector_rvv" ;;
+        vector_zvk)      echo "vector_Zvk" ;;
         *)               echo "$1" ;;  # fallback
     esac
 }
@@ -83,8 +83,8 @@ bench_print_level_branch() {
 }
 
 profile_cache_mode() {
-    local variant="${MUL_VARIANT:-karatsuba_zbc}"
-    local variant_slug="${variant//_/-}"
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
     local dc_config="${DC_CONFIG:-512:8:64}"
     local profile_kind="KEM"
     local target_prefix="bench"
@@ -193,8 +193,8 @@ profile_cache_mode() {
 }
 
 profile_memory_mode() {
-    local variant="${MUL_VARIANT:-karatsuba_zbc}"
-    local variant_slug="${variant//_/-}"
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
@@ -319,8 +319,8 @@ END{printf "%d %d %d %d", lb, sb, li, si}
 }
 
 profile_trace_mode() {
-    local variant="${MUL_VARIANT:-karatsuba_zbc}"
-    local variant_slug="${variant//_/-}"
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
     local profile_kind="KEM"
     local target_prefix="bench"
     local out_prefix="kem"
@@ -478,8 +478,8 @@ profile_histogram_mode() {
         out_prefix="poly"
     fi
 
-    local variant="${MUL_VARIANT:-karatsuba_zbc}"
-    local variant_slug="${variant//_/-}"
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
     local out_dir="${REPO_ROOT}/results/simulation/profiling/histograms/$(variant_to_dir "$variant")"
 
     if ! bench_require_executable "$spike" "Spike not found"; then
@@ -676,7 +676,7 @@ elif [[ -n "$MUL_VARIANT" ]]; then
 elif [[ "$MODE" == "histogram" ]]; then
     batch_variants=("")
 else
-    batch_variants=("karatsuba_zbc")
+    batch_variants=("scalar_zb")
 fi
 
 if [[ "$LEVEL" == "all" ]]; then

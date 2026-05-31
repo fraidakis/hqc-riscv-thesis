@@ -73,11 +73,11 @@ mkdir -p "${REPO_ROOT}/results/reports/variants"
 # Map old variant names to new directory names (extension-family tier naming).
 variant_to_dir() {
     case "$1" in
-        ref_scalar)      echo "scalar_ref" ;;
-        karatsuba_zbc)   echo "scalar_Zb" ;;
-        ref_vector)      echo "vector_ref" ;;
-        karatsuba_rvv)   echo "vector_rvv" ;;
-        karatsuba_zvbc)  echo "vector_Zvk" ;;
+        scalar_ref)      echo "scalar_ref" ;;
+        scalar_zb)       echo "scalar_Zb" ;;
+        vector_ref)      echo "vector_ref" ;;
+        vector_rvv)      echo "vector_rvv" ;;
+        vector_zvk)      echo "vector_Zvk" ;;
         *)               echo "$1" ;;  # fallback
     esac
 }
@@ -207,7 +207,7 @@ generate_report() {
     local report_file="${REPO_ROOT}/results/reports/variants/${new_variant_dir}_L${REPORT_LEVEL}_report.md"
     local variant_slug
     local level_tag
-    variant_slug="${MUL_VARIANT//_/-}"
+    variant_slug="$(bench_variant_slug "$MUL_VARIANT")"
     level_tag="Lall"
     if [[ "$LEVEL" != "all" ]]; then
         level_tag="L${LEVEL}"
@@ -474,7 +474,7 @@ run_variant_analysis() {
     export MUL_VARIANT="$variant"
 
     TRACK="scalar"
-    if [[ "${MUL_VARIANT}" == *"zvbc"* || "${MUL_VARIANT}" == *"rvv"* ]]; then
+    if [[ "${MUL_VARIANT}" == vector_* ]]; then
         TRACK="vector"
     fi
 
@@ -494,10 +494,10 @@ run_variant_analysis() {
     cd "$REPO_ROOT"
 
     run_step_with_timer 1 14 "Isolated polymul benchmark" \
-        ./scripts/bench/run_benchmarks.sh --mode mul --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
+        ./scripts/bench/run_bench.sh --platform sim --mode mul --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
     run_step_with_timer 2 14 "Isolated KEM benchmark" \
-        ./scripts/bench/run_benchmarks.sh --mode kem --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
+        ./scripts/bench/run_bench.sh --platform sim --mode kem --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
     run_step_with_timer 3 14 "Cache profiler" \
         ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
@@ -516,13 +516,13 @@ run_variant_analysis() {
 
     if [[ "$TRACK" == "vector" ]]; then
         run_step_with_timer 8 14 "VLEN scaling sweep (256/512/1024/2048)" \
-            ./scripts/bench/run_benchmarks.sh --mode vlen --mul "$MUL_VARIANT"
+            ./scripts/bench/run_bench.sh --platform sim --mode mul --variant "$MUL_VARIANT" --level all
     else
         printf "[8/14] ⏭  VLEN scaling sweep (skipped: scalar variant)\n"
     fi
 
     run_step_with_timer 9 14 "Compiler comparison (Clang vs GCC)" \
-        ./scripts/bench/run_benchmarks.sh --mode compiler --mul "$MUL_VARIANT"
+        ./scripts/bench/run_bench.sh --platform sim --mode mul --variant "$MUL_VARIANT"
 
     run_step_with_timer 10 14 "Generate speedups report" \
         python3 ./scripts/report/generate_speedups.py
@@ -537,7 +537,7 @@ run_variant_analysis() {
     local hw_data_dir="${REPO_ROOT}/results/hardware/benchmarks"
     if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
         run_step_with_timer 13 14 "Generate hardware speedups report" \
-            python3 ./scripts/report/generate_hw_speedups.py
+            python3 ./scripts/report/generate_speedups.py --platform hw
     else
         printf "[13/14] ⏭  Hardware speedups report (skipped: no hardware data)\n"
     fi
@@ -547,7 +547,7 @@ run_variant_analysis() {
     if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q . \
        && find "$spike_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
         run_step_with_timer 14 14 "Generate cross-platform comparison report" \
-            python3 ./scripts/report/generate_comparison.py
+            python3 ./scripts/report/generate_speedups.py --platform cross
     else
         printf "[14/14] ⏭  Cross-platform comparison report (skipped: missing Spike or hardware data)\n"
     fi

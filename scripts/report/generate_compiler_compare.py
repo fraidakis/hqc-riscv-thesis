@@ -2,9 +2,9 @@
 """Generate a compiler showdown Markdown report from compare_compilers CSV files.
 
 The script scans results/simulation/benchmarks/compiler_compare for CSV outputs
-and, for each (variant, level), picks the best Clang and best GCC run by minimum
-instruction count among rows where status == OK. It then computes the winner and
-the percentage margin:
+matching the pattern sim_compiler_compare_*.csv and, for each (variant, level),
+picks the best Clang and best GCC run by minimum instruction count among rows
+where status == OK. It then computes the winner and the percentage margin:
 
     margin = ((loser_instret / winner_instret) - 1) * 100
 """
@@ -12,6 +12,7 @@ the percentage margin:
 from __future__ import annotations
 
 import csv
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,7 +51,15 @@ def read_rows(csv_path: Path) -> list[dict[str, str]]:
 
 def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], int]:
     best: dict[tuple[str, int, str], BestRun] = {}
-    csv_files = sorted(COMPARE_ROOT.rglob("*.csv"))
+    expected_pattern = COMPARE_ROOT / "sim_compiler_compare_*.csv"
+    csv_files = sorted(COMPARE_ROOT.glob("sim_compiler_compare_*.csv"))
+
+    if not csv_files:
+        print(
+            f"Error: no compiler compare CSV files found at {expected_pattern}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     for csv_path in csv_files:
         for row in read_rows(csv_path):

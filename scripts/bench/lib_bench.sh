@@ -12,6 +12,22 @@ bench_sanitize_label() {
     echo "$raw"
 }
 
+bench_variant_slug() {
+    local canonical="$1"
+    # Map canonical variant names to hyphenated slugs (used in CSV filenames).
+    # The slug is simply the canonical name with underscores replaced by hyphens.
+    case "$canonical" in
+        scalar_ref)     echo "scalar-ref" ;;
+        scalar_zb)      echo "scalar-zb" ;;
+        vector_ref)     echo "vector-ref" ;;
+        vector_rvv)     echo "vector-rvv" ;;
+        vector_zvk)     echo "vector-zvk" ;;
+        # For non-variant identifiers (keccak/decode impl names like "ref", "rvv",
+        # "zvbc", "opt", "zvbb_x2_soa"), fall back to underscore→hyphen replacement.
+        *)              echo "${canonical//_/-}" ;;
+    esac
+}
+
 bench_variant_matches() {
     local variant="$1" filter="${2:-}"
     if [[ -z "$filter" ]]; then
@@ -25,7 +41,7 @@ bench_variant_track() {
     local normalized="${variant,,}"
 
     case "$normalized" in
-        ref_vector|*_rvv|*_zvbc) echo "vector" ;;
+        vector_ref|vector_rvv|vector_zvk|*_rvv|*_zvbc) echo "vector" ;;
         *) echo "scalar" ;;
     esac
 }
@@ -81,22 +97,20 @@ bench_parse_track_args() {
     # Auto-map KECCAK_IMPL from MUL_VARIANT suffix if not explicitly set.
     if [[ "$_keccak_explicit" -eq 0 ]] && [[ -n "$MUL_VARIANT" ]]; then
         case "$MUL_VARIANT" in
-            ref_scalar|ref_vector) KECCAK_IMPL="ref"         ;;
-            *_zvbc)               KECCAK_IMPL="zvbb_x2_soa" ;;
-            *_rvv)                KECCAK_IMPL="ref"         ;;
-            *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;
-            *)                  KECCAK_IMPL="ref"          ;;
+            scalar_ref|scalar_zb|vector_ref) KECCAK_IMPL="ref" ;;
+            vector_zvk)           KECCAK_IMPL="zvbb_x2_soa" ;;
+            vector_rvv)           KECCAK_IMPL="ref"         ;;
+            *)                    KECCAK_IMPL="ref"          ;;
         esac
     fi
 
     # Auto-map DECODE_IMPL from MUL_VARIANT suffix if not explicitly set.
     if [[ "$_decode_explicit" -eq 0 ]]; then
         case "$MUL_VARIANT" in
-            ref_scalar|ref_vector) DECODE_IMPL="ref" ;;
-            *_rvv)             DECODE_IMPL="rvv" ;;
-            *_zvbc)            DECODE_IMPL="zvbc" ;;
-            *_zbc|*_ref|hybrid) DECODE_IMPL="ref" ;;
-            *)                  DECODE_IMPL="ref" ;;
+            scalar_ref|scalar_zb|vector_ref) DECODE_IMPL="ref" ;;
+            vector_rvv)           DECODE_IMPL="rvv" ;;
+            vector_zvk)           DECODE_IMPL="zvbc" ;;
+            *)                    DECODE_IMPL="ref" ;;
         esac
     fi
 
@@ -177,6 +191,16 @@ bench_auto_configure_and_build() {
         elif [[ -n "$_opt_level" && "$cached_opt" != "$_opt_level" ]]; then
             need_config=1
             config_reason="opt-level mismatch"
+        fi
+    fi
+
+    # If cache looks valid but the requested target doesn't exist, force reconfigure.
+    # This catches CMakeLists.txt renames (e.g. karatsuba_rvv → vector_rvv) where
+    # cache variables haven't changed but the generated targets are stale.
+    if [[ "$need_config" -eq 0 ]] && [[ -f "${build_dir}/Makefile" ]]; then
+        if ! grep -q "^${target}:" "${build_dir}/Makefile"; then
+            need_config=1
+            config_reason="stale targets (${target} missing)"
         fi
     fi
 
@@ -321,4 +345,216 @@ bench_refresh_tracked_csv_quiet() {
     cp -f "$src" "$dst"
     mv -f "$src" "$archived_src"
     echo "UPDATED| 🔄 Updated: $abs_dst"
+}
+
+# ── bench_hw_csv_header ───────────────────────────────────────────────────────
+# Generate the metadata comment block for a hardware CSV.
+#
+# Arguments:
+#   $1 - variant    (e.g. vector_rvv)
+#   $2 - n_iter     (e.g. 100)
+#   $3 - n_warmup   (e.g. 10)
+#   $4 - mode       (dev | publish)
+#   $5 - cov_cycles (float, optional — only included in publish mode)
+#
+# Outputs comment lines to stdout.
+bench_hw_csv_header() {
+    local variant="$1"
+    local n_iter="$2"
+    local n_warmup="$3"
+    local mode="$4"
+    local cov_cycles="${5:-}"
+
+    local date_str
+    date_str="$(date +'%Y-%m-%d %H:%M')"
+    local commit
+    commit="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+
+    echo "# date: ${date_str}"
+    echo "# commit: ${commit}"
+    echo "# variant: ${variant}"
+    echo "# platform: bpi-f3"
+    echo "# n_iter: ${n_iter}"
+    echo "# n_warmup: ${n_warmup}"
+    echo "# mode: ${mode}"
+    if [[ "$mode" == "publish" && -n "$cov_cycles" ]]; then
+        echo "# cov_cycles: ${cov_cycles}"
+    fi
+}
+
+# ── bench_hw_store_result ──────────────────────────────────────────────────────
+# Write CSV content directly to the benchmark category directory (flat, no
+# per-variant subdirectory), then delegate to bench_refresh_tracked_csv for
+# archive management.
+#
+# Arguments:
+#   $1 - csv_content  (full CSV text including header comments + data rows)
+#   $2 - variant      (e.g. vector_rvv)
+#   $3 - op           (e.g. mul, kem)
+#   $4 - timestamp    (e.g. 2025-06-01_14-30)
+#
+# The storage path model (split by operation type):
+#   kem files → results/hardware/benchmarks/kem/hw_kem_{slug}_{timestamp}.csv
+#   mul files → results/hardware/benchmarks/components/poly_mul/hw_mul_{slug}_{timestamp}.csv
+#
+# Returns: the path written (via stdout from bench_refresh_tracked_csv).
+bench_hw_store_result() {
+    local csv_content="$1"
+    local variant="$2"
+    local op="$3"
+    local timestamp="$4"
+
+    local slug
+    slug="$(bench_variant_slug "$variant")"
+
+    local repo_root
+    repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+    # Route to the appropriate category directory based on operation type.
+    local category_dir
+    if [[ "$op" == "kem" ]]; then
+        category_dir="${repo_root}/results/hardware/benchmarks/kem"
+    else
+        category_dir="${repo_root}/results/hardware/benchmarks/components/poly_mul"
+    fi
+    mkdir -p "$category_dir"
+
+    local timestamped_file latest_file
+    timestamped_file="${category_dir}/$(bench_build_filename "hw" "$op" "$slug" "$timestamp")"
+    latest_file="${category_dir}/$(bench_build_filename "hw" "$op" "$slug" "latest")"
+
+    # Write the CSV content to the timestamped file.
+    echo "$csv_content" > "$timestamped_file"
+
+    # Delegate to bench_refresh_tracked_csv for archive management.
+    bench_refresh_tracked_csv "$timestamped_file" "$latest_file"
+}
+
+bench_build_filename() {
+    local platform="$1"
+    local operation="$2"
+    local variant_slug="$3"
+    local suffix="$4"
+
+    # Validate platform
+    case "$platform" in
+        sim|hw) ;;
+        *)
+            echo "ERROR: bench_build_filename: invalid platform '$platform' (expected 'sim' or 'hw')" >&2
+            return 1
+            ;;
+    esac
+
+    # Validate operation
+    case "$operation" in
+        mul|kem|keccak|decode|compiler_compare|vlen|validation) ;;
+        *)
+            echo "ERROR: bench_build_filename: invalid operation '$operation' (expected one of: mul, kem, keccak, decode, compiler_compare, vlen, validation)" >&2
+            return 1
+            ;;
+    esac
+
+    # Validate variant-slug
+    if [[ ! "$variant_slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+        echo "ERROR: bench_build_filename: invalid variant-slug '$variant_slug' (must match [a-z0-9]+(-[a-z0-9]+)*)" >&2
+        return 1
+    fi
+
+    # Validate suffix
+    if [[ "$suffix" != "latest" ]] && [[ ! "$suffix" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "ERROR: bench_build_filename: invalid suffix '$suffix' (expected 'latest' or 'YYYY-MM-DD_HH-MM')" >&2
+        return 1
+    fi
+
+    echo "${platform}_${operation}_${variant_slug}_${suffix}.csv"
+}
+
+bench_validate_filename() {
+    local filename="$1"
+
+    # Strip any directory component — validate only the basename
+    filename="$(basename "$filename")"
+
+    # Full regex for valid filenames
+    local full_regex='^(sim|hw)_(mul|kem|keccak|decode|compiler_compare|vlen|validation)_[a-z0-9]+(-[a-z0-9]+)*_(latest|[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2})\.csv$'
+
+    if [[ "$filename" =~ $full_regex ]]; then
+        return 0
+    fi
+
+    # Determine which segment is invalid for a helpful error message.
+
+    # Check .csv extension
+    if [[ "$filename" != *.csv ]]; then
+        echo "ERROR: bench_validate_filename: filename '$filename' does not end with '.csv'" >&2
+        return 1
+    fi
+
+    # Strip .csv extension for segment analysis
+    local stem="${filename%.csv}"
+
+    # Split on underscores — but we need to be careful because operation can contain
+    # underscores (compiler_compare) and the timestamp contains underscores.
+    # Strategy: validate segments left-to-right.
+
+    # Extract platform (first segment before first underscore)
+    local platform="${stem%%_*}"
+    local rest="${stem#*_}"
+
+    case "$platform" in
+        sim|hw) ;;
+        *)
+            echo "ERROR: bench_validate_filename: invalid platform '$platform' in '$filename' (expected 'sim' or 'hw')" >&2
+            return 1
+            ;;
+    esac
+
+    # Extract operation — try multi-word operations first (compiler_compare)
+    local operation=""
+    local after_op=""
+    if [[ "$rest" == compiler_compare_* ]]; then
+        operation="compiler_compare"
+        after_op="${rest#compiler_compare_}"
+    else
+        operation="${rest%%_*}"
+        after_op="${rest#*_}"
+    fi
+
+    case "$operation" in
+        mul|kem|keccak|decode|compiler_compare|vlen|validation) ;;
+        *)
+            echo "ERROR: bench_validate_filename: invalid operation '$operation' in '$filename' (expected one of: mul, kem, keccak, decode, compiler_compare, vlen, validation)" >&2
+            return 1
+            ;;
+    esac
+
+    # The remaining part is: {variant-slug}_{suffix}
+    # suffix is either "latest" or "YYYY-MM-DD_HH-MM" (which contains an underscore)
+    # Try to extract suffix from the end.
+    local variant_slug=""
+    local suffix=""
+
+    # Check if it ends with a timestamp pattern: YYYY-MM-DD_HH-MM
+    local ts_regex='[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}$'
+    if [[ "$after_op" =~ _([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2})$ ]]; then
+        suffix="${BASH_REMATCH[1]}"
+        variant_slug="${after_op%_${suffix}}"
+    elif [[ "$after_op" =~ _latest$ ]]; then
+        suffix="latest"
+        variant_slug="${after_op%_latest}"
+    else
+        echo "ERROR: bench_validate_filename: invalid suffix in '$filename' (expected 'latest' or 'YYYY-MM-DD_HH-MM')" >&2
+        return 1
+    fi
+
+    # Validate variant-slug
+    if [[ ! "$variant_slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+        echo "ERROR: bench_validate_filename: invalid variant-slug '$variant_slug' in '$filename' (must match [a-z0-9]+(-[a-z0-9]+)*)" >&2
+        return 1
+    fi
+
+    # If we get here, all segments parsed correctly but the full regex didn't match.
+    # This shouldn't happen, but handle it gracefully.
+    echo "ERROR: bench_validate_filename: filename '$filename' does not match expected pattern" >&2
+    return 1
 }

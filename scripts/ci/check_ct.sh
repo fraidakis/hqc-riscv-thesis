@@ -23,8 +23,8 @@
 #     --dudect    : Run Dudect leakage detection
 #     --all       : Run all verification methods (Valgrind + Dudect)
 #     security_level : 128 | 192 | 256
-#     variant        : karatsuba_ref | karatsuba_zbc | fafft_zbc |
-#                      hybrid | fafft_zvbc | karatsuba_zvbc
+#     variant        : scalar_ref | scalar_zb | vector_ref |
+#                      vector_rvv | vector_zvk
 
 set -euo pipefail
 
@@ -47,11 +47,11 @@ Options:
 
 Arguments:
   security_level : 128 | 192 | 256
-  variant        : karatsuba_ref | karatsuba_zbc | fafft_zbc | hybrid | fafft_zvbc | karatsuba_zvbc
+  variant        : scalar_ref | scalar_zb | vector_ref | vector_rvv | vector_zvk
 
 Examples:
   check_ct.sh 128 karatsuba_ref
-  check_ct.sh --dudect 128 karatsuba_zvbc
+  check_ct.sh --dudect 128 vector_zvk
   check_ct.sh --all 192 karatsuba_ref
 HELP
     exit 1
@@ -79,17 +79,17 @@ Options:
 
 Arguments:
   security_level : 128 | 192 | 256
-  variant        : karatsuba_ref | karatsuba_zbc | fafft_zbc | hybrid | fafft_zvbc | karatsuba_zvbc
+  variant        : scalar_ref | scalar_zb | vector_ref | vector_rvv | vector_zvk
 
 Examples:
   # Single variant with default Valgrind verification
   check_ct.sh 128 karatsuba_ref
 
   # Run Dudect leakage test on vector variant
-  check_ct.sh --dudect 256 karatsuba_zvbc
+  check_ct.sh --dudect 256 vector_zvk
 
   # Comprehensive verification: all tools on all variants
-  for v in karatsuba_ref karatsuba_zbc hybrid; do
+  for v in scalar_ref scalar_zb vector_rvv; do
     check_ct.sh --all 128 $v || exit 1
   done
 
@@ -142,10 +142,10 @@ VENDOR="vendor/hqc-ref"
 RISCV_ONLY=0
 
 case "$VARIANT" in
-    karatsuba_ref)
+    karatsuba_ref|scalar_ref)
         POLYMUL_SRCS=("${VENDOR}/src/ref/gf2x.c")
         ;;
-    karatsuba_zbc)
+    karatsuba_zbc|scalar_zb)
         POLYMUL_SRCS=("src/mult/karatsuba_zbc/gf2x_clmul.c")
         RISCV_ONLY=1
         ;;
@@ -164,8 +164,15 @@ case "$VARIANT" in
         POLYMUL_SRCS=("src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c")
         RISCV_ONLY=1
         ;;
-    karatsuba_zvbc)
+    karatsuba_zvbc|vector_zvk)
         POLYMUL_SRCS=("src/mult/karatsuba_zvbc/gf2x_vclmul.c")
+        RISCV_ONLY=1
+        ;;
+    vector_ref)
+        POLYMUL_SRCS=("${VENDOR}/src/ref/gf2x.c")
+        ;;
+    vector_rvv)
+        POLYMUL_SRCS=("src/mult/karatsuba_rvv/gf2x_clmul.c")
         RISCV_ONLY=1
         ;;
     *)
