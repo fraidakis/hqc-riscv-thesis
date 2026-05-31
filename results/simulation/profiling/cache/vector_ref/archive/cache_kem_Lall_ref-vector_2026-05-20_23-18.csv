@@ -1,8 +1,0 @@
-# date: 2026-05-20 23:18
-# commit: a96a6ff
-# variant: ref_vector
-# cache_config: 512:8:64
-level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-128,1373,97,1276,131,373244966,237246247,46886450,32209488
-192,3355,315,3040,919,1125068765,719595427,141025576,97403295
-256,7680,1079,6601,3798,2810268024,1824063146,351941009,240801390

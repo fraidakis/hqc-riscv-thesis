@@ -1,0 +1,8 @@
+# date: 2026-05-31 16:51
+# commit: 582b386
+# Multiplication variant: vector_rvv
+level,op,instructions,codesize
+128,keypair,371980,41430
+128,encaps,757850,41430
+128,decaps,1341307,41430
+128,total,2471137,41430
