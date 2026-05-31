@@ -80,22 +80,22 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 
 # ── Polynomial multiplication variants ───────────────────────────────────────
 # All targets are declared but marked EXCLUDE_FROM_ALL — build explicitly:
-#   cmake --build build --target hqc128_ref_scalar -j$(nproc)
-# Scripts (scripts/test/run_kat.sh, scripts/bench/run_benchmarks.sh) auto-skip missing ELFs.
+#   cmake --build build --target hqc128_scalar_ref -j$(nproc)
+# Scripts (scripts/test/run_kat.sh, scripts/bench/run_bench.sh) auto-skip missing ELFs.
 # Different CMake build dirs control Keccak/Decode implementation via
 # HQC_KECCAK_IMPL / HQC_DECODE_IMPL (set in cmake/options.cmake).
 #
-#   ref_scalar    : vendor scalar baseline, no RVV
-#   ref_vector    : vendor reference sources, compiled for base RVV auto-vectorization
-#   karatsuba_zbc : scalar optimized champion
-#   karatsuba_rvv : RVV hybrid champion
-#   karatsuba_zvbc: full vector-crypto champion
+#   scalar_ref  : vendor scalar baseline, no RVV
+#   vector_ref  : vendor reference sources, compiled for base RVV auto-vectorization
+#   scalar_zb   : scalar optimized champion (Zbc carry-less multiply)
+#   vector_rvv  : RVV hybrid champion
+#   vector_zvk  : full vector-crypto champion (Zvbc)
 set(POLYMUL_VARIANTS
-    ref_scalar
-    ref_vector
-    karatsuba_zbc
-    karatsuba_rvv
-    karatsuba_zvbc
+    scalar_ref
+    vector_ref
+    scalar_zb
+    vector_rvv
+    vector_zvk
 )
 
 # Variants with a real implementation (not __builtin_trap stubs).
@@ -233,10 +233,10 @@ set(LOCAL_BENCH_SOURCES
 
 # ── LTO + PGO helper for reference baseline targets (P-06) ───────────────────
 # Applies -flto and/or PGO flags to a named target.
-# Called for every ref_scalar/ref_vector executable (KAT, bench, polymul bench).
+# Called for every scalar_ref/vector_ref executable (KAT, bench, polymul bench).
 function(hqc_apply_ref_lto_pgo TARGET)
     if(HQC_REF_LTO)
-        if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND "${TARGET}" MATCHES "_ref_vector$")
+        if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND "${TARGET}" MATCHES "_vector_ref$")
             message(STATUS "Skipping LTO for ${TARGET} with GCC (known lto1 builtin incompatibility)")
         else()
             target_compile_options(${TARGET} PRIVATE -flto)
@@ -286,7 +286,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         set(VARIANT_REF_PROFILE OFF)
 
         # ── Polynomial multiply sources per strategy ──────────────────────────
-        if(POLYMUL STREQUAL "ref_scalar")
+        if(POLYMUL STREQUAL "scalar_ref")
             # Reference scalar baseline: vendor unoptimized polymul/keccak/decode.
             set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -302,7 +302,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
                 $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>)
             set(VARIANT_REF_PROFILE ON)
-        elseif(POLYMUL STREQUAL "ref_vector")
+        elseif(POLYMUL STREQUAL "vector_ref")
             # Reference vector baseline: compiler auto-vectorization ceiling for Tier 2 ISA.
             set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -318,7 +318,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 $<$<C_COMPILER_ID:Clang>:-fvectorize>
                 $<$<C_COMPILER_ID:Clang>:-fslp-vectorize>)
             set(VARIANT_REF_PROFILE ON)
-        elseif(POLYMUL STREQUAL "karatsuba_zbc")
+        elseif(POLYMUL STREQUAL "scalar_zb")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -333,14 +333,14 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -fno-tree-vectorize
                 $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
                 $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>)
-        elseif(POLYMUL STREQUAL "karatsuba_rvv")
+        elseif(POLYMUL STREQUAL "vector_rvv")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gcv_zbc_zbb_zba
                 -mabi=lp64d
                 -O3)
-        elseif(POLYMUL STREQUAL "karatsuba_zvbc")
+        elseif(POLYMUL STREQUAL "vector_zvk")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zvbc/gf2x_vclmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
@@ -393,7 +393,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(VARIANT_COMPILE_OPTIONS)
             target_compile_options(${KAT_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
-        if(POLYMUL STREQUAL "karatsuba_zvbc")
+        if(POLYMUL STREQUAL "vector_zvk")
             # Zvbc variants require --isa=rv64gcv_zvbc on Spike at runtime.
             # run_kat.sh detects this compile-time definition and adjusts accordingly.
             target_compile_definitions(${KAT_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
@@ -422,7 +422,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         # Identical sources, but compiled with HQC_BENCH_MODE=1
         # so that AES-CTR DRBG overhead does not pollute rdcycle measurements.
         # Built with EXCLUDE_FROM_ALL — must be explicitly requested:
-        #   cmake --build build --target bench_hqc128_ref_scalar
+        #   cmake --build build --target bench_hqc128_scalar_ref
         set(BENCH_TARGET "bench_hqc${LEVEL}_${POLYMUL}")
 
         add_executable(${BENCH_TARGET} EXCLUDE_FROM_ALL
@@ -459,7 +459,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(VARIANT_COMPILE_OPTIONS)
             target_compile_options(${BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
-        if(POLYMUL STREQUAL "karatsuba_zvbc")
+        if(POLYMUL STREQUAL "vector_zvk")
             target_compile_definitions(${BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
         endif()
         set_target_properties(${BENCH_TARGET} PROPERTIES
@@ -484,7 +484,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         # Benchmarks only vect_mul() — no keypair/encaps/decaps, no Keccak.
         # Use for fast iteration on the vect_mul hotspot.
         #   cmake --build build-spike-probe \
-        #         --target bench_polymul_hqc128_ref_scalar
+        #         --target bench_polymul_hqc128_scalar_ref
         set(POLYMUL_BENCH_TARGET "bench_polymul_hqc${LEVEL}_${POLYMUL}")
 
         add_executable(${POLYMUL_BENCH_TARGET} EXCLUDE_FROM_ALL
@@ -512,7 +512,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         if(VARIANT_COMPILE_OPTIONS)
             target_compile_options(${POLYMUL_BENCH_TARGET} PRIVATE ${VARIANT_COMPILE_OPTIONS})
         endif()
-        if(POLYMUL STREQUAL "karatsuba_zvbc")
+        if(POLYMUL STREQUAL "vector_zvk")
             target_compile_definitions(${POLYMUL_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
         endif()
         set_target_properties(${POLYMUL_BENCH_TARGET} PROPERTIES
@@ -542,8 +542,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
         #   cmake --build build --target vlen_matrix_hqc${LEVEL}
         if(POLYMUL IN_LIST VECTOR_POLYMUL_VARIANTS)
             foreach(VLEN ${VLEN_LIST})
-                # ── Per-VLEN Karatsuba threshold (karatsuba_zvbc) ──
-                if(POLYMUL STREQUAL "karatsuba_zvbc")
+                # ── Per-VLEN Karatsuba threshold (vector_zvk) ──
+                if(POLYMUL STREQUAL "vector_zvk")
                     set(KARATSUBA_THRESHOLD 16)
 
                     # ── Per-VLEN header generation ─────────────────────────────
@@ -597,7 +597,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                     $<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${VLEN}>
                     $<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>
                 )
-                if(POLYMUL STREQUAL "karatsuba_zvbc")
+                if(POLYMUL STREQUAL "vector_zvk")
                     target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE HQC_POLYMUL_ZVBC=1)
                     target_include_directories(${VLEN_BENCH_TARGET} BEFORE PRIVATE ${VLEN_GEN_DIR})
                     target_compile_definitions(${VLEN_BENCH_TARGET} PRIVATE KARATSUBA_THRESHOLD=${KARATSUBA_THRESHOLD})

@@ -2,6 +2,7 @@
 #
 # Standalone Makefile for native compilation of hardware benchmarks on BPI-F3.
 # Does NOT require CMake — just GCC on the board.
+# Compiles the unified bench_*.c sources with -DHQC_PLATFORM_HW=1.
 #
 # Usage (on the board):
 #   cd tests/bench
@@ -69,6 +70,7 @@ endif
 # ── Compiler flags ───────────────────────────────────────────────────────────
 CFLAGS := -O3 -static -march=$(MARCH) -mabi=lp64d \
           -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
+          -DHQC_PLATFORM_HW=1 \
           -DHQC_BENCH_MODE=1 \
           -DPOLYMUL_NAME=\"$(POLYMUL)\" \
           -DN_ITER=$(N_ITER) -DN_WARMUP=$(N_WARMUP) \
@@ -91,7 +93,7 @@ CORE_SOURCES := $(VENDOR)/src/common/kem.c \
                 $(SRC)/common/gf.c
 
 # ── Source files for full KEM benchmark ──────────────────────────────────────
-KEM_SOURCES := bench_hw_kem.c \
+KEM_SOURCES := bench_kem.c \
                $(CORE_SOURCES) \
                $(SRC)/hqc.c \
                $(VENDOR)/src/common/code.c \
@@ -105,18 +107,18 @@ KEM_SOURCES := bench_hw_kem.c \
                $(POLYMUL_SRC)
 
 # ── Source files for polymul micro-benchmark ─────────────────────────────────
-MUL_SOURCES := bench_hw_mul.c \
+MUL_SOURCES := bench_mul.c \
                $(POLYMUL_SRC)
 
 # ── Source files for Keccak micro-benchmark ──────────────────────────────────
-KECCAK_SOURCES := bench_hw_keccak.c \
+KECCAK_SOURCES := bench_keccak.c \
                   $(VENDOR)/src/common/symmetric.c \
                   $(VENDOR)/lib/fips202/fips202.c \
                   $(SRC)/vector.c \
                   $(SRC)/common/randombytes.c
 
 # ── Source files for decode micro-benchmark ──────────────────────────────────
-DECODE_SOURCES := bench_hw_decode.c \
+DECODE_SOURCES := bench_decode.c \
                   $(VENDOR)/src/ref/reed_muller.c \
                   $(VENDOR)/src/ref/reed_solomon.c \
                   $(VENDOR)/src/common/fft.c
@@ -140,22 +142,22 @@ keccak: $(KECCAK_BIN)
 
 decode: $(DECODE_BIN)
 
-$(KEM_BIN): bench_hw_kem.c perf_hw.h $(KEM_SOURCES)
+$(KEM_BIN): bench_kem.c bench_common.h perf_hw.h $(KEM_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) $(KEM_SOURCES) -lm -o $@
 	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
 	@echo "Verify Zbc/RVV instructions:"
 	@objdump -d $@ | grep -cE "clmul|clmulh" || true
 	@objdump -d $@ | grep -cE "vle|vse|vxor|vslide" || true
 
-$(MUL_BIN): bench_hw_mul.c perf_hw.h $(MUL_SOURCES)
+$(MUL_BIN): bench_mul.c bench_common.h perf_hw.h $(MUL_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) $(MUL_SOURCES) -lm -o $@
 	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
-$(KECCAK_BIN): bench_hw_keccak.c perf_hw.h $(KECCAK_SOURCES)
+$(KECCAK_BIN): bench_keccak.c bench_common.h perf_hw.h $(KECCAK_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"ref\" $(KECCAK_SOURCES) -lm -o $@
 	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
-$(DECODE_BIN): bench_hw_decode.c perf_hw.h $(DECODE_SOURCES)
+$(DECODE_BIN): bench_decode.c bench_common.h perf_hw.h $(DECODE_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) -DDECODE_NAME=\"ref\" $(DECODE_SOURCES) -lm -o $@
 	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
 

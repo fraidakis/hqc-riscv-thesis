@@ -1,108 +1,215 @@
-/* tests/bench/bench_poly_mul.c
+/* tests/bench/bench_mul.c
  *
- * Polynomial-multiply micro-benchmark for HQC on bare-metal RISC-V.
+ * Unified polynomial-multiply micro-benchmark for HQC on RISC-V.
  *
  * Benchmarks vect_mul() in isolation (one call, no keypair/encaps/decaps
  * overhead, no Keccak).  This is the dominant cost in HQC (>90% of
- * runtime), giving a fast iteration loop when tuning gf2x_mul:
+ * runtime), giving a fast iteration loop when tuning gf2x_mul.
  *
- *   QEMU KAT       — optional fallback correctness check
- *   Spike polymul  — cycle + instret counts for vect_mul alone
- *   Spike KEM      — full end-to-end baseline for keypair/encaps/decaps
+ * Platform selection:
+ *   - Without HQC_PLATFORM_HW: bare-metal Spike ISS (sim)
+ *     Uses hqc_rdcycle/hqc_rdinstret, single iteration, deterministic.
+ *   - With -DHQC_PLATFORM_HW=1: Linux userspace on real hardware (BPI-F3)
+ *     Uses perf_event_open for cycle/instret counting, many iterations.
  *
  * Input polynomials:
  *   poly_a — dense pseudo-random (mimics HQC public key / h vector)
  *   poly_b — sparse with exactly PARAM_OMEGA_R bits set, evenly distributed
- *             (mimics HQC error/r-vector with the correct Hamming weight)
+ *            (mimics HQC error/r-vector with the correct Hamming weight)
  *
- * Output CSV format:
+ * Output CSV format (simulation):
  *   # level=<L>,polymul=<P>,n_iter=<N>,codesize_text=<bytes>
  *   op,iterations,min_cycles,median_cycles,max_cycles,min_instret,median_instret,max_instret
  *   vect_mul,<N>,<min_c>,<med_c>,<max_c>,<min_i>,<med_i>,<max_i>
  *
- * Compile-time knobs (set by CMakeLists.txt):
- *   SECURITY_LEVEL  128 | 192 | 256
- *   POLYMUL_NAME    string literal e.g. "karatsuba_ref"
- *   N_ITER          (optional, default 1)
- *   HQC_SILENT      suppresses HTIF metadata headers in normal Spike bench runs
- *   HQC_TRACE_MODE  trace/hist-only mode that compiles out un-timed warm-up calls
+ * Output CSV format (hardware):
+ *   # level=<L>,polymul=<P>,n_iter=<N>,n_warmup=<W>,platform=hw
+ *   op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+ *   vect_mul,...
  *
- * Note: on Spike (deterministic ISS) N_ITER > 1 confirms cycle stability but
- * does not add statistical value.  For real hardware, set N_ITER >= 10.
- * Use on Spike only; QEMU rdcycle is a software counter, not wall-clock.
+ * Compile-time knobs (set by CMakeLists.txt / Makefile.hw):
+ *   SECURITY_LEVEL   128 | 192 | 256
+ *   POLYMUL_NAME     string literal e.g. "karatsuba_ref"
+ *   N_ITER           (optional, default N_ITER_DEFAULT from bench_common.h)
+ *   N_WARMUP         (optional, default N_WARMUP_DEFAULT from bench_common.h)
+ *   HQC_SILENT       suppresses HTIF metadata headers in normal Spike bench runs
+ *   HQC_TRACE_MODE   trace/hist-only mode that compiles out un-timed warm-up calls
+ *   HQC_PLATFORM_HW  selects hardware path (perf_event_open)
+ *
+ * Requirements: 5.1, 5.2, 5.4
  */
 
-#include <stdint.h>
-#include <stddef.h>
-#include <string.h>
+#include "bench_common.h"
 
 #include "gf2x.h"        /* vect_mul() */
-#include "bench.h"
 #include "parameters.h"  /* VEC_N_SIZE_64, PARAM_N, PARAM_OMEGA_R */
 
 #ifndef N_ITER
-#  define N_ITER 1
+#  define N_ITER N_ITER_DEFAULT
+#endif
+
+#ifndef N_WARMUP
+#  define N_WARMUP N_WARMUP_DEFAULT
 #endif
 
 #ifndef POLYMUL_NAME
-#  define POLYMUL_NAME "karatsuba_ref"
+#  define POLYMUL_NAME "unknown"
 #endif
-
-/* Linker symbols bracketing .text.startup + .text */
-extern char _text_start[];
-extern char _text_end[];
 
 /* ── Static buffers ──────────────────────────────────────────────────────── */
 static uint64_t poly_a[VEC_N_SIZE_64];   /* dense, mimics HQC public-key element */
 static uint64_t poly_b[VEC_N_SIZE_64];   /* sparse weight-PARAM_OMEGA_R, mimics r-vector */
 static uint64_t poly_out[VEC_N_SIZE_64];
 
+/* ══════════════════════════════════════════════════════════════════════════
+ * Hardware-specific path (perf_event_open, many iterations, statistics)
+ * ══════════════════════════════════════════════════════════════════════════ */
+#ifdef HQC_PLATFORM_HW
+
+/* ── Timing sample storage (heap-allocated for large N_ITER) ─────────────── */
+static uint64_t *samples_cyc;
+static uint64_t *samples_ins;
+
+/* ── Raw dump file path (NULL = no dump) ─────────────────────────────────── */
+static const char *raw_dump_path = NULL;
+
+/* ── CSV emit helper ─────────────────────────────────────────────────────── */
+static void emit_csv_row(const char *op, int n)
+{
+    perf_hw_sort_u64(samples_cyc, n);
+    perf_hw_sort_u64(samples_ins, n);
+
+    double mean_c = perf_hw_mean(samples_cyc, n);
+    double std_c  = perf_hw_stddev(samples_cyc, n, mean_c);
+    double mean_i = perf_hw_mean(samples_ins, n);
+    double std_i  = perf_hw_stddev(samples_ins, n, mean_i);
+
+    BENCH_PRINTF("%s,%d,"
+                 "%lu,%lu,%lu,%.1f,%.1f,"
+                 "%lu,%lu,%lu,%.1f,%.1f\n",
+                 op, n,
+                 (unsigned long)samples_cyc[0],
+                 (unsigned long)perf_hw_median(samples_cyc, n),
+                 (unsigned long)samples_cyc[n - 1],
+                 mean_c, std_c,
+                 (unsigned long)samples_ins[0],
+                 (unsigned long)perf_hw_median(samples_ins, n),
+                 (unsigned long)samples_ins[n - 1],
+                 mean_i, std_i);
+}
+
+/* ── Raw per-iteration dump ──────────────────────────────────────────────── */
+static void dump_raw(int n)
+{
+    if (!raw_dump_path)
+        return;
+    FILE *f = fopen(raw_dump_path, "w");
+    if (!f) {
+        fprintf(stderr, "WARNING: cannot open raw dump file: %s\n", raw_dump_path);
+        return;
+    }
+    for (int i = 0; i < n; i++) {
+        fprintf(f, "%lu %lu\n",
+                (unsigned long)samples_cyc[i],
+                (unsigned long)samples_ins[i]);
+    }
+    fclose(f);
+}
+
+int main(int argc, char **argv)
+{
+    /* Parse optional --raw-dir argument */
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--raw-dir") == 0 && i + 1 < argc) {
+            static char path_buf[512];
+            snprintf(path_buf, sizeof(path_buf), "%s/%s_%d_mul_cycles.txt",
+                     argv[i + 1], POLYMUL_NAME, SECURITY_LEVEL);
+            raw_dump_path = path_buf;
+            i++;
+        }
+    }
+
+    /* ── System checks ────────────────────────────────────────────────── */
+    perf_hw_check_system();
+
+    /* ── Allocate sample arrays ───────────────────────────────────────── */
+    samples_cyc = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_ins = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    if (!samples_cyc || !samples_ins) {
+        fprintf(stderr, "ERROR: failed to allocate sample arrays for %d iterations\n", N_ITER);
+        return 1;
+    }
+
+    /* ── Initialize test polynomials ──────────────────────────────────── */
+    bench_init_random_poly(poly_a, VEC_N_SIZE_64);
+    bench_init_sparse_poly(poly_b, PARAM_N, PARAM_OMEGA_R);
+
+    /* ── Initialize perf counters ─────────────────────────────────────── */
+    perf_hw_ctx ctx;
+    if (perf_hw_init(&ctx) != 0) {
+        fprintf(stderr, "ERROR: cannot initialize perf counters\n");
+        return 1;
+    }
+
+    /* ── Warm-up passes (prime i-cache, branch predictor) ─────────────── */
+    for (int i = 0; i < N_WARMUP; i++) {
+        vect_mul(poly_out, poly_a, poly_b);
+    }
+
+    /* ── Emit metadata header ─────────────────────────────────────────── */
+    BENCH_PRINTF("# level=%d,polymul=%s,n_iter=%d,n_warmup=%d,platform=hw\n",
+                 SECURITY_LEVEL, POLYMUL_NAME, N_ITER, N_WARMUP);
+    BENCH_PRINTF("op,iterations,"
+                 "min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,"
+                 "min_instret,median_instret,max_instret,mean_instret,stddev_instret\n");
+
+    /* ── Timed passes ────────────────────────────────────────────────── */
+    for (int i = 0; i < N_ITER; i++) {
+        perf_hw_sample s;
+        perf_hw_start(&ctx);
+        vect_mul(poly_out, poly_a, poly_b);
+        perf_hw_stop(&ctx);
+        perf_hw_read(&ctx, &s);
+        samples_cyc[i] = s.cycles;
+        samples_ins[i] = s.instret;
+    }
+
+    /* ── Raw dump (unsorted, original order — must happen before sort) ── */
+    dump_raw(N_ITER);
+
+    emit_csv_row("vect_mul", N_ITER);
+
+    /* ── Anti-DCE ─────────────────────────────────────────────────────── */
+    bench_consume(poly_out, sizeof(poly_out));
+
+    /* ── Cleanup ──────────────────────────────────────────────────────── */
+    perf_hw_close(&ctx);
+    free(samples_cyc);
+    free(samples_ins);
+
+    return 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * Simulation-specific path (Spike ISS, deterministic, few iterations)
+ * ══════════════════════════════════════════════════════════════════════════ */
+#else /* !HQC_PLATFORM_HW */
+
+/* Linker symbols bracketing .text.startup + .text */
+extern char _text_start[];
+extern char _text_end[];
+
 /* ── Timing sample storage ───────────────────────────────────────────────── */
 static uint64_t samples_cyc[N_ITER];
 static uint64_t samples_ins[N_ITER];
 
-static void sort_u64(uint64_t *arr, int n)
-{
-    for (int i = 1; i < n; i++) {
-        uint64_t key = arr[i];
-        int j = i - 1;
-        while (j >= 0 && (int64_t)(arr[j] - key) > 0) {
-            arr[j + 1] = arr[j];
-            j--;
-        }
-        arr[j + 1] = key;
-    }
-}
-
-static uint64_t median_u64(const uint64_t *sorted, int n)
-{
-    if (n % 2 == 1)
-        return sorted[n / 2];
-    return (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-}
-
-/* ── main ────────────────────────────────────────────────────────────────── */
 int main(void)
 {
-    /* ── poly_a: dense pseudo-random (mimics the HQC h public-key element) ── */
-    /* XOR with a Fibonacci hash constant so the pattern depends on i and the
-     * compiler cannot constant-fold the multiply away. */
-    for (size_t i = 0; i < VEC_N_SIZE_64; i++) {
-        poly_a[i] = (uint64_t)(0xA5A5A5A5A5A5A5A5ULL ^ (uint64_t)i * 0x9e3779b97f4a7c15ULL);
-    }
+    /* ── Initialize test polynomials ──────────────────────────────────── */
+    bench_init_random_poly(poly_a, VEC_N_SIZE_64);
+    bench_init_sparse_poly(poly_b, PARAM_N, PARAM_OMEGA_R);
 
-    /* ── poly_b: sparse with PARAM_OMEGA_R set bits (mimics HQC r/e vector) ── */
-    /* Positions are evenly distributed across [0, PARAM_N): the i-th set bit
-     * is placed at floor(i * PARAM_N / PARAM_OMEGA_R).  This gives the correct
-     * Hamming weight and a representative bit-distribution without needing the
-     * SHAKE PRNG in this micro-benchmark binary. */
-    memset(poly_b, 0, sizeof(poly_b));
-    for (size_t i = 0; i < (size_t)PARAM_OMEGA_R; i++) {
-        size_t bit_pos = (uint64_t)i * PARAM_N / PARAM_OMEGA_R;
-        poly_b[bit_pos / 64] |= (uint64_t)1 << (bit_pos % 64);
-    }
-
-    /* ── Emit metadata header ────────────────────────────────────────────── */
+    /* ── Emit metadata header ────────────────────────────────────────── */
 #ifndef HQC_SILENT
     uint64_t text_size = (uint64_t)(_text_end - _text_start);
     hqc_htif_puts("# level=");
@@ -116,22 +223,40 @@ int main(void)
 
     /* ── Warm-up call (discards first-call latency, if any) ─────────────── */
 #ifndef HQC_TRACE_MODE
-    vect_mul(poly_out, poly_a, poly_b);
+    for (int i = 0; i < N_WARMUP; i++) {
+        vect_mul(poly_out, poly_a, poly_b);
+    }
 #endif
 
     /* ── Timed passes ────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0_cyc = hqc_rdcycle();
+        uint64_t t0_cyc = BENCH_RDCYCLE();
         uint64_t t0_ins = hqc_rdinstret();
         vect_mul(poly_out, poly_a, poly_b);
-        uint64_t t1_cyc = hqc_rdcycle();
+        uint64_t t1_cyc = BENCH_RDCYCLE();
         uint64_t t1_ins = hqc_rdinstret();
         samples_cyc[i] = t1_cyc - t0_cyc;
         samples_ins[i] = t1_ins - t0_ins;
     }
 
-    sort_u64(samples_cyc, N_ITER);
-    sort_u64(samples_ins, N_ITER);
+    /* Sort for statistics */
+    for (size_t i = 1; i < (size_t)N_ITER; i++) {
+        uint64_t key_c = samples_cyc[i];
+        uint64_t key_i = samples_ins[i];
+        size_t j = i;
+        while (j > 0 && samples_cyc[j - 1] > key_c) {
+            samples_cyc[j] = samples_cyc[j - 1];
+            j--;
+        }
+        samples_cyc[j] = key_c;
+        /* Sort instret independently */
+        j = i;
+        while (j > 0 && samples_ins[j - 1] > key_i) {
+            samples_ins[j] = samples_ins[j - 1];
+            j--;
+        }
+        samples_ins[j] = key_i;
+    }
 
     /* ── Emit CSV ────────────────────────────────────────────────────────── */
 #ifndef HQC_SILENT
@@ -143,21 +268,22 @@ int main(void)
     hqc_htif_puts(",");
     hqc_htif_putu64(samples_cyc[0]);
     hqc_htif_puts(",");
-    hqc_htif_putu64(median_u64(samples_cyc, N_ITER));
+    hqc_htif_putu64(bench_median(samples_cyc, N_ITER));
     hqc_htif_puts(",");
     hqc_htif_putu64(samples_cyc[N_ITER - 1]);
     hqc_htif_puts(",");
     hqc_htif_putu64(samples_ins[0]);
     hqc_htif_puts(",");
-    hqc_htif_putu64(median_u64(samples_ins, N_ITER));
+    hqc_htif_putu64(bench_median(samples_ins, N_ITER));
     hqc_htif_puts(",");
     hqc_htif_putu64(samples_ins[N_ITER - 1]);
     hqc_htif_puts("\n");
 
-    /* Use poly_out to defeat dead-code elimination. */
-    if (poly_out[0] == 0xdeadbeefdeadbeefULL)
-        hqc_htif_puts("# (dead code marker)\n");
+    /* ── Anti-DCE ─────────────────────────────────────────────────────── */
+    bench_consume(poly_out, sizeof(poly_out));
 
     hqc_htif_exit(0);
     return 0;
 }
+
+#endif /* HQC_PLATFORM_HW */

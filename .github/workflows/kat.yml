@@ -26,8 +26,6 @@ jobs:
   # Add a variant name there once it is ready; CI picks it up automatically.
   #
   # Routing rules (applied here, not scattered across jobs):
-  #   karatsuba_ref  → QEMU, but only after vendor submodule is initialised
-  #                    (Phase 0a); excluded until then.
   #   fafft_zvbc     → Spike only (QEMU does not implement Zvbc).
   #   everything else → QEMU.
   setup:
@@ -52,7 +50,6 @@ jobs:
           for v in "${all[@]}"; do
             case "$v" in
               fafft_zvbc)   spike_zvbc=true ;;
-              karatsuba_ref) ;;   # excluded until Phase 0a (vendor submodule)
               *)            qemu+=("$v") ;;
             esac
           done
