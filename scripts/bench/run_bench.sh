@@ -747,6 +747,16 @@ ${output}"
             slug="$(bench_variant_slug "$variant")"
             timestamp="$(date +'%Y-%m-%d_%H-%M')"
 
+            # Auto-map keccak/decode implementations from variant
+            local track_args=("--mul" "$variant")
+            if [[ -n "$KECCAK_IMPL" ]]; then
+                track_args+=("--keccak" "$KECCAK_IMPL")
+            fi
+            if [[ -n "$DECODE_IMPL" ]]; then
+                track_args+=("--decode" "$DECODE_IMPL")
+            fi
+            bench_parse_track_args "${track_args[@]}"
+
             # Determine operation and output directory based on MODE
             local op out_dir
             case "$MODE" in

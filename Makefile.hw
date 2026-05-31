@@ -145,13 +145,11 @@ KEM_CHAIN := $(CORE_SOURCES) \
              $(SRC)/hqc.c \
              $(VENDOR)/src/common/code.c \
              $(VENDOR)/src/common/symmetric.c \
-             $(VENDOR)/src/ref/reed_muller.c \
-             $(VENDOR)/src/ref/reed_solomon.c \
-             $(VENDOR)/src/common/fft.c \
-             $(VENDOR)/lib/fips202/fips202.c \
              $(SRC)/vector.c \
              $(SRC)/common/randombytes.c \
-             $(POLYMUL_SRC)
+             $(POLYMUL_SRC) \
+             $(KEM_KECCAK_SOURCES) \
+             $(KEM_DECODE_SOURCES)
 
 # ── Output directory for binaries ────────────────────────────────────────────
 OUTDIR := build-hw
