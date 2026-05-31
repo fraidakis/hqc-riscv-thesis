@@ -53,7 +53,7 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 
 /* ── Temporary buffer sizing ─────────────────────────────────────────────
  *
- * With rvv_opt direct-write discipline, z0 and z2 are written directly to
+ * With RVV direct-write discipline, z0 and z2 are written directly to
  * the output buffer r (not into tmp).  The tmp layout per recursion level is:
  *
  *   zmid:      2*n0 words

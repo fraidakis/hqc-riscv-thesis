@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Generate fixed-size Karatsuba kernel headers for HQC poly-mul variants.
 
-Supports four backends via --mode:
-  --mode zbc      Scalar zbc: clmul_leaf / clmul_leaf_n8, manual-loop recomposition
-  --mode rvv      RVV base:   clmul_leaf / clmul_leaf_n8, rvv_copy_u64 / rvv_xor3_u64
-  --mode rvv_opt  RVV optimized: direct-write z0/z2 to r, no copy loops
-  --mode zvbc     Zvbc vector: vclmul_leaf, manual-loop recomposition
+Supports three backends via --mode:
+  --mode zbc   Scalar zbc: clmul_leaf / clmul_leaf_n8, manual-loop recomposition
+  --mode rvv   RVV: direct-write z0/z2 to r, inline RVV intrinsics, tuned LMUL
+  --mode zvbc  Zvbc vector: vclmul_leaf, manual-loop recomposition
 
 Split rule (AP-2):
   n0 = ceil(n/2), n1 = floor(n/2)
@@ -14,7 +13,6 @@ Stop recursion at n <= 16.
 Usage:
   python3 scripts/gen/gen_karatsuba_specialized.py --mode zbc
   python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv
-  python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv_opt
   python3 scripts/gen/gen_karatsuba_specialized.py --mode zvbc
 """
 
@@ -35,11 +33,6 @@ _MODE_CONFIG: dict[str, dict] = {
         "leaf_fn": "scalar",
     },
     "rvv": {
-        "out": REPO_ROOT / "src/mult/karatsuba_rvv/karatsuba_rvv_specialized_gen.h",
-        "guard": "HQC_KARATSUBA_RVV_SPECIALIZED_GEN_H",
-        "leaf_fn": "scalar",
-    },
-    "rvv_opt": {
         "out": REPO_ROOT / "src/mult/karatsuba_rvv/karatsuba_rvv_specialized_gen.h",
         "guard": "HQC_KARATSUBA_RVV_SPECIALIZED_GEN_H",
         "leaf_fn": "scalar",
@@ -150,33 +143,9 @@ def _manual_loop_recomposition(lines: list[str], n0: int, n1: int) -> None:
 
 
 def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
-    """Emit RVV intrinsic recomposition (used by rvv mode)."""
-    two_n0 = 2 * n0
-    two_n1 = 2 * n1
-
-    lines.append("    /* Loop 1: r[0..2*n0-1] = z0 */")
-    lines.append(f"    rvv_copy_u64(r, z0, {two_n0}u);")
-    lines.append("")
-    lines.append("    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */")
-    lines.append(f"    rvv_copy_u64(r + {two_n0}u, z2, {two_n1}u);")
-    lines.append("")
-    lines.append("    /* Loop 3A: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i], i in [0, 2*n1) */")
-    lines.append(f"    rvv_xor3_u64(r + {n0}u, zmid, z0, z2, {two_n1}u);")
-
-    if two_n0 > two_n1:
-        rem = two_n0 - two_n1
-        rm_off = n0 + two_n1
-        lines.append("")
-        lines.append("    /* Loop 3B: odd-n tail where z2 is absent (at most one word) */")
-        lines.append(
-            f"    rvv_xor3_u64(r + {rm_off}u, zmid + {two_n1}u, z0 + {two_n1}u, (const uint64_t *)0, {rem}u);"
-        )
-
-
-def _rvv_opt_recomposition(lines: list[str], n0: int, n1: int) -> None:
     """Emit optimized RVV recomposition with direct-write discipline.
 
-    In rvv_opt mode, z0 and z2 are written directly to r by child calls:
+    In rvv mode, z0 and z2 are written directly to r by child calls:
       - z0 lives at r[0..2*n0-1]
       - z2 lives at r[2*n0..2*n0+2*n1-1]
     No Loop 1 or Loop 2 needed. Only Loop 3 (XOR accumulation) remains,
@@ -286,7 +255,7 @@ def _rvv_opt_recomposition(lines: list[str], n0: int, n1: int) -> None:
 
 
 def _emit_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
-    """Emit inline RVV intrinsics for ta/tb XOR preparation (rvv_opt mode).
+    """Emit inline RVV intrinsics for ta/tb XOR preparation (rvv mode).
 
     Replaces rvv_xor_u64(ta, a, a+n0, n1) / rvv_xor_u64(tb, b, b+n0, n1)
     with inline vle64/vxor/vse64 loop. Uses LMUL=m8 for n1 >= 28, LMUL=m4 otherwise.
@@ -335,7 +304,7 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
     lines.append("                    uint64_t * __restrict__ tmp)")
     lines.append("{")
 
-    if mode == "rvv_opt":
+    if mode == "rvv":
         # Direct-write discipline: z0 → r[0..], z2 → r[2*n0..]
         # tmp layout: zmid + ta + tb + child_buf (no z0/z2 slots)
         lines.append("    uint64_t *zmid      = tmp;")
@@ -360,11 +329,11 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
     lines.append("")
 
     # ta/tb preparation: ta[i] = a[i] ^ a[n0+i], tb[i] = b[i] ^ b[n0+i]
-    # For the common part (0..n1-1), use rvv_xor_u64 (rvv/zvbc) or inline intrinsics (rvv_opt).
+    # For the common part (0..n1-1), use inline intrinsics (rvv) or rvv_xor_u64 (zvbc).
     # For the odd tail (n1..n0-1), use scalar copy (at most 1 element).
-    if mode == "rvv_opt":
+    if mode == "rvv":
         _emit_inline_xor_prep(lines, n0, n1)
-    elif mode in ("rvv", "zvbc"):
+    elif mode == "zvbc":
         lines.append(f"    rvv_xor_u64(ta, a, a + {n0}u, {n1}u);")
         lines.append(f"    rvv_xor_u64(tb, b, b + {n0}u, {n1}u);")
         if n0 > n1:
@@ -380,10 +349,10 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
     lines.append(f"    {child_call('zmid', 'ta', 'tb', n0, leaf_fn, threshold)}")
     lines.append("")
 
-    if mode == "rvv_opt":
-        _rvv_opt_recomposition(lines, n0, n1)
-    elif mode in ("rvv", "zvbc"):
+    if mode == "rvv":
         _rvv_recomposition(lines, n0, n1)
+    elif mode == "zvbc":
+        _manual_loop_recomposition(lines, n0, n1)
     else:
         _manual_loop_recomposition(lines, n0, n1)
 
@@ -426,9 +395,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["zbc", "rvv", "rvv_opt", "zvbc"],
+        choices=["zbc", "rvv", "zvbc"],
         required=True,
-        help="Backend mode: zbc (scalar clmul), rvv (RVV base), rvv_opt (RVV direct-write), zvbc (Zvbc vclmul)",
+        help="Backend mode: zbc (scalar clmul), rvv (RVV direct-write), zvbc (Zvbc vclmul)",
     )
     parser.add_argument(
         "--threshold",
