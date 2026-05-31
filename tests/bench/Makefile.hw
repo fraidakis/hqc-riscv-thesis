@@ -119,6 +119,7 @@ KECCAK_SOURCES := bench_keccak.c \
 
 # ── Source files for decode micro-benchmark ──────────────────────────────────
 DECODE_SOURCES := bench_decode.c \
+                  $(VENDOR)/src/common/crypto_memset.c \
                   $(VENDOR)/src/ref/reed_muller.c \
                   $(VENDOR)/src/ref/reed_solomon.c \
                   $(VENDOR)/src/common/fft.c

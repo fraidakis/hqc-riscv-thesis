@@ -223,16 +223,16 @@ set_governor() {
 
 hw_build_sweep() {
     local level="$1" variant="$2"
-    local dir="$BENCH_DIR"
-    if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}/tests/bench"; fi
-    run_cmd "cd $dir && make -f Makefile.hw LEVEL=$level POLYMUL=$variant MODE=dev clean >/dev/null 2>&1; make -f Makefile.hw LEVEL=$level POLYMUL=$variant MODE=dev mul 2>&1 | tail -2"
+    local dir="$REPO_ROOT"
+    if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}"; fi
+    run_cmd "cd $dir && make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$variant MODE=dev clean >/dev/null 2>&1; make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$variant MODE=dev mul 2>&1 | tail -2"
 }
 
 hw_run_sweep() {
     local level="$1" variant="$2"
-    local dir="$BENCH_DIR"
-    if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}/tests/bench"; fi
-    local bin="bench_hw_mul_hqc${level}_${variant}"
+    local dir="$REPO_ROOT"
+    if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}"; fi
+    local bin="build-hw/bench_hw_mul_hqc${level}_${variant}"
     run_cmd "cd $dir && taskset -c $CORE ./$bin"
 }
 
@@ -309,12 +309,12 @@ case "$SWEEP_TYPE" in
 
             if [[ "$LOCAL_MODE" -eq 0 ]]; then
                 # Remote: generate + build + run on the board
-                run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv_opt --threshold $T"
+                run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv --threshold $T"
                 hw_build_sweep "$LEVEL" "$VARIANT"
                 output="$(hw_run_sweep "$LEVEL" "$VARIANT")"
             else
                 # Local: generate + build + run directly
-                python3 "$GEN_SCRIPT" --mode rvv_opt --threshold "$T"
+                python3 "$GEN_SCRIPT" --mode rvv --threshold "$T"
                 hw_build_sweep "$LEVEL" "$VARIANT"
                 output="$(hw_run_sweep "$LEVEL" "$VARIANT")"
             fi
@@ -335,9 +335,9 @@ case "$SWEEP_TYPE" in
 
         # Restore default threshold (T=16)
         if [[ "$LOCAL_MODE" -eq 0 ]]; then
-            run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv_opt --threshold 16"
+            run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv --threshold 16"
         else
-            python3 "$GEN_SCRIPT" --mode rvv_opt --threshold 16
+            python3 "$GEN_SCRIPT" --mode rvv --threshold 16
         fi
         echo "[sweep] Restored default T=16."
         echo ""
@@ -382,7 +382,7 @@ case "$SWEEP_TYPE" in
                 cp "$src_bak" "$src_file"
             fi
             rm -f "$gen_bak" "$src_bak"
-            python3 "$GEN_SCRIPT" --mode rvv_opt --threshold 16
+            python3 "$GEN_SCRIPT" --mode rvv --threshold 16
             echo "[cleanup] Restored original files."
         }
         trap cleanup_lmul EXIT
@@ -408,7 +408,7 @@ case "$SWEEP_TYPE" in
             fi
 
             # Regenerate + build + run
-            python3 "$GEN_SCRIPT" --mode rvv_opt --threshold 16
+            python3 "$GEN_SCRIPT" --mode rvv --threshold 16
             hw_build_sweep "$LEVEL" "$VARIANT"
             output="$(hw_run_sweep "$LEVEL" "$VARIANT")"
 

@@ -176,7 +176,7 @@ bench_auto_configure_and_build() {
         cached_vbits="$(awk -F'=' '/^HQC_VECTOR_BITS:STRING=/{print $2; exit}' "$cache_file")"
         cached_vbits="${cached_vbits:-256}"
         local cached_toolchain_base want_toolchain_base cached_opt
-        cached_toolchain_base="$(awk -F'=' '/^CMAKE_TOOLCHAIN_FILE:FILEPATH=/{print $2; exit}' "$cache_file" | xargs basename 2>/dev/null || true)"
+        cached_toolchain_base="$(awk -F'=' '/^CMAKE_TOOLCHAIN_FILE:(FILEPATH|UNINITIALIZED)=/{print $2; exit}' "$cache_file" | xargs basename 2>/dev/null || true)"
         want_toolchain_base="$(basename "$_toolchain_file")"
         cached_opt="$(awk -F'=' '/^RISCV_OPT_LEVEL:STRING=/{print $2; exit}' "$cache_file")"
 
@@ -403,20 +403,27 @@ bench_hw_store_result() {
     local variant="$2"
     local op="$3"
     local timestamp="$4"
+    local slug_override="${5:-}"
 
     local slug
-    slug="$(bench_variant_slug "$variant")"
+    if [[ -n "$slug_override" ]]; then
+        slug="$slug_override"
+    else
+        slug="$(bench_variant_slug "$variant")"
+    fi
 
     local repo_root
     repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
     # Route to the appropriate category directory based on operation type.
     local category_dir
-    if [[ "$op" == "kem" ]]; then
-        category_dir="${repo_root}/results/hardware/benchmarks/kem"
-    else
-        category_dir="${repo_root}/results/hardware/benchmarks/components/poly_mul"
-    fi
+    case "$op" in
+        kem)     category_dir="${repo_root}/results/hardware/benchmarks/kem" ;;
+        mul)     category_dir="${repo_root}/results/hardware/benchmarks/components/poly_mul" ;;
+        keccak)  category_dir="${repo_root}/results/hardware/benchmarks/components/keccak" ;;
+        decode)  category_dir="${repo_root}/results/hardware/benchmarks/components/decode" ;;
+        *)       category_dir="${repo_root}/results/hardware/benchmarks/components/${op}" ;;
+    esac
     mkdir -p "$category_dir"
 
     local timestamped_file latest_file

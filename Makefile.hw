@@ -1,0 +1,399 @@
+# Makefile.hw — Unified on-board build for BPI-F3 (SpacemiT X60)
+#
+# Standalone Makefile for native compilation on hardware. Does NOT require
+# CMake — just GCC on the board.  Consolidates bench and dudect suites.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+# Usage:
+#   make -f Makefile.hw SUITE=bench  LEVEL=128 POLYMUL=karatsuba_zbc
+#   make -f Makefile.hw SUITE=dudect TARGET=polymul LEVEL=128 POLYMUL=karatsuba_zbc
+#
+# Run (pinned to isolated core, max priority):
+#   make -f Makefile.hw SUITE=bench  LEVEL=128 POLYMUL=karatsuba_zbc run_kem
+#   make -f Makefile.hw SUITE=dudect TARGET=kem LEVEL=128 POLYMUL=karatsuba_zbc run
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+# SUITE (required):
+#   bench   — performance benchmarks (kem, mul, keccak, decode)
+#   dudect  — constant-time verification via dudect
+#
+# Common parameters:
+#   LEVEL   = 128 | 192 | 256       (security level)
+#   POLYMUL = ref_scalar | karatsuba_zbc | karatsuba_rvv | vector_ref
+#   MODE    = dev | publish          (iteration count preset)
+#   KECCAK  = ref | zvbb_x2_soa     (keccak implementation for KEM chain)
+#   DECODE  = ref | rvv | zvbc       (decode implementation for decode bench)
+#
+# Bench-specific:
+#   EXTENDED = 0 | 1                 (extended PMU counters)
+#
+# Dudect-specific:
+#   TARGET   = polymul | kem         (measurement target)
+#   T_THRESH = 4.5                   (t-statistic threshold)
+#   SEED     =                       (optional fixed PRNG seed)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Suite selection (default: bench) ─────────────────────────────────────────
+SUITE    ?= bench
+
+# ── Common configuration ─────────────────────────────────────────────────────
+CC       ?= gcc
+LEVEL    ?= 128
+POLYMUL  ?= karatsuba_zbc
+MODE     ?= dev
+
+# KECCAK: keccak implementation for KEM chain
+#   ref          — vendor scalar fips202 (default)
+#   zvbb_x2_soa  — Zvbb×2 SoA vectorized keccak (requires Zvbb)
+KECCAK   ?= ref
+
+# DECODE: decode implementation for the decode micro-benchmark
+#   ref   — vendor scalar reed_muller + reed_solomon (default)
+#   rvv   — RVV vectorized reed_muller + reed_solomon
+#   zvbc  — Zvbc vectorized RS + iterative FFT
+DECODE   ?= ref
+
+# ── Paths (relative to repository root) ──────────────────────────────────────
+VENDOR   := vendor/hqc-ref
+SRC      := src
+BENCH_DIR := tests/bench
+DUDECT_DIR := tests/ct_dudect
+
+# ── Security-level → variant directory mapping ───────────────────────────────
+ifeq ($(LEVEL),128)
+  VARIANT_DIR := hqc-1
+else ifeq ($(LEVEL),192)
+  VARIANT_DIR := hqc-3
+else ifeq ($(LEVEL),256)
+  VARIANT_DIR := hqc-5
+else
+  $(error Unsupported LEVEL=$(LEVEL). Use 128, 192, or 256)
+endif
+
+# ── ISA flags and polymul source per variant ─────────────────────────────────
+ifeq ($(POLYMUL),ref_scalar)
+  MARCH := rv64gc_zbc_zbb_zbs
+  POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
+  EXTRA_CFLAGS := -fno-tree-vectorize
+else ifeq ($(POLYMUL),karatsuba_zbc)
+  MARCH := rv64gc_zbc_zbb_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul.c
+  EXTRA_CFLAGS := -fno-tree-vectorize
+else ifeq ($(POLYMUL),karatsuba_rvv)
+  MARCH := rv64gcv_zbc_zbb_zba_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
+  EXTRA_CFLAGS :=
+else ifeq ($(POLYMUL),vector_ref)
+  MARCH := rv64gcv_zbc_zbb_zbs
+  POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
+  EXTRA_CFLAGS := -ftree-vectorize
+else
+  $(error Unsupported POLYMUL=$(POLYMUL). Use ref_scalar, karatsuba_zbc, karatsuba_rvv, or vector_ref)
+endif
+
+# ── Common include paths ─────────────────────────────────────────────────────
+INCLUDES := -I$(VENDOR)/src/common/$(VARIANT_DIR) \
+            -I$(VENDOR)/src/common \
+            -I$(VENDOR)/src/ref/$(VARIANT_DIR) \
+            -I$(VENDOR)/src/ref \
+            -I$(VENDOR)/lib/fips202 \
+            -I$(SRC)/common \
+            -Iinclude
+
+# ── Common base CFLAGS ───────────────────────────────────────────────────────
+CFLAGS_BASE := -O3 -static -march=$(MARCH) -mabi=lp64d \
+               -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
+               -DHQC_PLATFORM_HW=1 \
+               -DHQC_BENCH_MODE=1 \
+               -DPOLYMUL_NAME=\"$(POLYMUL)\" \
+               $(EXTRA_CFLAGS)
+
+# ── Core sources (invariant across polymul variants) ─────────────────────────
+CORE_SOURCES := $(VENDOR)/src/common/kem.c \
+                $(VENDOR)/src/common/crypto_memset.c \
+                $(VENDOR)/src/ref/parsing.c \
+                $(SRC)/common/gf.c
+
+# ── KEM keccak source selection (controlled by KECCAK variable) ───────────────
+ifeq ($(KECCAK),ref)
+  KEM_KECCAK_SOURCES := $(VENDOR)/lib/fips202/fips202.c
+else ifeq ($(KECCAK),zvbb_x2_soa)
+  KEM_KECCAK_SOURCES := $(SRC)/keccak/fips202_zvbb_x2.c
+else
+  $(error Unsupported KECCAK=$(KECCAK). Use ref or zvbb_x2_soa)
+endif
+
+# ── KEM decode source selection (controlled by DECODE variable) ───────────────
+ifeq ($(DECODE),ref)
+  KEM_DECODE_SOURCES := $(VENDOR)/src/ref/reed_muller.c \
+                        $(VENDOR)/src/ref/reed_solomon.c \
+                        $(VENDOR)/src/common/fft.c
+else ifeq ($(DECODE),rvv)
+  KEM_DECODE_SOURCES := $(SRC)/decode/reed_muller_rvv.c \
+                        $(SRC)/decode/reed_solomon_rvv.c \
+                        $(VENDOR)/src/common/fft.c
+else ifeq ($(DECODE),zvbc)
+  KEM_DECODE_SOURCES := $(SRC)/decode/reed_muller_rvv.c \
+                        $(SRC)/decode/reed_solomon_zvbc.c \
+                        $(SRC)/decode/fft_zvbc.c
+else
+  $(error Unsupported DECODE=$(DECODE). Use ref, rvv, or zvbc)
+endif
+
+# ── Full KEM source chain (shared by bench_kem and dudect_kem) ───────────────
+KEM_CHAIN := $(CORE_SOURCES) \
+             $(SRC)/hqc.c \
+             $(VENDOR)/src/common/code.c \
+             $(VENDOR)/src/common/symmetric.c \
+             $(VENDOR)/src/ref/reed_muller.c \
+             $(VENDOR)/src/ref/reed_solomon.c \
+             $(VENDOR)/src/common/fft.c \
+             $(VENDOR)/lib/fips202/fips202.c \
+             $(SRC)/vector.c \
+             $(SRC)/common/randombytes.c \
+             $(POLYMUL_SRC)
+
+# ── Output directory for binaries ────────────────────────────────────────────
+OUTDIR := build-hw
+$(shell mkdir -p $(OUTDIR))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SUITE: bench
+# ══════════════════════════════════════════════════════════════════════════════
+ifeq ($(SUITE),bench)
+
+# Bench-specific knobs
+EXTENDED ?= 0
+
+ifeq ($(MODE),publish)
+  N_ITER   ?= 10000
+  N_WARMUP ?= 100
+else
+  N_ITER   ?= 100
+  N_WARMUP ?= 10
+endif
+
+CFLAGS := $(CFLAGS_BASE) \
+          -DN_ITER=$(N_ITER) -DN_WARMUP=$(N_WARMUP)
+
+ifeq ($(EXTENDED),1)
+  CFLAGS += -DPERF_HW_EXTENDED=1
+endif
+
+# Additional include: bench harness headers
+INCLUDES += -I$(BENCH_DIR)
+
+# ── Source lists ─────────────────────────────────────────────────────────────
+KEM_SOURCES := $(BENCH_DIR)/bench_kem.c $(KEM_CHAIN)
+
+MUL_SOURCES := $(BENCH_DIR)/bench_mul.c $(POLYMUL_SRC)
+
+KECCAK_SOURCES := $(BENCH_DIR)/bench_keccak.c \
+                  $(VENDOR)/src/common/symmetric.c \
+                  $(VENDOR)/lib/fips202/fips202.c \
+                  $(SRC)/vector.c \
+                  $(SRC)/common/randombytes.c
+
+# ── Decode source selection (controlled by DECODE variable) ──────────────────
+DECODE_SOURCES := $(BENCH_DIR)/bench_decode.c \
+                  $(VENDOR)/src/common/crypto_memset.c \
+                  $(SRC)/common/gf.c
+
+ifeq ($(DECODE),rvv)
+  DECODE_SOURCES += $(SRC)/decode/reed_muller_rvv.c \
+                    $(SRC)/decode/reed_solomon_rvv.c \
+                    $(VENDOR)/src/common/fft.c
+  DECODE_MARCH := rv64gcv_zbc_zbb_zbs
+else ifeq ($(DECODE),zvbc)
+  DECODE_SOURCES += $(SRC)/decode/reed_muller_rvv.c \
+                    $(SRC)/decode/reed_solomon_zvbc.c \
+                    $(SRC)/decode/fft_zvbc.c
+  DECODE_MARCH := rv64gcv_zbc_zbb_zbs_zvbc
+else
+  # ref (default): vendor scalar
+  DECODE_SOURCES += $(VENDOR)/src/ref/reed_muller.c \
+                    $(VENDOR)/src/ref/reed_solomon.c \
+                    $(VENDOR)/src/common/fft.c
+  DECODE_MARCH :=
+endif
+
+# ── Binary names ─────────────────────────────────────────────────────────────
+KEM_BIN    := $(OUTDIR)/bench_hw_kem_hqc$(LEVEL)_$(POLYMUL)
+MUL_BIN    := $(OUTDIR)/bench_hw_mul_hqc$(LEVEL)_$(POLYMUL)
+KECCAK_BIN := $(OUTDIR)/bench_hw_keccak_hqc$(LEVEL)
+DECODE_BIN := $(OUTDIR)/bench_hw_decode_hqc$(LEVEL)_$(DECODE)
+
+# ── Targets ──────────────────────────────────────────────────────────────────
+.PHONY: all kem mul keccak decode clean run_kem run_mul run_keccak run_decode \
+        info all_variants run_all_mul
+
+all: kem mul keccak decode
+
+kem: $(KEM_BIN)
+mul: $(MUL_BIN)
+keccak: $(KECCAK_BIN)
+decode: $(DECODE_BIN)
+
+$(KEM_BIN): $(KEM_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
+	$(CC) $(CFLAGS) $(INCLUDES) $(KEM_SOURCES) -lm -o $@
+	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
+	@echo "Verify Zbc/RVV instructions:"
+	@objdump -d $@ | grep -cE "clmul|clmulh" || true
+	@objdump -d $@ | grep -cE "vle|vse|vxor|vslide" || true
+
+$(MUL_BIN): $(MUL_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
+	$(CC) $(CFLAGS) $(INCLUDES) $(MUL_SOURCES) -lm -o $@
+	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
+
+$(KECCAK_BIN): $(KECCAK_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
+	$(CC) $(CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"ref\" $(KECCAK_SOURCES) -lm -o $@
+	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
+
+$(DECODE_BIN): $(DECODE_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
+ifneq ($(DECODE_MARCH),)
+	$(CC) -O3 -static -march=$(DECODE_MARCH) -mabi=lp64d \
+	    -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
+	    -DHQC_PLATFORM_HW=1 -DHQC_BENCH_MODE=1 \
+	    -DN_ITER=$(N_ITER) -DN_WARMUP=$(N_WARMUP) \
+	    $(INCLUDES) -DDECODE_NAME=\"$(DECODE)\" $(DECODE_SOURCES) -lm -o $@
+else
+	$(CC) $(CFLAGS) $(INCLUDES) -DDECODE_NAME=\"$(DECODE)\" $(DECODE_SOURCES) -lm -o $@
+endif
+	@echo "Built: $@ (DECODE=$(DECODE), HQC-$(LEVEL), N_ITER=$(N_ITER))"
+
+run_kem: $(KEM_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(KEM_BIN)
+
+run_mul: $(MUL_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(MUL_BIN)
+
+run_keccak: $(KECCAK_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(KECCAK_BIN)
+
+run_decode: $(DECODE_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(DECODE_BIN)
+
+all_variants:
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=ref_scalar
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=vector_ref
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv
+
+run_all_mul:
+	@echo "=== ref_scalar ==="
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=ref_scalar run_mul
+	@echo ""
+	@echo "=== karatsuba_zbc ==="
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc run_mul
+	@echo ""
+	@echo "=== karatsuba_rvv ==="
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv run_mul
+
+info:
+	@echo "Suite: bench"
+	@echo "  CC       = $(CC)"
+	@echo "  LEVEL    = $(LEVEL)"
+	@echo "  POLYMUL  = $(POLYMUL)"
+	@echo "  MODE     = $(MODE)"
+	@echo "  MARCH    = $(MARCH)"
+	@echo "  N_ITER   = $(N_ITER)"
+	@echo "  N_WARMUP = $(N_WARMUP)"
+	@echo "  EXTENDED = $(EXTENDED)"
+	@echo "  KEM_BIN  = $(KEM_BIN)"
+	@echo "  MUL_BIN  = $(MUL_BIN)"
+
+clean:
+	rm -f $(OUTDIR)/bench_hw_*
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SUITE: dudect
+# ══════════════════════════════════════════════════════════════════════════════
+else ifeq ($(SUITE),dudect)
+
+# Dudect-specific knobs
+TARGET   ?= polymul
+T_THRESH ?= 4.5
+SEED     ?=
+
+ifeq ($(MODE),publish)
+  N_MAX      ?= 10000000
+  BATCH_SIZE ?= 10000
+else
+  N_MAX      ?= 100000
+  BATCH_SIZE ?= 5000
+endif
+
+CFLAGS := $(CFLAGS_BASE) \
+          -DN_MAX=$(N_MAX) -DBATCH_SIZE=$(BATCH_SIZE) \
+          -DT_THRESHOLD=$(T_THRESH)
+
+ifneq ($(SEED),)
+  CFLAGS += -DDUDECT_FIXED_SEED=$(SEED)
+endif
+
+# Additional includes: bench headers (for perf_hw.h) and dudect dir
+INCLUDES += -I$(BENCH_DIR) -I$(DUDECT_DIR)
+
+# ── Source lists ─────────────────────────────────────────────────────────────
+DUDECT_POLYMUL_SOURCES := $(DUDECT_DIR)/dudect_polymul.c $(POLYMUL_SRC)
+
+DUDECT_KEM_SOURCES := $(DUDECT_DIR)/dudect_kem.c $(KEM_CHAIN)
+
+# ── Select sources based on TARGET ───────────────────────────────────────────
+ifeq ($(TARGET),polymul)
+  SOURCES := $(DUDECT_POLYMUL_SOURCES)
+else ifeq ($(TARGET),kem)
+  SOURCES := $(DUDECT_KEM_SOURCES)
+else
+  $(error Unsupported TARGET=$(TARGET). Use polymul or kem)
+endif
+
+# ── Binary name ──────────────────────────────────────────────────────────────
+BIN := $(OUTDIR)/dudect_$(TARGET)_hqc$(LEVEL)_$(POLYMUL)
+
+# ── Targets ──────────────────────────────────────────────────────────────────
+.PHONY: all build clean run info all_variants
+
+all: build
+
+build: $(BIN)
+
+$(BIN): $(SOURCES)
+	$(CC) $(CFLAGS) $(INCLUDES) $(SOURCES) -lm -o $@
+	@echo "Built: $@ ($(TARGET), $(POLYMUL), HQC-$(LEVEL), MODE=$(MODE))"
+	@echo "  N_MAX=$(N_MAX) BATCH_SIZE=$(BATCH_SIZE) T_THRESHOLD=$(T_THRESH)"
+
+run: $(BIN)
+	sudo nice -n -20 taskset -c 7 ./$(BIN)
+
+all_variants:
+	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=ref_scalar MODE=$(MODE)
+	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc MODE=$(MODE)
+	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv MODE=$(MODE)
+
+info:
+	@echo "Suite: dudect"
+	@echo "  CC         = $(CC)"
+	@echo "  TARGET     = $(TARGET)"
+	@echo "  LEVEL      = $(LEVEL)"
+	@echo "  POLYMUL    = $(POLYMUL)"
+	@echo "  MODE       = $(MODE)"
+	@echo "  MARCH      = $(MARCH)"
+	@echo "  N_MAX      = $(N_MAX)"
+	@echo "  BATCH_SIZE = $(BATCH_SIZE)"
+	@echo "  T_THRESH   = $(T_THRESH)"
+	@echo "  SEED       = $(SEED)"
+	@echo "  BIN        = $(BIN)"
+
+clean:
+	rm -f $(OUTDIR)/dudect_*
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Invalid SUITE
+# ══════════════════════════════════════════════════════════════════════════════
+else
+  $(error Unsupported SUITE=$(SUITE). Use bench or dudect)
+endif

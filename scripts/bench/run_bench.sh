@@ -30,7 +30,7 @@ Options:
   --variant VARIANT       Variant name or "all" (default: scalar_zb)
   --level LEVEL           Security level: 128, 192, 256, or all (default: 128)
   --quality QUALITY       Iteration quality: dev or publish (hw only, default: dev)
-  --remote HOST           Deploy and run on remote HOST via SSH (hw only)
+  --remote HOST           Deploy and run on remote HOST via SSH (hw only, default: root@192.168.1.50)
   --local                 Run directly on this machine (hw only)
   --keccak IMPL           Keccak implementation override (e.g., ref, opt)
   --decode IMPL           Decode implementation override (e.g., ref, rvv, zvbc)
@@ -42,6 +42,7 @@ Platform-specific notes:
        --quality publish uses N=10000 iterations with nice -n -20.
        --quality dev uses N=100 iterations (default).
        Either --remote HOST or --local must be specified (auto-detected on riscv64).
+       Default remote: root@192.168.1.50 (from credentials file).
 
 Examples:
   run_bench.sh --platform sim --mode mul --variant scalar_zb
@@ -58,6 +59,7 @@ VARIANT="scalar_zb"
 LEVEL="128"
 QUALITY="dev"
 REMOTE=""
+REMOTE_EXPLICIT=0
 LOCAL_MODE=0
 KECCAK_IMPL=""
 DECODE_IMPL=""
@@ -117,6 +119,7 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             REMOTE="$2"
+            REMOTE_EXPLICIT=1
             LOCAL_MODE=0
             shift 2
             ;;
@@ -146,10 +149,23 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        *)
+        -*)
             echo "ERROR: Unknown option: $1" >&2
             usage >&2
             exit 1
+            ;;
+        *)
+            # Positional argument: treat as impl name for decode/keccak modes
+            if [[ "$MODE" == "decode" && -z "$DECODE_IMPL" ]]; then
+                DECODE_IMPL="$1"
+            elif [[ "$MODE" == "keccak" && -z "$KECCAK_IMPL" ]]; then
+                KECCAK_IMPL="$1"
+            else
+                echo "ERROR: Unexpected positional argument: $1" >&2
+                usage >&2
+                exit 1
+            fi
+            shift
             ;;
     esac
 done
@@ -253,26 +269,36 @@ if [[ "$VARIANT" != "all" ]]; then
 fi
 
 # ── Print configuration ──────────────────────────────────────────────────────
-echo "╔══════════════════════════════════════════════════════════════╗"
-printf "║  run_bench.sh                                                ║\n"
-printf "║  Platform: %-5s  Mode: %-7s  Variant: %-15s ║\n" "$PLATFORM" "$MODE" "$VARIANT"
-printf "║  Level: %-7s" "$LEVEL"
+BOX_W=61  # inner width between ║ chars
+
+_box_line() {
+    local content="$1"
+    printf "║  %-$(( BOX_W - 4 ))s  ║\n" "$content"
+}
+
+echo "╔$(printf '═%.0s' $(seq 1 $BOX_W))╗"
+_box_line "run_bench.sh"
+_box_line "$(printf 'Platform: %-5s  Mode: %-7s  Variant: %s' "$PLATFORM" "$MODE" "$VARIANT")"
+
+# Second detail line
+_detail="$(printf 'Level: %-5s' "$LEVEL")"
 if [[ "$PLATFORM" == "hw" ]]; then
-    printf "  Quality: %-7s" "$QUALITY"
+    _detail+="$(printf '  Quality: %-7s' "$QUALITY")"
     if [[ -n "$REMOTE" ]]; then
-        printf "  Remote: %-10s" "$REMOTE"
+        _detail+="  Remote: ${REMOTE}"
     elif [[ "$LOCAL_MODE" -eq 1 ]]; then
-        printf "  Local: yes       "
+        _detail+="  Local: yes"
     fi
 fi
-printf "║\n"
+_box_line "$_detail"
+
 if [[ -n "$KECCAK_IMPL" ]]; then
-    printf "║  Keccak override: %-40s ║\n" "$KECCAK_IMPL"
+    _box_line "Keccak override: ${KECCAK_IMPL}"
 fi
 if [[ -n "$DECODE_IMPL" ]]; then
-    printf "║  Decode override: %-40s ║\n" "$DECODE_IMPL"
+    _box_line "Decode override: ${DECODE_IMPL}"
 fi
-echo "╚══════════════════════════════════════════════════════════════╝"
+echo "╚$(printf '═%.0s' $(seq 1 $BOX_W))╝"
 echo ""
 
 # ── Platform dispatch ────────────────────────────────────────────────────────
@@ -489,11 +515,305 @@ case "$PLATFORM" in
         done
         ;;
     hw)
-        # TODO(task 7.3): Implement hardware execution path
-        #   - Build via Makefile.hw (local) or deploy via SSH (remote)
-        #   - Execute with taskset isolation
-        #   - Store results via bench_hw_store_result
-        #   - Handle --quality publish (N=10000, nice -n -20)
-        echo "[run_bench] Hardware path — not yet implemented (see task 7.3)"
+        # ── Hardware execution path ──────────────────────────────────────
+
+        # ── Load credentials ─────────────────────────────────────────────
+        CREDS_FILE="${REPO_ROOT}/docs/hardware/BPI-F3/bpi-f3-credentials.env"
+        BPI_PASS=""
+        if [[ -f "$CREDS_FILE" ]]; then
+            # shellcheck source=/dev/null
+            source "$CREDS_FILE"
+            BPI_PASS="${BPI_PASS:-}"
+        fi
+
+        # ── Auto-detect local mode on riscv64 ────────────────────────────
+        if [[ "$(uname -m)" == "riscv64" && "$REMOTE_EXPLICIT" -eq 0 ]]; then
+            LOCAL_MODE=1
+        fi
+
+        # ── Default remote when not explicitly specified ─────────────────
+        if [[ "$REMOTE_EXPLICIT" -eq 0 && "$LOCAL_MODE" -eq 0 ]]; then
+            REMOTE="${BPI_USER:-root}@${BPI_HOST:-192.168.1.50}"
+        fi
+
+        # ── Validate execution target ───────────────────────────────────
+        if [[ "$LOCAL_MODE" -eq 0 && -z "$REMOTE" ]]; then
+            echo "ERROR: Not on riscv64 — specify --remote HOST or --local" >&2
+            echo "       The hw platform requires a RISC-V target." >&2
+            exit 1
+        fi
+
+        # ── SSH transport selection ──────────────────────────────────────
+        # Prefer key-based auth (BatchMode). Fall back to sshpass if keys
+        # are not configured and a password is available in the credentials
+        # file.  Run `ssh-copy-id` once to avoid the sshpass fallback.
+        USE_SSHPASS=0
+        if [[ "$LOCAL_MODE" -eq 0 && -n "$REMOTE" ]]; then
+            if ssh -o ConnectTimeout=5 -o BatchMode=yes "$REMOTE" true 2>/dev/null; then
+                USE_SSHPASS=0
+            elif [[ -n "$BPI_PASS" ]] && command -v sshpass &>/dev/null; then
+                USE_SSHPASS=1
+                echo "[ssh] Key auth unavailable — using sshpass fallback." >&2
+                echo "      Run: ssh-copy-id ${REMOTE}  (one-time setup)" >&2
+            else
+                echo "ERROR: Cannot connect to ${REMOTE} via SSH." >&2
+                echo "       Key auth failed and no password/sshpass available." >&2
+                echo "       Set up keys:  ssh-copy-id ${REMOTE}" >&2
+                exit 2
+            fi
+        fi
+
+        # ── SSH/rsync wrappers ───────────────────────────────────────────
+        _ssh() {
+            if [[ "$USE_SSHPASS" -eq 1 ]]; then
+                sshpass -p "$BPI_PASS" ssh -o StrictHostKeyChecking=no "$@"
+            else
+                ssh -o StrictHostKeyChecking=no "$@"
+            fi
+        }
+
+        _rsync() {
+            if [[ "$USE_SSHPASS" -eq 1 ]]; then
+                sshpass -p "$BPI_PASS" rsync -e "ssh -o StrictHostKeyChecking=no" "$@"
+            else
+                rsync -e "ssh -o StrictHostKeyChecking=no" "$@"
+            fi
+        }
+
+        # ── Remote infrastructure ────────────────────────────────────────
+        REMOTE_DIR="~/hqc-riscv"
+        BENCH_DIR="${REPO_ROOT}/tests/bench"
+
+        run_cmd() {
+            if [[ "$LOCAL_MODE" -eq 1 ]]; then
+                eval "$1"
+            else
+                _ssh "$REMOTE" "$1"
+            fi
+        }
+
+        deploy() {
+            if [[ "$LOCAL_MODE" -eq 1 ]]; then return; fi
+            echo "[deploy] Syncing to ${REMOTE}..."
+            _rsync -az --delete \
+                --exclude='.venv' --exclude='build*' --exclude='.git' \
+                --exclude='__pycache__' --exclude='.hypothesis' \
+                "${REPO_ROOT}/" "${REMOTE}:${REMOTE_DIR}/"
+        }
+
+        set_governor() {
+            run_cmd "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true"
+        }
+
+        # ── Variant-to-POLYMUL mapping ───────────────────────────────────
+        hw_variant_to_polymul() {
+            local canonical="$1"
+            case "$canonical" in
+                scalar_ref)   echo "ref_scalar" ;;
+                scalar_zb)    echo "karatsuba_zbc" ;;
+                vector_rvv)   echo "karatsuba_rvv" ;;
+                # No legacy mapping — pass through directly
+                vector_ref)   echo "vector_ref" ;;
+                vector_zvk)   echo "vector_zvk" ;;
+                *)            echo "$canonical" ;;
+            esac
+        }
+
+        # ── Variant expansion ────────────────────────────────────────
+        # Hardware (BPI-F3) supports: scalar_ref, scalar_zb, vector_ref, vector_rvv.
+        # vector_zvk requires Zvbc/Zvbb extensions not available on this SoC.
+        HW_SUPPORTED_VARIANTS=(scalar_ref scalar_zb vector_ref vector_rvv)
+
+        bench_load_implemented_variants "$REPO_ROOT"
+
+        if [[ "$VARIANT" == "all" ]]; then
+            VARIANTS=("${HW_SUPPORTED_VARIANTS[@]}")
+        else
+            VARIANTS=("$VARIANT")
+        fi
+
+        # ── Build on target ──────────────────────────────────────────
+        hw_build() {
+            local level="$1" polymul="$2"
+            local dir="$REPO_ROOT"
+            if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}"; fi
+
+            local target
+            case "$MODE" in
+                kem)     target="kem" ;;
+                mul)     target="mul" ;;
+                keccak)  target="keccak" ;;
+                decode)  target="decode" ;;
+            esac
+
+            # Clean then build — show build output on failure for debugging
+            local build_log extra_args=""
+            if [[ "$MODE" == "decode" && -n "$DECODE_IMPL" ]]; then
+                extra_args="DECODE=$DECODE_IMPL"
+            fi
+            if ! build_log=$(run_cmd "cd $dir && make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY $extra_args clean >/dev/null 2>&1; make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY $extra_args $target 2>&1"); then
+                echo " ├── ❌ BUILD FAIL (level=$level)" >&2
+                echo "$build_log" | tail -5 >&2
+                return 1
+            fi
+        }
+
+        # ── Execute benchmark binary ────────────────────────────────
+        hw_execute() {
+            local level="$1" polymul="$2"
+            local dir="$REPO_ROOT"
+            if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}"; fi
+
+            local bin
+            local decode_suffix="${DECODE_IMPL:-ref}"
+            case "$MODE" in
+                kem)     bin="build-hw/bench_hw_kem_hqc${level}_${polymul}" ;;
+                mul)     bin="build-hw/bench_hw_mul_hqc${level}_${polymul}" ;;
+                keccak)  bin="build-hw/bench_hw_keccak_hqc${level}" ;;
+                decode)  bin="build-hw/bench_hw_decode_hqc${level}_${decode_suffix}" ;;
+            esac
+
+            local exec_prefix="taskset -c 7"
+            if [[ "$QUALITY" == "publish" ]]; then
+                exec_prefix="sudo nice -n -20 taskset -c 7"
+            fi
+
+            run_cmd "cd $dir && $exec_prefix ./$bin"
+        }
+
+        # ── Store CSV result ─────────────────────────────────────────
+        hw_store_csv() {
+            local output="$1" variant="$2" op="$3" slug="$4" timestamp="$5" level="$6"
+
+            local n_iter n_warmup
+            if [[ "$QUALITY" == "publish" ]]; then
+                n_iter=10000; n_warmup=100
+            else
+                n_iter=100; n_warmup=10
+            fi
+
+            local header
+            header="$(bench_hw_csv_header "$variant" "$n_iter" "$n_warmup" "$QUALITY")"
+
+            local csv_content="${header}
+${output}"
+
+            bench_hw_store_result "$csv_content" "$variant" "$op" "$timestamp" "$slug"
+        }
+
+        # ── Print progress line ──────────────────────────────────────
+        hw_print_progress() {
+            local output="$1" level="$2"
+
+            local prefix=" ├──"
+            # Use └── for the final level
+            if [[ "$LEVELS" == "128 192 256" && "$level" == "256" ]]; then
+                prefix=" └──"
+            elif [[ "$LEVELS" != "128 192 256" ]]; then
+                prefix=" └──"
+            fi
+
+            local ins_str=""
+            if [[ "$MODE" == "kem" ]]; then
+                local kp enc dec total
+                kp="$(echo "$output" | awk -F',' '/^keypair,/ {print $4; exit}')"
+                enc="$(echo "$output" | awk -F',' '/^encaps,/ {print $4; exit}')"
+                dec="$(echo "$output" | awk -F',' '/^decaps,/ {print $4; exit}')"
+                kp="${kp:-0}"; enc="${enc:-0}"; dec="${dec:-0}"
+                total=$(awk "BEGIN {print $kp + $enc + $dec}")
+                ins_str="$(printf 'Kp: %s | Enc: %s | Dec: %s | Total: %s' "$kp" "$enc" "$dec" "$total")"
+            else
+                local metric_field
+                case "$MODE" in
+                    mul)     metric_field="vect_mul" ;;
+                    keccak)  metric_field="keccak" ;;
+                    decode)  metric_field="decode" ;;
+                esac
+                local median
+                median="$(echo "$output" | awk -F',' -v op="$metric_field" '$1==op {print $4; exit}')"
+                median="${median:-0}"
+                ins_str="${median} cycles (median)"
+            fi
+
+            echo "${prefix} L${level} ⋯ ${ins_str}"
+        }
+
+        # ── Per-variant runner ───────────────────────────────────────
+        hw_run_single_variant() {
+            local variant="$1"
+            local polymul slug timestamp
+
+            polymul="$(hw_variant_to_polymul "$variant")"
+            slug="$(bench_variant_slug "$variant")"
+            timestamp="$(date +'%Y-%m-%d_%H-%M')"
+
+            # Determine operation and output directory based on MODE
+            local op out_dir
+            case "$MODE" in
+                kem)     op="kem";     out_dir="${REPO_ROOT}/results/hardware/benchmarks/kem" ;;
+                mul)     op="mul";     out_dir="${REPO_ROOT}/results/hardware/benchmarks/components/poly_mul" ;;
+                keccak)  op="keccak";  out_dir="${REPO_ROOT}/results/hardware/benchmarks/components/keccak" ;;
+                decode)  op="decode";  out_dir="${REPO_ROOT}/results/hardware/benchmarks/components/decode" ;;
+            esac
+
+            # For keccak/decode modes, derive filename slug from the impl, not the mul variant.
+            # Resolve effective impl name (default when not explicitly overridden).
+            local file_slug="$slug"
+            local variant_label="${variant}"
+            if [[ "$MODE" == "keccak" ]]; then
+                local keccak_effective="${KECCAK_IMPL:-ref}"
+                local impl_flag="ref"
+                case "$keccak_effective" in
+                    opt|zvbb_*) impl_flag="opt" ;;
+                esac
+                file_slug="$(bench_variant_slug "$impl_flag")"
+                variant_label="keccak_${keccak_effective}"
+            elif [[ "$MODE" == "decode" ]]; then
+                local decode_effective="${DECODE_IMPL:-ref}"
+                local impl_flag="ref"
+                if [[ "$decode_effective" == "rvv" ]]; then
+                    impl_flag="rvv"
+                elif [[ "$decode_effective" == "zvbc" || "$decode_effective" == "rs_zvbc_exp" ]]; then
+                    impl_flag="zvbc"
+                fi
+                file_slug="$(bench_variant_slug "$impl_flag")"
+                variant_label="decode_${decode_effective}"
+            fi
+
+            # Print variant header
+            echo -e "\n📦 ${variant_label} (${MODE})"
+
+            for level in $LEVELS; do
+                # Build
+                hw_build "$level" "$polymul" || continue
+
+                # Execute
+                local output
+                output="$(hw_execute "$level" "$polymul")" || continue
+
+                # Progress
+                hw_print_progress "$output" "$level"
+
+                # Store (prints 🔄 Updated / ⏭ Unchanged with full path)
+                hw_store_csv "$output" "$variant" "$op" "$file_slug" "$timestamp" "$level"
+            done
+        }
+
+        # ── Main execution ───────────────────────────────────────────
+        deploy
+        set_governor
+
+        for v in "${VARIANTS[@]}"; do
+            hw_run_single_variant "$v"
+        done
+
+        # ── Retrieve results from remote ─────────────────────────────
+        if [[ "$LOCAL_MODE" -eq 0 ]]; then
+            echo ""
+            echo "[sync] Fetching results from ${REMOTE}..."
+            if ! _rsync -az "${REMOTE}:${REMOTE_DIR}/results/hardware/" "${REPO_ROOT}/results/hardware/"; then
+                echo "WARNING: Failed to sync results back. They still exist on ${REMOTE}:${REMOTE_DIR}/results/hardware/" >&2
+            fi
+        fi
         ;;
 esac

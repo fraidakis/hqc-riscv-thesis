@@ -74,6 +74,18 @@ static uint8_t ss_dec[CRYPTO_BYTES];
 static uint64_t *samples_cyc;
 static uint64_t *samples_ins;
 
+#ifdef PERF_HW_EXTENDED
+/* Extended PMU sample arrays (one per counter per iteration) */
+static uint64_t *samples_l1d_miss;
+static uint64_t *samples_l1d_access;
+static uint64_t *samples_dtlb_miss;
+static uint64_t *samples_br_mispred;
+static uint64_t *samples_stall_fe;
+static uint64_t *samples_stall_be;
+static uint64_t *samples_vec_inst;
+static uint64_t *samples_vpu_stall;
+#endif
+
 /* Raw dump directory (NULL = no dump) */
 static const char *raw_dump_dir = NULL;
 
@@ -109,7 +121,7 @@ static void emit_csv_row_hw(const char *op, int n)
 
     printf("%s,%d,"
            "%lu,%lu,%lu,%.1f,%.1f,"
-           "%lu,%lu,%lu,%.1f,%.1f\n",
+           "%lu,%lu,%lu,%.1f,%.1f",
            op, n,
            (unsigned long)samples_cyc[0],
            (unsigned long)perf_hw_median(samples_cyc, n),
@@ -119,6 +131,44 @@ static void emit_csv_row_hw(const char *op, int n)
            (unsigned long)perf_hw_median(samples_ins, n),
            (unsigned long)samples_ins[n - 1],
            mean_i, std_i);
+
+#ifdef PERF_HW_EXTENDED
+    /* Sort extended arrays and emit medians + derived miss rate */
+    perf_hw_sort_u64(samples_l1d_miss, n);
+    perf_hw_sort_u64(samples_l1d_access, n);
+    perf_hw_sort_u64(samples_dtlb_miss, n);
+    perf_hw_sort_u64(samples_br_mispred, n);
+    perf_hw_sort_u64(samples_stall_fe, n);
+    perf_hw_sort_u64(samples_stall_be, n);
+    perf_hw_sort_u64(samples_vec_inst, n);
+    perf_hw_sort_u64(samples_vpu_stall, n);
+
+    uint64_t med_l1d_miss  = perf_hw_median(samples_l1d_miss, n);
+    uint64_t med_l1d_acc   = perf_hw_median(samples_l1d_access, n);
+    uint64_t med_dtlb      = perf_hw_median(samples_dtlb_miss, n);
+    uint64_t med_br        = perf_hw_median(samples_br_mispred, n);
+    uint64_t med_fe        = perf_hw_median(samples_stall_fe, n);
+    uint64_t med_be        = perf_hw_median(samples_stall_be, n);
+    uint64_t med_vec       = perf_hw_median(samples_vec_inst, n);
+    uint64_t med_vpu       = perf_hw_median(samples_vpu_stall, n);
+
+    double miss_rate = (med_l1d_acc > 0)
+        ? 100.0 * (double)med_l1d_miss / (double)med_l1d_acc
+        : 0.0;
+
+    printf(",%lu,%lu,%.2f%%,%lu,%lu,%lu,%lu,%lu,%lu",
+           (unsigned long)med_l1d_miss,
+           (unsigned long)med_l1d_acc,
+           miss_rate,
+           (unsigned long)med_dtlb,
+           (unsigned long)med_br,
+           (unsigned long)med_fe,
+           (unsigned long)med_be,
+           (unsigned long)med_vec,
+           (unsigned long)med_vpu);
+#endif /* PERF_HW_EXTENDED */
+
+    printf("\n");
 }
 
 int main(int argc, char **argv)
@@ -142,12 +192,37 @@ int main(int argc, char **argv)
         return 1;
     }
 
+#ifdef PERF_HW_EXTENDED
+    samples_l1d_miss  = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_l1d_access= (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_dtlb_miss = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_br_mispred= (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_stall_fe  = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_stall_be  = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_vec_inst  = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_vpu_stall = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    if (!samples_l1d_miss || !samples_l1d_access || !samples_dtlb_miss ||
+        !samples_br_mispred || !samples_stall_fe || !samples_stall_be ||
+        !samples_vec_inst || !samples_vpu_stall) {
+        fprintf(stderr, "ERROR: failed to allocate extended sample arrays\n");
+        return 1;
+    }
+#endif
+
     /* ── Initialize perf counters ─────────────────────────────────────── */
+#ifdef PERF_HW_EXTENDED
+    perf_hw_ext_ctx ctx;
+    if (perf_hw_ext_init(&ctx) != 0) {
+        fprintf(stderr, "ERROR: cannot initialize extended perf counters\n");
+        return 1;
+    }
+#else
     perf_hw_ctx ctx;
     if (perf_hw_init(&ctx) != 0) {
         fprintf(stderr, "ERROR: cannot initialize perf counters\n");
         return 1;
     }
+#endif
 
     /* ── Seed the SHAKE-256 PRNG ──────────────────────────────────────── */
     static const uint8_t dummy_seed[48] = { 0 };
@@ -166,19 +241,52 @@ int main(int argc, char **argv)
     crypto_kem_dec(ss_dec, ct, sk);
     if (memcmp(ss_enc, ss_dec, CRYPTO_BYTES) != 0) {
         fprintf(stderr, "ERROR: ss_enc != ss_dec — decaps failure!\n");
+#ifdef PERF_HW_EXTENDED
+        perf_hw_ext_close(&ctx);
+#else
         perf_hw_close(&ctx);
+#endif
         return 1;
     }
 
     /* ── Emit metadata header ─────────────────────────────────────────── */
+#ifdef PERF_HW_EXTENDED
+    printf("# level=%d,polymul=%s,n_iter=%d,n_warmup=%d,platform=hw,extended=1\n",
+           SECURITY_LEVEL, POLYMUL_NAME, N_ITER, N_WARMUP);
+    printf("op,iterations,"
+           "min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,"
+           "min_instret,median_instret,max_instret,mean_instret,stddev_instret,"
+           "median_l1d_miss,median_l1d_access,l1d_miss_rate,"
+           "median_dtlb_miss,median_br_mispred,"
+           "median_stall_fe,median_stall_be,"
+           "median_vec_inst,median_vpu_stall\n");
+#else
     printf("# level=%d,polymul=%s,n_iter=%d,n_warmup=%d,platform=hw\n",
            SECURITY_LEVEL, POLYMUL_NAME, N_ITER, N_WARMUP);
     printf("op,iterations,"
            "min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,"
            "min_instret,median_instret,max_instret,mean_instret,stddev_instret\n");
+#endif
 
     /* ── KeyGen ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
+#ifdef PERF_HW_EXTENDED
+        perf_hw_ext_sample s;
+        perf_hw_ext_start(&ctx);
+        crypto_kem_keypair(pk, sk);
+        perf_hw_ext_stop(&ctx);
+        perf_hw_ext_read(&ctx, &s);
+        samples_cyc[i] = s.cycles;
+        samples_ins[i] = s.instret;
+        samples_l1d_miss[i]   = s.l1d_load_miss;
+        samples_l1d_access[i] = s.l1d_access;
+        samples_dtlb_miss[i]  = s.dtlb_load_miss;
+        samples_br_mispred[i] = s.br_mispred;
+        samples_stall_fe[i]   = s.stall_frontend;
+        samples_stall_be[i]   = s.stall_backend;
+        samples_vec_inst[i]   = s.vector_inst;
+        samples_vpu_stall[i]  = s.vpu_stall;
+#else
         perf_hw_sample s;
         perf_hw_start(&ctx);
         crypto_kem_keypair(pk, sk);
@@ -186,12 +294,30 @@ int main(int argc, char **argv)
         perf_hw_read(&ctx, &s);
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
+#endif
     }
     dump_raw("keypair", N_ITER);
     emit_csv_row_hw("keypair", N_ITER);
 
     /* ── Encaps ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
+#ifdef PERF_HW_EXTENDED
+        perf_hw_ext_sample s;
+        perf_hw_ext_start(&ctx);
+        crypto_kem_enc(ct, ss_enc, pk);
+        perf_hw_ext_stop(&ctx);
+        perf_hw_ext_read(&ctx, &s);
+        samples_cyc[i] = s.cycles;
+        samples_ins[i] = s.instret;
+        samples_l1d_miss[i]   = s.l1d_load_miss;
+        samples_l1d_access[i] = s.l1d_access;
+        samples_dtlb_miss[i]  = s.dtlb_load_miss;
+        samples_br_mispred[i] = s.br_mispred;
+        samples_stall_fe[i]   = s.stall_frontend;
+        samples_stall_be[i]   = s.stall_backend;
+        samples_vec_inst[i]   = s.vector_inst;
+        samples_vpu_stall[i]  = s.vpu_stall;
+#else
         perf_hw_sample s;
         perf_hw_start(&ctx);
         crypto_kem_enc(ct, ss_enc, pk);
@@ -199,12 +325,30 @@ int main(int argc, char **argv)
         perf_hw_read(&ctx, &s);
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
+#endif
     }
     dump_raw("encaps", N_ITER);
     emit_csv_row_hw("encaps", N_ITER);
 
     /* ── Decaps ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
+#ifdef PERF_HW_EXTENDED
+        perf_hw_ext_sample s;
+        perf_hw_ext_start(&ctx);
+        crypto_kem_dec(ss_dec, ct, sk);
+        perf_hw_ext_stop(&ctx);
+        perf_hw_ext_read(&ctx, &s);
+        samples_cyc[i] = s.cycles;
+        samples_ins[i] = s.instret;
+        samples_l1d_miss[i]   = s.l1d_load_miss;
+        samples_l1d_access[i] = s.l1d_access;
+        samples_dtlb_miss[i]  = s.dtlb_load_miss;
+        samples_br_mispred[i] = s.br_mispred;
+        samples_stall_fe[i]   = s.stall_frontend;
+        samples_stall_be[i]   = s.stall_backend;
+        samples_vec_inst[i]   = s.vector_inst;
+        samples_vpu_stall[i]  = s.vpu_stall;
+#else
         perf_hw_sample s;
         perf_hw_start(&ctx);
         crypto_kem_dec(ss_dec, ct, sk);
@@ -212,12 +356,25 @@ int main(int argc, char **argv)
         perf_hw_read(&ctx, &s);
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
+#endif
     }
     dump_raw("decaps", N_ITER);
     emit_csv_row_hw("decaps", N_ITER);
 
     /* ── Cleanup ──────────────────────────────────────────────────────── */
+#ifdef PERF_HW_EXTENDED
+    perf_hw_ext_close(&ctx);
+    free(samples_l1d_miss);
+    free(samples_l1d_access);
+    free(samples_dtlb_miss);
+    free(samples_br_mispred);
+    free(samples_stall_fe);
+    free(samples_stall_be);
+    free(samples_vec_inst);
+    free(samples_vpu_stall);
+#else
     perf_hw_close(&ctx);
+#endif
     free(samples_cyc);
     free(samples_ins);
 
