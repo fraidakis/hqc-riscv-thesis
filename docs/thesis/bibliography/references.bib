@@ -441,3 +441,124 @@
   howpublished = {\url{https://github.com/mupq/pqm4}},
   note      = {Cryptology ePrint Archive, Report 2019/844. Accessed: 2026}
 }
+
+@article{Ji2024-ECO-CRYSTALS,
+  author    = {Xinyi Ji and Jiankuo Dong and Junhao Huang and Zhijian Yuan and Wangchen Dai and Fu Xiao and Jingqiang Lin},
+  title     = {{ECO-CRYSTALS}: Efficient Cryptography {CRYSTALS} on Standard {RISC-V} {ISA}},
+  journal   = {IEEE Transactions on Circuits and Systems I: Regular Papers},
+  year      = {2024},
+  note      = {Platform: VisionFive~2 (SiFive U74, RV64IMB, in-order dual-issue). Kyber1024 + Dilithium5. Keccak 59.18\% speedup, NTT 76--85\% speedup, end-to-end 60--65\% speedup vs reference}
+}
+
+@misc{Saarinen2024-vkeccak,
+  author       = {Markku-Juhani O. Saarinen},
+  title        = {Making the Case for a {Keccak} Instruction: Post-Quantum Cryptography on {RVV}},
+  year         = {2024},
+  month        = oct,
+  howpublished = {Presentation at RISC-V Summit North America, Santa Clara},
+  note         = {PQC Task Group Chair, Tampere University. Proposes \texttt{vkeccak.vi} instruction. Benchmarks on SpacemiT X60 (VLEN=256): Kyber-768 12.74$\times$ speedup with Keccak insn. Accessed: 2026}
+}
+
+@misc{Ras2026-FAFFT-RISCV,
+  author       = {Antonio Ras and Antoine Loiseau and Mika{\"e}l Carmona and Simon Ponti{\'e} and Gu{\'e}na{\"e}l Renault and Benjamin Smith and Emanuele Valea},
+  title        = {{PHOENIX}: Crypto-Agile Hardware Sharing for {ML-KEM} and {HQC}},
+  year         = {2025},
+  howpublished = {Cryptology {ePrint} Archive, Paper 2025/601},
+  url          = {https://eprint.iacr.org/2025/601},
+  note         = {FAFFT on RV32 SoC (CV32E40P) with ANDROMEDA platform, Xilinx Kintex-7 FPGA. $\times$9.64--$\times$19.22 speedup with hardware coprocessor}
+}
+
+@inproceedings{Schoeffel2022-HQC-IoT,
+  author    = {Maximilian Sch{\"o}ffel and Johannes Feldmann and Norbert Wehn},
+  title     = {Code-based Cryptography in {IoT}: A {HW/SW} Co-Design of {HQC}},
+  booktitle = {Proceedings of the 8th IEEE World Forum on the Internet of Things (WF-IoT)},
+  year      = {2022},
+  publisher = {IEEE},
+  url       = {https://arxiv.org/abs/2301.04888},
+  note      = {First HW/SW co-design of HQC for IoT. FPGA and ASIC implementations targeting sparse$\times$dense polynomial multiplication with custom ISA extensions}
+}
+
+@misc{PHOENIX2026,
+  author       = {Antonio Ras and Antoine Loiseau and Mika{\"e}l Carmona and Simon Ponti{\'e} and Gu{\'e}na{\"e}l Renault and Benjamin Smith and Emanuele Valea},
+  title        = {{PHOENIX}: Crypto-Agile Hardware Sharing for {ML-KEM} and {HQC}},
+  year         = {2025},
+  howpublished = {Cryptology {ePrint} Archive, Paper 2025/601},
+  url          = {https://eprint.iacr.org/2025/601},
+  note         = {SuperButterfly coprocessor for crypto-agile NTT/FAFFT sharing between ML-KEM and HQC at all NIST security levels}
+}
+
+@misc{OptHQC2025,
+  author       = {Ben Dong and Hui Feng and Qian Wang},
+  title        = {Optimize {HQC} for High-Performance Post-Quantum Cryptography},
+  year         = {2025},
+  howpublished = {arXiv preprint arXiv:2512.12904},
+  url          = {https://arxiv.org/abs/2512.12904},
+  note         = {AVX2-optimized HQC with sparse$\times$dense scheduling. 55\% speedup in polynomial multiplication}
+}
+
+@misc{Jang2026-CortexM4-HQC,
+  author       = {Jihoon Jang and Myeonghoon Lee and Donggeun Kwon and Seokhie Hong and Suhri Kim and Sangjin Lee},
+  title        = {Efficient Polynomial Multiplication for {HQC} on {ARM} {Cortex-M4}},
+  year         = {2025},
+  howpublished = {Cryptology {ePrint} Archive, Paper 2025/1939},
+  url          = {https://eprint.iacr.org/2025/1939},
+  note         = {Hybrid FAFFT-CRT reduces polymul cycles by 33.4\% (HQC-1) and 27.2\% (HQC-3) on Cortex-M4 without carry-less multiply hardware}
+}
+
+@article{Chen2026-TCHES-HQC-FFT,
+  author    = {Ming-Shing Chen and Chun-Ming Chiu and Chun-Tao Peng and Bo-Yin Yang},
+  title     = {Accelerating {HQC} with Additive {FFT}},
+  journal   = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
+  year      = {2026},
+  volume    = {2026},
+  number    = {2},
+  note      = {FFT-CRT combination for HQC polymul on x86-64 AVX2+GFNI and ARM NEON. Caching strategy eliminates redundant transforms in Encap/Decap}
+}
+
+@article{Jang2026-gf2x-SIMD,
+  author    = {Jihoon Jang and Myeonghoon Lee and Suhri Kim and Seog Chung Seo and Seokhie Hong},
+  title     = {Faster {GF(2)[x]} Polynomial Multiplication Using {SIMD} Instructions},
+  journal   = {Journal of Cryptographic Engineering},
+  year      = {2026},
+  volume    = {16},
+  number    = {3},
+  doi       = {10.1007/s13389-026-00392-0},
+  note      = {Systematic Toom-Cook/Karatsuba decomposition tree search for AVX2 VPCLMULQDQ and Neon PMULL. 17--32\% polymul reduction for HQC-1/HQC-3}
+}
+
+@inproceedings{Chen2021-BIKE-Haswell-M4,
+  author    = {Ming-Shing Chen and Tung Chou and Markus Krausz},
+  title     = {Optimizing {BIKE} for the {Intel Haswell} and {ARM Cortex-M4}},
+  booktitle = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
+  year      = {2021},
+  volume    = {2021},
+  number    = {3},
+  pages     = {97--124},
+  note      = {First application of additive FFT to BIKE polynomial multiplication on Haswell and Cortex-M4}
+}
+
+@inproceedings{Deshpande2023-HQC-HW,
+  author    = {Sanjay Deshpande and Chuanqi Xu and Mamuri Nawan and Kashif Nawaz and Jakub Szefer},
+  title     = {Fast and Efficient Hardware Implementation of {HQC}},
+  booktitle = {International Conference on Selected Areas in Cryptography (SAC)},
+  year      = {2023},
+  pages     = {297--321},
+  publisher = {Springer},
+  note      = {Pipelined FPGA HQC with dual-clock architecture and shared SHAKE module}
+}
+
+@misc{LEAP2024-sparse-polymul,
+  author       = {Jiaxing Liu and Donglong Chen and Wangchen Dai and Ray C. C. Cheung},
+  title        = {{LEAP}: Lightweight and Efficient Accelerator for Sparse Polynomial Multiplication of {HQC}},
+  year         = {2024},
+  howpublished = {IEEE International Symposium on Circuits and Systems (ISCAS)},
+  note         = {Sparse polynomial multiplication accelerator --- obsolete after 2024 HQC spec change to dense$\times$dense}
+}
+
+@misc{CTsampling-HQC2023,
+  author       = {Sanjay Deshpande and Mamuri Nawan and Kashif Nawaz and Jakub Szefer},
+  title        = {Efficient Hardware Implementation of Constant-Time Sampling for {HQC}},
+  year         = {2023},
+  howpublished = {Cryptology {ePrint} Archive},
+  note         = {Constant-time rejection sampling hardware for HQC fixed-weight vector generation}
+}

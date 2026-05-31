@@ -1,20 +1,273 @@
 \chapter{Βελτιστοποίηση Πολυωνυμικού Πολλαπλασιασμού}
 \label{ch:polymul-optimization}
 
+Στο προηγούμενο κεφάλαιο τεκμηριώθηκε ότι ο πολυωνυμικός πολλαπλασιασμός
+καταναλώνει $\approx\pct{97}$ του συνολικού \instret στο reference scalar
+HQC-128, καθιστώντας τον μοναδικό κυρίαρχο bottleneck.  Το παρόν κεφάλαιο
+παρουσιάζει τη συστηματική βελτιστοποίηση αυτού του πυρήνα σε τρία deployment
+tiers αυξανόμενης αρχιτεκτονικής πολυπλοκότητας — από scalar Karatsuba με
+\Zbc, μέσω διανυσματοποίησης recomposition με \RVV, έως πλήρη αξιοποίηση
+\Zvbc στα leaf kernels.
+
+%% ============================================================================
 \section{Σχεδιαστικό Πλαίσιο: Hardware Tiers και Implementation Paths}
 \label{sec:polymul-tiers}
 
+Η modular φιλοσοφία του RISC-V \gls{isa} — κάθε επέκταση είναι προαιρετική
+και ανεξάρτητα τυποποιημένη — δημιουργεί ένα φάσμα hardware capabilities στο
+οποίο κάθε πλατφόρμα υλοποιεί διαφορετικό υποσύνολο επεκτάσεων.  Αντί μίας
+μονολιθικής υλοποίησης που απαιτεί τη μέγιστη ISA, η παρούσα εργασία
+στρωματοποιεί τη βελτιστοποίηση σε τρία \defterm{deployment tiers}, καθένα
+από τα οποία αξιοποιεί αποκλειστικά ratified extensions και παράγει μετρήσιμη
+επιτάχυνση σε σχέση με το reference baseline.
+
+Η στρωματοποίηση αυτή εξυπηρετεί τρεις σκοπούς.  Πρώτον, εξασφαλίζει
+portability: κάθε tier εκτελείται σε οποιονδήποτε επεξεργαστή υλοποιεί τις
+αντίστοιχες επεκτάσεις, χωρίς custom silicon ή μη-τυποποιημένες εντολές.
+Δεύτερον, επιτρέπει αξιολόγηση της οριακής συνεισφοράς κάθε επέκτασης:
+η διαφορά μεταξύ Tier~1 και Tier~2 απομονώνει το κέρδος της διανυσματικής
+μονάδας, ενώ η διαφορά μεταξύ Tier~2 και Tier~3 απομονώνει το κέρδος των
+κρυπτογραφικών vector extensions.  Τρίτον, αντικατοπτρίζει τη ρεαλιστική
+πορεία υιοθέτησης: σήμερα υπάρχει εμπορικό hardware για Tier~1 και Tier~2
+(SpacemiT K1 X60, βλ.~\cref{ssec:bpi-f3}), ενώ το Tier~3 αντιστοιχεί στο
+προφίλ RVA23 που βρίσκεται σε πορεία υιοθέτησης.
+
+Ο \cref{tab:polymul-tiers} συνοψίζει τα τρία tiers, και το
+\cref{fig:polymul-tiers} απεικονίζει τη σχέση υπερσυνόλου μεταξύ τους.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Deployment tiers πολυωνυμικού πολλαπλασιασμού.  Κάθε tier
+    αξιοποιεί αποκλειστικά ratified RISC-V extensions.  Η στήλη
+    \q{Champion} αναφέρει τη βελτιστοποιημένη υλοποίηση που αντιστοιχεί
+    σε κάθε tier.}
+  \label{tab:polymul-tiers}
+  \begin{tabular}{clll}
+    \toprule
+    \textbf{Tier} & \textbf{ISA Profile} & \textbf{Κρίσιμες Εντολές} & \textbf{Champion} \\
+    \midrule
+    1 & \code{rv64gc\_zbc\_zbb\_zbs}
+      & \clmul, \clmulh, \rori, \insn{andn}
+      & \code{karatsuba\_zbc} \\
+    2 & \code{rv64gcv\_zbc\_zbb\_zba}
+      & + \insn{vle64}, \insn{vxor.vv}, \insn{vsetvl}
+      & \code{karatsuba\_rvv} \\
+    3 & \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb}
+      & + \vclmul, \vclmulh, \vror
+      & \code{karatsuba\_zvbc} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/polymul-tiers.tex}
+  \caption{Στρωματοποίηση deployment tiers ως σχέση υπερσυνόλου.  Κάθε
+    ανώτερο tier περιλαμβάνει όλες τις επεκτάσεις του κατώτερου και
+    προσθέτει νέες δυνατότητες.  Η αρχιτεκτονική πολυπλοκότητα αυξάνεται
+    προς τα πάνω, ενώ η βάση (Tier~1) εξασφαλίζει τη μέγιστη portability.}
+  \label{fig:polymul-tiers}
+\end{figure}
+
+Κοινός αλγοριθμικός πυρήνας και στα τρία tiers είναι ο Karatsuba με στατικά
+παραγόμενο δέντρο αναδρομής (AP-2 generator, βλ.~\cref{ssec:ap2-generator}).
+Η διαφοροποίηση εντοπίζεται σε δύο σημεία: (α)~τον τρόπο υλοποίησης του
+\defterm{leaf kernel} — η βασική πράξη πολλαπλασιασμού στα φύλλα του δέντρου —
+και (β)~τον τρόπο εκτέλεσης των \defterm{recomposition loops} — οι γραμμικού
+κόστους βρόχοι XOR που συνθέτουν τα μερικά γινόμενα σε κάθε κόμβο αναδρομής.
+Ο \cref{tab:tier-differentiation} αποσαφηνίζει αυτή τη διαφοροποίηση.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Διαφοροποίηση υλοποίησης μεταξύ tiers.  Ο αλγοριθμικός σκελετός
+    (Karatsuba AP-2) είναι κοινός — μόνο τα leaf kernels και οι recomposition
+    loops διαφέρουν.}
+  \label{tab:tier-differentiation}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Tier} & \textbf{Leaf Kernel} & \textbf{Recomposition Loops} \\
+    \midrule
+    1 & Scalar \clmul/\clmulh (Zbc)
+      & Scalar unrolled XOR \\
+    2 & Scalar \clmul/\clmulh (Zbc)
+      & Inlined RVV (\insn{vxor.vv}, tuned LMUL) \\
+    3 & Vector \vclmul/\vclmulh (Zvbc)
+      & Inlined RVV (\insn{vxor.vv}, tuned LMUL) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Η αρχιτεκτονική αυτή παρατήρηση εξηγεί εκ των προτέρων τη σχετική
+αποτελεσματικότητα κάθε tier.  Στο Tier~2, η διανυσματοποίηση επιταχύνει
+μόνο τους γραμμικού κόστους $\BigO{n}$ recomposition loops, ενώ ο κυρίαρχος
+τετραγωνικού κόστους $\BigO{n^2}$ leaf παραμένει scalar — το κέρδος είναι
+πραγματικό αλλά δομικά περιορισμένο.  Στο Tier~3, η διανυσματοποίηση
+εισχωρεί στον ίδιο τον leaf, μειώνοντας τον αριθμό εντολών ανά
+\num{64}-bit carry-less γινόμενο και αποδίδοντας ουσιαστικά μεγαλύτερη
+επιτάχυνση.
+
+Οι επόμενες ενότητες παρουσιάζουν κάθε tier αναλυτικά: η
+\cref{sec:polymul-scalar} αναπτύσσει το scalar path (Tier~1), η
+\cref{sec:polymul-base-rvv} τη διανυσματοποίηση recomposition (Tier~2),
+και η \cref{sec:polymul-zvbc} τα vector-crypto leaf kernels (Tier~3).
+
+%% ----------------------------------------------------------------------------
+\subsection{Tier 1 — Scalar Deployment (rv64gc + Zbc/Zbb)}
+\label{ssec:tier1}
+
+Το Tier~1 στοχεύει πλατφόρμες χωρίς διανυσματική μονάδα — ενσωματωμένους
+επεξεργαστές και IoT κόμβους που υλοποιούν μόνο τις scalar bit-manipulation
+extensions.  Η κρίσιμη αρχιτεκτονική δυνατότητα είναι η εντολή \clmul{} της
+\Zbc: ένα ζεύγος \clmul/\clmulh υπολογίζει το πλήρες \num{128}-bit carry-less
+γινόμενο δύο \num{64}-bit πολυωνύμων σε δύο εντολές μηχανής, αντικαθιστώντας
+τον bit-serial βρόχο \num{64} conditional shift-XOR iterations του reference
+implementation.
+
+Η βελτιστοποίηση Tier~1 συνδυάζει τρεις τεχνικές:
+%
+\begin{enumerate}
+  \item \textbf{Word-level Karatsuba leaf:} Αντικατάσταση του bit-serial
+    schoolbook με word-granularity schoolbook βασισμένο σε \clmul/\clmulh
+    (\cref{ssec:bit-to-word}).
+
+  \item \textbf{Assign-on-first-write discipline:} Εξάλειψη του \code{memset}
+    μέσω πειθαρχίας πρώτης εγγραφής — κάθε output word λαμβάνει direct
+    assignment στην πρώτη πρόσβαση (\cref{ssec:memset-elimination}).
+
+  \item \textbf{Στατική παραγωγή δέντρου αναδρομής (AP-2):} Compile-time
+    generation ολόκληρου του Karatsuba recursion tree, εξαλείφοντας runtime
+    dispatch, stack spilling, και ABI overhead
+    (\cref{ssec:ap2-generator}).
+\end{enumerate}
+
+\noindent
+Η ISA string \code{rv64gc\_zbc\_zbb\_zbs} μεταγλωττίζεται με
+\code{-fno-tree-vectorize}, εξασφαλίζοντας ότι ο compiler δεν εκπέμπει
+RVV εντολές — η μέτρηση αντικατοπτρίζει αποκλειστικά scalar εκτέλεση.
+Η \Zbb παρέχει \rori{} (native rotate) και \insn{andn} (AND-NOT) που
+αξιοποιούνται αυτόματα μέσω compiler auto-lowering χωρίς αλλαγή πηγαίου
+κώδικα.
+
+%% ----------------------------------------------------------------------------
+\subsection{Tier 2 — Base-RVV Deployment (rv64gcv χωρίς Zvbc/Zvbb)}
+\label{ssec:tier2}
+
+Το Tier~2 στοχεύει application-class πλατφόρμες με διανυσματική μονάδα
+RVV~1.0 αλλά χωρίς τις κρυπτογραφικές vector extensions.  Η ISA string
+\code{rv64gcv\_zbc\_zbb\_zba} προσθέτει τη δυνατότητα εκτέλεσης
+data-parallel πράξεων σε ευρείς vector registers (\VLEN bits ανά register,
+τυπικά \num{128}–\num{2048}).
+
+Η αρχιτεκτονική παρατήρηση-κλειδί είναι ότι η \Zvbc δεν είναι διαθέσιμη
+σε αυτό το tier: η εντολή \vclmul{} απουσιάζει, επομένως ο leaf kernel
+παραμένει scalar (\clmul/\clmulh, ταυτόσημος με Tier~1).  Η διανυσματική
+μονάδα αξιοποιείται αποκλειστικά στους recomposition loops — τους γραμμικού
+κόστους βρόχους XOR, copy, και modular reduction που εκτελούνται σε κάθε
+κόμβο του δέντρου αναδρομής.
+
+Η βελτιστοποίηση Tier~2 εισάγει τρεις τεχνικές πέραν του Tier~1:
+%
+\begin{enumerate}
+  \item \textbf{Direct-write discipline:} Τα child multiplications γράφουν
+    απευθείας στο output buffer, εξαλείφοντας δύο πλήρεις RVV copy loops
+    ανά κόμβο αναδρομής (\cref{ssec:direct-write}).
+
+  \item \textbf{Overlap-save combine:} Επίλυση του aliasing hazard που
+    εισάγει η direct-write μέσω αποθήκευσης της overlap region σε scratch
+    buffer (\cref{ssec:overlap-save}).
+
+  \item \textbf{Inlined RVV operations με tuned LMUL:} Αντικατάσταση
+    shared helper functions με inline RVV intrinsic loops, με \LMUL
+    ρυθμισμένο ανά operation βάσει register pressure
+    (\cref{ssec:inlined-rvv}).
+\end{enumerate}
+
+\noindent
+Η δομική αυτή αρχιτεκτονική — scalar leaf + vector recomposition — αποτελεί
+\defterm{υβριδική προσέγγιση}: η αριθμητική πράξη (carry-less multiply)
+εκτελείται scalar, ενώ η data-movement πράξη (XOR, copy, reduce)
+εκτελείται vector.  Η προσέγγιση αυτή αποδίδει μετρήσιμη βελτίωση
+(\cref{sec:polymul-base-rvv}), αλλά το κέρδος περιορίζεται δομικά από
+τον scalar leaf — ο τετραγωνικός $\BigO{n^2}$ leaf κυριαρχεί έναντι
+των γραμμικών $\BigO{n}$ recomposition loops.
+
+%% ----------------------------------------------------------------------------
+\subsection{Tier 3 — Full Vector-Crypto Deployment (rv64gcv + Zvbc/Zvbb)}
+\label{ssec:tier3}
+
+Το Tier~3 αντιπροσωπεύει την πλήρη αξιοποίηση κρυπτογραφικών vector
+extensions.  Η ISA string \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} προσθέτει
+τις εντολές \vclmul{} και \vclmulh{} (Zvbc) — vector carry-less multiply
+που υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
+παράλληλα σε ένα vector register group.
+
+Η θεμελιώδης αρχιτεκτονική αλλαγή σε σχέση με το Tier~2 είναι η
+\defterm{διανυσματοποίηση του leaf kernel}: ο scalar \clmul/\clmulh
+αντικαθίσταται από τον \code{vclmul\_leaf}, ο οποίος εκτελεί ολόκληρο
+τον schoolbook πολλαπλασιασμό μεγέθους $n=16$ words μέσω vector
+instructions.  Σε \VLEN=\num{256} με \LMUL=m4, κάθε vector register group
+περιέχει \num{16} elements — ακριβώς το μέγεθος του Karatsuba threshold —
+επομένως ο εσωτερικός βρόχος συμπτύσσεται σε μία μόνο vector iteration
+ανά εξωτερικό index.
+
+Η \Zvbb παρέχει επιπλέον τις εντολές \vror{} (vector rotate) και
+\insn{vandn.vv} (vector AND-NOT), οι οποίες αξιοποιούνται στον Keccak
+πυρήνα (\cref{ch:kernel-optimization}) αλλά δεν επηρεάζουν άμεσα τον
+πολυωνυμικό πολλαπλασιασμό.
+
+Η σημασία του Tier~3 εκτείνεται πέραν της ποσοτικής επιτάχυνσης.
+Η \cref{sec:isa-ablation} τεκμηρίωσε
+ότι ο compiler δεν συνθέτει αυτόματα \vclmul{} από generic C loops —
+η διαφορά μεταξύ \code{ref\_vector} (compiler ceiling) και
+\code{karatsuba\_zvbc} (χειρόγραφα intrinsics) αποτελεί αποκλειστικά
+αποτέλεσμα ρητής αλγοριθμικής παρέμβασης.  Η παρατήρηση αυτή ενισχύει
+τη θέση ότι οι κρυπτογραφικές vector extensions αποδίδουν μόνο μέσω
+εξειδικευμένων υλοποιήσεων — η ύπαρξη hardware δεν αρκεί χωρίς
+αντίστοιχο software.
+
+\bigskip
+\noindent
+Η ορθότητα κάθε tier επαληθεύεται ανεξάρτητα μέσω του πλήρους KAT suite
+(\num{300} vectors, τρία security levels) — κανένα tier δεν εισάγει
+αλγοριθμική απόκλιση από τη reference υλοποίηση.  Η μεταγλώττιση κάθε
+variant με αυστηρά ελεγχόμενη \code{-march} string
+(\cf \cref{tab:march-per-variant}) εξασφαλίζει ότι ο assembler απορρίπτει
+κάθε εντολή εκτός tier — ένα \vclmul{} σε Tier~1 target προκαλεί σφάλμα
+μεταγλώττισης, αποτρέποντας ακούσια εξάρτηση από μη-διαθέσιμο hardware.
+
+%% ============================================================================
 \section{Scalar Path: Karatsuba με \Zbc}
 \label{sec:polymul-scalar}
+
+\subsection{Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό}
+\label{ssec:bit-to-word}
+
+\subsection{Assign-on-First-Write: Εξάλειψη memset}
+\label{ssec:memset-elimination}
+
+\subsection{Δομή Αναδρομής και AP-2 Generator}
+\label{ssec:ap2-generator}
 
 \subsection{Απορριφθείσες Εναλλακτικές (Toom-Cook, FAFFT)}
 \label{sec:rejected-alternatives}
 
+%% ============================================================================
 \section{Base-RVV Path: Διανυσματοποίηση Recomposition}
 \label{sec:polymul-base-rvv}
 
+\subsection{Direct-Write Discipline: Εξάλειψη Αντιγραφών z0/z2}
+\label{ssec:direct-write}
+
+\subsection{Overlap-Save Combine Strategy}
+\label{ssec:overlap-save}
+
+\subsection{Inlined RVV Operations με Tuned LMUL}
+\label{ssec:inlined-rvv}
+
+%% ============================================================================
 \section{Vector-Crypto Path: \Zvbc Leaf Kernels}
 \label{sec:polymul-zvbc}
 
+%% ============================================================================
 \section{Code Size vs Performance Trade-off}
 \label{sec:polymul-codesize}

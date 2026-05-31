@@ -1,14 +1,802 @@
 \chapter{Σχετική Βιβλιογραφία}
 \label{ch:related-work}
 
+Στο \cref{ch:theoretical-background} και στο \cref{ch:risc-v-architecture}
+παρουσιάστηκε το θεωρητικό υπόβαθρο του αλγορίθμου \HQC και της αρχιτεκτονικής
+RISC-V αντίστοιχα. Το παρόν κεφάλαιο εξετάζει τις υπάρχουσες υλοποιήσεις του
+\HQC σε διάφορες πλατφόρμες, καθώς και τις γενικότερες εργασίες βελτιστοποίησης
+μετα-κβαντικών αλγορίθμων σε RISC-V. Η ανασκόπηση αυτή τεκμηριώνει το
+ερευνητικό κενό που καλύπτει η παρούσα εργασία: την απουσία end-to-end
+βελτιστοποίησης του \HQC σε RISC-V με αξιοποίηση τυποποιημένων κρυπτογραφικών
+επεκτάσεων.
+
 \section{Υλοποιήσεις \HQC σε RISC-V}
 \label{sec:rw-riscv}
+
+Οι υπάρχουσες υλοποιήσεις του \HQC σε αρχιτεκτονική RISC-V ακολουθούν
+αποκλειστικά την προσέγγιση HW/SW co-design: συνδυάζουν έναν ενσωματωμένο
+επεξεργαστή RISC-V με εξειδικευμένους hardware accelerators σχεδιασμένους ad hoc
+για τον αλγόριθμο. Καμία δεν αξιοποιεί τυποποιημένες κρυπτογραφικές επεκτάσεις
+(\Zbc, \Zvbc) ούτε στοχεύει pure-software βελτιστοποίηση σε RV64.
+
+\subsection{Schöffel et al.\ 2022 — HW/SW Co-Design σε RV32IC}
+\label{ssec:rw-schoeffel}
+
+Η πρώτη δημοσιευμένη υλοποίηση του \HQC σε RISC-V παρουσιάστηκε από τους
+Schöffel, Feldmann και Wehn (University of Kaiserslautern) το
+2022~\cite{Schoeffel2022-HQC-IoT}. Η εργασία αποτελεί HW/SW co-design
+στοχεύοντας IoT εφαρμογές, με custom επεξεργαστή RV32IC και τρεις κατηγορίες
+βελτιστοποιήσεων: software optimizations, custom ISA extensions, και
+loosely-coupled accelerators.
+
+\paragraph{Αρχιτεκτονική.}
+Η πλατφόρμα (IoT Processing System) περιλαμβάνει custom RISC-V πυρήνα RV32IC,
+DMA controller, JTAG module, και τρεις loosely-coupled accelerators
+συνδεδεμένους μέσω AXI4-Lite interconnect: (α)~$R$-Unit για πολυωνυμικό
+πολλαπλασιασμό και πρόσθεση στον δακτύλιο
+$\GF{2}[x]/(x^N-1)$, (β)~Sampling-Unit που ενσωματώνει Keccak permutation
+και rejection sampling, και (γ)~RM-Decoder για αποκωδικοποίηση Reed-Muller
+μέσω Hadamard Transform. Επιπλέον, μία custom R-type εντολή (F$2^8$-Unit)
+επιταχύνει τον πολλαπλασιασμό στο $\GF{2^8}$ για τον Reed-Solomon
+κωδικοποιητή/αποκωδικοποιητή.
+
+\paragraph{Μεθοδολογία πολλαπλασιασμού.}
+Η εργασία χρησιμοποιεί \defterm{sparse$\times$dense} πολλαπλασιασμό, αξιοποιώντας
+το χαμηλό βάρος Hamming ($w \leq 75$) ενός εκ των δύο πολυωνύμων. Ο $R$-Unit
+υλοποιεί word-by-word shift του πυκνού πολυωνύμου κατά τις θέσεις των μη-μηδενικών
+συντελεστών του αραιού, με δύο κύκλους ανά resulting word (address calculation +
+XOR/carry computation).
+
+\paragraph{Αποτελέσματα.}
+Με όλα τα hardware modules ενεργά, επιτυγχάνεται \pct{98.9} speedup στο
+\KeyGen, \pct{99} στο \Encaps και \pct{97.2} στο \Decaps σε σχέση με τη
+reference software υλοποίηση. Η σχεδίαση υλοποιήθηκε σε ASIC 22\,nm FD-SOI
+(GlobalFoundries, $0{,}12\,\text{mm}^2$, 700\,MHz) και σε FPGA (Xilinx Artix-7).
+
+\paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
+Τρεις θεμελιώδεις διαφορές καθιστούν αυτή την εργασία μη συγκρίσιμη με την
+παρούσα:
+\begin{enumerate}
+  \item \textbf{Παλαιά specification:} Ο sparse$\times$dense πολλαπλασιασμός
+    αντιστοιχεί στην προ-2024 έκδοση του \HQC. Η τελική specification
+    (2024) αντικατέστησε τον sparse$\times$dense με dense$\times$dense 2-way
+    Karatsuba λόγω side-channel ευπαθειών~\cite{HQC-spec2024}, ακυρώνοντας τη
+    βασική αλγοριθμική υπόθεση της εργασίας.
+  \item \textbf{Custom, μη τυποποιημένες επεκτάσεις:} Η F$2^8$-Unit εντολή
+    δεν ανήκει σε κανένα ratified RISC-V extension — απαιτεί custom silicon
+    και δεν είναι portable σε εμπορικούς επεξεργαστές.
+  \item \textbf{RV32 embedded:} Η πλατφόρμα είναι RV32IC χωρίς 64-bit
+    registers, χωρίς vector unit, και χωρίς carry-less multiply
+    (\Zbc/\Zvbc). Η παρούσα εργασία στοχεύει RV64 application-class
+    επεξεργαστές με ratified extensions.
+\end{enumerate}
+
+\subsection{Ras et al.\ 2026 — FAFFT σε CV32E40P SoC}
+\label{ssec:rw-ras-fafft}
+
+Η πιο πρόσφατη εργασία υλοποίησης \HQC σε RISC-V προέρχεται από τους Ras,
+Loiseau, Carmona, Pontié, Renault, Smith και Valea (CEA-Leti / INRIA /
+ANSSI)~\cite{Ras2026-FAFFT-RISCV}. Αντί Karatsuba, προτείνεται η χρήση
+\gls{fafft} ως εναλλακτική μέθοδος πολυωνυμικού πολλαπλασιασμού, σε συνδυασμό
+με τον hardware accelerator ANDROMEDA.
+
+\paragraph{Αλγοριθμική προσέγγιση.}
+Η \gls{fafft} μετασχηματίζει τον πολλαπλασιασμό δυαδικών πολυωνύμων σε
+FFT-based αξιολόγηση πάνω σε πεδίο $\GF{2^{32}}$, αξιοποιώντας Cantor basis
+και Frobenius map για μείωση των σημείων αξιολόγησης από $n$ σε $n/m$. Η
+υλοποίηση σε C (χωρίς SIMD ή assembly βελτιστοποιήσεις) ενσωματώθηκε στον
+επίσημο κώδικα \HQC και εκτελέστηκε στον CV32E40P (RV32IMC) σε Xilinx Kintex-7
+FPGA.
+
+\paragraph{Αποτελέσματα software-only.}
+Η FAFFT-based υλοποίηση επιτυγχάνει \speedup{3.52} έως \speedup{8.08} speedup
+σε σχέση με τον reference 2-way Karatsuba, ανάλογα με το security level
+(HQC-128: \speedup{3.52}, HQC-192: \speedup{4.98}, HQC-256: \speedup{8.08}).
+Η ασυμμετρία οφείλεται στο ότι η πολυπλοκότητα FAFFT κλιμακώνει ως
+$\BigO{n \log n \log \log n}$ έναντι $\BigO{n^{\log_2 3}}$ του Karatsuba —
+το πλεονέκτημα αυξάνεται με το μέγεθος πολυωνύμου.
+
+\paragraph{Hardware acceleration: ANDROMEDA.}
+Ο ANDROMEDA accelerator υλοποιεί τις FFT-based πράξεις (FFTLCH, IFFTLCH, PWM)
+μέσω ενός configurable Carry-Free Butterfly (CFB) unit με 2-cycle pipeline
+latency. Η μονάδα εκτελεί carry-less πολλαπλασιασμό στο $\GF{2^{32}}$ με
+2-way Karatsuba decomposition σε επίπεδο 16-bit schoolbook multipliers. Με τον
+ANDROMEDA ενεργό, το συνολικό speedup ανέρχεται σε \speedup{9.64} (HQC-128)
+έως \speedup{19.22} (HQC-256) σε σχέση με τη reference υλοποίηση.
+
+\paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
+\begin{enumerate}
+  \item \textbf{Custom hardware accelerator:} Το ANDROMEDA δεν αποτελεί
+    τυποποιημένη επέκταση — είναι loosely-coupled coprocessor που απαιτεί
+    custom FPGA/ASIC σχεδίαση. Η παρούσα εργασία χρησιμοποιεί αποκλειστικά
+    ratified ISA extensions.
+  \item \textbf{RV32 embedded:} Ο CV32E40P είναι RV32IMC in-order πυρήνας
+    χωρίς 64-bit registers ή vector unit. Δεν υποστηρίζει \Zbc ή \Zvbc.
+  \item \textbf{Διαφορετικός αλγόριθμος:} Η FAFFT αποτελεί θεμελιωδώς
+    διαφορετική αλγοριθμική προσέγγιση από τον Karatsuba. Η παρούσα εργασία
+    διατηρεί τον 2-way Karatsuba (σύμφωνα με τη reference specification) και
+    επιταχύνει τα leaf multiplications μέσω \insn{clmul}/\vclmul.
+  \item \textbf{Δεν αξιοποιεί ratified crypto extensions:} Ούτε η software
+    ούτε η hardware υλοποίηση χρησιμοποιεί \Zbc ή \Zvbc — ο carry-less
+    πολλαπλασιασμός εκτελείται είτε σε software (shift-and-add) είτε στον
+    custom CFB unit.
+\end{enumerate}
+
+\subsection{PHOENIX — Crypto-Agile HW Coprocessor}
+\label{ssec:rw-phoenix}
+
+Η ίδια ερευνητική ομάδα (CEA-Leti) παρουσίασε το PHOENIX~\cite{PHOENIX2026},
+τον πρώτο crypto-agile hardware coprocessor που υποστηρίζει ταυτόχρονα
+lattice-based (\gls{mlkem}) και code-based (\HQC) \gls{kem} σε κοινό hardware.
+
+\paragraph{Αρχιτεκτονική SuperButterfly.}
+Η κεντρική καινοτομία είναι η μονάδα SuperButterfly: ένα configurable processing
+element που εκτελεί τόσο NTT butterflies (modular integer αριθμητική στο
+$\mathbb{Z}_{3329}$ για \gls{mlkem}) όσο και FAFFT butterflies (carry-less
+αριθμητική στο $\GF{2^{32}}$ για \HQC). Η εναλλαγή μεταξύ modes γίνεται μέσω
+configuration bits χωρίς hardware reconfiguration. Η σχεδίαση αξιοποιεί data
+parallelism: 2 NTT butterfly instances ή 1 FAFFT butterfly instance ανά
+SuperButterfly unit, λόγω της διαφοράς μεγέθους συντελεστών (12-bit vs 32-bit).
+
+\paragraph{Ενσωμάτωση και αποτελέσματα.}
+Το PHOENIX ενσωματώθηκε ως loosely-coupled accelerator σε Zynq-7020 FPGA SoC
+(Artix-7, 125\,MHz). Για τον \HQC, ο PHOENIX επιταχύνει τον πολυωνυμικό
+πολλαπλασιασμό κατά \speedup{2.3}–\speedup{2.4} σε σχέση με τη software FAFFT
+υλοποίηση. Για τον \gls{mlkem}, τα αποτελέσματα NTT είναι ανταγωνιστικά με
+dedicated NTT accelerators, με overhead λόγω crypto-agility.
+
+\paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
+Το PHOENIX αποτελεί custom hardware coprocessor — δεν είναι pure-software
+υλοποίηση και δεν αξιοποιεί ratified RISC-V extensions. Η φιλοσοφία του
+(hardware sharing μεταξύ NTT και FAFFT) είναι ορθογώνια προς την παρούσα
+εργασία, η οποία αποδεικνύει ότι υψηλή απόδοση επιτυγχάνεται χωρίς custom
+hardware, αξιοποιώντας αποκλειστικά τις ήδη τυποποιημένες \Zbc και \Zvbc
+extensions. Ωστόσο, η ύπαρξη του PHOENIX τεκμηριώνει τη σημασία της
+κρυπτογραφικής ευελιξίας (crypto-agility) ως σχεδιαστική απαίτηση — θέμα που
+αναλύεται στο \cref{sec:quantum-threat}.
+
+\paragraph{Σύνοψη υπαρχουσών εργασιών RISC-V.}
+Ο \cref{tab:rw-riscv-summary} συνοψίζει τα χαρακτηριστικά των τριών υπαρχουσών
+υλοποιήσεων \HQC σε RISC-V. Κοινός παρονομαστής αποτελεί η εξάρτηση από custom
+hardware και η στόχευση RV32 embedded πλατφορμών — κανένα paper δεν εξετάζει
+pure-software βελτιστοποίηση σε RV64 με ratified extensions.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύνοψη υπαρχουσών υλοποιήσεων \HQC σε RISC-V. Καμία δεν αξιοποιεί
+    ratified κρυπτογραφικές επεκτάσεις (\Zbc/\Zvbc) ούτε στοχεύει pure-software
+    βελτιστοποίηση σε RV64.}
+  \label{tab:rw-riscv-summary}
+  \small
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    \textbf{Εργασία} & \textbf{ISA} & \textbf{Polymul} & \textbf{HW Accel.} & \textbf{Spec} \\
+    \midrule
+    Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
+      & RV32IC & sparse$\times$dense & R-Unit, RM-Dec. & pre-2024 \\
+    Ras et al.~\cite{Ras2026-FAFFT-RISCV}
+      & RV32IMC & FAFFT & ANDROMEDA & 2024 \\
+    PHOENIX~\cite{PHOENIX2026}
+      & RV32IMC & FAFFT & SuperButterfly & 2024 \\
+    \midrule
+    \textbf{Παρούσα εργασία}
+      & RV64GCV & Karatsuba & \textbf{Καμία} & 2024 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \section{Υλοποιήσεις \HQC σε x86 και ARM}
 \label{sec:rw-x86-arm}
 
+Σε αντίθεση με τις RISC-V εργασίες που βασίζονται σε custom hardware, οι
+υλοποιήσεις σε x86 και ARM αξιοποιούν τις ενσωματωμένες SIMD δυνατότητες των
+εμπορικών επεξεργαστών: \texttt{PCLMULQDQ}/\texttt{VPCLMULQDQ} στην
+αρχιτεκτονική x86 και \texttt{PMULL} στην ARM. Οι εντολές αυτές εκτελούν
+carry-less πολλαπλασιασμό 64-bit πολυωνύμων σε hardware, παρέχοντας τη βάση
+πάνω στην οποία χτίζονται οι αναδρομικές δομές Karatsuba και Toom-Cook. Η
+παρούσα ενότητα εξετάζει τις σημαντικότερες εργασίες, οργανωμένες κατά
+αλγοριθμική προσέγγιση.
+
+\subsection{OptHQC — \texorpdfstring{Sparse$\times$Dense}{Sparse×Dense} AVX2 (Dong et al.\ 2025)}
+\label{ssec:rw-opthqc}
+
+Η εργασία OptHQC~\cite{OptHQC2025} αποτελεί τη μοναδική δημοσιευμένη
+βελτιστοποίηση ολόκληρου του \HQC KEM σε x86 με AVX2, στοχεύοντας
+general-purpose επεξεργαστές Intel Core i7 (Kaby Lake). Η προσέγγιση
+περιλαμβάνει τρεις συμπληρωματικές βελτιστοποιήσεις:
+
+\paragraph{Adaptive sparse$\times$dense πολλαπλασιασμός.}
+Ένας threshold-aware scheduler επιλέγει δυναμικά μεταξύ sparse$\times$dense και
+dense$\times$dense μονοπατιού βάσει του βάρους Hamming του πρώτου τελεστή. Στο
+sparse μονοπάτι, το γινόμενο συντίθεται ως υπέρθεση κυκλικά μετατοπισμένων
+αντιγράφων του πυκνού πολυωνύμου — η πολυπλοκότητα κλιμακώνει με τον αριθμό
+μη-μηδενικών συντελεστών αντί του βαθμού πολυωνύμου. Η μετατόπιση αποσυντίθεται
+σε coarse word rotation και fine intra-word bit rotation, με AVX2-aligned
+buffers για uniform memory access.
+
+\paragraph{AVX-parallel SHAKE.}
+Η Keccak permutation εκτελείται με lane-interleaved 256-bit loads/stores κατά
+τις φάσεις absorb και squeeze, ενώ πολλαπλά SHAKE instances ομαδοποιούνται σε
+cache-friendly batches. Η βελτιστοποίηση μειώνει τον χρόνο SHAKE κατά
+\speedup{2}.
+
+\paragraph{Table-driven Reed-Solomon.}
+Ο πολλαπλασιασμός στο $\GF{2^8}$ αντικαθίσταται από precomputed lookup table
+($\sim$8\,KB για encode, $\sim$14\,KB nibble-sliced για decode), μετατρέποντας
+τον εσωτερικό βρόχο σε constant-time XOR operations.
+
+\paragraph{Αποτελέσματα.}
+Συνολικά επιτυγχάνεται \pct{55} μέσο speedup έναντι της reference υλοποίησης,
+με τη μεγαλύτερη βελτίωση στο \Decaps λόγω του βελτιστοποιημένου RS decoder.
+Η κατανομή κόστους στη reference υλοποίηση (βλ.\ \cref{fig:opthqc-profile})
+αποκαλύπτει ότι ο πολυωνυμικός πολλαπλασιασμός και η αποκωδικοποίηση
+αποτελούν από κοινού πάνω από \pct{85} του συνολικού χρόνου.
+
+\paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
+Δύο θεμελιώδεις διαφορές περιορίζουν τη συγκρισιμότητα:
+\begin{enumerate}
+  \item \textbf{Sparse$\times$dense:} Η βελτιστοποίηση πολλαπλασιασμού
+    εκμεταλλεύεται τη σπανιότητα των μυστικών διανυσμάτων — μία τεχνική που
+    η τελική specification (2024) απαγορεύει λόγω side-channel
+    ευπαθειών~\cite{HQC-spec2024}. Η παρούσα εργασία χρησιμοποιεί
+    αποκλειστικά dense$\times$dense Karatsuba.
+  \item \textbf{x86-specific:} Η υλοποίηση βασίζεται σε AVX2
+    \texttt{VPCLMULQDQ} — δεν είναι portable σε RISC-V ή ARM.
+\end{enumerate}
+
+\begin{figure}[htbp]
+  \missingfig{Αναπαραγωγή pie charts κατανομής κόστους OptHQC: KeyGen
+    (PolyMult 76.5\%, VectorGen 12.1\%, SHAKE 7.3\%), Encrypt (PolyMult
+    54.7\%, CodeEncode 16.9\%, SHAKE 4.9\%), Decrypt (PolyMult 40.3\%,
+    CodeDecode 76.8\%, SHAKE 6.2\%). Τρία pie charts side-by-side.}
+  % SOURCE: OptHQC paper Figure 1 — recreate as TikZ pie charts
+  \caption{Κατανομή υπολογιστικού κόστους στο reference HQC-128 σε x86
+    (αναπαραγωγή από~\cite{OptHQC2025}). Ο πολυωνυμικός πολλαπλασιασμός
+    κυριαρχεί στο \KeyGen και \Encaps, ενώ η αποκωδικοποίηση κυριαρχεί στο
+    \Decaps.}
+  \label{fig:opthqc-profile}
+\end{figure}
+
+\subsection{Chen et al.\ TCHES 2026 — Additive FFT με CRT}
+\label{ssec:rw-chen-fft}
+
+Η εργασία των Chen, Chiu, Peng και Yang~\cite{Chen2026-TCHES-HQC-FFT}
+αποτελεί την πληρέστερη αξιολόγηση FFT-based πολυωνυμικού πολλαπλασιασμού για
+τον \HQC σε high-performance πλατφόρμες (x86-64 AVX2+GFNI, ARM NEON σε Apple
+M1 και Cortex-A72).
+
+\paragraph{Αλγοριθμική καινοτομία: FFT-CRT.}
+Οι βαθμοί πολυωνύμων του \HQC ($n = 2^d + r$ με μικρό $r$) δεν ευθυγραμμίζονται
+με δυνάμεις του 2, καθιστώντας την απευθείας εφαρμογή additive FFT αναποτελεσματική
+λόγω excessive padding. Η εργασία προτείνει συνδυασμό additive FFT με το Chinese
+Remainder Theorem (CRT): το πολυωνυμικό δακτύλιο αντιστοιχίζεται σε γινόμενο
+ενός FFT-friendly δακτυλίου μεγέθους $2^{d+1}$ και ενός μικρού υπολοιπόμενου
+δακτυλίου, με ανασύνθεση μέσω CRT.
+
+\paragraph{Caching strategy.}
+Κατά τη φάση \Encaps, δύο πολλαπλασιασμοί μοιράζονται κοινό τελεστή (το δημόσιο
+πολυώνυμο $h$). Η μετατροπή FFT του $h$ αποθηκεύεται (cached) κατά το \KeyGen
+και επαναχρησιμοποιείται, εξαλείφοντας $\sim$1/8 του υπολογισμού σε x86 και
+$\sim$1/6 σε ARM NEON.
+
+\paragraph{Αποτελέσματα.}
+Σε πλατφόρμες με \texttt{PCLMULQDQ}, η FFT-CRT προσέγγιση υπερτερεί του
+Toom-Karatsuba στις φάσεις \Encaps και \Decaps χάρη στο caching, ακόμη και
+όταν η raw multiplication ταχύτητα είναι συγκρίσιμη. Σε πλατφόρμες χωρίς
+carry-less multiply hardware (π.χ.\ Cortex-A72 χωρίς crypto extensions), η
+additive FFT υπερτερεί σε όλες τις φάσεις.
+
+\paragraph{Σχετικότητα με την παρούσα εργασία.}
+Η εργασία τεκμηριώνει ότι για μεγάλους βαθμούς πολυωνύμων (HQC-5), η FFT-based
+προσέγγιση μπορεί να υπερτερεί του Karatsuba. Ωστόσο, η παρούσα εργασία
+διατηρεί τον 2-way Karatsuba (σύμφωνα με τη reference specification) και
+επιταχύνει τα leaf multiplications μέσω \vclmul — μία ορθογώνια στρατηγική
+που δεν απαιτεί αλλαγή αλγοριθμικής δομής.
+
+\subsection{Jang et al.\ 2026 — Systematic SIMD GF(2)[x] Multiplication}
+\label{ssec:rw-jang-simd}
+
+Η εργασία των Jang, Lee, Kim, Seo και Hong~\cite{Jang2026-gf2x-SIMD}
+παρουσιάζει μεθοδολογία συστηματικής εξερεύνησης Toom-Cook/Karatsuba
+decomposition trees για πολυωνυμικό πολλαπλασιασμό στο $\GF{2}[x]$, στοχεύοντας
+AVX2 με \texttt{VPCLMULQDQ} και ARM Neon με \texttt{PMULL}.
+
+\paragraph{Μεθοδολογία.}
+Σε αντίθεση με τη βιβλιοθήκη \texttt{gf2x} που χρησιμοποιεί conditional
+branches και table lookups για δυναμική επιλογή αλγορίθμου, η προτεινόμενη
+μέθοδος παράγει branch-free υλοποιήσεις εξειδικευμένες ανά βαθμό πολυωνύμου.
+Η εξερεύνηση καλύπτει 2-, 3- και 5-way Karatsuba καθώς και Toom-Cook 3-, 4-
+και 5-way, με βελτιστοποιημένο 256-bit base multiplication για AVX2 χωρίς
+AVX-512.
+
+\paragraph{Αποτελέσματα για \HQC.}
+Σε περιβάλλον AVX2-\texttt{PCLMULQDQ}, η μέθοδος μειώνει τους κύκλους
+πολυωνυμικού πολλαπλασιασμού κατά \pct{17}–\pct{32} σε σχέση με την επίσημη
+υλοποίηση \HQC για τα HQC-1 και HQC-3. Σε επίπεδο KEM, η βελτίωση ανέρχεται
+σε \pct{4}–\pct{18} στο \KeyGen, \Encaps και \Decaps. Για το HQC-5, η
+FFT-based υλοποίηση των Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} υπερτερεί,
+επιβεβαιώνοντας ότι το ασυμπτωτικό πλεονέκτημα της FFT γίνεται κυρίαρχο σε
+μεγάλους βαθμούς.
+
+\paragraph{Σχετικότητα με την παρούσα εργασία.}
+Η μεθοδολογία decomposition tree search είναι αναλογική με τη δομή Karatsuba
+της παρούσας εργασίας, αλλά στοχεύει x86/ARM SIMD. Η βασική διαφορά έγκειται
+στο base multiplication: η εργασία χρησιμοποιεί \texttt{VPCLMULQDQ} (256-bit,
+2 παράλληλοι 64-bit πολλαπλασιασμοί), ενώ η παρούσα αξιοποιεί \vclmul
+(VLEN-dependent, $\text{VLEN}/64$ παράλληλοι πολλαπλασιασμοί). Η VLA φύση
+του RISC-V vector model εισάγει πρόσθετες σχεδιαστικές προκλήσεις που δεν
+υφίστανται σε fixed-width SIMD.
+
+\subsection{Jang et al.\ 2026 — Cortex-M4 Polymul (FAFFT-CRT/Karatsuba)}
+\label{ssec:rw-jang-m4}
+
+Η εργασία~\cite{Jang2026-CortexM4-HQC} στοχεύει τον ARM Cortex-M4, μία
+πλατφόρμα χωρίς hardware carry-less multiply, και προτείνει τρεις
+εναλλακτικές προσεγγίσεις: Hybrid FAFFT-CRT, Hybrid FAFFT-Karatsuba, και
+radix-16.
+
+\paragraph{Πρόβλημα padding overhead.}
+Η \gls{fafft} απαιτεί μήκος μετασχηματισμού $2^l$ με $2n - 2 < 2^l$. Για
+τους βαθμούς του \HQC ($n = 2^d + r$ με μικρό $r$), αυτό οδηγεί σε $l = d+2$,
+δηλαδή μήκος $\sim$4$n$ — σημαντικό overhead. Η Hybrid FAFFT-CRT αντιστοιχίζει
+τον δακτύλιο σε γινόμενο FFT-friendly δακτυλίου μεγέθους $2^{d+1}$ και μικρού
+υπολοιπόμενου, μειώνοντας δραστικά το padding.
+
+\paragraph{Αποτελέσματα.}
+Η Hybrid FAFFT-CRT μειώνει τους κύκλους πολυωνυμικού πολλαπλασιασμού κατά
+\pct{33.4} (HQC-1) και \pct{27.2} (HQC-3). Σε επίπεδο KEM, η βελτίωση
+ανέρχεται σε \pct{23.7}/\pct{24.2}/\pct{21.9} (\KeyGen/\Encaps/\Decaps) για
+HQC-1 και \pct{18.0}/\pct{18.6}/\pct{17.7} για HQC-3. Για HQC-5, η
+βελτιστοποιημένη butterfly FAFFT παρέχει μικρότερο αλλά σταθερό speedup
+\pct{1.4}–\pct{1.6}.
+
+\paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
+Ο Cortex-M4 δεν διαθέτει carry-less multiply hardware — η \gls{fafft}
+αποτελεί αναγκαστική επιλογή για αποφυγή του $\BigO{n^2}$ schoolbook. Σε
+αντίθεση, η παρούσα εργασία αξιοποιεί \insn{clmul}/\vclmul σε hardware,
+καθιστώντας τον Karatsuba αποδοτικό χωρίς αλλαγή αλγοριθμικής δομής.
+
+\subsection{Chen et al.\ 2021 — BIKE Optimization (Haswell/Cortex-M4)}
+\label{ssec:rw-chen-bike}
+
+Η εργασία των Chen, Chou και Krausz~\cite{Chen2021-BIKE-Haswell-M4} αποτελεί
+σημείο αναφοράς για τη χρήση additive FFT σε code-based κρυπτογραφία. Αν και
+στοχεύει τον BIKE (όχι \HQC), η αλγοριθμική δομή είναι ανάλογη: πολυωνυμικός
+πολλαπλασιασμός στο $\GF{2}[x]/(x^n - 1)$ με $n$ της τάξης δεκάδων χιλιάδων
+bits. Η εργασία εισήγαγε τη χρήση 5-way recursive Bernstein algorithm στο
+ανώτερο επίπεδο αναδρομής, με Karatsuba στα κατώτερα, θέτοντας τη βάση για τις
+μεταγενέστερες FFT-based βελτιστοποιήσεις του \HQC.
+
+\subsection{Λοιπές εργασίες}
+\label{ssec:rw-other-platforms}
+
+Πέραν των παραπάνω, αρκετές εργασίες συμπληρώνουν το τοπίο βελτιστοποίησης
+του \HQC σε μη-RISC-V πλατφόρμες:
+
+\paragraph{Hardware σχεδιάσεις.}
+Οι Deshpande et al.~\cite{Deshpande2023-HQC-HW} παρουσίασαν πλήρη FPGA
+υλοποίηση του \HQC με pipelined πολυωνυμικό πολλαπλασιασμό, shared SHAKE
+module και dual-clock αρχιτεκτονική. Η εργασία αποτελεί σημείο αντιπαραβολής
+(contrast point) — τεκμηριώνει τα οφέλη dedicated hardware αλλά με κόστος
+ευελιξίας και portability.
+
+\paragraph{LEAP — Sparse polymul accelerator.}
+Ο LEAP accelerator~\cite{LEAP2024-sparse-polymul} βελτιστοποιεί τον
+sparse$\times$dense πολλαπλασιασμό σε hardware. Η αλλαγή specification του
+2024 (μετάβαση σε dense$\times$dense) κατέστησε αυτή τη σχεδίαση obsolete —
+αποτελεί χαρακτηριστικό παράδειγμα του κινδύνου εξειδικευμένου hardware σε
+ανώριμο αλγοριθμικό τοπίο (βλ.\ \cref{sec:quantum-threat}).
+
+\paragraph{Constant-time sampling hardware.}
+Η εργασία~\cite{CTsampling-HQC2023} προτείνει hardware υλοποίηση constant-time
+rejection sampling για τη γέννηση fixed-weight διανυσμάτων. Η τεχνική αποτελεί
+μελλοντική εργασία για side-channel hardening (βλ.\ \cref{ch:conclusions}).
+
+\subsection{Σύνοψη και σύγκριση}
+\label{ssec:rw-x86-arm-summary}
+
+Ο \cref{tab:rw-x86-arm-summary} συνοψίζει τις εργασίες βελτιστοποίησης \HQC
+σε x86 και ARM. Κοινός παρονομαστής αποτελεί η αξιοποίηση platform-specific
+SIMD εντολών (\texttt{VPCLMULQDQ}, \texttt{PMULL}) ή η χρήση FFT-based
+μεθόδων σε πλατφόρμες χωρίς carry-less multiply hardware. Καμία εργασία δεν
+στοχεύει RISC-V ούτε αξιοποιεί τις τυποποιημένες \Zbc/\Zvbc extensions.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύνοψη υλοποιήσεων \HQC σε x86 και ARM. Η στήλη \q{Polymul}
+    αναφέρει τη μέθοδο πολυωνυμικού πολλαπλασιασμού και η στήλη \q{HW Insn.}
+    την εντολή carry-less multiply που αξιοποιείται.}
+  \label{tab:rw-x86-arm-summary}
+  \small
+  \begin{tabular}{@{}llllc@{}}
+    \toprule
+    \textbf{Εργασία} & \textbf{Platform} & \textbf{Polymul} & \textbf{HW Insn.} & \textbf{Speedup} \\
+    \midrule
+    OptHQC~\cite{OptHQC2025}
+      & x86 AVX2 & sparse$\times$dense & VPCLMULQDQ & \pct{55} overall \\
+    Chen et al.~\cite{Chen2026-TCHES-HQC-FFT}
+      & x86 AVX2+GFNI & FFT-CRT & VPCLMULQDQ & — \\
+    & ARM NEON & FFT-CRT & PMULL & — \\
+    Jang et al.~\cite{Jang2026-gf2x-SIMD}
+      & x86 AVX2 & Toom/Karatsuba & VPCLMULQDQ & \pct{17}–\pct{32} polymul \\
+    & ARM Neon & Toom/Karatsuba & PMULL & — \\
+    Jang et al.~\cite{Jang2026-CortexM4-HQC}
+      & Cortex-M4 & FAFFT-CRT & — & \pct{33.4} polymul \\
+    Chen et al.~\cite{Chen2021-BIKE-Haswell-M4}
+      & x86 Haswell & Additive FFT & PCLMULQDQ & — \\
+    & Cortex-M4 & Additive FFT & — & — \\
+    \midrule
+    \textbf{Παρούσα εργασία}
+      & RISC-V RV64GCV & Karatsuba & \Zbc/\Zvbc & βλ.\ \cref{ch:results} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Η τελευταία γραμμή του πίνακα τοποθετεί την παρούσα εργασία: αξιοποιεί τις
+τυποποιημένες RISC-V carry-less multiply extensions (\insn{clmul}/\vclmul) ως
+base multiplication εντός Karatsuba decomposition — μία στρατηγική αναλογική
+με τη χρήση \texttt{VPCLMULQDQ} στο x86, αλλά σε VLA vector αρχιτεκτονική
+με διαφορετικές σχεδιαστικές προκλήσεις (VLEN-agnostic κώδικας, register
+pressure λόγω LMUL grouping, απουσία compiler auto-vectorization για
+\vclmul — βλ.\ \cref{ch:discussion}).
+
 \section{Γενικότερες PQC Εργασίες στο RISC-V}
 \label{sec:rw-pqc-riscv}
 
+Πέραν του \HQC, η ευρύτερη κοινότητα βελτιστοποίησης μετα-κβαντικών αλγορίθμων
+σε RISC-V εστιάζει σχεδόν αποκλειστικά σε lattice-based σχήματα: \gls{mlkem}
+(Kyber) και ML-DSA (Dilithium). Οι εργασίες αυτές δεν αφορούν τον \HQC,
+αλλά τεκμηριώνουν τρία ευρήματα σχετικά με την παρούσα εργασία: (α)~η RISC-V
+PQC κοινότητα αφήνει ανοιχτό κενό στο code-based πεδίο, (β)~οι ίδιες
+επεκτάσεις (\Zbb, \RVV) που αξιοποιούνται εδώ ωφελούν και τα lattice-based
+σχήματα, και (γ)~ο Keccak αποτελεί κοινό bottleneck μεταξύ lattice-based και
+code-based \gls{pqc} μετά τη βελτιστοποίηση του κυρίαρχου αριθμητικού πυρήνα.
+
+\subsection{ECO-CRYSTALS (Ji et al.\ 2024)}
+\label{ssec:rw-eco-crystals}
+
+Η εργασία ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS} αποτελεί την πρώτη
+highly-optimized assembly υλοποίηση Kyber1024 και Dilithium5 σε RV64IMB,
+στοχεύοντας τον VisionFive~2 (JH7110, in-order dual-issue pipeline). Οι
+βελτιστοποιήσεις καλύπτουν τρεις πυρήνες:
+
+\paragraph{Keccak.}
+Η Keccak-$p$[1600,24] permutation αναδιατάσσεται σε επίπεδο εντολών ώστε να
+εξαλείφονται data hazards μεταξύ διαδοχικών ζευγών εντολών στο dual-issue
+pipeline. Η χρήση \rori (αντί τριπλέτας \code{slli}/\code{srli}/\code{or})
+και \insn{andn} (αντί \code{not}+\code{and}) μειώνει τόσο τον αριθμό εντολών
+όσο και την register pressure. Η βελτιστοποιημένη υλοποίηση επιτυγχάνει
+\pct{59.18} speedup έναντι της reference, χωρίς memory accesses κατά τη
+διάρκεια των 24 γύρων — όλα τα ενδιάμεσα αποτελέσματα παραμένουν σε
+registers.
+
+\paragraph{NTT.}
+Ο Number Theoretic Transform βελτιστοποιείται μέσω δύο εναλλακτικών modular
+αριθμητικών: Montgomery και Plantard. Η Plantard αριθμητική εξοικονομεί έναν
+πολλαπλασιασμό ανά butterfly μέσω precomputation, ενώ η εκτεταμένη range
+analysis εξαλείφει τη reduction μετά τον NTT. Η flexible dual-issue scheduling
+εναλλάσσει εντολές μεταξύ ανεξάρτητων butterflies ώστε να αποφεύγονται RAW
+hazards. Τα αποτελέσματα: \pct{76.76}–\pct{85.57} speedup σε NTT/INTT για
+Kyber.
+
+\paragraph{End-to-end αποτελέσματα.}
+Σε επίπεδο πλήρους KEM, η υλοποίηση επιτυγχάνει \cycles{399000}/\cycles{448000}/\cycles{479000}
+κύκλους για \KeyGen/\Encaps/\Decaps του Kyber1024, αντιστοιχώντας σε
+\pct{60.82}–\pct{65.56} speedup έναντι της reference.
+
+\paragraph{Σχετικότητα με την παρούσα εργασία.}
+Η ECO-CRYSTALS αποδεικνύει ότι η \Zbb (\rori/\insn{andn}) ωφελεί σημαντικά
+τον Keccak σε RV64 — ίδια παρατήρηση με την παρούσα εργασία
+(βλ.\ \cref{sec:keccak-optimization}). Η dual-issue scheduling μεθοδολογία είναι
+αναλογική, αλλά εφαρμόζεται σε NTT butterflies αντί GF(2)[$x$] Karatsuba
+leaves. Η θεμελιώδης διαφορά έγκειται στον αριθμητικό πυρήνα: ο NTT λειτουργεί
+σε $\mathbb{Z}_q$ (modular integer αριθμητική), ενώ ο πολυωνυμικός
+πολλαπλασιασμός του \HQC λειτουργεί σε $\GF{2}[x]$ (carry-less αριθμητική) —
+απαιτώντας \Zbc/\Zvbc αντί Montgomery/Plantard reduction.
+
+\subsection{Zhang et al.\ TCHES 2025}
+\label{ssec:rw-zhang-tches}
+
+Η εργασία των Zhang, Yan, Huang και Koç~\cite{zhang-tches2025} αποτελεί την
+πληρέστερη κάλυψη ISA combinations για Keccak, Kyber και Dilithium σε RISC-V,
+εξετάζοντας συστηματικά τους συνδυασμούς RV\{32,64\}IM\{B\}\{V\} στον XuanTie
+C908 (dual-issue, VLEN=128).
+
+\paragraph{Keccak records.}
+Η εργασία θέτει νέα performance records σε Keccak: \num{1770} κύκλοι σε
+RV64IB και \num{6222} κύκλοι σε RV32IB. Η βελτιστοποίηση αξιοποιεί in-place
+implementation (μία αναδίπλωση γύρου αντί τεσσάρων), lane complementing μόνο
+σε ISA χωρίς \insn{andn}, και bit interleaving σε 32-bit πλατφόρμες. Σε
+πλατφόρμες με \RVV, εφαρμόζεται hybrid vector/scalar Keccak: δύο ανεξάρτητα
+Keccak states εκτελούνται παράλληλα (RVVx2), με τα vector registers να
+φιλοξενούν ένα state και τους scalar registers το δεύτερο, εξαλείφοντας pipeline
+stalls μέσω interleaving.
+
+\paragraph{NTT και Plantard.}
+Η εργασία βελτιώνει τον signed Plantard αλγόριθμο των Aoki et
+al.\ αντικαθιστώντας τη συνάρτηση στρογγυλοποίησης $\lfloor \cdot \rceil$ με
+$\lfloor \cdot \rfloor$, εξαλείφοντας μία πρόσθεση ανά modular
+πολλαπλασιασμό χωρίς αλλαγή στην ορθότητα (αρκεί $q < 2^{l-2}$, συνθήκη που
+ικανοποιείται τόσο στον Kyber όσο και στον Dilithium).
+
+\paragraph{End-to-end αποτελέσματα.}
+Kyber768 σε RV64IMBV: \cycles{165000}/\cycles{197000}/\cycles{207000} κύκλοι
+(\KeyGen/\Encaps/\Decaps). Η χρήση \RVV επιταχύνει τον NTT κατά $\sim$\speedup{5}
+αλλά δεν ωφελεί σημαντικά τον Keccak ($<$\speedup{2} σε scalar), επιβεβαιώνοντας
+ότι ο Keccak παραμένει bottleneck μετά τη vectorization του αριθμητικού πυρήνα.
+
+\paragraph{Σχετικότητα με την παρούσα εργασία.}
+Η hybrid vector/scalar Keccak προσέγγιση (2-way interleaving) είναι αναλογική
+με τη 2-way Structure-of-Arrays υλοποίηση της παρούσας εργασίας
+(βλ.\ \cref{sec:keccak-optimization}). Η παρατήρηση ότι ο Keccak γίνεται κυρίαρχο
+bottleneck μετά τη vectorization του NTT αντικατοπτρίζει ακριβώς τη
+redistribution που παρατηρείται στην παρούσα εργασία μετά τη βελτιστοποίηση
+του πολυωνυμικού πολλαπλασιασμού (βλ.\ \cref{ch:polymul-optimization}).
+
+\subsection{Saarinen 2024 — Πρόταση \texttt{vkeccak.vi}}
+\label{ssec:rw-saarinen-vkeccak}
+
+Ο Saarinen (Tampere University, πρόεδρος του RISC-V PQC Task
+Group)~\cite{Saarinen2024-vkeccak} παρουσίασε πρόταση για μία νέα εντολή
+\code{vkeccak.vi} που εκτελεί πολλαπλούς γύρους Keccak-$p$[1600,24] εντός
+της vector unit, αξιοποιώντας element group size 32 (EGS=32, EEW=64) σε
+LMUL=2048/VLEN.
+
+\paragraph{Benchmarks σε SpacemiT X60.}
+Η πρόταση τεκμηριώνεται με benchmarks Kyber-768 σε πραγματικό RISC-V silicon
+(SpacemiT X60, VLEN=256 — η ίδια πλατφόρμα hardware validation της παρούσας
+εργασίας). Τα αποτελέσματα δείχνουν σταδιακή βελτίωση:
+\begin{itemize}
+  \item RV64GC baseline: \cycles{2484893} κύκλοι (reference C Keccak)
+  \item RV64GCV+\Zbb: \cycles{2090340} κύκλοι (\speedup{1.19})
+  \item Με RVV intrinsics: \cycles{725355} κύκλοι (\speedup{3.43})
+  \item Με \code{vkeccak.vi}: \cycles{195115} κύκλοι (\speedup{12.74})
+\end{itemize}
+Η τελευταία γραμμή υποθέτει 1-cycle Keccak permutation στον Spike — σε
+πραγματικό hardware εκτιμάται $\sim$100 κύκλοι ανά permutation, αλλά ακόμη και
+με αυτή την εκτίμηση το speedup παραμένει σημαντικό.
+
+\paragraph{Keccak ως κοινό bottleneck.}
+Η εργασία τεκμηριώνει ότι ο Keccak αποτελεί \pct{60}–\pct{80} του συνολικού
+χρόνου Kyber/Dilithium μετά τη vectorization του NTT. Η παρατήρηση αυτή
+αντικατοπτρίζει ακριβώς τη redistribution κόστους στην παρούσα εργασία: μετά
+τη βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (από $\sim$\pct{96} σε
+$\sim$\pct{50} του συνόλου), ο Keccak αναδεικνύεται ως ο επόμενος στόχος
+βελτιστοποίησης.
+
+\paragraph{Σχετικότητα με την παρούσα εργασία.}
+Η πρόταση \code{vkeccak.vi} αποτελεί μελλοντική εξέλιξη
+(βλ.\ \cref{ch:conclusions}): αν τυποποιηθεί, θα ωφελήσει τον \HQC εξίσου
+με τα lattice-based σχήματα, καθώς ο Keccak αποτελεί κοινό primitive. Τα
+benchmarks σε X60 (VLEN=256) παρέχουν real-silicon σημείο αναφοράς για τη
+σύγκριση με τις μετρήσεις hardware της παρούσας εργασίας
+(βλ.\ \cref{sec:emulators}).
+
+\subsection{Σύνοψη και τοποθέτηση}
+\label{ssec:rw-pqc-riscv-summary}
+
+Ο \cref{tab:rw-pqc-riscv} συνοψίζει τις γενικότερες PQC εργασίες σε RISC-V.
+Κοινός παρονομαστής αποτελεί η εστίαση σε lattice-based σχήματα (Kyber,
+Dilithium) και η αξιοποίηση NTT ως κεντρικού αριθμητικού πυρήνα. Κανένα paper
+δεν εξετάζει code-based κρυπτογραφία (\HQC, BIKE) σε RISC-V, ούτε αξιοποιεί
+\Zbc/\Zvbc για carry-less πολλαπλασιασμό — η παρούσα εργασία καλύπτει αυτό
+ακριβώς το κενό.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Γενικότερες PQC εργασίες σε RISC-V. Όλες στοχεύουν lattice-based
+    σχήματα (NTT-based αριθμητική σε $\mathbb{Z}_q$) — καμία δεν εξετάζει
+    code-based κρυπτογραφία (carry-less αριθμητική σε $\GF{2}[x]$).}
+  \label{tab:rw-pqc-riscv}
+  \small
+  \begin{tabular}{@{}llllc@{}}
+    \toprule
+    \textbf{Εργασία} & \textbf{ISA} & \textbf{Αλγόριθμος} & \textbf{Πυρήνας} & \textbf{Keccak} \\
+    \midrule
+    Ji et al.~\cite{Ji2024-ECO-CRYSTALS}
+      & RV64IMB & Kyber, Dilithium & NTT & \pct{59} speedup \\
+    Zhang et al.~\cite{zhang-tches2025}
+      & RV\{32,64\}IMBV & Kyber, Dilithium & NTT & \num{1770} cyc (RV64IB) \\
+    Saarinen~\cite{Saarinen2024-vkeccak}
+      & RV64GCV & Kyber & NTT+vkeccak & \speedup{12.74} \\
+    \midrule
+    \textbf{Παρούσα εργασία}
+      & RV64GCV & \HQC & Karatsuba+\Zvbc & βλ.\ \cref{ch:results} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Η τελευταία γραμμή του πίνακα τοποθετεί την παρούσα εργασία: αντί NTT σε
+$\mathbb{Z}_q$, ο κεντρικός αριθμητικός πυρήνας είναι Karatsuba σε
+$\GF{2}[x]$ με \Zbc/\Zvbc carry-less multiply. Η αλλαγή αριθμητικού πεδίου
+(modular integer $\to$ carry-less binary) καθιστά τις τεχνικές NTT
+βελτιστοποίησης μη εφαρμόσιμες — απαιτούνται εντελώς διαφορετικές
+στρατηγικές vectorization και decomposition, οι οποίες αναλύονται στο
+\cref{ch:polymul-optimization}.
+
 \section{Αποτίμηση Κενού και Τοποθέτηση Παρούσας Εργασίας}
 \label{sec:rw-gap}
+
+Η ανασκόπηση των προηγούμενων ενοτήτων αποκαλύπτει ένα σαφές ερευνητικό κενό:
+δεν υπάρχει δημοσιευμένη εργασία που να παρέχει end-to-end βελτιστοποίηση του
+\HQC \KEM σε αρχιτεκτονική RISC-V αξιοποιώντας αποκλειστικά τυποποιημένες
+(ratified) κρυπτογραφικές επεκτάσεις. Η παρούσα ενότητα τεκμηριώνει αυτό το
+κενό συστηματικά, εξετάζοντας κάθε σχετική εργασία ως προς τρεις διαστάσεις:
+(α)~πλατφόρμα στόχευσης, (β)~αλγοριθμική κάλυψη, και (γ)~εξάρτηση από
+μη-τυποποιημένο hardware.
+
+\subsection{Ανάλυση κενού ανά εργασία}
+\label{ssec:rw-gap-per-paper}
+
+\paragraph{Schöffel et al.\ 2022~\cite{Schoeffel2022-HQC-IoT}.}
+Η πρώτη υλοποίηση \HQC σε RISC-V βασίζεται σε τρεις μη-τυποποιημένες
+επεκτάσεις: custom R-Unit, Sampling-Unit, και F$2^8$-Unit. Η πλατφόρμα είναι
+RV32IC χωρίς 64-bit registers, χωρίς vector unit, και χωρίς carry-less multiply
+(\Zbc/\Zvbc). Η αλγοριθμική βάση (sparse$\times$dense πολλαπλασιασμός)
+αντιστοιχεί στην προ-2024 specification, η οποία αντικαταστάθηκε λόγω
+side-channel ευπαθειών~\cite{HQC-spec2024}. Κατά συνέπεια, τόσο η αρχιτεκτονική
+(custom ISA) όσο και ο αλγόριθμος (sparse$\times$dense) καθιστούν αυτή την
+εργασία μη εφαρμόσιμη στο σύγχρονο \HQC.
+
+\paragraph{Ras et al.\ 2026~\cite{Ras2026-FAFFT-RISCV}.}
+Η εργασία χρησιμοποιεί τον αλγόριθμο \gls{fafft} σε συνδυασμό με τον custom
+hardware accelerator ANDROMEDA. Ο CV32E40P (RV32IMC) δεν υποστηρίζει \Zbc ή
+\Zvbc — ο carry-less πολλαπλασιασμός εκτελείται είτε σε software (shift-and-add)
+είτε στον custom CFB unit. Η εργασία δεν αποτελεί pure-software υλοποίηση και
+δεν αξιοποιεί ratified extensions.
+
+\paragraph{PHOENIX~\cite{PHOENIX2026}.}
+Ο crypto-agile coprocessor SuperButterfly αποτελεί custom FPGA σχεδίαση — δεν
+είναι τυποποιημένη RISC-V extension και δεν είναι portable σε εμπορικούς
+επεξεργαστές. Η φιλοσοφία hardware sharing (NTT + FAFFT) είναι ορθογώνια προς
+την pure-software προσέγγιση.
+
+\paragraph{OptHQC~\cite{OptHQC2025}.}
+Η μοναδική end-to-end βελτιστοποίηση ολόκληρου του \HQC \KEM στοχεύει
+αποκλειστικά x86 AVX2 με \texttt{VPCLMULQDQ}. Δεν είναι portable σε RISC-V
+ούτε αξιοποιεί VLA vector αρχιτεκτονική. Επιπλέον, η βελτιστοποίηση
+πολλαπλασιασμού βασίζεται σε sparse$\times$dense — τεχνική μη συμβατή με την
+τελική specification.
+
+\paragraph{Jang et al.\ 2026~\cite{Jang2026-CortexM4-HQC}.}
+Η εργασία στοχεύει ARM Cortex-M4, πλατφόρμα χωρίς hardware carry-less multiply.
+Η χρήση \gls{fafft} αποτελεί αναγκαστική επιλογή λόγω απουσίας \insn{clmul} —
+σε αντίθεση με τη RISC-V αρχιτεκτονική όπου η \Zbc παρέχει νατιβή υποστήριξη.
+Η εργασία δεν αφορά RISC-V.
+
+\paragraph{Chen et al.\ TCHES 2026~\cite{Chen2026-TCHES-HQC-FFT}.}
+Η πληρέστερη FFT-based αξιολόγηση στοχεύει x86 AVX2+GFNI και ARM NEON. Καμία
+υλοποίηση δεν αφορά RISC-V ούτε εξετάζει τη χρήση \Zbc/\Zvbc ως base
+multiplication primitive εντός Karatsuba ή FFT δομής.
+
+\paragraph{Jang et al.\ 2026~\cite{Jang2026-gf2x-SIMD}.}
+Η μεθοδολογία decomposition tree search στοχεύει x86 \texttt{VPCLMULQDQ} και
+ARM \texttt{PMULL}. Η VLA φύση του RISC-V vector model (VLEN-agnostic κώδικας,
+μεταβλητό VLMAX) εισάγει σχεδιαστικές προκλήσεις που δεν εξετάζονται.
+
+\paragraph{ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}.}
+Η πρώτη optimized υλοποίηση Kyber/Dilithium σε RV64IMB αποδεικνύει ότι η \Zbb
+ωφελεί τον Keccak σε RISC-V. Ωστόσο, η εργασία αφορά αποκλειστικά lattice-based
+σχήματα (NTT σε $\mathbb{Z}_q$) — δεν εξετάζει code-based κρυπτογραφία ούτε
+carry-less πολλαπλασιασμό σε $\GFpoly$.
+
+\paragraph{Zhang et al.\ TCHES 2025~\cite{zhang-tches2025}.}
+Η πληρέστερη κάλυψη ISA combinations (RV\{32,64\}IM\{B\}\{V\}) αφορά
+αποκλειστικά Kyber και Dilithium. Η εργασία δεν χρησιμοποιεί \Zbc/\Zvbc
+(περιττές για NTT-based αριθμητική) και δεν εξετάζει code-based αλγορίθμους.
+
+\paragraph{Saarinen 2024~\cite{Saarinen2024-vkeccak}.}
+Η πρόταση \code{vkeccak.vi} εστιάζει στη βελτιστοποίηση Keccak για lattice-based
+\gls{pqc}. Τα benchmarks σε SpacemiT X60 αφορούν Kyber — δεν εξετάζεται ο
+πολυωνυμικός πολλαπλασιασμός σε $\GFpoly$ ούτε η αξιοποίηση \Zvbc.
+
+\subsection{Σύνοψη ερευνητικού κενού}
+\label{ssec:rw-gap-summary}
+
+Ο \cref{tab:rw-gap-summary} συνοψίζει τη θέση κάθε εργασίας ως προς πέντε
+κριτήρια που ορίζουν το ερευνητικό κενό. Κανένα δημοσιευμένο paper δεν
+ικανοποιεί ταυτόχρονα όλα τα κριτήρια — η παρούσα εργασία είναι η πρώτη που
+τα καλύπτει.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Αποτίμηση ερευνητικού κενού. Τα κριτήρια αντιστοιχούν στις πέντε
+    διαστάσεις που ορίζουν τη μοναδικότητα της παρούσας εργασίας. Το σύμβολο
+    \ding{51} δηλώνει ικανοποίηση, το \ding{55} μη ικανοποίηση.}
+  \label{tab:rw-gap-summary}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    \textbf{Εργασία} &
+    \rotatebox{70}{\textbf{RISC-V}} &
+    \rotatebox{70}{\textbf{Pure SW}} &
+    \rotatebox{70}{\textbf{Ratified ext.}} &
+    \rotatebox{70}{\textbf{Dense$\times$dense}} &
+    \rotatebox{70}{\textbf{End-to-end}} \\
+    \midrule
+    Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
+      & \ding{51} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
+    Ras et al.~\cite{Ras2026-FAFFT-RISCV}
+      & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
+    PHOENIX~\cite{PHOENIX2026}
+      & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
+    OptHQC~\cite{OptHQC2025}
+      & \ding{55} & \ding{51} & — & \ding{55} & \ding{51} \\
+    Jang et al.~\cite{Jang2026-CortexM4-HQC}
+      & \ding{55} & \ding{51} & — & \ding{51} & \ding{55} \\
+    Chen et al.~\cite{Chen2026-TCHES-HQC-FFT}
+      & \ding{55} & \ding{51} & — & \ding{51} & \ding{51} \\
+    ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}
+      & \ding{51} & \ding{51} & \ding{51} & — & — \\
+    Zhang et al.~\cite{zhang-tches2025}
+      & \ding{51} & \ding{51} & \ding{51} & — & — \\
+    Saarinen~\cite{Saarinen2024-vkeccak}
+      & \ding{51} & \ding{51} & \ding{51} & — & — \\
+    \midrule
+    \textbf{Παρούσα εργασία}
+      & \ding{51} & \ding{51} & \ding{51} & \ding{51} & \ding{51} \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{4pt}
+  \footnotesize
+  \textit{Σημείωση:} Το σύμβολο \q{—} στις τρεις τελευταίες εργασίες (lattice-based)
+  δηλώνει ότι τα κριτήρια \q{Dense$\times$dense} και \q{End-to-end} δεν
+  εφαρμόζονται — οι εργασίες αφορούν Kyber/Dilithium (NTT-based), όχι \HQC.
+\end{table}
+
+Τα πέντε κριτήρια του πίνακα ορίζονται ως εξής:
+\begin{enumerate}
+  \item \textbf{RISC-V:} Η πλατφόρμα στόχευσης είναι αρχιτεκτονική RISC-V
+    (οποιοδήποτε profile).
+  \item \textbf{Pure SW:} Η υλοποίηση δεν απαιτεί custom hardware accelerators
+    — εκτελείται αποκλειστικά σε general-purpose πυρήνα.
+  \item \textbf{Ratified ext.:} Αξιοποιούνται μόνο τυποποιημένες RISC-V
+    extensions (Zbc, Zbb, Zvbc, Zvbb) — όχι custom ISA εντολές.
+  \item \textbf{Dense$\times$dense:} Ο πολυωνυμικός πολλαπλασιασμός ακολουθεί
+    τη μέθοδο dense$\times$dense Karatsuba σύμφωνα με την τελική specification
+    (2024)~\cite{HQC-spec2024}.
+  \item \textbf{End-to-end:} Η βελτιστοποίηση καλύπτει ολόκληρο τον \HQC \KEM
+    (πολυωνυμικός πολλαπλασιασμός + Keccak + αποκωδικοποίηση), όχι μόνο
+    μεμονωμένο πυρήνα.
+\end{enumerate}
+
+\subsection{Τοποθέτηση παρούσας εργασίας}
+\label{ssec:rw-positioning}
+
+Η παρούσα εργασία καλύπτει το τεκμηριωμένο κενό παρέχοντας την πρώτη
+pure-software, end-to-end βελτιστοποίηση του \HQC \KEM σε RISC-V με
+αποκλειστική αξιοποίηση ratified κρυπτογραφικών επεκτάσεων. Η συνεισφορά
+διαρθρώνεται σε τρεις διαστάσεις:
+
+\paragraph{Αλγοριθμική.}
+Ο πολυωνυμικός πολλαπλασιασμός υλοποιείται ως 2-way Karatsuba με στατικά
+παραγόμενο δέντρο αναδρομής (AP-2 fixed-tree), σύμφωνα με τη reference
+specification. Τα leaf multiplications εκτελούνται μέσω
+\insn{clmul}/\insn{clmulh} (scalar, \Zbc) ή \vclmul/\vclmulh (vector, \Zvbc)
+— αντίστοιχα με τη χρήση \texttt{VPCLMULQDQ} στο x86, αλλά σε VLA
+αρχιτεκτονική. Η βελτιστοποίηση επεκτείνεται στον Keccak (2-way
+Structure-of-Arrays με \Zvbb) και στην αποκωδικοποίηση (vectorized
+Reed-Muller/Reed-Solomon).
+
+\paragraph{Αρχιτεκτονική.}
+Η υλοποίηση στρωματοποιείται σε τρία deployment tiers αντιστοιχούμενα στη
+modular ISA φιλοσοφία του RISC-V: Tier~1 (RV64GC + \Zbc/\Zbb — IoT/embedded),
+Tier~2 (+ \RVV — application-class), Tier~3 (+ \Zvbc/\Zvbb — full crypto
+vector). Κάθε tier αξιοποιεί αποκλειστικά ratified extensions, εξασφαλίζοντας
+portability σε οποιονδήποτε συμβατό επεξεργαστή χωρίς custom silicon.
+
+\paragraph{Μεθοδολογική.}
+Η αξιολόγηση πραγματοποιείται τόσο σε instruction-accurate εξομοίωση (Spike
+ISS, ντετερμινιστικό \instret) όσο και σε πραγματικό RISC-V hardware (SpacemiT
+K1 X60, VLEN=256), παρέχοντας αλγοριθμική σύγκριση και πραγματικές μετρήσεις
+κύκλων με pipeline effects. Η μεθοδολογία αναλύεται στο
+\cref{ch:experimental-setup}.
+
+Η ανασκόπηση του παρόντος κεφαλαίου τεκμηριώνει ότι η παρούσα εργασία δεν
+αποτελεί incremental βελτίωση υπάρχουσας υλοποίησης, αλλά πρώτη εξερεύνηση
+ενός ανοιχτού σχεδιαστικού χώρου: τη συνδυαστική αξιοποίηση ratified RISC-V
+crypto extensions για code-based μετα-κβαντική κρυπτογραφία. Τα αποτελέσματα
+αυτής της εξερεύνησης παρουσιάζονται στα \cref{ch:polymul-optimization} και
+\cref{ch:kernel-optimization}, με ποσοτική αξιολόγηση στο \cref{ch:results}.

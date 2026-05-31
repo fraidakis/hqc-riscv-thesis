@@ -213,6 +213,20 @@ Android RISC-V ABI και στοχεύεται από κάθε σημαντικ�
   \end{tabular}
 \end{table}
 
+\paragraph{Concrete hardware: SpacemiT K1 X60.}
+Ως συγκεκριμένο παράδειγμα RVA22-compliant hardware, ο επεξεργαστής SpacemiT K1
+X60 (Banana Pi BPI-F3) υλοποιεί RV64GCVB με \VLEN $= \num{256}$~bits και
+dual-issue in-order pipeline. Η πλατφόρμα αυτή χρησιμοποιείται στην παρούσα
+εργασία ως hardware validation platform για επικύρωση των αποτελεσμάτων σε
+πραγματικό silicon (λεπτομέρειες στην~\cref{ssec:bpi-f3}). Ο K1 X60 υποστηρίζει
+εγγενώς τις scalar επεκτάσεις (\Zbc, \Zbb) και τη διανυσματική μονάδα \RVV~1.0,
+καλύπτοντας πλήρως τα Tier~1 και Tier~2 variants, αλλά δεν υλοποιεί τις
+vector-crypto επεκτάσεις \Zvbc και \Zvbb — αυτές απαιτούν συμμόρφωση με το
+προφίλ RVA23, το οποίο δεν είναι ακόμη διαθέσιμο σε silicon. Η ύπαρξη
+εμπορικού hardware που υποστηρίζει τις επεκτάσεις Tier~1 και Tier~2 επιβεβαιώνει
+ότι η προσέγγιση της παρούσας εργασίας δεν αποτελεί θεωρητική άσκηση αλλά
+στοχεύει ήδη διαθέσιμες πλατφόρμες.
+
 \subsection{Σύγκριση Σχεδιαστικής Φιλοσοφίας με ARM και x86}
 \label{ssec:arch-comparison}
 

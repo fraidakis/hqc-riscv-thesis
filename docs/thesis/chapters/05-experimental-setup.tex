@@ -8,18 +8,20 @@
 μεταγλώττισης, τη μεθοδολογία benchmarking, το bare-metal πλαίσιο εκτέλεσης και
 τη βάση αναφοράς (baseline) έναντι της οποίας υπολογίζονται όλα τα speedups.
 
-\section{Αρχιτεκτονική Εξομοιωτών (Spike ISS, QEMU)}
+\section{Πλατφόρμες Εκτέλεσης και Μέτρησης}
 \label{sec:emulators}
 
 Η αξιολόγηση απόδοσης σε RISC-V με κρυπτογραφικές επεκτάσεις \Zvbc και \Zvbb
 αντιμετωπίζει ένα πρακτικό εμπόδιο: κατά τη στιγμή εκπόνησης της εργασίας δεν
 υπάρχει διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει ταυτόχρονα
 \RVV 1.0, \Zvbc και \Zvbb σε προσβάσιμη πλατφόρμα.  Κατά συνέπεια, η πειραματική
-υποδομή βασίζεται σε δύο συμπληρωματικούς εξομοιωτές: τον Spike \gls{iss} για
-ντετερμινιστική καταμέτρηση εντολών, και τον QEMU για ταχεία λειτουργική
-επαλήθευση.
+υποδομή βασίζεται σε τρεις συμπληρωματικές πλατφόρμες: τον Spike \gls{iss} για
+ντετερμινιστική καταμέτρηση εντολών, τον QEMU για ταχεία λειτουργική
+επαλήθευση, και το Banana Pi BPI-F3 (SpacemiT K1 X60) για μετρήσεις κύκλων
+σε πραγματικό hardware.
 
 \paragraph{Spike — Ο Αναφορικός ISA Simulator}
+\label{ssec:spike-iss}
 
 Ο Spike αποτελεί τον επίσημο αναφορικό εξομοιωτή της αρχιτεκτονικής RISC-V,
 αναπτυγμένο από τη RISC-V Software Foundation~\cite{spike-github}.  Υλοποιεί ένα
@@ -64,6 +66,7 @@ spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
 \end{figure}
 
 \paragraph{QEMU — Ταχεία Λειτουργική Επαλήθευση}
+\label{ssec:qemu}
 
 Ο QEMU~\cite{qemu-riscv} λειτουργεί ως συμπληρωματικό εργαλείο αποκλειστικά για
 λειτουργική επαλήθευση (correctness), χωρίς ρόλο στη μέτρηση απόδοσης.  Σε
@@ -92,30 +95,101 @@ qemu-system-riscv64 -machine virt \
 κύκλους.  Για τον λόγο αυτό, \textbf{καμία τιμή \code{rdcycle} από τον QEMU δεν
 χρησιμοποιείται στα αποτελέσματα της εργασίας}.
 
-\paragraph{Στρατηγική Διπλού Εξομοιωτή}
+\paragraph{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60)}
+\label{ssec:bpi-f3-platform}
+\label{ssec:bpi-f3}
 
-Η συνδυαστική χρήση των δύο εξομοιωτών ακολουθεί αυστηρό διαχωρισμό ρόλων:
+Η τρίτη πλατφόρμα της πειραματικής υποδομής είναι το Banana Pi BPI-F3, μία
+πλακέτα ανάπτυξης βασισμένη στο SpacemiT K1 SoC.  Σε αντίθεση με τους
+εξομοιωτές, η πλατφόρμα αυτή παρέχει πραγματικές μετρήσεις κύκλων (cycles)
+με pipeline effects, cache behavior, και dual-issue scheduling —
+συμπληρωματικά με τα ντετερμινιστικά \instret του Spike.
+
+\subparagraph{Προδιαγραφές Hardware.}
+
+Ο SpacemiT K1 ενσωματώνει \num{8} πυρήνες X60 (RV64GCVB, RVA22 profile) σε
+dual-issue in-order 8-stage pipeline στα \SI{1.6}{\giga\hertz} με
+\VLEN $= \num{256}$~bits.  Η τοπολογία ακολουθεί dual-cluster σχεδίαση:
+Cluster~0 (\num{4} cores, \SI{32}{\kilo\byte} L1i + \SI{32}{\kilo\byte} L1d
+ανά core, \SI{512}{\kilo\byte} shared L2, \SI{512}{\kilo\byte} TCM) και
+Cluster~1 (\num{4} cores, \SI{32}{\kilo\byte} L1, \SI{512}{\kilo\byte} L2).
+Η μνήμη αποτελείται από \SI{16}{\giga\byte} LPDDR4X @ \SI{2666}{Mbps} και
+\SI{128}{\giga\byte} eMMC αποθηκευτικό χώρο.  Το σύστημα εκτελεί Bianbu Linux
+(kernel 6.6.x).
+
+\Cref{tab:bpif3-specs} συνοψίζει τις βασικές προδιαγραφές.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Προδιαγραφές Banana Pi BPI-F3 (SpacemiT K1 X60).}
+  \label{tab:bpif3-specs}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Χαρακτηριστικό} & \textbf{Τιμή} \\
+    \midrule
+    SoC              & SpacemiT K1 \\
+    Πυρήνες          & $8\times$ X60 (RV64GCVB) \\
+    Pipeline         & Dual-issue, in-order, 8-stage \\
+    Ρολόι            & \SI{1.6}{\giga\hertz} \\
+    \VLEN            & \num{256}~bits \\
+    ISA Profile      & RVA22 \\
+    L1 Cache         & \SI{32}{\kilo\byte} I + \SI{32}{\kilo\byte} D ανά core \\
+    L2 Cache         & \SI{512}{\kilo\byte} ανά cluster \\
+    RAM              & \SI{16}{\giga\byte} LPDDR4X @ \SI{2666}{Mbps} \\
+    Αποθήκευση       & \SI{128}{\giga\byte} eMMC \\
+    OS               & Bianbu Linux (kernel 6.6.x) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subparagraph{Υποστηριζόμενες Επεκτάσεις.}
+
+Ο K1 X60 υποστηρίζει RV64IMAFDCV + \ext{Zba} + \ext{Zbb} + \ext{Zbc} +
+\ext{Zbs} (RVA22 mandatory extensions).  Ωστόσο, \textbf{δεν υποστηρίζει}
+\Zvbc και \Zvbb — αυτές απαιτούν το RVA23 profile, το οποίο δεν υπάρχει
+ακόμη σε διαθέσιμο silicon.  Η πρακτική συνέπεια είναι ότι τα scalar και
+base-RVV variants (\code{ref\_scalar}, \code{karatsuba\_zbc},
+\code{karatsuba\_rvv}) εκτελούνται natively στο hardware, ενώ τα
+vector-crypto variants (\code{karatsuba\_zvbc}) αξιολογούνται αποκλειστικά
+μέσω Spike.
+
+\subparagraph{Μεθοδολογία Μέτρησης.}
+
+Η μέτρηση κύκλων πραγματοποιείται μέσω του \code{perf\_event\_open} syscall
+με \code{exclude\_kernel=1} (userspace-only cycles).  Η εντολή \code{rdcycle}
+δεν είναι προσβάσιμη από userspace στο default Linux configuration
+(\code{scounteren.CY=0}), καθιστώντας αναγκαία τη χρήση του perf subsystem.
+Το πρωτόκολλο μέτρησης ακολουθεί αυστηρή διαδικασία:
 
 \begin{itemize}
-  \item \textbf{Spike:} ντετερμινιστική καταμέτρηση εντολών (\instret), profiling
-    μέσω PC histograms, και συλλογή instruction traces.  Αποτελεί την αυθεντική
-    πηγή για κάθε αριθμητικό αποτέλεσμα που αναφέρεται στα \cref{ch:polymul-optimization} και \cref{ch:results}.
-  \item \textbf{QEMU:} λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από
-    κάθε αλλαγή κώδικα.  Η ταχύτητα JIT επιτρέπει εκτέλεση \num{300} vectors
-    (3 security levels $\times$ \num{100}) σε λιγότερο από \SI{30}{\second},
-    παρέχοντας ταχεία ανατροφοδότηση ορθότητας κατά την ανάπτυξη.
+  \item \textbf{CPU isolation:} Η εκτέλεση γίνεται σε isolated core μέσω
+    \code{taskset -c 7}, αποτρέποντας migration μεταξύ cores.
+  \item \textbf{Frequency governor:} Ρύθμιση σε \code{performance} mode
+    (σταθερή συχνότητα \SI{1.6}{\giga\hertz}).
+  \item \textbf{Warm-up:} \num{100} iterations (discarded) για αρχικοποίηση
+    i-cache, branch predictor, και \gls{prng} state.
+  \item \textbf{Μετρήσεις:} \num{10000} measured iterations ανά λειτουργία.
+  \item \textbf{Στατιστική:} Αναφέρεται η \textbf{median} (primary metric),
+    μαζί με mean, stddev, min, max.
+  \item \textbf{Static binary:} Μεταγλώττιση με \code{-static} για εξάλειψη
+    PLT/GOT overhead.
 \end{itemize}
 
 \noindent
-Ο διαχωρισμός αυτός αποτρέπει τη μόλυνση μετρήσεων απόδοσης από τα artifacts
-του JIT engine (μεταβλητός χρόνος μετάφρασης, code cache effects), διατηρώντας
-παράλληλα σύντομο κύκλο ανάπτυξης–επαλήθευσης.
+Η per-iteration μέτρηση χρησιμοποιεί τον κύκλο
+\code{ioctl(RESET)} $\to$ \code{ioctl(ENABLE)} $\to$ KEM operation $\to$
+\code{ioctl(DISABLE)} $\to$ \code{read()}, εξασφαλίζοντας ότι κάθε iteration
+μετράται ανεξάρτητα.  Το overhead των \code{ioctl} κλήσεων εκτιμάται σε
+$\approx \num{100}$–\num{200} cycles — αμελητέο για operations
+$>\num{100000}$ cycles.
 
-Η απουσία πραγματικού hardware με \Zvbc αποτελεί περιορισμό που αναγνωρίζεται
-ρητά: τα αποτελέσματα αναφέρονται ως \q{αριθμός αποσυρθεισών εντολών} και όχι ως
-κύκλοι ή wall-clock χρόνος.  Η μεθοδολογική τεκμηρίωση αυτής της επιλογής, καθώς
-και η σχέση \instret–κύκλων σε πραγματικά pipelines, αναλύεται στην
-\cref{sec:benchmarking}.
+\subparagraph{Σημασία για τη Μεθοδολογία.}
+
+Η σύγκριση Spike \instret vs πραγματικών κύκλων αποκαλύπτει τον πραγματικό
+\gls{ipc} (Instructions Per Cycle) — δείκτη pipeline utilization.  Η
+εμπειρική επικύρωση (βλ.\ \cref{ssec:spike-vs-hw}) τεκμηριώνει ότι τα Spike
+speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγματικά για HQC-128/192,
+ενισχύοντας την αξιοπιστία της μετρικής \instret ως δείκτη σχετικής απόδοσης.
 
 \begin{figure}[htbp]
   \centering
@@ -126,6 +200,57 @@ qemu-system-riscv64 -machine virt \
     \RVV 1.0, \VLEN $= \num{256}$~bits).}
   \label{fig:bananapi-f3}
 \end{figure}
+
+\paragraph{Στρατηγική Τριπλής Πλατφόρμας}
+\label{ssec:triple-platform}
+
+Η συνδυαστική χρήση των τριών πλατφορμών ακολουθεί αυστηρό διαχωρισμό ρόλων:
+
+\begin{itemize}
+  \item \textbf{Spike:} ντετερμινιστική καταμέτρηση εντολών (\instret), profiling
+    μέσω PC histograms, VLEN sweep (\num{256}–\num{2048}), και πλήρης κάλυψη
+    όλων των variants (συμπεριλαμβανομένων \Zvbc/\Zvbb).  Αποτελεί την αυθεντική
+    πηγή για κάθε αριθμητικό αποτέλεσμα που αναφέρεται στα
+    \cref{ch:polymul-optimization} και \cref{ch:results}.
+  \item \textbf{QEMU:} λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από
+    κάθε αλλαγή κώδικα.  Η ταχύτητα JIT επιτρέπει εκτέλεση \num{300} vectors
+    (3 security levels $\times$ \num{100}) σε λιγότερο από \SI{30}{\second},
+    παρέχοντας ταχεία ανατροφοδότηση ορθότητας κατά την ανάπτυξη.
+  \item \textbf{BPI-F3:} hardware validation μέσω πραγματικών κύκλων (cycles),
+    υπολογισμός \gls{ipc}, cross-check Spike predictions, και παραγωγή
+    wall-clock time ($\text{cycles} / \SI{1.6}{\giga\hertz}$).  Καλύπτει
+    τα scalar και base-RVV variants (Tier~1, Tier~2).
+\end{itemize}
+
+\noindent
+Ο \cref{tab:platform-comparison} συνοψίζει τα χαρακτηριστικά κάθε πλατφόρμας.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύγκριση τριών πλατφορμών εκτέλεσης.  Ο Spike παρέχει ντετερμινιστική
+    μετρική για όλα τα variants, ο QEMU ταχεία επαλήθευση, και το BPI-F3
+    πραγματικούς κύκλους με pipeline effects.}
+  \label{tab:platform-comparison}
+  \begin{tabular}{l l l l}
+    \toprule
+    & \textbf{Spike ISS} & \textbf{QEMU} & \textbf{BPI-F3 (K1 X60)} \\
+    \midrule
+    Μετρική          & \instret (ντετερμ.) & — (χωρίς σημασία) & cycles (στατιστ.) \\
+    Pipeline model   & Κανένα (CPI=1)      & Κανένα             & Real 8-stage dual-issue \\
+    Cache model      & Κανένα              & Κανένο             & Real 32KB L1 + 512KB L2 \\
+    Variant coverage & Όλα (incl.\ Zvbc)   & Όλα                & Scalar + RVV μόνο \\
+    Ταχύτητα         & Αργός               & Ταχύς (JIT)        & Real-time \\
+    Χρήση            & Benchmarking         & KAT validation     & HW validation \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\noindent
+Ο διαχωρισμός αυτός αποτρέπει τη μόλυνση μετρήσεων απόδοσης από τα artifacts
+του JIT engine (μεταβλητός χρόνος μετάφρασης, code cache effects), διατηρώντας
+παράλληλα σύντομο κύκλο ανάπτυξης–επαλήθευσης.  Η τριπλή πλατφόρμα παρέχει
+τρία επίπεδα εμπιστοσύνης: αλγοριθμική σύγκριση (Spike \instret), λειτουργική
+ορθότητα (QEMU KAT), και πρακτική απόδοση σε silicon (BPI-F3 cycles).
 
 \section{Cross-Compilation Toolchains και Ρυθμίσεις Μεταγλώττισης}
 \label{sec:toolchains}
@@ -331,7 +456,12 @@ version.  Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελ�
 είναι μεθοδολογικά αποδεκτή στη βιβλιογραφία \gls{pqc}: το pqm4
 framework~\cite{pqm4} και ο Spike \gls{iss} χρησιμοποιούνται ευρέως για
 αναφορά instruction counts σε εργασίες δημοσιευμένες σε TCHES και στα NIST PQC
-Conferences~\cite{zhang-tches2025, ras-nist2025}.
+Conferences~\cite{zhang-tches2025, ras-nist2025}.  Η μετρική αυτή
+συμπληρώνεται από πραγματικές μετρήσεις κύκλων στο BPI-F3
+(\cf \cref{ssec:hw-measurement}) για τα variants που υποστηρίζονται σε silicon.
+
+\subsection{Μέτρηση σε Spike (\instret)}
+\label{ssec:spike-measurement}
 
 \paragraph{Μηχανισμός Μέτρησης}
 
@@ -382,6 +512,62 @@ harness εκτελεί μία μόνο μέτρηση ανά λειτουργί�
 \emph{πού} εκτελείται (ποιες συναρτήσεις).  Τα pie charts κατανομής κόστους
 (\cf \cref{sec:baseline-profiling}) παράγονται από τον δεύτερο μηχανισμό.
 
+\subsection{Μέτρηση σε Πραγματικό Hardware (BPI-F3 Cycles)}
+\label{ssec:hw-measurement}
+
+Η μέτρηση κύκλων σε πραγματικό hardware πραγματοποιείται μέσω του Linux perf
+subsystem, χρησιμοποιώντας τον \code{perf\_event\_open} syscall.  Σε αντίθεση
+με τη bare-metal μέτρηση στον Spike (μία μόνο ντετερμινιστική τιμή), η μέτρηση
+σε Linux userspace υπόκειται σε στατιστική μεταβλητότητα λόγω timer interrupts,
+cache state variations, και residual OS activity.  Η μεθοδολογία αντιμετωπίζει
+αυτή τη μεταβλητότητα μέσω μεγάλου αριθμού δειγμάτων και robust στατιστικής.
+
+\paragraph{Αρχιτεκτονική Measurement Harness}
+
+Το benchmark harness (\code{bench\_hw\_kem.c}) χρησιμοποιεί δύο ανεξάρτητους
+perf counters: έναν για CPU cycles (\code{PERF\_COUNT\_HW\_CPU\_CYCLES}) και
+έναν για retired instructions (\code{PERF\_COUNT\_HW\_INSTRUCTIONS}), αμφότεροι
+με \code{exclude\_kernel=1} και \code{exclude\_hv=1} ώστε να μετρούν
+αποκλειστικά userspace εκτέλεση.  Η per-iteration μέτρηση ακολουθεί τον κύκλο:
+
+\begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
+perf_hw_start(&ctx);    /* ioctl(RESET) + ioctl(ENABLE) */
+crypto_kem_dec(ss, ct, sk);
+perf_hw_stop(&ctx);     /* ioctl(DISABLE) */
+perf_hw_read(&ctx, &s); /* read(fd_cycles) + read(fd_instret) */
+samples_cyc[i] = s.cycles;
+samples_ins[i] = s.instret;
+\end{lstlisting}
+
+\noindent
+Η χρήση \code{RESET} πριν από κάθε \code{ENABLE} εξασφαλίζει ότι κάθε
+iteration μετράται ανεξάρτητα — δεν υπάρχει σωρευτικό σφάλμα μεταξύ
+iterations.
+
+\paragraph{Στατιστική Επεξεργασία}
+
+Μετά τη συλλογή \num{10000} δειγμάτων, τα αποτελέσματα ταξινομούνται και
+υπολογίζονται: median (πρωτεύουσα μετρική), mean, standard deviation, min,
+max.  Η \textbf{median} επιλέγεται ως πρωτεύουσα μετρική αντί του mean
+διότι είναι ανθεκτική σε outliers — σποραδικά timer interrupts
+($\approx$ κάθε \SI{4}{\milli\second}) εισάγουν μεμονωμένα δείγματα με
+αυξημένους κύκλους, τα οποία αλλοιώνουν τον μέσο αλλά δεν επηρεάζουν τη
+διάμεσο.
+
+\paragraph{Ανάλυση Overhead}
+
+Το overhead του measurement harness (4 \code{ioctl} κλήσεις + 2 \code{read}
+κλήσεις ανά iteration) εκτιμάται σε $\approx \num{100}$–\num{200} cycles.
+Για operations $>\num{100000}$ cycles (κάθε \KEM λειτουργία στο HQC-128
+υπερβαίνει τα \num{500000} cycles), το overhead αντιπροσωπεύει $<\pct{0.04}$
+— αμελητέο.  Η εκτίμηση αυτή επιβεβαιώνεται μέσω σύγκρισης με
+\code{perf stat} (εξωτερική μέτρηση χωρίς per-iteration overhead): η
+απόκλιση μεταξύ per-iteration median και \code{perf stat} aggregate
+κυμαίνεται σε $<\pct{0.1}$.
+
+\subsection{Εμπειρική Επικύρωση: Spike vs Hardware}
+\label{ssec:spike-vs-hw}
+
 \paragraph{Η Σχέση \instret–Κύκλων: Γιατί \instret $\neq$ Cycles}
 
 Η κρίσιμη μεθοδολογική επισήμανση αφορά τη σχέση μεταξύ αποσυρθεισών εντολών
@@ -414,7 +600,7 @@ harness εκτελεί μία μόνο μέτρηση ανά λειτουργί�
   \label{fig:instret-vs-cycles}
 \end{figure}
 
-\paragraph{Εμπειρική Επικύρωση: Spike vs Πραγματικό Hardware}
+\paragraph{Σύγκριση Spike Predictions vs Hardware Reality}
 
 Η εγκυρότητα της μετρικής \instret ως δείκτη πραγματικής απόδοσης επικυρώνεται
 εμπειρικά μέσω μετρήσεων στο Banana Pi BPI-F3 (SpacemiT K1, πυρήνας X60,
@@ -494,7 +680,33 @@ cache misses — ένα πλεονέκτημα αόρατο στη μετρικ�
 τεκμηρίωση στο \cref{ch:discussion} — δεν αντικαθιστούν τη μετρική \instret ως
 πρωτεύον αποτέλεσμα.
 
-\paragraph{Περιορισμοί και Ρητές Επιφυλάξεις}
+\subsection{Παραγωγή IPC και Wall-Clock Time}
+\label{ssec:ipc-wallclock}
+
+Η συνδυαστική χρήση Spike \instret και πραγματικών κύκλων (BPI-F3) επιτρέπει
+τον υπολογισμό δύο παράγωγων μετρικών με πρακτική σημασία:
+
+\begin{itemize}
+  \item \textbf{\gls{ipc}} $= \text{Spike\_instret} / \text{HW\_cycles}$:
+    Δείκτης pipeline utilization.  Τιμή $\gls{ipc} > 1$ υποδηλώνει ότι ο
+    dual-issue πυρήνας αποσύρει περισσότερες από μία εντολές ανά κύκλο
+    (αποδοτική αξιοποίηση).  Τιμή $\gls{ipc} < 1$ υποδηλώνει pipeline stalls
+    (memory-bound ή data hazards).
+  \item \textbf{Wall-clock time} $= \text{HW\_cycles} / \SI{1.6}{\giga\hertz}$:
+    Πρακτική μετρική deployment readiness — πόσα microseconds απαιτεί κάθε
+    \KEM λειτουργία στο συγκεκριμένο hardware.
+\end{itemize}
+
+\noindent
+Οι μετρικές αυτές παρέχουν πρακτική αξιολόγηση: η \gls{ipc} αποκαλύπτει αν
+η vectorization βελτιώνει τη pipeline utilization (αναμενόμενο: RVV code
+$\gls{ipc} > $ scalar code $\gls{ipc}$ λόγω dual-issue + vector throughput),
+ενώ ο wall-clock time τεκμηριώνει ότι ο \HQC είναι πρακτικά deployable σε
+real-world εφαρμογές.  Τα αναλυτικά αποτελέσματα παρουσιάζονται στο
+\cref{ch:results}.
+
+\subsection{Περιορισμοί και Ρητές Επιφυλάξεις}
+\label{ssec:benchmarking-limitations}
 
 Η μεθοδολογία benchmarking υπόκειται στους ακόλουθους περιορισμούς, οι οποίοι
 αναγνωρίζονται ρητά:
