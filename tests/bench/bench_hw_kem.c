@@ -75,7 +75,30 @@ static uint8_t ss_dec[CRYPTO_BYTES];
 static uint64_t *samples_cyc;
 static uint64_t *samples_ins;
 
+/* ── Raw dump directory (NULL = no dump) ─────────────────────────────────── */
+static const char *raw_dump_dir = NULL;
+
 /* ── CSV emit helper ─────────────────────────────────────────────────────── */
+static void dump_raw(const char *op, int n)
+{
+    if (!raw_dump_dir)
+        return;
+    char path_buf[512];
+    snprintf(path_buf, sizeof(path_buf), "%s/%s_%d_kem_%s_cycles.txt",
+             raw_dump_dir, POLYMUL_NAME, SECURITY_LEVEL, op);
+    FILE *f = fopen(path_buf, "w");
+    if (!f) {
+        fprintf(stderr, "WARNING: cannot open raw dump file: %s\n", path_buf);
+        return;
+    }
+    for (int i = 0; i < n; i++) {
+        fprintf(f, "%lu %lu\n",
+                (unsigned long)samples_cyc[i],
+                (unsigned long)samples_ins[i]);
+    }
+    fclose(f);
+}
+
 static void emit_csv_row(const char *op, int n)
 {
     perf_hw_sort_u64(samples_cyc, n);
@@ -103,7 +126,13 @@ static void emit_csv_row(const char *op, int n)
 /* ── main ────────────────────────────────────────────────────────────────── */
 int main(int argc, char **argv)
 {
-    (void)argc; (void)argv;
+    /* Parse optional --raw-dir argument */
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--raw-dir") == 0 && i + 1 < argc) {
+            raw_dump_dir = argv[i + 1];
+            i++;
+        }
+    }
 
     /* ── System checks ────────────────────────────────────────────────── */
     perf_hw_check_system();
@@ -161,6 +190,7 @@ int main(int argc, char **argv)
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
     }
+    dump_raw("keypair", N_ITER);
     emit_csv_row("keypair", N_ITER);
 
     /* ── Encaps ───────────────────────────────────────────────────────── */
@@ -173,6 +203,7 @@ int main(int argc, char **argv)
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
     }
+    dump_raw("encaps", N_ITER);
     emit_csv_row("encaps", N_ITER);
 
     /* ── Decaps ───────────────────────────────────────────────────────── */
@@ -185,6 +216,7 @@ int main(int argc, char **argv)
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
     }
+    dump_raw("decaps", N_ITER);
     emit_csv_row("decaps", N_ITER);
 
     /* ── Cleanup ──────────────────────────────────────────────────────── */

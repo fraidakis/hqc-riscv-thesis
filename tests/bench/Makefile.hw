@@ -108,18 +108,37 @@ KEM_SOURCES := bench_hw_kem.c \
 MUL_SOURCES := bench_hw_mul.c \
                $(POLYMUL_SRC)
 
+# ── Source files for Keccak micro-benchmark ──────────────────────────────────
+KECCAK_SOURCES := bench_hw_keccak.c \
+                  $(VENDOR)/src/common/symmetric.c \
+                  $(VENDOR)/lib/fips202/fips202.c \
+                  $(SRC)/vector.c \
+                  $(SRC)/common/randombytes.c
+
+# ── Source files for decode micro-benchmark ──────────────────────────────────
+DECODE_SOURCES := bench_hw_decode.c \
+                  $(VENDOR)/src/ref/reed_muller.c \
+                  $(VENDOR)/src/ref/reed_solomon.c \
+                  $(VENDOR)/src/common/fft.c
+
 # ── Output binary names ──────────────────────────────────────────────────────
 KEM_BIN := bench_hw_kem_hqc$(LEVEL)_$(POLYMUL)
 MUL_BIN := bench_hw_mul_hqc$(LEVEL)_$(POLYMUL)
+KECCAK_BIN := bench_hw_keccak_hqc$(LEVEL)
+DECODE_BIN := bench_hw_decode_hqc$(LEVEL)
 
 # ── Targets ──────────────────────────────────────────────────────────────────
-.PHONY: all kem mul clean run_kem run_mul info
+.PHONY: all kem mul keccak decode clean run_kem run_mul run_keccak run_decode info
 
-all: kem mul
+all: kem mul keccak decode
 
 kem: $(KEM_BIN)
 
 mul: $(MUL_BIN)
+
+keccak: $(KECCAK_BIN)
+
+decode: $(DECODE_BIN)
 
 $(KEM_BIN): bench_hw_kem.c perf_hw.h $(KEM_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) $(KEM_SOURCES) -lm -o $@
@@ -132,11 +151,25 @@ $(MUL_BIN): bench_hw_mul.c perf_hw.h $(MUL_SOURCES)
 	$(CC) $(CFLAGS) $(INCLUDES) $(MUL_SOURCES) -lm -o $@
 	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
+$(KECCAK_BIN): bench_hw_keccak.c perf_hw.h $(KECCAK_SOURCES)
+	$(CC) $(CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"ref\" $(KECCAK_SOURCES) -lm -o $@
+	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
+
+$(DECODE_BIN): bench_hw_decode.c perf_hw.h $(DECODE_SOURCES)
+	$(CC) $(CFLAGS) $(INCLUDES) -DDECODE_NAME=\"ref\" $(DECODE_SOURCES) -lm -o $@
+	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
+
 run_kem: $(KEM_BIN)
 	sudo nice -n -20 taskset -c 7 ./$(KEM_BIN)
 
 run_mul: $(MUL_BIN)
 	sudo nice -n -20 taskset -c 7 ./$(MUL_BIN)
+
+run_keccak: $(KECCAK_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(KECCAK_BIN)
+
+run_decode: $(DECODE_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(DECODE_BIN)
 
 info:
 	@echo "Configuration:"
@@ -151,7 +184,7 @@ info:
 	@echo "  MUL_BIN  = $(MUL_BIN)"
 
 clean:
-	rm -f bench_hw_kem_hqc* bench_hw_mul_hqc*
+	rm -f bench_hw_kem_hqc* bench_hw_mul_hqc* bench_hw_keccak_hqc* bench_hw_decode_hqc*
 
 # ── Convenience: build all variants for a given level ────────────────────────
 .PHONY: all_variants

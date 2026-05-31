@@ -59,6 +59,9 @@ static uint64_t poly_out[VEC_N_SIZE_64];
 static uint64_t *samples_cyc;
 static uint64_t *samples_ins;
 
+/* ── Raw dump file path (NULL = no dump) ─────────────────────────────────── */
+static const char *raw_dump_path = NULL;
+
 /* ── CSV emit helper ─────────────────────────────────────────────────────── */
 static void emit_csv_row(const char *op, int n)
 {
@@ -84,10 +87,37 @@ static void emit_csv_row(const char *op, int n)
            mean_i, std_i);
 }
 
+/* ── Raw per-iteration dump ──────────────────────────────────────────────── */
+static void dump_raw(int n)
+{
+    if (!raw_dump_path)
+        return;
+    FILE *f = fopen(raw_dump_path, "w");
+    if (!f) {
+        fprintf(stderr, "WARNING: cannot open raw dump file: %s\n", raw_dump_path);
+        return;
+    }
+    for (int i = 0; i < n; i++) {
+        fprintf(f, "%lu %lu\n",
+                (unsigned long)samples_cyc[i],
+                (unsigned long)samples_ins[i]);
+    }
+    fclose(f);
+}
+
 /* ── main ────────────────────────────────────────────────────────────────── */
 int main(int argc, char **argv)
 {
-    (void)argc; (void)argv;
+    /* Parse optional --raw-dir argument */
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--raw-dir") == 0 && i + 1 < argc) {
+            static char path_buf[512];
+            snprintf(path_buf, sizeof(path_buf), "%s/%s_%d_mul_cycles.txt",
+                     argv[i + 1], POLYMUL_NAME, SECURITY_LEVEL);
+            raw_dump_path = path_buf;
+            i++;
+        }
+    }
 
     /* ── System checks ────────────────────────────────────────────────── */
     perf_hw_check_system();
@@ -142,6 +172,10 @@ int main(int argc, char **argv)
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
     }
+
+    /* ── Raw dump (unsorted, original order — must happen before sort) ── */
+    dump_raw(N_ITER);
+
     emit_csv_row("vect_mul", N_ITER);
 
     /* ── Anti-DCE ─────────────────────────────────────────────────────── */
