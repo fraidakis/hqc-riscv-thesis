@@ -42,17 +42,18 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
     \q{Champion} αναφέρει τη βελτιστοποιημένη υλοποίηση που αντιστοιχεί
     σε κάθε tier.}
   \label{tab:polymul-tiers}
-  \begin{tabular}{clll}
+  \small
+  \begin{tabular}{clp{4.2cm}l}
     \toprule
     \textbf{Tier} & \textbf{ISA Profile} & \textbf{Κρίσιμες Εντολές} & \textbf{Champion} \\
     \midrule
-    1 & \code{rv64gc\_zbc\_zbb\_zbs}
+    1 & \code{rv64gc + Zbc/Zbb/Zbs}
       & \clmul, \clmulh, \rori, \insn{andn}
       & \code{karatsuba\_zbc} \\
-    2 & \code{rv64gcv\_zbc\_zbb\_zba}
+    2 & \code{rv64gcv + Zbc/Zbb/Zba}
       & + \insn{vle64}, \insn{vxor.vv}, \insn{vsetvl}
       & \code{karatsuba\_rvv} \\
-    3 & \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb}
+    3 & \code{rv64gcv + Zvbc/Zvbb}
       & + \vclmul, \vclmulh, \vror
       & \code{karatsuba\_zvbc} \\
     \bottomrule
@@ -61,7 +62,7 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/polymul-tiers.tex}
+  \input{figures/ch6-polymul/polymul-tiers.tex}
   \caption{Στρωματοποίηση deployment tiers ως σχέση υπερσυνόλου.  Κάθε
     ανώτερο tier περιλαμβάνει όλες τις επεκτάσεις του κατώτερου και
     προσθέτει νέες δυνατότητες.  Η αρχιτεκτονική πολυπλοκότητα αυξάνεται
@@ -239,35 +240,874 @@ variant με αυστηρά ελεγχόμενη \code{-march} string
 \section{Scalar Path: Karatsuba με \Zbc}
 \label{sec:polymul-scalar}
 
+Το scalar path αποτελεί τη θεμελιώδη βελτιστοποίηση του πολυωνυμικού
+πολλαπλασιασμού — εφαρμόσιμη σε κάθε RISC-V πλατφόρμα που υλοποιεί την
+\Zbc extension, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας.  Η ενότητα αυτή
+παρουσιάζει τη μετάβαση από τον bit-serial schoolbook του reference
+implementation σε έναν πλήρως βελτιστοποιημένο Karatsuba πυρήνα με
+compile-time generated recursion tree.  Η συνολική μείωση \instret στον
+πολυωνυμικό πολλαπλασιασμό HQC-128 ανέρχεται σε \speedup{121} — από
+\cycles{19214281} σε \cycles{158928} εντολές.
+
 \subsection{Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό}
 \label{ssec:bit-to-word}
+
+Η reference υλοποίηση του HQC (\code{vendor/hqc-ref/src/ref/gf2x.c})
+χρησιμοποιεί αναδρομικό Karatsuba με schoolbook base case σε bit
+granularity.  Για κάθε ζεύγος \num{64}-bit words $(a[i], b[j])$, ο
+εσωτερικός βρόχος εξετάζει τα \num{64} bits του $a[i]$ ένα-ένα: αν το
+bit $k$ είναι ενεργό, εκτελείται conditional shift-XOR του $b[j]$ στη
+θέση $r[i+j]$.  Η πολυπλοκότητα ανά leaf call μεγέθους $n$ words
+ανέρχεται σε $64 \times n^2$ conditional shift-and-XOR πράξεις — μία
+προσέγγιση portable αλλά εντελώς αδιάφορη προς hardware carry-less
+multiply υποστήριξη.
+
+Η \Zbc extension παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
+υπολογίζουν το πλήρες \num{128}-bit carry-less γινόμενο δύο \num{64}-bit
+πολυωνύμων σε $\GFpoly$ χωρίς modular reduction:
+%
+\begin{equation}
+  \clmul: \quad \text{lo} = a[i] \polymul b[j] \bmod x^{64}, \qquad
+  \clmulh: \quad \text{hi} = \lfloor a[i] \polymul b[j] / x^{64} \rfloor.
+\end{equation}
+%
+Η αντικατάσταση του bit-serial βρόχου με ένα ζεύγος \clmul/\clmulh
+μετασχηματίζει τον εσωτερικό βρόχο από $64n$ iterations σε $n$
+iterations ανά εξωτερική σειρά — εξαλείφοντας τη μάσκα εξαγωγής bit,
+το conditional branch, και τη μεταβλητή ολίσθηση που κυριαρχούσαν στο
+reference.
+
+Η υλοποίηση χρησιμοποιεί compiler intrinsics αντί inline assembly,
+επιτρέποντας στον μεταγλωττιστή πλήρη ορατότητα για register allocation
+και instruction scheduling:
+
+\begin{lstlisting}[language=C,
+  caption={Wrapper carry-less multiply μέσω Zbc intrinsics.},
+  label={lst:clmul64}]
+static inline void clmul64(uint64_t a, uint64_t b,
+                           uint64_t *lo, uint64_t *hi) {
+    *lo = __riscv_clmul_64(a, b);
+    *hi = __riscv_clmulh_64(a, b);
+}
+\end{lstlisting}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch6-polymul/schoolbook-vs-clmul.tex}
+  \caption{Σύγκριση bit-serial schoolbook (αριστερά) με word-level
+    \clmul{} leaf (δεξιά) για $n=8$ words.  Ο bit-serial βρόχος εκτελεί
+    $64 \times 8 = 512$ conditional shift-XOR iterations ανά εξωτερική
+    σειρά, ενώ ο word-level leaf εκτελεί \num{8} ζεύγη \clmul/\clmulh
+    — μείωση \speedup{64} σε iteration count.}
+  \label{fig:schoolbook-vs-clmul}
+\end{figure}
+
+Πέραν της μείωσης iterations, ο word-level leaf εισάγει δύο
+micro-optimizations στον εσωτερικό βρόχο.  Πρώτον, ένα \defterm{two-way
+software pipeline}: δύο ανεξάρτητες κλήσεις \code{clmul64} εκδίδονται
+πριν καταναλωθεί οποιοδήποτε αποτέλεσμα, δημιουργώντας ένα παράθυρο
+instruction-level parallelism που κρύβει τη load-use latency της μονάδας
+carry-less multiply.  Δεύτερον, η \defterm{hi$\xorop$lo fusion}:
+γειτονικά γινόμενα μοιράζονται κοινή θέση εξόδου —
+$\text{hi}(a[i], b[j])$ και $\text{lo}(a[i], b[j{+}1])$ στοχεύουν
+αμφότερα τη θέση $r[i{+}j{+}1]$.  Η συγχώνευσή τους σε ένα μόνο
+XOR-and-store ($r[i{+}j{+}1] \mathrel{\xorop}= \text{hi}_0 \xorop
+\text{lo}_1$) εξαλείφει έναν κύκλο load-modify-store ανά ζεύγος.
+
+Για σειρές $i \geq 1$, ο εσωτερικός βρόχος επεκτείνεται σε
+\defterm{four-way unroll}: τέσσερις διαδοχικές κλήσεις \code{clmul64}
+εκδίδονται, και η hi$\xorop$lo fusion εκτείνεται σε όλα τα ζεύγη,
+μετατρέποντας οκτώ half-products σε πέντε output XORs — εξοικονομώντας
+τρεις εντολές \insn{xor} ανά τετράδα.
 
 \subsection{Assign-on-First-Write: Εξάλειψη memset}
 \label{ssec:memset-elimination}
 
+Η reference υλοποίηση ακολουθεί zero-then-accumulate discipline: πριν
+από κάθε Karatsuba combine step, ο output buffer μηδενίζεται μέσω
+\code{memset(r, 0, 2*n*sizeof(uint64\_t))}, και στη συνέχεια τα τρία
+μερικά γινόμενα ($z_0$, $z_2$, $z_\text{mid}$) XOR-accumulate στις
+αντίστοιχες θέσεις.  Η ίδια πειθαρχία εφαρμόζεται και στον schoolbook
+leaf.  Κάθε word του output buffer γράφεται δύο φορές — μία από το
+\code{memset} και μία από το XOR pass — και η αναδρομική δομή
+πολλαπλασιάζει αυτή την πλεονάζουσα κίνηση μνήμης σε όλα τα επίπεδα
+του δέντρου.
+
+Η \defterm{assign-on-first-write} πειθαρχία αναδιαρθρώνει το combine
+step ώστε κανένα output word να μη διαβάζεται πριν γραφεί για πρώτη
+φορά.  Η υλοποίηση προχωρά σε τρία διαδοχικά passes:
+%
+\begin{enumerate}
+  \item \textbf{Loop 1:} Direct-assign
+    $r[0 \ldots 2n_0{-}1] = z_0[0 \ldots 2n_0{-}1]$.
+  \item \textbf{Loop 2:} Direct-assign
+    $r[2m \ldots 2m{+}2n_1{-}1] = z_2[0 \ldots 2n_1{-}1]$.
+  \item \textbf{Loop 3:} XOR-accumulate
+    $r[m{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i]
+    \xorop z_2[i]$.
+\end{enumerate}
+%
+Δεδομένου ότι τα Loops~1 και~2 καλύπτουν όλες τις θέσεις που το
+Loop~3 διαβάζει από τον $r$, το προηγούμενο \code{memset} είναι
+αποδεδειγμένα περιττό.  Η ίδια πειθαρχία εκτείνεται στον leaf: η
+πρώτη εξωτερική σειρά ($i=0$) χρησιμοποιεί direct assignment, και οι
+επόμενες σειρές χρησιμοποιούν XOR-accumulation σε θέσεις ήδη
+αρχικοποιημένες από τη σειρά~0.
+
+Η επίδραση αυτής της αναδιάρθρωσης είναι δραματική.  Στο αρχικό Zbc
+profile (μετά τη μετάβαση σε word-level leaf αλλά πριν την εξάλειψη
+\code{memset}), η συνάρτηση \code{memset} αποτελούσε τον κυρίαρχο
+hotspot — \pct{23} του συνολικού \instret.  Η εξάλειψή της αφαιρεί
+αυτό το overhead χωρίς καμία αλλαγή στην αλγοριθμική ορθότητα, καθώς
+η assign-on-first-write πειθαρχία εγγυάται ότι κάθε θέση εξόδου
+αρχικοποιείται ακριβώς μία φορά πριν από οποιαδήποτε ανάγνωση.
+
+\paragraph{Ορθότητα στον leaf.}
+Στον πλήρως unrolled \code{clmul\_leaf\_n8} ($n=8$), η πειθαρχία
+πρώτης εγγραφής εφαρμόζεται στατικά: η σειρά $i=0$ αρχικοποιεί τις
+θέσεις $r[0 \ldots 8]$ μέσω direct assignment, και κάθε επόμενη σειρά
+$i$ εισάγει ακριβώς μία νέα θέση $r[i+8]$ ως fresh assign στο τέλος
+της σειράς.  Οι υπόλοιπες εγγραφές ($r[i \ldots i+7]$ για $i \geq 1$)
+είναι XOR-accumulations σε θέσεις ήδη γραμμένες από προηγούμενες
+σειρές.  Η δομή αυτή εξαλείφει κάθε branch instruction και counter
+arithmetic από τον leaf, παράγοντας μία ευθύγραμμη ακολουθία \num{64}
+κλήσεων \code{clmul64} χωρίς κανένα branch.
+
 \subsection{Δομή Αναδρομής και AP-2 Generator}
 \label{ssec:ap2-generator}
 
+Τα μεγέθη παραμέτρων του HQC είναι compile-time σταθερές:
+$N \in \{277, 561, 901\}$ words αντίστοιχα για τα τρία security levels.
+Κατά συνέπεια, ολόκληρο το δέντρο αναδρομής Karatsuba είναι
+ντετερμινιστικό — κάθε κόμβος γνωρίζει εκ των προτέρων τα μεγέθη
+εισόδου, τα offsets των buffers, και τα μεγέθη των child calls.  Η
+παρατήρηση αυτή οδηγεί στη σχεδίαση του \defterm{AP-2 generator}: ένα
+Python script (\code{gen\_karatsuba\_specialized.py}) που διατρέχει το
+δέντρο αναδρομής και εκπέμπει εξειδικευμένες C συναρτήσεις με όλες τις
+αποφάσεις επιλυμένες σε compile-time.
+
+Ο κανόνας διαίρεσης ακολουθεί τη σύμβαση AP-2:
+$n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$.  Η αναδρομή
+τερματίζει στο threshold $T=16$ words, όπου καλείται ο schoolbook leaf.
+Για το HQC-128 ($N=277$), το δέντρο αποσυντίθεται ως:
+%
+\begin{equation}
+  277 \rightarrow (139, 138) \rightarrow (70, 69) \rightarrow
+  (35, 34) \rightarrow (18, 17) \rightarrow (9, 8).
+  \label{eq:recursion-tree-128}
+\end{equation}
+%
+Κάθε παραγόμενη συνάρτηση (\code{kmul\_277}, \code{kmul\_139}, \ldots,
+\code{kmul\_17}) περιέχει:
+%
+\begin{itemize}
+  \item Compile-time constant buffer offsets για $z_0$, $z_2$,
+    $z_\text{mid}$, $t_a$, $t_b$, και τον child scratch buffer.
+  \item Στατικά dispatched child calls — χωρίς threshold comparison.
+  \item Loop bounds ως integer literals, επιτρέποντας στον compiler
+    πλήρες unrolling μικρών βρόχων και constant-propagation
+    optimizations.
+\end{itemize}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch6-polymul/ap2-pipeline.tex}
+  \caption{Pipeline του AP-2 generator.  Ένα Python script αναλύει το
+    δέντρο αναδρομής Karatsuba για κάθε HQC parameter size και εκπέμπει
+    εξειδικευμένο C header.  Κάθε απόφαση (buffer offsets, loop bounds,
+    child dispatch) επιλύεται σε compile-time — μηδενικό runtime
+    overhead.}
+  \label{fig:ap2-pipeline}
+\end{figure}
+
+Η σημασία του AP-2 generator εκτείνεται πέραν της εξάλειψης runtime
+dispatch.  Σε βαθιά αναδρομικές δομές, η RISC-V calling convention
+επιβάλλει αποθήκευση και επαναφορά callee-saved registers σε κάθε
+non-leaf frame.  Για δέντρα βάθους 8–10 (HQC-256), το αθροιστικό
+spill/restore overhead υπερβαίνει την πραγματική αριθμητική.  Η
+στατική παραγωγή κώδικα εξαλείφει αυτό το δομικό overhead: ο compiler
+βλέπει ένα μόνο μεγάλο function body ανά root size και εκτελεί global
+register allocation, inline leaf operations, και ελεύθερο scheduling
+loads/stores.
+
+\paragraph{Υποστήριξη πολλαπλών backends.}
+Ο generator υποστηρίζει τέσσερις emission modes μέσω της παραμέτρου
+\code{-{}-mode}: \code{zbc} (scalar combine loops), \code{rvv} (RVV
+helper calls), \code{rvv\_opt} (inlined RVV direct-write), και
+\code{zvbc} (vector leaf dispatch).  Η λογική διάσχισης του δέντρου
+αναδρομής είναι κοινή — μόνο ο κώδικας combine και leaf dispatch
+διαφοροποιείται ανά mode.  Η αρχιτεκτονική αυτή εξασφαλίζει ότι
+αλλαγές στη δομή αναδρομής (threshold, split rule) εφαρμόζονται
+αυτόματα σε όλα τα tiers.
+
+\paragraph{Unrolling και βάθος αναδρομής.}
+Ο AP-2 generator εκπέμπει πλήρως unrolled recursion tree — κάθε
+κόμβος αναδρομής αποτελεί ξεχωριστή \code{static} συνάρτηση με
+zero runtime dispatch.  Η σχεδιαστική αυτή απόφαση εξαλείφει κάθε
+threshold comparison, dynamic pointer arithmetic, και stack frame
+overhead σε βάρος αυξημένου \code{.text} footprint.  Η ποσοτική
+αξιολόγηση αυτού του trade-off (recursion depth vs \instret vs
+\code{.text} size) παρουσιάζεται στο \cref{sec:polymul-codesize}.
+
+Στον leaf, η εξειδίκευση \code{clmul\_leaf\_n8} αντικαθιστά τον
+generic \code{clmul\_leaf} για το μέγεθος $n=8$ που κυριαρχεί στο
+δέντρο αναδρομής στο threshold $T=16$.  Η συνάρτηση αυτή αποτελεί
+πλήρως unrolled $8 \times 8$ schoolbook product — \num{64} διαδοχικές
+κλήσεις \code{clmul64} χωρίς κανένα branch, με ενσωματωμένη
+assign-on-first-write πειθαρχία.  Μία ablation study επιβεβαίωσε ότι
+η εξειδίκευση $n=4$ αποτελούσε dead code για το δέντρο HQC-128 —
+κανένα leaf call δεν παράγει $n=4$ στο threshold $T=16$ — και
+αφαιρέθηκε μαζί με τον αντίστοιχο dispatch arm.
+
+\paragraph{Worked example: πλήρης αναδρομή HQC-128.}
+Η κλήση \code{vect\_mul(o, a, b)} για HQC-128 ($N=277$ words,
+$n = \num{17669}$ bits) εκτελεί τα ακόλουθα βήματα:
+%
+\begin{enumerate}
+  \item Δέσμευση stack buffers: \code{unreduced[$2 \times 277 = 554$
+    words]} και \code{tmp\_buf[$16 \times 277 = \num{4432}$ words]}.
+  \item Dispatch στο \code{kmul\_277(unreduced, a, b, tmp\_buf)}.
+  \item Αναδρομική αποσύνθεση: $277 \to 3 \times 139 \to 9 \times 70
+    \to 27 \times 35 \to 81 \times 18 \to 243$ leaf calls μεγέθους
+    $\leq 9$ words.
+  \item Modular reduction: \code{reduce(o, unreduced)} —
+    $\text{unreduced} \bmod (x^{17669} - 1)$.
+\end{enumerate}
+%
+Ο συνολικός αριθμός leaf calls στο δέντρο ανέρχεται σε $3^5 = 243$
+(πέντε επίπεδα αναδρομής, τρεις sub-problems ανά επίπεδο).  Κάθε leaf
+εκτελεί $n^2$ ζεύγη \clmul/\clmulh — για $n=9$, αυτό αντιστοιχεί σε
+\num{81} ζεύγη ανά leaf.
+
 \subsection{Απορριφθείσες Εναλλακτικές (Toom-Cook, FAFFT)}
 \label{sec:rejected-alternatives}
+
+Η ασυμπτωτική πολυπλοκότητα $\BigO{n^{1.585}}$ του Karatsuba δεν είναι
+η βέλτιστη θεωρητικά — ο Toom-Cook-3 επιτυγχάνει $\BigO{n^{1.465}}$ και
+ο αλγόριθμος FAFFT (Gao-Mateer) $\BigO{n \log n \log \log n}$.  Η
+ενότητα αυτή τεκμηριώνει γιατί κανένας εναλλακτικός αλγόριθμος δεν
+υπερτερεί πρακτικά στα μεγέθη πολυωνύμων του HQC.
+
+\paragraph{Toom-Cook-3 (TC3).}
+Ο TC3 διαιρεί κάθε πολυώνυμο σε τρία τμήματα μεγέθους
+$\lceil n/3 \rceil$, αξιολογεί σε \num{5} σημεία του $\GFpoly$
+(π.χ.\ $\{0, 1, x, x{+}1, \infty\}$), εκτελεί \num{5}
+sub-multiplications, και παρεμβάλλει μέσω explicit XOR/shift formulas.
+Μία πλήρης υλοποίηση TC3 βάθους~2 κατασκευάστηκε, επαληθεύτηκε μέσω
+KAT (\num{300} vectors, τρία security levels), και μετρήθηκε στο
+Spike ISS.
+
+Τα αποτελέσματα ήταν αρνητικά: ο TC3 παρουσίασε regression
+\speedup{4}–\speedup{5} σε σχέση με τον Karatsuba champion.
+Συγκεκριμένα, για HQC-128 ο TC3 απαίτησε \cycles{344973} \instret
+έναντι \cycles{66916} του Karatsuba Zvbc — αύξηση \pct{415}.  Η
+αιτία εντοπίζεται στο overhead evaluation/interpolation: οι
+carry-propagating shifts για αξιολόγηση στα σημεία $x$ και $x{+}1$
+είναι sequential (μη vectorizable), η interpolation απαιτεί \num{12}
+shifted terms, και η διαίρεση με $(x^2+1)$ εισάγει per-word carry
+dependency.  Σε βάθος~2, αυτό το overhead πολλαπλασιάζεται $5\times$.
+
+Η θεμελιώδης αιτία είναι ότι στα μεγέθη HQC ($N = 277$–$901$ words,
+4–5 επίπεδα αναδρομής), η ασυμπτωτική βελτίωση του TC3 μόλις
+εκδηλώνεται.  Ο αριθμός carry-less multiplications μειώνεται μόνο κατά
+\pct{1.3} ($5 \times \text{Karatsuba}(93) = \num{18865}$ ζεύγη έναντι
+$3 \times \text{Karatsuba}(139) = \num{19122}$ ζεύγη) — ανεπαρκής
+εξοικονόμηση για να αντισταθμίσει το evaluation/interpolation overhead.
+
+\paragraph{Fast Additive FFT (FAFFT).}
+Ο αλγόριθμος FAFFT μετασχηματίζει τον πολυωνυμικό πολλαπλασιασμό σε
+pointwise multiplications σε extension field $\GF{2^m}$ μέσω additive
+FFT.  Η θεμελιώδης δυσκολία στο HQC είναι ότι οι βαθμοί πολυωνύμων
+($n = \num{17669}$, $\num{35851}$, $\num{57637}$ bits) βρίσκονται
+ελαφρώς πάνω από δυνάμεις του~2.  Για HQC-128, $n \approx 2^{14} +
+\num{1285}$, επομένως το απαιτούμενο μέγεθος FFT είναι $2^{16} =
+\num{65536}$ — περίπου $4\times$ padding overhead.
+
+Η εκτίμηση κόστους για HQC-128 σε Zvbc ανέρχεται σε
+$\sim\num{68800000}$ \instret — έναντι \cycles{72644} του Karatsuba
+champion.  Η διαφορά αυτή ($\sim\speedup{950}$ regression) καθιστά
+τον FAFFT μη βιώσιμο στα μεγέθη HQC.  Μία πειραματική υλοποίηση FAFFT
+με tower-field αριθμητική επιβεβαίωσε ασυμβατότητα με τη \vclmul{} (η
+εντολή λειτουργεί σε $\GFpoly$, όχι σε tower-field representations)
+και μετρήθηκε \speedup{8.97} πιο αργή από τον Karatsuba.
+
+\paragraph{Sparse $\times$ Dense.}
+Η εκμετάλλευση της αραιής δομής των μυστικών κλειδιών HQC ($\omega$
+μη-μηδενικά bits σε $n$-bit πολυώνυμο, $\omega \ll n$) αποτελεί
+ευπάθεια πλευρικού καναλιού: ο δείκτης word της θέσης accumulation
+εξαρτάται από τη μυστική θέση bit, δημιουργώντας data-dependent memory
+access pattern.  Η constant-time αντιμετώπιση (full-width scan ανά
+iteration) εξαλείφει το πλεονέκτημα απόδοσης.  Η ομάδα σχεδιασμού
+HQC απέρριψε τη sparse multiplication στην τελική spec (2024) ακριβώς
+για αυτούς τους λόγους, μεταβαίνοντας σε dense Karatsuba.
+
+Η λεπτομερής σύγκριση αλγοριθμικών εναλλακτικών — συμπεριλαμβανομένης
+της ανάλυσης FAFFT με CRT splitting~\cite{Chen2026-TCHES-HQC-FFT} ως μελλοντικής
+κατεύθυνσης — παρουσιάζεται στο \cref{ch:discussion}.
 
 %% ============================================================================
 \section{Base-RVV Path: Διανυσματοποίηση Recomposition}
 \label{sec:polymul-base-rvv}
 
+Η μετάβαση από Tier~1 σε Tier~2 εισάγει τη διανυσματική μονάδα RVV~1.0 στον
+πολυωνυμικό πολλαπλασιασμό, χωρίς ωστόσο να αλλάζει τον leaf kernel — η
+εντολή \vclmul{} δεν είναι διαθέσιμη χωρίς \Zvbc.  Η βελτιστοποίηση
+εστιάζεται αποκλειστικά στους recomposition loops: τους γραμμικού κόστους
+$\BigO{n}$ βρόχους XOR, copy, και modular reduction που εκτελούνται σε κάθε
+κόμβο του δέντρου αναδρομής.  Η αρχιτεκτονική αυτή αποτελεί
+\defterm{υβριδική scalar/vector προσέγγιση} — η αριθμητική πράξη (carry-less
+multiply) παραμένει scalar, ενώ η data-movement πράξη εκτελείται vector.
+
+Η βελτιστοποίηση Tier~2 συνδυάζει τρεις αλληλεξαρτώμενες τεχνικές: (α)~μία
+αλγοριθμική αναδιάρθρωση (\defterm{direct-write discipline}) που εξαλείφει
+δύο πλήρεις copy loops ανά κόμβο αναδρομής, (β)~μία στρατηγική επίλυσης
+aliasing (\defterm{overlap-save}) που αποκαθιστά την ορθότητα μετά τη
+direct-write, και (γ)~inline RVV intrinsics με per-operation \LMUL tuning
+που μεγιστοποιούν τη χρήση της vector register file.  Η συνδυασμένη επίδραση
+μειώνει το polymul \instret κατά \pct{27.5} σε σχέση με το Tier~1 — από
+\cycles{221026} σε \cycles{160215} εντολές για HQC-128.
+
 \subsection{Direct-Write Discipline: Εξάλειψη Αντιγραφών z0/z2}
 \label{ssec:direct-write}
+
+Στην αρχική Track~B υλοποίηση, τα τρία child multiplications ($z_0$, $z_2$,
+$z_\text{mid}$) υπολογίζονταν σε ενδιάμεσους buffers εντός του \code{tmp},
+και στη συνέχεια δύο RVV copy loops (\code{rvv\_copy\_u64}) μετέφεραν τα
+$z_0$ και $z_2$ στις τελικές θέσεις του output buffer $r$.  Η
+\defterm{direct-write discipline} εξαλείφει αυτές τις δύο αντιγραφές
+κατευθύνοντας τα child calls να γράψουν απευθείας στο $r$:
+%
+\begin{itemize}
+  \item $z_0 = a_L \polymul b_L$ γράφεται απευθείας στο
+    $r[0 \ldots 2n_0{-}1]$.
+  \item $z_2 = a_H \polymul b_H$ γράφεται απευθείας στο
+    $r[2n_0 \ldots 2n_0{+}2n_1{-}1]$.
+  \item Μόνο το $z_\text{mid}$ παραμένει στο \code{tmp}, καθώς
+    καταναλώνεται destructively κατά το combine step.
+\end{itemize}
+
+Η αναδιάρθρωση αυτή εξαλείφει δύο πλήρεις RVV copy loops ανά κόμβο
+αναδρομής σε ολόκληρο το δέντρο.  Για HQC-128 ($N=277$), το δέντρο
+αναδρομής περιέχει περίπου \num{30} non-leaf κόμβους, καθένας από τους
+οποίους εκτελούσε δύο αντιγραφές μεγέθους $\sim n$ words — η direct-write
+discipline αφαιρεί το σύνολό τους.
+
+\paragraph{Μείωση temporary buffer.}
+Δεδομένου ότι τα $z_0$ και $z_2$ δεν καταλαμβάνουν πλέον χώρο στο
+\code{tmp}, η per-level temporary footprint μειώνεται από $\sim 6n$ words
+(zmid + z0 + z2 + ta + tb) σε $\sim 4n_0$ words (zmid + ta + tb).
+Αθροίζοντας τη γεωμετρική σειρά σε όλα τα επίπεδα αναδρομής, η συνολική
+απαίτηση \code{tmp} ανέρχεται σε $< 4N$ words — η σταθερά
+\code{TMP\_BUFFER\_WORDS} ορίζεται ως $4 \times \text{VEC\_N\_SIZE\_64}$.
+Η αντίστοιχη stack budget verification επιβεβαιώνει ότι ακόμη και για
+HQC-256 ($N=901$), η συνολική δέσμευση stack ανέρχεται σε
+$\sim\SI{42.2}{\kilo\byte}$ — πολύ κάτω από το bare-metal stack limit
+(\SI{512}{\kilo\byte}).
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch6-polymul/direct-write-layout.tex}
+  \caption{Σύγκριση memory layout πριν (αριστερά) και μετά (δεξιά) τη
+    direct-write discipline.  Στο αρχικό σχήμα, τα $z_0$ και $z_2$
+    γράφονται σε ενδιάμεσους buffers και αντιγράφονται στο $r$ μέσω δύο
+    RVV copy loops.  Στο νέο σχήμα, τα child multiplications γράφουν
+    απευθείας στις τελικές θέσεις του $r$ — μόνο το $z_\text{mid}$
+    παραμένει σε scratch buffer.}
+  \label{fig:direct-write-layout}
+\end{figure}
 
 \subsection{Overlap-Save Combine Strategy}
 \label{ssec:overlap-save}
 
+Η direct-write discipline εισάγει ένα \defterm{aliasing hazard} στο combine
+step.  Η XOR-accumulation
+$r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
+διαβάζει $z_0[i]$ από $r[i]$ και $z_2[i]$ από $r[2n_0{+}i]$, αλλά γράφει
+στο $r[n_0{+}i]$ — θέση που επικαλύπτεται με τις πηγές όταν $i \geq n_0$
+(για $z_0$) ή όταν $n_0 + i \geq 2n_0$ (εισερχόμενοι στην περιοχή $z_2$).
+Χωρίς αντιμετώπιση, η εγγραφή στο $r[n_0{+}i]$ θα κατέστρεφε δεδομένα
+που χρειάζονται σε μεταγενέστερες iterations.
+
+Η \defterm{overlap-save strategy} επιλύει το πρόβλημα σε τρία βήματα:
+%
+\begin{enumerate}
+  \item \textbf{Αποθήκευση overlap region:} Πριν από το combine step, τα
+    $n_0$ words στο $r[n_0 \ldots 2n_0{-}1]$ (η ουρά του $z_0$)
+    αντιγράφονται στον scratch buffer \code{ta} μέσω inline RVV copy σε
+    \LMUL=m4.
+
+  \item \textbf{Διαίρεση Loop~3A σε δύο μισά:}
+    \begin{itemize}
+      \item \emph{Πρώτο μισό} ($i \in [0, n_0)$): Διαβάζει $z_0[i]$ από
+        $r[i]$ — ασφαλές, καθώς οι πηγαίοι δείκτες βρίσκονται αυστηρά
+        κάτω από την περιοχή εγγραφής $r[n_0 \ldots]$.
+      \item \emph{Δεύτερο μισό} ($i \in [n_0, 2n_1)$): Διαβάζει $z_0[i]$
+        από το αποθηκευμένο \code{ta[$i{-}n_0$]} — ασφαλές, καθώς το
+        \code{ta} είναι non-overlapping scratch buffer.
+    \end{itemize}
+
+  \item \textbf{Loop~3B (odd-$n$ tail):} Για splits με $n_0 > n_1$, οι
+    θέσεις $r[n_0{+}2n_1 \ldots]$ χειρίζονται ξεχωριστά — διαβάζουν
+    $z_0$ από \code{ta} και παραλείπουν τη μη-υπάρχουσα συνεισφορά $z_2$.
+\end{enumerate}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch6-polymul/overlap-save.tex}
+  \caption{Απεικόνιση του aliasing hazard και της overlap-save επίλυσης.
+    Η memory layout δείχνει τις θέσεις $z_0$ ($r[0 \ldots 2n_0{-}1]$) και
+    $z_2$ ($r[2n_0 \ldots]$) μετά τη direct-write.  Η περιοχή
+    $r[n_0 \ldots 2n_0{-}1]$ (σκιασμένη) αποτελεί ταυτόχρονα πηγή
+    ανάγνωσης ($z_0$ tail) και στόχο εγγραφής (combine output) —
+    αποθηκεύεται στο \code{ta} πριν ξεκινήσει η εγγραφή.}
+  \label{fig:overlap-save}
+\end{figure}
+
+Η προσέγγιση αυτή διατηρεί ορθότητα χωρίς πρόσθετους temporary buffers
+πέραν του ήδη δεσμευμένου \code{ta} — ο οποίος επαναχρησιμοποιείται μετά
+την κατανάλωση της ta/tb XOR preparation από το $z_\text{mid}$ child call.
+Η αποθήκευση overlap region κοστίζει μία μόνο RVV copy ($n_0$ words σε
+\LMUL=m4), αλλά εξαλείφει δύο πλήρεις copy loops ($2 \times n$ words
+η καθεμία) — καθαρό κέρδος $\sim 3n$ words data movement ανά κόμβο.
+
 \subsection{Inlined RVV Operations με Tuned LMUL}
 \label{ssec:inlined-rvv}
+
+Η αρχική Track~B υλοποίηση χρησιμοποιούσε τρεις shared helper functions
+(\code{rvv\_copy\_u64}, \code{rvv\_xor3\_u64}, \code{rvv\_xor\_u64}) με
+σταθερές ρυθμίσεις \LMUL.  Ο AP-2 generator σε \code{rvv\_opt} mode
+αντικαθιστά αυτές τις κλήσεις με inline RVV intrinsic loops απευθείας
+εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης, με \LMUL ρυθμισμένο
+ανά operation βάσει του αριθμού ταυτόχρονα ενεργών vector register groups.
+
+Η στρατηγική \LMUL tuning ακολουθεί τον κανόνα: μεγιστοποίηση throughput
+(μέγιστο \LMUL) υπό τον περιορισμό ότι όλα τα ταυτόχρονα ενεργά register
+groups χωρούν στο \num{32}-register vector file χωρίς spilling.
+Ο \cref{tab:lmul-tuning} συνοψίζει τις ρυθμίσεις ανά operation.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Ρύθμιση \LMUL ανά operation στο Tier~2 combine step.  Η στήλη
+    \q{Live Groups} αναφέρει τον αριθμό ταυτόχρονα ενεργών vector register
+    groups.  Σε \VLEN=\num{256}, κάθε \code{e64m$k$} group επεξεργάζεται
+    $4k$ words ανά iteration.}
+  \label{tab:lmul-tuning}
+  \small
+  \begin{tabular}{lccl}
+    \toprule
+    \textbf{Operation} & \textbf{\LMUL} & \textbf{Live Groups}
+      & \textbf{Words/iter (\VLEN=256)} \\
+    \midrule
+    ta/tb XOR preparation & m8 (ή m4) & 2 & 32 (ή 16) \\
+    Overlap save (copy)   & m4         & 2 & 16 \\
+    Combine XOR (Loop 3A) & m2         & 4 & 8 \\
+    Loop 3B (odd-$n$ tail)& m2         & 3 & 8 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{ta/tb XOR preparation (\LMUL=m8).}
+Ο υπολογισμός $t_a = a_L \xorop a_H$ και $t_b = b_L \xorop b_H$
+εκτελείται σε ένα μόνο interleaved loop: φορτώνονται ταυτόχρονα τα δύο
+ζεύγη operands ($a_L$/$a_H$ και $b_L$/$b_H$), εκτελούνται δύο
+\insn{vxor.vv}, και αποθηκεύονται τα αποτελέσματα.  Μόνο δύο register
+groups είναι ταυτόχρονα ενεργά (πηγή και αποτέλεσμα), επιτρέποντας
+\LMUL=m8 — \num{32} words ανά iteration σε \VLEN=\num{256}.  Για κόμβους
+κοντά στα φύλλα ($n_1 < 28$), ο generator μειώνει σε \LMUL=m4 ώστε να
+αποφευχθεί υπερβολικό tail overhead σε μικρά μεγέθη.
+
+\paragraph{Combine XOR (\LMUL=m2).}
+Ο κρίσιμος Loop~3A φορτώνει ταυτόχρονα τέσσερις πηγές: τον destination
+$r[n_0{+}i]$, το $z_\text{mid}[i]$, το $z_0[i]$ (από $r$ ή \code{ta}),
+και το $z_2[i]$.  Τέσσερα register groups σε \LMUL=m2 καταναλώνουν
+$4 \times 2 = 8$ vector registers — αφήνοντας επαρκές headroom στο
+\num{32}-register file για τον accumulator και τα scalar pointers.  Η
+XOR-accumulation εκτελείται ως αλυσίδα τριών \insn{vxor.vv}:
+%
+\begin{lstlisting}[language=C,
+  caption={Inline combine XOR (Loop~3A, πρώτο μισό) — \LMUL=m2.},
+  label={lst:combine-xor}]
+while (_rem > 0) {
+    size_t _vl = __riscv_vsetvl_e64m2(_rem);
+    vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+    vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);
+    vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);
+    vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);
+    vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+    _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+    _vd  = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+    __riscv_vse64_v_u64m2(_dst, _vd, _vl);
+    _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl;
+    _rem -= _vl;
+}
+\end{lstlisting}
+
+\paragraph{Εξάλειψη function-call overhead.}
+Η inlining εξαλείφει σε κάθε κόμβο αναδρομής: (α)~τη δημιουργία stack
+frame, (β)~την αποθήκευση/επαναφορά callee-saved registers, (γ)~τη
+μεταφορά arguments μέσω registers (\code{a0}–\code{a7}), και (δ)~το
+\insn{jalr} return.  Σε δέντρο βάθους~5 (HQC-128) με $\sim$\num{30}
+non-leaf κόμβους, αυτό αντιστοιχεί σε $\sim$\num{30}$\times$\num{3}
+= \num{90} εξαλειφθείσες function calls (τρεις helper calls ανά κόμβο).
+Η inlining επιτρέπει επιπλέον στον compiler cross-operation register
+allocation εντός κάθε \code{kmul\_N} body — αξιοποιώντας registers που
+θα ήταν αλλιώς clobbered από τα helper calls.
+
+\subsection{Vectorised Modular Reduction}
+\label{ssec:reduce-rvv}
+
+Η τελική modular reduction $\text{unreduced}[0 \ldots 2N{-}1] \bmod
+(x^n - 1)$ αντικαθίσταται από τη συνάρτηση \code{reduce\_rvv}, η οποία
+χρησιμοποιεί RVV strip-mining σε \LMUL=m8.  Για κάθε strip $\text{vl}$
+words ξεκινώντας από τη θέση $i$:
+%
+\begin{enumerate}
+  \item Φόρτωση $a[i]$ (χαμηλό μισό unreduced product).
+  \item Φόρτωση $a[i + N - 1]$ και δεξιά ολίσθηση κατά $(n \bmod 64)$
+    bits → carries από το υψηλό μισό.
+  \item Φόρτωση $a[i + N]$ και αριστερή ολίσθηση κατά $(64 - n \bmod 64)$
+    bits → continuation carries.
+  \item XOR των τριών vectors και αποθήκευση στο $o[i]$.
+  \item Masking τελευταίου word:
+    $o[N{-}1] \mathrel{\&}= \text{LAST\_WORD\_MASK}$.
+\end{enumerate}
+%
+Σε \VLEN=\num{256} με \LMUL=m8, κάθε iteration επεξεργάζεται \num{32}
+words — η reduction του $N=277$ output ολοκληρώνεται σε
+$\lceil 277/32 \rceil = 9$ iterations αντί \num{277} scalar iterations.
+Η βελτίωση αυτή είναι μικρή σε απόλυτους αριθμούς (η reduction αποτελεί
+$<\pct{1}$ του συνολικού polymul \instret), αλλά εξαλείφει τον τελευταίο
+scalar bottleneck στο data path μετά τον Karatsuba tree.
+
+\subsection{Αρχιτεκτονική Παρατήρηση: Ο Scalar Leaf ως Binding Constraint}
+\label{ssec:rvv-binding-constraint}
+
+Η direct-write discipline με overlap-save στενεύει σημαντικά το χάσμα
+μεταξύ Tier~2 και Tier~1, εξαλείφοντας τους δύο κυρίαρχους copy loops
+που αποτελούσαν το μεγαλύτερο μέρος του non-leaf overhead στο Track~B.
+Η συνολική μείωση \instret ανέρχεται σε \pct{27.5} — από \cycles{221026}
+(Tier~1) σε \cycles{160215} (Tier~2) για HQC-128.
+
+Ωστόσο, ο θεμελιώδης αρχιτεκτονικός περιορισμός παραμένει: ο scalar
+\clmul/\clmulh leaf αποτελεί το \defterm{binding constraint}.  Οι
+recomposition loops είναι $\BigO{n}$ ανά επίπεδο αναδρομής, ενώ ο leaf
+είναι $\BigO{n^2}$ ανά κλήση.  Στα μεγέθη HQC, ο τετραγωνικός leaf
+κυριαρχεί ανεξαρτήτως του πόσο αποδοτικά εκτελούνται τα combines.
+Η παρατήρηση αυτή τεκμηριώνει ποσοτικά τη μετάβαση στο Tier~3
+(\cref{sec:polymul-zvbc}), όπου η διανυσματοποίηση εισχωρεί στον ίδιο
+τον leaf μέσω \vclmul/\vclmulh.
 
 %% ============================================================================
 \section{Vector-Crypto Path: \Zvbc Leaf Kernels}
 \label{sec:polymul-zvbc}
 
+Η μετάβαση από Tier~2 σε Tier~3 αντιπροσωπεύει τη θεμελιώδη αρχιτεκτονική
+αλλαγή στον πολυωνυμικό πολλαπλασιασμό: η διανυσματοποίηση εισχωρεί στον
+ίδιο τον leaf kernel — τον τετραγωνικού κόστους $\BigO{n^2}$ πυρήνα που
+αποτελούσε το binding constraint στο Tier~2.  Η εντολή \vclmul{} της \Zvbc
+υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
+παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
+\clmul/\clmulh βρόχο με μία μόνο vector iteration ανά εξωτερικό index.
+Η συνδυασμένη επίδραση μειώνει το polymul \instret κατά \pct{61} σε σχέση
+με το Tier~2 — από \cycles{160215} σε \cycles{62526} εντολές για HQC-128.
+
+\subsection{Splat-and-Sweep: Διανυσματοποίηση του Schoolbook Leaf}
+\label{ssec:vclmul-leaf}
+
+Ο \code{vclmul\_leaf} υλοποιεί ένα \defterm{splat-and-sweep} pattern: για
+κάθε εξωτερικό index $i$, η scalar τιμή $a[i]$ εκπέμπεται (splat) σε
+ολόκληρο ένα vector register μέσω \insn{vmv.v.x}, και ο πλήρης εσωτερικός
+πίνακας $b[0 \ldots n{-}1]$ φορτώνεται ως vector μέσω \insn{vle64.v}.
+Ένα μόνο ζεύγος \vclmul/\vclmulh υπολογίζει ταυτόχρονα όλα τα $n$
+carry-less γινόμενα — χαμηλά και υψηλά μισά αντίστοιχα:
+%
+\begin{align}
+  \text{lo}[j] &= a[i] \polymul b[j] \bmod x^{64},
+    \quad j \in [0, n), \label{eq:vclmul-lo} \\
+  \text{hi}[j] &= \lfloor a[i] \polymul b[j] / x^{64} \rfloor,
+    \quad j \in [0, n). \label{eq:vclmul-hi}
+\end{align}
+%
+Τα αποτελέσματα συσσωρεύονται στον output buffer μέσω vector
+load-XOR-store: το lo-vector XOR-accumulate στο $r[i \ldots i{+}n{-}1]$
+και το hi-vector στο $r[i{+}1 \ldots i{+}n]$.  Σε \VLEN=\num{256} με
+\LMUL=m4, κάθε vector register group περιέχει $\VLMAX = (256/64) \times 4
+= 16$ elements — ακριβώς ίσο με το Karatsuba threshold $T=16$.  Κατά
+συνέπεια, ο εσωτερικός βρόχος συμπτύσσεται σε μία μόνο vector iteration
+ανά εξωτερικό index $i$, εξαλείφοντας πλήρως τον scalar $j$-loop.
+
+Ο \cref{fig:vclmul-leaf-dataflow} απεικονίζει τη ροή δεδομένων μίας
+iteration του \code{vclmul\_leaf}.  Η κρίσιμη παρατήρηση είναι ότι η
+φόρτωση του $b$-vector εκτελείται μία φορά ανά εξωτερικό index — κάθε
+$a[i]$ splat επαναχρησιμοποιεί τον ίδιο φορτωμένο $b$-vector, αμορτίζοντας
+το κόστος μνήμης σε $n$ γινόμενα.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch6-polymul/vclmul-leaf-dataflow.tex}
+  \caption{Ροή δεδομένων του \code{vclmul\_leaf} για $n=16$ elements.
+    Η τιμή $a[i]$ εκπέμπεται (splat) σε vector register, ο πίνακας
+    $b[0 \ldots 15]$ φορτώνεται ως vector, και ένα ζεύγος
+    \vclmul/\vclmulh υπολογίζει ταυτόχρονα \num{16} carry-less γινόμενα.
+    Σε \VLEN=\num{256} με \LMUL=m4, ο εσωτερικός βρόχος εκτελείται σε
+    μία μόνο vector iteration.}
+  \label{fig:vclmul-leaf-dataflow}
+\end{figure}
+
+\paragraph{Assign-on-first-write στον vector leaf.}
+Η ίδια πειθαρχία πρώτης εγγραφής που εφαρμόστηκε στον scalar leaf
+(\cref{ssec:memset-elimination}) προσαρμόζεται στο vector context.  Η
+υλοποίηση διαιρεί τον leaf σε δύο φάσεις:
+%
+\begin{enumerate}
+  \item \textbf{Peeled $i=0$ iteration:} Τα lo-products αποθηκεύονται
+    μέσω direct \insn{vse64.v} (assignment, χωρίς προηγούμενη φόρτωση)
+    στο $r[0 \ldots n{-}1]$, καθώς αυτές οι θέσεις δεν έχουν
+    αρχικοποιηθεί.  Τα hi-products XOR-accumulate στο
+    $r[1 \ldots n]$ — θέσεις ήδη γραμμένες από το lo-store (εκτός
+    $r[n]$, που pre-zero).
+
+  \item \textbf{Upper-half pre-zero:} Ένα μόνο RVV store
+    (\insn{vmv.v.x}(0) + \insn{vse64.v}) μηδενίζει τις θέσεις
+    $r[n \ldots 2n{-}1]$.  Αυτό είναι αναγκαίο διότι οι hi-accumulations
+    για $i \geq 1$ εκτελούν read-modify-write σε αυτές τις θέσεις πριν
+    οποιοσδήποτε άλλος writer τις προσεγγίσει.
+\end{enumerate}
+%
+Η αναδιάρθρωση αυτή αντικαθιστά το πλήρες \code{memset(r, 0, 2n$\times$8)}
+— που στο bare-metal περιβάλλον εκτελούνταν ως scalar byte-loop κοστίζοντας
+$3 \times 2n \times 8 = 48n$ εντολές ανά leaf call — με ένα μόνο RVV
+zero-store μεγέθους $n$ words.  Δεδομένου ότι το δέντρο αναδρομής HQC-128
+περιέχει \num{243} leaf calls ανά \code{vect\_mul}, η αθροιστική
+εξοικονόμηση ανέρχεται σε εκατοντάδες χιλιάδες εντολές.
+
+\paragraph{Four-way outer-loop unroll.}
+Ο εξωτερικός βρόχος ($i = 1, 2, \ldots, n{-}1$) εκτυλίσσεται κατά
+παράγοντα τέσσερα.  Κάθε iteration φορτώνει τέσσερις scalar τιμές
+$a[i], a[i{+}1], a[i{+}2], a[i{+}3]$, εκπέμπει καθεμία σε ξεχωριστό
+vector register, και εκδίδει $4 \times 2 = 8$ εντολές \vclmul/\vclmulh
+εναντίον του ίδιου φορτωμένου $b$-vector.  Η τεχνική αυτή αμορτίζει
+το κόστος φόρτωσης $b$ σε τέσσερις εξωτερικές iterations και διατηρεί
+οκτώ vector multiply αποτελέσματα ταυτόχρονα σε πτήση, κορεστώντας τη
+vector functional unit pipeline.  Ένας scalar tail loop χειρίζεται τις
+εναπομείνασες $n \bmod 4$ iterations.
+
+Ο \cref{lst:vclmul-leaf-core} παρουσιάζει τον πυρήνα του 4$\times$
+unrolled βρόχου — τη φόρτωση $b$, τα τέσσερα splats, και τα οκτώ
+carry-less multiply ζεύγη:
+
+\begin{lstlisting}[language=C,
+  caption={Πυρήνας 4$\times$ unrolled \code{vclmul\_leaf} — φόρτωση
+    $b$-vector και τέσσερα ζεύγη \vclmul/\vclmulh.},
+  label={lst:vclmul-leaf-core}]
+vuint64m4_t vb = __riscv_vle64_v_u64m4(b + j, vl);
+/* Strip 0: a[i] */
+vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
+vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
+vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+/* Strip 1: a[i+1] */
+vuint64m4_t va1  = __riscv_vmv_v_x_u64m4(a1, vl);
+vuint64m4_t vlo1 = __riscv_vclmul_vv_u64m4(va1, vb, vl);
+vuint64m4_t vhi1 = __riscv_vclmulh_vv_u64m4(va1, vb, vl);
+/* Strip 2: a[i+2] */
+vuint64m4_t va2  = __riscv_vmv_v_x_u64m4(a2, vl);
+vuint64m4_t vlo2 = __riscv_vclmul_vv_u64m4(va2, vb, vl);
+vuint64m4_t vhi2 = __riscv_vclmulh_vv_u64m4(va2, vb, vl);
+/* Strip 3: a[i+3] */
+vuint64m4_t va3  = __riscv_vmv_v_x_u64m4(a3, vl);
+vuint64m4_t vlo3 = __riscv_vclmul_vv_u64m4(va3, vb, vl);
+vuint64m4_t vhi3 = __riscv_vclmulh_vv_u64m4(va3, vb, vl);
+\end{lstlisting}
+
+\paragraph{LMUL selection.}
+Ο leaf χρησιμοποιεί \LMUL=m4 για τις carry-less multiply πράξεις.  Σε
+\VLEN=\num{256}, κάθε m4 group καταλαμβάνει \num{4} physical registers
+(\num{16} registers συνολικά για τα τέσσερα ταυτόχρονα ενεργά groups:
+splat, $b$-vector, lo-result, hi-result).  Η επιλογή αυτή αφήνει
+επαρκές headroom στο \num{32}-register file για τον accumulator
+(\insn{vle64}/\insn{vxor}/\insn{vse64} sequence) χωρίς spilling.
+Μεγαλύτερο \LMUL (m8) θα υπερέβαινε τη χωρητικότητα register file
+κατά τη φάση accumulation, ενώ μικρότερο \LMUL (m2) θα διπλασίαζε
+τον αριθμό inner-loop iterations χωρίς αντίστοιχο κέρδος.
+
+\subsection{Schoolbook Leaf Trade-offs: Γιατί ο Leaf δεν Κλιμακώνει με VLEN}
+\label{ssec:leaf-vlen-tradeoff}
+
+Ο \code{vclmul\_leaf} διατηρεί τη δομή schoolbook $\BigO{n^2}$ — κάθε
+ζεύγος $(a[i], b[j])$ παράγει ένα carry-less γινόμενο, και ο συνολικός
+αριθμός γινομένων ανά leaf call ανέρχεται σε $n^2$.  Η διανυσματοποίηση
+μειώνει τον αριθμό \emph{εντολών} ανά γινόμενο (ένα \vclmul{} υπολογίζει
+\VLMAX γινόμενα ταυτόχρονα), αλλά δεν αλλάζει τον αριθμό γινομένων.
+
+Η κρίσιμη αρχιτεκτονική παρατήρηση είναι ότι το μέγεθος leaf $n$ καθορίζεται
+από το Karatsuba threshold $T=16$ — σταθερά ανεξάρτητη του \VLEN.  Σε
+\VLEN=\num{256} με \LMUL=m4, $\VLMAX = 16 = T$: ο εσωτερικός βρόχος
+εκτελείται σε ακριβώς μία iteration.  Αύξηση του \VLEN σε \num{512} ή
+\num{1024} δεν μειώνει περαιτέρω τον αριθμό iterations — ο βρόχος είναι
+ήδη μονοβηματικός.  Τα επιπλέον vector lanes παραμένουν αχρησιμοποίητα
+(tail elements), καθώς $n \leq T = 16$ σε κάθε leaf call.
+
+Η παρατήρηση αυτή εξηγεί γιατί η VLEN sweep (\cref{sec:vlen-scaling})
+δείχνει ελάχιστη βελτίωση στο polymul πέραν του \VLEN=\num{256}: η
+μοναδική πηγή κέρδους σε μεγαλύτερο \VLEN προέρχεται από τους
+recomposition loops (γραμμικού κόστους, $\BigO{n}$ ανά κόμβο), οι οποίοι
+αποτελούν μικρό κλάσμα του συνολικού polymul \instret μετά τη
+διανυσματοποίηση του leaf.
+
+\paragraph{Εναλλακτική: αύξηση threshold.}
+Μία θεωρητική εναλλακτική θα ήταν η αύξηση του threshold σε $T=32$ ή
+$T=64$ ώστε να αξιοποιηθούν ευρύτερα \VLEN.  Η προσέγγιση αυτή
+απορρίφθηκε για δύο λόγους.  Πρώτον, η αύξηση $T$ αυξάνει τετραγωνικά
+τον αριθμό γινομένων ανά leaf ($T^2$ αντί $(T/2)^2 \times 3$), ακυρώνοντας
+το κέρδος του Karatsuba σε ένα επίπεδο αναδρομής.  Δεύτερον, η threshold
+sweep (\cref{sec:polymul-scalar}) επιβεβαίωσε ότι $T=16$ ελαχιστοποιεί
+το συνολικό \instret στο instruction-accurate μοντέλο — μεγαλύτερα
+thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτερα από ό,τι μειώνουν
+το recursion overhead.
+
+\paragraph{Ποσοτική σύγκριση Tier~2 $\to$ Tier~3.}
+Ο \cref{tab:tier2-vs-tier3} συνοψίζει τη μείωση \instret στον πολυωνυμικό
+πολλαπλασιασμό κατά τη μετάβαση από scalar leaf (Tier~2) σε vector leaf
+(Tier~3).  Η επιτάχυνση κυμαίνεται από \speedup{2.56} (HQC-128) έως
+\speedup{5.61} (HQC-256) — η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
+στο βαθύτερο δέντρο αναδρομής, όπου περισσότεροι leaf calls ωφελούνται
+από τη διανυσματοποίηση.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύγκριση polymul \instret μεταξύ Tier~2 (scalar leaf + RVV
+    combine) και Tier~3 (vector leaf + RVV combine).  Η στήλη
+    \q{Speedup} αναφέρει τη μείωση εντολών κατά τη μετάβαση
+    Tier~2~$\to$~Tier~3.}
+  \label{tab:tier2-vs-tier3}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Level} & \textbf{Tier~2 (instret)}
+      & \textbf{Tier~3 (instret)} & \textbf{Speedup} \\
+    \midrule
+    HQC-128 & \cycles{160215} & \cycles{62526}   & \speedup{2.56} \\
+    HQC-192 & \cycles{481715} & \cycles{185116}  & \speedup{2.60} \\
+    HQC-256 & \cycles{1519801} & \cycles{271002} & \speedup{5.61} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Σε σχέση με το reference scalar baseline, η συνολική επιτάχυνση του
+Tier~3 ανέρχεται σε \speedup{307} για HQC-128 — από \cycles{19214281}
+σε \cycles{62526} εντολές.  Η μείωση αυτή αντικατοπτρίζει τη
+σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
+αναδιάρθρωση (Karatsuba + AP-2), εξάλειψη πλεονάζουσας μνήμης
+(assign-on-first-write), και διανυσματοποίηση του binding constraint
+(\vclmul{} leaf).  Η ποσοτική αποτίμηση κάθε στρώματος ξεχωριστά
+παρουσιάζεται στο \cref{ch:results}.
+
 %% ============================================================================
 \section{Code Size vs Performance Trade-off}
 \label{sec:polymul-codesize}
+
+%% ============================================================================
+\section{Αποτίμηση: Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση}
+\label{sec:polymul-assessment}
+
+Οι βελτιστοποιήσεις των \cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
+μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \cycles{19214281} σε
+\cycles{62526} εντολές στο Tier~3 — μείωση \speedup{307}.  Η μείωση αυτή
+μετασχηματίζει ριζικά την κατανομή υπολογιστικού κόστους ολόκληρου του
+\gls{kem}, αποκαλύπτοντας πυρήνες που στο baseline αποτελούσαν αμελητέο
+ποσοστό ως νέα κυρίαρχα bottlenecks.
+
+Στο reference scalar HQC-128, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
+$\approx$\pct{97} του συνολικού \instret (βλ.~\cref{sec:baseline-profiling}).
+Μετά τη βελτιστοποίηση Tier~3, το ποσοστό αυτό συρρικνώνεται σε
+$\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερος contributor, αλλά
+δεν κυριαρχεί πλέον μονοπωλιακά.  Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
+από $<$\pct{1} σε $\approx$\pct{25} του συνόλου, και η αποκωδικοποίηση
+(Reed-Muller + Reed-Solomon) από $<$\pct{0.5} σε $\approx$\pct{4}.
+\Cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../../results/reports/figures/pie_ref-scalar.pdf}
+    \caption{Baseline (reference scalar).}
+    \label{fig:pie-baseline}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../../results/reports/figures/pie_karatsuba-zvbc.pdf}
+    \caption{Μετά βελτιστοποίηση polymul (Tier~3).}
+    \label{fig:pie-post-polymul}
+  \end{subfigure}
+  \caption{Ανακατανομή \instret στο HQC-128 KEM πριν και μετά τη
+    βελτιστοποίηση πολυωνυμικού πολλαπλασιασμού.  Ο νόμος του Amdahl σε
+    δράση: η \speedup{307} μείωση του polymul αποκαλύπτει τον Keccak
+    ($\approx$\pct{25}) και τη decode ($\approx$\pct{4}) ως νέα
+    bottlenecks.}
+  \label{fig:pie-redistribution}
+\end{figure}
+
+Η ποσοτική αυτή ανακατανομή αποτελεί άμεση εκδήλωση του νόμου του Amdahl.
+Έστω $f = 0.97$ το αρχικό ποσοστό του polymul και $S_\text{local} = 307$
+η τοπική επιτάχυνση.  Η μέγιστη θεωρητική system-level επιτάχυνση
+περιορίζεται σε:
+%
+\begin{equation}
+  S_\text{system} \leq \frac{1}{(1 - f) + f / S_\text{local}}
+  = \frac{1}{0.03 + 0.97/307}
+  \approx 30.3.
+  \label{eq:amdahl-polymul}
+\end{equation}
+%
+Η πραγματική μέτρηση — \speedup{157} end-to-end KEM speedup στο Tier~3
+(\cref{tab:polymul-tier-summary}) — υπερβαίνει αυτό το θεωρητικό όριο,
+διότι η βελτιστοποίηση polymul συρρικνώνει ταυτόχρονα και τμήμα του
+non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reduction).
+Ωστόσο, η κεντρική παρατήρηση παραμένει: η \speedup{307} τοπική μείωση
+μεταφράζεται σε \speedup{157} system-level — η απόκλιση τεκμηριώνει ότι
+τα μη-polymul components αποτελούν πλέον τον binding constraint.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύνοψη βελτιστοποίησης polymul ανά tier (HQC-128).  Η στήλη
+    \q{KEM Speedup} αναφέρει τη συνολική επιτάχυνση end-to-end KEM
+    (keypair + encaps + decaps) σε σχέση με το reference baseline.}
+  \label{tab:polymul-tier-summary}
+  \small
+  \begin{tabular}{clrrrl}
+    \toprule
+    \textbf{Tier} & \textbf{Variant}
+      & \textbf{polymul} & \textbf{Polymul}
+      & \textbf{KEM} & \textbf{Νέο κυρίαρχο} \\
+    & & \textbf{(\instret)} & \textbf{Speedup}
+      & \textbf{Speedup} & \textbf{hotspot} \\
+    \midrule
+    — & \code{ref\_scalar}
+      & \num{19214281} & — & — & polymul (\pct{97}) \\
+    1 & \code{karatsuba\_zbc}
+      & \num{221026} & $\times$87 & $\times$34 & Keccak (\pct{17}) \\
+    2 & \code{karatsuba\_rvv}
+      & \num{160215} & $\times$120 & $\times$57 & Keccak (\pct{29}) \\
+    3 & \code{karatsuba\_zvbc}
+      & \num{62526} & $\times$307 & $\times$157 & Keccak (\pct{25}) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Ο \cref{tab:polymul-tier-summary} αποκαλύπτει ένα χαρακτηριστικό pattern:
+σε κάθε tier, ο Keccak αναδεικνύεται ως το κυρίαρχο hotspot μετά τη
+βελτιστοποίηση polymul.  Στο Tier~1, ο Keccak καταλαμβάνει \pct{17} του
+KEM \instret — ήδη ο μεγαλύτερος non-polymul contributor.  Στο Tier~2,
+η περαιτέρω μείωση του polymul ανεβάζει τον Keccak σε \pct{29}.  Στο
+Tier~3, η αναλογία σταθεροποιείται στο \pct{25}, καθώς ο polymul
+παραμένει ελαφρώς μεγαλύτερος σε απόλυτο \instret.
+
+Η ανακατανομή αυτή τεκμηριώνει ποσοτικά τη στόχευση του
+\cref{ch:kernel-optimization}: η βελτιστοποίηση Keccak και decode αποτελεί
+αναγκαία συνέχεια για τη μεγιστοποίηση του system-level κέρδους.  Χωρίς
+αυτή, η end-to-end επιτάχυνση παραμένει δομικά περιορισμένη ανεξαρτήτως
+περαιτέρω βελτιώσεων στον πολυωνυμικό πολλαπλασιασμό.  Τα αναλυτικά
+αποτελέσματα ανά security level και tier — συμπεριλαμβανομένων των
+μετρήσεων HQC-192 και HQC-256 — παρουσιάζονται στο
+\cref{ch:results}.

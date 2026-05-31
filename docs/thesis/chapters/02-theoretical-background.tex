@@ -129,7 +129,7 @@ $\mathbf{H}$ περιγράφεται πλήρως από μία μόνο γρα
 
 \begin{figure}[t]
   \centering
-  \input{figures/code-based-genealogy}
+  \input{figures/ch2-background/code-based-genealogy}
   \caption{Γενεαλογία code-based κρυπτοσυστημάτων: από τον McEliece (1978) στα
     σύγχρονα σχήματα του \gls{nist}. Η κεντρική γραμμή εξέλιξης (μπλε) δείχνει
     τη σταδιακή μείωση μεγέθους κλειδιών μέσω quasi-cyclic δομών. Το \HQC
@@ -192,7 +192,7 @@ hardware υλοποιήσεις που βασίζονταν στο sparse μον
 
 \begin{figure}[t]
   \centering
-  \input{figures/hqc-timeline}
+  \input{figures/ch2-background/hqc-timeline}
   \caption{Πορεία τυποποίησης του \HQC μέσα από τους γύρους αξιολόγησης του
     \gls{nist}. Η αλλαγή προδιαγραφής (2024) από sparse$\times$dense σε
     dense$\times$dense πολλαπλασιασμό ακύρωσε προηγούμενες hardware υλοποιήσεις.}
@@ -220,7 +220,7 @@ hardware υλοποιήσεις που βασίζονταν στο sparse μον
     προδιαγραφή 2024). Η διάσταση $N$ καθορίζει το μέγεθος πολυωνύμων
     στον δακτύλιο $\GFquot{N}$.}
   \label{tab:hqc-params}
-  \input{figures/hqc-params-table}
+  \input{figures/ch2-background/hqc-params-table}
 \end{table}
 
 
@@ -238,7 +238,7 @@ check κατά την αποθυλάκωση.
 
 \begin{figure}[t]
   \centering
-  \input{figures/hqc-kem-sequence}
+  \input{figures/ch2-background/hqc-kem-sequence}
   \caption{Ροή ανταλλαγής κλειδιών μέσω \HQC \KEM. Ο παραλήπτης (Bob) εκτελεί
     \KeyGen και δημοσιεύει το $ek$. Ο αποστολέας (Alice) εκτελεί \Encaps για
     παραγωγή κοινού μυστικού $ss$ και κρυπτογραφήματος $ct$. Ο παραλήπτης
@@ -347,7 +347,7 @@ $s \cdot r_2$) και πολλαπλές κλήσεις Keccak για hashing κ
 
 \begin{figure}[t]
   \centering
-  \input{figures/hqc-dataflow}
+  \input{figures/ch2-background/hqc-dataflow}
   \caption{Ροή δεδομένων στις τρεις \KEM πράξεις του \HQC. Χρωματική
     κωδικοποίηση: πολυωνυμικός πολλαπλασιασμός (κόκκινο), Keccak/SHA-3
     (πορτοκαλί), αποκωδικοποίηση RM+RS (κίτρινο). Ο πολυωνυμικός
@@ -524,7 +524,7 @@ ${\sim}\speedup{14}$.
 
 \begin{figure}[t]
   \centering
-  \input{figures/karatsuba-complexity}
+  \input{figures/ch2-background/karatsuba-complexity}
   \caption{Σύγκριση αριθμού πράξεων πολλαπλασιασμού: schoolbook $\BigO{n^2}$
     (συνεχής) έναντι Karatsuba $\BigO{n^{\log_2 3}}$ (διακεκομμένη). Στο μέγεθος
     HQC-128 ($n{=}277$), η διαφορά υπερβαίνει τάξη μεγέθους.}
@@ -605,7 +605,7 @@ $d = \lceil \log_2(n/T) \rceil$ επίπεδα.
 
 \begin{figure}[t]
   \centering
-  \resizebox{\linewidth}{!}{\input{figures/karatsuba-recursion-tree}}
+  \resizebox{\linewidth}{!}{\input{figures/ch2-background/karatsuba-recursion-tree}}
   \caption{Δέντρο αναδρομής Karatsuba σε δύο επίπεδα. Κάθε κόμβος παράγει
     3 υπο-προβλήματα μισού μεγέθους. Στο δεύτερο επίπεδο, τα 9 φύλλα
     (μπλε) υπολογίζονται με τον schoolbook. Η σημείωση
@@ -714,7 +714,7 @@ $2^{c/2}$, preimage resistance $2^c$).
 
 \begin{figure}[t]
   \centering
-  \input{figures/keccak-sponge}
+  \input{figures/ch2-background/keccak-sponge}
   \caption{Σπογγική κατασκευή: η φάση απορρόφησης (absorb) εκτελεί XOR κάθε
     block εισόδου $m_i$ στα $r$ bits ταχύτητας και εφαρμόζει τη μετάθεση $f$.
     Η φάση εξαγωγής (squeeze) εξάγει $r$ bits ανά εφαρμογή του $f$.
@@ -761,7 +761,7 @@ $A[x, y, z]$ με $x, y \in \{0, 1, 2, 3, 4\}$ και $z \in \{0, \ldots, 63\}$,
 
 \begin{figure}[t]
   \centering
-  \input{figures/keccak-state-3d}
+  \input{figures/ch2-background/keccak-state-3d}
   \caption{Τρισδιάστατη αναπαράσταση της κατάστασης Keccak-f[1600]:
     $5 \times 5$ lanes (κάθε lane = 64 bits κατά τον άξονα $z$).
     Η πορτοκαλί στήλη δείχνει ένα lane $A[x,y]$, ενώ η πράσινη γραμμή
@@ -796,7 +796,7 @@ $\chi$, $\iota$.
     $C[x,z] = \bigoplus_{y=0}^{4} A[x,y,z]$ αντιπροσωπεύει τη column parity.
     Οι δείκτες υπολογίζονται modulo 5 (για $x$, $y$) και modulo 64 (για $z$).}
   \label{tab:keccak-steps}
-  \input{figures/keccak-steps-table}
+  \input{figures/ch2-background/keccak-steps-table}
 \end{table}
 
 \paragraph{Βήμα $\theta$: Column-parity diffusion.}
@@ -971,7 +971,7 @@ Forney~\cite{Forney1966}, αξιοποιεί τη συμπληρωματικότ
 
 \begin{figure}[t]
   \centering
-  \resizebox{\linewidth}{!}{\input{figures/concatenated-pipeline}}
+  \resizebox{\linewidth}{!}{\input{figures/ch2-background/concatenated-pipeline}}
   \caption{Σειριακή δομή αποκωδικοποίησης στο \HQC: η ληφθείσα λέξη
     τροφοδοτείται στον εσωτερικό αποκωδικοποιητή \gls{rm}(1,7) που
     ανακτά $n_1$ symbols, τα οποία στη συνέχεια τροφοδοτούνται στον
@@ -1125,7 +1125,7 @@ feedback με τα taps του $p(x)$.
 
 \begin{figure}[t]
   \centering
-  \resizebox{\linewidth}{!}{\input{figures/rs-decode-pipeline}}
+  \resizebox{\linewidth}{!}{\input{figures/ch2-background/rs-decode-pipeline}}
   \caption{Σειριακή δομή αποκωδικοποίησης \gls{rs}: τέσσερα αλγεβρικά στάδια
     (A–D) ακολουθούμενα από διόρθωση. Κάθε στάδιο αντιστοιχεί σε έναν
     ανεξάρτητο άξονα βελτιστοποίησης στο \cref{ch:kernel-optimization}.}

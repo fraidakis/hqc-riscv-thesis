@@ -100,7 +100,7 @@ J-type (jump). Η \cref{fig:rv64-formats} παρουσιάζει τη δομή �
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/rv64-instruction-formats.tex}
+  \input{figures/ch3-riscv/rv64-instruction-formats.tex}
   \caption{Οι έξι βασικές μορφές εντολών του RV64I. Τα πεδία \code{rs1},
     \code{rs2} και \code{rd} διατηρούν σταθερή θέση σε όλες τις μορφές,
     επιτρέποντας παράλληλη αποκωδικοποίηση και ανάγνωση register file.
@@ -380,7 +380,7 @@ $b(x) = \sum_{j=0}^{63} b_j x^j$ είναι πολυώνυμα σε $\GFpoly$ α
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/clmul-semantics.tex}
+  \input{figures/ch3-riscv/clmul-semantics.tex}
   \caption{Σημασιολογία carry-less multiplication σε $\GFpoly$. Τα μερικά
     γινόμενα (shifted copies του $a(x)$, gated από τα bits του $b(x)$)
     συνδυάζονται μέσω XOR χωρίς διάδοση κρατουμένου — σε αντίθεση με τον
@@ -417,7 +417,7 @@ $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογισ�
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/clmul-before-after.tex}
+  \input{figures/ch3-riscv/clmul-before-after.tex}
   \caption{Σύγκριση assembly για πολλαπλασιασμό 64-bit πολυωνύμων σε
     $\GFpoly$. Αριστερά: naive shift-and-XOR βρόχος (\num{640} εντολές).
     Δεξιά: ζεύγος \clmul/\clmulh (\num{2} εντολές). Η μείωση
@@ -565,7 +565,7 @@ $\VLEN = 2^k$ για κάποιο ακέραιο $k \geq 7$. Η \cref{fig:rvv-re
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/rvv-register-file.tex}
+  \input{figures/ch3-riscv/rvv-register-file.tex}
   \caption{Δομή του vector register file στο \RVV: \num{32} καταχωρητές
     πλάτους \VLEN~bits. Η τιμή \VLEN είναι άγνωστη κατά τη μεταγλώττιση —
     ο κώδικας ανακαλύπτει το πλάτος κατά την εκτέλεση μέσω του \gls{csr}
@@ -624,7 +624,7 @@ binary εκτελείται σε οποιοδήποτε hardware \VLEN χωρί�
     \VLEN/\SEW/\LMUL. Η γραμμή με \VLEN=256, \SEW=64, \LMUL=4
     αντιστοιχεί στην κυρίαρχη παραμετροποίηση της παρούσας εργασίας.}
   \label{tab:vlmax-combinations}
-  \input{figures/rvv-vlmax-table.tex}
+  \input{figures/ch3-riscv/rvv-vlmax-table.tex}
 \end{table}
 
 \paragraph{Παράδειγμα.}
@@ -672,7 +672,7 @@ iterations (η τελευταία με $\code{vl} = 4$). Ο κώδικας πα�
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/rvv-strip-mining.tex}
+  \input{figures/ch3-riscv/rvv-strip-mining.tex}
   \caption{Strip-mining ενός array \num{20} στοιχείων σε δύο hardware
     configurations. Πάνω: $\VLMAX = 4$ (5 iterations). Κάτω: $\VLMAX = 8$
     (3 iterations, τελευταία με $\code{vl} = 4$). Ο ίδιος κώδικας
@@ -750,7 +750,7 @@ pressure.
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/rvv-lmul-grouping.tex}
+  \input{figures/ch3-riscv/rvv-lmul-grouping.tex}
   \caption{Ομαδοποίηση vector registers μέσω \LMUL. Αριστερά: $\LMUL = 1$
     (\num{32} ανεξάρτητοι καταχωρητές, $\VLMAX = \VLEN/\SEW$). Δεξιά:
     $\LMUL = 4$ (\num{8} ομάδες, $\VLMAX = 4 \times \VLEN/\SEW$).
@@ -782,7 +782,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
     recomposition.}
   \label{tab:rvv-instruction-categories}
   \small
-  \input{figures/rvv-instruction-categories.tex}
+  \input{figures/ch3-riscv/rvv-instruction-categories.tex}
 \end{table}
 
 \subsection{Motivating Example: XOR Loop σε RVV}
@@ -797,7 +797,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/rvv-xor-example.tex}
+  \input{figures/ch3-riscv/rvv-xor-example.tex}
   \caption{Σύγκριση scalar C loop (αριστερά) και \RVV intrinsics (δεξιά)
     για element-wise XOR δύο arrays. Ο \RVV κώδικας χρησιμοποιεί
     strip-mining: η \code{vsetvl} ρυθμίζει δυναμικά τον αριθμό στοιχείων,
@@ -953,7 +953,7 @@ immediate — ο compiler εκπέμπει \insn{vror.vi} για offsets $\leq 3
     αναφέρεται σε υλοποίηση με base \RVV εντολές μόνο.}
   \label{tab:zvbc-zvbb-before-after}
   \small
-  \input{figures/zvbc-zvbb-before-after.tex}
+  \input{figures/ch3-riscv/zvbc-zvbb-before-after.tex}
 \end{table}
 
 Η κυρίαρχη βελτίωση προέρχεται από τη \Zvbc: στον Karatsuba leaf, κάθε
@@ -1042,7 +1042,7 @@ hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/riscv-programming-spectrum.tex}
+  \input{figures/ch3-riscv/riscv-programming-spectrum.tex}
   \caption{Φάσμα αφαίρεσης στον προγραμματισμό RISC-V. Η μετακίνηση προς
     τα αριστερά αυξάνει τον βαθμό ελέγχου (register allocation, instruction
     ordering), ενώ η μετακίνηση προς τα δεξιά αυξάνει τη δυνατότητα
@@ -1196,7 +1196,7 @@ intrinsic απαιτεί \num{1} γραμμή και παραμένει πλήρ
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/inline-asm-vs-intrinsic.tex}
+  \input{figures/ch3-riscv/inline-asm-vs-intrinsic.tex}
   \caption{Σύγκριση inline assembly (αριστερά) και C intrinsic (δεξιά) για
     scalar carry-less multiplication. Αμφότερα παράγουν την ίδια εντολή
     \clmul, αλλά το intrinsic παρέχει type safety, πλήρη ορατότητα στον
@@ -1273,7 +1273,7 @@ auto-lowering.
     κρυπτογραφικούς πυρήνες.}
   \label{tab:programming-methods}
   \small
-  \input{figures/programming-methods-table.tex}
+  \input{figures/ch3-riscv/programming-methods-table.tex}
 \end{table}
 
 \paragraph{Σχεδιαστική αρχή.}

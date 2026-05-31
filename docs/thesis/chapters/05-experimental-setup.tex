@@ -57,7 +57,7 @@ spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
 
 \begin{figure}[htbp]
   \centering
-  \resizebox{0.92\textwidth}{!}{\input{figures/spike-architecture}}
+  \resizebox{0.92\textwidth}{!}{\input{figures/ch5-setup/spike-architecture}}
   \caption{Αρχιτεκτονική εκτέλεσης στον Spike \gls{iss}.  Κάθε εντολή
     αποκωδικοποιείται και εκτελείται σειριακά χωρίς μοντέλο pipeline ή cache.
     Ο μετρητής \texttt{minstret} αυξάνεται κατά ένα ανά αποσυρθείσα εντολή,
@@ -302,7 +302,7 @@ intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse
   \centering
   \caption{Εκδόσεις λογισμικού της αλυσίδας μεταγλώττισης και εκτέλεσης.}
   \label{tab:toolchain-versions}
-  \input{figures/toolchain-versions-table}
+  \input{figures/ch5-setup/toolchain-versions-table}
 \end{table}
 
 \subsection{CMake Build System και Toolchain Files}
@@ -339,7 +339,7 @@ cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
 
 \begin{figure}[htbp]
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/build-pipeline}}
+  \resizebox{\textwidth}{!}{\input{figures/ch5-setup/build-pipeline}}
   \caption{Ροή μεταγλώττισης και εκτέλεσης: ο πηγαίος κώδικας μεταγλωττίζεται
     μέσω CMake και Clang~18 σε bare-metal ELF, το οποίο εκτελείται στον Spike
     για εξαγωγή \instret.  Η συμβολοσειρά \code{-march} καθορίζει τις
@@ -592,7 +592,7 @@ max.  Η \textbf{median} επιλέγεται ως πρωτεύουσα μετρ
 
 \begin{figure}[htbp]
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/instret-vs-cycles}}
+  \resizebox{\textwidth}{!}{\input{figures/ch5-setup/instret-vs-cycles}}
   \caption{Σχέση \instret και κύκλων ρολογιού υπό τρία μικροαρχιτεκτονικά
     μοντέλα.  Ο Spike \gls{iss} υλοποιεί το ιδανικό μοντέλο (αριστερά).
     Σε πραγματικό hardware, η σχέση εξαρτάται από τον \gls{cpi} του
@@ -823,7 +823,7 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
 
 \begin{figure}[htbp]
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/kat-pipeline}}
+  \resizebox{\textwidth}{!}{\input{figures/ch5-setup/kat-pipeline}}
   \caption{Ροή επαλήθευσης ορθότητας μέσω \glspl{kat}: τα \num{100} entropy
     seeds εξάγονται offline σε C header, ενσωματώνονται στο bare-metal ELF,
     εκτελούνται στον simulator, και η console output συγκρίνεται byte-exact
@@ -933,7 +933,7 @@ mask-agnostic — η τυπική ρύθμιση για τους κρυπτογ�
 
 \begin{figure}[htbp]
   \centering
-  \resizebox{0.65\textwidth}{!}{\input{figures/boot-sequence}}
+  \resizebox{0.65\textwidth}{!}{\input{figures/ch5-setup/boot-sequence}}
   \caption{Ακολουθία εκκίνησης bare-metal: από το reset vector έως τον
     τερματισμό μέσω \gls{htif}.  Η ενεργοποίηση της διανυσματικής μονάδας
     εκτελείται υπό συνθήκη (conditional assembly) μόνο σε vector targets.}
@@ -960,7 +960,7 @@ machine.  Η διάταξη τμημάτων ακολουθεί τη σειρά 
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/memory-map}
+  \input{figures/ch5-setup/memory-map}
   \caption{Διάταξη μνήμης (memory map) του bare-metal ELF.  Η στοίβα
     (\SI{512}{\kilo\byte}) καλύπτει τις ανάγκες ολόκληρης της αλυσίδας
     κλήσεων \KEM, συμπεριλαμβανομένων των temporary buffers του πολυωνυμικού
