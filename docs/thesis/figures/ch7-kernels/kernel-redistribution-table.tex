@@ -1,0 +1,22 @@
+% figures/ch7-kernels/kernel-redistribution-table.tex
+% Kernel instret redistribution across three optimization stages (HQC-128, Tier 3)
+\small
+\begin{tabular}{l S[table-format=2.2] S[table-format=2.1] S[table-format=2.1]}
+  \toprule
+  {Πυρήνας} & {Baseline (\%)} & {Post-polymul (\%)} & {Τελικό (\%)} \\
+  \midrule
+  Polymul (schoolbook / Karatsuba)  & 95.96 & 37.4 & 34.5 \\
+  Keccak / SHA-3                    &  0.49 & 29.1 & 24.5 \\
+  Decode (RM + RS)                  &  0.33 & 11.2 &  8.4 \\
+  GF αριθμητική (\code{gf\_reduce}, \code{gf\_mul})
+                                    &  0.11 &  5.0 &  7.4 \\
+  I/O, μνήμη (\code{memset}, \code{memcpy}, absorb/squeeze)
+                                    &  1.81 &  7.1 &  8.5 \\
+  Λοιπά (sampling, \code{vect\_add}, control)
+                                    &  1.30 & 10.2 & 16.7 \\
+  \midrule
+  \textbf{Σύνολο \KEM \instret}     & \multicolumn{1}{r}{\cycles{117344266}}
+                                    & \multicolumn{1}{r}{\cycles{1975424}}
+                                    & \multicolumn{1}{r}{\cycles{716983}} \\
+  \bottomrule
+\end{tabular}

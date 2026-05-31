@@ -1,0 +1,13 @@
+% figures/ch7-kernels/keccak-rotation-comparison.tex
+% Comparison table: Keccak rotation cost across ISA configurations
+\small
+\begin{tabular}{@{}llcc@{}}
+  \toprule
+  \textbf{ISA Configuration} & \textbf{Εντολές/rotation} & \textbf{Σύνολο (25 lanes)} & \textbf{instret/perm} \\
+  \midrule
+  Base-\RVV (χωρίς \Zvbb) & \insn{vsll}+\insn{vsrl}+\insn{vor} = 3 & 75 & \num{7100} \\
+  Scalar + \Zbb            & \rori = 1                               & 25 & \num{4680} \\
+  \Zvbb 2-way \gls{soa}   & \insn{vror.vi}/\insn{vror.vx} = 1       & 25 & \num{2114} \\
+  ARM SHA3 (\insn{xar})   & \insn{xar} = 1                          & 25 & — \\
+  \bottomrule
+\end{tabular}

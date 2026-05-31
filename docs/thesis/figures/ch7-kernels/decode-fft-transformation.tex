@@ -1,0 +1,48 @@
+% Recursive-to-iterative FFT transformation diagram
+\begin{tikzpicture}[
+  node distance=1.2cm and 2.5cm,
+  box/.style={draw, rounded corners=2pt, minimum width=2.2cm, minimum height=0.7cm,
+              font=\small\sffamily},
+  arrow/.style={->, >=stealth, thick},
+  label/.style={font=\footnotesize\itshape, text=gray!70!black}
+]
+
+% Left side: Recursive (depth-first)
+\node[font=\sffamily\bfseries] (ltitle) {Αναδρομικό (depth-first)};
+\node[box, below=0.5cm of ltitle, fill=red!8] (root) {$f(x)$};
+\node[box, below left=0.8cm and 0.8cm of root, fill=red!8] (l1) {$f_0$};
+\node[box, below right=0.8cm and 0.8cm of root, fill=red!8] (r1) {$f_1$};
+\node[box, below left=0.6cm and 0.3cm of l1, fill=red!8] (l2a) {$f_{00}$};
+\node[box, below right=0.6cm and 0.3cm of l1, fill=red!8] (l2b) {$f_{01}$};
+\node[box, below left=0.6cm and 0.3cm of r1, fill=red!8] (r2a) {$f_{10}$};
+\node[box, below right=0.6cm and 0.3cm of r1, fill=red!8] (r2b) {$f_{11}$};
+
+\draw[arrow] (root) -- (l1) node[midway, left, label] {call};
+\draw[arrow] (root) -- (r1) node[midway, right, label] {call};
+\draw[arrow] (l1) -- (l2a);
+\draw[arrow] (l1) -- (l2b);
+\draw[arrow] (r1) -- (r2a);
+\draw[arrow] (r1) -- (r2b);
+
+\node[below=0.3cm of l2a, label, align=center] {$\BigO{2^M}$ κλήσεις\\συναρτήσεων};
+
+% Right side: Iterative (BFS)
+\node[font=\sffamily\bfseries, right=5.5cm of ltitle] (rtitle) {Επαναληπτικό (BFS)};
+\node[box, below=0.5cm of rtitle, fill=green!8] (lev0) {Level 0: 1 segment};
+\node[box, below=0.7cm of lev0, fill=green!8] (lev1) {Level 1: 2 segments};
+\node[box, below=0.7cm of lev1, fill=green!8] (lev2) {Level 2: 4 segments};
+\node[box, below=0.7cm of lev2, fill=green!8] (leaf) {Leaves: XOR-broadcast};
+\node[box, below=0.7cm of leaf, fill=blue!8] (comb) {Bottom-up: combine};
+
+\draw[arrow] (lev0) -- (lev1) node[midway, right, label] {\insn{beta\_scale} + radix};
+\draw[arrow] (lev1) -- (lev2) node[midway, right, label] {\insn{beta\_scale} + radix};
+\draw[arrow] (lev2) -- (leaf) node[midway, right, label] {\insn{xor\_broadcast}};
+\draw[arrow, dashed] (leaf) -- (comb) node[midway, right, label] {\insn{gammas\_combine}};
+
+\node[below=0.3cm of comb, label, align=center] {Σταθερός αριθμός\\επαναλήψεων βρόχου};
+
+% Arrow between the two
+\draw[->, ultra thick, gray!60, >=stealth] ([xshift=0.5cm]root.east) -- ([xshift=-0.5cm]lev0.west)
+  node[midway, above, font=\small\sffamily] {Μετασχηματισμός};
+
+\end{tikzpicture}
