@@ -97,7 +97,7 @@ directly into the output buffer $r$, eliminating the two full-array copy loops
 that previously dominated the combine step. An overlap-save strategy resolves
 the resulting aliasing hazard by saving the overlap region to scratch before
 the combine XOR. All RVV operations are inlined directly into the generated
-`kmul_N` functions (via `--mode rvv_opt`) with per-operation LMUL tuning
+`kmul_N` functions (via `--mode rvv`) with per-operation LMUL tuning
 (LMUL=m8 for ta/tb preparation, LMUL=m4 for overlap save, LMUL=m2 for the
 four-source combine XOR). A vectorised modular reduction (`reduce_rvv`) at
 LMUL=m8 replaces the scalar `reduce()` loop.
@@ -326,7 +326,7 @@ Karatsuba combine and data-movement operations differ.
 
 Same as Track A (Sections 3.1.1–3.1.3). The recursion structure, threshold,
 memset-free discipline, and AP-2 fixed-tree generation are shared. The code
-generator emits Track B combine code via `--mode rvv_opt`.
+generator emits Track B combine code via `--mode rvv`.
 
 #### 4.1.1 Direct-Write Discipline — Elimination of z0/z2 Copies (High Expected Impact)
 
@@ -403,7 +403,7 @@ XOR preparation is consumed by the $z_{\text{mid}}$ child call).
 
 The previous Track B implementation used three shared helper functions
 (`rvv_copy_u64`, `rvv_xor3_u64`, `rvv_xor_u64`) with fixed LMUL settings.
-The `rvv_opt` code generator now inlines all RVV operations directly into
+The `rvv` code generator now inlines all RVV operations directly into
 each generated `kmul_N` function, with LMUL settings tuned per operation
 based on the number of simultaneously-live vector register groups:
 
@@ -600,7 +600,7 @@ The Karatsuba combine loops use `rvv_copy_u64` and `rvv_xor3_u64`
 helpers (the shared-function approach from Track B's earlier iteration).
 The AP-2 generated tree for `--mode zvbc` emits these helpers at the combine
 sites while dispatching `vclmul_leaf` at the recursion leaves. The direct-write
-discipline introduced in Track B's `--mode rvv_opt` has not yet been ported to
+discipline introduced in Track B's `--mode rvv` has not yet been ported to
 Track C.
 
 ---

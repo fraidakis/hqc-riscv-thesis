@@ -47,6 +47,8 @@ that should be reflected in the thesis narrative.
 
 **Anticipated resolution**: The Zvbb extension adds `vror.vv` and `vandn.vv`, which should eliminate the 3-for-1 rotation penalty. Keccak on Zvbb targets is expected to outperform scalar. This is tracked as a future experiment (see `experiments/EXP-fafft-zvbc-towerfield/`).
 
+**Hardware corollary (BPI-F3, 2026-05-31)**: On real hardware (SpacemiT K1 X60, GCC native), the auto-vectorization that Discovery 2 measures in Spike also manifests as a ~12% cycle reduction (359k → 314k cycles for HQC-128 Keccak). Crucially, `vector_ref` and `vector_rvv` produce *identical* Keccak results (~313.9k vs ~313.5k = noise) because the keccak binary (`bench_hw_keccak_hqc128`) compiles the same `fips202.c` source — only the `-march` and `-ftree-vectorize` flags differ, and both vector variants enable auto-vectorization. This is a correct and expected result: the keccak micro-bench measures "keccak cost under this variant's compilation environment," not "different keccak implementations." The ~12% benefit comes from GCC auto-vectorizing the θ/χ steps (XOR-parallel, no cross-lane deps) while leaving the ρ step scalar (irregular rotations without `vror.vv`). See `docs/thesis-helper/optimizations/miscellaneous.md` §7 for full analysis.
+
 **Key lesson**: ISA completeness matters more than ISA width for irregular permutations. Profile at the micro-operation level before committing to a vector Keccak implementation.
 
 ---

@@ -433,8 +433,8 @@
 
 * `optimizations/multiplication.md` §4 (Track B) - **Optimization Notes** - RVV combine loops, "leaf is the binding constraint"
 * `src/mult/karatsuba_rvv/gf2x_clmul.c` (`rvv_copy_u64`, `rvv_xor_u64`, `rvv_xor3_u64`) - **Source Code** - VLA helper functions replacing scalar 4×-unrolled loops with strip-mined vector operations
-* `src/mult/karatsuba_rvv/karatsuba_rvv_specialized_gen.h` - **Generated Code** - AP-2 generated tree with RVV recomposition calls instead of scalar loops
-* `scripts/gen/gen_karatsuba_specialized.py` (`_rvv_recomposition`) - **Script** - Generator mode that emits RVV helper calls for recomposition stages
+* `src/mult/karatsuba_rvv/karatsuba_rvv_specialized_gen.h` - **Generated Code** - AP-2 generated tree with inline RVV direct-write recomposition
+* `scripts/gen/gen_karatsuba_specialized.py` (`_rvv_recomposition`) - **Script** - Generator mode that emits inline RVV intrinsics for direct-write recomposition
 
 #### §6.3.2 Μείωση Register Pressure μέσω RVV
 

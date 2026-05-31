@@ -537,3 +537,124 @@ contribution to total KEM instruction reduction:
   not affect hot-path instruction count.
 - **Auto-vectorization suppression** (§5.4): Measurement hygiene rather than
   performance optimization.
+
+---
+
+## 7. Hardware Keccak Micro-Benchmark: Auto-Vectorization Effect
+
+### 7.1 Observation
+
+When running `run_bench.sh --platform hw --mode keccak --variant all`, the
+`vector_ref` and `vector_rvv` keccak results are nearly identical (~0.1%
+difference), while both show ~12% improvement over `scalar_ref`/`scalar_zb`:
+
+| Variant       | Keccak L128 cycles (median) | vs scalar_ref |
+|---------------|----------------------------|---------------|
+| scalar_ref    | 359,382                    | baseline      |
+| scalar_zb     | 358,812                    | −0.16%        |
+| vector_ref    | 313,867                    | −12.66%       |
+| vector_rvv    | 313,486                    | −12.77%       |
+
+### 7.2 Root Cause
+
+The keccak micro-bench binary (`bench_hw_keccak_hqc${LEVEL}`) is
+**variant-independent in source** — it always compiles `fips202.c` (the
+reference scalar Keccak implementation). However, the `-march` flag and
+auto-vectorization policy differ by variant:
+
+| Variant      | MARCH (from Makefile.hw)       | Auto-Vectorization |
+|--------------|-------------------------------|--------------------|
+| ref_scalar   | rv64gc_zbc_zbb_zbs            | `-fno-tree-vectorize` (explicit suppression) |
+| karatsuba_zbc| rv64gc_zbc_zbb_zbs            | `-fno-tree-vectorize` (explicit suppression) |
+| vector_ref   | rv64gcv_zbc_zbb_zbs           | `-ftree-vectorize` (explicit enable) |
+| karatsuba_rvv| rv64gcv_zbc_zbb_zba_zbs       | (default, GCC auto-vectorizes with `-O3`) |
+
+Both `vector_ref` and `karatsuba_rvv` include the `v` extension in their
+`-march` string **without** `-fno-tree-vectorize`, allowing GCC to
+auto-vectorize the Keccak permutation. The resulting binary is essentially
+identical for both (same source, same optimization level, both V-capable),
+explaining the <0.1% difference (measurement noise).
+
+### 7.3 What GCC Auto-Vectorizes in Keccak
+
+With `-O3 -march=rv64gcv... -ftree-vectorize`, GCC vectorizes:
+- **θ step**: column parity XOR operations (5-element reductions become
+  vector XOR chains)
+- **χ step**: row-wise NOT-AND-XOR pattern (data-parallel, no cross-lane
+  dependency)
+- **State load/store**: bulk 64-bit lane transfers via vle64/vse64
+
+GCC does **not** effectively vectorize:
+- **ρ step**: irregular lane rotations (each lane has a different rotation
+  offset) — without `vror.vv` (Zvbb), each rotation requires 3 instructions
+  (vsll + vsrl + vor), limiting the benefit
+- **π step**: irregular permutation of the 25 lanes
+
+The net result is a modest ~12% cycle reduction from auto-vectorization,
+primarily from θ/χ step vectorization and memory operation batching.
+
+### 7.4 Why This Is Not a Bug
+
+The per-variant keccak iteration in `--mode keccak` on hardware serves to
+measure the **same keccak implementation under the compilation flags that
+each variant actually uses in the full KEM**. This is the correct behavior:
+
+- In a full `bench_hw_kem_hqc128_vector_ref` binary, the keccak code is
+  compiled with the same `-march=rv64gcv...` flags, so it genuinely benefits
+  from auto-vectorization in the real KEM execution.
+- The keccak micro-bench correctly reflects this: "what does keccak cost in
+  the context of this variant's compilation environment?"
+
+The near-identical results for `vector_ref` and `vector_rvv` are expected
+and correct — they share the same keccak-relevant compilation properties.
+
+### 7.5 Relationship to Thesis Sections
+
+- **§7.1.2 (RVV Paradox)**: Documents that *hand-written* base-RVV Keccak
+  (without Zvbb) increases instret vs scalar — this is measured in Spike
+  (instret) and refers to explicit RVV intrinsics code. The HW
+  auto-vectorization observation is complementary: GCC's auto-vectorizer
+  makes different (more conservative) choices than hand-written RVV, and
+  achieves a modest real-cycle benefit.
+
+- **§8.5 (Hardware Evaluation)**: Should note that the ~12% keccak
+  improvement in vector variants comes "for free" from compiler
+  auto-vectorization when the V extension is in the `-march` string. This is
+  a GCC-specific observation — the Spike ISS (which measures instret) would
+  show a similar effect, but the absolute benefit may differ due to pipeline
+  effects (auto-vectorized code may have better IPC from reduced scalar
+  register pressure and memory coalescing).
+
+- **§9.4 (Generalizable Design Principles)**: The limits of
+  auto-vectorization in crypto kernels — GCC can auto-vectorize ~12% of
+  Keccak's cost (θ/χ steps) but cannot exploit Zvbb for the dominant ρ step,
+  nor can it restructure the algorithm for multi-block SoA parallelism
+  (§7.1.3). This quantifies the "free" benefit boundary.
+
+### 7.6 Implication for bench_keccak Output Files
+
+The script generates output files named by *keccak implementation*, not by
+polymul variant:
+- `hw_keccak_scalar-ref_latest.csv` — scalar_ref measurement
+- `hw_keccak_scalar-zb_latest.csv` — scalar_zb measurement
+- `hw_keccak_vector-ref_latest.csv` — vector_ref measurement
+- `hw_keccak_vector-rvv_latest.csv` — vector_rvv measurement
+
+**Note**: The file naming (`scalar-ref`, `vector-ref`, etc.) reflects the
+polymul variant under which keccak was compiled — it does NOT mean different
+keccak source implementations. The keccak source is always `fips202.c`; only
+the compilation flags differ. For thesis presentation, the relevant
+comparison is:
+- "Keccak without auto-vectorization" (scalar variants): ~359k cycles
+- "Keccak with auto-vectorization" (vector variants): ~314k cycles
+- "Keccak with Zvbb 2-way SoA" (Spike only, no HW): TBD instret
+
+### 7.7 Syntax Error in run_bench.sh
+
+The terminal output shows:
+```
+/scripts/bench/run_bench.sh: line 777: syntax error near unexpected token `fi'
+```
+This is an unrelated shell syntax error in `run_bench.sh` (likely an
+unbalanced if/fi block near line 777) that occurs after all benchmarks have
+completed and results are stored. It does not affect the benchmark data.

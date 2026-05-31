@@ -11,7 +11,7 @@ cache for all three HQC security levels (128, 192, 256). No restructuring is nee
 
 ## Memory Layout
 
-With the `rvv_opt` direct-write discipline, `vect_mul` allocates two stack buffers:
+With the RVV direct-write discipline, `vect_mul` allocates two stack buffers:
 
 ```c
 uint64_t unreduced[2 * VEC_N_SIZE_64];   // output of Karatsuba tree
