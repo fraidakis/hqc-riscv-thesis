@@ -1,12 +1,12 @@
-# date: 2026-05-31 18:37
-# commit: b709a5f
+# date: 2026-06-01 00:03
+# commit: e97d10b
 # variant: scalar_zb
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-# level=128,polymul=karatsuba_zbc,n_iter=100,n_warmup=10,platform=hw
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
-keypair,100,254347,256661,303466,259742.4,8211.6,366044,366044,388386,370582.2,5981.6
-encaps,100,505791,508343,542456,510383.1,7334.4,743752,743752,754995,745226.0,2536.9
-decaps,100,1275498,1278709,1450985,1287216.6,25446.8,1827974,1827974,1876119,1829960.1,6536.4
+# level=128,polymul=scalar_zb,n_iter=100,n_warmup=10,platform=hw,extended=1
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+keypair,100,259688,262100,293700,264752.0,6732.3,366737,366737,389079,371197.9,5882.3,235,117297,0.20%,46,308,8016,28476,0,0
+encaps,100,514330,519221,557260,521583.1,7376.9,744445,744445,756036,745939.5,2559.2,371,235103,0.16%,47,560,10383,51995,0,0
+decaps,100,1284376,1286829,1344761,1292562.2,12535.9,1828651,1828651,1841232,1829919.8,2709.9,524,560620,0.09%,62,1553,23112,138218,0,0

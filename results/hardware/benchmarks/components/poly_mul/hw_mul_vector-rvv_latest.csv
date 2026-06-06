@@ -1,10 +1,10 @@
-# date: 2026-05-31 18:46
-# commit: b709a5f
+# date: 2026-06-01 02:29
+# commit: e97d10b
 # variant: vector_rvv
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-# level=128,polymul=karatsuba_rvv,n_iter=100,n_warmup=10,platform=hw
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
-vect_mul,100,209129,209804,255251,211109.3,6227.2,152695,152695,160643,152911.6,1245.6
+# level=128,polymul=vector_rvv,n_iter=100,n_warmup=10,platform=hw,extended=1
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+vect_mul,100,210741,211846,250208,213369.5,6031.4,152770,152770,159808,153011.9,1197.8,102,85737,0.12%,40,68,1138,109756,45178,25911

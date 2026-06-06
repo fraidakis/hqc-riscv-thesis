@@ -1,10 +1,10 @@
-# date: 2026-05-31 18:47
-# commit: b709a5f
+# date: 2026-06-01 02:28
+# commit: e97d10b
 # variant: scalar_zb
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-# level=128,polymul=karatsuba_zbc,n_iter=100,n_warmup=10,platform=hw
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
-vect_mul,100,145189,146123,156606,146317.8,1321.3,195403,195403,202509,195474.1,710.6
+# level=128,polymul=scalar_zb,n_iter=100,n_warmup=10,platform=hw,extended=1
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+vect_mul,100,147619,148489,205674,149555.2,6363.9,196096,196096,205323,196243.3,1069.5,159,78633,0.20%,42,46,2375,16578,0,0
