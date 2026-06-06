@@ -308,21 +308,32 @@ static inline int perf_hw_ext_init(perf_hw_ext_ctx *ctx)
 
 static inline void perf_hw_ext_start(perf_hw_ext_ctx *ctx)
 {
+    /* Reset all counters first (while disabled) */
     ioctl(ctx->fd_cycles,  PERF_EVENT_IOC_RESET,  0);
     ioctl(ctx->fd_instret, PERF_EVENT_IOC_RESET,  0);
-    ioctl(ctx->fd_cycles,  PERF_EVENT_IOC_ENABLE, 0);
-    ioctl(ctx->fd_instret, PERF_EVENT_IOC_ENABLE, 0);
-
     for (int i = 0; i < PERF_HW_EXT_NUM_COUNTERS; i++) {
         if (ctx->fd_ext[i] >= 0) {
-            ioctl(ctx->fd_ext[i], PERF_EVENT_IOC_RESET,  0);
+            ioctl(ctx->fd_ext[i], PERF_EVENT_IOC_RESET, 0);
+        }
+    }
+
+    /* Enable extended counters first, then instret, then cycles LAST.
+     * This ensures the ioctl overhead of enabling extended counters
+     * is NOT counted in the cycle/instret measurements. */
+    for (int i = 0; i < PERF_HW_EXT_NUM_COUNTERS; i++) {
+        if (ctx->fd_ext[i] >= 0) {
             ioctl(ctx->fd_ext[i], PERF_EVENT_IOC_ENABLE, 0);
         }
     }
+    ioctl(ctx->fd_instret, PERF_EVENT_IOC_ENABLE, 0);
+    ioctl(ctx->fd_cycles,  PERF_EVENT_IOC_ENABLE, 0);
 }
 
 static inline void perf_hw_ext_stop(perf_hw_ext_ctx *ctx)
 {
+    /* Disable cycles FIRST, then instret, then extended counters.
+     * This ensures the ioctl overhead of disabling extended counters
+     * is NOT counted in the cycle/instret measurements. */
     ioctl(ctx->fd_cycles,  PERF_EVENT_IOC_DISABLE, 0);
     ioctl(ctx->fd_instret, PERF_EVENT_IOC_DISABLE, 0);
 

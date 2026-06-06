@@ -211,14 +211,22 @@ int main(int argc, char **argv)
 
     /* ── Initialize perf counters ─────────────────────────────────────── */
 #ifdef PERF_HW_EXTENDED
-    perf_hw_ext_ctx ctx;
-    if (perf_hw_ext_init(&ctx) != 0) {
+    /* Two-pass approach: basic counters for clean cycle/instret measurement,
+     * then extended counters for microarchitectural profiling.
+     * This avoids PMU multiplexing overhead contaminating cycle counts. */
+    perf_hw_ctx ctx_basic;
+    if (perf_hw_init(&ctx_basic) != 0) {
+        fprintf(stderr, "ERROR: cannot initialize basic perf counters\n");
+        return 1;
+    }
+    perf_hw_ext_ctx ctx_ext;
+    if (perf_hw_ext_init(&ctx_ext) != 0) {
         fprintf(stderr, "ERROR: cannot initialize extended perf counters\n");
         return 1;
     }
 #else
-    perf_hw_ctx ctx;
-    if (perf_hw_init(&ctx) != 0) {
+    perf_hw_ctx ctx_basic;
+    if (perf_hw_init(&ctx_basic) != 0) {
         fprintf(stderr, "ERROR: cannot initialize perf counters\n");
         return 1;
     }
@@ -242,10 +250,9 @@ int main(int argc, char **argv)
     if (memcmp(ss_enc, ss_dec, CRYPTO_BYTES) != 0) {
         fprintf(stderr, "ERROR: ss_enc != ss_dec — decaps failure!\n");
 #ifdef PERF_HW_EXTENDED
-        perf_hw_ext_close(&ctx);
-#else
-        perf_hw_close(&ctx);
+        perf_hw_ext_close(&ctx_ext);
 #endif
+        perf_hw_close(&ctx_basic);
         return 1;
     }
 
@@ -269,15 +276,24 @@ int main(int argc, char **argv)
 #endif
 
     /* ── KeyGen ───────────────────────────────────────────────────────── */
+    /* Pass 1: clean cycles + instret */
     for (int i = 0; i < N_ITER; i++) {
-#ifdef PERF_HW_EXTENDED
-        perf_hw_ext_sample s;
-        perf_hw_ext_start(&ctx);
+        perf_hw_sample s;
+        perf_hw_start(&ctx_basic);
         crypto_kem_keypair(pk, sk);
-        perf_hw_ext_stop(&ctx);
-        perf_hw_ext_read(&ctx, &s);
+        perf_hw_stop(&ctx_basic);
+        perf_hw_read(&ctx_basic, &s);
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
+    }
+#ifdef PERF_HW_EXTENDED
+    /* Pass 2: extended PMU counters */
+    for (int i = 0; i < N_ITER; i++) {
+        perf_hw_ext_sample s;
+        perf_hw_ext_start(&ctx_ext);
+        crypto_kem_keypair(pk, sk);
+        perf_hw_ext_stop(&ctx_ext);
+        perf_hw_ext_read(&ctx_ext, &s);
         samples_l1d_miss[i]   = s.l1d_load_miss;
         samples_l1d_access[i] = s.l1d_access;
         samples_dtlb_miss[i]  = s.dtlb_load_miss;
@@ -286,29 +302,30 @@ int main(int argc, char **argv)
         samples_stall_be[i]   = s.stall_backend;
         samples_vec_inst[i]   = s.vector_inst;
         samples_vpu_stall[i]  = s.vpu_stall;
-#else
-        perf_hw_sample s;
-        perf_hw_start(&ctx);
-        crypto_kem_keypair(pk, sk);
-        perf_hw_stop(&ctx);
-        perf_hw_read(&ctx, &s);
-        samples_cyc[i] = s.cycles;
-        samples_ins[i] = s.instret;
-#endif
     }
+#endif
     dump_raw("keypair", N_ITER);
     emit_csv_row_hw("keypair", N_ITER);
 
     /* ── Encaps ───────────────────────────────────────────────────────── */
+    /* Pass 1: clean cycles + instret */
     for (int i = 0; i < N_ITER; i++) {
-#ifdef PERF_HW_EXTENDED
-        perf_hw_ext_sample s;
-        perf_hw_ext_start(&ctx);
+        perf_hw_sample s;
+        perf_hw_start(&ctx_basic);
         crypto_kem_enc(ct, ss_enc, pk);
-        perf_hw_ext_stop(&ctx);
-        perf_hw_ext_read(&ctx, &s);
+        perf_hw_stop(&ctx_basic);
+        perf_hw_read(&ctx_basic, &s);
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
+    }
+#ifdef PERF_HW_EXTENDED
+    /* Pass 2: extended PMU counters */
+    for (int i = 0; i < N_ITER; i++) {
+        perf_hw_ext_sample s;
+        perf_hw_ext_start(&ctx_ext);
+        crypto_kem_enc(ct, ss_enc, pk);
+        perf_hw_ext_stop(&ctx_ext);
+        perf_hw_ext_read(&ctx_ext, &s);
         samples_l1d_miss[i]   = s.l1d_load_miss;
         samples_l1d_access[i] = s.l1d_access;
         samples_dtlb_miss[i]  = s.dtlb_load_miss;
@@ -317,29 +334,30 @@ int main(int argc, char **argv)
         samples_stall_be[i]   = s.stall_backend;
         samples_vec_inst[i]   = s.vector_inst;
         samples_vpu_stall[i]  = s.vpu_stall;
-#else
-        perf_hw_sample s;
-        perf_hw_start(&ctx);
-        crypto_kem_enc(ct, ss_enc, pk);
-        perf_hw_stop(&ctx);
-        perf_hw_read(&ctx, &s);
-        samples_cyc[i] = s.cycles;
-        samples_ins[i] = s.instret;
-#endif
     }
+#endif
     dump_raw("encaps", N_ITER);
     emit_csv_row_hw("encaps", N_ITER);
 
     /* ── Decaps ───────────────────────────────────────────────────────── */
+    /* Pass 1: clean cycles + instret */
     for (int i = 0; i < N_ITER; i++) {
-#ifdef PERF_HW_EXTENDED
-        perf_hw_ext_sample s;
-        perf_hw_ext_start(&ctx);
+        perf_hw_sample s;
+        perf_hw_start(&ctx_basic);
         crypto_kem_dec(ss_dec, ct, sk);
-        perf_hw_ext_stop(&ctx);
-        perf_hw_ext_read(&ctx, &s);
+        perf_hw_stop(&ctx_basic);
+        perf_hw_read(&ctx_basic, &s);
         samples_cyc[i] = s.cycles;
         samples_ins[i] = s.instret;
+    }
+#ifdef PERF_HW_EXTENDED
+    /* Pass 2: extended PMU counters */
+    for (int i = 0; i < N_ITER; i++) {
+        perf_hw_ext_sample s;
+        perf_hw_ext_start(&ctx_ext);
+        crypto_kem_dec(ss_dec, ct, sk);
+        perf_hw_ext_stop(&ctx_ext);
+        perf_hw_ext_read(&ctx_ext, &s);
         samples_l1d_miss[i]   = s.l1d_load_miss;
         samples_l1d_access[i] = s.l1d_access;
         samples_dtlb_miss[i]  = s.dtlb_load_miss;
@@ -348,22 +366,14 @@ int main(int argc, char **argv)
         samples_stall_be[i]   = s.stall_backend;
         samples_vec_inst[i]   = s.vector_inst;
         samples_vpu_stall[i]  = s.vpu_stall;
-#else
-        perf_hw_sample s;
-        perf_hw_start(&ctx);
-        crypto_kem_dec(ss_dec, ct, sk);
-        perf_hw_stop(&ctx);
-        perf_hw_read(&ctx, &s);
-        samples_cyc[i] = s.cycles;
-        samples_ins[i] = s.instret;
-#endif
     }
+#endif
     dump_raw("decaps", N_ITER);
     emit_csv_row_hw("decaps", N_ITER);
 
     /* ── Cleanup ──────────────────────────────────────────────────────── */
 #ifdef PERF_HW_EXTENDED
-    perf_hw_ext_close(&ctx);
+    perf_hw_ext_close(&ctx_ext);
     free(samples_l1d_miss);
     free(samples_l1d_access);
     free(samples_dtlb_miss);
@@ -372,9 +382,8 @@ int main(int argc, char **argv)
     free(samples_stall_be);
     free(samples_vec_inst);
     free(samples_vpu_stall);
-#else
-    perf_hw_close(&ctx);
 #endif
+    perf_hw_close(&ctx_basic);
     free(samples_cyc);
     free(samples_ins);
 
