@@ -786,3 +786,138 @@ For each promoted optimization, measure:
   behaviour.
 - Compare the empirical scaling exponent against the theoretical prediction
   across the three HQC parameter sizes.
+
+
+---
+
+## 9. Discarded Variant — Deferred Two-Phase Karatsuba (`vector_rvv_deferred`)
+
+### 9.1 Hypothesis
+
+The SpacemiT X60 (BPI-F3) incurs a ~28-cycle pipeline penalty on each
+scalar↔vector transition. The `vector_rvv` (Track B) implementation interleaves
+scalar `clmul`/`clmulh` leaf calls with RVV combine operations at every
+recursion node, producing approximately 363 such transitions per `vect_mul`
+call at HQC-128. The deferred variant hypothesised that separating execution
+into two strict phases would eliminate these penalties:
+
+- **Phase 1 (scalar only):** Execute all 243 leaf `clmul_leaf`/`clmul_leaf_n8`
+  calls sequentially, writing the three products ($z_0$, $z_2$, $z_{\text{mid}}$)
+  for each inner node into a pre-allocated flat buffer. Zero vector instructions
+  in this phase — the scalar pipeline runs at full throughput without mode
+  switches.
+
+- **Phase 2 (vector only):** A single RVV pass iterates a static descriptor
+  table bottom-up, performing the Karatsuba XOR assembly for all 121 inner
+  nodes using `rvv_copy_u64` and `rvv_xor3_u64`. Zero scalar `clmul`
+  instructions in this phase.
+
+The descriptor table (121 entries of 12 bytes each) encodes the buffer offsets
+and split sizes for each inner node, enabling the vector pass to operate without
+any recursion or dynamic dispatch.
+
+### 9.2 Implementation
+
+- **Source:** `src/mult/karatsuba_rvv_deferred/gf2x_clmul.c`
+- **Generated header:** `karatsuba_rvv_deferred_specialized_gen.h` (produced by
+  `scripts/gen/gen_karatsuba_specialized.py --mode deferred --threshold 16`)
+- **ISA:** `rv64gcv_zbc_zbb_zba` (same as Track B — no Zvbc/Zvbb)
+- **Stack footprint:**
+  - `flat_buf[11104]` = 88,832 bytes (~87 KB)
+  - `ta_tb_buf[542]` = 4,336 bytes
+  - `unreduced[554]` = 4,432 bytes
+  - Total: ~95.1 KB
+
+The scalar phase was generated as a fully-unrolled pre-order traversal of the
+Karatsuba tree, with all buffer offsets resolved at compile time. The vector
+assembly phase used LMUL=m4 for copies and LMUL=m2 for the four-source XOR
+accumulation.
+
+### 9.3 Results — Simulation (Spike ISS, instruction count)
+
+| Metric | vector_rvv | vector_rvv_deferred | Delta |
+|--------|----------:|--------------------:|------:|
+| keypair (instret) | 286,255 | 293,248 | +2.4% |
+| encaps (instret) | 586,400 | 599,982 | +2.3% |
+| decaps (instret) | 1,084,132 | 1,366,501 | +26.0% |
+| **KEM total** | **1,956,787** | **2,259,731** | **+15.5%** |
+| Code size (.text) | 40,890 B | 149,024 B | +264% |
+
+### 9.4 Results — Hardware (BPI-F3, SpacemiT X60, N=100, dev mode)
+
+#### Full KEM (median cycles)
+
+| Operation | vector_rvv | vector_rvv_deferred | Delta | Change |
+|-----------|----------:|--------------------:|------:|--------|
+| keypair | 302,181 | 356,912 | +54,731 | +18.1% |
+| encaps | 600,692 | 705,525 | +104,833 | +17.5% |
+| decaps | 1,147,999 | 1,498,574 | +350,575 | +30.5% |
+| **total** | **2,050,872** | **2,561,011** | **+510,139** | **+24.9%** |
+
+#### Isolated poly_mul (median)
+
+| Metric | vector_rvv | vector_rvv_deferred | Delta |
+|--------|----------:|--------------------:|------:|
+| Cycles | 210,287 | 266,123 | +26.6% |
+| Instret | 152,770 | 162,168 | +6.2% |
+| L1D miss rate | 0.10% | 0.94% | 9.4× worse |
+| L1D misses | 83 | 863 | 10.4× |
+| DTLB misses | 40 | 71 | +77.5% |
+| Frontend stalls | 1,148 | 11,897 | 10.4× |
+| Backend stalls | 109,167 | 146,131 | +33.9% |
+| VPU stalls | 25,438 | 49,804 | +95.8% |
+
+### 9.5 Root Cause Analysis
+
+The deferred variant is **25% slower** on hardware despite eliminating all
+scalar↔vector transitions. Three microarchitectural effects dominate:
+
+1. **L1D cache thrashing.** The flat buffer (87 KB) far exceeds the X60's L1D
+   capacity. Phase 1 writes products to scattered buffer locations; Phase 2
+   reads them back after the entire scalar phase completes. The temporal gap
+   between write and read guarantees eviction, converting what were L1-resident
+   accesses in the interleaved approach into L2 (or worse) misses. The L1D miss
+   rate increased from 0.10% to 0.94% — a 9.4× degradation.
+
+2. **VPU pipeline stalls.** The vector assembly phase reads from non-sequential
+   buffer locations (z0, z2, zmid at different offsets per descriptor). Each
+   vector load stalls waiting for cache-line fills, nearly doubling VPU stall
+   cycles (+96%).
+
+3. **Frontend pressure from code bloat.** The generated scalar phase (fully
+   unrolled for all 243 leaves) produces 149 KB of .text — 3.6× larger than
+   the interleaved variant. This exceeds the instruction cache working set,
+   causing 10× more frontend stalls.
+
+### 9.6 Architectural Lesson
+
+The scalar↔vector transition penalty (~28 cycles × 363 transitions ≈ 10,164
+cycles) is real but modest compared to the total `vect_mul` cost (~210K cycles).
+It represents only ~4.8% of execution time. The deferred approach trades this
+4.8% penalty for:
+
+- 87 KB of additional memory pressure (cache thrashing)
+- 3.6× code size increase (I-cache pressure)
+- Loss of temporal locality (write-then-read across phases)
+
+On the X60's memory hierarchy (32 KB L1D, 256 KB L2), the cache effects
+dominate overwhelmingly. The interleaved approach in Track B keeps the working
+set small (each recursion level's buffers fit in L1D) and benefits from
+immediate reuse of freshly-written products.
+
+**Conclusion:** The deferred two-phase strategy is architecturally unsound for
+the SpacemiT X60's cache hierarchy. It would only be viable on a
+microarchitecture with either (a) very large L1D (≥128 KB), (b) extremely
+expensive scalar↔vector transitions (≥100 cycles), or (c) hardware prefetch
+capable of hiding the Phase 1→Phase 2 latency gap.
+
+### 9.7 Disposition
+
+- **Status:** Rejected and removed from the build system (2026-06-01).
+- **Source removed:** `src/mult/karatsuba_rvv_deferred/` deleted.
+- **Build system:** Removed from `CMakeLists.txt`, `Makefile.hw`,
+  `implemented_variants.txt`, and `run_bench.sh`.
+- **Generator preserved:** `scripts/gen/gen_karatsuba_specialized.py --mode deferred`
+  remains functional for reference but is not invoked by any build target.
+- **KAT status at removal:** All 300 vectors passed (HQC-128). The
+  implementation was functionally correct but performance-rejected.
