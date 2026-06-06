@@ -54,9 +54,10 @@
 \draw[gray!40, thick] (t1.south) -- (t2.north);
 \draw[gray!40, thick] (t2.south) -- (t3.north);
 
-% Brace annotation: "Κεφ. 6–7"
-\draw[decorate, decoration={brace, amplitude=4pt, mirror}, gray!60]
-  ([xshift=1.5cm]t1.north east) -- ([xshift=1.5cm]t3.south east)
-  node[midway, right=5pt, font=\scriptsize\sffamily, text=gray!70] {Κεφ.~6–7};
+% Chapter annotation for the optimization tiers. Placed below the tier
+% column so it does not overlap the Tier→Results arrows in the central
+% corridor (the previous side brace collided with the Tier 2 arrow).
+\node[font=\scriptsize\sffamily, text=gray!70] (tierchapters)
+  at (5.0, -2.75) {Αναλυτικά: Κεφ.~6–7};
 
 \end{tikzpicture}

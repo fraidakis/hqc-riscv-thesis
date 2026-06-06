@@ -6,6 +6,8 @@ repo_tree.txt
 proposals/
 .kiro/*
 repo/
+*.zip
+EDITS-REPORT.md
 
 # Build outputs — hierarchical matrix lives under build/<sim>/<context>/
 build/
