@@ -1,0 +1,37 @@
+% Table: Security level scaling — instret ratios and speedups across levels
+% Data source: results/simulation/benchmarks/kem/sim_kem_*.csv
+% Shows how instret grows with security level and how speedup evolves
+\begin{tabular}{
+  l
+  S[table-format=3.1]
+  S[table-format=3.1]
+  S[table-format=3.1]
+  S[table-format=1.2]
+  S[table-format=1.2]
+}
+\toprule
+\textbf{Variant}
+  & {\textbf{HQC-128}} & {\textbf{HQC-192}} & {\textbf{HQC-256}}
+  & {$\frac{\text{192}}{\text{128}}$}
+  & {$\frac{\text{256}}{\text{128}}$} \\
+\midrule
+\multicolumn{6}{l}{\textit{Decaps \instret ($\times 10^3$)}} \\
+\addlinespace[2pt]
+ref\_scalar       & 59014 & 177662 & 431891 & 3.01 & 7.32 \\
+Tier~1 (Zbc)      & 2088  & 4442   & 9725   & 2.13 & 4.66 \\
+Tier~2 (RVV)      & 1084  & 2515   & 6342   & 2.32 & 5.85 \\
+Tier~3 (Zvbc)     & 400   & 915    & 1430   & 2.28 & 3.57 \\
+\midrule
+\multicolumn{6}{l}{\textit{Decaps speedup ($\times$ vs ref\_scalar)}} \\
+\addlinespace[2pt]
+Tier~1 (Zbc)      & 28.3  & 40.0   & 44.4   & {—} & {—} \\
+Tier~2 (RVV)      & 54.4  & 70.7   & 68.1   & {—} & {—} \\
+Tier~3 (Zvbc)     & 147.4 & 194.3  & 302.0  & {—} & {—} \\
+\midrule
+\multicolumn{6}{l}{\textit{Total \KEM speedup ($\times$ vs ref\_scalar)}} \\
+\addlinespace[2pt]
+Tier~1 (Zbc)      & 34.0  & 45.4   & 49.1   & {—} & {—} \\
+Tier~2 (RVV)      & 59.9  & 75.8   & 71.7   & {—} & {—} \\
+Tier~3 (Zvbc)     & 160.9 & 206.2  & 325.6  & {—} & {—} \\
+\bottomrule
+\end{tabular}

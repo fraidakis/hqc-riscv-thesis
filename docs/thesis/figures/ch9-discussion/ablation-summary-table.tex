@@ -1,0 +1,65 @@
+% Summary table: ISA extension ablation results
+% §9.2.1
+\begin{tabular}{l l S[table-format=3.0] S[table-format=2.2] l}
+\toprule
+\textbf{Extension} & \textbf{Εντολές} & {\textbf{Στατικές}} &
+  {\textbf{Δ\% (best)}} & \textbf{Απόφαση} \\
+\midrule
+\Zbc (\clmul/\clmulh)
+  & carry-less multiply
+  & {1200+}
+  & {-96.00}
+  & Υποχρεωτική \\
+\Zbb (\rori, \insn{andn})
+  & rotate, AND-NOT
+  & 58
+  & {-10.48}
+  & Υποχρεωτική \\
+\ext{Zba} (\insn{sh3add})
+  & address generation
+  & 211
+  & {-5.61}
+  & Promoted (Tier 2/3) \\
+\ext{Zbs} (\insn{bset})
+  & single-bit set
+  & 5
+  & {-0.71}
+  & Ενεργή (scalar) \\
+\RVV (\insn{vxor}, \insn{vle64})
+  & vector recomposition
+  & {—}
+  & {-47.00}
+  & Tier 2+ \\
+\Zvbc (\vclmul/\vclmulh)
+  & vector carry-less mul
+  & {—}
+  & {-59.00}
+  & Tier 3 \\
+\Zvbb (\insn{vror}, \insn{vandn})
+  & vector rotate/AND-NOT
+  & {—}
+  & {-11.00}
+  & Tier 3 \\
+\midrule
+\ext{Zbkb} (\insn{pack}, \insn{brev8})
+  & crypto bit-manip
+  & 0
+  & {0.00}
+  & Απορρίφθηκε \\
+\ext{Zbkc} (\insn{clmulr})
+  & reversed clmul
+  & 0
+  & {0.00}
+  & Απορρίφθηκε \\
+\ext{Zicond} (\insn{czero})
+  & conditional zero
+  & 0
+  & {-0.38}
+  & Απορρίφθηκε \\
+\ext{Zcb}
+  & compressed encoding
+  & {—}
+  & {0.00}
+  & Απορρίφθηκε \\
+\bottomrule
+\end{tabular}

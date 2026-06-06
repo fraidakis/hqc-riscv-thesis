@@ -1,0 +1,73 @@
+% Cross-architecture comparison table for §9.1
+% Includes heterogeneous platforms with different metrics
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{
+  l                          % Platform
+  l                          % ISA / Extensions
+  l                          % Metric
+  S[table-format=8.0]        % KeyGen
+  S[table-format=8.0]        % Encaps
+  S[table-format=8.0]        % Decaps
+  l                          % Notes
+}
+\toprule
+\textbf{Πλατφόρμα} & \textbf{ISA} & \textbf{Μετρική} &
+  {\textbf{KeyGen}} & {\textbf{Encaps}} & {\textbf{Decaps}} & \textbf{Σημειώσεις} \\
+\midrule
+\multicolumn{7}{l}{\textit{Αρχιτεκτονικές αναφοράς (κύκλοι ρολογιού σε πραγματικό hardware)}} \\
+\addlinespace[3pt]
+Intel AVX-512
+  & \code{VPCLMULQDQ}, ZMM
+  & cycles
+  & 64825
+  & 158377
+  & 300661
+  & Desktop, OoO \\
+AMD Zen~4
+  & AVX2 + \code{PCLMULQDQ}
+  & cycles
+  & 402210
+  & 674620
+  & 868857
+  & SUPERCOP ref \\
+ARM Cortex-M4
+  & ARMv7-M (no clmul)
+  & cycles
+  & 1837507
+  & 4878515
+  & 7502580
+  & pqm4, bit-slicing \\
+RISC-V FAFFT
+  & RV32IMC (CV32E40P)
+  & cycles
+  & 12208482
+  & 24882981
+  & 38099269
+  & SW-only, FPGA \\
+\midrule
+\multicolumn{7}{l}{\textit{Παρούσα εργασία (retired instructions, Spike ISS, VLEN $= \num{256}$)}} \\
+\addlinespace[3pt]
+Tier~1 (\code{karatsuba\_zbc})
+  & RV64GC + \Zbc/\Zbb
+  & instret
+  & 462794
+  & 898649
+  & 2088352
+  & Scalar, AP-2 \\
+Tier~2 (\code{karatsuba\_rvv})
+  & RV64GCV + \Zbc/\Zbb
+  & instret
+  & 289001
+  & 591892
+  & 1094531
+  & Hybrid, AP-2 \\
+Tier~3 (\code{karatsuba\_zvbc})
+  & RV64GCV + \Zvbc/\Zvbb
+  & instret
+  & 105279
+  & 217479
+  & 394225
+  & Full vector, AP-2 \\
+\bottomrule
+\end{tabular}%
+}

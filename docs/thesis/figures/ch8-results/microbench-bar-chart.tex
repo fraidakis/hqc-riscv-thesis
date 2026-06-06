@@ -1,0 +1,62 @@
+% Grouped bar chart: micro-benchmark instret comparison (HQC-128)
+% Shows Reference vs Tier 1/2/3 for each kernel
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    bar width=10pt,
+    width=0.95\textwidth,
+    height=7cm,
+    ymode=log,
+    log origin=infty,
+    ylabel={Δυναμικές εντολές (\instret)},
+    symbolic x coords={Polymul, Keccak, Decode},
+    xtick=data,
+    x tick label style={font=\small},
+    ymin=10000,
+    ymax=100000000,
+    legend style={
+      at={(0.5,1.03)},
+      anchor=south,
+      legend columns=3,
+      font=\footnotesize,
+      /tikz/every even column/.append style={column sep=8pt}
+    },
+    nodes near coords style={font=\tiny, rotate=90, anchor=west},
+    enlarge x limits=0.25,
+    grid=major,
+    ymajorgrids=true,
+    xmajorgrids=false,
+]
+
+% Reference (scalar baseline)
+\addplot[fill=gray!60, draw=gray!80] coordinates {
+    (Polymul, 19214281)
+    (Keccak, 463069)
+    (Decode, 384986)
+};
+
+% Tier 1 (karatsuba_zbc / ref keccak / ref decode)
+\addplot[fill=blue!50, draw=blue!70] coordinates {
+    (Polymul, 221030)
+    (Keccak, 463069)
+    (Decode, 384986)
+};
+
+% Tier 2 (karatsuba_rvv / ref keccak / rvv decode)
+\addplot[fill=orange!60, draw=orange!80] coordinates {
+    (Polymul, 157473)
+    (Keccak, 463069)
+    (Decode, 122163)
+};
+
+% Tier 3 (karatsuba_zvbc / zvbb_x2 keccak / zvbc decode)
+\addplot[fill=green!50, draw=green!70] coordinates {
+    (Polymul, 62526)
+    (Keccak, 131944)
+    (Decode, 56515)
+};
+
+\legend{Reference, Tier~1 (\Zbc), Tier~2 (RVV), Tier~3 (\Zvbc/\Zvbb)}
+
+\end{axis}
+\end{tikzpicture}

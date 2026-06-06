@@ -1,0 +1,25 @@
+% Table: Polymul micro-benchmark results (all tiers, all security levels)
+\begin{tabular}{l l S[table-format=9.0] S[table-format=6.0] S[table-format=3.1]}
+  \toprule
+  \textbf{Security Level} & \textbf{Variant} & {\textbf{\instret}} & {\textbf{Code size (B)}} & {\textbf{Speedup}} \\
+  \midrule
+  \multirow{5}{*}{HQC-128}
+    & \code{ref\_scalar}     & 19214281 &  2292 & {—} \\
+    & \code{ref\_vector}     & 18527412 &  3840 & {1.04} \\
+    & \code{karatsuba\_zbc}  &   221030 & 15270 & {86.9} \\
+    & \code{karatsuba\_rvv}  &   157473 &  7992 & {122.0} \\
+    & \code{karatsuba\_zvbc} &    62526 &  5940 & {307.3} \\
+  \midrule
+  \multirow{4}{*}{HQC-192}
+    & \code{ref\_scalar}     & 58433901 &  2316 & {—} \\
+    & \code{ref\_vector}     & 56315140 &  3884 & {1.04} \\
+    & \code{karatsuba\_rvv}  &   473083 & 10560 & {123.5} \\
+    & \code{karatsuba\_zvbc} &   185116 &  8158 & {315.7} \\
+  \midrule
+  \multirow{4}{*}{HQC-256}
+    & \code{ref\_scalar}     & 142641044 & 2314 & {—} \\
+    & \code{ref\_vector}     & 139115660 & 3884 & {1.03} \\
+    & \code{karatsuba\_rvv}  &   1502171 & 7648 & {95.0} \\
+    & \code{karatsuba\_zvbc} &    271002 & 7384 & {526.3} \\
+  \bottomrule
+\end{tabular}

@@ -1,0 +1,23 @@
+% VLEN sweep results table (karatsuba_zvbc, full KEM)
+\begin{tabular}{l
+  S[table-format=7.0, group-separator={\,}]
+  S[table-format=7.0, group-separator={\,}]
+  S[table-format=7.0, group-separator={\,}]
+  S[table-format=7.0, group-separator={\,}]}
+  \toprule
+  & \multicolumn{4}{c}{\textbf{Total \KEM \instret}} \\
+  \cmidrule(lr){2-5}
+  \textbf{Security Level}
+    & {\VLEN=256} & {\VLEN=512} & {\VLEN=1024} & {\VLEN=2048} \\
+  \midrule
+  HQC-128 & 716983  & 690678  & 692500  & 716821  \\
+  HQC-192 & 1694892 & 1601345 & 1588990 & 1608961 \\
+  HQC-256 & 2611338 & 2469285 & 2450118 & 2466433 \\
+  \midrule
+  \multicolumn{5}{l}{\textbf{Μεταβολή ως προς VLEN=256 (\%)}} \\
+  \midrule
+  HQC-128 & {—} & {$-3.7$} & {$-3.4$} & {$-0.02$} \\
+  HQC-192 & {—} & {$-5.5$} & {$-6.2$} & {$-5.1$}  \\
+  HQC-256 & {—} & {$-5.4$} & {$-6.2$} & {$-5.5$}  \\
+  \bottomrule
+\end{tabular}

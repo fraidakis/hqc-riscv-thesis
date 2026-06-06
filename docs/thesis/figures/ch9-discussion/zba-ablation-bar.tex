@@ -1,0 +1,33 @@
+% Bar chart: Zba ablation — polymul Δ% per variant
+% §9.2.2
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    bar width=18pt,
+    width=0.75\textwidth,
+    height=5.5cm,
+    ylabel={Μεταβολή polymul \instret (\%)},
+    symbolic x coords={karatsuba\_zvbc, karatsuba\_rvv, karatsuba\_zbc, ref\_scalar},
+    xtick=data,
+    x tick label style={font=\small, rotate=15, anchor=east},
+    ymin=-7,
+    ymax=1,
+    ytick={-6,-5,-4,-3,-2,-1,0},
+    nodes near coords,
+    nodes near coords style={font=\scriptsize, anchor=south},
+    every node near coord/.append style={yshift=2pt},
+    point meta=explicit symbolic,
+    grid=major,
+    grid style={gray!20},
+    axis lines*=left,
+]
+
+\addplot[fill=blue!60, draw=blue!80!black] coordinates {
+    (karatsuba\_zvbc, -5.61) [$-5.61$]
+    (karatsuba\_rvv, -1.03) [$-1.03$]
+    (karatsuba\_zbc, -0.004) [$\approx 0$]
+    (ref\_scalar, 0) [$0$]
+};
+
+\end{axis}
+\end{tikzpicture}
