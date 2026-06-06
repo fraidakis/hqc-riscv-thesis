@@ -1,0 +1,10 @@
+# date: 2026-05-31 23:09
+# variant: karatsuba_rvv
+# level: 128
+# sweep_type: threshold
+threshold,median_cycles,median_instret,ipc
+8,210970,152695,0.724
+16,206774,152077,0.735
+32,274220,181570,0.662
+64,319783,272277,0.851
+128,411118,357010,0.868

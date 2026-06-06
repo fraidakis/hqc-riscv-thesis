@@ -1,0 +1,10 @@
+# date: 2026-05-31 23:10
+# variant: karatsuba_zbc
+# level: 128
+# sweep_type: threshold
+threshold,median_cycles,median_instret,ipc
+8,146288,195403,1.336
+16,146545,195403,1.333
+32,146441,195403,1.334
+64,146349,195403,1.335
+128,146506,195403,1.334
