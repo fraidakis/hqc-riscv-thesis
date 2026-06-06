@@ -191,6 +191,16 @@ $>\num{100000}$ cycles.
 speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγματικά για HQC-128/192,
 ενισχύοντας την αξιοπιστία της μετρικής \instret ως δείκτη σχετικής απόδοσης.
 
+Πέραν της αξιολόγησης απόδοσης, το BPI-F3 αποτελεί την πλατφόρμα εμπειρικής
+επαλήθευσης constant-time εκτέλεσης μέσω dudect-based στατιστικής ανάλυσης
+χρονισμού (βλ.\ \cref{sec:future-ct}).  Η μεθοδολογία dudect απαιτεί
+πραγματικούς κύκλους hardware — οι εξομοιωτές (Spike, QEMU) δεν παρέχουν
+αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage.  Η κάλυψη
+περιορίζεται στα Tier~1 (scalar \Zbc) και Tier~2 (base-RVV) variants, καθώς
+ο K1 X60 δεν υποστηρίζει \Zvbc/\Zvbb — η CT επαλήθευση των Tier~3
+vector-crypto variants παραμένει ανοιχτή μέχρι τη διαθεσιμότητα RVA23
+silicon.
+
 \begin{figure}[htbp]
   \centering
   \missingfig{Φωτογραφία Banana Pi BPI-F3 (SpacemiT K1, octa-core X60, RVV 1.0 VLEN=256) — η πλατφόρμα hardware validation της παρούσας εργασίας}

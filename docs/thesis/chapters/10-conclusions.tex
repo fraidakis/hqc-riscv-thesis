@@ -1,14 +1,219 @@
 \chapter{Συμπεράσματα και Μελλοντικές Επεκτάσεις}
 \label{ch:conclusions}
 
+Στο \cref{ch:discussion} αναλύθηκαν τα αποτελέσματα υπό το πρίσμα ετερογενών
+αρχιτεκτονικών, ISA ablation, και constant-time ασφάλειας.  Το παρόν κεφάλαιο
+συνοψίζει τη συνεισφορά της εργασίας, αναγνωρίζει τους περιορισμούς της, και
+χαρτογραφεί τις κατευθύνσεις μελλοντικής έρευνας.
+
+%% ==========================================================================
 \section{Σύνοψη Συνεισφοράς}
 \label{sec:summary}
 
+Η παρούσα εργασία παρουσίασε την πρώτη end-to-end βελτιστοποίηση του \HQC \KEM
+σε RISC-V, αξιοποιώντας αποκλειστικά ratified κρυπτογραφικές επεκτάσεις (\Zbc,
+\Zbb, \Zvbc, \Zvbb).  Η υλοποίηση οργανώθηκε σε τρία deployment tiers που
+αντιστοιχούν στη σταδιακή υιοθέτηση ISA extensions:
+
+\paragraph{Tier 1 — IoT Scalar (\Zbc/\Zbb)}
+Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \cycles{19214281} σε
+\cycles{211841} \instret (HQC-128), επιτυγχάνοντας \speedup{90.7} μέσω
+Karatsuba AP-2 fixed-tree generation και νατιβής \clmul/\clmulh.  Το πλήρες
+\KEM (keypair + encaps + decaps) επιτυγχάνει \speedup{34.0} στο HQC-128 και
+\speedup{49.1} στο HQC-256.
+
+\paragraph{Tier 2 — Edge RVV (\RVV + \Zbc/\Zbb)}
+Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
+speedup σε \speedup{117.7} (HQC-128) και το end-to-end \KEM σε \speedup{56.9}.
+Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το base-RVV
+rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
+
+\paragraph{Tier 3 — High-End Zvbc (\Zvbc/\Zvbb)}
+Η πλήρης αξιοποίηση \Zvbc \insn{vclmul.vv} επιτυγχάνει \speedup{255} στο
+polymul (HQC-128) και \speedup{426} στο HQC-256.  Το end-to-end \KEM φτάνει
+\speedup{156.8} (HQC-128) και \speedup{321.0} (HQC-256), τοποθετώντας τον
+\instret σε \cycles{716983} — της ίδιας τάξης μεγέθους με τον Intel AVX-512
+champion (\cref{ssec:avx512-gap}).
+
+\paragraph{Βοηθητικοί πυρήνες}
+Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
+(\speedup{3.5}–\speedup{3.7} μέσω 2-way \gls{soa} με \Zvbb) και η
+αποκωδικοποίηση Reed-Muller/Reed-Solomon (\speedup{6.4}–\speedup{7.3} μέσω
+\RVV vectorization και \Zvbc GF($2^8$) acceleration).
+
+\paragraph{Constant-time ασφάλεια}
+Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής: στατική
+ανάλυση ctgrind (Valgrind Memcheck) και εμπειρική στατιστική ανίχνευση dudect
+σε πραγματικό hardware (BPI-F3, SpacemiT K1 X60) για τα Tier~1 και Tier~2
+variants (\cref{sec:ct-verification}).  Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
+θεωρητική CT συμμόρφωση για το Tier~3.
+
+\paragraph{Hardware validation}
+Τα Tier~1 και Tier~2 επικυρώθηκαν σε πραγματικό RISC-V hardware (BPI-F3,
+SpacemiT K1 X60, VLEN $= \num{256}$), παρέχοντας μετρήσεις κύκλων με pipeline
+effects (\cref{sec:hw-evaluation}).  Ο scalar path επιτυγχάνει IPC $\approx 1.0$,
+επιβεβαιώνοντας ότι τα Spike \instret αποτελούν αξιόπιστη πρόβλεψη κύκλων για
+in-order scalar κώδικα.
+
+\paragraph{Σχεδιαστικές αρχές}
+Η εργασία ανέδειξε τέσσερις γενικεύσιμες αρχές (\cref{sec:general-principles}):
+(1)~η αποδοτικότητα του carry-less multiply ως θεμελιώδης μοχλός για GF($2$)[x]
+αριθμητική, (2)~η αξία του Vector-Length Agnosticism σε κρυπτογραφικά workloads,
+(3)~τα όρια auto-vectorization σε crypto kernels, και (4)~η υπεροχή
+metaprogramming (code generation) έναντι hand-tuning για βαθιά αναδρομικούς
+αλγορίθμους.  Η σύνθεση αυτών οδηγεί στο συμπέρασμα ότι η ISA completeness
+υπερτερεί του ISA width — η ύπαρξη της κατάλληλης εντολής (\eg \clmul, \vror)
+αποδίδει περισσότερο από ευρύτερα vector registers χωρίς εξειδικευμένες
+λειτουργίες.
+
+%% ==========================================================================
 \section{Περιορισμοί}
 \label{sec:limitations}
 
+Η παρούσα εργασία υπόκειται στους ακόλουθους περιορισμούς, οι οποίοι
+οριοθετούν την εμβέλεια των συμπερασμάτων.
+
+\paragraph{Απουσία Tier~3 hardware validation}
+Το Tier~3 (\Zvbc/\Zvbb) αξιολογήθηκε αποκλειστικά σε εξομοίωση (Spike ISS)
+λόγω απουσίας RVA23-compliant silicon με πλήρη \Zvbc υποστήριξη.  Τα
+αποτελέσματα αντιπροσωπεύουν \instret (αριθμό δυναμικά εκτελεσθεισών εντολών)
+υπό ιδανικές pipeline συνθήκες — χωρίς cache misses, branch mispredictions, ή
+vector pipeline stalls.  Η πραγματική απόδοση σε silicon αναμένεται να
+διαφοροποιηθεί ανάλογα με τη μικροαρχιτεκτονική υλοποίηση του \Zvbc execution
+unit.
+
+\paragraph{Ετερογένεια μετρικών στη cross-architecture σύγκριση}
+Η σύγκριση με Intel AVX-512, AMD Zen~4, και ARM Cortex-M4
+(\cref{sec:cross-architecture}) αντιπαραθέτει \instret (Spike) με κύκλους
+ρολογιού (πραγματικό hardware).  Η άμεση αριθμητική σύγκριση δεν επιτρέπεται
+χωρίς επιφυλάξεις — ο \instret αποτελεί κάτω φράγμα κύκλων σε κάθε ρεαλιστικό
+pipeline, αλλά δεν ενσωματώνει ILP, OoO execution, ή cache effects.
+
+\paragraph{Residual OS noise στις hardware μετρήσεις}
+Οι μετρήσεις κύκλων στο BPI-F3 πραγματοποιήθηκαν σε Linux userspace μέσω
+\code{perf\_event\_open}.  Παρά τη χρήση single-core pinning (\code{taskset})
+και median statistic, residual OS noise (timer interrupts $\sim$κάθε
+\SI{4}{\milli\second}) εισάγει μικρή αβεβαιότητα στις μετρήσεις.
+
+\paragraph{Εμπειρική CT verification μόνο για Tier~1/2}
+Η dudect εμπειρική επαλήθευση καλύπτει μόνο τα variants \code{karatsuba\_zbc}
+(Tier~1) και \code{karatsuba\_rvv} (Tier~2).  Το \code{karatsuba\_zvbc}
+(Tier~3) δεν δοκιμάστηκε με dudect λόγω απουσίας \Zvbc/\Zvbb στον SpacemiT K1.
+Η αρχιτεκτονική ανάλυση Zkt (\cref{ssec:ct-design-patterns}) τεκμηριώνει
+θεωρητική CT συμμόρφωση, αλλά η εμπειρική επιβεβαίωση σε πραγματικό silicon
+παραμένει εκκρεμής.
+
+\paragraph{Compiler ecosystem ωριμότητα}
+Ο \Zvbb-accelerated Keccak backend (\code{fips202\_zvbb\_x2}) μεταγλωττίζεται
+αποκλειστικά με Clang/LLVM λόγω ασυμβατότητας GCC με LMUL=8 \Zvbb codegen
+(\cref{ssec:gcc-zvbb-incompatibility}).  Η εξάρτηση από μονό compiler αποτελεί
+πρακτικό περιορισμό για production deployment.
+
+\paragraph{Μονοπύρηνη αξιολόγηση}
+Η αξιολόγηση εστιάζει σε single-core εκτέλεση.  Σε multi-session σενάρια
+(\eg TLS server με πολλαπλές ταυτόχρονες KEM operations), η απόδοση εξαρτάται
+από cache contention, memory bandwidth, και NUMA effects που δεν εξετάστηκαν.
+
+%% ==========================================================================
 \section{Μελλοντική Έρευνα}
 \label{sec:future-work}
 
+Η εργασία ανοίγει πολλαπλές κατευθύνσεις μελλοντικής έρευνας, οι οποίες
+κατηγοριοποιούνται σε βραχυπρόθεσμες (εφικτές με υπάρχοντα εργαλεία) και
+μακροπρόθεσμες (απαιτούν νέο hardware ή ISA extensions).
+
+%% --------------------------------------------------------------------------
 \subsection{Constant-Time Υλοποίηση}
 \label{sec:future-ct}
+
+\paragraph{Formal CT verification για RVV/Zvbc binaries}
+Η formal verification constant-time ιδιοτήτων σε RVV/\Zvbc binaries αποτελεί
+ανοιχτό ερευνητικό πρόβλημα.  Τα υπάρχοντα εργαλεία (Binsec/Rel, ct-verif,
+HolBA) δεν υποστηρίζουν τη RISC-V vector ISA
+(\cref{ssec:ct-formal-gap}).  Η ανάπτυξη formal verification
+framework για RVV θα επέτρεπε μαθηματική απόδειξη — αντί εμπειρικής
+τεκμηρίωσης — της CT ιδιότητας.
+
+\paragraph{Εμπειρική dudect validation του Tier~3}
+Με τη διαθεσιμότητα RVA23-compliant hardware (\eg μελλοντικά SoCs με πλήρη
+\Zvbc/\Zvbb), η εκτέλεση dudect σε πραγματικό silicon θα παρέχει εμπειρική
+επιβεβαίωση ότι η \Zvbc pipeline δεν εισάγει data-dependent timing variations.
+Η υπάρχουσα dudect υποδομή (\code{tests/ct\_dudect/}) είναι έτοιμη για
+deployment σε νέο hardware χωρίς τροποποιήσεις.
+
+\paragraph{Publish-mode dudect (10M measurements)}
+Η τρέχουσα dudect εκτέλεση χρησιμοποιεί $\sim$\num{100000} measurements ανά
+trial.  Η επέκταση σε \num{10000000} measurements ανά trial (publish-mode) θα
+ενισχύσει τη στατιστική ισχύ, μειώνοντας τον κίνδυνο false negatives σε
+ασθενείς διαρροές.
+
+%% --------------------------------------------------------------------------
+\subsection{Hardware Validation και Cycle-Accurate Simulation}
+\label{sec:future-hw}
+
+\paragraph{Tier~3 performance validation σε πραγματικό silicon}
+Η κεντρική εκκρεμότητα είναι η μέτρηση πραγματικών κύκλων για το
+\code{karatsuba\_zvbc} σε hardware με νατιβή \Zvbc υποστήριξη.  Η μέτρηση
+αυτή θα αποκαλύψει τον πραγματικό CPI του \insn{vclmul.vv} και θα
+επιβεβαιώσει (ή θα αναθεωρήσει) τα \instret-based speedup claims.
+
+\paragraph{Cycle-accurate RTL simulation (Marian/Ara soft-core)}
+Η χρήση του Marian ή Ara open-source RISC-V vector processor σε FPGA ή
+Verilator θα παρέχει cycle-accurate pipeline characterization για \Zvbc
+εντολές, γεφυρώνοντας το χάσμα μεταξύ Spike \instret και πραγματικών κύκλων
+πριν τη διαθεσιμότητα commercial silicon.
+
+%% --------------------------------------------------------------------------
+\subsection{Αλγοριθμικές Επεκτάσεις}
+\label{sec:future-algorithmic}
+
+\paragraph{Vectorization εκκρεμών decode σταδίων}
+Η τρέχουσα υλοποίηση vectorizes τα στάδια syndromes, root-finding (FFT), και
+error evaluation του Reed-Solomon decoder.  Το στάδιο Berlekamp-Massey
+παραμένει scalar λόγω loop-carried dependencies.  Η διερεύνηση εναλλακτικών
+αλγορίθμων (\eg Sugiyama, Patterson) με μεγαλύτερο inherent parallelism
+αποτελεί ανοιχτή κατεύθυνση.
+
+\paragraph{Multi-session batching}
+Σε server σενάρια, η ταυτόχρονη εκτέλεση πολλαπλών \KEM sessions επιτρέπει
+amortization του Keccak overhead μέσω $N$-way batched SHAKE.  Η 2-way \gls{soa}
+αρχιτεκτονική που αναπτύχθηκε για τον Keccak (\cref{ssec:bench-keccak})
+γενικεύεται φυσικά σε $N$-way για $N \leq \text{VLEN}/64$.
+
+%% --------------------------------------------------------------------------
+\subsection{ISA Extensions Μελλοντικής Γενιάς}
+\label{sec:future-isa}
+
+\paragraph{Εντολή \code{vkeccak.vi} (RISC-V PQC Task Group)}
+Η ομάδα εργασίας PQC του RISC-V International αναπτύσσει αφιερωμένη εντολή
+Keccak permutation (\code{vkeccak.vi}).  Η τυποποίηση αυτής θα εξαλείψει τον
+Theta scalar bridge που αποτελεί Amdahl's Law floor στην τρέχουσα υλοποίηση
+(\pct{23} του Tier~3 \Decaps).  Βάσει προκαταρκτικών benchmarks σε SpacemiT
+X60, η εντολή αυτή αναμένεται να προσφέρει \speedup{12.7} στον Keccak πυρήνα.
+
+\paragraph{Configurable-polynomial GF reduction extension}
+Η ανάλυση στο \cref{sec:general-principles} τεκμηρίωσε ότι η \Zvbc
+\insn{vclmul.vv} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο $\GFpoly$,
+αλλά η modular reduction σε μικρά πεδία (\eg $\GF{2^8}$) απαιτεί \num{6}
+εντολές ακόμη και μετά τη Barrett optimization.  Μια μελλοντική extension με
+configurable reduction polynomial (\eg \code{Zvkgf} ή \code{Zvkpoly}) θα
+συμπίεζε τη reduction σε μία εντολή, ωφελώντας τόσο τον HQC Reed-Solomon
+decoder όσο και γενικότερα AES-GCM/GHASH workloads.
+
+\paragraph{Ευρύτερη εφαρμογή σε code-based PQC}
+Οι τεχνικές που αναπτύχθηκαν (AP-2 Karatsuba, \Zvbc vectorized leaves, 2-way
+\gls{soa} Keccak) εφαρμόζονται άμεσα σε άλλα code-based σχήματα που
+χρησιμοποιούν πολυωνυμικό πολλαπλασιασμό στο $\GFpoly$ — ιδίως στο BIKE, το
+οποίο μοιράζεται τον ίδιο αλγεβρικό πυρήνα με τον \HQC.  Η επέκταση της
+υλοποίησης σε BIKE θα τεκμηρίωνε τη γενικευσιμότητα της προσέγγισης.
+
+%% --------------------------------------------------------------------------
+
+\vspace{1em}
+Συνοψίζοντας, η παρούσα εργασία τεκμηρίωσε ότι οι ratified κρυπτογραφικές
+επεκτάσεις του RISC-V επαρκούν για να φέρουν μια pure-software υλοποίηση
+code-based \gls{pqc} σε επίπεδο απόδοσης συγκρίσιμο με εξειδικευμένες SIMD
+αρχιτεκτονικές — χωρίς custom hardware, χωρίς vendor lock-in, και χωρίς
+υποχώρηση στην ασφάλεια timing side-channels.  Η cryptographic agility που
+παρέχει η modular ISA φιλοσοφία του RISC-V αποδεικνύεται πρακτικά εφικτή:
+υψηλή απόδοση και αλγοριθμική ευελιξία δεν αποτελούν αντικρουόμενους στόχους.

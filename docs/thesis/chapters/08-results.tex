@@ -1,17 +1,1062 @@
 \chapter{Αποτελέσματα και Μετρήσεις Απόδοσης}
 \label{ch:results}
 
+Στα \cref{ch:polymul-optimization} και \cref{ch:kernel-optimization} παρουσιάστηκαν
+οι βελτιστοποιήσεις τριών υπολογιστικών πυρήνων — πολυωνυμικού πολλαπλασιασμού,
+Keccak και αποκωδικοποίησης — σε τρεις βαθμίδες hardware (Tier~1–3).  Το παρόν
+κεφάλαιο ποσοτικοποιεί τα αποτελέσματα αυτών των βελτιστοποιήσεων μέσω
+συστηματικών μετρήσεων \instret στο Spike \gls{iss} (VLEN $= \num{256}$~bits),
+ξεκινώντας από απομονωμένες μικρο-αξιολογήσεις ανά πυρήνα και κλιμακώνοντας
+σε end-to-end \KEM αξιολόγηση.
+
 \section{Απομονωμένες Μικρο-αξιολογήσεις}
 \label{sec:microbenchmarks}
+
+Η απομονωμένη μέτρηση κάθε πυρήνα εξαλείφει τις αλληλεπιδράσεις μεταξύ
+υποσυστημάτων και αποκαλύπτει την καθαρή αλγοριθμική βελτίωση ανά tier.
+Κάθε micro-benchmark εκτελεί ακριβώς μία κλήση της αντίστοιχης συνάρτησης
+υπό ελεγχόμενες συνθήκες (βλ.\ \cref{sec:benchmarking} για τη μεθοδολογία
+μέτρησης).  Ο \cref{fig:microbench-bar} παρουσιάζει συγκεντρωτικά τη σύγκριση
+reference–optimized για τους τρεις πυρήνες στο HQC-128, ενώ οι επιμέρους
+πίνακες αναλύουν τα αποτελέσματα ανά security level.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch8-results/microbench-bar-chart}
+  \caption{Σύγκριση \instret ανά πυρήνα και tier για HQC-128 (λογαριθμική
+    κλίμακα).  Ο πολυωνυμικός πολλαπλασιασμός παρουσιάζει τη μεγαλύτερη
+    μείωση (\speedup{307} στο Tier~3), ενώ Keccak και decode ωφελούνται
+    \speedup{3.5} και \speedup{6.8} αντίστοιχα.}
+  \label{fig:microbench-bar}
+\end{figure}
+
+%% --------------------------------------------------------------------------
+\subsection{\code{bench\_mul} — Πολυωνυμικός Πολλαπλασιασμός}
+\label{ssec:bench-mul}
+
+Το micro-benchmark \code{bench\_mul} εκτελεί μία κλήση \code{vect\_mul()} με
+dense pseudo-random πολυώνυμο \code{poly\_a} (μιμείται τα $h$ ή $s$ του
+πρωτοκόλλου) και sparse πολυώνυμο \code{poly\_b} βάρους
+$\omega = \text{PARAM\_OMEGA\_R}$ (μιμείται τα $r_2$ ή $y$).  Η μέτρηση
+αναπαράγει ακριβώς μία κλήση — στο πλήρες \Decaps εκτελούνται τρεις κλήσεις
+(μία decrypt $+$ δύο re-encrypt), οπότε το συνολικό κόστος polymul στο \KEM
+ισούται με $3\times$ τα παρακάτω.
+
+Ο \cref{tab:microbench-polymul} παρουσιάζει τα αποτελέσματα για όλα τα
+variants και security levels.  Η στήλη speedup υπολογίζεται ως λόγος
+\code{ref\_scalar} / variant.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Isolated polymul \instret ανά variant και security level
+    (Spike, VLEN $= \num{256}$).  Το Tier~3 (\code{karatsuba\_zvbc})
+    επιτυγχάνει \speedup{307} στο HQC-128 και \speedup{526} στο HQC-256
+    έναντι του scalar reference.}
+  \label{tab:microbench-polymul}
+  \input{figures/ch8-results/microbench-polymul-table}
+\end{table}
+
+Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.  Πρώτον, η μετάβαση
+από \code{ref\_scalar} σε \code{ref\_vector} παρέχει αμελητέα βελτίωση
+($\approx\pct{4}$) — ο compiler δεν μπορεί να vectorize αυτόματα τον
+schoolbook πολλαπλασιασμό σε $\GFpoly$ (βλ.\ \cref{sec:keccak-rvv-paradox}
+για ανάλογη παρατήρηση στον Keccak).  Δεύτερον, η κλιμάκωση μεταξύ security
+levels ακολουθεί τη θεωρητική πολυπλοκότητα $\BigO{N^{\log_2 3}}$ του
+Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι $\num{271002}
+/ \num{62526} = 4.33$ στο Tier~3, συμβατός με $(57637/17669)^{1.585} \approx
+4.5$.  Τρίτον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
+\SI{15.3}{\kilo\byte} στο Tier~1) αντικατοπτρίζει το κόστος του πλήρως
+ξεδιπλωμένου Karatsuba tree — ένα trade-off που αναλύεται στην
+\cref{sec:polymul-codesize}.
+
+%% --------------------------------------------------------------------------
+\subsection{\code{bench\_keccak} — Πλήρες Decaps Keccak Call Pattern}
+\label{ssec:bench-keccak}
+
+Το micro-benchmark \code{bench\_keccak} αναπαράγει ολόκληρο το μοτίβο
+κλήσεων συμμετρικών primitives (SHAKE-256, SHA3-256, SHA3-512) που
+εκτελούνται κατά τη διάρκεια ενός \code{crypto\_kem\_dec()}.  Συγκεκριμένα
+περιλαμβάνει:
+\begin{enumerate}
+  \item \code{xof\_init} $+$ \code{vect\_sample\_fixed\_weight} —
+    ανακατασκευή μυστικού κλειδιού $y$ από seed,
+  \item \code{hash\_h} — SHA3-256 επί \code{PUBLIC\_KEY\_BYTES}
+    ($\approx\SI{2241}{\byte}$ για HQC-128),
+  \item \code{hash\_g} — SHA3-512 επί $\SI{64}{\byte}$,
+  \item \code{xof\_init} $+$ $3\times$ \code{vect\_sample\_fixed\_weight}
+    $+$ \code{vect\_set\_random} — re-encryption sampling,
+  \item \code{hash\_j} — SHA3-256 επί $\approx\SI{4481}{\byte}$.
+\end{enumerate}
+Συνολικά εκτελούνται $\sim$6 XOF/hash αρχικοποιήσεις και 30–50
+Keccak-f[1600] permutations ανάλογα με το security level.  Η μέτρηση
+\emph{δεν} περιλαμβάνει \code{vect\_mul} ή \code{code\_decode} (μετρούνται
+ξεχωριστά), αλλά περιλαμβάνει το κόστος vector sampling (rejection loops,
+bit-scatter) που στο πραγματικό \KEM είναι αδιαχώριστο από τη SHAKE squeeze.
+
+Ο \cref{tab:microbench-keccak} παρουσιάζει τη σύγκριση μεταξύ reference
+(scalar \code{fips202.c}) και βελτιστοποιημένης υλοποίησης (δικαναλική
+\gls{soa} αρχιτεκτονική με \Zvbb, βλ.\ \cref{sec:keccak-zvbb-soa}).
+
+\begin{table}[htbp]
+  \centering
+  \caption{Keccak micro-benchmark \instret: reference vs optimized
+    \code{zvbb\_x2\_soa} (Spike, VLEN $= \num{256}$).  Η δικαναλική
+    \gls{soa} αρχιτεκτονική επιτυγχάνει σταθερή επιτάχυνση
+    \speedup{3.5}–\speedup{3.7} ανεξαρτήτως security level.}
+  \label{tab:microbench-keccak}
+  \input{figures/ch8-results/microbench-keccak-table}
+\end{table}
+
+Η σταθερότητα του speedup μεταξύ security levels ($\speedup{3.51}$–$\speedup{3.67}$)
+επιβεβαιώνει ότι η βελτίωση προέρχεται από τον permutation core (σταθερό
+κόστος ανά κλήση) και όχι από τις I/O φάσεις (γραμμικές ως προς το μέγεθος
+εισόδου).  Η αύξηση code size κατά \SI{5}{\kilo\byte} αντικατοπτρίζει τον
+ξεδιπλωμένο 2-way SoA πυρήνα — αποδεκτό trade-off δεδομένου ότι ο Keccak
+αποτελεί $\approx\pct{20}$ του τελικού \KEM profile (βλ.\
+\cref{sec:polymul-assessment}).
+
+%% --------------------------------------------------------------------------
+\subsection{\code{bench\_decode} — Συνδυασμένη Αποκωδικοποίηση RM+RS}
+\label{ssec:bench-decode}
+
+Το micro-benchmark \code{bench\_decode} εκτελεί μία κλήση
+\code{reed\_muller\_decode} ακολουθούμενη από \code{reed\_solomon\_decode}
+με σωστά μεγέθη buffers (\code{VEC\_N1N2\_SIZE\_64} $\to$
+\code{VEC\_N1\_SIZE\_64} $\to$ \code{PARAM\_K} bytes).  Τα δεδομένα εισόδου
+είναι μηδενικά — αντιπροσωπευτικό λόγω της data-independent δομής βρόχων
+και των δύο αποκωδικοποιητών (βλ.\ \cref{sec:decode-optimization}).
+
+Ο \cref{tab:microbench-decode} παρουσιάζει τα αποτελέσματα.  Σημειώνεται
+ότι τα Tier~1 δεδομένα δεν παρατίθενται ξεχωριστά, καθώς η μοναδική
+scalar βελτιστοποίηση (injection \insn{clmul} στη \code{gf\_mul}, βλ.\
+\cref{sec:decode-scalar}) ενσωματώνεται ήδη στο reference binary μέσω
+auto-lowering.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Decode micro-benchmark \instret: reference, Tier~2 (base-RVV)
+    και Tier~3 (\Zvbc) (Spike, VLEN $= \num{256}$).  Η vectorization
+    του \gls{rm} decoder και η \Zvbc acceleration του \gls{rs} decoder
+    μειώνουν το κόστος κατά \speedup{6.8} στο HQC-128.}
+  \label{tab:microbench-decode}
+  \input{figures/ch8-results/microbench-decode-table}
+\end{table}
+
+Η μετάβαση από Tier~2 σε Tier~3 παρέχει επιπλέον \speedup{2.16}
+($\num{122163} / \num{56515}$), αποδεικνύοντας ότι η \Zvbc acceleration
+του Berlekamp-Massey, Forney και FFT root-finding (βλ.\
+\cref{sec:decode-zvbc-bm-forney} και \cref{sec:decode-zvbc-fft}) προσφέρει ουσιαστική
+βελτίωση πέραν της βασικής \RVV vectorization.  Η κλιμάκωση μεταξύ security
+levels στο Tier~3 ($\num{56515} \to \num{72237} \to \num{147077}$)
+αντικατοπτρίζει την αύξηση των παραμέτρων $n_1$ και $\delta$ του
+Reed-Solomon κώδικα.
+
+%% --------------------------------------------------------------------------
+\subsection{Σύνοψη Μικρο-αξιολογήσεων}
+\label{ssec:microbench-summary}
+
+Ο \cref{tab:microbench-summary} συνοψίζει τα speedups ανά πυρήνα και tier
+για το HQC-128.  Η ασυμμετρία μεταξύ πυρήνων — \speedup{307} polymul
+έναντι \speedup{3.5} Keccak — αντικατοπτρίζει τη θεμελιώδη διαφορά στην
+αλγοριθμική δομή: ο πολυωνυμικός πολλαπλασιασμός μετασχηματίζεται πλήρως
+μέσω Karatsuba decomposition $+$ hardware carry-less multiply, ενώ ο Keccak
+περιορίζεται από τη σταθερή 25-lane κατάσταση και τις σειριακές εξαρτήσεις
+μεταξύ γύρων.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύνοψη speedups ανά πυρήνα και tier (HQC-128, Spike,
+    VLEN $= \num{256}$).  Η βάση αναφοράς είναι το \code{ref\_scalar}
+    σε κάθε περίπτωση.}
+  \label{tab:microbench-summary}
+  \begin{tabular}{l S[table-format=3.1] S[table-format=3.1] S[table-format=3.1]}
+    \toprule
+    \textbf{Πυρήνας} & {\textbf{Tier~1}} & {\textbf{Tier~2}} & {\textbf{Tier~3}} \\
+    \midrule
+    Polymul (\code{vect\_mul}) & 86.9  & 122.0 & 307.3 \\
+    Keccak (decaps pattern)    & {—}   & {—}   & 3.51  \\
+    Decode (RM+RS)             & {—}   & 3.15  & 6.81  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Η ανάλυση αυτή θεμελιώνει τις end-to-end \KEM μετρήσεις που ακολουθούν
+στην \cref{sec:end-to-end}, όπου η σύνθεση των τριών πυρήνων αποκαλύπτει
+τον νόμο του Amdahl σε δράση: η \speedup{307} μείωση του polymul
+μεταφράζεται σε χαμηλότερο system-level speedup λόγω του μη βελτιστοποιήσιμου
+κλάσματος.
 
 \section{Αξιολόγηση Πλήρους Κρυπτοσυστήματος (End-to-End \KEM)}
 \label{sec:end-to-end}
 
+Η απομονωμένη μέτρηση κάθε πυρήνα αποκαλύπτει τη μέγιστη δυνατή βελτίωση
+ανά υποσύστημα, αλλά δεν αντικατοπτρίζει την πραγματική εμπειρία χρήσης
+του κρυπτοσυστήματος.  Η end-to-end αξιολόγηση ενσωματώνει τις
+αλληλεπιδράσεις μεταξύ πυρήνων — σειριοποίηση κλήσεων, κόστος
+δειγματοληψίας, I/O overhead — και αποκαλύπτει τον νόμο του Amdahl σε
+δράση: η \speedup{307} μείωση του polymul μεταφράζεται σε χαμηλότερο
+system-level speedup λόγω του μη βελτιστοποιήσιμου κλάσματος.
+
+Ο \cref{tab:kem-results} παρουσιάζει τα πλήρη αποτελέσματα \instret για
+τις τρεις λειτουργίες \KEM (\KeyGen, \Encaps, \Decaps) σε όλα τα NIST
+security levels και τις τρεις βαθμίδες hardware.  Η βάση αναφοράς είναι
+το \code{ref\_scalar} (schoolbook πολλαπλασιασμός, scalar Keccak, scalar
+decode) — η χειρότερη δυνατή υλοποίηση χωρίς αλγοριθμικές ή ISA
+βελτιστοποιήσεις.
+
+\begin{table}[htbp]
+  \centering
+  \caption{End-to-end \KEM \instret ανά security level, λειτουργία και tier
+    (Spike, VLEN $= \num{256}$).  Οι στήλες $\times$T1–T3 δηλώνουν speedup
+    έναντι \code{ref\_scalar}.  Το Tier~3 επιτυγχάνει \speedup{160.9} στο
+    HQC-128 και \speedup{325.6} στο HQC-256.}
+  \label{tab:kem-results}
+  \small
+  \input{figures/ch8-results/kem-results-table}
+\end{table}
+
+%% --------------------------------------------------------------------------
+\subsection{Ανάλυση ανά Λειτουργία \KEM}
+\label{ssec:kem-per-operation}
+
+Η ασυμμετρία μεταξύ λειτουργιών αποτελεί δομικό χαρακτηριστικό του \HQC
+\KEM.  Η \Decaps παρουσιάζει συστηματικά χαμηλότερο speedup από τις
+\KeyGen και \Encaps, διότι εκτελεί τρεις πολυωνυμικούς πολλαπλασιασμούς
+(μία αποκρυπτογράφηση $+$ δύο re-encryption στο Fujisaki-Okamoto
+transform) αλλά επιπλέον φέρει το κόστος αποκωδικοποίησης
+(\code{code\_decode}) που δεν υπάρχει στις υπόλοιπες λειτουργίες.
+Συγκεκριμένα, στο HQC-128 Tier~3 η \Decaps επιτυγχάνει \speedup{147.4}
+έναντι \speedup{181.1} της \KeyGen — η διαφορά αντικατοπτρίζει τη
+σταθερή συνεισφορά decode και Keccak που δεν κλιμακώνει αναλογικά με τη
+μείωση του polymul.
+
+Η \KeyGen και η \Encaps παρουσιάζουν παρόμοια speedups σε κάθε tier,
+καθώς η αλγοριθμική δομή τους είναι σχεδόν ταυτόσημη: μία κλήση
+\code{vect\_mul} $+$ δειγματοληψία $+$ hashing.  Η ελαφρώς υψηλότερη
+τιμή της \KeyGen στο Tier~3 ($\times$181.1 έναντι $\times$175.5 για
+\Encaps) οφείλεται στο μικρότερο σχετικό βάρος του hashing στη
+\KeyGen (λιγότερα bytes εισόδου στη \code{hash\_h}).
+
+%% --------------------------------------------------------------------------
+\subsection{Σύγκριση μεταξύ Tiers}
+\label{ssec:kem-tier-comparison}
+
+Η μετάβαση μεταξύ tiers αποκαλύπτει τη σταδιακή αξιοποίηση hardware
+resources.  Στο HQC-128:
+\begin{itemize}
+  \item \textbf{Tier~1 $\to$ Tier~2} (Total \KEM: $\times$34.0 $\to$
+    $\times$59.9, $+\pct{76}$): η vectorization του Karatsuba
+    recomposition (\cref{sec:polymul-base-rvv}) μειώνει τις εντολές
+    polymul κατά \pct{26} ($\num{211841} \to \num{157377}$), ενώ η
+    vectorization του decode (\cref{sec:decode-optimization}) προσθέτει
+    επιπλέον \speedup{3.15}.  Ο Keccak παραμένει scalar σε αυτό το tier.
+  \item \textbf{Tier~2 $\to$ Tier~3} (Total \KEM: $\times$59.9 $\to$
+    $\times$160.9, $+\pct{169}$): η αντικατάσταση των scalar
+    \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
+    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($\num{157377}
+    \to \num{72644}$, $-\pct{54}$), ενώ η δικαναλική \gls{soa} Keccak
+    με \Zvbb (\cref{sec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
+    \speedup{3.5}.  Η σύνθεση αυτών των βελτιώσεων παράγει τη
+    μεγαλύτερη σχετική βελτίωση μεταξύ διαδοχικών tiers.
+\end{itemize}
+
+%% --------------------------------------------------------------------------
+\subsection{Αναδιανομή Υπολογιστικού Κόστους (Post-Optimization Profile)}
+\label{ssec:kem-redistribution}
+
+Η δραματική μείωση του polymul αναδιανέμει τα hotspots του
+κρυπτοσυστήματος.  Ο \cref{fig:kem-breakdown} παρουσιάζει τη σύνθεση
+\instret ανά πυρήνα για κάθε tier (HQC-128 \Decaps), αποκαλύπτοντας
+τη μετατόπιση του bottleneck.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch8-results/kem-breakdown-stacked}
+  \caption{Αναδιανομή \instret μεταξύ πυρήνων ανά tier (HQC-128 \Decaps).
+    Στο reference, ο polymul κυριαρχεί με \pct{96}.  Μετά τη
+    βελτιστοποίηση, ο Keccak αναδεικνύεται ως σημαντικό hotspot
+    (\pct{42} στο Tier~2, \pct{26} στο Tier~3) — κλασική εκδήλωση
+    του νόμου Amdahl.}
+  \label{fig:kem-breakdown}
+\end{figure}
+
+Στο \code{ref\_scalar}, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
+\pct{96} των εντολών — Keccak και decode είναι πρακτικά αόρατοι.  Μετά
+τη βελτιστοποίηση, η εικόνα μεταβάλλεται ριζικά:
+\begin{itemize}
+  \item Στο \textbf{Tier~1}, ο polymul μειώνεται σε \pct{54} και ο
+    Keccak αναδεικνύεται στο \pct{24} — η πρώτη ένδειξη ότι η
+    βελτιστοποίηση Keccak αποκτά σημασία.
+  \item Στο \textbf{Tier~2}, ο Keccak φτάνει \pct{42} λόγω της
+    απουσίας \Zvbb βελτιστοποίησης σε αυτό το tier (scalar
+    \code{fips202.c}).  Ο polymul παραμένει στο \pct{54} αλλά σε
+    απόλυτες τιμές είναι $\num{157377}$ εντολές — \speedup{122} κάτω
+    από το reference.
+  \item Στο \textbf{Tier~3}, η δικαναλική \gls{soa} Keccak μειώνει
+    τη συνεισφορά Keccak σε \pct{26}, ενώ ο polymul αυξάνεται σχετικά
+    σε \pct{60} λόγω της ακόμη μεγαλύτερης μείωσης Keccak.  Σε
+    απόλυτες τιμές, ο polymul στο Tier~3 (\num{72644} εντολές) είναι
+    \speedup{2.17} μικρότερος από το Tier~2 — η \Zvbc acceleration
+    των leaves αποτελεί τον κυρίαρχο παράγοντα.
+\end{itemize}
+
+Η αναδιανομή αυτή τεκμηριώνει ότι περαιτέρω βελτίωση του συνολικού
+\KEM απαιτεί στόχευση του Keccak — μια παρατήρηση συμβατή με τα
+ευρήματα των Zhang et al.\ \cite{zhang-tches2025} και Saarinen
+\cite{Saarinen2024-vkeccak} για lattice-based \gls{pqc}, όπου ο Keccak
+αποτελεί \pct{60}–\pct{80} του χρόνου μετά τη vectorization του NTT.
+
+%% --------------------------------------------------------------------------
+\subsection{Σύνοψη End-to-End Αποτελεσμάτων}
+\label{ssec:kem-summary}
+
+\begin{keyresultbox}[End-to-End \KEM Speedups (HQC-128, Spike VLEN $= \num{256}$)]
+  \begin{tabular}{l S[table-format=2.1] S[table-format=2.1] S[table-format=3.1]}
+    \toprule
+    & {\textbf{Tier~1}} & {\textbf{Tier~2}} & {\textbf{Tier~3}} \\
+    \midrule
+    \Decaps speedup  & 28.3 & 54.4 & 147.4 \\
+    Total \KEM speedup & 34.0 & 59.9 & 160.9 \\
+    \Decaps \instret & {\num{2088352}} & {\num{1084132}} & {\num{400478}} \\
+    \bottomrule
+  \end{tabular}
+\end{keyresultbox}
+
+Τα αποτελέσματα επιβεβαιώνουν ότι η αξιοποίηση ratified RISC-V
+extensions παρέχει σημαντική επιτάχυνση σε ολόκληρο το κρυπτοσύστημα,
+χωρίς custom hardware ή μη τυποποιημένες επεκτάσεις.  Η κλιμάκωση
+μεταξύ security levels αναλύεται στην \cref{sec:scaling-security}, ενώ
+η επίδραση του \VLEN στην \cref{sec:vlen-scaling}.
+
 \section{Κλιμάκωση ανά Security Level}
 \label{sec:scaling-security}
+
+Η μετάβαση μεταξύ security levels (HQC-128 / HQC-192 / HQC-256) αυξάνει
+τον βαθμό $N$ του πολυωνυμικού δακτυλίου από $\num{17669}$ σε $\num{35851}$
+και $\num{57637}$ αντίστοιχα — λόγοι $2.03\times$ και $3.26\times$ ως προς
+τη βάση.  Η ανάλυση κλιμάκωσης αποκαλύπτει πώς κάθε tier αντιδρά στην
+αύξηση αυτή και τεκμηριώνει ότι η βελτιστοποίηση δεν ωφελεί μόνο το
+χαμηλότερο security level αλλά κλιμακώνει — σε ορισμένες περιπτώσεις
+υπεργραμμικά — προς τα υψηλότερα.
+
+%% --------------------------------------------------------------------------
+\subsection{Θεωρητικό Μοντέλο Κλιμάκωσης}
+\label{ssec:scaling-theory}
+
+Η θεωρητική πολυπλοκότητα κάθε πυρήνα καθορίζει τον αναμενόμενο ρυθμό
+αύξησης:
+\begin{itemize}
+  \item \textbf{Polymul (schoolbook):} $\BigO{N^2}$ — αναμενόμενος λόγος
+    $(N_{256}/N_{128})^2 = 3.26^2 = 10.6$.
+  \item \textbf{Polymul (Karatsuba):} $\BigO{N^{\log_2 3}} \approx
+    \BigO{N^{1.585}}$ — αναμενόμενος λόγος $3.26^{1.585} = 5.8$.
+  \item \textbf{Keccak:} Γραμμική ως προς τον αριθμό Keccak-f permutations,
+    ο οποίος αυξάνεται γραμμικά με το μέγεθος εισόδου (seed expansion,
+    hashing μεγαλύτερων κλειδιών) — αναμενόμενος λόγος $\approx 3.0$.
+  \item \textbf{Decode:} Εξαρτάται από τις παραμέτρους $n_1$ και $\delta$
+    του Reed-Solomon κώδικα — μη γραμμική αύξηση λόγω αλλαγής παραμέτρων
+    μεταξύ levels.
+\end{itemize}
+
+%% --------------------------------------------------------------------------
+\subsection{Πειραματικά Αποτελέσματα Κλιμάκωσης}
+\label{ssec:scaling-results}
+
+Ο \cref{tab:scaling-security} παρουσιάζει τα \instret \Decaps ανά variant
+και security level, μαζί με τους λόγους κλιμάκωσης.  Ο
+\cref{fig:scaling-line} απεικονίζει τα ίδια δεδομένα σε λογαριθμική
+κλίμακα, όπου η κλίση αντιστοιχεί στον εκθέτη πολυπλοκότητας.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Κλιμάκωση \Decaps \instret μεταξύ security levels και
+    αντίστοιχα speedups (Spike, VLEN $= \num{256}$).  Οι στήλες
+    $\frac{192}{128}$ και $\frac{256}{128}$ δηλώνουν τον λόγο αύξησης
+    \instret ως προς το HQC-128.  Το Tier~3 παρουσιάζει τον χαμηλότερο
+    λόγο κλιμάκωσης ($3.57\times$), σημαντικά κάτω από τον θεωρητικό
+    Karatsuba ($5.8\times$).}
+  \label{tab:scaling-security}
+  \input{figures/ch8-results/scaling-security-table}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch8-results/scaling-security-line}
+  \caption{Κλιμάκωση \Decaps \instret ως συνάρτηση του $N$ (log-log
+    κλίμακα).  Η κλίση κάθε γραμμής αντιστοιχεί στον πρακτικό εκθέτη
+    πολυπλοκότητας.  Το reference ακολουθεί $\sim N^{2.0}$ (schoolbook),
+    ενώ το Tier~3 παρουσιάζει εκθέτη $\sim 1.1$ — σημαντικά χαμηλότερο
+    ακόμη και από τον θεωρητικό Karatsuba ($1.585$).}
+  \label{fig:scaling-line}
+\end{figure}
+
+Τρεις βασικές παρατηρήσεις αναδεικνύονται από τα δεδομένα.
+
+\paragraph{Το reference κλιμακώνει σχεδόν τετραγωνικά.}
+Ο λόγος \instret μεταξύ HQC-256 και HQC-128 στο \code{ref\_scalar} είναι
+$\num{431890526} / \num{59013715} = 7.32$, κάτω από τον θεωρητικό
+$(57637/17669)^2 = 10.6$.  Ο πρακτικός εκθέτης ανέρχεται σε $\sim 1.7$
+(αντί $2.0$ ακριβώς) — η απόκλιση οφείλεται στο σταθερό κόστος Keccak
+και decode που δεν κλιμακώνει τετραγωνικά.  Στο reference αυτά αποτελούν
+μόλις \pct{4} του συνόλου, αλλά αρκούν για να αμβλύνουν τον εκθέτη
+καθώς η τετραγωνική συνιστώσα (polymul) κυριαρχεί ολοένα περισσότερο
+σε υψηλότερα levels.
+
+\paragraph{Τα optimized tiers κλιμακώνουν υπο-Karatsuba.}
+Στο Tier~3, ο λόγος $256/128$ είναι μόλις $3.57$ — σημαντικά χαμηλότερος
+από τον θεωρητικό Karatsuba ($5.8$).  Η εξήγηση είναι δομική: στα
+υψηλότερα security levels, ο Karatsuba tree αυξάνει βάθος κατά ένα
+επίπεδο (από $d=9$ στο HQC-128 σε $d=10$ στο HQC-192 και $d=11$ στο
+HQC-256), αλλά ο αριθμός \insn{vclmul} leaves αυξάνεται μόνο κατά
+$3^{\Delta d}$ ενώ το recomposition overhead (XOR operations) κλιμακώνει
+γραμμικά χάρη στη vectorization.  Κατά συνέπεια, ο πρακτικός εκθέτης
+πολυπλοκότητας του Tier~3 polymul πέφτει σε $\sim 1.3$ (υπολογισμένος
+ως $\log(271002/62526) / \log(57637/17669) = 1.24$).
+
+\paragraph{Το speedup αυξάνεται με το security level.}
+Η αντίστροφη πλευρά της υπο-Karatsuba κλιμάκωσης είναι ότι το speedup
+\emph{αυξάνεται} καθώς μεταβαίνουμε σε υψηλότερα levels.  Στο Tier~3
+\Decaps, το speedup εξελίσσεται ως $\speedup{147.4} \to \speedup{194.3}
+\to \speedup{302.0}$ (HQC-128 $\to$ 192 $\to$ 256).  Η αύξηση αυτή
+αντικατοπτρίζει τη μεγαλύτερη αναλογία polymul στο reference σε υψηλότερα
+levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασιασμός κυριαρχεί
+ακόμη περισσότερο ($>\pct{98}$ στο HQC-256), ενώ η βελτιστοποιημένη
+υλοποίηση κλιμακώνει ηπιότερα.
+
+%% --------------------------------------------------------------------------
+\subsection{Ανάλυση Κλιμάκωσης ανά Πυρήνα}
+\label{ssec:scaling-per-kernel}
+
+Η διαφοροποίηση μεταξύ πυρήνων εξηγεί τη συνολική συμπεριφορά.
+
+\paragraph{Polymul — κυρίαρχος παράγοντας.}
+Ο πολυωνυμικός πολλαπλασιασμός καθορίζει τη συνολική κλιμάκωση σε κάθε
+tier.  Στο Tier~3, ο isolated polymul κλιμακώνει ως $\num{62526} \to
+\num{185116} \to \num{271002}$ (λόγοι $2.96\times$ και $4.33\times$) —
+ο εκθέτης $\log(4.33)/\log(3.26) = 1.24$ επιβεβαιώνει τη sub-Karatsuba
+συμπεριφορά.  Στο Tier~1, η κλιμάκωση είναι πιο απότομη (εκθέτης
+$\approx 1.6$, κοντά στον θεωρητικό Karatsuba) διότι τα scalar
+\insn{clmul} leaves δεν ωφελούνται από τη vectorized recomposition.
+
+\paragraph{Keccak — γραμμική κλιμάκωση.}
+Ο Keccak κλιμακώνει σχεδόν γραμμικά: $\num{131944} \to \num{249581} \to
+\num{383277}$ (λόγοι $1.89\times$ και $2.91\times$).  Η αύξηση
+αντικατοπτρίζει τον μεγαλύτερο αριθμό Keccak-f permutations που
+απαιτούνται για seed expansion και hashing μεγαλύτερων δημοσίων κλειδιών.
+Η σταθερότητα του per-permutation κόστους ($\approx \num{2114}$ \instret
+ανά Keccak-f στο Tier~3) επιβεβαιώνει ότι η δικαναλική \gls{soa}
+αρχιτεκτονική δεν εξαρτάται από το security level.
+
+\paragraph{Decode — μη γραμμική αύξηση.}
+Η αποκωδικοποίηση παρουσιάζει μη γραμμική κλιμάκωση στο Tier~3:
+$\num{56515} \to \num{72237} \to \num{147077}$ (λόγοι $1.28\times$ και
+$2.60\times$).  Η ασυμμετρία μεταξύ $192/128$ ($1.28\times$) και
+$256/128$ ($2.60\times$) οφείλεται στην αλλαγή παραμέτρων Reed-Solomon:
+το HQC-256 χρησιμοποιεί $n_1 = 90$ και $\delta = 29$ (έναντι $n_1 = 46$,
+$\delta = 13$ στο HQC-128), αυξάνοντας δραματικά τον αριθμό syndromes
+και τον βαθμό του error locator polynomial.
+
+%% --------------------------------------------------------------------------
+\subsection{Πίνακας Speedups ανά Security Level και Λειτουργία}
+\label{ssec:scaling-heatmap}
+
+Ο \cref{fig:heatmap-speedups} παρουσιάζει τον πλήρη πίνακα speedups
+(security level $\times$ operation $\times$ tier) με χρωματική
+κωδικοποίηση.  Η κλίση χρώματος αποκαλύπτει δύο τάσεις: (α) κάθε
+μετάβαση σε υψηλότερο tier αυξάνει σημαντικά το speedup, και (β) τα
+υψηλότερα security levels ωφελούνται περισσότερο — ιδιαίτερα στο Tier~3,
+όπου το HQC-256 \KeyGen φτάνει \speedup{368} έναντι \speedup{181} στο
+HQC-128.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch8-results/heatmap-speedups}
+  \caption{Πίνακας speedups (security level $\times$ operation $\times$
+    tier) με χρωματική κωδικοποίηση.  Σκουρότερο πράσινο δηλώνει
+    υψηλότερο speedup.  Η \KeyGen και \Encaps παρουσιάζουν συστηματικά
+    υψηλότερα speedups από τη \Decaps λόγω απουσίας decode overhead.
+    Τα υψηλότερα security levels ωφελούνται δυσανάλογα στο Tier~3.}
+  \label{fig:heatmap-speedups}
+\end{figure}
+
+Η ασυμμετρία μεταξύ \KeyGen/\Encaps και \Decaps παραμένει σταθερή σε
+όλα τα levels ($\approx \pct{20}$–$\pct{25}$ χαμηλότερο speedup στη
+\Decaps) και αντικατοπτρίζει τη σταθερή συνεισφορά decode $+$ τρίτου
+polymul call στο Fujisaki-Okamoto re-encryption.  Η τάση αυτή δεν
+εξαρτάται από το tier — αποτελεί δομικό χαρακτηριστικό του \HQC \KEM
+protocol.
+
+%% --------------------------------------------------------------------------
+\subsection{Σύνοψη Κλιμάκωσης}
+\label{ssec:scaling-summary}
+
+Η ανάλυση κλιμάκωσης τεκμηριώνει τρία ευρήματα πρακτικής σημασίας:
+\begin{enumerate}
+  \item Η βελτιστοποίηση \emph{κλιμακώνει υπεργραμμικά} με το security
+    level — τα υψηλότερα levels ωφελούνται περισσότερο, καθιστώντας τη
+    μετάβαση σε HQC-256 λιγότερο κοστοβόρα από ό,τι υποδεικνύει η
+    θεωρητική πολυπλοκότητα.
+  \item Ο πρακτικός εκθέτης κλιμάκωσης του Tier~3 ($\sim 1.1$ στο
+    πλήρες \KEM) είναι σημαντικά χαμηλότερος από τον θεωρητικό Karatsuba
+    ($1.585$), χάρη στη vectorized recomposition και τη σταθερή
+    συνεισφορά Keccak/decode.
+  \item Η αύξηση speedup με το security level ($\speedup{161} \to
+    \speedup{206} \to \speedup{326}$ στο Total \KEM Tier~3) σημαίνει
+    ότι η σχετική ανταγωνιστικότητα της υλοποίησης \emph{βελτιώνεται}
+    σε υψηλότερα security levels — κρίσιμο εύρημα για deployment
+    σενάρια που απαιτούν NIST Level~5.
+\end{enumerate}
+
+Η επίδραση του hardware parameter \VLEN στην κλιμάκωση αναλύεται στην
+\cref{sec:vlen-scaling}.
 
 \section{Ανάλυση Κλιμάκωσης \VLEN}
 \label{sec:vlen-scaling}
 
+Η αρχιτεκτονική \RVV ορίζει το \VLEN ως hardware parameter — κάθε
+υλοποίηση επιλέγει εύρος vector register file ανεξάρτητα από τον κώδικα
+εφαρμογής.  Η ανάλυση αυτή εξετάζει πώς η αύξηση \VLEN επηρεάζει το
+\instret ολόκληρου του \HQC \KEM (polymul $+$ Keccak $+$ decode),
+αποκαλύπτοντας τα δομικά όρια κλιμάκωσης και το πρακτικό sweet spot
+για deployment.  Οι μετρήσεις αφορούν αποκλειστικά το Tier~3
+(\code{karatsuba\_zvbc}) — το μοναδικό variant όπου η vectorization
+διεισδύει τόσο στα leaves όσο και στα recomposition loops.
+
+%% --------------------------------------------------------------------------
+\subsection{Μοντέλο Κλιμάκωσης και Θεωρητικό Όριο}
+\label{ssec:vlen-model}
+
+Η κατανομή \instret στο \VLEN$= \num{256}$ (HQC-128, πλήρες \KEM)
+χωρίζεται σε τρεις κατηγορίες ως προς την ευαισθησία στο \VLEN:
+
+\begin{enumerate}
+  \item \textbf{Κλιμακούμενο κλάσμα ($\approx\pct{16}$):} Οι
+    recomposition helpers (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
+    \code{rvv\_xor\_u64}) χρησιμοποιούν VLA strip-mining σε LMUL$=$m4.
+    Στο \VLEN$= \num{256}$, \VLMAX$= \num{16}$ words ανά iteration·
+    στο \VLEN$= \num{512}$, \VLMAX$= \num{32}$.  Κάθε εξαλειφθείσα
+    iteration εξοικονομεί το πλήρες σώμα strip-mining (\insn{vsetvli}
+    $+$ \insn{vle64} $+$ \insn{vse64} $+$ pointer arithmetic).
+  \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{60}$):} Ο
+    \code{vclmul\_leaf} (\pct{35}) λειτουργεί σε σταθερό $n = \num{16}$
+    elements — στο \VLEN$= \num{256}$ ήδη $\text{VLMAX} = n$, επομένως
+    ευρύτερο \VLEN δεν μειώνει iterations.  Ο Keccak (\pct{25})
+    λειτουργεί σε σταθερή 25-lane κατάσταση με LMUL$=$m8 — ήδη
+    $\text{VLMAX} = \num{32} \geq 25$.
+  \item \textbf{Μη κλιμακούμενο κλάσμα ($\approx\pct{24}$):} Scalar
+    helpers (\code{rol1\_zbb}, \pct{2.4}), σειριακή GF($2^8$)
+    αριθμητική (\code{gf\_reduce}, \pct{6.2}), δειγματοληψία, και
+    λοιπά.
+\end{enumerate}
+
+Ο \cref{fig:vlen-budget} απεικονίζει τη σύνθεση αυτή.  Το θεωρητικό
+ανώτατο όριο βελτίωσης από αύξηση \VLEN περιορίζεται στο
+$\approx\pct{16}$ — ακόμη και με άπειρο \VLEN, μόνο οι recomposition
+loops θα εξαλειφθούν πλήρως.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch8-results/vlen-budget-breakdown}
+  \caption{Κατανομή \instret σε τρεις κατηγορίες ευαισθησίας \VLEN
+    (HQC-128, \code{karatsuba\_zvbc}, \VLEN$= \num{256}$).  Μόνο
+    $\approx\pct{16}$ του συνολικού \KEM ωφελείται από ευρύτερο \VLEN.}
+  \label{fig:vlen-budget}
+\end{figure}
+
+%% --------------------------------------------------------------------------
+\subsection{Πειραματικά Αποτελέσματα VLEN Sweep}
+\label{ssec:vlen-sweep-results}
+
+Ο \cref{tab:vlen-sweep} παρουσιάζει τα πλήρη \KEM \instret για
+$\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels.  Ο
+\cref{fig:vlen-sweep-line} απεικονίζει τα ίδια δεδομένα γραφικά.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Total \KEM \instret ως συνάρτηση \VLEN
+    (\code{karatsuba\_zvbc}, Spike).  Η βέλτιστη τιμή ανά security
+    level σημειώνεται με έντονη γραφή.  Το sweet spot εντοπίζεται στο
+    \VLEN$= \num{512}$–$\num{1024}$ με \pct{3.7}–\pct{6.2} μείωση.}
+  \label{tab:vlen-sweep}
+  \input{figures/ch8-results/vlen-sweep-table}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch8-results/vlen-sweep-line}
+  \caption{Κλιμάκωση \instret ως συνάρτηση \VLEN (log κλίμακα στον
+    $x$-άξονα).  Η μείωση συγκεντρώνεται στη μετάβαση
+    $\num{256} \to \num{512}$, με ελάχιστη πρόσθετη βελτίωση στο
+    $\num{1024}$.  Το HQC-128 παρουσιάζει παλινδρόμηση στο
+    \VLEN$= \num{2048}$.}
+  \label{fig:vlen-sweep-line}
+\end{figure}
+
+Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
+
+\paragraph{Τα υψηλότερα security levels ωφελούνται περισσότερο.}
+Το HQC-128 επιτυγχάνει μέγιστη μείωση \pct{3.7} (στο \VLEN$= \num{512}$),
+ενώ τα HQC-192 και HQC-256 φτάνουν \pct{6.2} (στο \VLEN$= \num{1024}$).
+Η ασυμμετρία εξηγείται από το μέγεθος πολυωνύμου: τα μεγαλύτερα
+πολυώνυμα ($\num{561}$ και $\num{901}$ words αντί $\num{277}$) παράγουν
+περισσότερα επίπεδα αναδρομής και μεγαλύτερους ενδιάμεσους πίνακες στα
+ανώτερα επίπεδα, δίνοντας στο ευρύτερο \VLMAX περισσότερες ευκαιρίες
+μείωσης iterations.
+
+\paragraph{Η βελτίωση συγκεντρώνεται στη μετάβαση $\num{256} \to \num{512}$.}
+Η πρόσθετη βελτίωση από \VLEN$= \num{512}$ σε \VLEN$= \num{1024}$ είναι
+μόλις \pct{0.7} για τα HQC-192/256 και αρνητική ($+\pct{0.3}$) για το
+HQC-128.  Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
+($\text{VLMAX} = \num{32}$), οι recomposition loops στα κατώτερα επίπεδα
+αναδρομής (μεγέθη 16–34 words) ολοκληρώνονται ήδη σε 1 iteration.  Μόνο
+τα ανώτερα επίπεδα (μεγέθη 70–451 words) ωφελούνται ακόμη από
+\VLEN$= \num{1024}$, αλλά αυτά εκτελούνται εκθετικά λιγότερες φορές
+(λιγότεροι κόμβοι στα ανώτερα επίπεδα του δέντρου αναδρομής).
+
+\paragraph{Το HQC-128 παλινδρομεί στο \VLEN$= \num{2048}$.}
+Στο \VLEN$= \num{2048}$, το HQC-128 επιστρέφει στη βάση αναφοράς
+($-\pct{0.02}$), ενώ τα HQC-192/256 διατηρούν τα κέρδη τους
+($-\pct{5.1}$ και $-\pct{5.5}$).  Η παλινδρόμηση οφείλεται σε δύο
+παράγοντες: (α)~στο HQC-128, οι recomposition loops (μεγέθη 16–34 words)
+ολοκληρώνονται ήδη σε 1 iteration στο \VLEN$= \num{1024}$
+($\text{VLMAX} = \num{64}$) — το \VLEN$= \num{2048}$ δεν προσφέρει
+πρόσθετη μείωση· (β)~ο compiler εκπέμπει περισσότερες εντολές
+\insn{vsetvli} για εναλλαγή μεταξύ LMUL groups (m4 στο polymul, m8 στον
+Keccak, m2 σε βοηθητικές ρουτίνες), και αυτό το overhead εξουδετερώνει
+τα οριακά κέρδη recomposition στο μικρό working set του HQC-128.
+
+%% --------------------------------------------------------------------------
+\subsection{Αρχιτεκτονικοί Περιορισμοί Κλιμάκωσης}
+\label{ssec:vlen-constraints}
+
+Η ανάλυση αυτή τεκμηριώνει γιατί $\approx\pct{60}$ του \instret
+παραμένει αμετάβλητο ανεξαρτήτως \VLEN.
+
+\paragraph{\code{vclmul\_leaf} — σταθερό $n = \num{16}$.}
+Ο vectorized schoolbook leaf εκτελεί $n \times 1$ vector instruction
+groups: ο εξωτερικός $i$-βρόχος επαναλαμβάνεται $n = \num{16}$ φορές,
+και σε κάθε iteration ο εσωτερικός $j$-βρόχος επεξεργάζεται $n$
+elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη στο
+\VLEN$= \num{256}$).  Ευρύτερο \VLEN δεν μειώνει ούτε τον εξωτερικό
+βρόχο (σταθερός) ούτε τον εσωτερικό (ήδη 1 iteration).  Η εναλλακτική
+προσέγγιση — αύξηση threshold σε $\text{VLMAX}$ ώστε ο leaf να
+επεξεργάζεται περισσότερα elements — δοκιμάστηκε και απορρίφθηκε:
+η τετραγωνική πολυπλοκότητα $\BigO{n^2}$ του schoolbook αυξάνει το
+\instret κατά \pct{4}–\pct{11} στο $\VLEN \geq \num{1024}$, καθώς
+το κόστος $n^2$ κυριαρχεί έναντι της εξοικονόμησης αναδρομής.
+
+\paragraph{Keccak — σταθερή 25-lane κατάσταση.}
+Η Keccak-f[1600] permutation λειτουργεί σε $25 \times 64$-bit state
+χρησιμοποιώντας LMUL$=$m8.  Στο \VLEN$= \num{256}$, $\text{VLMAX} =
+\num{32} \geq 25$ — ολόκληρη η κατάσταση χωράει σε ένα vector group.
+Ευρύτερο \VLEN δεν μπορεί να επεξεργαστεί περισσότερα state elements
+διότι υπάρχουν μόνο 25.  Κάθε κλήση Keccak-f εκτελεί σταθερό αριθμό
+εντολών ($\approx \num{2114}$ \instret) ανεξαρτήτως \VLEN.
+
+\paragraph{GF($2^8$) αριθμητική — σειριακές εξαρτήσεις.}
+Η \code{gf\_reduce} (\pct{6.2} του \KEM) και η FFT root-finding φάση
+του Reed-Solomon decoder παρουσιάζουν εγγενώς σειριακές εξαρτήσεις
+δεδομένων: κάθε iteration εξαρτάται από το αποτέλεσμα της προηγούμενης.
+Η vectorization αυτών των βρόχων δεν είναι εφικτή ανεξαρτήτως \VLEN.
+
+%% --------------------------------------------------------------------------
+\subsection{Σύνοψη Κλιμάκωσης \VLEN}
+\label{ssec:vlen-summary}
+
+\begin{keyresultbox}[\VLEN Scaling — Βασικά Ευρήματα]
+  \begin{itemize}
+    \item Το $\VLEN = \num{512}$ αποτελεί το πρακτικό sweet spot:
+      \pct{3.7}–\pct{5.5} μείωση \instret χωρίς αύξηση πολυπλοκότητας
+      κώδικα.
+    \item Το θεωρητικό ανώτατο όριο βελτίωσης είναι $\approx\pct{16}$
+      (μόνο οι recomposition loops κλιμακώνουν).
+    \item $\approx\pct{60}$ του \instret είναι δομικά ανεξάρτητο από
+      \VLEN (\code{vclmul\_leaf} $+$ Keccak).
+    \item Η αύξηση \VLEN πέραν του $\num{1024}$ δεν προσφέρει πρόσθετη
+      βελτίωση — στο HQC-128 προκαλεί παλινδρόμηση.
+  \end{itemize}
+\end{keyresultbox}
+
+Σε πραγματικό hardware (σε αντίθεση με το Spike \gls{iss}), ευρύτερο
+\VLEN θα παρείχε πρόσθετα οφέλη που δεν αποτυπώνονται στο \instret:
+μειωμένη πίεση memory bandwidth, καλύτερη αξιοποίηση cache, και
+χαμηλότερη per-element latency για vector operations.  Η ανάλυση βάσει
+\instret αποτελεί συντηρητικό κάτω φράγμα των πραγματικών ωφελειών
+\VLEN.  Η αξιολόγηση σε πραγματικό hardware (\VLEN$= \num{256}$)
+παρουσιάζεται στην \cref{sec:hw-evaluation}.
+
 \section{Αξιολόγηση σε Πραγματικό Hardware (BPI-F3 SpacemiT K1 X60)}
 \label{sec:hw-evaluation}
+
+Οι μετρήσεις \instret στο Spike \gls{iss} παρέχουν ντετερμινιστική αλγοριθμική
+σύγκριση, αλλά δεν αποτυπώνουν τη συμπεριφορά πραγματικού pipeline: cache misses,
+store-to-load forwarding, dual-issue scheduling και scalar↔vector transition
+penalties παραμένουν αόρατα σε ένα CPI$=$1 μοντέλο.  Η παρούσα ενότητα
+συμπληρώνει την εικόνα με μετρήσεις κύκλων σε πραγματικό silicon — το Banana Pi
+BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\hertz},
+βλ.\ \cref{ssec:bpi-f3-platform}).  Οι μετρήσεις αφορούν τα Tier~1
+(\code{karatsuba\_zbc}) και Tier~2 (\code{karatsuba\_rvv}) — τα μοναδικά variants
+εκτελέσιμα στο διαθέσιμο hardware, καθώς ο X60 δεν υλοποιεί \Zvbc/\Zvbb.
+
+Κάθε benchmark εκτελείται \num{100} iterations μετά από \num{10} warmup iterations,
+σε single-core pinning (\code{taskset}) υπό Linux.  Η μετρική είναι η διάμεσος
+κύκλων (\code{rdcycle}) — ανθεκτική σε outliers από interrupts ή scheduling jitter.
+Η μεθοδολογία μέτρησης τεκμηριώνεται στην \cref{ssec:hw-measurement}.
+
+%% --------------------------------------------------------------------------
+\subsection{Μικρο-αξιολογήσεις σε Hardware (Cycles)}
+\label{ssec:hw-microbench}
+
+Ο \cref{tab:hw-microbench} παρουσιάζει τα αποτελέσματα ανά πυρήνα για το
+HQC-128.  Κάθε γραμμή περιλαμβάνει τα Spike \instret (αλγοριθμική βάση),
+τους πραγματικούς κύκλους (median, \num{100} iterations), τον παρατηρούμενο
+\gls{ipc} ($= \text{instret} / \text{cycles}$), και τον αντίστοιχο
+wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Isolated kernel benchmarks σε πραγματικό hardware (HQC-128,
+    BPI-F3 SpacemiT K1 X60, \SI{1.6}{\giga\hertz}, \num{100} iterations).
+    Ο \gls{ipc} αποκαλύπτει τη μικροαρχιτεκτονική αποδοτικότητα κάθε
+    variant: ο \code{scalar\_zb} επιτυγχάνει IPC $= 1.31$ χάρη στο
+    dual-issue, ενώ ο \code{vector\_rvv} περιορίζεται σε $0.72$ λόγω
+    scalar↔vector transition penalties.}
+  \label{tab:hw-microbench}
+  \small
+  \begin{tabular}{l l S[table-format=8.0] S[table-format=8.0]
+                  S[table-format=1.2] S[table-format=4.0]}
+    \toprule
+    \textbf{Πυρήνας} & \textbf{Variant} &
+    {\textbf{Spike \instret}} & {\textbf{HW cycles}} &
+    {\textbf{IPC}} & {\textbf{$\mu$s}} \\
+    \midrule
+    \multirow{4}{*}{Polymul}
+      & \code{ref\_scalar}  & 18258882 & 11664579 & 1.57 & 7290 \\
+      & \code{scalar\_zb}   & 196096   & 149555   & 1.31 & 93 \\
+      & \code{ref\_vector}  & 18118167 & 11687309 & 1.55 & 7305 \\
+      & \code{vector\_rvv}  & 152770   & 211241   & 0.72 & 132 \\
+    \midrule
+    Keccak & \code{ref} & 569016 & 358710 & 1.59 & 224 \\
+    \midrule
+    \multirow{2}{*}{Decode}
+      & \code{ref} & 615843 & 457461 & 1.35 & 286 \\
+      & \code{rvv} & 141148 & 205402 & 0.69 & 128 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
+
+\paragraph{Ο scalar Karatsuba (\code{scalar\_zb}) επιτυγχάνει IPC $> 1$.}
+Ο \code{scalar\_zb} polymul παρουσιάζει IPC $= 1.31$, αξιοποιώντας πλήρως
+τον dual-issue in-order pipeline του X60.  Η εξήγηση είναι δομική: ο πλήρως
+ξεδιπλωμένος Karatsuba tree παράγει μακρές ακολουθίες ανεξάρτητων εντολών
+(\insn{clmul}/\insn{clmulh} pairs, \insn{xor} chains, \insn{ld}/\insn{sd}
+sequences) χωρίς branches — ιδανικό workload για dual-issue scheduling.
+Η L1D miss rate παραμένει αμελητέα (\pct{0.21}), επιβεβαιώνοντας ότι το
+working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλήρως
+στην L1 cache (\SI{32}{\kilo\byte}).
+
+\paragraph{Ο RVV polymul (\code{vector\_rvv}) είναι \pct{41} αργότερος
+σε κύκλους παρά τις \pct{22} λιγότερες εντολές.}
+Η αντιστροφή αυτή — λιγότερες εντολές αλλά περισσότεροι κύκλοι —
+αποτελεί το κεντρικό μικροαρχιτεκτονικό εύρημα.  Ο IPC πέφτει στο $0.72$
+λόγω τριών παραγόντων: (α)~scalar store → vector load forwarding failure
+στον αποσυζευγμένο pipeline του X60 (penalty $\approx \num{28}$ κύκλοι ανά
+εμφάνιση), (β)~scalar↔vector pipeline transition cost ($\approx \num{10}$
+κύκλοι ανά μετάβαση, $\num{363}$ μεταβάσεις στο recursion tree), και
+(γ)~VPU stall accumulation (\num{25842} κύκλοι) από vector load latency
+σε recently-scalar-stored δεδομένα.  Η ανάλυση αυτή τεκμηριώνεται
+αναλυτικά στην \cref{ssec:hw-ipc}.
+
+\paragraph{Ο Keccak παρουσιάζει τον υψηλότερο IPC ($1.59$).}
+Ο scalar Keccak-f[1600] permutation επιτυγχάνει IPC $= 1.59$ — ο υψηλότερος
+μεταξύ όλων των πυρήνων.  Η εξήγηση είναι ότι ο Keccak αποτελείται από
+μακρές ακολουθίες \insn{xor}, \insn{rori} (\Zbb) και \insn{andn} (\Zbb)
+χωρίς memory accesses (η κατάσταση 25$\times$64-bit χωράει σε registers),
+παρέχοντας ιδανικό instruction-level parallelism για dual-issue.  Σημειώνεται
+ότι στα vector variants (\code{vector\_ref}, \code{vector\_rvv}), ο compiler
+(GCC \code{-ftree-vectorize}) auto-vectorizes τα θ/χ steps του Keccak-f,
+μειώνοντας τους κύκλους κατά $\approx\pct{12}$ ($\sim\num{314000}$ vs
+$\num{358710}$).  Αυτό δεν αντιφάσκει με το RVV Paradox
+(\cref{sec:keccak-rvv-paradox}): εκεί αξιολογείται χειρόγραφη \RVV
+υλοποίηση (intrinsics), ενώ εδώ ο compiler εφαρμόζει συντηρητικότερες
+(και αποδοτικότερες) auto-vectorization επιλογές μόνο στα trivially-parallel
+steps.
+
+%% --------------------------------------------------------------------------
+\subsection{Πλήρες \KEM σε Hardware (Cycles)}
+\label{ssec:hw-kem}
+
+Ο \cref{tab:hw-kem} παρουσιάζει τα end-to-end \KEM αποτελέσματα σε
+πραγματικούς κύκλους.  Η στήλη wall-clock παρέχει τη χρονική διάρκεια
+κάθε λειτουργίας στα \SI{1.6}{\giga\hertz} — η πρακτική μετρική deployment.
+
+\begin{table}[htbp]
+  \centering
+  \caption{End-to-end \KEM σε πραγματικό hardware (HQC-128, BPI-F3,
+    \SI{1.6}{\giga\hertz}).  Ο \code{scalar\_zb} (Tier~1) επιτυγχάνει
+    \Decaps σε \SI{804}{\micro\second} — \speedup{27.8} έναντι reference.
+    Ο \code{vector\_rvv} (Tier~2) φτάνει \SI{718}{\micro\second} παρά
+    τα microarchitectural penalties.}
+  \label{tab:hw-kem}
+  \small
+  \begin{tabular}{l S[table-format=8.0] S[table-format=7.0]
+                  S[table-format=7.0] S[table-format=2.1] S[table-format=4.0]}
+    \toprule
+    \textbf{Op} & {\textbf{ref\_scalar}} & {\textbf{scalar\_zb}} &
+    {\textbf{vector\_rvv}} & {\textbf{Speedup$_\text{zb}$}} &
+    {\textbf{$\mu$s$_\text{zb}$}} \\
+    & {(cycles)} & {(cycles)} & {(cycles)} & & \\
+    \midrule
+    \KeyGen & 11756872 & 262100 & 302331 & 44.9 & 164 \\
+    \Encaps & 23495960 & 519221 & 600421 & 45.3 & 325 \\
+    \Decaps & 35753541 & 1286829 & 1149114 & 27.8 & 804 \\
+    \midrule
+    \textbf{Total} & \textbf{71006373} & \textbf{2068150} &
+    \textbf{2051866} & \textbf{34.3} & \textbf{1293} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Δύο ευρήματα αναδεικνύονται από τα end-to-end δεδομένα.
+
+\paragraph{Ο \code{scalar\_zb} κυριαρχεί στο \KeyGen/\Encaps.}
+Στις λειτουργίες \KeyGen και \Encaps — όπου ο polymul αποτελεί τον
+κυρίαρχο πυρήνα — ο \code{scalar\_zb} είναι \pct{13}–\pct{15} ταχύτερος
+από τον \code{vector\_rvv} σε κύκλους.  Η εξήγηση είναι ότι αυτές οι
+λειτουργίες εκτελούν μία μόνο κλήση \code{vect\_mul}, όπου η
+microarchitectural υπεροχή του scalar path (IPC $= 1.31$ vs $0.72$)
+κυριαρχεί.
+
+\paragraph{Ο \code{vector\_rvv} ανακτά στη \Decaps.}
+Στη \Decaps, ο \code{vector\_rvv} (\num{1149114} κύκλοι) υπερτερεί
+οριακά του \code{scalar\_zb} (\num{1286829} κύκλοι, $-\pct{11}$).  Η
+αντιστροφή οφείλεται στη vectorized αποκωδικοποίηση: ο \code{vector\_rvv}
+χρησιμοποιεί \RVV decode (\num{205402} κύκλοι) αντί scalar decode
+(\num{457461} κύκλοι), εξοικονομώντας $\num{252059}$ κύκλοι — αρκετοί
+για να αντισταθμίσουν τους $\num{61686}$ επιπλέον κύκλους polymul.
+Η \Decaps αποτελεί τη μοναδική λειτουργία όπου εκτελείται
+\code{code\_decode}, καθιστώντας τη vectorization του decoder κρίσιμη
+για αυτή τη λειτουργία.
+
+\paragraph{Πρακτική σημασία deployment.}
+Ένα πλήρες \HQC-128 key exchange (1$\times$\KeyGen $+$ 1$\times$\Encaps
+$+$ 1$\times$\Decaps) ολοκληρώνεται σε $\approx\SI{1.3}{\milli\second}$
+στον SpacemiT K1 με τον \code{scalar\_zb} variant — αποδεκτό για
+TLS handshakes και IoT key establishment.  Η \Decaps μεμονωμένα
+(\SI{804}{\micro\second}) αποτελεί τη βαρύτερη λειτουργία, αλλά
+παραμένει εντός των ορίων πρακτικής χρήσης.
+
+%% --------------------------------------------------------------------------
+\subsection{Ανάλυση IPC και Pipeline Utilization}
+\label{ssec:hw-ipc}
+
+Ο \gls{ipc} ($= \text{Spike instret} / \text{HW cycles}$) αποτελεί
+τον κεντρικό δείκτη μικροαρχιτεκτονικής αποδοτικότητας.  Τιμή IPC $> 1$
+υποδηλώνει αξιοποίηση dual-issue, ενώ IPC $< 1$ σηματοδοτεί pipeline
+stalls.  Ο \cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant και πυρήνα.
+
+\begin{table}[htbp]
+  \centering
+  \caption{IPC ανά variant και πυρήνα (HQC-128, BPI-F3).  Ο scalar
+    κώδικας αξιοποιεί πλήρως τον dual-issue pipeline (IPC $\geq 1.3$),
+    ενώ ο \RVV κώδικας υποφέρει από pipeline transition penalties
+    (IPC $\approx 0.7$).}
+  \label{tab:hw-ipc}
+  \begin{tabular}{l S[table-format=1.2] S[table-format=1.2]
+                  S[table-format=1.2] S[table-format=1.2]}
+    \toprule
+    \textbf{Πυρήνας} & {\textbf{ref\_scalar}} & {\textbf{scalar\_zb}} &
+    {\textbf{ref\_vector}} & {\textbf{vector\_rvv}} \\
+    \midrule
+    Polymul & 1.57 & 1.31 & 1.55 & 0.72 \\
+    Keccak  & {—}  & 1.59 & {—}  & {—} \\
+    Decode  & {—}  & 1.35 & {—}  & 0.69 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Η ανάλυση αποκαλύπτει μια θεμελιώδη ασυμμετρία μεταξύ scalar και vector
+κώδικα στον SpacemiT X60.
+
+\paragraph{Scalar code: IPC $\geq 1.3$ — dual-issue σε πλήρη αξιοποίηση.}
+Ο \code{ref\_scalar} polymul επιτυγχάνει IPC $= 1.57$ — ο υψηλότερος
+μεταξύ polymul variants.  Η τιμή αυτή υπερβαίνει τη μονάδα διότι ο
+schoolbook πολλαπλασιασμός αποτελείται από μακρές ακολουθίες ανεξάρτητων
+\insn{xor} εντολών (partial product accumulation) που ο dual-issue
+pipeline εκτελεί παράλληλα.  Ο \code{scalar\_zb} παρουσιάζει ελαφρώς
+χαμηλότερο IPC ($1.31$) λόγω των data dependencies μεταξύ
+\insn{clmul}/\insn{clmulh} pairs — κάθε \insn{clmulh} εξαρτάται από
+τον ίδιο operand με τον προηγούμενο \insn{clmul}, περιορίζοντας τις
+ευκαιρίες dual-issue.
+
+\paragraph{Vector code: IPC $\approx 0.7$ — pipeline transitions κυριαρχούν.}
+Ο \code{vector\_rvv} polymul παρουσιάζει IPC $= 0.72$ — σημαντικά κάτω
+από τη μονάδα.  Η ανάλυση μέσω hardware performance counters αποκαλύπτει
+τρεις αιτίες:
+
+\begin{enumerate}
+  \item \textbf{Scalar store → vector load forwarding failure:} Ο X60
+    διαθέτει αποσυζευγμένο scalar/vector pipeline.  Ο scalar store buffer
+    δεν μπορεί να προωθήσει δεδομένα στη vector load unit.  Κάθε φορά
+    που ένα vector load (\insn{vle64}) προσπελαύνει διεύθυνση με
+    εκκρεμείς scalar stores, ο pipeline πρέπει να αδειάσει τον store
+    buffer στην L1 cache πριν προχωρήσει — penalty $\approx \num{28}$
+    κύκλοι ανά εμφάνιση.  Στον \code{vector\_rvv}, η \q{direct-write
+    discipline} γράφει τα $z_0$ και $z_2$ απευθείας στον output buffer
+    μέσω scalar \insn{sd}, και στη συνέχεια τα Loop~3 vector operations
+    τα διαβάζουν μέσω \insn{vle64} — δημιουργώντας forwarding failure
+    σε κάθε επίπεδο αναδρομής.
+
+  \item \textbf{Scalar↔vector transition cost:} Κάθε μετάβαση μεταξύ
+    scalar \insn{clmul\_leaf} και vector XOR operations κοστίζει
+    $\approx \num{10}$ κύκλοι.  Με \num{121} εσωτερικούς κόμβους στο
+    recursion tree (HQC-128) και \num{3} μεταβάσεις ανά κόμβο, το
+    συνολικό transition overhead ανέρχεται σε $\approx \num{3630}$ κύκλοι.
+
+  \item \textbf{VPU stall accumulation:} Οι \num{25842} VPU stall κύκλοι
+    προέρχονται από vector load latency σε recently-scalar-stored
+    δεδομένα και από chaining inefficiency σε μικρά element counts
+    (8–18 elements στα κατώτερα επίπεδα αναδρομής).
+\end{enumerate}
+
+Η αντίθεση μεταξύ \instret (λιγότερες εντολές στον \code{vector\_rvv})
+και κύκλων (περισσότεροι κύκλοι) τεκμηριώνει ότι η μετρική \instret
+αποτελεί αναγκαία αλλά όχι ικανή συνθήκη για πρόβλεψη πραγματικής
+απόδοσης σε hardware με αποσυζευγμένο scalar/vector pipeline.  Η
+παρατήρηση αυτή δεν ακυρώνει τη χρησιμότητα του \instret ως μετρικής
+αλγοριθμικής σύγκρισης — αντιθέτως, αποκαλύπτει ότι η μικροαρχιτεκτονική
+του target hardware καθορίζει ποιο variant είναι βέλτιστο σε πρακτικό
+deployment.
+
+\paragraph{Σύγκριση με Saarinen 2024.}
+Τα αποτελέσματα IPC είναι συμβατά με τα ευρήματα του Saarinen
+\cite{Saarinen2024-vkeccak} στην ίδια πλατφόρμα (SpacemiT X60,
+VLEN$= \num{256}$): ο Saarinen αναφέρει IPC $\approx 0.85$ για
+vectorized Kyber-768 (NTT-based, χωρίς scalar↔vector transitions) —
+υψηλότερο από τον δικό μας \code{vector\_rvv} ($0.72$) ακριβώς διότι
+ο NTT παραμένει εξ ολοκλήρου στο vector pipeline, αποφεύγοντας τα
+transition penalties που πλήττουν τον hybrid Karatsuba.
+
+%% --------------------------------------------------------------------------
+\subsection{Σύγκριση Spike Predictions vs Hardware Reality}
+\label{ssec:hw-spike-vs-hw}
+
+Η κεντρική ερώτηση αυτής της ενότητας είναι: πόσο αξιόπιστα προβλέπει
+το Spike \instret τη σχετική απόδοση σε πραγματικό hardware;  Ο
+\cref{tab:hw-spike-prediction} συγκρίνει τα speedups (variant / reference)
+μεταξύ Spike και BPI-F3.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύγκριση Spike predictions vs hardware reality (HQC-128).
+    Ο λόγος HW/Spike $\approx 1.0$ υποδηλώνει ακριβή πρόβλεψη.
+    Ο \code{scalar\_zb} παρουσιάζει εξαιρετική συμφωνία ($<\pct{3}$
+    απόκλιση), ενώ ο \code{vector\_rvv} αποκλίνει λόγω
+    microarchitectural effects.}
+  \label{tab:hw-spike-prediction}
+  \begin{tabular}{l S[table-format=2.2] S[table-format=2.2] S[table-format=1.2]}
+    \toprule
+    \textbf{Μετρική} & {\textbf{Spike Speedup}} &
+    {\textbf{HW Speedup}} & {\textbf{HW/Spike}} \\
+    \midrule
+    \multicolumn{4}{l}{\textit{\code{scalar\_zb} vs \code{ref\_scalar}}} \\
+    \quad Polymul  & 90.70 & 78.00 & 0.86 \\
+    \quad \Decaps  & 28.26 & 27.79 & 0.98 \\
+    \quad Total \KEM & 34.01 & 34.33 & 1.01 \\
+    \midrule
+    \multicolumn{4}{l}{\textit{\code{vector\_rvv} vs \code{ref\_vector}}} \\
+    \quad Polymul  & 117.73 & 55.31 & 0.47 \\
+    \quad \Decaps  & 51.53 & 31.57 & 0.61 \\
+    \quad Total \KEM & 56.89 & 34.61 & 0.61 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Τα δεδομένα αποκαλύπτουν δύο διακριτά καθεστώτα πρόβλεψης.
+
+\paragraph{Scalar path: εξαιρετική πρόβλεψη (HW/Spike $\approx 1.0$).}
+Στο end-to-end \KEM, ο λόγος HW/Spike για τον \code{scalar\_zb} ανέρχεται
+σε $1.01$ — σχεδόν τέλεια συμφωνία.  Η εξήγηση είναι ότι τόσο ο
+reference όσο και ο optimized variant εκτελούνται αποκλειστικά στον scalar
+pipeline, με παρόμοιο IPC ($\sim 1.3$–$1.6$).  Ο λόγος IPC$_\text{ref}$ /
+IPC$_\text{opt}$ ($= 1.57 / 1.31 = 1.20$) εξηγεί τη μικρή απόκλιση στο
+isolated polymul (HW/Spike $= 0.86$): ο reference polymul αξιοποιεί
+ελαφρώς καλύτερα τον dual-issue λόγω μεγαλύτερου instruction-level
+parallelism στον schoolbook loop.  Στο πλήρες \KEM, η απόκλιση αυτή
+αμβλύνεται από τους υπόλοιπους πυρήνες (Keccak, decode, sampling) που
+παρουσιάζουν παρόμοιο IPC μεταξύ reference και optimized.
+
+\paragraph{Vector path: σημαντική απόκλιση (HW/Spike $\approx 0.6$).}
+Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.61$ στο \KEM — η
+πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{39}.  Η
+απόκλιση οφείλεται εξ ολοκλήρου στα microarchitectural penalties που
+αναλύθηκαν στην \cref{ssec:hw-ipc}: ο Spike μοντελοποιεί κάθε εντολή
+ως CPI$=$1, αγνοώντας τα scalar↔vector transition costs και τα store
+forwarding failures.  Η παρατήρηση αυτή τεκμηριώνει ότι:
+\begin{itemize}
+  \item Για \textbf{scalar-only variants} (Tier~1), το Spike \instret
+    αποτελεί αξιόπιστο δείκτη σχετικής απόδοσης ($<\pct{3}$ απόκλιση
+    στο \KEM).
+  \item Για \textbf{hybrid scalar/vector variants} (Tier~2), το Spike
+    \instret αποτελεί αισιόδοξο κάτω φράγμα — η πραγματική απόδοση
+    εξαρτάται κρίσιμα από τη μικροαρχιτεκτονική του target.
+  \item Για \textbf{pure-vector variants} (Tier~3, \Zvbc), η πρόβλεψη
+    αναμένεται ακριβέστερη διότι ολόκληρος ο υπολογισμός παραμένει στο
+    vector pipeline — χωρίς scalar↔vector transitions.  Η επαλήθευση
+    αυτής της υπόθεσης απαιτεί hardware με \Zvbc (μελλοντική εργασία,
+    βλ.\ \cref{sec:future-work}).
+\end{itemize}
+
+\paragraph{Threshold sweep: επικύρωση σταθερότητας.}
+Η σύγκριση Spike vs hardware επεκτείνεται μέσω threshold sweep στον
+\code{scalar\_zb}: μεταβολή του Karatsuba threshold (8, 16, 32, 64, 128)
+παράγει σταθερό \instret ($\num{195403}$ σε όλες τις τιμές — ο
+specialized code generator παράγει ισοδύναμο κώδικα) και σχεδόν σταθερούς
+κύκλους ($\num{146288}$–$\num{146545}$, $<\pct{0.2}$ διακύμανση).  Η
+σταθερότητα αυτή επιβεβαιώνει ότι η μικροαρχιτεκτονική συμπεριφορά του
+scalar path δεν εξαρτάται από τη δομή του recursion tree — μόνο από τον
+συνολικό αριθμό εντολών.
+
+Αντιθέτως, ο \code{vector\_rvv} threshold sweep αποκαλύπτει ισχυρή
+εξάρτηση: threshold $= 16$ (βέλτιστο) δίνει \num{206774} κύκλοι, ενώ
+threshold $= 128$ δίνει \num{411118} κύκλοι ($+\pct{99}$) — η αύξηση
+threshold μειώνει τον αριθμό recursion levels αλλά αυξάνει τον αριθμό
+\insn{clmul} operations στα leaves (τετραγωνική πολυπλοκότητα), και
+ταυτόχρονα αυξάνει τα scalar↔vector transitions ανά leaf.
+
+%% --------------------------------------------------------------------------
+\subsection{Σύνοψη Hardware Evaluation}
+\label{ssec:hw-summary}
+
+\begin{keyresultbox}[Hardware Validation — Βασικά Ευρήματα (HQC-128, BPI-F3)]
+  \begin{itemize}
+    \item \textbf{Tier~1 (\code{scalar\_zb}):} \Decaps σε
+      \SI{804}{\micro\second}, \speedup{27.8} έναντι reference.
+      Spike prediction accuracy: $\pct{98}$ (HW/Spike $= 1.01$ στο \KEM).
+    \item \textbf{Tier~2 (\code{vector\_rvv}):} \Decaps σε
+      \SI{718}{\micro\second}, \speedup{31.1} έναντι reference.
+      Spike υπερεκτιμά κατά \pct{39} λόγω scalar↔vector penalties.
+    \item \textbf{Microarchitectural insight:} Ο αποσυζευγμένος
+      scalar/vector pipeline του X60 τιμωρεί τον hybrid Karatsuba
+      (IPC $= 0.72$) αλλά ευνοεί τον pure-scalar path (IPC $= 1.31$).
+    \item \textbf{Deployment:} Πλήρες key exchange σε
+      $\approx\SI{1.3}{\milli\second}$ — αποδεκτό για TLS και IoT.
+    \item \textbf{Πρόβλεψη Tier~3:} Η \Zvbc υλοποίηση αναμένεται να
+      εξαλείψει τα scalar↔vector transitions (ολόκληρος ο υπολογισμός
+      στο vector pipeline), επιτυγχάνοντας IPC $\geq 1.0$ και
+      πλησιάζοντας τις Spike predictions.
+  \end{itemize}
+\end{keyresultbox}
+
+Η αξιολόγηση σε πραγματικό hardware τεκμηριώνει ότι οι βελτιστοποιήσεις
+παρέχουν ουσιαστική πρακτική επιτάχυνση — όχι μόνο αλγοριθμική μείωση
+\instret.  Ταυτόχρονα, αποκαλύπτει ότι η επιλογή μεταξύ scalar και
+vector path εξαρτάται κρίσιμα από τη μικροαρχιτεκτονική του target:
+σε hardware με αποσυζευγμένο pipeline (όπως ο X60), ο pure-scalar
+Karatsuba με \Zbc αποτελεί τη βέλτιστη επιλογή για \KeyGen/\Encaps,
+ενώ ο hybrid \RVV path ωφελεί μόνο τη \Decaps χάρη στη vectorized
+αποκωδικοποίηση.  Η ερμηνεία αυτών των ευρημάτων στο πλαίσιο
+ευρύτερων αρχιτεκτονικών συγκρίσεων παρουσιάζεται στο
+\cref{ch:discussion}.

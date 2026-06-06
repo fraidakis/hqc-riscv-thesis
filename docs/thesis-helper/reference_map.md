@@ -33,31 +33,36 @@
 
 ### §1.1 Η Κβαντική Απειλή και η Μετα-Κβαντική Κρυπτογραφία
 
-* `notes/PQC-intro.txt` - **Research Notes** - Contains "Harvest now, Decrypt later" strategy, CNSA 2.0 mandate, and Shor's algorithm threat model
+* `docs/thesis-helper/notes/PQC-intro.txt` - **Research Notes** - Contains "Harvest now, Decrypt later" strategy, CNSA 2.0 mandate, and Shor's algorithm threat model
+* `docs/thesis/chapters/01-introduction.tex` - **Writing Draft** - LaTeX source for Chapter 1
+* `docs/thesis/figures/ch1-introduction/timeline-pqc.tex` - **Figure** - TikZ timeline diagram: classical crypto → quantum threat → NIST competition → standardization
 
 ### §1.2 Το Πλαίσιο Τυποποίησης του NIST
 
-* `notes/PQC-Algorithms.txt` - **Research Notes** - NIST standardization rounds overview, HQC selection timeline, "Επιλέχθηκε για standardization 11/03/2025"
+* `docs/thesis-helper/notes/PQC-Algorithms.txt` - **Research Notes** - NIST standardization rounds overview, HQC selection timeline, "Επιλέχθηκε για standardization 11/03/2025"
+* `docs/thesis/figures/ch1-introduction/nist-rounds-flowchart.tex` - **Figure** - TikZ flowchart NIST rounds: Round 1 (69) → Round 2 (26) → Round 3 (7) → Round 4 (4) → Final (HQC)
 
 ### §1.3.1 Κρυπτογραφική Ευελιξία ως Απαίτηση
 
-* `notes/PQC-intro.txt` - **Research Notes** - SIKE failure case study ("SIKE horror story"), crypto agility arguments, "Problem 1 - Crypto Agility is Destroyed"
+* `docs/thesis-helper/notes/PQC-intro.txt` - **Research Notes** - SIKE failure case study ("SIKE horror story"), crypto agility arguments, "Problem 1 - Crypto Agility is Destroyed"
 
 ### §1.3.2 Επιτάχυνση μέσω ISA Extensions σε Ανοιχτή Αρχιτεκτονική
 
-* `notes/PQC-intro.txt` - **Research Notes** - RISC-V philosophy of ISA extensions replacing fixed-function accelerators
-* `notes/notes_mine.md` - **Research Notes** - "Zbb, V, Zvbb part of the RVA23 standard" — mainstream adoption path evidence
+* `docs/thesis-helper/notes/PQC-intro.txt` - **Research Notes** - RISC-V philosophy of ISA extensions replacing fixed-function accelerators
+* `docs/thesis-helper/notes/notes_mine.md` - **Research Notes** - "Zbb, V, Zvbb part of the RVA23 standard" — mainstream adoption path evidence
+* `docs/thesis/figures/ch1-introduction/acceleration-spectrum.tex` - **Figure** - TikZ diagram "spectrum of acceleration": Fixed ASIC ← FPGA ← ISA Extensions ← Pure Software
 
 ### §1.4 Σκοπός και Συνεισφορά της Διατριβής
 
-* `notes/PQC-Algorithms.txt` - **Research Notes** - HQC vs alternative PQC algorithms comparison
-* `notes/notes_detailed.md` (Discovery 3) - **Research Notes** - Summary speedup table establishing the contribution claims
+* `docs/thesis-helper/notes/PQC-Algorithms.txt` - **Research Notes** - HQC vs alternative PQC algorithms comparison
+* `docs/thesis-helper/notes/notes_detailed.md` (Discovery 3) - **Research Notes** - Summary speedup table establishing the contribution claims
 * `docs/references/markdown/riscv-other-algorithms/1-eco-crystals-rv64imb.md` - **Literature** - ECO-CRYSTALS: demonstrates RISC-V PQC optimization is active area but only for lattice-based (Kyber/Dilithium), not code-based HQC
 * `docs/references/markdown/riscv-other-algorithms/2-rv3264imbrvv.md` - **Literature** - Zhang et al. TCHES 2025: most comprehensive RISC-V PQC work — covers all ISA combos but only lattice-based, reinforcing the code-based gap
 
 ### §1.5 Δομή της Εργασίας
 
 * `docs/thesis-helper/sections.md` - **Documentation** - Authoritative thesis outline with per-section content descriptions; use as the structural reference for the roadmap paragraph
+* `docs/thesis/figures/ch1-introduction/thesis-at-a-glance.tex` - **Figure** - TikZ infographic "thesis at a glance": problem → approach → key results
 
 ---
 
@@ -67,53 +72,67 @@
 
 #### §2.1.1 Μαθηματική Θεμελίωση
 
-* `notes/PQC-Algorithms.txt` - **Research Notes** - "HQC Intro", security assumptions, code-based crypto foundations
-* `writing/reference_explanation.md` - **Writing Draft** - Detailed vendor code walkthrough explaining HQC mathematical foundations
+* `docs/thesis-helper/notes/PQC-Algorithms.txt` - **Research Notes** - "HQC Intro", security assumptions, code-based crypto foundations
+* `docs/thesis-helper/writing/reference_explanation.md` - **Writing Draft** - Detailed vendor code walkthrough explaining HQC mathematical foundations
+* `docs/thesis/chapters/02-theoretical-background.tex` - **Writing Draft** - LaTeX source for Chapter 2
 
 #### §2.1.2 Ιστορικό Πλαίσιο
 
-* `notes/PQC-Algorithms.txt` - **Research Notes** - McEliece genealogy, quasi-cyclic MDPC evolution, HQC positioning vs BIKE/Classic McEliece
+* `docs/thesis-helper/notes/PQC-Algorithms.txt` - **Research Notes** - McEliece genealogy, quasi-cyclic MDPC evolution, HQC positioning vs BIKE/Classic McEliece
+* `docs/thesis/figures/ch2-background/code-based-genealogy.tex` - **Figure** - TikZ genealogy diagram: McEliece → Niederreiter → MDPC → QC-MDPC → HQC
 
 ### §2.2 Ο Αλγόριθμος HQC
 
 #### §2.2.1 Ομάδα Σχεδιασμού και Πορεία Τυποποίησης
 
-* `notes/PQC-Algorithms.txt` - **Research Notes** - NIST round progression, sparse→dense spec change (2024), security parameters table
+* `docs/thesis-helper/notes/PQC-Algorithms.txt` - **Research Notes** - NIST round progression, sparse→dense spec change (2024), security parameters table
 * `vendor/hqc-ref/CHANGELOG` - **Reference Code** - Upstream HQC changelog showing spec revisions across NIST rounds
+* `docs/thesis/figures/ch2-background/hqc-timeline.tex` - **Figure** - TikZ HQC timeline: submission (2017) → rounds → spec change (2024) → Final
+* `docs/thesis/figures/ch2-background/hqc-params-table.tex` - **Figure** - LaTeX table of HQC parameters per security level (N, n₁, n₂, ω, δ)
 
 #### §2.2.2 Λειτουργία KEM: KeyGen, Encaps, Decaps
 
-* `writing/reference_explanation.md` - **Writing Draft** - "Phase 6: The Core Scheme", KEM flow pseudocode
+* `docs/thesis-helper/writing/reference_explanation.md` - **Writing Draft** - "Phase 6: The Core Scheme", KEM flow pseudocode
 * `src/hqc.c` (`hqc_pke_keygen`, `hqc_pke_encrypt`, `hqc_pke_decrypt`) - **Source Code** - Actual implementation of the three KEM operations showing polynomial operations, hash calls, and FO transform re-encryption check
 * `vendor/hqc-ref/src/common/kem.c` - **Reference Code** - Vendor IND-CCA2 KEM wrapper (Encaps/Decaps + FO transform) used as the unmodified algorithmic baseline
 * `vendor/hqc-ref/src/ref/hqc.c` - **Reference Code** - Vendor PKE primitives (keygen / encrypt / decrypt) underlying the KEM
+* `docs/thesis/figures/ch2-background/hqc-kem-sequence.tex` - **Figure** - TikZ sequence diagram: Alice/Bob key exchange (KeyGen → Encaps → Decaps)
 
 #### §2.2.3 Υπολογιστική Δομή και Κατανομή Κόστους
 
-* `notes/notes_detailed.md` (Discovery 6) - **Research Notes** - "polynomial multiplication was originally about 96% of decaps", pie chart data source
+* `docs/thesis-helper/notes/notes_detailed.md` (Discovery 6) - **Research Notes** - "polynomial multiplication was originally about 96% of decaps", pie chart data source
 * `src/hqc.c` - **Source Code** - Shows which kernels (vect_mul, hash_*, code_decode) are called in each KEM operation
-* `scripts/report/generate_pie_charts.py` - **Script** - Generates PDF pie charts showing instruction breakdown by category from trace hotspot CSVs; produces the §2.2.3 cost distribution pie chart
-* `results/simulation/profiling/traces/scalar_ref/` - **Data Report** - Trace hotspot CSVs consumed by the pie chart generator
-* `results/reports/figures/pie_ref-scalar.pdf` - **Figure** - Pre-rendered pie chart of reference scalar HQC instruction breakdown (polymul ~96%, Keccak, decode, misc)
+* `scripts/report/generate_charts.py` - **Script** - Generates PDF pie charts and bar charts from benchmark CSVs; produces the §2.2.3 cost distribution pie chart (absorbed former generate_pie_charts.py)
+* `results/simulation/profiling/traces/scalar_ref/` - **Data Report** - Trace hotspot CSVs consumed by the chart generator
+* `results/reports/figures/pie_scalar-ref.pdf` - **Figure** - Pre-rendered pie chart of reference scalar HQC instruction breakdown (polymul ~96%, Keccak, decode, misc)
+* `results/reports/figures/pie_combined.pdf` - **Figure** - Combined pie chart comparison across variants
+* `docs/thesis/figures/ch2-background/hqc-dataflow.tex` - **Figure** - TikZ block diagram: dataflow Keygen/Encaps/Decaps with color-coded kernels (polymul=red, Keccak=orange, decode=yellow)
 
 ### §2.3 Πολυωνυμικός Πολλαπλασιασμός σε GF(2)[x]
 
-* `optimizations/multiplication.md` §1 - **Optimization Notes** - "Baseline Architecture and Starting Point", GF(2)[x] ring definition, Karatsuba mathematical theory
+* `docs/thesis-helper/optimizations/multiplication.md` §1 - **Optimization Notes** - "Baseline Architecture and Starting Point", GF(2)[x] ring definition, Karatsuba mathematical theory
 * `vendor/hqc-ref/src/ref/gf2x.c` - **Reference Code** - Vendor bit-serial GF(2)[x] multiplication used as the mathematical reference implementation
+* `docs/thesis/figures/ch2-background/karatsuba-recursion-tree.tex` - **Figure** - TikZ recursion tree diagram (2 levels): a·b → {aL·bL, aH·bH, (aL⊕aH)·(bL⊕bH)}
+* `docs/thesis/figures/ch2-background/karatsuba-complexity.tex` - **Figure** - TikZ complexity comparison: schoolbook O(n²) vs Karatsuba O(n^1.585)
 
 ### §2.4 Συναρτήσεις Κατακερματισμού SHA-3 / Keccak
 
-* `optimizations/keccak.md` §1 - **Optimization Notes** - "Baseline Architecture", Sponge Construction, Keccak-f[1600] round structure (θ, ρ, π, χ, ι)
+* `docs/thesis-helper/optimizations/keccak.md` §1 - **Optimization Notes** - "Baseline Architecture", Sponge Construction, Keccak-f[1600] round structure (θ, ρ, π, χ, ι)
 * `vendor/hqc-ref/lib/fips202/fips202.c` - **Reference Code** - Vendor FIPS-202 SHA-3 / SHAKE reference (Keccak-f[1600] permutation, 5-step round, sponge absorb/squeeze)
 * `vendor/hqc-ref/lib/fips202/fips202.h` - **Reference Code** - FIPS-202 public API declarations (SHAKE-256 incremental, SHA3-256/512)
+* `docs/thesis/figures/ch2-background/keccak-sponge.tex` - **Figure** - TikZ sponge construction diagram: absorb phase → squeeze phase
+* `docs/thesis/figures/ch2-background/keccak-state-3d.tex` - **Figure** - TikZ 3D visualization of 5×5×64 Keccak state (lanes, columns, planes)
+* `docs/thesis/figures/ch2-background/keccak-steps-table.tex` - **Figure** - LaTeX table of 5 Keccak steps (θ, ρ, π, χ, ι) with formulas
 
 ### §2.5 Κώδικες Διόρθωσης Σφαλμάτων (Reed-Muller, Reed-Solomon)
 
-* `optimizations/decode.md` §1 - **Optimization Notes** - "Baseline Architecture", RM(1,7), RS over GF(2^8), concatenated code pipeline, Berlekamp-Massey theory
+* `docs/thesis-helper/optimizations/decode.md` §1 - **Optimization Notes** - "Baseline Architecture", RM(1,7), RS over GF(2^8), concatenated code pipeline, Berlekamp-Massey theory
 * `vendor/hqc-ref/src/ref/reed_muller.c` - **Reference Code** - Vendor scalar Reed-Muller decoder (Hadamard transform + peak find) baseline
 * `vendor/hqc-ref/src/ref/reed_solomon.c` - **Reference Code** - Vendor scalar Reed-Solomon decoder (syndromes / Berlekamp-Massey / Chien / Forney) baseline
 * `vendor/hqc-ref/src/common/code.c` - **Reference Code** - Vendor concatenated decode glue: orchestrates RM (inner) + RS (outer) pipeline
 * `vendor/hqc-ref/src/common/fft.c` - **Reference Code** - Vendor recursive Gao-Mateer additive FFT (`fft_rec`) — baseline for §7.2.4 root-finding rewrite
+* `docs/thesis/figures/ch2-background/concatenated-pipeline.tex` - **Figure** - TikZ concatenated decoding pipeline: received_word → RM decode → RS decode → corrected output
+* `docs/thesis/figures/ch2-background/rs-decode-pipeline.tex` - **Figure** - TikZ RS decoding flowchart: Syndromes → BM → Root-finding → Forney → Correction
 
 ---
 
@@ -123,49 +142,57 @@
 
 #### §3.1.1 Ιστορικό Πλαίσιο και Φιλοσοφία
 
-* `notes/notes_mine.md` - **Research Notes** - RVA23 profile mandatory extensions, mainstream adoption evidence
+* `docs/thesis-helper/notes/notes_mine.md` - **Research Notes** - RVA23 profile mandatory extensions, mainstream adoption evidence
+* `docs/thesis/chapters/03-risc-v-architecture.tex` - **Writing Draft** - LaTeX source for Chapter 3
 
 #### §3.1.2 Βασικά Χαρακτηριστικά RV64I
 
-* — (textbook material, no project-specific source)
+* `docs/thesis/figures/ch3-riscv/rv64-instruction-formats.tex` - **Figure** - TikZ diagram of 6 instruction formats (R/I/S/B/U/J) with bit fields
 
 #### §3.1.3 Σύμβαση Ονοματοδοσίας Επεκτάσεων και Standard Profiles
 
-* `notes/notes_mine.md` - **Research Notes** - RVA23 profile mandatory extensions, mainstream adoption evidence
+* `docs/thesis-helper/notes/notes_mine.md` - **Research Notes** - RVA23 profile mandatory extensions, mainstream adoption evidence
 * `cmake/options.cmake` (HQC_SCALAR_MARCH) - **Build Config** - Concrete ISA strings used: `rv64gc_zbc_zbb_zbs`, `rv64gcv_zbc_zbb_zba_zvbc_zvbb` — demonstrates modular extension composition
 
 #### §3.1.4 Σύγκριση Σχεδιαστικής Φιλοσοφίας με ARM και x86
 
-* `notes/notes_mine.md` - **Research Notes** - "Architectural Comparison: SHA-2 vs SHA-3", ARM EOR3/RAX1 vs RISC-V Zvbb comparison
+* `docs/thesis-helper/notes/notes_mine.md` - **Research Notes** - "Architectural Comparison: SHA-2 vs SHA-3", ARM EOR3/RAX1 vs RISC-V Zvbb comparison
 
 ### §3.2 Scalar Κρυπτογραφικές Επεκτάσεις (Zbc, Zbb, Zbkb)
 
-* `optimizations/multiplication.md` §3.2.1 - **Optimization Notes** - "Native clmul/clmulh Injection", Zbc description and before/after analysis
+* `docs/thesis-helper/optimizations/multiplication.md` §3.2.1 - **Optimization Notes** - "Native clmul/clmulh Injection", Zbc description and before/after analysis
 * `src/common/gf.c` (`gf_mul`, `gf_square`) - **Source Code** - Example of Zbc usage via `__riscv_clmul_64` intrinsic (implementation details in §6.2)
 * `src/mult/karatsuba_zbc/gf2x_clmul.c` (`clmul_leaf`) - **Source Code** - Example of clmul/clmulh pair usage (implementation details in §6.2)
+* `docs/thesis/figures/ch3-riscv/clmul-before-after.tex` - **Figure** - LaTeX before/after code listing: shift-XOR loop vs clmul+clmulh
+* `docs/thesis/figures/ch3-riscv/clmul-semantics.tex` - **Figure** - TikZ diagram showing carry-less multiply semantics at bit level
 
 ### §3.3 Αρχιτεκτονική Διανυσματικής Μονάδας (RVV 1.0)
 
 #### §3.3.1 Γενική Αρχιτεκτονική και Vector-Length Agnosticism
 
-* `writing/VLEN_scaling.md` - **Writing Draft** - VLEN, LMUL, VLA concepts with concrete benchmark data
+* `docs/thesis-helper/writing/VLEN_scaling.md` - **Writing Draft** - VLEN, LMUL, VLA concepts with concrete benchmark data
+* `docs/thesis/figures/ch3-riscv/rvv-register-file.tex` - **Figure** - TikZ diagram: v0–v31 vector register file, VLEN bits wide
 
 #### §3.3.2 Control/Status Registers και Παραμετροποίηση
 
-* `writing/VLEN_scaling.md` "Instruction Budget Breakdown" - **Writing Draft** - VLMAX formula, SEW/LMUL interaction
+* `docs/thesis-helper/writing/VLEN_scaling.md` "Instruction Budget Breakdown" - **Writing Draft** - VLMAX formula, SEW/LMUL interaction
+* `docs/thesis/figures/ch3-riscv/rvv-vlmax-table.tex` - **Figure** - LaTeX table of VLMAX for various VLEN/SEW/LMUL combinations
 
 #### §3.3.3 Strip-Mining και ο Μηχανισμός vsetvl
 
 * `sim/common/mem.c` (`memcpy`) - **Source Code** - Minimal worked example of RVV strip-mining loop: vsetvl + vle8 + vse8 pattern
 * `src/mult/karatsuba_zvbc/gf2x_vclmul.c` (`rvv_xor3_u64`) - **Source Code** - Clean VLA helper demonstrating strip-mining with SEW=64, LMUL=1
+* `docs/thesis/figures/ch3-riscv/rvv-strip-mining.tex` - **Figure** - TikZ strip-mining visualization: same code, different VLMAX → different iteration counts
 
 #### §3.3.4 Tail/Mask Policies και Κατηγορίες Εντολών
 
-* — (textbook material; concrete examples in §3.3.3 and §3.3.5)
+* `docs/thesis/figures/ch3-riscv/rvv-lmul-grouping.tex` - **Figure** - TikZ LMUL grouping diagram: register file color-coded by group
+* `docs/thesis/figures/ch3-riscv/rvv-instruction-categories.tex` - **Figure** - LaTeX table of RVV instruction categories with examples and thesis usage
 
 #### §3.3.5 Motivating Example — XOR Loop σε RVV
 
 * `src/vector.c` (`vect_add`) - **Source Code** - RVV XOR loop: strip-mined vxor of two polynomial vectors — direct motivating example
+* `docs/thesis/figures/ch3-riscv/rvv-xor-example.tex` - **Figure** - LaTeX side-by-side: C scalar loop vs RVV intrinsics with annotated arrows
 
 ### §3.4 Διανυσματικές Κρυπτογραφικές Επεκτάσεις (Zvbc, Zvbb)
 
@@ -175,6 +202,7 @@
 * `vendor/rvv-keccak/fips202_rv64imv_hybrid_x4.S` - **Reference Code** - Third-party base-RVV (imv, no Zvbb) Keccak x4 hybrid assembly — counterpart used to isolate Zvbb's contribution
 * `vendor/rvv-keccak/fips202x_rv64.c` - **Reference Code** - C glue around the assembly cores; exposes batched SHA3/SHAKE APIs (x2/x3/x4) consumed by external benchmarks
 * `vendor/rvv-keccak/fips202x.h` - **Reference Code** - Public API + macros for the rvv-keccak batched implementations
+* `docs/thesis/figures/ch3-riscv/zvbc-zvbb-before-after.tex` - **Figure** - LaTeX before/after table: operations with/without Zvbc/Zvbb
 
 ### §3.5 Μέθοδοι Προγραμματισμού RISC-V — Φάσμα Αφαίρεσης
 
@@ -183,483 +211,9 @@
 * `src/mult/karatsuba_zvbc/gf2x_vclmul.c` - **Source Code** - C intrinsics example: `__riscv_vclmul_vv_u64m1()`, `__riscv_vsetvl_e64m1()`
 * `src/common/gf.c` (`gf_mul`) - **Source Code** - C intrinsics example: `__riscv_clmul_64()` scalar Zbc intrinsic
 * `src/vector.c` (`vect_add`) - **Source Code** - Auto-Lowering example: plain C with Zba/Zbs auto-lowered by compiler
-
----
-
-## Κεφάλαιο 4: Σχετική Βιβλιογραφία (Related Work)
-
-### §4.1 Υλοποιήσεις HQC σε RISC-V
-
-* `notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Cross-architecture comparison data, prior RISC-V HQC work analysis
-* `docs/references/markdown/riscv/optimizing-hqc-using-frobenius-additive-fft-on-a-risc-v-based-soc-paper.md` - **Literature** - Ras et al. 2026: FAFFT on CV32E40P RISC-V SoC, ANDROMEDA HW accelerator, 3.52×–8.08× SW, 9.64×–19.22× HW+SW
-* `docs/references/markdown/riscv/optimizing-hqc-using-frobenius-additive-fft-on-a-risc-v-based-soc-presentation.md` - **Literature** - Companion presentation slides for Ras et al. 2026
-* `docs/references/markdown/riscv/code-based-cryptography-in-iot-a-hw-sw-co-design-of-hqc.md` - **Literature** - Schöffel et al. 2022: First HW/SW co-design of HQC on RISC-V (RV32IC), sparse×dense (old spec)
-* `docs/references/markdown/riscv/secuelec-rennes-phoenix-prez.md` - **Literature** - PHOENIX crypto-agile presentation (CEA-Leti)
-* `docs/references/markdown/other-platforms/phoenix-crypto-agile-hardware-sharing.md` - **Literature** - PHOENIX: Crypto-agile ML-KEM+HQC HW sharing, SuperButterfly unit, FAFFT+NTT
-* `docs/references/pdf/riscv/!Optimizing HQC using Frobenius Additive FFT on a RISC-V-based SoC - Paper.pdf` - **Literature** - Ras et al. FAFFT RISC-V SoC paper (PDF source)
-* `docs/references/pdf/riscv/!Optimizing HQC using Frobenius Additive FFT on a RISC-V-based SoC - Presentation.pdf` - **Literature** - Companion presentation slides (PDF source)
-* `docs/references/pdf/riscv/!!!secuelec_rennes_phoenix_prez.pdf` - **Literature** - PHOENIX crypto-agile HW-sharing presentation (PDF source)
-* `docs/references/pdf/riscv/Code-based_Cryptography_in_IoT_A_HW_SW_Co-Design_of_HQC.pdf` - **Literature** - HQC HW/SW co-design IoT paper (PDF source)
-
-### §4.2 Υλοποιήσεις HQC σε x86 και ARM
-
-* `docs/references/markdown/other-platforms/opthqc-optimize-hqc-for-high-performance.md` - **Literature** - OptHQC: x86 AVX2, sparse×dense + threshold scheduling, 55% overall speedup
-* `docs/references/markdown/other-platforms/efficient-polynomial-multiplication-for-hqc-on-arm-cortex-m4.md` - **Literature** - Jang et al. 2026: Cortex-M4 FAFFT-CRT/Karatsuba/radix-16, 33.4% polymul reduction
-* `docs/references/markdown/other-platforms/faster-gf2x-polynomial-multiplication-using-simd-instructions.md` - **Literature** - SIMD GF(2)[x] multiplication techniques (vpclmulqdq)
-* `docs/references/markdown/other-platforms/accelerating-hqc-with-additive-fft.md` - **Literature** - Additive FFT acceleration analysis
-* `docs/references/markdown/other-platforms/bike-optimization-for-the-intel-haswell-and-arm-cortex-m4.md` - **Literature** - Chen et al. 2021: FAFFT in BIKE (Haswell/M4)
-* `docs/references/markdown/other-platforms/a-high-efficiency-hardware-design-for-the-post-quantum-kem-hqc.md` - **Literature** - Full HW HQC design (contrast point)
-* `docs/references/markdown/other-platforms/efficient-hardware-implementation-of-constant-time-sampling-for-hqc.md` - **Literature** - CT sampling HW (future work reference)
-* `docs/references/markdown/other-platforms/leap-lightweight-and-efficient-accelerator-for-sparse-polynomial-multiplication-.md` - **Literature** - LEAP sparse polymul accelerator (obsolete with 2024 spec change)
-* `docs/references/pdf/other-platforms/OptHQC Optimize HQC for High-Performance.pdf` - **Literature** - OptHQC x86/AVX2 paper (PDF source)
-* `docs/references/pdf/other-platforms/!!! Faster GF(2)[x] polynomial multiplication using SIMD instructions.pdf` - **Literature** - SIMD GF(2)[x] multiplication techniques (PDF source)
-* `docs/references/pdf/other-platforms/!Efficient Polynomial Multiplication for HQC on ARM Cortex-M4.pdf` - **Literature** - Cortex-M4 polymul optimization (PDF source)
-* `docs/references/pdf/other-platforms/!BIKE optimization for the Intel Haswell and ARM Cortex-M4.pdf` - **Literature** - BIKE comparator workload on Haswell/M4 (PDF source)
-* `docs/references/pdf/other-platforms/Accelerating HQC with Additive FFT.pdf` - **Literature** - Additive FFT acceleration approach analysis (PDF source)
-* `docs/references/pdf/other-platforms/A High Efficiency Hardware Design for the Post-Quantum KEM HQC.pdf` - **Literature** - HQC dedicated HW design contrast point (PDF source)
-* `docs/references/pdf/other-platforms/Efficient Hardware Implementation of Constant Time Sampling for HQC.pdf` - **Literature** - Sampling HW reference for §10.3 future-CT discussion (PDF source)
-* `docs/references/pdf/other-platforms/LEAP_Lightweight_and_Efficient_Accelerator_for_Sparse_Polynomial_Multiplication_of_HQC.pdf` - **Literature** - LEAP sparse-polymul accelerator (PDF source)
-* `docs/references/pdf/other-platforms/PHOENIX - Crypto-Agile Hardware Sharing.pdf` - **Literature** - PHOENIX FPGA crypto-agile sharing paper (PDF source)
-* `docs/references/notes/HQC Optimization Benchmarks Research.txt` - **Literature** - Aggregated benchmark numbers from published HQC implementations
-
-### §4.3 Γενικότερες PQC Εργασίες στο RISC-V
-
-* `notes/PQC-Algorithms.txt` - **Research Notes** - "Compatibility. Previous works focused on older HQC versions"
-* `docs/references/markdown/riscv-other-algorithms/1-eco-crystals-rv64imb.md` - **Literature** - ECO-CRYSTALS (Ji et al. 2024): First optimized Kyber+Dilithium on RV64IMB (VisionFive 2 dual-issue). Keccak 59.18% speedup via rori/andn + dual-issue scheduling. NTT 76–85% speedup via Montgomery/Plantard. Kyber end-to-end 399k/448k/479k cycles (60–65% speedup vs reference).
-* `docs/references/markdown/riscv-other-algorithms/2-rv3264imbrvv.md` - **Literature** - Zhang et al. TCHES 2025: Comprehensive Keccak/Kyber/Dilithium on RV{32,64}IM{B}{V} (C908 dual-issue, VLEN=128). New Keccak records (RV64IB: 1770 cycles). Hybrid vector/scalar Keccak. Improved Plantard arithmetic. Kyber768 RV64IMBV: 165k/197k/207k cycles.
-* `docs/references/markdown/riscv-other-algorithms/rvv-keccak-making-the-case-for-a-keccak-instructionpost-quantum-cryptography-on-.md` - **Literature** - Saarinen 2024 (RISC-V PQC TG): vkeccak.vi instruction proposal. Kyber-768 on SpacemiT X60 (VLEN=256): 12.74× speedup with Keccak insn. Keccak = 60–80% of Kyber/Dilithium cycles after NTT vectorization.
-* `docs/references/pdf/riscv-other-algorithms/1_ECO-CRYSTALS - RV64IMB.pdf` - **Literature** - ECO-CRYSTALS paper (PDF source)
-* `docs/references/pdf/riscv-other-algorithms/2_RV{32+64}IMB+RVV.pdf` - **Literature** - Zhang et al. TCHES 2025 paper (PDF source)
-* `docs/references/pdf/riscv-other-algorithms/RVV-keccak Making the Case for a Keccak InstructionPost-Quantum Cryptography on RVV.pdf` - **Literature** - Saarinen vkeccak.vi presentation (PDF source)
-* `docs/references/markdown/prior-theses/1-dimitrios-konstantinidis-10106.md` - **Literature** - Konstantinidis 2025 (AUTh): llama.cpp vectorization for RISC-V Vitruvius+ RVV
-* `docs/references/markdown/prior-theses/2-chaseropoulos-grigorios.md` - **Literature** - Chaseropoulos 2025 (AUTh): Microsoft SEAL BFV on RISC-V RVV, NTT vectorization
-* `docs/references/markdown/prior-theses/3-evelzaman-panagiotis.md` - **Literature** - Evelzaman 2025 (AUTh): Homomorphic Encryption on RISC-V Spike, Zkr extensions
-
-### §4.4 Αποτίμηση Κενού και Τοποθέτηση Παρούσας Εργασίας
-
-* `notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Evidence that no prior end-to-end RISC-V HQC implementation exists
-* `notes/PQC-Algorithms.txt` - **Research Notes** - Gap analysis: no Zbc/Zvbc exploitation in HQC literature
-* `docs/references/markdown/riscv/optimizing-hqc-using-frobenius-additive-fft-on-a-risc-v-based-soc-paper.md` - **Literature** - Gap evidence: Ras et al. uses FAFFT + custom HW (not pure SW, not ratified extensions)
-* `docs/references/markdown/riscv/code-based-cryptography-in-iot-a-hw-sw-co-design-of-hqc.md` - **Literature** - Gap evidence: Schöffel uses old spec + custom ISA (not ratified, not dense×dense)
-* `docs/references/markdown/other-platforms/phoenix-crypto-agile-hardware-sharing.md` - **Literature** - Gap evidence: PHOENIX uses custom HW coprocessor (not pure SW)
-* `docs/references/markdown/other-platforms/opthqc-optimize-hqc-for-high-performance.md` - **Literature** - Gap evidence: OptHQC targets x86 AVX2 (not RISC-V)
-* `docs/references/markdown/other-platforms/efficient-polynomial-multiplication-for-hqc-on-arm-cortex-m4.md` - **Literature** - Gap evidence: Jang et al. targets Cortex-M4 (not RISC-V, no clmul)
-* `docs/references/markdown/riscv-other-algorithms/1-eco-crystals-rv64imb.md` - **Literature** - Gap evidence: ECO-CRYSTALS targets Kyber/Dilithium (lattice-based, not code-based HQC)
-* `docs/references/markdown/riscv-other-algorithms/2-rv3264imbrvv.md` - **Literature** - Gap evidence: Zhang et al. targets Kyber/Dilithium (lattice-based, not code-based HQC, no Zbc/Zvbc for GF(2)[x])
-* `docs/references/markdown/riscv-other-algorithms/rvv-keccak-making-the-case-for-a-keccak-instructionpost-quantum-cryptography-on-.md` - **Literature** - Gap evidence: Saarinen focuses on Keccak instruction proposal for lattice-based PQC (not HQC polymul)
-* `docs/references/markdown/prior-theses/1-dimitrios-konstantinidis-10106.md` - **Literature** - Gap evidence: RVV methodology but not HQC/PQC code-based crypto
-* `docs/references/markdown/prior-theses/2-chaseropoulos-grigorios.md` - **Literature** - Gap evidence: RVV + lattice-based crypto but not code-based HQC
-* `docs/references/markdown/prior-theses/3-evelzaman-panagiotis.md` - **Literature** - Gap evidence: RISC-V crypto extensions but not HQC
-
----
-
-## Κεφάλαιο 5: Πειραματική Υποδομή και Μεθοδολογία Αξιολόγησης
-
-### §5.1 Πλατφόρμες Εκτέλεσης και Μέτρησης
-
-#### §5.1.1 Spike ISS
-
-* `docs/METHODOLOGY.md` §11, §13.1, §13.3 - **Documentation** - Spike ISS semantics, QEMU role, dual-simulator strategy
-* `sim/spike/run.sh` - **Script** - Spike invocation wrapper with ISA string and memory configuration
-
-#### §5.1.2 QEMU
-
-* `sim/qemu/run.sh` - **Script** - QEMU virt machine invocation for alternative simulation backend
-
-#### §5.1.3 Banana Pi BPI-F3 (SpacemiT K1 X60)
-
-* `docs/hardware/BENCHMARK_METHODOLOGY.md` - **Documentation** - Full hardware benchmarking methodology: metrics, iteration count, statistical treatment, system configuration, perf_event_open harness design, comparison table formats
-* `docs/hardware/banana-pi.md` - **Documentation** - BPI-F3 board documentation and setup notes
-* `.tmp/test_perf_event.c` - **Source Code** - perf_event_open prototype harness for cycle measurement on BPI-F3
-* `results/hardware/` - **Data Report** - Hardware cycle measurements (cycles, instructions, IPC) per variant per security level (TO BE COLLECTED)
-
-#### §5.1.4 Στρατηγική Τριπλής Πλατφόρμας
-
-* `docs/METHODOLOGY.md` §11 - **Documentation** - Role separation: Spike=benchmarking, QEMU=KAT, BPI-F3=validation
-
-### §5.2 Cross-Compilation Toolchains και Ρυθμίσεις Μεταγλώττισης
-
-* `writing/compiler-comparison.md` - **Writing Draft** - Full GCC vs Clang analysis, toolchain files, `-march` flags, LTO/PGO workflow
-* `toolchain/riscv-clang.cmake` - **Build Config** - CMake toolchain file for Clang cross-compilation with RISC-V target triple
-* `toolchain/riscv-gcc.cmake` - **Build Config** - CMake toolchain file for GCC cross-compilation
-* `toolchain/toolchain.env` - **Build Config** - Environment variables for toolchain paths (RISCV prefix, sysroot)
-* `cmake/options.cmake` - **Build Config** - ISA march strings, LTO/PGO flags, VLEN matrix configuration
-* `cmake/hqc_core.cmake` - **Build Config** - Core HQC library CMake module: source file lists, compile definitions, include paths
-
-### §5.3 Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής
-
-* `docs/METHODOLOGY.md` §11, §12 - **Documentation** - "Primary metric: retired instruction count", CPI dilemma, instret ≠ cycles analysis
-* `src/common/bench.c` (`hqc_rdcycle`, `hqc_rdinstret`) - **Source Code** - CSR read implementation: mcycle (0xb00) and minstret (0xb02) in M-mode
-* `src/common/bench.h` - **Source Code** - Public bench API + Spike HTIF exit/print declarations
-* `docs/hardware/BENCHMARK_METHODOLOGY.md` §2, §3 - **Documentation** - Hardware measurement methodology: perf_event_open harness, iteration count, statistical treatment, system configuration
-* `.tmp/test_perf_event.c` - **Source Code** - perf_event_open prototype for BPI-F3 cycle measurement
-* `scripts/report/cpi/cpi_model.py` - **Script** - CPI estimation model from instruction mix histograms — converts instret to estimated cycles
-* `scripts/report/cpi/cost_table.py` - **Script** - Per-instruction-class cost table for CPI model parameterization
-* `scripts/report/cpi/cpi_report.py` - **Script** - Generates formatted CPI reports from model output
-* `scripts/report/cpi/static_analyzer.py` - **Script** - Static instruction mix analyzer for ELF binaries — feeds CPI model
-* `scripts/report/cpi/__init__.py` - **Script** - Package init for the CPI reporting toolkit
-* `scripts/report/parse_histogram.py` - **Script** - Parses Spike PC histogram output into per-function instruction counts
-* `scripts/report/map_pcs.py` - **Script** - Maps program counter addresses to function names via DWARF debug symbols
-* `tests/report/cpi/conftest.py` - **Script** - pytest fixtures for the CPI reporting unit tests
-* `results/simulation/profiling/cpi/reports/` - **Data Report** - Generated CPI reports per security level with cycle estimates
-* `results/simulation/profiling/histograms/` - **Data Report** - PC histogram data for instruction mix analysis
-* `results/simulation/profiling/traces/` - **Data Report** - Spike instruction-trace dumps used for hot-path identification
-* `results/simulation/profiling/cache/` - **Data Report** - Cache simulation outputs (scalar/vector) used in CPI sensitivity discussion
-* `results/simulation/profiling/mem_access/` - **Data Report** - Memory access pattern profiles
-* `results/hardware/` - **Data Report** - Hardware cycle measurements from BPI-F3 (TO BE COLLECTED)
-
-### §5.4 Επαλήθευση Ορθότητας (KAT Tests)
-
-* `docs/ARCHITECTURE.md` - **Documentation** - KAT flow description, 300-vector validation methodology
-* `scripts/test/run_kat.sh` - **Script** - Automated KAT runner: builds ELF, runs on Spike, validates against NIST response files
-* `tests/kat/PQCkemKAT_128.rsp` - **Test Data** - NIST Known Answer Test vectors for HQC-128 (100 vectors)
-* `tests/kat/PQCkemKAT_192.rsp` - **Test Data** - NIST KAT vectors for HQC-192
-* `tests/kat/PQCkemKAT_256.rsp` - **Test Data** - NIST KAT vectors for HQC-256
-* `tests/kat/kat_gen.c` - **Source Code** - KAT generation harness that exercises full KEM cycle and compares against .rsp files
-* `tests/kat/kat_check.py` - **Script** - Python KAT validation script for automated CI checking
-* `tests/kat/gen_kat_seeds.py` - **Script** - Generates deterministic seed headers from .rsp files for embedded KAT
-* `tests/kat/generated/` - **Generated Code** - Pre-extracted KAT seeds for bare-metal execution without .rsp file parsing
-
-### §5.5 Bare-Metal Πλαίσιο Εκτέλεσης
-
-#### §5.5.1 Boot Sequence
-
-* `sim/common/startup.S` - **Source Code** - Bare-metal boot: stack setup, mstatus.VS enable, BSS zeroing, HTIF exit via tohost
-* `sim/common/link.ld` - **Source Code** - Linker script: memory map at 0x80000000, 128MB RAM, .text/.rodata/.bss/.stack layout, 512KB stack
-
-#### §5.5.2 Διαχείριση Μνήμης και Runtime Υποστήριξη
-
-* `sim/common/mem.c` (`memcpy`, `memset`, `memmove`) - **Source Code** - Custom -nostdlib memory routines with RVV fast-paths (LMUL=8 vectorized memcpy/memset)
-* `sim/common/printf_stub.c` - **Source Code** - Minimal printf stub for bare-metal environment without libc
-* `src/common/rng/aes_ctr_drbg.c` - **Source Code** - AES-CTR-DRBG deterministic RNG for KAT reproducibility (NIST-specified DRBG)
-* `src/common/rng/aes_ctr_drbg.h` - **Source Code** - DRBG public API
-* `src/common/rng/tiny_aes.c` - **Source Code** - Minimal AES-128 implementation backing the CTR-DRBG (no external dependencies)
-* `src/common/rng/tiny_aes.h` - **Source Code** - tiny_aes public API
-* `src/common/randombytes.c` - **Source Code** - Random byte generation interface bridging DRBG to HQC sampling functions
-* `experiments/manifest.yaml` (EXP-mem-fastpath) - **Experiment Metadata** - RVV memcpy/memmove fast-path promotion record with −1.62% KEM instret (promoted into `sim/common/mem.c`)
-
-#### §5.5.3 Καθαρότητα Μέτρησης (Measurement Purity)
-
-* `src/common/bench.c` - **Source Code** - Measurement purity: no OS jitter, direct M-mode CSR access, HTIF console output
-* `tests/bench/bench_kem.c` - **Source Code** - Benchmark harness design: warmup pass + timed iterations, CSV output format
-
-### §5.6 Εφαρμογή Μεθόδων Προγραμματισμού στην Παρούσα Εργασία
-
-* `sim/common/startup.S` - **Source Code** - Pure Assembly (.S): bare-metal boot sequence
-* `src/common/bench.c` (`hqc_rdcycle`) - **Source Code** - Inline Assembly: CSR reads and `wfi` instruction
-* `src/mult/karatsuba_zvbc/gf2x_vclmul.c` - **Source Code** - C Intrinsics: RVV + Zvbc intrinsics for vectorized carry-less multiply
-* `src/keccak/fips202_zvbb_x2.c` - **Source Code** - C Intrinsics: Zvbb intrinsics for vectorized Keccak rotations
-* `src/common/gf.c` - **Source Code** - C Intrinsics: scalar Zbc `__riscv_clmul_64()` for GF(2^8) arithmetic
-* `src/vector.c` (`vect_add`) - **Source Code** - Auto-Lowering: plain C with RVV strip-mining; Zba/Zbs auto-lowered by compiler
-
-### §5.7 Baseline Profiling
-
-* `results/simulation/benchmarks/components/poly_mul/scalar_ref/` - **Data Report** - Reference scalar baseline instret measurements per security level
-* `results/reports/variants/scalar_ref_L128_report.md` - **Data Report** - Detailed profiling report for reference scalar HQC-128
-* `results/reports/variants/vector_ref_L128_report.md` - **Data Report** - Detailed profiling report for reference vector HQC-128 (compiler auto-vectorization baseline)
-* `results/reports/figures/pie_ref-scalar.pdf` - **Figure** - Pie chart of reference scalar instruction breakdown (baseline denominator for all speedups)
-* `results/reports/figures/pie_ref-vector.pdf` - **Figure** - Pie chart of reference vector instruction breakdown (compiler auto-vectorization baseline)
-* `notes/notes_detailed.md` (Discovery 6) - **Research Notes** - Baseline pie chart data: polymul ~96% of total instret
-
----
-
-## Κεφάλαιο 6: Βελτιστοποίηση Πολυωνυμικού Πολλαπλασιασμού (Polynomial Multiplication)
-
-### §6.1 Σχεδιαστικό Πλαίσιο — Hardware Tiers και Implementation Paths
-
-#### §6.1.1 Tier 1 — Scalar Deployment (rv64gc + Zbc/Zbb)
-
-* `notes/notes_detailed.md` (Discovery 3) - **Research Notes** - "3-Tier Hardware Profile", Tier 1/2/3 table
-* `cmake/options.cmake` (HQC_SCALAR_MARCH) - **Build Config** - Tier 1 ISA string: `rv64gc_zbc_zbb_zbs`
-
-#### §6.1.2 Tier 2 — Base-RVV Deployment (rv64gcv χωρίς Zvbc/Zvbb)
-
-* `cmake/options.cmake` - **Build Config** - Tier 2 ISA string: `rv64gcv_zbc_zbb_zba`
-
-#### §6.1.3 Tier 3 — Full Vector-Crypto Deployment (rv64gcv + Zvbc/Zvbb)
-
-* `cmake/options.cmake` - **Build Config** - Tier 3 ISA string: `rv64gcv_zbc_zbb_zba_zvbc_zvbb`
-* `scripts/implemented_variants.txt` - **Build Config** - List of all implemented polymul variants (ref_scalar, ref_vector, karatsuba_zbc, karatsuba_rvv, karatsuba_zvbc)
-
-### §6.2 Scalar Path — Karatsuba με Zbc
-
-#### §6.2.1 Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό
-
-* `optimizations/multiplication.md` §3 (Track A) - **Optimization Notes** - Word-granularity clmul injection, bit-serial → word-level transition
-* `src/mult/karatsuba_zbc/gf2x_clmul.c` (`clmul_leaf`) - **Source Code** - Scalar Karatsuba leaf using `__riscv_clmul_64`/`__riscv_clmulh_64` pairs for 64-bit polynomial products
-* `vendor/hqc-ref/src/ref/gf2x.c` - **Reference Code** - Original bit-serial schoolbook implementation for comparison
-* `docs/proposals/roadmap_karatsuba_v1.md` - **Documentation** - Optimization roadmap v1 (initial scalar Karatsuba plan)
-
-#### §6.2.2 Assign-on-First-Write — Εξάλειψη memset
-
-* `optimizations/multiplication.md` §3 - **Optimization Notes** - Memset-free discipline, assign-on-first-write pattern, −23% instret
-* `src/mult/karatsuba_zbc/gf2x_clmul.c` - **Source Code** - Implementation uses direct assignment (`=`) on first write to each output word, eliminating memset
-* `docs/proposals/karatsuba_zvbc_v2_memset_cycle-explanation.md` - **Documentation** - Profiling-discrepancy analysis explaining why function-level memset trace (−891k) ≠ end-to-end instret delta (−23k)
-
-#### §6.2.3 Δομή Αναδρομής και AP-2 Generator
-
-* `scripts/gen/gen_karatsuba_specialized.py` - **Script** - Python AP-2 generator: compile-time recursion tree generation, emits specialized C headers
-* `src/mult/karatsuba_zbc/karatsuba_specialized_gen.h` - **Generated Code** - Output of AP-2 generator: fully unrolled Karatsuba recursion tree for scalar path
-* `optimizations/multiplication.md` §3.1.3 - **Optimization Notes** - AP-2 Generator design, "static code generation beats compiler"
-* `notes/notes_detailed.md` (Discovery 1) - **Research Notes** - "ABI obligations are structural" — why generated code outperforms compiler
-* `docs/proposals/roadmap_karatsuba_v2.md` - **Documentation** - Roadmap v2 documenting the AP-2 generator promotion plan
-
-#### §6.2.4 Unrolling και Βάθος Αναδρομής
-
-* `scripts/gen/gen_karatsuba_specialized.py` (`emit_function`) - **Script** - Controls unroll depth, two-way pipeline, hi⊕lo fusion generation
-* `src/mult/karatsuba_zbc/karatsuba_specialized_gen.h` - **Generated Code** - Fully unrolled recursion tree with zero runtime dispatch
-* `experiments/promoted/EXP-karatsuba-zbc-leaf-fixed/gf2x_clmul.c` - **Experiment** - Promoted fixed-size leaf (`clmul_leaf_n8`, T=16, −3.21% polymul)
-
-#### §6.2.5 Worked Example — Πλήρης Αναδρομή HQC-128
-
-* `src/mult/karatsuba_zbc/gf2x_clmul.c` (`vect_mul`) - **Source Code** - Entry point showing full recursion invocation for N-word polynomial multiply
-* `src/common/hqc_parameters.h` - **Source Code** - HQC-128 parameters (N, VEC_N_SIZE_64) that determine recursion tree dimensions
-
-#### §6.2.6 Απορριφθείσες Εναλλακτικές (Toom-Cook, Pointer-Bump, FAFFT)
-
-* `writing/mult_alternatives.md` - **Writing Draft** - TC3/TC4/FAFFT/sparse analysis, measured regressions, "why Karatsuba wins"
-* `experiments/EXP-toomcook3-gf2x-zbc/gf2x_clmul.c` - **Experiment** - TC3 implementation attempt with GF(4) evaluation points
-* `experiments/EXP-toomcook3-gf2x-zbc/tc3_eval.h` - **Experiment** - TC3 evaluation-point matrix (GF(4) {0,1,ω,ω²,∞})
-* `experiments/EXP-toomcook3-gf2x-zbc/tc3_interp.h` - **Experiment** - TC3 interpolation tables
-* `experiments/EXP-toomcook3-gf2x-zbc/notes.md` - **Experiment Metadata** - TC3 abandonment notes (evaluation/interpolation overhead dominates at HQC sizes)
-* `experiments/dropped/EXP-fafft-zvbc-towerfield/fafft_vclmul_towerfield.c` - **Experiment** - FAFFT tower-field source — abandoned, incompatible with vclmul.vv
-* `experiments/dropped/EXP-fafft-rvv-blueprint/` - **Experiment** - FAFFT RVV blueprint — abandoned, 4-5× regression measured
-* `docs/proposals/roadmap_fafft.md` - **Documentation** - FAFFT exploration roadmap (rejected after measurements)
-* `notes/notes_detailed.md` §5.3.2.Β - **Research Notes** - "FAFFT Paradox", "4–5× regression" evidence
-
-### §6.3 Base-RVV Path — Διανυσματοποίηση Recomposition
-
-#### §6.3.1 Διανυσματοποίηση Combine και Data-Movement Βρόχων
-
-* `optimizations/multiplication.md` §4 (Track B) - **Optimization Notes** - RVV combine loops, "leaf is the binding constraint"
-* `src/mult/karatsuba_rvv/gf2x_clmul.c` (`rvv_copy_u64`, `rvv_xor_u64`, `rvv_xor3_u64`) - **Source Code** - VLA helper functions replacing scalar 4×-unrolled loops with strip-mined vector operations
-* `src/mult/karatsuba_rvv/karatsuba_rvv_specialized_gen.h` - **Generated Code** - AP-2 generated tree with inline RVV direct-write recomposition
-* `scripts/gen/gen_karatsuba_specialized.py` (`_rvv_recomposition`) - **Script** - Generator mode that emits inline RVV intrinsics for direct-write recomposition
-
-#### §6.3.2 Μείωση Register Pressure μέσω RVV
-
-* `src/mult/karatsuba_rvv/gf2x_clmul.c` - **Source Code** - Vector loads/stores offload data movement from scalar register file to vector register file
-
-### §6.4 Vector-Crypto Path — Zvbc Leaf Kernels
-
-#### §6.4.1 Εξειδίκευση Leaf Kernels με vclmul.vv/vclmulh.vv
-
-* `optimizations/multiplication.md` §5 (Track C) - **Optimization Notes** - vclmul_leaf design, splat-and-sweep pattern, assign-first-write
-* `src/mult/karatsuba_zvbc/gf2x_vclmul.c` (`vclmul_leaf`) - **Source Code** - Vectorized leaf kernel: loads 16 elements into vector register, splats each b[j], computes vclmul/vclmulh pairs, accumulates results
-* `src/mult/karatsuba_zvbc/karatsuba_zvbc_specialized_gen.h` - **Generated Code** - AP-2 tree with Zvbc leaf calls and RVV recomposition
-* `docs/proposals/roadmap_karatsuba_zvbc_v1.md` - **Documentation** - Zvbc Karatsuba roadmap v1
-* `docs/proposals/roadmap_karatsuba_zvbc_v2.md` - **Documentation** - Zvbc Karatsuba roadmap v2 (memset/cycle reconciliation)
-
-#### §6.4.2 Schoolbook Leaf Trade-offs
-
-* `src/mult/karatsuba_zvbc/gf2x_vclmul.c` (`vclmul_leaf`) - **Source Code** - O(n²) schoolbook structure with fixed n=16 — demonstrates why leaf doesn't scale with VLEN
-
-### §6.5 Αποτίμηση — Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση Polymul
-
-* `results/simulation/benchmarks/components/poly_mul/scalar_Zb/` - **Data Report** - Tier 1 polymul instret measurements
-* `results/simulation/benchmarks/components/poly_mul/vector_rvv/` - **Data Report** - Tier 2 polymul instret measurements
-* `results/simulation/benchmarks/components/poly_mul/vector_Zvk/` - **Data Report** - Tier 3 polymul instret measurements
-* `results/reports/figures/pie_karatsuba-zbc.pdf` - **Figure** - Pie chart showing Tier 1 profile redistribution after polymul optimization
-* `results/reports/figures/pie_karatsuba-rvv.pdf` - **Figure** - Pie chart showing Tier 2 profile redistribution after polymul optimization
-* `results/reports/figures/pie_karatsuba-zvbc.pdf` - **Figure** - Pie chart showing Tier 3 profile redistribution after polymul optimization
-* `results/reports/summaries/speedups_simulation.md` - **Data Report** - Computed speedup multipliers across all tiers and security levels
-* `notes/notes_detailed.md` (Discovery 6) - **Research Notes** - Amdahl's law analysis: polymul reduction reveals Keccak/decode as new bottlenecks
-
----
-
-## Κεφάλαιο 7: Βελτιστοποίηση Keccak, Decode και Βοηθητικών Πυρήνων
-
-### §7.1 Επανασχεδιασμός Keccak / SHA-3
-
-#### §7.1.1 Scalar Path (Zbb)
-
-* `optimizations/keccak.md` §3 - **Optimization Notes** - "Track A/B — Shared Baseline: Reference Keccak with Compiler Zbb", rori auto-lowering
-* `vendor/hqc-ref/lib/fips202/fips202.c` - **Reference Code** - Vendor scalar Keccak implementation serving as baseline
-* `notes/notes_detailed.md` (Discovery 5) - **Research Notes** - "Zbb alone yields 37% Keccak reduction via native rori"
-* `experiments/manifest.yaml` (EXP-keccak-scalar-zbb) - **Experiment Metadata** - Zbb ablation data: ≤0.30% total KEM impact, explicit builtins match auto-lowering
-* `docs/proposals/RESULTS/zbb_ablation_study.md` - **Data Report** - Zbb ablation study results: rori emission count, instret delta per security level
-* `docs/proposals/roadmap_keccak.md` - **Documentation** - Keccak optimization roadmap (Tracks A/B/C, RVV Paradox tracking)
-
-#### §7.1.2 Base-RVV Path και το "RVV Paradox"
-
-* `optimizations/keccak.md` §7.1 - **Optimization Notes** - "RVV Paradox" analysis: without vror.vv, vectorization increases instret
-* `notes/notes_detailed.md` (Discovery 2) - **Research Notes** - "scalar fallback trap", "ISA completeness > ISA width"
-* `experiments/dropped/EXP-keccak-rvv-only-legacy/` - **Experiment** - Base-RVV Keccak attempt — archived, 7100 instret vs 4680 ref (slower)
-* `experiments/dropped/EXP-keccak-rvv-only-legacy/README.md` - **Experiment Metadata** - Legacy rvv_only Keccak archival rationale
-* `experiments/dropped/EXP-keccak-rvv-x2-legacy/` - **Experiment** - RVV x2 batching attempt — archived, identical to rvv_only (7100 instret)
-* `experiments/dropped/EXP-keccak-rvv-x2-legacy/README.md` - **Experiment Metadata** - rvv_x2 archival rationale
-
-#### §7.1.3 Vector-Crypto Path (Zvbb 2-way SoA)
-
-* `optimizations/keccak.md` §4.3–4.7, §5 - **Optimization Notes** - SoA redesign (C3), 2-way batching (C8), LMUL=8 register-wall analysis
-* `src/keccak/fips202_zvbb_x2.c` (`KeccakF1600_StatePermute_x2`) - **Source Code** - 2-way SoA Keccak permutation: processes 2 states simultaneously using vror.vi/vror.vx (Zvbb), vandn.vv, vl=2 per lane
-* `src/keccak/fips202_zvbb_x2.c` (`shake256_x2_absorb`, `shake256_x2_squeezeblocks`) - **Source Code** - Paired-stream SHAKE-256 wrappers enabling 2-way batching in keygen
-* `src/hqc.c` (`hqc_xof_init_pair`) - **Source Code** - Integration point: keygen uses x2 paired absorb for dk/ek XOF streams simultaneously
-* `notes/notes_mine.md` - **Research Notes** - "4-Way Bottleneck" analysis explaining why 2-way is the sweet spot
-* `experiments/dropped/archive_keccak_c4_register_wall/README.md` - **Experiment Metadata** - 4-way attempt — abandoned due to register spilling (25×4 > 32 vector registers)
-* `experiments/dropped/archive_keccak_x4_batching/fips202_rvv_x4.c` - **Experiment** - x4 batching source — abandoned, register pressure too high
-* `experiments/dropped/EXP-keccak-zvbb-gather-legacy/README.md` - **Experiment Metadata** - Single-state Zvbb gather backend — superseded by x2 SoA (2838 vs 2114 instret)
-* `vendor/rvv-keccak/` - **Reference Code** - Third-party RVV+Zvbb Keccak reference implementations (x2/x3/x4 hybrid assembly + C glue) for comparison
-
-#### §7.1.4 Βελτιστοποιήσεις Absorb/Squeeze I/O
-
-* `src/keccak/fips202_zvbb_x2.c` (`keccak_xor_bytes`, `keccak_extract_bytes`) - **Source Code** - RVV byte-streaming I/O: vle8/vxor/vse8 pipeline replacing scalar word-aligned loops
-* `optimizations/keccak.md` §4.6 - **Optimization Notes** - "RVV I/O Fast Paths", keccak_xor_bytes, load64_le optimization
-* `experiments/promoted/EXP-keccak-xor-bytes-rvv/src/fips202_zvbb_x2.c` - **Experiment** - Promoted source: RVV byte-streaming for absorb/squeeze, −3.48% total KEM instret
-* `experiments/manifest.yaml` (EXP-keccak-xor-bytes-rvv) - **Experiment Metadata** - Promotion record with before/after instret data per security level
-* `docs/proposals/RESULTS/load64_intrinsic_results.md` - **Data Report** - load64 intrinsic optimization results (absorb path)
-* `docs/proposals/RESULTS/keccak_unrolling_results.md` - **Data Report** - Keccak round-loop unrolling experiment results
-
-### §7.2 Βελτιστοποίηση Decode (Reed-Muller + Reed-Solomon)
-
-#### §7.2.1 Scalar Path
-
-* `optimizations/decode.md` §3 - **Optimization Notes** - Track A scalar RM+RS path, Zbc gf_mul injection
-* `vendor/hqc-ref/src/ref/reed_muller.c` - **Reference Code** - Vendor scalar Reed-Muller baseline
-* `vendor/hqc-ref/src/ref/reed_solomon.c` - **Reference Code** - Vendor scalar Reed-Solomon baseline
-* `vendor/hqc-ref/src/common/code.c` - **Reference Code** - Concatenated decode glue baseline
-* `docs/proposals/roadmap_decode.md` - **Documentation** - Decode optimization roadmap (Axes A/B/C/D)
-
-#### §7.2.2 Base-RVV Path — Διανυσματοποίηση RM και RS Syndromes
-
-* `optimizations/decode.md` §4 - **Optimization Notes** - Phase 3a RM vectorization, Axis A syndrome vectorization via RVV gather
-* `src/decode/reed_muller_rvv.c` (`hadamard_rvv`, `find_peaks_rvv`, `expand_and_sum`) - **Source Code** - RVV-vectorized 128-pt FHT using strided loads (vlse16), butterfly add/sub, LMUL=4 for full 64-pair coverage
-* `src/decode/reed_solomon_rvv.c` (`compute_syndromes_rvv`) - **Source Code** - RVV log/exp gather pipeline: vzext u8→u16, vluxei16 for GF table lookups, vredxor accumulation
-
-#### §7.2.3 Vector-Crypto Path — Zvbc RS (Berlekamp-Massey, Forney)
-
-* `optimizations/decode.md` §5 - **Optimization Notes** - RS Axis B (BM), Axis D (Forney), Zvbc lane-packing
-* `src/decode/reed_solomon_zvbc.c` (`compute_elp_zvbc`) - **Source Code** - Zvbc-vectorized Berlekamp-Massey: vclmul-based GF(2^8) multiply pipeline for error locator polynomial
-* `src/decode/reed_solomon_zvbc.c` (`compute_error_values_zvbc`) - **Source Code** - Zvbc-vectorized Forney algorithm: parallel GF(2^8) evaluation via vclmul.vv + Barrett reduction
-* `src/decode/reed_solomon_zvbc.c` (`gf_reduce_vec_u64m4`) - **Source Code** - Vectorized GF(2^8) Barrett reduction for Zvbc RS pipeline
-* `experiments/promoted/EXP-decode-rs-zvbc/reed_solomon_zvbc.c` - **Experiment** - Promoted Zvbc RS source (−6.9% / −3.5% / −7.3% decaps)
-* `experiments/promoted/EXP-decode-rs-zvbc/README.md` - **Experiment Metadata** - Zvbc RS promotion documentation
-* `docs/proposals/RESULTS/reed_solomon_zvbc_results.md` - **Data Report** - RS Zvbc optimization results with per-level instret deltas
-
-#### §7.2.4 Vector-Crypto Path — Zvbc FFT Root-Finding (Axis C)
-
-* `optimizations/decode.md` §5 "RS Axis C" - **Optimization Notes** - FFT root finding design, recursive-to-iterative transformation
-* `src/decode/fft_zvbc.c` (`fft_iterative`) - **Source Code** - Iterative BFS FFT: level-by-level traversal replacing recursive fft_rec, eliminates O(2^M) function call overhead
-* `src/decode/fft_zvbc.c` (`beta_scale_zvbc`) - **Source Code** - Vectorized GF(2^8) scaling via vclmul.vv + Barrett reduction for beta multiplication
-* `src/decode/fft_zvbc.c` (`xor_broadcast_zvbc`) - **Source Code** - Contiguous vle16/vxor.vx/vse16 pipeline for XOR-broadcast operations
-* `src/decode/fft_zvbc.c` (`gammas_sums_combine_zvbc`) - **Source Code** - Butterfly combination: vclmul.vv + reduce + vxor.vv for FFT recombination stage
-* `src/decode/fft_zvbc.c` (`precompute_tables`, `compute_fft_betas`, `compute_subset_sums`) - **Source Code** - Precomputation of FFT tables (betas, subset sums) for iterative traversal
-* `vendor/hqc-ref/src/common/fft.c` (`fft_rec`) - **Reference Code** - Recursive Gao-Mateer baseline that motivated the iterative rewrite
-* `experiments/dropped/EXP-decode-rs-fft-zvbc/` - **Experiment** - Earlier FFT Zvbc iteration (dropped in favor of refined version)
-
-#### §7.2.5 Βελτιστοποίηση GF(2^8) Reduction — Single-Pass Barrett via vclmul
-
-* `src/decode/fft_zvbc.c` (`gf_reduce_vec_u64m4`) - **Source Code** - Single-pass Barrett reduction: 6 instructions (vsrl→vclmul→vsrl→vclmul→vxor→vand) replacing 12-instruction two-pass approach
-* `src/decode/reed_solomon_zvbc.c` (`gf_reduce_vec_u64m4`) - **Source Code** - Same Barrett optimization applied in RS decode pipeline
-
-### §7.3 Βοηθητικοί Πυρήνες
-
-#### §7.3.1 vect_add και Bitwise Vector Πράξεις
-
-* `optimizations/miscellaneous.md` §2.2 - **Optimization Notes** - RVV vect_add, LMUL=8, 20× reduction
-* `src/vector.c` (`vect_add`) - **Source Code** - RVV-vectorized XOR of two polynomial vectors using strip-mined vxor loop
-
-#### §7.3.2 O(weight) Direct-Scatter (vect_write_support_to_vector)
-
-* `optimizations/miscellaneous.md` §2.1 - **Optimization Notes** - O(weight) direct-scatter replacing O(N×weight) mask-and-accumulate, 277× reduction
-* `src/vector.c` (`vect_write_support_to_vector`) - **Source Code** - Direct bit-scatter: iterates over support positions and sets individual bits via `v[pos/64] |= (1ULL << (pos%64))`
-* `experiments/promoted/EXP-target2-bitmanip-scatter/vector.c` - **Experiment** - Promoted scatter implementation
-* `experiments/promoted/EXP-target2-bitmanip-scatter/gf2x_clmul.c` - **Experiment** - Companion polymul edits validated alongside the scatter promotion
-
-#### §7.3.3 Πολιτικές Ευθυγράμμισης Μνήμης (Memory Alignment)
-
-* `optimizations/miscellaneous.md` §2.3, §3 - **Optimization Notes** - support_contains_value optimization, gf_reduce inlining
-* `sim/common/link.ld` - **Source Code** - Memory alignment policies: ALIGN(8) for .data/.bss, ALIGN(16) for stack
-
-### §7.4 Βελτιστοποιήσεις μέσω Compiler Auto-Lowering (Zba, Zbs)
-
-#### §7.4.1 Zba Address-Generation (sh1add/sh2add/sh3add)
-
-* `optimizations/zba_ablation.md` - **Optimization Notes** - Zba ablation study: −5.6% polymul on karatsuba_zvbc, −1.0% on karatsuba_rvv, 0% on scalar
-* `cmake/options.cmake` - **Build Config** - Zba promoted to vector variant march strings after ablation validation
-
-#### §7.4.2 Zbs Single-Bit Operations (bset/bclr/bext/binv)
-
-* `src/vector.c` (`vect_write_support_to_vector`) - **Source Code** - Primary beneficiary of Zbs: `v[idx] |= (1ULL << pos)` auto-lowered to `bset` instruction
-* `cmake/options.cmake` (HQC_SCALAR_MARCH) - **Build Config** - Zbs enabled only in scalar march string (rv64gc_zbc_zbb_zbs)
-
-### §7.5 Αποτίμηση — Τελικό Προφίλ μετά Βελτιστοποίηση Όλων των Πυρήνων
-
-* `results/simulation/benchmarks/components/keccak/` - **Data Report** - Keccak isolated benchmark CSVs (ref vs optimized)
-* `results/simulation/benchmarks/components/decode/` - **Data Report** - Decode isolated benchmark CSVs (ref vs rvv vs zvbc)
-* `results/reports/variants/vector_Zvk_L128_report.md` - **Data Report** - Full Tier 3 profiling report showing balanced final profile
-* `results/reports/figures/pie_karatsuba-zvbc.pdf` - **Figure** - Final Tier 3 pie chart showing balanced profile after all kernel optimizations (contrast with §2.2.3 baseline)
-
----
-
-## Κεφάλαιο 8: Αποτελέσματα και Μετρήσεις Απόδοσης
-
-### §8.1 Απομονωμένες Μικρο-αξιολογήσεις (Isolated Micro-benchmarks)
-
-#### §8.1.1 bench_mul — Πολυωνυμικός Πολλαπλασιασμός
-
-* `tests/bench/bench_mul.c` - **Source Code** - Polynomial multiply micro-benchmark: single vect_mul() call with dense/sparse inputs
-* `results/simulation/benchmarks/components/poly_mul/scalar_ref/` - **Data Report** - Scalar polymul instret CSVs (ref_scalar, karatsuba_zbc)
-* `results/simulation/benchmarks/components/poly_mul/` - **Data Report** - Vector polymul instret CSVs (ref_vector, karatsuba_rvv, karatsuba_zvbc)
-
-#### §8.1.2 bench_keccak — Πλήρες Decaps Keccak Call Pattern
-
-* `tests/bench/bench_keccak.c` - **Source Code** - Full decaps Keccak call pattern benchmark: ~6 XOF/hash initializations, ~30-50 permutations
-* `results/simulation/benchmarks/components/keccak/` - **Data Report** - Reference and optimized (Zvbb x2 SoA) Keccak instret CSVs per security level
-
-#### §8.1.3 bench_decode — Συνδυασμένη Αποκωδικοποίηση RM+RS
-
-* `tests/bench/bench_decode.c` - **Source Code** - Combined RM+RS decode benchmark with correct buffer sizes
-* `results/simulation/benchmarks/components/decode/` - **Data Report** - Reference / RVV / Zvbc decode instret CSVs
-
-### §8.2 Αξιολόγηση Πλήρους KEM (End-to-End)
-
-* `tests/bench/bench_kem.c` - **Source Code** - Full KEM benchmark harness: keypair/encaps/decaps with CSV output
-* `results/simulation/benchmarks/kem/` - **Data Report** - Full KEM suite (keypair/encaps/decaps/vect_mul) across variants × security levels
-* `results/reports/summaries/speedups_simulation.md` - **Data Report** - Computed speedup multipliers (ref→optimized) per tier/level/operation
-* `scripts/report/generate_speedups.py` - **Script** - Generates thesis speedup summary table from isolated benchmark CSVs
-
-### §8.3 Κλιμάκωση ανά Security Level
-
-* `results/simulation/benchmarks/kem/` - **Data Report** - Full suite data for HQC-128/192/256 scaling analysis
-* `results/reports/variants/vector_Zvk_L128_report.md` - **Data Report** - HQC-128 detailed breakdown
-* `results/reports/variants/vector_rvv_L128_report.md` - **Data Report** - HQC-128 Tier 2 breakdown
-* `results/reports/variants/scalar_Zb_L128_report.md` - **Data Report** - HQC-128 Tier 1 breakdown
-
-### §8.4 Ανάλυση Κλιμάκωσης VLEN (VLEN Scaling)
-
-#### §8.4.1 Μοντέλο Κλιμάκωσης και Θεωρητικό Όριο
-
-* `writing/VLEN_scaling.md` "Instruction Budget Breakdown" - **Writing Draft** - 31% vclmul_leaf, 23% Keccak, 27% recomposition — what scales vs what doesn't
-
-#### §8.4.2 Πειραματικά Αποτελέσματα VLEN Sweep
-
-* `results/simulation/benchmarks/vlen_scaling/vector_Zvk/` - **Data Report** - VLEN sweep instret data for Zvbc variant (256/512/1024/2048)
-* `results/simulation/benchmarks/vlen_scaling/vector_rvv/` - **Data Report** - VLEN sweep instret data for RVV variant
-* `writing/VLEN_scaling.md` "Benchmark Results" - **Writing Draft** - Tables per security level, VLEN=512 sweet spot identification
-
-#### §8.4.3 Αρχιτεκτονικοί Περιορισμοί
-
-* `writing/VLEN_scaling.md` "What Does NOT Scale" - **Writing Draft** - "Bigger VLEN ≠ fewer instructions", fixed-width coding patterns
-* `writing/VLEN_scaling.md` "Failed approach" - **Writing Draft** - "threshold = VLMAX → instret INCREASED by 4–11%"
-* `notes/notes_detailed.md` (Discovery 7) - **Research Notes** - Architectural limits of VLEN scaling
-
-### §8.5 Αξιολόγηση σε Πραγματικό Hardware (BPI-F3 SpacemiT K1 X60)
-
-* `docs/hardware/BENCHMARK_METHODOLOGY.md` - **Documentation** - Full hardware benchmarking methodology, table formats, comparison approach
-* `.tmp/test_perf_event.c` - **Source Code** - perf_event_open harness prototype
-* `results/hardware/micro/` - **Data Report** - Per-kernel cycle measurements: polymul, keccak, decode (TO BE COLLECTED)
-* `results/hardware/kem/` - **Data Report** - Full KEM cycle measurements: keypair/encaps/decaps per variant per level (TO BE COLLECTED)
-* `results/hardware/ipc/` - **Data Report** - IPC analysis: Spike instret vs HW cycles per variant (TO BE COLLECTED)
-* `results/hardware/validation/` - **Data Report** - Spike vs HW speedup comparison table (TO BE COLLECTED)
-
-### §8.6 Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)
-
-* `writing/compiler-comparison.md` - **Writing Draft** - Full GCC vs Clang codegen analysis, dual-compiler workflow, GCC Zvbb incompatibility
-* `results/simulation/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for scalar variants
-* `results/simulation/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for vector variants
-* `results/reports/summaries/compiler_analysis.md` - **Data Report** - Generated compiler showdown report with winner/margin per variant
-* `scripts/report/generate_compiler_compare.py` - **Script** - Generates compiler comparison Markdown from CSV data
+* `docs/thesis/figures/ch3-riscv/riscv-programming-spectrum.tex` - **Figure** - TikZ horizontal spectrum: Pure .S ←→ Inline Asm ←→ Intrinsics ←→ Auto-Lowering
+* `docs/thesis/figures/ch3-riscv/programming-methods-table.tex` - **Figure** - LaTeX comparison table of 4 methods: control, optimization, portability, error-proneness
+* `docs/thesis/figures/ch3-riscv/inline-asm-vs-intrinsic.tex` - **Figure** - LaTeX side-by-side: inline asm clmul vs intrinsic clmul
 
 ---
 
@@ -667,24 +221,28 @@
 
 ### §9.1 Σύγκριση με Ετερογενείς Αρχιτεκτονικές
 
-* `notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Cross-architecture table (AVX-512, Zen4, M4, FAFFT, ours), instret vs cycles methodology
+* `docs/thesis-helper/notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Cross-architecture table (AVX-512, Zen4, M4, FAFFT, ours), instret vs cycles methodology
 * `docs/METHODOLOGY.md` §11, §12 - **Documentation** - "We do NOT claim wall-clock time on real hardware", Spike limitations
-* `writing/mult_alternatives.md` - **Writing Draft** - FAFFT O(n log n) vs AP-2 Karatsuba comparison, tower-field incompatibility with vclmul.vv
+* `docs/thesis-helper/writing/mult_alternatives.md` - **Writing Draft** - FAFFT O(n log n) vs AP-2 Karatsuba comparison, tower-field incompatibility with vclmul.vv
 * `docs/references/notes/HQC Optimization Benchmarks Research.txt` - **Literature** - Aggregated cross-platform benchmark numbers
 * `results/simulation/profiling/cpi/reports/` - **Data Report** - CPI-derived cycle estimates supporting cross-architecture cycle-equivalent comparisons
+* `results/reports/summaries/speedups_cross_platform.md` - **Data Report** - Cross-platform speedup comparison summary
+* `results/reports/figures/speedup_cross_platform.pdf` - **Figure** - Cross-architecture comparison chart
+* `docs/thesis/chapters/09-discussion.tex` - **Writing Draft** - LaTeX source for Chapter 9
 
 ### §9.2 ISA Ablation Study
 
 #### §9.2.1 Ποσοτική Συνεισφορά Κάθε Extension
 
 * `cmake/options.cmake` (HQC_SCALAR_MARCH) - **Build Config** - Ablation ISA variable: set to rv64gc_zbc to strip Zbb and measure impact
-* `notes/notes_detailed.md` (Discovery 5) - **Research Notes** - "Zbb alone yields 37% Keccak reduction via native rori"
-* `notes/notes_detailed.md` (Discovery 4) - **Research Notes** - "ref_vector vs ref_full_crypto — negligible difference", compiler ceiling
+* `docs/thesis-helper/notes/notes_detailed.md` (Discovery 5) - **Research Notes** - "Zbb alone yields 37% Keccak reduction via native rori"
+* `docs/thesis-helper/notes/notes_detailed.md` (Discovery 4) - **Research Notes** - "ref_vector vs ref_full_crypto — negligible difference", compiler ceiling
 * `docs/proposals/RESULTS/zbb_ablation_study.md` - **Data Report** - Zbb ablation quantitative results per security level
+* `results/reports/figures/waterfall_ablation.pdf` - **Figure** - Waterfall chart: baseline → +Zbc → +Zbb → +RVV → +Zvbc → +Zvbb = final
 
 #### §9.2.2 Zba Address-Generation — Αποτελέσματα Ablation
 
-* `optimizations/zba_ablation.md` - **Optimization Notes** - Full Zba ablation data: −5.6% zvbc polymul, −3.3% zvbc KEM, −1.0% rvv, 0% scalar
+* `docs/thesis-helper/optimizations/zba_ablation.md` - **Optimization Notes** - Full Zba ablation data: −5.6% zvbc polymul, −3.3% zvbc KEM, −1.0% rvv, 0% scalar
 
 #### §9.2.3 Zbs Single-Bit — Αποτελέσματα Ablation
 
@@ -695,7 +253,8 @@
 
 * `src/mult/karatsuba_zvbc/gf2x_vclmul.c` - **Source Code** - Evidence that compiler does NOT auto-emit vclmul.vv from generic C — requires explicit intrinsics
 * `src/keccak/fips202_zvbb_x2.c` - **Source Code** - Evidence that compiler does NOT auto-emit vror.vv from generic C — requires explicit intrinsics
-* `scripts/ci/check_opcodes.sh` - **Script** - Backing opcode-verification script invoked by the workflow
+* `scripts/ci/check_opcodes.sh` - **Script** - Backing opcode-verification script invoked by the CI workflow
+* `scripts/ci/check_isa_string.sh` - **Script** - ISA string verification ensuring correct -march flags per variant
 
 ### §9.3 Code Size vs Performance Trade-off
 
@@ -703,12 +262,80 @@
 * `results/reports/variants/scalar_Zb_L128_report.md` - **Data Report** - Contains .text size data for scalar fully-unrolled path
 * `results/reports/variants/vector_Zvk_L128_report.md` - **Data Report** - Contains .text size data for vector path (compact VLA helpers)
 * `scripts/experiments/run_hybrid_depth_sweep.sh` - **Script** - Hybrid recursion depth sweep used to scan the depth × instret × .text trade-off
+* `results/reports/figures/scatter_code_size.pdf` - **Figure** - Scatter plot: .text size vs instret per variant/configuration
 
 ### §9.4 Σχεδιαστικές Αρχές που Γενικεύονται
 
-* `optimizations/multiplication.md` - **Optimization Notes** - General principles: carry-less multiply efficiency, VLA strip-mining value
-* `optimizations/keccak.md` - **Optimization Notes** - ISA completeness > ISA width principle
+* `docs/thesis-helper/optimizations/multiplication.md` - **Optimization Notes** - General principles: carry-less multiply efficiency, VLA strip-mining value
+* `docs/thesis-helper/optimizations/keccak.md` - **Optimization Notes** - ISA completeness > ISA width principle
 * `scripts/gen/gen_karatsuba_specialized.py` - **Script** - Metaprogramming vs hand-tuning: code generation approach
+
+### §9.5 Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)
+
+* `docs/thesis-helper/writing/compiler-comparison.md` - **Writing Draft** - Full GCC vs Clang codegen analysis, dual-compiler workflow, GCC Zvbb incompatibility
+* `results/simulation/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for scalar and vector variants
+* `results/reports/summaries/compiler_analysis.md` - **Data Report** - Generated compiler showdown report with winner/margin per variant
+* `scripts/report/generate_compiler_compare.py` - **Script** - Generates compiler comparison Markdown from CSV data
+* `results/reports/figures/bar_compiler_comparison.pdf` - **Figure** - Side-by-side bar chart: Clang vs GCC instret per kernel and tier
+
+### §9.6 Επαλήθευση Σταθερού Χρόνου Εκτέλεσης (Constant-Time Verification)
+
+#### §9.6.1 Μοντέλο Απειλής και Ορισμός Constant-Time
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §1 - **Writing Draft** - Threat model, CT definition, Zkt subset, component-by-component CT analysis
+* `docs/thesis-helper/writing/zkt_ct.md` - **Writing Draft** - Zkt constant-time formal model, Zkt-compliant instruction subset
+
+#### §9.6.2 Σχεδιαστικά Πρότυπα για CT GF(2)[X] Αριθμητική
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §2 - **Writing Draft** - CT design patterns: clmul hardware guarantee, Karatsuba deterministic recursion, leaf specialization, RVV fixed-config operations
+* `src/mult/karatsuba_zbc/gf2x_clmul.c` (`clmul_leaf`) - **Source Code** - Fully unrolled leaf with zero branches — CT by construction
+* `src/mult/karatsuba_zvbc/gf2x_vclmul.c` (`vclmul_leaf`) - **Source Code** - Vector leaf with fixed LMUL/SEW, no predicated operations on secrets
+
+#### §9.6.3 Στατική Επαλήθευση — ctgrind (Valgrind Memcheck)
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §3 - **Writing Draft** - ctgrind methodology, integration, limitations
+* `tests/ct/ct_harness.c` - **Source Code** - Constant-time verification harness: marks sigma as UNDEFINED, exercises crypto_kem_dec()
+* `results/ct_verify/valgrind_ct/` - **Data Report** - Ctgrind XML results for various variants (karatsuba_ref, HQC-128/192/256)
+* `scripts/ci/check_ct.sh` - **Script** - CI script for automated constant-time verification via ctgrind
+* `.github/workflows/ct-verify.yml` - **Build Config** - CI workflow running ctgrind on every push to main
+
+#### §9.6.4 Εμπειρική Επαλήθευση σε Hardware — Dudect (BPI-F3)
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §4 - **Writing Draft** - Full dudect methodology: Welch's t-test, prepare-then-measure, warm-up, percentile cropping, multi-run protocol
+* `tests/ct_dudect/dudect_polymul.c` - **Source Code** - Dudect harness for isolated vect_mul() timing verification
+* `tests/ct_dudect/dudect_kem.c` - **Source Code** - Dudect harness for full crypto_kem_dec() end-to-end timing verification
+* `tests/ct_dudect/dudect_ttest.h` - **Source Code** - Welch's t-test accumulator: online mean/variance computation, first-order and second-order (percentile-cropped) statistics
+* `tests/ct_dudect/dudect_percentile.h` - **Source Code** - Quickselect-based percentile cropping for second-order leakage detection
+* `tests/ct_dudect/dudect_prng.h` - **Source Code** - Lightweight PRNG for dudect class assignment and random input generation
+* `tests/ct_dudect/README.md` - **Documentation** - Dudect test suite documentation: build instructions, parameters, interpretation guide
+* `tests/ct_dudect/run_multi.sh` - **Script** - Multi-run wrapper: N independent trials with fresh seeds, produces summary CSV for publication-grade evidence
+* `scripts/test/run_ct_verify.sh` - **Script** - Unified CT verification runner: builds and executes dudect for full variant matrix (target × level × polymul), multi-run trials, summary table with verdicts
+* `Makefile.hw` - **Build Config** - Hardware build system supporting SUITE=dudect target for native BPI-F3 compilation
+
+#### §9.6.5 Στόχοι Δοκιμών και Πίνακας Variants
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §4.5, §4.10 - **Writing Draft** - Test target justification: why polymul and KEM are tested, why decode and Keccak are excluded
+
+#### §9.6.6 Μεθοδολογικά Ευρήματα — Cache-State Bias και False Positives
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §8 - **Writing Draft** - Cache-state bias discovery, false positive analysis, prepare-then-measure resolution
+
+#### §9.6.7 Πειραματικά Αποτελέσματα
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §5 - **Writing Draft** - Experimental results tables: t₁/t₂ values per variant/level/target
+* `results/ct_verify/dudect/` - **Data Report** - Dudect timing analysis results: per-variant summary CSVs with t-statistics and verdicts
+
+#### §9.6.8 Γιατί Τυπική Επαλήθευση Δεν Είναι Εφικτή για RVV/Zvbc
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §7 - **Writing Draft** - Formal verification landscape (Binsec/Rel, ct-verif, HolBA, Bedrock2), why they cannot verify RVV/Zvbc, Valgrind RISCV64 limitations
+
+#### §9.6.9 Συμπληρωματικότητα Στρωμάτων Επαλήθευσης
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §6 - **Writing Draft** - Complementarity table: ctgrind vs dudect detection capabilities
+
+#### §9.6.10 Ερμηνεία Αποτελεσμάτων
+
+* `docs/thesis-helper/writing/constant_time_verification.md` §9 - **Writing Draft** - Interpretation caveats: dudect does not prove absence, sensitivity thresholds, multi-run strengthening
 
 ---
 
@@ -716,25 +343,24 @@
 
 ### §10.1 Σύνοψη Συνεισφοράς
 
-* `notes/notes_detailed.md` (Discovery 3) - **Research Notes** - Summary speedup table (×91, ×118, ×255 vect_mul; ×28, ×41, ×63 decaps)
+* `docs/thesis-helper/notes/notes_detailed.md` (Discovery 3) - **Research Notes** - Summary speedup table (×91, ×118, ×255 vect_mul; ×28, ×41, ×63 decaps)
 * `results/reports/summaries/speedups_simulation.md` - **Data Report** - Final speedup numbers for thesis conclusion
+* `results/reports/summaries/speedups_hardware.md` - **Data Report** - Hardware-validated speedup numbers
 * `docs/proposals/final_optim.md` - **Documentation** - Senior-author analysis of remaining ratified extensions and their (rejected/promoted) verdicts
+* `docs/thesis/chapters/10-conclusions.tex` - **Writing Draft** - LaTeX source for Chapter 10
 
 ### §10.2 Περιορισμοί
 
 * `docs/METHODOLOGY.md` §11, §12 - **Documentation** - "We do NOT claim wall-clock time on real hardware", Spike limitations, CPI dilemma
-* `docs/hardware/options_comparison.md` - **Documentation** - Available RISC-V hardware options and Zvbc availability status
-* `docs/hardware/banana-pi.md` - **Documentation** - BananaPi BPI-F3 (SpacemiT K1) as potential native hardware target
+* `docs/hardware/RTL/riscv_zvbc_zvbb_targets.md` - **Documentation** - Available RISC-V hardware targets with Zvbc/Zvbb support status
+* `docs/hardware/BPI-F3/SSH_SETUP.md` - **Documentation** - BananaPi BPI-F3 (SpacemiT K1) as native hardware target
 
 ### §10.3 Μελλοντική Έρευνα
 
-* `writing/zkt_ct.md` - **Writing Draft** - Zkt constant-time formal model, engineering diagnostics — deferred to future work
-* `tests/ct/ct_harness.c` - **Source Code** - Constant-time verification harness using Valgrind/ctgrind — demonstrates CT testing methodology
-* `results/ct_verify/valgrind_ct/` - **Data Report** - Ctgrind XML results for various variants (karatsuba_ref, HQC-128/192/256)
-* `results/ct_verify/dudect/` - **Data Report** - Dudect timing analysis results and summary CSVs
-* `scripts/ci/check_ct.sh` - **Script** - CI script for automated constant-time verification via ctgrind/dudect
-* `notes/notes_mine.md` - **Research Notes** - "Future of RISC-V & SHA-3", PQC Task Group Keccak instructions
+* `docs/thesis-helper/writing/zkt_ct.md` - **Writing Draft** - Zkt constant-time formal model, engineering diagnostics — formal verification as future work
+* `docs/thesis-helper/notes/notes_mine.md` - **Research Notes** - "Future of RISC-V & SHA-3", PQC Task Group Keccak instructions
 * `sim/rtl-marian/README.md` - **Documentation** - RTL soft-core (Marian) integration notes for future FPGA work
+* `docs/hardware/RTL/marian_deployment_guide.md` - **Documentation** - Marian RTL deployment guide for cycle-accurate Zvbc simulation
 
 ---
 
@@ -744,8 +370,9 @@
 
 * `toolchain/build-gcc-sysroot.sh` - **Script** - GCC cross-compiler build script with sysroot configuration
 * `toolchain/build-llvm.sh` - **Script** - LLVM/Clang cross-compiler build script for RISC-V target
-* `writing/compiler-comparison.md` §3 - **Writing Draft** - Build steps documentation, unified riscv-gnu-toolchain
+* `docs/thesis-helper/writing/compiler-comparison.md` §3 - **Writing Draft** - Build steps documentation, unified riscv-gnu-toolchain
 * `.github/actions/setup-riscv-env/action.yml` - **Build Config** - Reusable GitHub Action that installs the RISC-V toolchain + Spike — canonical environment recipe
+* `docs/thesis/appendices/appendix-a.tex` - **Writing Draft** - LaTeX source for Appendix A
 
 ### Α.2 Εγκατάσταση του Spike ISS
 
@@ -768,9 +395,10 @@
 
 ### Β.2 Οδηγίες Πλήρους Αναπαραγωγής Πειραμάτων
 
-* `scripts/bench/run_benchmarks.sh` - **Script** - Unified benchmark runner: mul/kem/keccak/decode/suite modes with Spike
+* `scripts/bench/run_bench.sh` - **Script** - Unified benchmark runner: mul/kem/keccak/decode/suite modes with Spike
 * `scripts/bench/run_profile.sh` - **Script** - Profiling entry point: cache/memory/trace/histogram modes
 * `scripts/bench/lib_bench.sh` - **Script** - Shared benchmark library: variant auto-mapping, track detection, ISA string resolution
+* `scripts/bench/run_sweep.sh` - **Script** - VLEN sweep runner: iterates over VLEN values for scaling analysis
 * `scripts/report/run_full_analysis.sh` - **Script** - Full analysis pipeline: runs all benchmarks and generates reports
 * `CMakeLists.txt` - **Build Config** - Top-level CMake configuration for all variants and security levels
 * `cmake/hqc_core.cmake` - **Build Config** - Core HQC library CMake module: source file lists, compile definitions, include paths
@@ -779,6 +407,7 @@
 * `tests/unit/CMakeLists.txt` - **Build Config** - Unit-test target definitions
 * `.github/actions/parse-variants/action.yml` - **Build Config** - Reusable GitHub Action that parses `scripts/implemented_variants.txt` for matrix CI builds
 * `.gitmodules` - **Build Config** - Submodule configuration (vendor/hqc-ref pinning)
+* `Makefile.hw` - **Build Config** - Hardware build system for native BPI-F3 compilation (bench, dudect, KAT targets)
 
 ---
 
@@ -793,12 +422,26 @@
 
 | Αρχείο | Σχετικές Ενότητες | Περιεχόμενο |
 |--------|-------------------|-------------|
-| `writing/optimizations_overview.md` | §6–§7 overview, §8, presentation slides | Marp slides — condensed narrative of all optimizations with final numbers |
-| `writing/reference_explanation.md` | §2.1–2.5 | Detailed vendor code walkthrough, HQC flow, module interactions |
-| `writing/mult_alternatives.md` | §6.2.6, §9.1 | TC3/TC4/FAFFT/sparse analysis, measured regressions, "why Karatsuba wins" |
-| `writing/VLEN_scaling.md` | §8.4 | Complete VLEN analysis with tables, ready for thesis text |
-| `writing/compiler-comparison.md` | §5.2, §8.5, Appendix A | Full toolchain analysis, dual-compiler workflow, per-phase flags |
-| `writing/zkt_ct.md` | §10.3 (μελλοντικό) | Zkt constant-time formal model, engineering diagnostics — deferred to future work |
+| `docs/thesis-helper/writing/optimizations_overview.md` | §6–§7 overview, §8, presentation slides | Marp slides — condensed narrative of all optimizations with final numbers |
+| `docs/thesis-helper/writing/reference_explanation.md` | §2.1–2.5 | Detailed vendor code walkthrough, HQC flow, module interactions |
+| `docs/thesis-helper/writing/mult_alternatives.md` | §6.2.6, §9.1 | TC3/TC4/FAFFT/sparse analysis, measured regressions, "why Karatsuba wins" |
+| `docs/thesis-helper/writing/VLEN_scaling.md` | §8.4 | Complete VLEN analysis with tables, ready for thesis text |
+| `docs/thesis-helper/writing/compiler-comparison.md` | §5.2, §9.5, Appendix A | Full toolchain analysis, dual-compiler workflow, per-phase flags |
+| `docs/thesis-helper/writing/zkt_ct.md` | §9.6.1, §10.3 | Zkt constant-time formal model, engineering diagnostics — formal verification as future work |
+| `docs/thesis-helper/writing/constant_time_verification.md` | §9.6 | Full CT verification methodology and results: threat model, ctgrind, dudect on BPI-F3, experimental results, formal verification gap analysis |
+| `docs/thesis/chapters/01-introduction.tex` | §1 | LaTeX source for Chapter 1 |
+| `docs/thesis/chapters/02-theoretical-background.tex` | §2 | LaTeX source for Chapter 2 |
+| `docs/thesis/chapters/03-risc-v-architecture.tex` | §3 | LaTeX source for Chapter 3 |
+| `docs/thesis/chapters/04-related-work.tex` | §4 | LaTeX source for Chapter 4 |
+| `docs/thesis/chapters/05-experimental-setup.tex` | §5 | LaTeX source for Chapter 5 |
+| `docs/thesis/chapters/06-polymul-optimization.tex` | §6 | LaTeX source for Chapter 6 |
+| `docs/thesis/chapters/07-kernel-optimization.tex` | §7 | LaTeX source for Chapter 7 (main) |
+| `docs/thesis/chapters/07-decode-section.tex` | §7.2 | LaTeX source for decode section of Chapter 7 |
+| `docs/thesis/chapters/08-results.tex` | §8 | LaTeX source for Chapter 8 |
+| `docs/thesis/chapters/09-discussion.tex` | §9 | LaTeX source for Chapter 9 |
+| `docs/thesis/chapters/10-conclusions.tex` | §10 | LaTeX source for Chapter 10 |
+| `docs/thesis/appendices/appendix-a.tex` | Appendix A | LaTeX source for Appendix A |
+| `docs/thesis-helper/Corrections.txt` | All | Corrections and reviewer feedback notes |
 
 ---
 
@@ -849,19 +492,55 @@
 |--------------|-------------------|-------------|
 | `results/simulation/benchmarks/kem/` | §8.2, §8.3 | Complete KEM suite: keypair/encaps/decaps/vect_mul CSVs |
 | `results/simulation/benchmarks/vlen_scaling/` | §8.4 | VLEN sweep data for karatsuba_rvv/zvbc/ref_vector |
-| `results/simulation/benchmarks/compiler_compare/` | §8.5 | GCC vs Clang instret per variant (scalar + vector subtrees) |
+| `results/simulation/benchmarks/compiler_compare/` | §9.5 | GCC vs Clang instret per variant (scalar + vector subtrees) |
 | `results/simulation/benchmarks/components/keccak/` | §8.1.2 | Canonical Keccak benchmark CSVs (ref and opt) |
 | `results/simulation/benchmarks/components/decode/` | §8.1.3 | Canonical decode benchmark CSVs (ref, rvv, zvbc) |
+| `results/simulation/benchmarks/components/poly_mul/` | §8.1.1 | Canonical polymul benchmark CSVs (all variants) |
 | `results/simulation/profiling/histograms/` | §5.3, §9.2 | PC histogram data for instruction mix analysis (scalar/vector) |
 | `results/simulation/profiling/traces/` | §5.3 | Spike execution traces for hotspot identification (scalar/vector) |
 | `results/simulation/profiling/cpi/reports/` | §5.3, §9.1 | CPI model reports per security level |
-| `results/simulation/profiling/cpi/` | §5.3 | CPI model inputs for scalar variants |
-| `results/simulation/profiling/cpi/` | §5.3 | CPI model inputs for vector variants |
-| `results/simulation/profiling/cache/` | §5.3 | Cache simulation data for scalar variants |
-| `results/simulation/profiling/cache/` | §5.3 | Cache simulation data for vector variants |
+| `results/simulation/profiling/cpi/` | §5.3 | CPI model inputs (scalar + vector) |
+| `results/simulation/profiling/cache/` | §5.3 | Cache simulation data (scalar/vector) |
 | `results/simulation/profiling/mem_access/` | §5.3 | Memory access pattern profiles (scalar/vector) |
-| `results/reports/scoreboards/` | §6.2.6 | Historical scoreboard tracking for polymul experiments (fafft v4–v6, fafft_zbc, hybrid v3, hybrid_zbc, polymul_zbc) |
-| `results/archive/` | §6–§8 | Archived intermediate profiling reports (task-level progression: karatsuba_zbc tasks 1–4, gather/x4 imv/imbv variants) |
+| `results/hardware/benchmarks/kem/hw_kem_scalar-ref_latest.csv` | §8.5.2 | Hardware KEM cycles — scalar reference (canonical pointer) |
+| `results/hardware/benchmarks/kem/hw_kem_scalar-zb_latest.csv` | §8.5.2 | Hardware KEM cycles — Tier 1 karatsuba_zbc (canonical pointer) |
+| `results/hardware/benchmarks/kem/hw_kem_vector-ref_latest.csv` | §8.5.2 | Hardware KEM cycles — vector reference (canonical pointer) |
+| `results/hardware/benchmarks/kem/hw_kem_vector-rvv_latest.csv` | §8.5.2 | Hardware KEM cycles — Tier 2 karatsuba_rvv (canonical pointer) |
+| `results/hardware/benchmarks/components/poly_mul/hw_mul_scalar-ref_latest.csv` | §8.5.1 | Hardware polymul cycles — scalar reference (canonical pointer) |
+| `results/hardware/benchmarks/components/poly_mul/hw_mul_scalar-zb_latest.csv` | §8.5.1 | Hardware polymul cycles — Tier 1 (canonical pointer) |
+| `results/hardware/benchmarks/components/poly_mul/hw_mul_vector-ref_latest.csv` | §8.5.1 | Hardware polymul cycles — vector reference (canonical pointer) |
+| `results/hardware/benchmarks/components/poly_mul/hw_mul_vector-rvv_latest.csv` | §8.5.1 | Hardware polymul cycles — Tier 2 (canonical pointer) |
+| `results/hardware/benchmarks/components/keccak/hw_keccak_ref_latest.csv` | §8.5.1 | Hardware Keccak cycles — reference (canonical pointer) |
+| `results/hardware/benchmarks/components/decode/hw_decode_ref_latest.csv` | §8.5.1 | Hardware decode cycles — reference (canonical pointer) |
+| `results/hardware/benchmarks/components/decode/hw_decode_rvv_latest.csv` | §8.5.1 | Hardware decode cycles — RVV (canonical pointer) |
+| `results/hardware/analysis/vector_rvv_performance_analysis.md` | §8.5.1, §8.5.3 | Detailed vector RVV performance analysis on hardware |
+| `results/hardware/sweeps/threshold/` | §8.5.4 | Threshold sweep data for hardware validation |
+| `results/reports/summaries/speedups_simulation.md` | §8.2, §10.1 | Simulation speedup summary (instret-based) |
+| `results/reports/summaries/speedups_hardware.md` | §8.5.2, §10.1 | Hardware speedup summary (cycles-based) |
+| `results/reports/summaries/speedups_cross_platform.md` | §9.1 | Cross-platform comparison summary |
+| `results/reports/summaries/rvv_opt_summary.md` | §6.3, §8.2 | RVV optimization summary report |
+| `results/reports/summaries/compiler_analysis.md` | §9.5 | Compiler comparison analysis report |
+| `results/reports/scoreboards/` | §6.2.6 | Historical scoreboard tracking for polymul experiments |
+| `results/reports/figures/pie_scalar-ref.pdf` | §2.2.3, §5.7 | Baseline scalar pie chart |
+| `results/reports/figures/pie_vector-zvk.pdf` | §6.5, §7.5 | Final Tier 3 pie chart |
+| `results/reports/figures/pie_three_stage_comparison.pdf` | §7.5 | Three-stage Amdahl's law visualization |
+| `results/reports/figures/pie_combined.pdf` | §2.2.3 | Combined pie chart comparison |
+| `results/reports/figures/bar_kem_speedups.pdf` | §8.2 | KEM speedup bar chart |
+| `results/reports/figures/bar_micro_benchmarks.pdf` | §8.1 | Micro-benchmark comparison bar chart |
+| `results/reports/figures/bar_stacked_breakdown.pdf` | §8.2 | Stacked breakdown bar chart |
+| `results/reports/figures/bar_compiler_comparison.pdf` | §9.5 | Compiler comparison bar chart |
+| `results/reports/figures/line_security_scaling.pdf` | §8.3 | Security level scaling line chart |
+| `results/reports/figures/line_vlen_sweep.pdf` | §8.4.2 | VLEN sweep line chart |
+| `results/reports/figures/heatmap_speedups.pdf` | §8.3 | Speedup heatmap |
+| `results/reports/figures/waterfall_ablation.pdf` | §9.2.1 | ISA ablation waterfall chart |
+| `results/reports/figures/scatter_code_size.pdf` | §9.3 | Code size vs performance scatter plot |
+| `results/reports/figures/speedup_cross_platform.pdf` | §9.1 | Cross-platform speedup comparison |
+| `results/reports/figures/hw_spike_vs_hw_bars.pdf` | §8.5.1 | Spike vs HW bars comparison |
+| `results/reports/figures/hw_spike_hw_scatter.pdf` | §8.5.4 | Spike prediction vs HW reality scatter |
+| `results/reports/figures/hw_ipc_chart.pdf` | §8.5.3 | IPC analysis chart |
+| `results/reports/figures/hw_wallclock_bars.pdf` | §8.5.2 | Wall-clock time bar chart |
+| `results/ct_verify/valgrind_ct/` | §9.6.3 | Ctgrind XML results for various variants |
+| `results/ct_verify/dudect/` | §9.6.4, §9.6.7 | Dudect timing analysis results |
 | `docs/proposals/RESULTS/keccak_unrolling_results.md` | §7.1, §7.1.4 | Keccak unrolling experiment results |
 | `docs/proposals/RESULTS/load64_intrinsic_results.md` | §7.1.4 | load64 intrinsic optimization results |
 | `docs/proposals/RESULTS/reed_solomon_zvbc_results.md` | §7.2.3 | RS Zvbc optimization results |
@@ -871,4 +550,3 @@
 | `docs/figures/latest_dashboard.png` | §8 | Latest combined dashboard snapshot |
 
 ---
-

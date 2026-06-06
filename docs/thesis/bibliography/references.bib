@@ -562,3 +562,61 @@
   howpublished = {Cryptology {ePrint} Archive},
   note         = {Constant-time rejection sampling hardware for HQC fixed-weight vector generation}
 }
+
+% =============================================================================
+% Constant-Time Verification
+% =============================================================================
+
+@inproceedings{Reparaz2017-dudect,
+  author    = {Oscar Reparaz and Josep Balasch and Ingrid Verbauwhede},
+  title     = {Dude, is my code constant time?},
+  booktitle = {Design, Automation \& Test in Europe Conference (DATE)},
+  year      = {2017},
+  pages     = {1697--1702},
+  publisher = {IEEE},
+  doi       = {10.23919/DATE.2017.7927267},
+  note      = {Statistical leakage detection via Welch's t-test for constant-time verification}
+}
+
+@inproceedings{Daniel2020-BinsecRel,
+  author    = {Lesly-Ann Daniel and S{\'e}bastien Bardin and Tamara Rezk},
+  title     = {{Binsec/Rel}: Efficient Relational Symbolic Execution for Constant-Time at Binary-Level},
+  booktitle = {IEEE Symposium on Security and Privacy (S\&P)},
+  year      = {2020},
+  pages     = {1021--1038},
+  publisher = {IEEE},
+  doi       = {10.1109/SP40000.2020.00074}
+}
+
+@inproceedings{Almeida2016-ctverif,
+  author    = {Jos{\'e} Bacelar Almeida and Manuel Barbosa and Gilles Barthe and Fran{\c{c}}ois Dupressoir and Michael Emmi},
+  title     = {Verifying Constant-Time Implementations},
+  booktitle = {USENIX Security Symposium},
+  year      = {2016},
+  pages     = {53--70},
+  publisher = {USENIX Association}
+}
+
+@inproceedings{Gruetter2022-Bedrock2,
+  author    = {Samuel Gr{\"u}tter and Viktor Kun{\v{c}}ak and Martin Odersky},
+  title     = {End-to-End Verification of Constant-Time Code on {RISC-V}},
+  year      = {2022},
+  note      = {Bedrock2 framework: correct-by-construction compilation with CT proof for RISC-V base ISA}
+}
+
+@misc{riscv-scalar-crypto-2022,
+  author       = {{RISC-V International}},
+  title        = {{RISC-V} Cryptography Extensions Volume {I}: Scalar \& Entropy Source Instructions},
+  year         = {2022},
+  howpublished = {\url{https://github.com/riscv/riscv-crypto}},
+  note         = {Ratified February 2022. Defines Zkt (Data Independent Execution Latency) subset}
+}
+
+@misc{Valgrind-riscv64,
+  author       = {{Valgrind Developers}},
+  title        = {Valgrind 3.25.0 Release Notes},
+  year         = {2025},
+  howpublished = {\url{https://valgrind.org/docs/manual/dist.news.html}},
+  note         = {First release with RISC-V 64-bit (riscv64-linux) support, April 2025}
+}
+
