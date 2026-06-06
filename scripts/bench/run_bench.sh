@@ -606,17 +606,9 @@ case "$PLATFORM" in
         }
 
         # ── Variant-to-POLYMUL mapping ───────────────────────────────────
+        # Makefile.hw now uses the same canonical names as implemented_variants.txt.
         hw_variant_to_polymul() {
-            local canonical="$1"
-            case "$canonical" in
-                scalar_ref)   echo "ref_scalar" ;;
-                scalar_zb)    echo "karatsuba_zbc" ;;
-                vector_rvv)   echo "karatsuba_rvv" ;;
-                # No legacy mapping — pass through directly
-                vector_ref)   echo "vector_ref" ;;
-                vector_zvk)   echo "vector_zvk" ;;
-                *)            echo "$canonical" ;;
-            esac
+            echo "$1"
         }
 
         # ── Variant expansion ────────────────────────────────────────
@@ -648,10 +640,20 @@ case "$PLATFORM" in
 
             # Clean then build — show build output on failure for debugging
             local build_log extra_args=""
-            if [[ "$MODE" == "decode" && -n "$DECODE_IMPL" ]]; then
-                extra_args="DECODE=$DECODE_IMPL"
-            fi
-            if ! build_log=$(run_cmd "cd $dir && make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY $extra_args clean >/dev/null 2>&1; make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY $extra_args $target 2>&1"); then
+            case "$MODE" in
+                kem)
+                    extra_args="KECCAK=$KECCAK_IMPL DECODE=$DECODE_IMPL"
+                    ;;
+                decode)
+                    if [[ -n "$DECODE_IMPL" ]]; then
+                        extra_args="DECODE=$DECODE_IMPL"
+                    fi
+                    ;;
+                mul|keccak)
+                    # No extra component args needed
+                    ;;
+            esac
+            if ! build_log=$(run_cmd "cd $dir && make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY EXTENDED=1 $extra_args clean >/dev/null 2>&1; make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY EXTENDED=1 $extra_args $target 2>&1"); then
                 echo " ├── ❌ BUILD FAIL (level=$level)" >&2
                 echo "$build_log" | tail -5 >&2
                 return 1
@@ -817,12 +819,14 @@ ${output}"
             hw_run_single_variant "$v"
         done
 
-        # ── Retrieve results from remote ─────────────────────────────
+        # ── Sync results to remote (keep remote in sync with local) ────
+        # Results are written locally by bench_hw_store_result. Push them
+        # back to the remote so subsequent deploys don't carry stale CSVs.
         if [[ "$LOCAL_MODE" -eq 0 ]]; then
             echo ""
-            echo "[sync] Fetching results from ${REMOTE}..."
-            if ! _rsync -az "${REMOTE}:${REMOTE_DIR}/results/hardware/" "${REPO_ROOT}/results/hardware/"; then
-                echo "WARNING: Failed to sync results back. They still exist on ${REMOTE}:${REMOTE_DIR}/results/hardware/" >&2
+            echo "[sync] Pushing results to ${REMOTE}..."
+            if ! _rsync -az "${REPO_ROOT}/results/hardware/" "${REMOTE}:${REMOTE_DIR}/results/hardware/"; then
+                echo "WARNING: Failed to sync results to remote. Local results are correct." >&2
             fi
         fi
         ;;
