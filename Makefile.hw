@@ -5,12 +5,12 @@
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 # Usage:
-#   make -f Makefile.hw SUITE=bench  LEVEL=128 POLYMUL=karatsuba_zbc
-#   make -f Makefile.hw SUITE=dudect TARGET=polymul LEVEL=128 POLYMUL=karatsuba_zbc
+#   make -f Makefile.hw SUITE=bench  LEVEL=128 POLYMUL=scalar_zb
+#   make -f Makefile.hw SUITE=dudect TARGET=polymul LEVEL=128 POLYMUL=scalar_zb
 #
 # Run (pinned to isolated core, max priority):
-#   make -f Makefile.hw SUITE=bench  LEVEL=128 POLYMUL=karatsuba_zbc run_kem
-#   make -f Makefile.hw SUITE=dudect TARGET=kem LEVEL=128 POLYMUL=karatsuba_zbc run
+#   make -f Makefile.hw SUITE=bench  LEVEL=128 POLYMUL=scalar_zb run_kem
+#   make -f Makefile.hw SUITE=dudect TARGET=kem LEVEL=128 POLYMUL=scalar_zb run
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 # SUITE (required):
@@ -19,7 +19,7 @@
 #
 # Common parameters:
 #   LEVEL   = 128 | 192 | 256       (security level)
-#   POLYMUL = ref_scalar | karatsuba_zbc | karatsuba_rvv | vector_ref
+#   POLYMUL = scalar_ref | scalar_zb | vector_ref | vector_rvv | vector_zvk
 #   MODE    = dev | publish          (iteration count preset)
 #   KECCAK  = ref | zvbb_x2_soa     (keccak implementation for KEM chain)
 #   DECODE  = ref | rvv | zvbc       (decode implementation for decode bench)
@@ -39,7 +39,7 @@ SUITE    ?= bench
 # ── Common configuration ─────────────────────────────────────────────────────
 CC       ?= gcc
 LEVEL    ?= 128
-POLYMUL  ?= karatsuba_zbc
+POLYMUL  ?= scalar_zb
 MODE     ?= dev
 
 # KECCAK: keccak implementation for KEM chain
@@ -71,24 +71,28 @@ else
 endif
 
 # ── ISA flags and polymul source per variant ─────────────────────────────────
-ifeq ($(POLYMUL),ref_scalar)
+ifeq ($(POLYMUL),scalar_ref)
   MARCH := rv64gc_zbc_zbb_zbs
   POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
   EXTRA_CFLAGS := -fno-tree-vectorize
-else ifeq ($(POLYMUL),karatsuba_zbc)
+else ifeq ($(POLYMUL),scalar_zb)
   MARCH := rv64gc_zbc_zbb_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul.c
   EXTRA_CFLAGS := -fno-tree-vectorize
-else ifeq ($(POLYMUL),karatsuba_rvv)
-  MARCH := rv64gcv_zbc_zbb_zba_zbs
-  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
-  EXTRA_CFLAGS :=
 else ifeq ($(POLYMUL),vector_ref)
   MARCH := rv64gcv_zbc_zbb_zbs
   POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
   EXTRA_CFLAGS := -ftree-vectorize
+else ifeq ($(POLYMUL),vector_rvv)
+  MARCH := rv64gcv_zbc_zbb_zba_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
+  EXTRA_CFLAGS :=
+else ifeq ($(POLYMUL),vector_zvk)
+  MARCH := rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_zvbc/gf2x_vclmul.c
+  EXTRA_CFLAGS :=
 else
-  $(error Unsupported POLYMUL=$(POLYMUL). Use ref_scalar, karatsuba_zbc, karatsuba_rvv, or vector_ref)
+  $(error Unsupported POLYMUL=$(POLYMUL). Use scalar_ref, scalar_zb, vector_ref, vector_rvv, or vector_zvk)
 endif
 
 # ── Common include paths ─────────────────────────────────────────────────────
@@ -162,7 +166,7 @@ $(shell mkdir -p $(OUTDIR))
 ifeq ($(SUITE),bench)
 
 # Bench-specific knobs
-EXTENDED ?= 0
+EXTENDED ?= 1
 
 ifeq ($(MODE),publish)
   N_ITER   ?= 10000
@@ -273,20 +277,20 @@ run_decode: $(DECODE_BIN)
 	sudo nice -n -20 taskset -c 7 ./$(DECODE_BIN)
 
 all_variants:
-	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=ref_scalar
-	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=scalar_ref
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=scalar_zb
 	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=vector_ref
-	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=vector_rvv
 
 run_all_mul:
-	@echo "=== ref_scalar ==="
-	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=ref_scalar run_mul
+	@echo "=== scalar_ref ==="
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=scalar_ref run_mul
 	@echo ""
-	@echo "=== karatsuba_zbc ==="
-	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc run_mul
+	@echo "=== scalar_zb ==="
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=scalar_zb run_mul
 	@echo ""
-	@echo "=== karatsuba_rvv ==="
-	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv run_mul
+	@echo "=== vector_rvv ==="
+	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=vector_rvv run_mul
 
 info:
 	@echo "Suite: bench"
@@ -367,9 +371,9 @@ run: $(BIN)
 	sudo nice -n -20 taskset -c 7 ./$(BIN)
 
 all_variants:
-	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=ref_scalar MODE=$(MODE)
-	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=karatsuba_zbc MODE=$(MODE)
-	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=karatsuba_rvv MODE=$(MODE)
+	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=scalar_ref MODE=$(MODE)
+	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=scalar_zb MODE=$(MODE)
+	$(MAKE) -f Makefile.hw SUITE=dudect TARGET=$(TARGET) LEVEL=$(LEVEL) POLYMUL=vector_rvv MODE=$(MODE)
 
 info:
 	@echo "Suite: dudect"

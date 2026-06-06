@@ -2,9 +2,10 @@ docs/REPORT.md
 docs/BASELINE.md
 docs/PROPOSALS.md
 prompts/
-repo_*.txt
+repo_tree.txt
 proposals/
 .kiro/*
+repo/
 
 # Build outputs — hierarchical matrix lives under build/<sim>/<context>/
 build/
