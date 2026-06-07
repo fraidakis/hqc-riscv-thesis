@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import Optional
 
 from hqc_bench import (
-    VARIANT_SLUG_MAP,
     fmt_cycles,
     fmt_int,
     fmt_speedup,
@@ -46,27 +45,27 @@ HW_KEM_DIR = REPO_ROOT / "results" / "hardware" / "benchmarks" / "kem"
 HW_MUL_DIR = REPO_ROOT / "results" / "hardware" / "benchmarks" / "components" / "poly_mul"
 
 # Hardware report configuration
-HW_BASELINE_VARIANT = "ref_scalar"
-HW_CHAMPION_VARIANTS = ["karatsuba_zbc", "karatsuba_rvv"]
+HW_BASELINE_VARIANT = "scalar_ref"
+HW_CHAMPION_VARIANTS = ["scalar_zb", "vector_rvv"]
 HW_OPS_KEM = ["keypair", "encaps", "decaps"]
 
 TIERS = [
     {
         "label": "Table 1 — Tier 1 (IoT Scalar)",
-        "baseline_variant": "ref_scalar",
-        "champion_variant": "karatsuba_zbc",
+        "baseline_variant": "scalar_ref",
+        "champion_variant": "scalar_zb",
         "note": "rv64gc_zbc_zbb, no vector",
     },
     {
         "label": "Table 2 — Tier 2 (Edge RVV)",
-        "baseline_variant": "ref_vector",
-        "champion_variant": "karatsuba_rvv",
+        "baseline_variant": "vector_ref",
+        "champion_variant": "vector_rvv",
         "note": "rv64gcv + Zbc/Zbb; AP-2 fixed-tree polymul, scalar Keccak",
     },
     {
         "label": "Table 3 — Tier 3 (High-End Zvbc)",
-        "baseline_variant": "ref_vector",
-        "champion_variant": "karatsuba_zvbc",
+        "baseline_variant": "vector_ref",
+        "champion_variant": "vector_zvk",
         "note": "rv64gcv + Zvbc/Zvbb/Zvl256b",
     },
 ]

@@ -24,6 +24,18 @@ LEGACY_VARIANT_MAP: dict[str, str] = {
     "ref_vector": "vector_ref",
     "karatsuba_rvv": "vector_rvv",
     "karatsuba_zvbc": "vector_zvk",
+    # Hyphenated legacy aliases occasionally appear in filenames or CLI args.
+    "ref-scalar": "scalar_ref",
+    "karatsuba-zbc": "scalar_zb",
+    "ref-vector": "vector_ref",
+    "karatsuba-rvv": "vector_rvv",
+    "karatsuba-zvbc": "vector_zvk",
+    # Slug aliases map back to canonical variant names.
+    "scalar-ref": "scalar_ref",
+    "scalar-zb": "scalar_zb",
+    "vector-ref": "vector_ref",
+    "vector-rvv": "vector_rvv",
+    "vector-zvk": "vector_zvk",
 }
 
 
@@ -39,7 +51,8 @@ def variant_slug(variant: str) -> str:
     Returns:
         The corresponding slug (e.g., "scalar-zb").
     """
-    return VARIANT_SLUG_MAP.get(variant, variant.replace("_", "-"))
+    canonical = resolve_variant(variant)
+    return VARIANT_SLUG_MAP.get(canonical, canonical.replace("_", "-"))
 
 
 def variant_track(variant: str) -> str:
@@ -54,7 +67,7 @@ def variant_track(variant: str) -> str:
     Returns:
         "vector" if the variant starts with "vector", otherwise "scalar".
     """
-    normalized = variant.lower()
+    normalized = resolve_variant(variant).lower()
     if normalized.startswith("vector"):
         return "vector"
     return "scalar"
