@@ -55,3 +55,6 @@ Thumbs.db
 
 # Build directory (if using $out_dir)
 build/
+
+# TikZ externalization symlink (figures-cache -> build/figures-cache)
+figures-cache

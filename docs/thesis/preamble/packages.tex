@@ -20,7 +20,11 @@
   expansion=true,
   tracking=true
 ]{microtype}
-\usepackage{selnolig}           % Suppress cross-morpheme ligatures (LuaLaTeX)
+% selnolig (cross-morpheme ligature suppression) is disabled: it causes
+% LuaLaTeX fatal errors inside TikZ subprocesses ("bad argument #1 to 'char'")
+% when figure nodes contain \\ line breaks. Since the thesis is primarily Greek,
+% the benefit is negligible and the crashes are not worth working around.
+%\usepackage{selnolig}
 \usepackage{csquotes}           % Context-sensitive quotes (biblatex needs this)
 
 % --- Page layout ---
@@ -39,6 +43,62 @@
 \pgfplotsset{compat=1.18}
 \usepackage{pgfplotstable}      % Import CSV/TSV data directly into LaTeX tables
 \usepackage{subcaption}         % Sub-figures
+
+% --- TikZ externalization (cache each figure as a standalone PDF) ---------------
+% Each tikzpicture is compiled once; subsequent passes reuse the cached PDF.
+% To force a full re-render: make extern-clean
+% To disable for a single environment: \tikzexternaldisable ... \tikzexternalenable
+%
+% Path note: lualatex runs with -output-directory=build, so \openout prepends
+% build/ automatically. The prefix must NOT include build/ or it double-prefixes.
+% Cached PDFs therefore land in build/figures-cache/.
+% A symlink figures-cache/ -> build/figures-cache/ at the thesis root lets
+% \includegraphics (which resolves paths relative to CWD) find them.
+% The symlink is created by .latexmkrc on every run and is .gitignored.
+\usetikzlibrary{external}
+% PGF's \pgfexternal@nofiles calls \nofiles early in the preamble (inside
+% \tikzexternalize), before glossaries-extra initializes, causing "Too many }'s"
+% at \makenoidxglossaries. Neutralize it here; our \AtBeginDocument hook below
+% calls \nofiles correctly after all packages are loaded.
+\makeatletter\let\pgfexternal@nofiles\@empty\makeatother
+\tikzexternalize[prefix=figures-cache/]{main}
+% LuaLaTeX-specific system call: spawn lualatex (not pdflatex) for sub-jobs.
+% -output-directory=build ensures cached PDFs land in build/figures-cache/.
+\tikzset{external/system call={%
+  lualatex -shell-escape -halt-on-error -interaction=batchmode
+  -output-directory=build -jobname "\image" "\tikzexternalrealjob"%
+}}
+% Support 'make chapter-only ch=N':
+%   With explicit \tikzsetnextfilename{} on every figure, cached filenames are
+%   stable regardless of \includeonly — no numbering shift.  Normal externalization
+%   works: tikz-external checks the md5 of each figure and re-renders only those
+%   that changed (subprocess writes to build/figures-cache/ via the system call).
+%   New or modified figures are rendered on-the-fly; unchanged figures use cache.
+%   The Makefile symlinks build/chapter-preview/figures-cache → ../figures-cache
+%   so .md5 writes from both the main process and subprocess land in the same dir.
+% Support 'make figures-parallel': if \tikzListAndMake is defined (injected
+% via the lualatex command line as \def\tikzListAndMake{1}), switch to
+% 'list and make' mode so lualatex writes build/main.makefile instead of
+% spawning subprocesses.
+\ifdefined\tikzListAndMake
+  \tikzset{external/mode=list and make}
+\fi
+% Allow \includegraphics to find externalized PDFs under build/
+\graphicspath{{./}{build/}}
+% Fix: tikzexternalize subprocess reads old .aux files and tries to re-execute
+% \@writefile{lot/toc}{...} commands, but those write streams aren't open in
+% the subprocess context — causing "File ended while scanning \@writefile".
+% \nofiles makes \@writefile a no-op, fixing this without side effects on
+% figure rendering (figures don't need to write toc/lot/lof entries).
+% Detection: in subprocess mode \jobname = "figures-cache/figname" != "main".
+\AtBeginDocument{%
+  \edef\tikz@extern@jobname{\jobname}%
+  \edef\tikz@extern@mainname{main}%
+  \ifx\tikz@extern@jobname\tikz@extern@mainname\else
+    \nofiles  % subprocess: suppress all aux file writes
+  \fi
+}
+
 
 % --- Tables ---
 \usepackage{booktabs}           % Professional table rules
@@ -137,6 +197,14 @@
 % --- Colored boxes (definitions, key results, remarks) ---
 \usepackage{tcolorbox}
 \tcbuselibrary{breakable,skins}
+% Fix: tcolorbox uses TikZ internally for its 'enhanced' skin. Without this,
+% tikz/external intercepts tcolorbox's internal tikzpictures, tries to
+% externalize them, and the subprocess runs off the end of the document
+% looking for \end{tikzpicture} — causing a fatal "File ended while scanning"
+% error. \tcbset{shield externalize} tells tcolorbox to wrap itself with
+% \tikzexternaldisable/\tikzexternalenable, preventing externalization of
+% its internal TikZ paths.
+\tcbset{shield externalize}
 
 % --- TikZ libraries ---
 \usetikzlibrary{
