@@ -1,5 +1,5 @@
-# date: 2026-05-31 20:40
-# commit: b709a5f
+# date: 2026-06-06 20:46
+# commit: ccbe5e7
 # Multiplication variant: scalar_zb
 level,op,instructions,codesize
 128,keypair,462794,47788

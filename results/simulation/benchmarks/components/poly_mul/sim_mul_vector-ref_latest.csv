@@ -1,7 +1,7 @@
-# date: 2026-05-21 15:50
-# commit: ea4572e
-# Multiplication variant: ref_vector
+# date: 2026-06-06 20:48
+# commit: ccbe5e7
+# Multiplication variant: vector_ref
 level,op,instructions,codesize
-128,vect_mul,18527412,3840
-192,vect_mul,56315140,3884
-256,vect_mul,139115660,3884
+128,vect_mul,18527409,3454
+192,vect_mul,56315139,3466
+256,vect_mul,139115660,3470
