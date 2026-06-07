@@ -237,16 +237,13 @@ class DataLoader:
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
-        var_dir = self._variant_dir(variant)
         path = (
             self._root
             / "results"
             / "simulation"
             / "benchmarks"
-            / "components"
-            / "poly_mul"
-            / var_dir
-            / f"isolated_kem_{slug}_latest.csv"
+            / "kem"
+            / f"sim_kem_{slug}_latest.csv"
         )
         return load_csv(path)
 
@@ -259,7 +256,6 @@ class DataLoader:
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
-        var_dir = self._variant_dir(variant)
         path = (
             self._root
             / "results"
@@ -267,8 +263,7 @@ class DataLoader:
             / "benchmarks"
             / "components"
             / "poly_mul"
-            / var_dir
-            / f"isolated_polymul_{slug}_latest.csv"
+            / f"sim_mul_{slug}_latest.csv"
         )
         return load_csv(path)
 
@@ -285,7 +280,7 @@ class DataLoader:
             / "benchmarks"
             / "components"
             / "keccak"
-            / f"isolated_keccak_{variant}_latest.csv"
+            / f"sim_keccak_{variant}_latest.csv"
         )
         return load_csv(path)
 
@@ -302,7 +297,7 @@ class DataLoader:
             / "benchmarks"
             / "components"
             / "decode"
-            / f"isolated_decode_{variant}_latest.csv"
+            / f"sim_decode_{variant}_latest.csv"
         )
         return load_csv(path)
 
@@ -313,15 +308,13 @@ class DataLoader:
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
-        var_dir = self._variant_dir(variant)
         path = (
             self._root
             / "results"
             / "simulation"
             / "benchmarks"
             / "vlen_scaling"
-            / var_dir
-            / f"vlen_sweep_L{level}_{slug}_latest.csv"
+            / f"sim_vlen_l{level}-{slug}_latest.csv"
         )
         return load_csv(path)
 
@@ -335,15 +328,13 @@ class DataLoader:
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
-        var_dir = self._variant_dir(variant)
         path = (
             self._root
             / "results"
             / "simulation"
             / "benchmarks"
             / "compiler_compare"
-            / var_dir
-            / f"compiler_compare_Lall_{slug}_latest.csv"
+            / f"sim_compiler_compare_{slug}_latest.csv"
         )
         return load_csv(path)
 
