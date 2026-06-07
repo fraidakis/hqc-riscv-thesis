@@ -1,6 +1,6 @@
-# date: 2026-05-26 17:30
-# commit: c56c136
-# variant: karatsuba_zvbc
+# date: 2026-06-07 15:55
+# commit: 20def7e
+# variant: vector_zvk
 # cache_config: 512:8:64
 level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
 128,1313,105,1208,142,12958047,7168903,1923570,1193813

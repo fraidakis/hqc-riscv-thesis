@@ -1,6 +1,6 @@
-# date: 2026-05-26 18:21
-# commit: c56c136
-# variant: karatsuba_zbc
+# date: 2026-06-07 15:27
+# commit: 20def7e
+# variant: scalar_zb
 # level: 128
 function,instructions,percentage
 KeccakF1600_StatePermute,578792,16.70
@@ -36,7 +36,7 @@ vect_generate_random_support2,10878,0.31
 reed_solomon_encode,9004,0.26
 fft_rec,8492,0.25
 compute_error_values,8187,0.24
->>>>,7491,0.22
+?? ??:0,7496,0.22
 vect_write_support_to_vector,6498,0.19
 vect_generate_random_support1,3933,0.11
 compute_subset_sums,3860,0.11
@@ -66,14 +66,14 @@ hqc_pke_keygen,190,0.01
 radix,184,0.01
 gf_inverse,184,0.01
 sha3_256_inc_absorb,182,0.01
-emit_csv_row,180,0.01
+emit_csv_row_sim,180,0.01
 sha3_512_inc_absorb,170,0.00
 vect_sample_fixed_weight2,162,0.00
 crypto_kem_enc,136,0.00
 crypto_kem_keypair,123,0.00
 reed_solomon_decode,119,0.00
 hash_g,100,0.00
-main,98,0.00
+main,99,0.00
 hqc_pke_decrypt,90,0.00
 vect_sample_fixed_weight1,81,0.00
 hash_h,72,0.00
@@ -95,6 +95,5 @@ shake256_inc_init,9,0.00
 shake256_inc_finalize,9,0.00
 vect_truncate,9,0.00
 hqc_htif_exit,8,0.00
-??,5,0.00
 sha3_256_inc_init,3,0.00
 sha3_512_inc_init,3,0.00

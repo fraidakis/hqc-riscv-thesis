@@ -1,6 +1,6 @@
-# date: 2026-05-20 23:04
-# commit: a96a6ff
-# variant: ref_scalar
+# date: 2026-06-07 15:59
+# commit: 20def7e
+# variant: scalar_ref
 # level: 128
 function,instructions,percentage
 schoolbook_mul,112621824,95.96
@@ -13,25 +13,25 @@ support_contains_value,139683,0.12
 memcpy,124446,0.11
 gf_reduce,106191,0.09
 find_peaks,105965,0.09
-keccak_inc_squeeze,95576,0.08
+keccak_inc_squeeze,95567,0.08
 expand_and_sum,90206,0.08
 vect_compare,31058,0.03
 gf_mul,23702,0.02
 reduce,19997,0.02
 vect_add,15781,0.01
 compute_syndromes,13770,0.01
-compute_elp,12090,0.01
+compute_elp,12117,0.01
 vect_generate_random_support2,11718,0.01
 code_decode,11387,0.01
 reed_solomon_encode,8708,0.01
-fft_rec,8490,0.01
+fft_rec,8522,0.01
 compute_error_values,8383,0.01
->>>>,7260,0.01
-vect_write_support_to_vector,6495,0.01
+?? ??:0,7265,0.01
+vect_write_support_to_vector,6492,0.01
 vect_generate_random_support1,4851,0.00
-compute_subset_sums,3877,0.00
+compute_subset_sums,3845,0.00
 _start,3494,0.00
-fft_retrieve_error_poly,3453,0.00
+fft_retrieve_error_poly,3454,0.00
 encode,3036,0.00
 fft,2028,0.00
 reed_muller_decode,2024,0.00
@@ -42,7 +42,7 @@ gf_square,1168,0.00
 sha3_512_inc_finalize,1056,0.00
 hqc_pke_decrypt,831,0.00
 crypto_kem_dec,584,0.00
-xof_get_bytes,568,0.00
+xof_get_bytes,577,0.00
 keccak_inc_init,398,0.00
 hqc_pke_encrypt,390,0.00
 reed_muller_encode,390,0.00
@@ -61,16 +61,16 @@ hqc_pke_keygen,141,0.00
 vect_sample_fixed_weight2,138,0.00
 crypto_kem_enc,136,0.00
 crypto_kem_keypair,123,0.00
-vect_sample_fixed_weight1,111,0.00
+vect_sample_fixed_weight1,114,0.00
 vect_mul,95,0.00
 hash_g,76,0.00
 hqc_ek_pke_from_string,68,0.00
 prng_get_bytes,57,0.00
-main,53,0.00
+main,54,0.00
 hash_j,52,0.00
 vect_set_random,45,0.00
 hash_h,44,0.00
-emit_csv_row,42,0.00
+emit_csv_row_sim,42,0.00
 hqc_c_kem_from_string,35,0.00
 hqc_dk_pke_from_string,32,0.00
 hqc_c_kem_to_string,32,0.00
@@ -80,6 +80,5 @@ prng_init,13,0.00
 compute_roots,7,0.00
 hqc_rdcycle,6,0.00
 hqc_rdinstret,6,0.00
-??,5,0.00
 hqc_htif_exit,5,0.00
 vect_truncate,5,0.00

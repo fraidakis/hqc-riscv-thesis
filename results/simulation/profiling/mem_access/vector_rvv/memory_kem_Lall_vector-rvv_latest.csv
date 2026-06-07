@@ -1,7 +1,7 @@
-# date: 2026-06-07 13:56
-# commit: 783fdca
+# date: 2026-06-07 15:52
+# commit: 20def7e
 # variant: vector_rvv
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,2523,2397,32064,24032,501,376
-192,2941,2592,44503,30065,696,470
-256,2767,2496,38357,27289,600,427
+128,2058,2140,31096,23204,486,363
+192,2472,2330,43628,28894,682,452
+256,2283,2207,37304,26045,583,407

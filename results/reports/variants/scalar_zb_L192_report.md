@@ -1,12 +1,12 @@
-# HQC-RISC-V Analysis: `karatsuba_zbc`
+# HQC-RISC-V Analysis: `scalar_zb`
 
 | Property | Value |
 | --- | --- |
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
-| Report level (profiles) | 128 |
-| Generated | 2026-05-26 18:53:39 |
-| Commit | `c56c136` |
+| Report level (profiles) | 192 |
+| Generated | 2026-06-07 15:50:56 |
+| Commit | `20def7e` |
 
 ---
 
@@ -16,9 +16,9 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 211,841 | 14,254 |
-| 192 | vect_mul | 650,635 | 16,056 |
-| 256 | vect_mul | 1,900,362 | 15,150 |
+| 128 | vect_mul | 221,030 | 15,270 |
+| 192 | vect_mul | 670,293 | 17,258 |
+| 256 | vect_mul | 1,879,602 | 15,090 |
 
 ### Full KEM Suite
 
@@ -61,76 +61,76 @@
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| KeccakF1600_StatePermute | 578,792 | 16.70 |
-| clmul_leaf | 490,692 | 14.16 |
-| memset | 316,635 | 9.14 |
-| clmul64 | 253,956 | 7.33 |
-| hadamard | 227,516 | 6.56 |
-| keccak_inc_absorb | 141,116 | 4.07 |
-| support_contains_value | 140,430 | 4.05 |
-| memcpy | 137,922 | 3.98 |
-| kmul_35 | 113,520 | 3.28 |
-| gf_reduce | 106,191 | 3.06 |
-| find_peaks | 105,919 | 3.06 |
-| kmul_18 | 100,320 | 2.89 |
-| keccak_inc_squeeze | 96,430 | 2.78 |
-| expand_and_sum | 93,748 | 2.70 |
-| kmul_17 | 88,134 | 2.54 |
-| clmul_leaf_n8 | 76,146 | 2.20 |
-| kmul_69 | 40,950 | 1.18 |
-| kmul_277 | 36,480 | 1.05 |
-| kmul_139 | 34,968 | 1.01 |
-| kmul_70 | 33,192 | 0.96 |
+| clmul_leaf | 1,581,648 | 20.10 |
+| KeccakF1600_StatePermute | 1,129,052 | 14.35 |
+| clmul64 | 739,788 | 9.40 |
+| memset | 607,032 | 7.72 |
+| kmul_18 | 405,840 | 5.16 |
+| kmul_35 | 345,930 | 4.40 |
+| support_contains_value | 324,294 | 4.12 |
+| keccak_inc_absorb | 279,123 | 3.55 |
+| hadamard | 276,976 | 3.52 |
+| memcpy | 275,464 | 3.50 |
+| expand_and_sum | 199,808 | 2.54 |
+| keccak_inc_squeeze | 187,760 | 2.39 |
+| kmul_70 | 157,662 | 2.00 |
+| clmul_leaf_n8 | 144,300 | 1.83 |
+| gf_reduce | 142,652 | 1.81 |
+| find_peaks | 128,899 | 1.64 |
+| kmul_17 | 106,470 | 1.35 |
+| kmul_140 | 86,910 | 1.10 |
+| kmul_36 | 85,248 | 1.08 |
+| kmul_561 | 76,170 | 0.97 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| memset at mem.c:84 | 210,996 | 6.09 |
-| clmul64 at gf2x_clmul.c:39 | 114,324 | 3.30 |
-| clmul64 at gf2x_clmul.c:40 | 114,324 | 3.30 |
-| memset at mem.c:85 | 105,357 | 3.04 |
-| KeccakF1600_StatePermute at fips202.c:0 | 98,548 | 2.84 |
-| support_contains_value at vector.c:81 | 92,340 | 2.66 |
-| clmul_leaf at gf2x_clmul.c:370 | 88,992 | 2.57 |
-| keccak_inc_absorb at fips202.c:438 | 85,750 | 2.47 |
-| memcpy at mem.c:33 | 82,652 | 2.38 |
-| hadamard at reed_muller.c:98 | 82,432 | 2.38 |
-| hadamard at reed_muller.c:99 | 82,432 | 2.38 |
-| clmul_leaf at gf2x_clmul.c:371 | 79,104 | 2.28 |
-| clmul_leaf at gf2x_clmul.c:372 | 79,104 | 2.28 |
-| expand_and_sum at reed_muller.c:132 | 68,448 | 1.97 |
-| hadamard at reed_muller.c:97 | 62,606 | 1.81 |
-| memcpy at mem.c:34 | 54,764 | 1.58 |
-| keccak_inc_squeeze at fips202.c:505 | 51,696 | 1.49 |
-| gf_reduce at gf.c:82 | 50,301 | 1.45 |
-| clmul_leaf at gf2x_clmul.c:369 | 49,440 | 1.43 |
-| support_contains_value at vector.c:80 | 46,812 | 1.35 |
+| memset at mem.c:84 | 404,578 | 5.14 |
+| clmul64 at gf2x_clmul.c:39 | 347,664 | 4.42 |
+| clmul64 at gf2x_clmul.c:40 | 347,664 | 4.42 |
+| clmul_leaf at gf2x_clmul.c:370 | 286,848 | 3.65 |
+| clmul_leaf at gf2x_clmul.c:371 | 254,976 | 3.24 |
+| clmul_leaf at gf2x_clmul.c:372 | 254,976 | 3.24 |
+| support_contains_value at vector.c:81 | 214,240 | 2.72 |
+| memset at mem.c:85 | 202,124 | 2.57 |
+| KeccakF1600_StatePermute at fips202.c:? | 192,238 | 2.44 |
+| keccak_inc_absorb at fips202.c:438 | 178,780 | 2.27 |
+| expand_and_sum at reed_muller.c:132 | 166,656 | 2.12 |
+| memcpy at mem.c:33 | 165,068 | 2.10 |
+| clmul_leaf at gf2x_clmul.c:369 | 159,360 | 2.03 |
+| clmul_leaf at gf2x_clmul.c:373 | 127,488 | 1.62 |
+| memcpy at mem.c:34 | 109,344 | 1.39 |
+| support_contains_value at vector.c:80 | 108,100 | 1.37 |
+| keccak_inc_squeeze at fips202.c:505 | 104,640 | 1.33 |
+| hadamard at reed_muller.c:98 | 100,352 | 1.28 |
+| hadamard at reed_muller.c:99 | 100,352 | 1.28 |
+| clmul_leaf at gf2x_clmul.c:397 | 95,616 | 1.22 |
 
 ### Basic Block Histogram (Top 20)
 
 | instruction | count | % Total |
 | --- | ---: | ---: |
-| ld | 891,011 | 20.96 |
-| xor | 643,589 | 15.14 |
-| bnez | 394,561 | 9.28 |
-| sd | 377,126 | 8.87 |
-| addi | 367,525 | 8.65 |
-| bne | 219,468 | 5.16 |
-| sb | 144,373 | 3.40 |
-| clmul | 119,913 | 2.82 |
-| clmulh | 114,324 | 2.69 |
-| lh | 110,790 | 2.61 |
-| rori | 98,832 | 2.33 |
-| andn | 85,723 | 2.02 |
-| add | 80,318 | 1.89 |
-| slli | 69,006 | 1.62 |
-| sh | 63,067 | 1.48 |
-| mv | 61,265 | 1.44 |
-| lbu | 50,896 | 1.20 |
-| or | 35,065 | 0.83 |
-| srli | 31,105 | 0.73 |
-| andi | 30,827 | 0.73 |
+| ld | 1,805,735 | 20.74 |
+| xor | 1,564,551 | 17.97 |
+| sd | 1,043,334 | 11.99 |
+| addi | 751,561 | 8.63 |
+| bne | 441,360 | 5.07 |
+| bnez | 423,826 | 4.87 |
+| clmul | 355,172 | 4.08 |
+| clmulh | 347,664 | 3.99 |
+| sb | 277,991 | 3.19 |
+| rori | 192,792 | 2.21 |
+| andn | 166,790 | 1.92 |
+| lh | 155,056 | 1.78 |
+| add | 146,614 | 1.68 |
+| mv | 113,403 | 1.30 |
+| slli | 109,058 | 1.25 |
+| lbu | 98,903 | 1.14 |
+| sh | 91,215 | 1.05 |
+| or | 71,988 | 0.83 |
+| lw | 68,798 | 0.79 |
+| andi | 60,733 | 0.70 |
 
 ## 5. Compiler Comparison
 
@@ -172,6 +172,6 @@
 The following reports aggregate data across all variants and are regenerated
 each time a full analysis runs:
 
-- Speedup summary: `analysis/reports/speedups.md`
-- Compiler showdown: `analysis/reports/compiler_analysis.md`
+- Speedup summary: `results/reports/summaries/speedups_simulation.md`
+- Compiler showdown: `results/reports/summaries/compiler_analysis.md`
 

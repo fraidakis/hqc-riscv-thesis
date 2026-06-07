@@ -1,7 +1,7 @@
-# date: 2026-06-07 13:56
-# commit: 783fdca
+# date: 2026-06-07 15:55
+# commit: 20def7e
 # variant: vector_zvk
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,2010,1915,25048,20960,392,328
-192,2400,2208,34799,27826,544,435
-256,2465,2330,31559,26689,494,418
+128,1244,1462,23306,18891,365,296
+192,1519,1777,32268,24547,505,384
+256,1502,1805,28154,22477,440,352
