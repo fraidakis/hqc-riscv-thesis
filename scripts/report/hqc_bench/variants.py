@@ -1,7 +1,6 @@
 """Variant naming utilities for HQC-RISC-V benchmark infrastructure.
 
-Provides canonical variant-to-slug mapping, track detection, and legacy
-variant name resolution for backward compatibility during migration.
+Provides canonical variant-to-slug mapping and track detection.
 """
 
 from __future__ import annotations
@@ -14,28 +13,6 @@ VARIANT_SLUG_MAP: dict[str, str] = {
     "vector_ref": "vector-ref",
     "vector_rvv": "vector-rvv",
     "vector_zvk": "vector-zvk",
-}
-
-# Legacy variant names mapped to their canonical equivalents.
-# Used for backward compatibility with older scripts and CSV filenames.
-LEGACY_VARIANT_MAP: dict[str, str] = {
-    "ref_scalar": "scalar_ref",
-    "karatsuba_zbc": "scalar_zb",
-    "ref_vector": "vector_ref",
-    "karatsuba_rvv": "vector_rvv",
-    "karatsuba_zvbc": "vector_zvk",
-    # Hyphenated legacy aliases occasionally appear in filenames or CLI args.
-    "ref-scalar": "scalar_ref",
-    "karatsuba-zbc": "scalar_zb",
-    "ref-vector": "vector_ref",
-    "karatsuba-rvv": "vector_rvv",
-    "karatsuba-zvbc": "vector_zvk",
-    # Slug aliases map back to canonical variant names.
-    "scalar-ref": "scalar_ref",
-    "scalar-zb": "scalar_zb",
-    "vector-ref": "vector_ref",
-    "vector-rvv": "vector_rvv",
-    "vector-zvk": "vector_zvk",
 }
 
 
@@ -51,8 +28,7 @@ def variant_slug(variant: str) -> str:
     Returns:
         The corresponding slug (e.g., "scalar-zb").
     """
-    canonical = resolve_variant(variant)
-    return VARIANT_SLUG_MAP.get(canonical, canonical.replace("_", "-"))
+    return VARIANT_SLUG_MAP.get(variant, variant.replace("_", "-"))
 
 
 def variant_track(variant: str) -> str:
@@ -67,28 +43,6 @@ def variant_track(variant: str) -> str:
     Returns:
         "vector" if the variant starts with "vector", otherwise "scalar".
     """
-    normalized = resolve_variant(variant).lower()
-    if normalized.startswith("vector"):
+    if variant.lower().startswith("vector"):
         return "vector"
     return "scalar"
-
-
-def resolve_variant(name: str) -> str:
-    """Resolve a possibly-legacy variant name to its canonical form.
-
-    If the name is already canonical (present in VARIANT_SLUG_MAP), it is
-    returned unchanged. If the name is a legacy alias (present in
-    LEGACY_VARIANT_MAP), the corresponding canonical name is returned.
-    Otherwise the name is returned as-is.
-
-    Args:
-        name: A variant name, possibly using legacy naming conventions.
-
-    Returns:
-        The canonical variant name.
-    """
-    if name in VARIANT_SLUG_MAP:
-        return name
-    if name in LEGACY_VARIANT_MAP:
-        return LEGACY_VARIANT_MAP[name]
-    return name

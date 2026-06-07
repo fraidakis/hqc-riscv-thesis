@@ -10,8 +10,8 @@
 #   ./run_multi.sh <binary> [--runs N] [--outdir DIR] [--core CORE]
 #
 # Example:
-#   ./run_multi.sh ./dudect_polymul_hqc128_karatsuba_zbc --runs 10
-#   ./run_multi.sh ./dudect_kem_hqc128_ref_scalar --runs 5 --core 7
+#   ./run_multi.sh ./dudect_polymul_hqc128_scalar_zb --runs 10
+#   ./run_multi.sh ./dudect_kem_hqc128_scalar_ref --runs 5 --core 7
 #
 # Output:
 #   Prints per-run verdicts and final summary statistics (mean/max |t|).

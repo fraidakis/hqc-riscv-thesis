@@ -9,10 +9,10 @@ source "${SCRIPT_DIR}/../bench/lib_bench.sh"
 usage() {
     cat <<'EOF'
 Usage:
-        scripts/report/run_full_analysis.sh --mul <name> [--level <128|192|256|all>]
+        scripts/report/run_full_analysis.sh --variant <name> [--level <128|192|256|all>]
 
 Arguments:
-  --mul <name>         Required benchmark/profiler variant name.
+  --variant <name>     Required benchmark/profiler variant name.
     --level <value>       Optional level: 128, 192, 256, or all (default: 128).
   -h, --help            Show this help message.
 EOF
@@ -23,9 +23,9 @@ MUL_VARIANT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --mul)
+        --variant)
             if [[ $# -lt 2 ]]; then
-                echo "ERROR: --mul requires a value" >&2
+                echo "ERROR: --variant requires a value" >&2
                 usage
                 exit 2
             fi
@@ -204,7 +204,7 @@ append_table_or_note() {
 generate_report() {
     local new_variant_dir
     new_variant_dir="$(variant_to_dir "$MUL_VARIANT")"
-    local report_file="${REPO_ROOT}/results/reports/variants/${new_variant_dir}_L${REPORT_LEVEL}_report.md"
+    local report_file="${REPO_ROOT}/results/reports/variants/${MUL_VARIANT}_L${REPORT_LEVEL}_report.md"
     local variant_slug
     local level_tag
     variant_slug="$(bench_variant_slug "$MUL_VARIANT")"
@@ -213,8 +213,8 @@ generate_report() {
         level_tag="L${LEVEL}"
     fi
 
-    local poly_csv="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul/${new_variant_dir}/isolated_polymul_${variant_slug}_latest.csv"
-    local kem_csv="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul/${new_variant_dir}/isolated_kem_${variant_slug}_latest.csv"
+    local poly_csv="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul/sim_mul_${variant_slug}_latest.csv"
+    local kem_csv="${REPO_ROOT}/results/simulation/benchmarks/kem/sim_kem_${variant_slug}_latest.csv"
 
     local cache_csv="${REPO_ROOT}/results/simulation/profiling/cache/${new_variant_dir}/cache_kem_Lall_${variant_slug}_latest.csv"
     local memory_csv="${REPO_ROOT}/results/simulation/profiling/mem_access/${new_variant_dir}/memory_kem_Lall_${variant_slug}_latest.csv"
@@ -223,7 +223,7 @@ generate_report() {
     local trace_lines_csv="${REPO_ROOT}/results/simulation/profiling/traces/${new_variant_dir}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_lines_latest.csv"
     local histogram_csv="${REPO_ROOT}/results/simulation/profiling/histograms/${new_variant_dir}/histogram_kem_L${REPORT_LEVEL}_${variant_slug}_latest.csv"
 
-    local compiler_csv="${REPO_ROOT}/results/simulation/benchmarks/compiler_compare/${new_variant_dir}/compiler_compare_Lall_${variant_slug}_latest.csv"
+    local compiler_csv="${REPO_ROOT}/results/simulation/benchmarks/compiler_compare/sim_compiler_compare_${variant_slug}_latest.csv"
 
     local vlen_csv_128="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L128_${variant_slug}_latest.csv"
     local vlen_csv_192="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L192_${variant_slug}_latest.csv"
@@ -385,7 +385,7 @@ generate_report() {
     # VLEN sweep CSVs (vector variants only)
     for _lvl in 128 192 256; do
         local _vlen_csv _tmp_var
-        _vlen_csv="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L${_lvl}_${variant_slug}_latest.csv"
+        _vlen_csv="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/sim_vlen_l${_lvl}-${variant_slug}_latest.csv"
         eval "_tmp_var=\"\$tmp_vlen_${_lvl}\""
         if [[ -f "$_vlen_csv" ]]; then
             awk -F',' '
@@ -469,6 +469,19 @@ generate_report() {
     echo "[done] Report written: ${report_file}"
 }
 
+generate_reports() {
+    if [[ "$LEVEL" == "all" ]]; then
+        local r_lvl
+        for r_lvl in 128 192 256; do
+            REPORT_LEVEL="$r_lvl"
+            generate_report || return 1
+        done
+    else
+        REPORT_LEVEL="$LEVEL"
+        generate_report
+    fi
+}
+
 run_variant_analysis() {
     local variant="$1"
     export MUL_VARIANT="$variant"
@@ -478,7 +491,7 @@ run_variant_analysis() {
         TRACK="vector"
     fi
 
-    bench_parse_track_args --mul "$MUL_VARIANT"
+    bench_parse_track_args --variant "$MUL_VARIANT"
 
     REPORT_LEVEL="$LEVEL"
     if [[ "$REPORT_LEVEL" == "all" ]]; then
@@ -500,19 +513,19 @@ run_variant_analysis() {
         ./scripts/bench/run_bench.sh --platform sim --mode kem --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL"
 
     run_step_with_timer 3 14 "Cache profiler" \
-        ./scripts/bench/run_profile.sh --cache --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
+        ./scripts/bench/run_profile.sh --cache --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
     run_step_with_timer 4 14 "Memory profiler" \
-        ./scripts/bench/run_profile.sh --memory --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
+        ./scripts/bench/run_profile.sh --memory --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level all
 
     run_step_with_timer 5 14 "Trace profiler (function-level)" \
-        ./scripts/bench/run_profile.sh --trace --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --trace --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
     run_step_with_timer 6 14 "Trace profiler (line-level)" \
-        ./scripts/bench/run_profile.sh --trace --lines --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --trace --lines --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
     run_step_with_timer 7 14 "Histogram profiler" \
-        ./scripts/bench/run_profile.sh --histogram --mul "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
+        ./scripts/bench/run_profile.sh --histogram --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
     if [[ "$TRACK" == "vector" ]]; then
         run_step_with_timer 8 14 "VLEN scaling sweep (256/512/1024/2048)" \
@@ -525,13 +538,13 @@ run_variant_analysis() {
         ./scripts/bench/run_bench.sh --platform sim --mode mul --variant "$MUL_VARIANT"
 
     run_step_with_timer 10 14 "Generate speedups report" \
-        python3 ./scripts/report/generate_speedups.py
+        python3 ./scripts/report/generate_speedups.py --platform sim
 
     run_step_with_timer 11 14 "Generate compiler analysis report" \
         python3 ./scripts/report/generate_compiler_compare.py
 
     run_step_with_timer 12 14 "Generate Markdown report" \
-        generate_report
+        generate_reports
 
     # Step 13: Generate hardware speedups report (conditional on hardware data)
     local hw_data_dir="${REPO_ROOT}/results/hardware/benchmarks"

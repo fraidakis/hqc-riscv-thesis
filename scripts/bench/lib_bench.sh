@@ -52,7 +52,7 @@ bench_load_implemented_variants() {
 }
 
 # bench_parse_track_args "$@"
-# Parses --mul <variant>, --keccak <impl>, --decode <impl> from the argument list.
+# Parses --variant <variant>, --keccak <impl>, --decode <impl> from the argument list.
 # Sets globals: MUL_VARIANT  KECCAK_IMPL  DECODE_IMPL
 # Auto-maps KECCAK_IMPL/DECODE_IMPL from MUL_VARIANT suffix when not provided.
 # Caller's $@ is not modified — remaining args are still available to the caller.
@@ -65,7 +65,7 @@ bench_parse_track_args() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --mul)
+            --variant)
                 MUL_VARIANT="${2:-}"
                 shift 2
                 ;;
@@ -195,8 +195,8 @@ bench_auto_configure_and_build() {
     fi
 
     # If cache looks valid but the requested target doesn't exist, force reconfigure.
-    # This catches CMakeLists.txt renames (e.g. karatsuba_rvv → vector_rvv) where
-    # cache variables haven't changed but the generated targets are stale.
+    # This catches stale CMake targets (e.g. after renaming a variant)
+    # where cache variables haven't changed but the generated targets are stale.
     if [[ "$need_config" -eq 0 ]] && [[ -f "${build_dir}/Makefile" ]]; then
         if ! grep -q "^${target}:" "${build_dir}/Makefile"; then
             need_config=1

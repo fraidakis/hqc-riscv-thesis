@@ -16,6 +16,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from hqc_bench import resolve_variant
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPARE_ROOT = REPO_ROOT / "results" / "simulation" / "benchmarks" / "compiler_compare"
@@ -23,10 +25,10 @@ OUT_PATH = REPO_ROOT / "results" / "reports" / "summaries" / "compiler_analysis.
 TARGET_COMPILERS = {"clang", "gcc"}
 VARIANT_ORDER = [
     "scalar_ref",
-    "scalar_Zb",
+    "scalar_zb",
     "vector_ref",
     "vector_rvv",
-    "vector_Zvk",
+    "vector_zvk",
 ]
 VARIANT_RANK = {name: idx for idx, name in enumerate(VARIANT_ORDER)}
 
@@ -49,8 +51,9 @@ def read_rows(csv_path: Path) -> list[dict[str, str]]:
     return rows
 
 
-def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], int]:
+def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], set[int], int]:
     best: dict[tuple[str, int, str], BestRun] = {}
+    levels_seen: set[int] = set()
     expected_pattern = COMPARE_ROOT / "sim_compiler_compare_*.csv"
     csv_files = sorted(COMPARE_ROOT.glob("sim_compiler_compare_*.csv"))
 
@@ -67,7 +70,7 @@ def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], int]:
                 compiler = row["compiler"].strip().lower()
                 opt = row["opt"].strip()
                 level = int(row["level"])
-                variant = row["variant"].strip()
+                variant = resolve_variant(row["variant"].strip())
                 status = row["status"].strip().upper()
                 instructions = int(row["instructions"])
             except (KeyError, TypeError, ValueError):
@@ -77,6 +80,8 @@ def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], int]:
                 continue
             if status != "OK":
                 continue
+
+            levels_seen.add(level)
 
             key = (variant, level, compiler)
             candidate = BestRun(
@@ -99,7 +104,7 @@ def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], int]:
             if candidate.instructions == current.instructions and candidate.opt < current.opt:
                 best[key] = candidate
 
-    return best, len(csv_files)
+    return best, levels_seen, len(csv_files)
 
 
 def fmt_int(value: int | None) -> str:
@@ -133,11 +138,18 @@ def pick_winner(clang: BestRun | None, gcc: BestRun | None) -> tuple[str, str]:
     return "Tie", "0.0%"
 
 
-def build_markdown(best: dict[tuple[str, int, str], BestRun], scanned_files: int) -> str:
-    keys = sorted(
-        {(variant, level) for (variant, level, _compiler) in best.keys()},
+def build_markdown(
+    best: dict[tuple[str, int, str], BestRun], levels_seen: set[int], scanned_files: int
+) -> str:
+    levels = sorted(levels_seen) if levels_seen else [128, 192, 256]
+
+    keys = [(variant, level) for variant in VARIANT_ORDER for level in levels]
+    known_keys = {(variant, level) for (variant, level, _compiler) in best.keys()}
+    extra_keys = sorted(
+        known_keys - set(keys),
         key=lambda item: (VARIANT_RANK.get(item[0], len(VARIANT_RANK)), item[0], item[1]),
     )
+    keys.extend(extra_keys)
 
     lines: list[str] = []
     lines.append("# Compiler Showdown Analysis")
@@ -158,16 +170,13 @@ def build_markdown(best: dict[tuple[str, int, str], BestRun], scanned_files: int
             f"| {variant} | {level} | {fmt_best(clang)} | {fmt_best(gcc)} | {winner} | {margin} |"
         )
 
-    if not keys:
-        lines.append("| N/A | N/A | N/A | N/A | N/A | N/A |")
-
     lines.append("")
     return "\n".join(lines)
 
 
 def main() -> None:
-    best, scanned_files = scan_best_runs()
-    markdown = build_markdown(best, scanned_files)
+    best, levels_seen, scanned_files = scan_best_runs()
+    markdown = build_markdown(best, levels_seen, scanned_files)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     previous = OUT_PATH.read_text(encoding="utf-8") if OUT_PATH.exists() else None

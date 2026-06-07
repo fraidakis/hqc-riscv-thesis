@@ -170,31 +170,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# ── Legacy variant name resolution ───────────────────────────────────────────
-# Map old variant names to their canonical equivalents (backward compatibility).
-case "$VARIANT" in
-    ref_scalar)
-        echo "DEPRECATED: variant 'ref_scalar' is now 'scalar_ref'" >&2
-        VARIANT="scalar_ref"
-        ;;
-    karatsuba_zbc)
-        echo "DEPRECATED: variant 'karatsuba_zbc' is now 'scalar_zb'" >&2
-        VARIANT="scalar_zb"
-        ;;
-    ref_vector)
-        echo "DEPRECATED: variant 'ref_vector' is now 'vector_ref'" >&2
-        VARIANT="vector_ref"
-        ;;
-    karatsuba_rvv)
-        echo "DEPRECATED: variant 'karatsuba_rvv' is now 'vector_rvv'" >&2
-        VARIANT="vector_rvv"
-        ;;
-    karatsuba_zvbc)
-        echo "DEPRECATED: variant 'karatsuba_zvbc' is now 'vector_zvk'" >&2
-        VARIANT="vector_zvk"
-        ;;
-esac
-
 # ── Validation ───────────────────────────────────────────────────────────────
 
 # --platform is required

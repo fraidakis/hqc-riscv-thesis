@@ -9,10 +9,10 @@
 #   --histogram  Spike PC histogram pipeline
 #
 # Examples:
-#   scripts/bench/run_profile.sh --cache --mul scalar_zb --level 128
-#   scripts/bench/run_profile.sh --memory --mul hybrid --level 192
-#   scripts/bench/run_profile.sh --trace --mul scalar_zb
-#   scripts/bench/run_profile.sh --histogram --mul scalar_zb --report
+#   scripts/bench/run_profile.sh --cache --variant scalar_zb --level 128
+#   scripts/bench/run_profile.sh --memory --variant vector_rvv --level 192
+#   scripts/bench/run_profile.sh --trace --variant scalar_zb
+#   scripts/bench/run_profile.sh --histogram --variant scalar_zb --report
 
 set -euo pipefail
 
@@ -419,7 +419,7 @@ profile_trace_mode() {
             | sed 's/)//' \
             | sort -T "$trace_tmp_dir" \
             | uniq -c \
-            | python3 "$REPO_ROOT/scripts/report/map_pcs.py" ${map_pcs_lines_arg:+$map_pcs_lines_arg} "$elf" - >> "$csv_out"
+            | RISCV="$riscv" python3 "$REPO_ROOT/scripts/report/map_pcs.py" ${map_pcs_lines_arg:+$map_pcs_lines_arg} "$elf" - >> "$csv_out"
 
         local end_time=$(date +%s)
         local elapsed=$((end_time - start_time))
@@ -450,7 +450,7 @@ profile_trace_mode() {
 
 profile_histogram_mode() {
     if [[ -z "$MUL_VARIANT" ]]; then
-    echo "ERROR: --histogram requires --mul <variant>" >&2
+    echo "ERROR: --histogram requires --variant <variant>" >&2
         exit 2
     fi
 
@@ -562,10 +562,10 @@ profile_histogram_mode() {
 usage() {
     cat <<'EOF'
 Usage:
-    run_profile.sh --cache [--mul V] [--level 128|192|256|all] [--polymul]
-    run_profile.sh --memory [--mul V] [--level 128|192|256|all] [--polymul]
-    run_profile.sh --trace [--mul V] [--level 128|192|256|all] [--polymul] [--lines]
-    run_profile.sh --histogram --mul <variant> [--polymul] [--report]
+    run_profile.sh --cache [--variant V] [--level 128|192|256|all] [--polymul]
+    run_profile.sh --memory [--variant V] [--level 128|192|256|all] [--polymul]
+    run_profile.sh --trace [--variant V] [--level 128|192|256|all] [--polymul] [--lines]
+    run_profile.sh --histogram --variant <variant> [--polymul] [--report]
              [--top N] [--compare-with set] [--context]
 EOF
 }
@@ -576,7 +576,7 @@ while [[ $# -gt 0 ]]; do
             MODE="${1#--}"
             shift
             ;;
-        --variant|--mul)
+        --variant)
             MUL_VARIANT="$2"
             shift 2
             ;;
@@ -701,7 +701,7 @@ if [[ "${#batch_variants[@]}" -gt 1 ]]; then
         cmd=""
 
         for v in "${batch_variants[@]}"; do
-            cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --mul ${v} --level ${LEVEL}"
+            cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --variant ${v} --level ${LEVEL}"
             if [[ "$REPORT_FLAG" -eq 1 ]]; then cmd+=" --report"; fi
             if [[ -n "$TOP_N" ]]; then cmd+=" --top ${TOP_N}"; fi
             if [[ -n "$COMPARE_WITH" ]]; then cmd+=" --compare-with ${COMPARE_WITH}"; fi

@@ -50,9 +50,9 @@ Arguments:
   variant        : scalar_ref | scalar_zb | vector_ref | vector_rvv | vector_zvk
 
 Examples:
-  check_ct.sh 128 karatsuba_ref
+  check_ct.sh 128 scalar_ref
   check_ct.sh --dudect 128 vector_zvk
-  check_ct.sh --all 192 karatsuba_ref
+  check_ct.sh --all 192 scalar_ref
 HELP
     exit 1
 fi
@@ -83,7 +83,7 @@ Arguments:
 
 Examples:
   # Single variant with default Valgrind verification
-  check_ct.sh 128 karatsuba_ref
+  check_ct.sh 128 scalar_ref
 
   # Run Dudect leakage test on vector variant
   check_ct.sh --dudect 256 vector_zvk
@@ -142,10 +142,10 @@ VENDOR="vendor/hqc-ref"
 RISCV_ONLY=0
 
 case "$VARIANT" in
-    karatsuba_ref|scalar_ref)
+    scalar_ref)
         POLYMUL_SRCS=("${VENDOR}/src/ref/gf2x.c")
         ;;
-    karatsuba_zbc|scalar_zb)
+    scalar_zb)
         POLYMUL_SRCS=("src/mult/karatsuba_zbc/gf2x_clmul.c")
         RISCV_ONLY=1
         ;;
@@ -164,7 +164,7 @@ case "$VARIANT" in
         POLYMUL_SRCS=("src/poly_mul/vector/fafft_zvbc/fafft_vclmul.c")
         RISCV_ONLY=1
         ;;
-    karatsuba_zvbc|vector_zvk)
+    vector_zvk)
         POLYMUL_SRCS=("src/mult/karatsuba_zvbc/gf2x_vclmul.c")
         RISCV_ONLY=1
         ;;

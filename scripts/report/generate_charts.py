@@ -166,18 +166,18 @@ def load_csv(path: Path) -> pd.DataFrame | None:
 
 
 _VARIANT_SLUG_MAP: dict[str, str] = {
-    "ref_scalar": "scalar-ref",
-    "karatsuba_zbc": "scalar-zb",
-    "ref_vector": "vector-ref",
-    "karatsuba_rvv": "vector-rvv",
-    "karatsuba_zvbc": "vector-zvk",
+    "scalar_ref": "scalar-ref",
+    "scalar_zb": "scalar-zb",
+    "vector_ref": "vector-ref",
+    "vector_rvv": "vector-rvv",
+    "vector_zvk": "vector-zvk",
 }
 
 
 def variant_slug(variant: str) -> str:
     """Convert a variant name to ISA-family-based slug for filenames.
 
-    Example: 'karatsuba_zbc' → 'scalar-zb'
+    Example: 'scalar_zb' → 'scalar-zb'
     """
     return _VARIANT_SLUG_MAP.get(variant, variant.replace("_", "-"))
 
@@ -192,11 +192,11 @@ class DataLoader:
 
     # Variant name mapping: old internal names → new directory names
     VARIANT_MAP: dict[str, str] = {
-        "ref_scalar": "scalar_ref",
-        "karatsuba_zbc": "scalar_Zb",
-        "ref_vector": "vector_ref",
-        "karatsuba_rvv": "vector_rvv",
-        "karatsuba_zvbc": "vector_Zvk",
+        "scalar_ref": "scalar_ref",
+        "scalar_zb": "scalar_Zb",
+        "vector_ref": "vector_ref",
+        "vector_rvv": "vector_rvv",
+        "vector_zvk": "vector_Zvk",
     }
 
     def __init__(self, repo_root: Path) -> None:
@@ -367,14 +367,14 @@ def register_chart(name: str) -> Callable:
 def chart_three_stage_pie(loader: DataLoader, level: int) -> None:
     """Render three side-by-side pie charts showing instruction distribution evolution.
 
-    Panels: Baseline_Scalar (ref_scalar), Tier_2 (karatsuba_rvv), Tier_3 (karatsuba_zvbc).
+    Panels: Baseline_Scalar (scalar_ref), Tier_2 (vector_rvv), Tier_3 (vector_zvk).
     Uses categorize_entries() for aggregation and CATEGORY_COLORS for consistent coloring.
     """
     # Define the three stages: (title, track, variant)
     stages = [
-        ("Baseline (Scalar)", "scalar", "ref_scalar"),
-        ("Tier 2 (Karatsuba RVV)", "vector", "karatsuba_rvv"),
-        ("Tier 3 (Karatsuba Zvbc)", "vector", "karatsuba_zvbc"),
+        ("Baseline (Scalar)", "scalar", "scalar_ref"),
+        ("Tier 2 (Karatsuba RVV)", "vector", "vector_rvv"),
+        ("Tier 3 (Karatsuba Zvbc)", "vector", "vector_zvk"),
     ]
 
     # Load DataFrames for each stage
@@ -433,16 +433,16 @@ def chart_kem_speedup_table_chart(loader: DataLoader, level: int) -> None:
     """
     levels = [128, 192, 256]
     tier_configs = [
-        ("Tier 1", "scalar", "karatsuba_zbc"),
-        ("Tier 2", "vector", "karatsuba_rvv"),
-        ("Tier 3", "vector", "karatsuba_zvbc"),
+        ("Tier 1", "scalar", "scalar_zb"),
+        ("Tier 2", "vector", "vector_rvv"),
+        ("Tier 3", "vector", "vector_zvk"),
     ]
 
     # Load baseline data
-    baseline_df = loader.isolated_kem("scalar", "ref_scalar")
+    baseline_df = loader.isolated_kem("scalar", "scalar_ref")
     if baseline_df is None or baseline_df.empty:
         print(
-            "Warning: Missing baseline (ref_scalar) KEM data, "
+            "Warning: Missing baseline (scalar_ref) KEM data, "
             "skipping kem_speedup_table_chart.",
             file=sys.stderr,
         )
@@ -542,10 +542,10 @@ def chart_grouped_bar_micro(loader: DataLoader, level: int) -> None:
     bars with speedup factors.
     """
     # --- Load polymul data ---
-    polymul_baseline = loader.isolated_polymul("scalar", "ref_scalar")
-    polymul_tier1 = loader.isolated_polymul("scalar", "karatsuba_zbc")
-    polymul_tier2 = loader.isolated_polymul("vector", "karatsuba_rvv")
-    polymul_tier3 = loader.isolated_polymul("vector", "karatsuba_zvbc")
+    polymul_baseline = loader.isolated_polymul("scalar", "scalar_ref")
+    polymul_tier1 = loader.isolated_polymul("scalar", "scalar_zb")
+    polymul_tier2 = loader.isolated_polymul("vector", "vector_rvv")
+    polymul_tier3 = loader.isolated_polymul("vector", "vector_zvk")
 
     # --- Load keccak data ---
     keccak_baseline = loader.isolated_keccak("ref")
@@ -738,7 +738,7 @@ def chart_vlen_sweep(loader: DataLoader, level: int) -> None:
     """Render line chart showing how total KEM Instret varies with VLEN.
 
     Plots separate lines for HQC-128, HQC-192, HQC-256 using Tier_3
-    (karatsuba_zvbc) data. Marks the minimum Instret point on each line
+    (vector_zvk) data. Marks the minimum Instret point on each line
     with a distinct marker. The `level` parameter is unused since this
     chart always shows all three security levels.
     """
@@ -758,10 +758,10 @@ def chart_vlen_sweep(loader: DataLoader, level: int) -> None:
     any_plotted = False
 
     for lvl in levels:
-        df = loader.vlen_sweep("karatsuba_zvbc", lvl)
+        df = loader.vlen_sweep("vector_zvk", lvl)
         if df is None or df.empty:
             print(
-                f"Warning: Missing VLEN sweep data for karatsuba_zvbc at level {lvl}, "
+                f"Warning: Missing VLEN sweep data for vector_zvk at level {lvl}, "
                 f"skipping this line.",
                 file=sys.stderr,
             )
@@ -819,7 +819,7 @@ def chart_vlen_sweep(loader: DataLoader, level: int) -> None:
 
     ax.set_xlabel("VLEN")
     ax.set_ylabel("Instructions (Instret)")
-    ax.set_title("Total KEM Instret vs VLEN (Tier 3 — karatsuba_zvbc)")
+    ax.set_title("Total KEM Instret vs VLEN (Tier 3 — vector_zvk)")
     ax.set_xticks([256, 512, 1024, 2048])
     ax.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, _: f"{int(x)}"))
     ax.legend()
@@ -854,17 +854,17 @@ def chart_security_scaling(loader: DataLoader, level: int) -> None:
     """
     levels = [128, 192, 256]
     tier_configs = [
-        ("Baseline (Scalar)", "scalar", "ref_scalar"),
-        ("Tier 1 (Zbc)", "scalar", "karatsuba_zbc"),
-        ("Tier 2 (RVV)", "vector", "karatsuba_rvv"),
-        ("Tier 3 (Zvbc)", "vector", "karatsuba_zvbc"),
+        ("Baseline (Scalar)", "scalar", "scalar_ref"),
+        ("Tier 1 (Zbc)", "scalar", "scalar_zb"),
+        ("Tier 2 (RVV)", "vector", "vector_rvv"),
+        ("Tier 3 (Zvbc)", "vector", "vector_zvk"),
     ]
 
     # Load baseline data first to check availability
-    baseline_df = loader.isolated_kem("scalar", "ref_scalar")
+    baseline_df = loader.isolated_kem("scalar", "scalar_ref")
     if baseline_df is None or baseline_df.empty:
         print(
-            "Warning: Missing baseline (ref_scalar) KEM data, "
+            "Warning: Missing baseline (scalar_ref) KEM data, "
             "skipping security_scaling chart.",
             file=sys.stderr,
         )
@@ -957,17 +957,17 @@ def chart_security_scaling(loader: DataLoader, level: int) -> None:
 def chart_compiler_comparison(loader: DataLoader, level: int) -> None:
     """Render grouped bar chart comparing Clang vs GCC for each variant.
 
-    X-axis groups: ref_scalar, karatsuba_zbc, karatsuba_rvv, karatsuba_zvbc.
+    X-axis groups: scalar_ref, scalar_zb, vector_rvv, vector_zvk.
     Two bars per group: best Clang result and best GCC result for total KEM Instret.
     SKIP entries are rendered with hatched pattern and grey color.
     Each pair is annotated with the winning compiler and margin percentage.
     """
     # Variant configurations: (variant_name, track)
     variant_configs = [
-        ("ref_scalar", "scalar"),
-        ("karatsuba_zbc", "scalar"),
-        ("karatsuba_rvv", "vector"),
-        ("karatsuba_zvbc", "vector"),
+        ("scalar_ref", "scalar"),
+        ("scalar_zb", "scalar"),
+        ("vector_rvv", "vector"),
+        ("vector_zvk", "vector"),
     ]
 
     # Collect best results per compiler per variant
@@ -1155,19 +1155,19 @@ def chart_heatmap_speedup(loader: DataLoader, level: int) -> None:
     operations = ["keypair", "encaps", "decaps", "total"]
     levels = [128, 192, 256]
     tier_configs = [
-        ("T1", "scalar", "karatsuba_zbc"),
-        ("T2", "vector", "karatsuba_rvv"),
-        ("T3", "vector", "karatsuba_zvbc"),
+        ("T1", "scalar", "scalar_zb"),
+        ("T2", "vector", "vector_rvv"),
+        ("T3", "vector", "vector_zvk"),
     ]
 
     # Column labels: T1-128, T1-192, T1-256, T2-128, ...
     col_labels = [f"{tier_name}-{lvl}" for tier_name, _, _ in tier_configs for lvl in levels]
 
     # Load baseline data
-    baseline_df = loader.isolated_kem("scalar", "ref_scalar")
+    baseline_df = loader.isolated_kem("scalar", "scalar_ref")
     if baseline_df is None or baseline_df.empty:
         print(
-            "Warning: Missing baseline (ref_scalar) KEM data, "
+            "Warning: Missing baseline (scalar_ref) KEM data, "
             "skipping heatmap_speedup chart.",
             file=sys.stderr,
         )
@@ -1270,17 +1270,17 @@ def chart_ablation_waterfall(loader: DataLoader, level: int) -> None:
     Bars are annotated with the absolute instruction count saved.
     """
     # Load data for each tier (filter by level and op == "total")
-    baseline_df = loader.isolated_kem("scalar", "ref_scalar")
-    tier1_df = loader.isolated_kem("scalar", "karatsuba_zbc")
-    tier2_df = loader.isolated_kem("vector", "karatsuba_rvv")
-    tier3_df = loader.isolated_kem("vector", "karatsuba_zvbc")
+    baseline_df = loader.isolated_kem("scalar", "scalar_ref")
+    tier1_df = loader.isolated_kem("scalar", "scalar_zb")
+    tier2_df = loader.isolated_kem("vector", "vector_rvv")
+    tier3_df = loader.isolated_kem("vector", "vector_zvk")
 
     # Check data availability
     for name, df in [
-        ("ref_scalar", baseline_df),
-        ("karatsuba_zbc", tier1_df),
-        ("karatsuba_rvv", tier2_df),
-        ("karatsuba_zvbc", tier3_df),
+        ("scalar_ref", baseline_df),
+        ("scalar_zb", tier1_df),
+        ("vector_rvv", tier2_df),
+        ("vector_zvk", tier3_df),
     ]:
         if df is None or df.empty:
             print(
@@ -1302,10 +1302,10 @@ def chart_ablation_waterfall(loader: DataLoader, level: int) -> None:
             return None
         return int(row["instructions"].iloc[0])
 
-    baseline_val = get_total_instret(baseline_df, "ref_scalar")
-    tier1_val = get_total_instret(tier1_df, "karatsuba_zbc")
-    tier2_val = get_total_instret(tier2_df, "karatsuba_rvv")
-    tier3_val = get_total_instret(tier3_df, "karatsuba_zvbc")
+    baseline_val = get_total_instret(baseline_df, "scalar_ref")
+    tier1_val = get_total_instret(tier1_df, "scalar_zb")
+    tier2_val = get_total_instret(tier2_df, "vector_rvv")
+    tier3_val = get_total_instret(tier3_df, "vector_zvk")
 
     if any(v is None for v in [baseline_val, tier1_val, tier2_val, tier3_val]):
         return
@@ -1383,25 +1383,25 @@ def chart_stacked_breakdown(loader: DataLoader, level: int) -> None:
 
     X-axis: keypair, encaps, decaps.
     Stacks colored by category: Multiplication, Keccak/Hashing, Decode, Memory/Utility, Other.
-    Uses Tier_3 (karatsuba_zvbc) data at the specified security level.
+    Uses Tier_3 (vector_zvk) data at the specified security level.
     Derives per-operation category breakdowns by applying the combined trace's category
     proportions to each operation's total instruction count from isolated KEM data.
     """
     # Load the combined trace for category proportions
-    trace_df = loader.trace_hotspots("vector", "karatsuba_zvbc", level)
+    trace_df = loader.trace_hotspots("vector", "vector_zvk", level)
     if trace_df is None or trace_df.empty:
         print(
-            f"Warning: Missing trace data for karatsuba_zvbc at level {level}, "
+            f"Warning: Missing trace data for vector_zvk at level {level}, "
             f"skipping stacked_breakdown chart.",
             file=sys.stderr,
         )
         return
 
     # Load isolated KEM data for per-operation instruction counts
-    kem_df = loader.isolated_kem("vector", "karatsuba_zvbc")
+    kem_df = loader.isolated_kem("vector", "vector_zvk")
     if kem_df is None or kem_df.empty:
         print(
-            "Warning: Missing isolated KEM data for karatsuba_zvbc, "
+            "Warning: Missing isolated KEM data for vector_zvk, "
             "skipping stacked_breakdown chart.",
             file=sys.stderr,
         )
@@ -1510,18 +1510,18 @@ def chart_code_size_tradeoff(loader: DataLoader, level: int) -> None:
     """
     levels = [128, 192, 256]
     variant_configs = [
-        ("ref_scalar", "scalar"),
-        ("karatsuba_zbc", "scalar"),
-        ("karatsuba_rvv", "vector"),
-        ("karatsuba_zvbc", "vector"),
+        ("scalar_ref", "scalar"),
+        ("scalar_zb", "scalar"),
+        ("vector_rvv", "vector"),
+        ("vector_zvk", "vector"),
     ]
 
     # Colors per variant
     variant_colors = {
-        "ref_scalar": "#6c757d",
-        "karatsuba_zbc": "#e63946",
-        "karatsuba_rvv": "#457b9d",
-        "karatsuba_zvbc": "#2a9d8f",
+        "scalar_ref": "#6c757d",
+        "scalar_zb": "#e63946",
+        "vector_rvv": "#457b9d",
+        "vector_zvk": "#2a9d8f",
     }
 
     # Markers per security level
@@ -1533,10 +1533,10 @@ def chart_code_size_tradeoff(loader: DataLoader, level: int) -> None:
 
     # Display names for variants
     variant_display = {
-        "ref_scalar": "Ref Scalar",
-        "karatsuba_zbc": "Karatsuba Zbc",
-        "karatsuba_rvv": "Karatsuba RVV",
-        "karatsuba_zvbc": "Karatsuba Zvbc",
+        "scalar_ref": "Scalar Ref",
+        "scalar_zb": "Scalar Zb",
+        "vector_rvv": "Vector RVV",
+        "vector_zvk": "Vector Zvk",
     }
 
     # Collect data points
@@ -1682,29 +1682,29 @@ def register_hw_chart(name: str) -> Callable:
 
 # Variant display names and colors for hardware charts
 HW_VARIANT_DISPLAY: dict[str, str] = {
-    "ref_scalar": "Ref Scalar",
-    "karatsuba_zbc": "Karatsuba Zbc",
-    "karatsuba_rvv": "Karatsuba RVV",
+    "scalar_ref": "Scalar Ref",
+    "scalar_zb": "Scalar Zb",
+    "vector_rvv": "Vector RVV",
 }
 
 HW_VARIANT_COLORS: dict[str, str] = {
-    "ref_scalar": "#6c757d",
-    "karatsuba_zbc": "#457b9d",
-    "karatsuba_rvv": "#2a9d8f",
+    "scalar_ref": "#6c757d",
+    "scalar_zb": "#457b9d",
+    "vector_rvv": "#2a9d8f",
 }
 
 # IPC chart color coding: scalar=blue family, vector=green family
 HW_IPC_COLORS: dict[str, str] = {
-    "ref_scalar": "#1f77b4",
-    "karatsuba_zbc": "#6baed6",
-    "karatsuba_rvv": "#2ca02c",
+    "scalar_ref": "#1f77b4",
+    "scalar_zb": "#6baed6",
+    "vector_rvv": "#2ca02c",
 }
 
 # Hardware variant → directory mapping
 HW_VARIANT_DIRS: dict[str, str] = {
-    "ref_scalar": "scalar_ref",
-    "karatsuba_zbc": "scalar_Zb",
-    "karatsuba_rvv": "vector_rvv",
+    "scalar_ref": "scalar_ref",
+    "scalar_zb": "scalar_Zb",
+    "vector_rvv": "vector_rvv",
 }
 
 # Operations in canonical order
@@ -2004,7 +2004,7 @@ def plot_wallclock_bars(loader: DataLoader, level: int) -> None:
 
 @register_hw_chart("spike_hw_scatter")
 def plot_spike_hw_scatter(loader: DataLoader, level: int) -> None:
-    """Scatter plot: x=Spike speedup, y=HW speedup (ref_scalar as baseline).
+    """Scatter plot: x=Spike speedup, y=HW speedup (scalar_ref as baseline).
 
     Draws ideal line y=x (dashed). Annotates each point with variant name.
     Caption: "Points above the line = HW outperforms Spike prediction".
@@ -2013,17 +2013,17 @@ def plot_spike_hw_scatter(loader: DataLoader, level: int) -> None:
     if df is None:
         return
 
-    # Need ref_scalar as baseline
-    baseline_rows = df[df["variant"] == "ref_scalar"]
+    # Need scalar_ref as baseline
+    baseline_rows = df[df["variant"] == "scalar_ref"]
     if baseline_rows.empty:
         print(
-            "Warning: No ref_scalar baseline data for spike_hw_scatter chart.",
+            "Warning: No scalar_ref baseline data for spike_hw_scatter chart.",
             file=sys.stderr,
         )
         return
 
     operations = [op for op in HW_OPS if op in df["operation"].unique()]
-    optimized_variants = [v for v in ["karatsuba_zbc", "karatsuba_rvv"]
+    optimized_variants = [v for v in ["scalar_zb", "vector_rvv"]
                           if v in df["variant"].unique()]
 
     if not optimized_variants:

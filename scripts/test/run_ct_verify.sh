@@ -4,7 +4,7 @@
 #
 # Examples:
 #   run_ct_verify.sh --all --mode dev
-#   run_ct_verify.sh --target polymul --level 128 --polymul karatsuba_zbc --runs 10
+#   run_ct_verify.sh --target polymul --level 128 --polymul scalar_zb --runs 10
 
 set -euo pipefail
 
@@ -69,7 +69,7 @@ validate_args() {
     fi
 
     # Polymul validation (when specified)
-    local valid_polymuls="ref_scalar karatsuba_zbc karatsuba_rvv"
+    local valid_polymuls="scalar_ref scalar_zb vector_rvv"
     if [[ -n "$POLYMUL" ]] && ! echo "$valid_polymuls" | grep -qw "$POLYMUL"; then
         die "ERROR: --polymul must be one of: $valid_polymuls; got: '$POLYMUL'"
     fi
