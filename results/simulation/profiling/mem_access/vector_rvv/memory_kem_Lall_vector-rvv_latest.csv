@@ -1,7 +1,7 @@
-# date: 2026-05-26 18:17
-# commit: c56c136
-# variant: karatsuba_rvv
+# date: 2026-06-07 13:56
+# commit: 783fdca
+# variant: vector_rvv
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1999,2206,26936,23788,421,372
-192,2336,2365,35940,29174,562,456
-256,2215,2319,31216,26885,488,421
+128,2523,2397,32064,24032,501,376
+192,2941,2592,44503,30065,696,470
+256,2767,2496,38357,27289,600,427

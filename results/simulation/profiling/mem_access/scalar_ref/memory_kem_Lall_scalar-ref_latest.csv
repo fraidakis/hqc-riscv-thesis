@@ -1,7 +1,7 @@
-# date: 2026-05-20 23:04
-# commit: a96a6ff
-# variant: ref_scalar
+# date: 2026-06-07 13:56
+# commit: 783fdca
+# variant: scalar_ref
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1667,2153,7907,10805,124,169
-192,1836,2265,8335,10976,131,172
-256,1844,2242,7799,10135,122,159
+128,1643,2131,7715,10629,121,167
+192,1810,2240,8127,10776,127,169
+256,1829,2226,7659,9993,120,157

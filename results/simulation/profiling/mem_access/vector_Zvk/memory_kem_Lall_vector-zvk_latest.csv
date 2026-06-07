@@ -1,7 +1,7 @@
-# date: 2026-05-26 17:30
-# commit: c56c136
-# variant: karatsuba_zvbc
+# date: 2026-06-07 13:56
+# commit: 783fdca
+# variant: vector_zvk
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1229,1459,23306,18867,365,295
-192,1504,1773,32268,24519,505,384
-256,1485,1803,28130,22461,440,351
+128,2010,1915,25048,20960,392,328
+192,2400,2208,34799,27826,544,435
+256,2465,2330,31559,26689,494,418
