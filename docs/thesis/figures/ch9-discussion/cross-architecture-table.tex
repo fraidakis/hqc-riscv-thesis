@@ -47,21 +47,21 @@ RISC-V FAFFT
 \midrule
 \multicolumn{7}{l}{\textit{Παρούσα εργασία (retired instructions, Spike ISS, VLEN $= \num{256}$)}} \\
 \addlinespace[3pt]
-Tier~1 (\code{karatsuba\_zbc})
+Tier~1 (\code{scalar\_zb})
   & RV64GC + \Zbc/\Zbb
   & instret
   & 462794
   & 898649
   & 2088352
   & Scalar, AP-2 \\
-Tier~2 (\code{karatsuba\_rvv})
+Tier~2 (\code{vector\_rvv})
   & RV64GCV + \Zbc/\Zbb
   & instret
   & 289001
   & 591892
   & 1094531
   & Hybrid, AP-2 \\
-Tier~3 (\code{karatsuba\_zvbc})
+Tier~3 (\code{vector\_zvk})
   & RV64GCV + \Zvbc/\Zvbb
   & instret
   & 105279

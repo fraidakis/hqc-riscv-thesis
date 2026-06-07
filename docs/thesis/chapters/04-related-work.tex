@@ -6,7 +6,7 @@
 RISC-V αντίστοιχα. Το παρόν κεφάλαιο εξετάζει τις υπάρχουσες υλοποιήσεις του
 \HQC σε διάφορες πλατφόρμες, καθώς και τις γενικότερες εργασίες βελτιστοποίησης
 μετα-κβαντικών αλγορίθμων σε RISC-V. Η ανασκόπηση αυτή τεκμηριώνει το
-ερευνητικό κενό που καλύπτει η παρούσα εργασία: την απουσία end-to-end
+ερευνητικό κενό που καλύπτει η παρούσα εργασία: την απουσία ολοκληρωμένης
 βελτιστοποίησης του \HQC σε RISC-V με αξιοποίηση τυποποιημένων κρυπτογραφικών
 επεκτάσεων.
 
@@ -41,7 +41,7 @@ $\GF{2}[x]/(x^N-1)$, (β)~Sampling-Unit που ενσωματώνει Keccak per
 κωδικοποιητή/αποκωδικοποιητή.
 
 \paragraph{Μεθοδολογία πολλαπλασιασμού.}
-Η εργασία χρησιμοποιεί \defterm{sparse$\times$dense} πολλαπλασιασμό, αξιοποιώντας
+Η εργασία χρησιμοποιεί sparse$\times$dense πολλαπλασιασμό, αξιοποιώντας
 το χαμηλό βάρος Hamming ($w \leq 75$) ενός εκ των δύο πολυωνύμων. Ο $R$-Unit
 υλοποιεί word-by-word shift του πυκνού πολυωνύμου κατά τις θέσεις των μη-μηδενικών
 συντελεστών του αραιού, με δύο κύκλους ανά resulting word (address calculation +
@@ -228,8 +228,7 @@ cache-friendly batches. Η βελτιστοποίηση μειώνει τον χ
 \paragraph{Αποτελέσματα.}
 Συνολικά επιτυγχάνεται \pct{55} μέσο speedup έναντι της reference υλοποίησης,
 με τη μεγαλύτερη βελτίωση στο \Decaps λόγω του βελτιστοποιημένου RS decoder.
-Η κατανομή κόστους στη reference υλοποίηση (βλ.\ \cref{fig:opthqc-profile})
-αποκαλύπτει ότι ο πολυωνυμικός πολλαπλασιασμός και η αποκωδικοποίηση
+Η κατανομή κόστους στη reference υλοποίηση αποκαλύπτει ότι ο πολυωνυμικός πολλαπλασιασμός και η αποκωδικοποίηση
 αποτελούν από κοινού πάνω από \pct{85} του συνολικού χρόνου.
 
 \paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
@@ -243,19 +242,6 @@ cache-friendly batches. Η βελτιστοποίηση μειώνει τον χ
   \item \textbf{x86-specific:} Η υλοποίηση βασίζεται σε AVX2
     \texttt{VPCLMULQDQ} — δεν είναι portable σε RISC-V ή ARM.
 \end{enumerate}
-
-\begin{figure}[htbp]
-  \missingfig{Αναπαραγωγή pie charts κατανομής κόστους OptHQC: KeyGen
-    (PolyMult 76.5\%, VectorGen 12.1\%, SHAKE 7.3\%), Encrypt (PolyMult
-    54.7\%, CodeEncode 16.9\%, SHAKE 4.9\%), Decrypt (PolyMult 40.3\%,
-    CodeDecode 76.8\%, SHAKE 6.2\%). Τρία pie charts side-by-side.}
-  % SOURCE: OptHQC paper Figure 1 — recreate as TikZ pie charts
-  \caption{Κατανομή υπολογιστικού κόστους στο reference HQC-128 σε x86
-    (αναπαραγωγή από~\cite{OptHQC2025}). Ο πολυωνυμικός πολλαπλασιασμός
-    κυριαρχεί στο \KeyGen και \Encaps, ενώ η αποκωδικοποίηση κυριαρχεί στο
-    \Decaps.}
-  \label{fig:opthqc-profile}
-\end{figure}
 
 \subsection{Chen et al.\ TCHES 2026 — Additive FFT με CRT}
 \label{ssec:rw-chen-fft}
@@ -479,7 +465,7 @@ analysis εξαλείφει τη reduction μετά τον NTT. Η flexible dual
 hazards. Τα αποτελέσματα: \pct{76.76}–\pct{85.57} speedup σε NTT/INTT για
 Kyber.
 
-\paragraph{End-to-end αποτελέσματα.}
+\paragraph{Αποτελέσματα πλήρους \KEM.}
 Σε επίπεδο πλήρους KEM, η υλοποίηση επιτυγχάνει \cycles{399000}/\cycles{448000}/\cycles{479000}
 κύκλους για \KeyGen/\Encaps/\Decaps του Kyber1024, αντιστοιχώντας σε
 \pct{60.82}–\pct{65.56} speedup έναντι της reference.
@@ -519,7 +505,7 @@ $\lfloor \cdot \rfloor$, εξαλείφοντας μία πρόσθεση ανά
 πολλαπλασιασμό χωρίς αλλαγή στην ορθότητα (αρκεί $q < 2^{l-2}$, συνθήκη που
 ικανοποιείται τόσο στον Kyber όσο και στον Dilithium).
 
-\paragraph{End-to-end αποτελέσματα.}
+\paragraph{Αποτελέσματα πλήρους \KEM.}
 Kyber768 σε RV64IMBV: \cycles{165000}/\cycles{197000}/\cycles{207000} κύκλοι
 (\KeyGen/\Encaps/\Decaps). Η χρήση \RVV επιταχύνει τον NTT κατά $\sim$\speedup{5}
 αλλά δεν ωφελεί σημαντικά τον Keccak ($<$\speedup{2} σε scalar), επιβεβαιώνοντας
@@ -544,7 +530,7 @@ LMUL=2048/VLEN.
 
 \paragraph{Benchmarks σε SpacemiT X60.}
 Η πρόταση τεκμηριώνεται με benchmarks Kyber-768 σε πραγματικό RISC-V silicon
-(SpacemiT X60, VLEN=256 — η ίδια πλατφόρμα hardware validation της παρούσας
+(SpacemiT X60, \VLEN=256 — η ίδια πλατφόρμα hardware validation της παρούσας
 εργασίας). Τα αποτελέσματα δείχνουν σταδιακή βελτίωση:
 \begin{itemize}
   \item RV64GC baseline: \cycles{2484893} κύκλοι (reference C Keccak)
@@ -568,7 +554,7 @@ $\sim$\pct{50} του συνόλου), ο Keccak αναδεικνύεται ως
 Η πρόταση \code{vkeccak.vi} αποτελεί μελλοντική εξέλιξη
 (βλ.\ \cref{ch:conclusions}): αν τυποποιηθεί, θα ωφελήσει τον \HQC εξίσου
 με τα lattice-based σχήματα, καθώς ο Keccak αποτελεί κοινό primitive. Τα
-benchmarks σε X60 (VLEN=256) παρέχουν real-silicon σημείο αναφοράς για τη
+benchmarks σε X60 (\VLEN=256) παρέχουν real-silicon σημείο αναφοράς για τη
 σύγκριση με τις μετρήσεις hardware της παρούσας εργασίας
 (βλ.\ \cref{sec:emulators}).
 
@@ -618,7 +604,7 @@ $\GF{2}[x]$ με \Zbc/\Zvbc carry-less multiply. Η αλλαγή αριθμητ�
 \label{sec:rw-gap}
 
 Η ανασκόπηση των προηγούμενων ενοτήτων αποκαλύπτει ένα σαφές ερευνητικό κενό:
-δεν υπάρχει δημοσιευμένη εργασία που να παρέχει end-to-end βελτιστοποίηση του
+δεν υπάρχει δημοσιευμένη εργασία που να παρέχει ολοκληρωμένη βελτιστοποίηση του
 \HQC \KEM σε αρχιτεκτονική RISC-V αξιοποιώντας αποκλειστικά τυποποιημένες
 (ratified) κρυπτογραφικές επεκτάσεις. Η παρούσα ενότητα τεκμηριώνει αυτό το
 κενό συστηματικά, εξετάζοντας κάθε σχετική εργασία ως προς τρεις διαστάσεις:
@@ -652,7 +638,7 @@ hardware accelerator ANDROMEDA. Ο CV32E40P (RV32IMC) δεν υποστηρίζ�
 την pure-software προσέγγιση.
 
 \paragraph{OptHQC~\cite{OptHQC2025}.}
-Η μοναδική end-to-end βελτιστοποίηση ολόκληρου του \HQC \KEM στοχεύει
+Η μοναδική ολοκληρωμένη βελτιστοποίηση ολόκληρου του \HQC \KEM στοχεύει
 αποκλειστικά x86 AVX2 με \texttt{VPCLMULQDQ}. Δεν είναι portable σε RISC-V
 ούτε αξιοποιεί VLA vector αρχιτεκτονική. Επιπλέον, η βελτιστοποίηση
 πολλαπλασιασμού βασίζεται σε sparse$\times$dense — τεχνική μη συμβατή με την
@@ -713,7 +699,7 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
     \rotatebox{70}{\textbf{Pure SW}} &
     \rotatebox{70}{\textbf{Ratified ext.}} &
     \rotatebox{70}{\textbf{Dense$\times$dense}} &
-    \rotatebox{70}{\textbf{End-to-end}} \\
+    \rotatebox{70}{\textbf{Πλήρες \KEM}} \\
     \midrule
     Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
       & \ding{51} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
@@ -742,7 +728,7 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
   \vspace{4pt}
   \footnotesize
   \textit{Σημείωση:} Το σύμβολο \q{—} στις τρεις τελευταίες εργασίες (lattice-based)
-  δηλώνει ότι τα κριτήρια \q{Dense$\times$dense} και \q{End-to-end} δεν
+  δηλώνει ότι τα κριτήρια \q{Dense$\times$dense} και \q{Πλήρες \KEM} δεν
   εφαρμόζονται — οι εργασίες αφορούν Kyber/Dilithium (NTT-based), όχι \HQC.
 \end{table}
 
@@ -757,7 +743,7 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
   \item \textbf{Dense$\times$dense:} Ο πολυωνυμικός πολλαπλασιασμός ακολουθεί
     τη μέθοδο dense$\times$dense Karatsuba σύμφωνα με την τελική specification
     (2024)~\cite{HQC-spec2024}.
-  \item \textbf{End-to-end:} Η βελτιστοποίηση καλύπτει ολόκληρο τον \HQC \KEM
+  \item \textbf{Πλήρες \KEM:} Η βελτιστοποίηση καλύπτει ολόκληρο τον \HQC \KEM
     (πολυωνυμικός πολλαπλασιασμός + Keccak + αποκωδικοποίηση), όχι μόνο
     μεμονωμένο πυρήνα.
 \end{enumerate}
@@ -766,7 +752,7 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
 \label{ssec:rw-positioning}
 
 Η παρούσα εργασία καλύπτει το τεκμηριωμένο κενό παρέχοντας την πρώτη
-pure-software, end-to-end βελτιστοποίηση του \HQC \KEM σε RISC-V με
+pure-software, ολοκληρωμένη βελτιστοποίηση του \HQC \KEM σε RISC-V με
 αποκλειστική αξιοποίηση ratified κρυπτογραφικών επεκτάσεων. Η συνεισφορά
 διαρθρώνεται σε τρεις διαστάσεις:
 
@@ -781,7 +767,7 @@ Structure-of-Arrays με \Zvbb) και στην αποκωδικοποίηση (
 Reed-Muller/Reed-Solomon).
 
 \paragraph{Αρχιτεκτονική.}
-Η υλοποίηση στρωματοποιείται σε τρία deployment tiers αντιστοιχούμενα στη
+Η υλοποίηση στρωματοποιείται σε τρία tiers αντιστοιχούμενα στη
 modular ISA φιλοσοφία του RISC-V: Tier~1 (RV64GC + \Zbc/\Zbb — IoT/embedded),
 Tier~2 (+ \RVV — application-class), Tier~3 (+ \Zvbc/\Zvbb — full crypto
 vector). Κάθε tier αξιοποιεί αποκλειστικά ratified extensions, εξασφαλίζοντας
@@ -790,7 +776,7 @@ portability σε οποιονδήποτε συμβατό επεξεργαστή 
 \paragraph{Μεθοδολογική.}
 Η αξιολόγηση πραγματοποιείται τόσο σε instruction-accurate εξομοίωση (Spike
 ISS, ντετερμινιστικό \instret) όσο και σε πραγματικό RISC-V hardware (SpacemiT
-K1 X60, VLEN=256), παρέχοντας αλγοριθμική σύγκριση και πραγματικές μετρήσεις
+K1 X60, \VLEN=256), παρέχοντας αλγοριθμική σύγκριση και πραγματικές μετρήσεις
 κύκλων με pipeline effects. Η μεθοδολογία αναλύεται στο
 \cref{ch:experimental-setup}.
 

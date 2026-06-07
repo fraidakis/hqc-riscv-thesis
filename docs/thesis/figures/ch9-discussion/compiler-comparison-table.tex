@@ -6,26 +6,26 @@
     {\textbf{GCC (best)}} & \textbf{Νικητής} & {\textbf{Δ\%}} \\
   \midrule
   \multicolumn{6}{l}{\textit{Tier~0 — Reference (bit-serial polymul)}} \\
-  \code{ref\_scalar}  & 128 & 117344266  & 113958344  & GCC  & 3.0  \\
-  \code{ref\_scalar}  & 192 & 354302605  & 344003671  & GCC  & 3.0  \\
-  \code{ref\_scalar}  & 256 & 861974446  & 845613464  & GCC  & 1.9  \\
-  \code{ref\_vector}  & 128 & 112369640  & 110639142  & GCC  & 1.6  \\
-  \code{ref\_vector}  & 192 & 339959120  & 334660464  & GCC  & 1.6  \\
-  \code{ref\_vector}  & 256 & 838185076  & 828402171  & GCC  & 1.2  \\
+  \code{scalar\_ref}  & 128 & 117344266  & 113958344  & GCC  & 3.0  \\
+  \code{scalar\_ref}  & 192 & 354302605  & 344003671  & GCC  & 3.0  \\
+  \code{scalar\_ref}  & 256 & 861974446  & 845613464  & GCC  & 1.9  \\
+  \code{vector\_ref}  & 128 & 112369640  & 110639142  & GCC  & 1.6  \\
+  \code{vector\_ref}  & 192 & 339959120  & 334660464  & GCC  & 1.6  \\
+  \code{vector\_ref}  & 256 & 838185076  & 828402171  & GCC  & 1.2  \\
   \midrule
   \multicolumn{6}{l}{\textit{Tier~1 — Scalar Karatsuba + \Zbc}} \\
-  \code{karatsuba\_zbc} & 128 & 3449795  & 3277538  & GCC  & 5.3  \\
-  \code{karatsuba\_zbc} & 192 & 7811056  & 7448827  & GCC  & 4.9  \\
-  \code{karatsuba\_zbc} & 256 & 17551791 & 14317378 & GCC  & 22.6 \\
+  \code{scalar\_zb} & 128 & 3449795  & 3277538  & GCC  & 5.3  \\
+  \code{scalar\_zb} & 192 & 7811056  & 7448827  & GCC  & 4.9  \\
+  \code{scalar\_zb} & 256 & 17551791 & 14317378 & GCC  & 22.6 \\
   \midrule
   \multicolumn{6}{l}{\textit{Tier~2 — Vector Karatsuba + \RVV}} \\
-  \code{karatsuba\_rvv} & 128 & 1975424  & 2029880  & Clang & 2.8  \\
-  \code{karatsuba\_rvv} & 192 & 4730302  & 4792531  & Clang & 1.3  \\
-  \code{karatsuba\_rvv} & 256 & 12135502 & 9732294  & GCC  & 24.7 \\
+  \code{vector\_rvv} & 128 & 1975424  & 2029880  & Clang & 2.8  \\
+  \code{vector\_rvv} & 192 & 4730302  & 4792531  & Clang & 1.3  \\
+  \code{vector\_rvv} & 256 & 12135502 & 9732294  & GCC  & 24.7 \\
   \midrule
   \multicolumn{6}{l}{\textit{Tier~3 — Vector Karatsuba + \Zvbc + \Zvbb Keccak}} \\
-  \code{karatsuba\_zvbc} & 128 & 716983   & \multicolumn{1}{c}{---} & Clang & {---} \\
-  \code{karatsuba\_zvbc} & 192 & 1694892  & \multicolumn{1}{c}{---} & Clang & {---} \\
-  \code{karatsuba\_zvbc} & 256 & 2611338  & \multicolumn{1}{c}{---} & Clang & {---} \\
+  \code{vector\_zvk} & 128 & 716983   & \multicolumn{1}{c}{---} & Clang & {---} \\
+  \code{vector\_zvk} & 192 & 1694892  & \multicolumn{1}{c}{---} & Clang & {---} \\
+  \code{vector\_zvk} & 256 & 2611338  & \multicolumn{1}{c}{---} & Clang & {---} \\
   \bottomrule
 \end{tabular}

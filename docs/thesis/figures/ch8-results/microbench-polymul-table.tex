@@ -4,22 +4,22 @@
   \textbf{Security Level} & \textbf{Variant} & {\textbf{\instret}} & {\textbf{Code size (B)}} & {\textbf{Speedup}} \\
   \midrule
   \multirow{5}{*}{HQC-128}
-    & \code{ref\_scalar}     & 19214281 &  2292 & {—} \\
-    & \code{ref\_vector}     & 18527412 &  3840 & {1.04} \\
-    & \code{karatsuba\_zbc}  &   221030 & 15270 & {86.9} \\
-    & \code{karatsuba\_rvv}  &   157473 &  7992 & {122.0} \\
-    & \code{karatsuba\_zvbc} &    62526 &  5940 & {307.3} \\
+    & \code{scalar\_ref}     & 19214281 &  2292 & {—} \\
+    & \code{vector\_ref}     & 18527412 &  3840 & {1.04} \\
+    & \code{scalar\_zb}  &   221030 & 15270 & {86.9} \\
+    & \code{vector\_rvv}  &   157473 &  7992 & {117.7} \\
+    & \code{vector\_zvk} &    62526 &  5940 & {296.3} \\
   \midrule
   \multirow{4}{*}{HQC-192}
-    & \code{ref\_scalar}     & 58433901 &  2316 & {—} \\
-    & \code{ref\_vector}     & 56315140 &  3884 & {1.04} \\
-    & \code{karatsuba\_rvv}  &   473083 & 10560 & {123.5} \\
-    & \code{karatsuba\_zvbc} &   185116 &  8158 & {315.7} \\
+    & \code{scalar\_ref}     & 58433901 &  2316 & {—} \\
+    & \code{vector\_ref}     & 56315140 &  3884 & {1.04} \\
+    & \code{vector\_rvv}  &   473083 & 10560 & {119.0} \\
+    & \code{vector\_zvk} &   185116 &  8158 & {304.2} \\
   \midrule
   \multirow{4}{*}{HQC-256}
-    & \code{ref\_scalar}     & 142641044 & 2314 & {—} \\
-    & \code{ref\_vector}     & 139115660 & 3884 & {1.03} \\
-    & \code{karatsuba\_rvv}  &   1502171 & 7648 & {95.0} \\
-    & \code{karatsuba\_zvbc} &    271002 & 7384 & {526.3} \\
+    & \code{scalar\_ref}     & 142641044 & 2314 & {—} \\
+    & \code{vector\_ref}     & 139115660 & 3884 & {1.03} \\
+    & \code{vector\_rvv}  &   1502171 & 7648 & {92.6} \\
+    & \code{vector\_zvk} &    271002 & 7384 & {513.3} \\
   \bottomrule
 \end{tabular}

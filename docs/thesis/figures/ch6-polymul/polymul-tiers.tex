@@ -1,4 +1,4 @@
-% Hardware deployment tiers — layered diagram
+% Hardware tiers — layered diagram
 % Used in §6.1 (sec:polymul-tiers)
 
 \tikzsetnextfilename{ch6-polymul-polymul-tiers}
@@ -43,11 +43,11 @@
 
 % Variant labels (left side)
 \node[font=\footnotesize\sffamily, anchor=east, blue!70!black] at (-5.9, 0)
-  {\texttt{karatsuba\_zbc}};
+  {\texttt{scalar\_zb}};
 \node[font=\footnotesize\sffamily, anchor=east, teal!70!black] at (-5.9, 2.2)
-  {\texttt{karatsuba\_rvv}};
+  {\texttt{vector\_rvv}};
 \node[font=\footnotesize\sffamily, anchor=east, violet!70!black] at (-5.9, 4.4)
-  {\texttt{karatsuba\_zvbc}};
+  {\texttt{vector\_zvk}};
 
 % Superset arrows
 \draw[arrow] (t1.north) -- (t2.south)

@@ -148,9 +148,9 @@ Cluster~1 (\num{4} cores, \SI{32}{\kilo\byte} L1, \SI{512}{\kilo\byte} L2).
 \ext{Zbs} (RVA22 mandatory extensions).  Ωστόσο, \textbf{δεν υποστηρίζει}
 \Zvbc και \Zvbb — αυτές απαιτούν το RVA23 profile, το οποίο δεν υπάρχει
 ακόμη σε διαθέσιμο silicon.  Η πρακτική συνέπεια είναι ότι τα scalar και
-base-RVV variants (\code{ref\_scalar}, \code{karatsuba\_zbc},
-\code{karatsuba\_rvv}) εκτελούνται natively στο hardware, ενώ τα
-vector-crypto variants (\code{karatsuba\_zvbc}) αξιολογούνται αποκλειστικά
+Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
+\code{vector\_rvv}) εκτελούνται natively στο hardware, ενώ τα
+Vector-Crypto variants (\code{vector\_zvk}) αξιολογούνται αποκλειστικά
 μέσω Spike.
 
 \subparagraph{Μεθοδολογία Μέτρησης.}
@@ -196,14 +196,14 @@ speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγμ
 χρονισμού (βλ.\ \cref{sec:future-ct}).  Η μεθοδολογία dudect απαιτεί
 πραγματικούς κύκλους hardware — οι εξομοιωτές (Spike, QEMU) δεν παρέχουν
 αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage.  Η κάλυψη
-περιορίζεται στα Tier~1 (scalar \Zbc) και Tier~2 (base-RVV) variants, καθώς
+περιορίζεται στα Tier~1 (scalar \Zbc) και Tier~2 (Base-RVV) variants, καθώς
 ο K1 X60 δεν υποστηρίζει \Zvbc/\Zvbb — η CT επαλήθευση των Tier~3
-vector-crypto variants παραμένει ανοιχτή μέχρι τη διαθεσιμότητα RVA23
+Vector-Crypto variants παραμένει ανοιχτή μέχρι τη διαθεσιμότητα RVA23
 silicon.
 
 \begin{figure}[htbp]
   \centering
-  \missingfig{Φωτογραφία Banana Pi BPI-F3 (SpacemiT K1, octa-core X60, RVV 1.0 VLEN=256) — η πλατφόρμα hardware validation της παρούσας εργασίας}
+  \includegraphics[width=0.7\textwidth]{figures/common/BPIF3MAIN11.png}
   % SOURCE: https://wiki.banana-pi.org/Banana_Pi_BPI-F3 — official product photo
   \caption{Banana Pi BPI-F3: η πλατφόρμα πραγματικού hardware που χρησιμοποιείται
     για επικύρωση αποτελεσμάτων σε silicon (SpacemiT K1, octa-core X60,
@@ -229,7 +229,7 @@ silicon.
   \item \textbf{BPI-F3:} hardware validation μέσω πραγματικών κύκλων (cycles),
     υπολογισμός \gls{ipc}, cross-check Spike predictions, και παραγωγή
     wall-clock time ($\text{cycles} / \SI{1.6}{\giga\hertz}$).  Καλύπτει
-    τα scalar και base-RVV variants (Tier~1, Tier~2).
+    τα scalar και Base-RVV variants (Tier~1, Tier~2).
 \end{itemize}
 
 \noindent
@@ -267,7 +267,7 @@ silicon.
 
 Η μεταγλώττιση κρυπτογραφικού κώδικα RISC-V με πέντε ταυτόχρονες επεκτάσεις
 (\Zbc, \Zbb, \RVV 1.0, \Zvbc, \Zvbb) θέτει αυστηρές απαιτήσεις στην αλυσίδα
-εργαλείων: πλήρης υποστήριξη intrinsics για vector-crypto εντολές, σωστή
+εργαλείων: πλήρης υποστήριξη intrinsics για Vector-Crypto εντολές, σωστή
 κωδικοποίηση opcodes, και συμβατότητα με bare-metal εκτέλεση χωρίς λειτουργικό
 σύστημα.  Η παρούσα ενότητα περιγράφει τη στρατηγική cross-compilation, τη
 συγκριτική αξιολόγηση μεταγλωττιστών, και τις ρυθμίσεις που εξασφαλίζουν
@@ -286,7 +286,7 @@ API μέσω του header \code{<riscv\_vector.h>}, συμπεριλαμβαν�
 αποτελούν τη βάση των Tier~2 και Tier~3 πυρήνων.  Ο GCC~14, αν και υποστηρίζει
 τις ίδιες εντολές, παρουσιάζει ασυμβατότητα κατά τη μεταγλώττιση πυρήνων \Zvbb
 (\code{gcc\_zvbb\_incompatible}), καθιστώντας αδύνατη τη δημιουργία των
-vector-crypto targets.
+Vector-Crypto targets.
 
 Δεύτερον, ο Clang παρέχει διαγνωστικά vectorization
 (\code{-Rpass=loop-vectorize}) που επιτρέπουν τον εντοπισμό βρόχων που δεν
@@ -295,8 +295,8 @@ instruction scheduler του Clang παράγει σταθερά πιο compact 
 intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse64}).
 
 Ο \textbf{GCC~14} διατηρεί συμπληρωματικό ρόλο: χρησιμοποιείται ως εναλλακτικός
-μεταγλωττιστής για τα scalar-only variants (\code{ref\_scalar},
-\code{karatsuba\_zbc}) και ως cross-validation εργαλείο.  Η σύγκριση GCC–Clang
+μεταγλωττιστής για τα scalar-only variants (\code{scalar\_ref},
+\code{scalar\_zb}) και ως cross-validation εργαλείο.  Η σύγκριση GCC–Clang
 στο reference scalar baseline αποκαλύπτει ότι ο GCC~14 με \code{-O3} παράγει
 \pct{2.9} λιγότερες εντολές από τον Clang (\num{113958344} έναντι
 \num{117344266} στο HQC-128), ενώ στα υψηλότερα security levels η διαφορά
@@ -361,7 +361,7 @@ cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
 \label{ssec:march-flags}
 
 Κάθε polymul variant μεταγλωττίζεται με διαφορετική συμβολοσειρά \code{-march}
-που αντικατοπτρίζει ακριβώς τις επεκτάσεις του αντίστοιχου deployment tier.
+που αντικατοπτρίζει ακριβώς τις επεκτάσεις του αντίστοιχου tier.
 Αυτή η πρακτική εξυπηρετεί διπλό σκοπό: αφενός εξασφαλίζει ότι ο assembler
 απορρίπτει κάθε εντολή εκτός tier (ένα \vclmul{} σε scalar target προκαλεί
 σφάλμα μεταγλώττισης), αφετέρου επιτρέπει στον compiler να αξιοποιήσει
@@ -380,11 +380,11 @@ variant:
     \toprule
     \textbf{Variant} & \textbf{Tier} & \textbf{\code{-march}} \\
     \midrule
-    \code{ref\_scalar}     & Baseline & \code{rv64gc\_zbc\_zbb\_zbs} \\
-    \code{ref\_vector}     & Baseline & \code{rv64gcv\_zbc\_zbb} \\
-    \code{karatsuba\_zbc}  & Tier~1   & \code{rv64gc\_zbc\_zbb\_zbs} \\
-    \code{karatsuba\_rvv}  & Tier~2   & \code{rv64gcv\_zbc\_zbb\_zba} \\
-    \code{karatsuba\_zvbc} & Tier~3   & \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} \\
+    \code{scalar\_ref}     & Baseline & \code{rv64gc\_zbc\_zbb\_zbs} \\
+    \code{vector\_ref}     & Baseline & \code{rv64gcv\_zbc\_zbb} \\
+    \code{scalar\_zb}  & Tier~1   & \code{rv64gc\_zbc\_zbb\_zbs} \\
+    \code{vector\_rvv}  & Tier~2   & \code{rv64gcv\_zbc\_zbb\_zba} \\
+    \code{vector\_zvk} & Tier~3   & \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -392,8 +392,8 @@ variant:
 \noindent
 Η επέκταση \ext{Zba} (address generation: \insn{sh1add}/\insn{sh2add}/\insn{sh3add})
 προστέθηκε στα vector variants μετά από ablation μέτρηση που έδειξε $-\pct{5.6}$
-polymul \instret στο \code{karatsuba\_zvbc} και $-\pct{2.6}$ στο
-\code{karatsuba\_rvv} — η βελτίωση προέρχεται από αποδοτικότερη pointer
+polymul \instret στο \code{vector\_zvk} και $-\pct{2.6}$ στο
+\code{vector\_rvv} — η βελτίωση προέρχεται από αποδοτικότερη pointer
 αριθμητική στους recomposition βρόχους.  Η επέκταση \ext{Zbs} (bit-set/clear)
 περιλαμβάνεται στα scalar variants για τη βελτιστοποίηση bit-scatter patterns
 στη \code{vect\_set\_random\_fixed\_weight()}.
@@ -406,7 +406,7 @@ polymul \instret στο \code{karatsuba\_zvbc} και $-\pct{2.6}$ στο
 διαφορά μεταξύ \code{-O2} και \code{-O3} είναι αμελητέα ($<\pct{0.1}$ στον
 Clang), ενώ η \code{-Os} αυξάνει τον αριθμό εντολών κατά $<\pct{0.1}$ λόγω
 μειωμένου unrolling.  Στα βελτιστοποιημένα variants η διαφορά εξαφανίζεται
-πλήρως: ο \code{karatsuba\_zvbc} παράγει ταυτόσημο \instret ανεξαρτήτως
+πλήρως: ο \code{vector\_zvk} παράγει ταυτόσημο \instret ανεξαρτήτως
 \code{-O2}/\code{-O3}/\code{-Os}, καθώς η δομή κώδικα είναι πλήρως
 compile-time generated και δεν αφήνει περιθώριο στον optimizer.
 
@@ -430,7 +430,7 @@ compile-time generated και δεν αφήνει περιθώριο στον op
 \subsection{LTO και PGO στα Reference Baselines}
 \label{ssec:lto-pgo}
 
-Τα reference baselines (\code{ref\_scalar}, \code{ref\_vector}) μεταγλωττίζονται
+Τα reference baselines (\code{scalar\_ref}, \code{vector\_ref}) μεταγλωττίζονται
 με \gls{lto} ενεργοποιημένο (\code{-flto}), παρέχοντας στον linker πλήρη
 ορατότητα για cross-module inlining και dead code elimination.  Η \gls{lto}
 εφαρμόζεται αποκλειστικά στα baselines ώστε αυτά να αντιπροσωπεύουν τη
@@ -495,7 +495,7 @@ harness εκτελεί μία μόνο μέτρηση ανά λειτουργί�
 
 \paragraph{Profiling μέσω PC Histograms και DWARF Symbols}
 
-Πέραν της end-to-end μέτρησης \instret, η υποδομή παρέχει δύο μηχανισμούς
+Πέραν της μέτρησης \instret πλήρους \KEM, η υποδομή παρέχει δύο μηχανισμούς
 λεπτομερούς profiling για τον εντοπισμό hotspots:
 
 \begin{enumerate}
@@ -624,8 +624,8 @@ counters):
   \caption{Σύγκριση speedup predictions (Spike \instret) με μετρημένα speedups
     σε πραγματικό hardware (SpacemiT X60).  Η στήλη \q{HW/Spike} δείχνει τον
     λόγο πραγματικού προς προβλεπόμενο speedup — τιμή κοντά στο $1{,}0$
-    υποδηλώνει ακριβή πρόβλεψη.  Μετρική: end-to-end \KEM (KeyGen + Encaps +
-    Decaps), variant \code{karatsuba\_zbc} έναντι \code{ref\_scalar}.}
+    υποδηλώνει ακριβή πρόβλεψη.  Μετρική: πλήρες \KEM (KeyGen + Encaps +
+    Decaps), variant \code{scalar\_zb} έναντι \code{scalar\_ref}.}
   \label{tab:spike-vs-hw}
   \begin{tabular}{l S[table-format=2.2] S[table-format=2.2] S[table-format=1.2]}
     \toprule
@@ -643,10 +643,10 @@ counters):
 \pct{2} από την πραγματικότητα — η μετρική \instret αποτελεί εξαιρετικό δείκτη
 σχετικής απόδοσης.  Στο HQC-256, το πραγματικό hardware παρέχει \pct{20}
 μεγαλύτερο speedup από ό,τι προβλέπει η \instret.  Η απόκλιση αυτή εξηγείται
-από τη μικροαρχιτεκτονική: η αναφορική υλοποίηση (\code{ref\_scalar}) στο
+από τη μικροαρχιτεκτονική: η αναφορική υλοποίηση (\code{scalar\_ref}) στο
 HQC-256 διαθέτει working set $\approx \SI{57}{\kilo\byte}$ που πλησιάζει το
 μέγεθος L1 data cache (\SI{64}{\kilo\byte}), υφιστάμενη capacity misses που
-αυξάνουν τον \gls{cpi}.  Η βελτιστοποιημένη υλοποίηση (\code{karatsuba\_zbc})
+αυξάνουν τον \gls{cpi}.  Η βελτιστοποιημένη υλοποίηση (\code{scalar\_zb})
 διατηρεί compact working set ($\approx \SI{17}{\kilo\byte}$), αποφεύγοντας τα
 cache misses — ένα πλεονέκτημα αόρατο στη μετρική \instret αλλά μετρήσιμο σε
 πραγματικούς κύκλους.
@@ -849,7 +849,7 @@ levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500
 
 \begin{itemize}
   \item \textbf{Τοπικά:} Το script \code{run\_kat.sh} δέχεται ως παράμετρο
-    το polymul variant (\code{-{}-mul karatsuba\_zvbc}), μεταγλωττίζει αυτόματα
+    το polymul variant (\code{-{}-mul vector\_zvk}), μεταγλωττίζει αυτόματα
     το αντίστοιχο ELF, εκτελεί στον κατάλληλο simulator (Spike για Zvbc
     variants, QEMU για τα υπόλοιπα), και καλεί τον \code{kat\_check.py} για
     επαλήθευση.  Η εκτέλεση ολοκληρώνεται σε \num{3}–\SI{10}{\second} ανά
@@ -955,7 +955,7 @@ early-termination βελτιστοποίηση βασισμένη σε leading z
 του hot path.
 
 \paragraph{Vector carry-less multiply (\RVV + \Zvbc).}
-Η υλοποίηση \code{karatsuba\_rvv} χρησιμοποιεί \vclmul/\vclmulh vector
+Η υλοποίηση \code{vector\_rvv} χρησιμοποιεί \vclmul/\vclmulh vector
 εντολές.  Υπό Zkt, vector εντολές με ταυτόσημα \VLEN και \SEW
 configurations έχουν σταθερή latency.  Η \RVV υλοποίηση χρησιμοποιεί
 σταθερά \LMUL και element width για όλες τις πράξεις, επεξεργάζεται
@@ -1073,7 +1073,7 @@ context switches, και DVFS transients που θα μασκάριζαν λεπ
     \code{dudect\_polymul} & \code{vect\_mul()} &
       Απομονωμένος polymul — ενισχυμένη ευαισθησία \\
     \code{dudect\_kem} & \code{crypto\_kem\_dec()} &
-      Πλήρες \KEM — end-to-end ασφάλεια \\
+      Πλήρες \KEM — ασφάλεια άκρο-σε-άκρο \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1109,7 +1109,7 @@ input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσ�
 
 \begin{table}[htbp]
   \centering
-  \caption{Dudect variant matrix.  Το \code{karatsuba\_zvbc} (Tier~3) δεν
+  \caption{Dudect variant matrix.  Το \code{vector\_zvk} (Tier~3) δεν
     δοκιμάζεται λόγω απουσίας \Zvbc/\Zvbb υποστήριξης στο SpacemiT K1.}
   \label{tab:dudect-variants}
   \small
@@ -1117,14 +1117,14 @@ input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσ�
     \toprule
     \textbf{Variant} & \textbf{ISA Extensions} & \textbf{Περιγραφή} \\
     \midrule
-    \code{ref\_scalar}    & RV64GC           & Vendor reference (baseline CT) \\
-    \code{karatsuba\_zbc} & RV64GC + \Zbc + \Zbb & Scalar Karatsuba + carry-less \\
-    \code{karatsuba\_rvv} & RV64GCV + \Zbc + \Zbb & \RVV vectorized hybrid \\
+    \code{scalar\_ref}    & RV64GC           & Vendor reference (baseline CT) \\
+    \code{scalar\_zb} & RV64GC + \Zbc + \Zbb & Scalar Karatsuba + carry-less \\
+    \code{vector\_rvv} & RV64GCV + \Zbc + \Zbb & \RVV vectorized hybrid \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Η κάλυψη του Tier~3 (\code{karatsuba\_zvbc}) παραμένει μελλοντική εργασία
+Η κάλυψη του Tier~3 (\code{vector\_zvk}) παραμένει μελλοντική εργασία
 εκκρεμούσα RVA23-compliant hardware (βλ.\ \cref{sec:future-work}).
 Η αρχιτεκτονική ανάλυση (\cref{ssec:ct-design-patterns}) τεκμηριώνει ότι
 οι \vclmul/\vclmulh εντολές είναι Zkt-compliant (σταθερή καθυστέρηση
@@ -1473,7 +1473,7 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
     Pointer αριθμητική στους recomposition βρόχους.  Η έκφραση
     \code{base + idx * 8} μεταγλωττίζεται αυτόματα σε \insn{sh3add} αντί
     \insn{slli} + \insn{add} — εξοικονόμηση μίας εντολής ανά πρόσβαση.
-    Ablation μέτρηση: $-\pct{5.6}$ polymul \instret στο \code{karatsuba\_zvbc}.
+    Ablation μέτρηση: $-\pct{5.6}$ polymul \instret στο \code{vector\_zvk}.
 
   \item \textbf{\ext{Zbs}} (\insn{bset}/\insn{bclr}/\insn{bext}):
     Bit-scatter patterns στη \code{vect\_write\_support\_to\_vector()}.  Η
@@ -1542,7 +1542,7 @@ compiler χωρίς θυσία ελέγχου στα κρίσιμα σημεία
 \label{sec:baseline-profiling}
 
 Η πρώτη εκτέλεση του reference \HQC στο Spike environment επιβεβαιώνει ότι η
-πειραματική υποδομή (§§5.1–5.6) λειτουργεί end-to-end: ο κώδικας
+πειραματική υποδομή (§§5.1–5.6) λειτουργεί ολοκληρωμένα: ο κώδικας
 μεταγλωττίζεται, εκτελείται σε bare-metal, παράγει bit-exact σωστά αποτελέσματα
 (\gls{kat} validation), και εξάγει ντετερμινιστικές μετρήσεις \instret.  Η
 ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \KEM για το
@@ -1553,7 +1553,7 @@ calculation στα \cref{ch:polymul-optimization} και \cref{ch:results}.
 \label{ssec:baseline-kem-instret}
 
 Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για κάθε
-λειτουργία \KEM στο scalar baseline (\code{ref\_scalar}, μεταγλωττισμένο με
+λειτουργία \KEM στο scalar baseline (\code{scalar\_ref}, μεταγλωττισμένο με
 Clang~18, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}).  Η υλοποίηση
 αντιστοιχεί στον αρχικό κώδικα αναφοράς του \gls{nist} χωρίς αλγοριθμικές
 βελτιστοποιήσεις — μόνο η αυτόματη αξιοποίηση \Zbc/\Zbb μέσω auto-lowering
@@ -1601,8 +1601,7 @@ HQC-128 \Decaps:
 
 \begin{table}[htbp]
   \centering
-  \caption{Function-level hotspots στο reference scalar HQC-128 (end-to-end
-    \KEM, \cycles{117344266} εντολές).  Ο πολυωνυμικός πολλαπλασιασμός
+  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM, \cycles{117344266} εντολές).  Ο πολυωνυμικός πολλαπλασιασμός
     (\code{schoolbook\_mul} + \code{karatsuba\_mul}) κυριαρχεί με \pct{96.8}
     του συνολικού κόστους.}
   \label{tab:baseline-hotspots}
@@ -1652,7 +1651,7 @@ Reed-Solomon) αντιπροσωπεύει \pct{0.16} — ομοίως αμελ�
 \subsection{Isolated Polymul Baseline}
 \label{ssec:baseline-polymul}
 
-Πέραν της end-to-end \KEM μέτρησης, η υποδομή παρέχει isolated μέτρηση του
+Πέραν της μέτρησης πλήρους \KEM, η υποδομή παρέχει isolated μέτρηση του
 πολυωνυμικού πολλαπλασιασμού (\code{vect\_mul}) — αποκλειστικά η πράξη
 $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead.
 Ο \cref{tab:baseline-polymul} παρουσιάζει τα isolated \instret:
@@ -1662,7 +1661,7 @@ $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead
   \caption{Isolated polymul \instret (reference scalar baseline) ανά security
     level.  Η σύγκριση με τον \cref{tab:baseline-kem} επιβεβαιώνει ότι ο
     πολυωνυμικός πολλαπλασιασμός αποτελεί $\approx\pct{97}$ του \KeyGen
-    και $\approx\pct{33}$ του end-to-end \KEM.}
+    και $\approx\pct{33}$ του πλήρους \KEM.}
   \label{tab:baseline-polymul}
   \begin{tabular}{l S[table-format=9.0] S[table-format=2.1]}
     \toprule
@@ -1681,7 +1680,7 @@ $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead
 η υπερ-γραμμική κλιμάκωση του πολλαπλασιασμού κυριαρχεί πλήρως στα
 υψηλότερα επίπεδα ασφαλείας.  Η isolated μέτρηση χρησιμοποιείται ως
 denominator για τα polymul-specific speedups στο \cref{ch:polymul-optimization},
-ενώ η end-to-end \KEM μέτρηση χρησιμοποιείται για τα system-level speedups
+ενώ η μέτρηση πλήρους \KEM χρησιμοποιείται για τα system-level speedups
 στο \cref{ch:results}.
 
 \subsection{Θεμελίωση Στρατηγικής Βελτιστοποίησης}
@@ -1701,7 +1700,7 @@ denominator για τα polymul-specific speedups στο \cref{ch:polymul-optimi
 όπου $p$ το κλάσμα του χρόνου που βελτιστοποιείται και $s$ η τοπική
 επιτάχυνση.  Για $p = 0{,}97$ (polymul) και $s \to \infty$, η μέγιστη
 system-level επιτάχυνση τείνει σε $S_{\max} \approx 33\times$ — ένα θεωρητικό
-ανώτατο όριο που εξηγεί γιατί η end-to-end επιτάχυνση (\speedup{28} στο
+ανώτατο όριο που εξηγεί γιατί η επιτάχυνση σε επίπεδο συστήματος (\speedup{28} στο
 Tier~1) υπολείπεται της isolated polymul επιτάχυνσης (\speedup{91}).
 
 Η στρατηγική βελτιστοποίησης ακολουθεί τρεις φάσεις, κατά σειρά

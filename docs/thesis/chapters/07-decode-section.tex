@@ -11,8 +11,8 @@
 τον τρίτο μεγαλύτερο πυρήνα — καταναλώνοντας \pct{21}–\pct{34} του
 \Decaps \instret στο scalar reference ανάλογα με το security level.
 
-Η βελτιστοποίηση ακολουθεί τρία deployment tiers αυξανόμενης ISA
-πολυπλοκότητας: scalar με \Zbc injection (Tier~1), base-\RVV
+Η βελτιστοποίηση ακολουθεί τρία tiers αυξανόμενης ISA
+πολυπλοκότητας: scalar με \Zbc injection (Tier~1), Base-\RVV
 διανυσματοποίηση \gls{rm} και \gls{rs} syndromes (Tier~2), και πλήρης
 \Zvbc vectorization όλων των αξόνων \gls{rs} (Tier~3).  Η τελική Tier~3
 υλοποίηση επιτυγχάνει \speedup{6.4}–\speedup{7.3} στο decode pipeline
@@ -70,7 +70,7 @@ $\BigO{\delta^2}$ πολλαπλασιασμούς.
 
 Ο πυρήνας της vectorization είναι ο FHT.  Κάθε pass εκτελεί \num{64}
 butterfly ζεύγη με stride-2 πρόσβαση — pattern που αντιστοιχεί απευθείας
-στην εντολή \insn{vlse16} (strided load).  Στο VLEN=256, SEW=16, LMUL=4,
+στην εντολή \insn{vlse16} (strided load).  Στο \VLEN=256, SEW=16, LMUL=4,
 η hardware vector length φτάνει \num{64} στοιχεία — επαρκή για κάλυψη
 όλων των butterfly ζευγών σε μία μόνο vector πράξη:
 
@@ -114,7 +114,7 @@ LMUL=8 ($\text{vl}=128$) για σάρωση ολόκληρου του μετα�
 και (5)~XOR-reduction μέσω \insn{vredxor}.
 
 Η παραμετροποίηση SEW=16, LMUL=4 παρέχει $\text{vl}=64$ lanes στο
-VLEN=256 — \num{4} φορές ευρύτερο παραλληλισμό ανά pass σε σχέση με
+\VLEN=256 — \num{4} φορές ευρύτερο παραλληλισμό ανά pass σε σχέση με
 την \Zvbc lane-packing προσέγγιση (SEW=64, $\text{vl}=16$).  Ο αριθμός
 passes ανά syndrome είναι $\lceil (N_1 - 1) / 64 \rceil$: μόλις \num{1}
 pass για HQC-128/192 ($N_1 = 46, 56$) και \num{2} passes για HQC-256
@@ -125,7 +125,7 @@ pass για HQC-128/192 ($N_1 = 46, 56$) και \num{2} passes για HQC-256
 Το trade-off έναντι της \Zvbc προσέγγισης (Track~C) συνοψίζεται ως εξής:
 η RVV gather μέθοδος εμφανίζει υψηλότερο εντολικό κόστος ανά στοιχείο
 ($\approx\num{12}$ εντολές) αλλά επεξεργάζεται \num{4} φορές περισσότερα
-στοιχεία ανά pass.  Επιπλέον, δεν απαιτεί vector-crypto extensions —
+στοιχεία ανά pass.  Επιπλέον, δεν απαιτεί Vector-Crypto extensions —
 μόνο τη βασική V extension και scalar \Zbc για τα fallback axes B/C/D.
 Σε υλοποιήσεις με αποδοτικές indexed-load μονάδες, ο ευρύτερος
 παραλληλισμός υπερτερεί.
@@ -162,7 +162,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
         XOR-accumulation μέσω \insn{vredxor}.
 \end{enumerate}
 
-Στο LMUL=4, SEW=64, $\text{vl}=16$ (VLEN=256): οι εσωτερικοί βρόχοι
+Στο LMUL=4, SEW=64, $\text{vl}=16$ (\VLEN=256): οι εσωτερικοί βρόχοι
 χωράνε σε \num{1} vector pass για HQC-128 ($\delta=15$) και HQC-192
 ($\delta=16$), και σε \num{2} passes για HQC-256 ($\delta=29$).
 
@@ -262,7 +262,7 @@ allocation.
   \item \textbf{\code{xor\_broadcast\_zvbc}$(dst, src, len, val)$}: υπολογίζει
         $dst[k] = src[k] \oplus val$ μέσω \gls{vla} loop:
         \insn{vle16}/\insn{vxor.vx}/\insn{vse16} σε SEW=16, LMUL=4
-        ($\text{vl}=64$ στο VLEN=256).  Αντικαθιστά τον scalar βρόχο
+        ($\text{vl}=64$ στο \VLEN=256).  Αντικαθιστά τον scalar βρόχο
         XOR-broadcast σε κάθε επίπεδο δέντρου.
   \item \textbf{\code{gammas\_sums\_combine\_zvbc}$(out, u, gs, v, count)$}:
         υπολογίζει $out[i] = u[i] \oplus \text{gf\_mul}(gs[i], v[i])$ μέσω
@@ -282,7 +282,7 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
   \centering
   \caption{Συνολικό decode pipeline \instret: scalar reference έναντι
            πλήρους \Zvbc υλοποίησης (Axes A+B+C+D).  Μέτρηση σε Spike,
-           VLEN=256.}
+           \VLEN=256.}
   \label{tab:decode-instret}
   \input{figures/ch7-kernels/decode-instret-table}
 \end{table}

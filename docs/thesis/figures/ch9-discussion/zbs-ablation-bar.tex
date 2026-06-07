@@ -8,7 +8,7 @@
     width=0.75\textwidth,
     height=5.5cm,
     ylabel={Μεταβολή \Decaps \instret (\%)},
-    symbolic x coords={karatsuba\_zbc, ref\_scalar, karatsuba\_rvv, karatsuba\_zvbc},
+    symbolic x coords={scalar\_zb, scalar\_ref, vector\_rvv, vector\_zvk},
     xtick=data,
     x tick label style={font=\small, rotate=15, anchor=east},
     ymin=-1.0,
@@ -24,10 +24,10 @@
 ]
 
 \addplot[fill=orange!60, draw=orange!80!black] coordinates {
-    (karatsuba\_zbc, -0.71) [$-0.71$]
-    (ref\_scalar, -0.025) [$-0.03$]
-    (karatsuba\_rvv, 0) [$0$]
-    (karatsuba\_zvbc, 0) [$0$]
+    (scalar\_zb, -0.71) [$-0.71$]
+    (scalar\_ref, -0.025) [$-0.03$]
+    (vector\_rvv, 0) [$0$]
+    (vector\_zvk, 0) [$0$]
 };
 
 \end{axis}

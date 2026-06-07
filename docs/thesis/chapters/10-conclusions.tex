@@ -10,35 +10,35 @@
 \section{Σύνοψη Συνεισφοράς}
 \label{sec:summary}
 
-Η παρούσα εργασία παρουσίασε την πρώτη end-to-end βελτιστοποίηση του \HQC \KEM
+Η παρούσα εργασία παρουσίασε την πρώτη ολοκληρωμένη βελτιστοποίηση του \HQC \KEM
 σε RISC-V, αξιοποιώντας αποκλειστικά ratified κρυπτογραφικές επεκτάσεις (\Zbc,
-\Zbb, \Zvbc, \Zvbb).  Η υλοποίηση οργανώθηκε σε τρία deployment tiers που
+\Zbb, \Zvbc, \Zvbb).  Η υλοποίηση οργανώθηκε σε τρία tiers που
 αντιστοιχούν στη σταδιακή υιοθέτηση ISA extensions:
 
-\paragraph{Tier 1 — IoT Scalar (\Zbc/\Zbb)}
+\paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
 Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \cycles{19214281} σε
-\cycles{211841} \instret (HQC-128), επιτυγχάνοντας \speedup{90.7} μέσω
+\cycles{221030} \instret (HQC-128), επιτυγχάνοντας \speedup{86.9} μέσω
 Karatsuba AP-2 fixed-tree generation και νατιβής \clmul/\clmulh.  Το πλήρες
-\KEM (keypair + encaps + decaps) επιτυγχάνει \speedup{34.0} στο HQC-128 και
+\KEM (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{34.0} στο HQC-128 και
 \speedup{49.1} στο HQC-256.
 
-\paragraph{Tier 2 — Edge RVV (\RVV + \Zbc/\Zbb)}
+\paragraph{Tier~2 — Base-RVV (\RVV + \Zbc/\Zbb)}
 Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
-speedup σε \speedup{117.7} (HQC-128) και το end-to-end \KEM σε \speedup{56.9}.
-Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το base-RVV
+speedup σε \speedup{117.7} (HQC-128) και το πλήρες \KEM σε \speedup{57.4}.
+Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το Base-RVV
 rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
 
-\paragraph{Tier 3 — High-End Zvbc (\Zvbc/\Zvbb)}
-Η πλήρης αξιοποίηση \Zvbc \insn{vclmul.vv} επιτυγχάνει \speedup{255} στο
-polymul (HQC-128) και \speedup{426} στο HQC-256.  Το end-to-end \KEM φτάνει
-\speedup{156.8} (HQC-128) και \speedup{321.0} (HQC-256), τοποθετώντας τον
-\instret σε \cycles{716983} — της ίδιας τάξης μεγέθους με τον Intel AVX-512
+\paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
+Η πλήρης αξιοποίηση \Zvbc \insn{vclmul.vv} επιτυγχάνει \speedup{296} στο
+polymul (HQC-128) και \speedup{513} στο HQC-256.  Το πλήρες \KEM φτάνει
+\speedup{154.1} (HQC-128) και \speedup{316.6} (HQC-256), τοποθετώντας τον
+\instret σε \cycles{729397} — της ίδιας τάξης μεγέθους με τον Intel AVX-512
 champion (\cref{ssec:avx512-gap}).
 
 \paragraph{Βοηθητικοί πυρήνες}
 Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
 (\speedup{3.5}–\speedup{3.7} μέσω 2-way \gls{soa} με \Zvbb) και η
-αποκωδικοποίηση Reed-Muller/Reed-Solomon (\speedup{6.4}–\speedup{7.3} μέσω
+αποκωδικοποίηση Reed-Muller/Reed-Solomon (\speedup{6.8}–\speedup{7.8} μέσω
 \RVV vectorization και \Zvbc GF($2^8$) acceleration).
 
 \paragraph{Constant-time ασφάλεια}
@@ -96,8 +96,8 @@ pipeline, αλλά δεν ενσωματώνει ILP, OoO execution, ή cache ef
 \SI{4}{\milli\second}) εισάγει μικρή αβεβαιότητα στις μετρήσεις.
 
 \paragraph{Εμπειρική CT verification μόνο για Tier~1/2}
-Η dudect εμπειρική επαλήθευση καλύπτει μόνο τα variants \code{karatsuba\_zbc}
-(Tier~1) και \code{karatsuba\_rvv} (Tier~2).  Το \code{karatsuba\_zvbc}
+Η dudect εμπειρική επαλήθευση καλύπτει μόνο τα variants \code{scalar\_zb}
+(Tier~1) και \code{vector\_rvv} (Tier~2).  Το \code{vector\_zvk}
 (Tier~3) δεν δοκιμάστηκε με dudect λόγω απουσίας \Zvbc/\Zvbb στον SpacemiT K1.
 Η αρχιτεκτονική ανάλυση Zkt (\cref{ssec:ct-design-patterns}) τεκμηριώνει
 θεωρητική CT συμμόρφωση, αλλά η εμπειρική επιβεβαίωση σε πραγματικό silicon
@@ -153,7 +153,7 @@ trial.  Η επέκταση σε \num{10000000} measurements ανά trial (publi
 
 \paragraph{Tier~3 performance validation σε πραγματικό silicon}
 Η κεντρική εκκρεμότητα είναι η μέτρηση πραγματικών κύκλων για το
-\code{karatsuba\_zvbc} σε hardware με νατιβή \Zvbc υποστήριξη.  Η μέτρηση
+\code{vector\_zvk} σε hardware με νατιβή \Zvbc υποστήριξη.  Η μέτρηση
 αυτή θα αποκαλύψει τον πραγματικό CPI του \insn{vclmul.vv} και θα
 επιβεβαιώσει (ή θα αναθεωρήσει) τα \instret-based speedup claims.
 

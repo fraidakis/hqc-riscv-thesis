@@ -23,13 +23,13 @@
 ]
 
 % Stacked bars showing remaining instret at each stage
-% Data: ref_scalar baseline → karatsuba_zbc → +Zbb → karatsuba_rvv → karatsuba_zvbc → +Zvbb Keccak
-% Baseline (no crypto extensions): ref_scalar ≈ 56.4M (decaps)
-% +Zbc (karatsuba_zbc): 2.06M decaps
+% Data: scalar_ref baseline → scalar_zb → +Zbb → vector_rvv → vector_zvk → +Zvbb Keccak
+% Baseline (no crypto extensions): scalar_ref ≈ 56.4M (decaps)
+% +Zbc (scalar_zb): 2.06M decaps
 % +Zbb: 2.06M → (Zbb saves ~10% Keccak portion)
-% +RVV recomposition: karatsuba_rvv ≈ 1.08M
-% +Zvbc leaves: karatsuba_zvbc ≈ 444K
-% +Zvbb Keccak: karatsuba_zvbc+zvbb ≈ 394K
+% +RVV recomposition: vector_rvv ≈ 1.08M
+% +Zvbc leaves: vector_zvk ≈ 444K
+% +Zvbb Keccak: vector_zvk+zvbb ≈ 394K
 
 \addplot[fill=red!60!black, draw=red!80!black] coordinates {
     (Baseline, 56442467)

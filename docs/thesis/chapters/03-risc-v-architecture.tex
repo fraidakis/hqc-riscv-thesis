@@ -144,14 +144,14 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
 παρούσα εργασία. Κάθε επέκταση τυποποιήθηκε (ratified) ανεξάρτητα από τον
 οργανισμό RISC-V International, εγγυώντας σταθερότητα και διαλειτουργικότητα
 μεταξύ υλοποιήσεων. Τα ISA strings που χρησιμοποιούνται στη μεταγλώττιση
-αντικατοπτρίζουν τα τρία deployment tiers: \code{rv64gc\_zbc\_zbb\_zbs}
-(Tier~1, scalar), \code{rv64gcv\_zbc\_zbb\_zba} (Tier~2, base-RVV) και
-\code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} (Tier~3, vector-crypto).
+αντικατοπτρίζουν τα τρία tiers: \code{rv64gc\_zbc\_zbb\_zbs}
+(Tier~1, scalar), \code{rv64gcv\_zbc\_zbb\_zba} (Tier~2, Base-RVV) και
+\code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} (Tier~3, Vector-Crypto).
 
 \begin{table}[htbp]
   \centering
   \caption{Τυποποιημένες επεκτάσεις RISC-V που αξιοποιούνται στην παρούσα
-    εργασία. Η στήλη \q{Tier} υποδεικνύει το ελάχιστο deployment tier στο
+    εργασία. Η στήλη \q{Tier} υποδεικνύει το ελάχιστο tier στο
     οποίο απαιτείται η επέκταση.}
   \label{tab:extensions-used}
   \small
@@ -221,7 +221,7 @@ dual-issue in-order pipeline. Η πλατφόρμα αυτή χρησιμοπο�
 πραγματικό silicon (λεπτομέρειες στην~\cref{ssec:bpi-f3}). Ο K1 X60 υποστηρίζει
 εγγενώς τις scalar επεκτάσεις (\Zbc, \Zbb) και τη διανυσματική μονάδα \RVV~1.0,
 καλύπτοντας πλήρως τα Tier~1 και Tier~2 variants, αλλά δεν υλοποιεί τις
-vector-crypto επεκτάσεις \Zvbc και \Zvbb — αυτές απαιτούν συμμόρφωση με το
+Vector-Crypto επεκτάσεις \Zvbc και \Zvbb — αυτές απαιτούν συμμόρφωση με το
 προφίλ RVA23, το οποίο δεν είναι ακόμη διαθέσιμο σε silicon. Η ύπαρξη
 εμπορικού hardware που υποστηρίζει τις επεκτάσεις Tier~1 και Tier~2 επιβεβαιώνει
 ότι η προσέγγιση της παρούσας εργασίας δεν αποτελεί θεωρητική άσκηση αλλά
@@ -338,7 +338,7 @@ mainstream adoption path). Η απόδοση σε κρυπτογραφικές �
 \label{sec:scalar-extensions}
 
 Η ενότητα αυτή παρουσιάζει τις scalar κρυπτογραφικές επεκτάσεις που αξιοποιεί
-η παρούσα εργασία στο Tier~1 deployment profile. Οι επεκτάσεις αυτές παρέχουν
+η παρούσα εργασία στο Tier~1 profile. Οι επεκτάσεις αυτές παρέχουν
 εντολές bit-manipulation και carry-less multiplication που αντιστοιχούν άμεσα
 σε θεμελιώδεις κρυπτογραφικές πράξεις — πολυωνυμικό πολλαπλασιασμό σε
 $\GFpoly$, rotations για Keccak, και byte-level μετασχηματισμούς.
@@ -362,7 +362,7 @@ $\GFpoly$, rotations για Keccak, και byte-level μετασχηματισμ
 \end{itemize}
 
 \paragraph{Σημασιολογία carry-less multiplication.}
-Η πράξη \defterm{carry-less multiplication} (ή polynomial multiplication)
+Η πράξη carry-less multiplication (ή polynomial multiplication)
 διαφέρει από τον ακέραιο πολλαπλασιασμό σε ένα κρίσιμο σημείο: η πρόσθεση
 μερικών γινομένων εκτελείται μέσω XOR αντί αριθμητικής πρόσθεσης, εξαλείφοντας
 τη διάδοση κρατουμένου. Μαθηματικά, αν $a(x) = \sum_{i=0}^{63} a_i x^i$ και
@@ -841,7 +841,7 @@ Keccak permutation, και στη vectorized \code{memcpy}. Η ομοιομορ�
 (βλ.~\cref{sec:scalar-extensions}) στο vector domain. Τυποποιήθηκαν τον
 Σεπτέμβριο 2023 ως μέρος του Volume~II (Vector Cryptography) της
 προδιαγραφής RISC-V Cryptography Extensions~\cite{RISCV-crypto-spec} και
-αποτελούν τη βάση του Tier~3 deployment profile της παρούσας εργασίας.
+αποτελούν τη βάση του Tier~3 profile της παρούσας εργασίας.
 Η ενότητα αυτή παρουσιάζει τη σημασιολογία κάθε εντολής, την αντιστοίχισή
 της σε κρυπτογραφικά primitives, και τον λόγο που αυτές οι εντολές δεν
 εκπέμπονται αυτόματα από τον compiler.

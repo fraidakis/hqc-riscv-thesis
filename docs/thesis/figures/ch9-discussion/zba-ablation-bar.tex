@@ -8,7 +8,7 @@
     width=0.75\textwidth,
     height=5.5cm,
     ylabel={Μεταβολή polymul \instret (\%)},
-    symbolic x coords={karatsuba\_zvbc, karatsuba\_rvv, karatsuba\_zbc, ref\_scalar},
+    symbolic x coords={vector\_zvk, vector\_rvv, scalar\_zb, scalar\_ref},
     xtick=data,
     x tick label style={font=\small, rotate=15, anchor=east},
     ymin=-7,
@@ -24,10 +24,10 @@
 ]
 
 \addplot[fill=blue!60, draw=blue!80!black] coordinates {
-    (karatsuba\_zvbc, -5.61) [$-5.61$]
-    (karatsuba\_rvv, -1.03) [$-1.03$]
-    (karatsuba\_zbc, -0.004) [$\approx 0$]
-    (ref\_scalar, 0) [$0$]
+    (vector\_zvk, -5.61) [$-5.61$]
+    (vector\_rvv, -1.03) [$-1.03$]
+    (scalar\_zb, -0.004) [$\approx 0$]
+    (scalar\_ref, 0) [$0$]
 };
 
 \end{axis}

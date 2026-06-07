@@ -4,8 +4,7 @@
 Στο προηγούμενο κεφάλαιο τεκμηριώθηκε ότι ο πολυωνυμικός πολλαπλασιασμός
 καταναλώνει $\approx\pct{97}$ του συνολικού \instret στο reference scalar
 HQC-128, καθιστώντας τον μοναδικό κυρίαρχο bottleneck.  Το παρόν κεφάλαιο
-παρουσιάζει τη συστηματική βελτιστοποίηση αυτού του πυρήνα σε τρία deployment
-tiers αυξανόμενης αρχιτεκτονικής πολυπλοκότητας — από scalar Karatsuba με
+παρουσιάζει τη συστηματική βελτιστοποίηση αυτού του πυρήνα σε τρία tiers αυξανόμενης αρχιτεκτονικής πολυπλοκότητας — από scalar Karatsuba με
 \Zbc, μέσω διανυσματοποίησης recomposition με \RVV, έως πλήρη αξιοποίηση
 \Zvbc στα leaf kernels.
 
@@ -17,7 +16,7 @@ tiers αυξανόμενης αρχιτεκτονικής πολυπλοκότη
 και ανεξάρτητα τυποποιημένη — δημιουργεί ένα φάσμα hardware capabilities στο
 οποίο κάθε πλατφόρμα υλοποιεί διαφορετικό υποσύνολο επεκτάσεων.  Αντί μίας
 μονολιθικής υλοποίησης που απαιτεί τη μέγιστη ISA, η παρούσα εργασία
-στρωματοποιεί τη βελτιστοποίηση σε τρία \defterm{deployment tiers}, καθένα
+στρωματοποιεί τη βελτιστοποίηση σε τρία \defterm{tiers}, καθένα
 από τα οποία αξιοποιεί αποκλειστικά ratified extensions και παράγει μετρήσιμη
 επιτάχυνση σε σχέση με το reference baseline.
 
@@ -49,13 +48,13 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
     \midrule
     1 & \code{rv64gc + Zbc/Zbb/Zbs}
       & \clmul, \clmulh, \rori, \insn{andn}
-      & \code{karatsuba\_zbc} \\
+      & \code{scalar\_zb} \\
     2 & \code{rv64gcv + Zbc/Zbb/Zba}
       & + \insn{vle64}, \insn{vxor.vv}, \insn{vsetvl}
-      & \code{karatsuba\_rvv} \\
+      & \code{vector\_rvv} \\
     3 & \code{rv64gcv + Zvbc/Zvbb}
       & + \vclmul, \vclmulh, \vror
-      & \code{karatsuba\_zvbc} \\
+      & \code{vector\_zvk} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -63,7 +62,7 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/polymul-tiers.tex}
-  \caption{Στρωματοποίηση deployment tiers ως σχέση υπερσυνόλου.  Κάθε
+  \caption{Στρωματοποίηση tiers ως σχέση υπερσυνόλου.  Κάθε
     ανώτερο tier περιλαμβάνει όλες τις επεκτάσεις του κατώτερου και
     προσθέτει νέες δυνατότητες.  Η αρχιτεκτονική πολυπλοκότητα αυξάνεται
     προς τα πάνω, ενώ η βάση (Tier~1) εξασφαλίζει τη μέγιστη portability.}
@@ -110,7 +109,7 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
 Οι επόμενες ενότητες παρουσιάζουν κάθε tier αναλυτικά: η
 \cref{sec:polymul-scalar} αναπτύσσει το scalar path (Tier~1), η
 \cref{sec:polymul-base-rvv} τη διανυσματοποίηση recomposition (Tier~2),
-και η \cref{sec:polymul-zvbc} τα vector-crypto leaf kernels (Tier~3).
+και η \cref{sec:polymul-zvbc} τα Vector-Crypto leaf kernels (Tier~3).
 
 %% ----------------------------------------------------------------------------
 \subsection{Tier 1 — Scalar Deployment (rv64gc + Zbc/Zbb)}
@@ -219,8 +218,8 @@ instructions.  Σε \VLEN=\num{256} με \LMUL=m4, κάθε vector register grou
 Η σημασία του Tier~3 εκτείνεται πέραν της ποσοτικής επιτάχυνσης.
 Η \cref{sec:isa-ablation} τεκμηρίωσε
 ότι ο compiler δεν συνθέτει αυτόματα \vclmul{} από generic C loops —
-η διαφορά μεταξύ \code{ref\_vector} (compiler ceiling) και
-\code{karatsuba\_zvbc} (χειρόγραφα intrinsics) αποτελεί αποκλειστικά
+η διαφορά μεταξύ \code{vector\_ref} (compiler ceiling) και
+\code{vector\_zvk} (χειρόγραφα intrinsics) αποτελεί αποκλειστικά
 αποτέλεσμα ρητής αλγοριθμικής παρέμβασης.  Η παρατήρηση αυτή ενισχύει
 τη θέση ότι οι κρυπτογραφικές vector extensions αποδίδουν μόνο μέσω
 εξειδικευμένων υλοποιήσεων — η ύπαρξη hardware δεν αρκεί χωρίς
@@ -574,7 +573,7 @@ direct-write, και (γ)~inline RVV intrinsics με per-operation \LMUL tuning
 $z_\text{mid}$) υπολογίζονταν σε ενδιάμεσους buffers εντός του \code{tmp},
 και στη συνέχεια δύο RVV copy loops (\code{rvv\_copy\_u64}) μετέφεραν τα
 $z_0$ και $z_2$ στις τελικές θέσεις του output buffer $r$.  Η
-\defterm{direct-write discipline} εξαλείφει αυτές τις δύο αντιγραφές
+Η direct-write discipline εξαλείφει αυτές τις δύο αντιγραφές
 κατευθύνοντας τα child calls να γράψουν απευθείας στο $r$:
 %
 \begin{itemize}
@@ -814,7 +813,7 @@ recomposition loops είναι $\BigO{n}$ ανά επίπεδο αναδρομή
 \subsection{Splat-and-Sweep: Διανυσματοποίηση του Schoolbook Leaf}
 \label{ssec:vclmul-leaf}
 
-Ο \code{vclmul\_leaf} υλοποιεί ένα \defterm{splat-and-sweep} pattern: για
+Ο \code{vclmul\_leaf} υλοποιεί ένα splat-and-sweep pattern: για
 κάθε εξωτερικό index $i$, η scalar τιμή $a[i]$ εκπέμπεται (splat) σε
 ολόκληρο ένα vector register μέσω \insn{vmv.v.x}, και ο πλήρης εσωτερικός
 πίνακας $b[0 \ldots n{-}1]$ φορτώνεται ως vector μέσω \insn{vle64.v}.
@@ -1060,7 +1059,7 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
   \label{eq:amdahl-polymul}
 \end{equation}
 %
-Η πραγματική μέτρηση — \speedup{157} end-to-end KEM speedup στο Tier~3
+Η πραγματική μέτρηση — \speedup{157} speedup πλήρους \KEM στο Tier~3
 (\cref{tab:polymul-tier-summary}) — υπερβαίνει αυτό το θεωρητικό όριο,
 διότι η βελτιστοποίηση polymul συρρικνώνει ταυτόχρονα και τμήμα του
 non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reduction).
@@ -1071,8 +1070,8 @@ non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reducti
 \begin{table}[htbp]
   \centering
   \caption{Σύνοψη βελτιστοποίησης polymul ανά tier (HQC-128).  Η στήλη
-    \q{KEM Speedup} αναφέρει τη συνολική επιτάχυνση end-to-end KEM
-    (keypair + encaps + decaps) σε σχέση με το reference baseline.}
+    \q{KEM Speedup} αναφέρει τη συνολική επιτάχυνση πλήρους \KEM
+    (\KeyGen + \Encaps + \Decaps) σε σχέση με το reference baseline.}
   \label{tab:polymul-tier-summary}
   \small
   \begin{tabular}{clrrrl}
@@ -1083,13 +1082,13 @@ non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reducti
     & & \textbf{(\instret)} & \textbf{Speedup}
       & \textbf{Speedup} & \textbf{hotspot} \\
     \midrule
-    — & \code{ref\_scalar}
+    — & \code{scalar\_ref}
       & \num{19214281} & — & — & polymul (\pct{97}) \\
-    1 & \code{karatsuba\_zbc}
+    1 & \code{scalar\_zb}
       & \num{221026} & $\times$87 & $\times$34 & Keccak (\pct{17}) \\
-    2 & \code{karatsuba\_rvv}
+    2 & \code{vector\_rvv}
       & \num{160215} & $\times$120 & $\times$57 & Keccak (\pct{29}) \\
-    3 & \code{karatsuba\_zvbc}
+    3 & \code{vector\_zvk}
       & \num{62526} & $\times$307 & $\times$157 & Keccak (\pct{25}) \\
     \bottomrule
   \end{tabular}
@@ -1106,7 +1105,7 @@ Tier~3, η αναλογία σταθεροποιείται στο \pct{25}, κα
 Η ανακατανομή αυτή τεκμηριώνει ποσοτικά τη στόχευση του
 \cref{ch:kernel-optimization}: η βελτιστοποίηση Keccak και decode αποτελεί
 αναγκαία συνέχεια για τη μεγιστοποίηση του system-level κέρδους.  Χωρίς
-αυτή, η end-to-end επιτάχυνση παραμένει δομικά περιορισμένη ανεξαρτήτως
+αυτή, η επιτάχυνση σε επίπεδο συστήματος παραμένει δομικά περιορισμένη ανεξαρτήτως
 περαιτέρω βελτιώσεων στον πολυωνυμικό πολλαπλασιασμό.  Τα αναλυτικά
 αποτελέσματα ανά security level και tier — συμπεριλαμβανομένων των
 μετρήσεων HQC-192 και HQC-256 — παρουσιάζονται στο

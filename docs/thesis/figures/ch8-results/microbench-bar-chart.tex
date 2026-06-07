@@ -36,21 +36,21 @@
     (Decode, 384986)
 };
 
-% Tier 1 (karatsuba_zbc / ref keccak / ref decode)
+% Tier 1 (scalar_zb / ref keccak / ref decode)
 \addplot[fill=blue!50, draw=blue!70] coordinates {
     (Polymul, 221030)
     (Keccak, 463069)
     (Decode, 384986)
 };
 
-% Tier 2 (karatsuba_rvv / ref keccak / rvv decode)
+% Tier 2 (vector_rvv / ref keccak / rvv decode)
 \addplot[fill=orange!60, draw=orange!80] coordinates {
     (Polymul, 157473)
     (Keccak, 463069)
     (Decode, 122163)
 };
 
-% Tier 3 (karatsuba_zvbc / zvbb_x2 keccak / zvbc decode)
+% Tier 3 (vector_zvk / zvbb_x2 keccak / zvbc decode)
 \addplot[fill=green!50, draw=green!70] coordinates {
     (Polymul, 62526)
     (Keccak, 131944)
