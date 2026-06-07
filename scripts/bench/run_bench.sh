@@ -28,7 +28,7 @@ Required:
 Options:
   --mode MODE             Benchmark mode: kem, mul, keccak, decode (default: kem)
   --variant VARIANT       Variant name or "all" (default: scalar_zb)
-  --level LEVEL           Security level: 128, 192, 256, or all (default: 128)
+  --level LEVEL           Security level: 128, 192, 256, or all (default: all)
   --quality QUALITY       Iteration quality: dev or publish (hw only, default: dev)
   --remote HOST           Deploy and run on remote HOST via SSH (hw only, default: root@192.168.1.50)
   --local                 Run directly on this machine (hw only)
@@ -56,7 +56,7 @@ EOF
 PLATFORM=""
 MODE="kem"
 VARIANT="scalar_zb"
-LEVEL="128"
+LEVEL="all"
 QUALITY="dev"
 REMOTE=""
 REMOTE_EXPLICIT=0
