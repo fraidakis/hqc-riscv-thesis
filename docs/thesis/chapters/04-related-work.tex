@@ -356,7 +356,13 @@ HQC-1 και \pct{18.0}/\pct{18.6}/\pct{17.7} για HQC-3. Για HQC-5, η
 αντίθεση, η παρούσα εργασία αξιοποιεί \insn{clmul}/\vclmul σε hardware,
 καθιστώντας τον Karatsuba αποδοτικό χωρίς αλλαγή αλγοριθμικής δομής.
 
-\subsection{Chen et al.\ 2021 — BIKE Optimization (Haswell/Cortex-M4)}
+\subsection{Λοιπές εργασίες}
+\label{ssec:rw-other-platforms}
+
+Πέραν των παραπάνω, αρκετές εργασίες συμπληρώνουν το τοπίο βελτιστοποίησης
+του \HQC σε μη-RISC-V πλατφόρμες:
+
+\paragraph{Additive FFT για code-based κρυπτογραφία (Chen et al.\ 2021).}
 \label{ssec:rw-chen-bike}
 
 Η εργασία των Chen, Chou και Krausz~\cite{Chen2021-BIKE-Haswell-M4} αποτελεί
@@ -366,12 +372,6 @@ HQC-1 και \pct{18.0}/\pct{18.6}/\pct{17.7} για HQC-3. Για HQC-5, η
 bits. Η εργασία εισήγαγε τη χρήση 5-way recursive Bernstein algorithm στο
 ανώτερο επίπεδο αναδρομής, με Karatsuba στα κατώτερα, θέτοντας τη βάση για τις
 μεταγενέστερες FFT-based βελτιστοποιήσεις του \HQC.
-
-\subsection{Λοιπές εργασίες}
-\label{ssec:rw-other-platforms}
-
-Πέραν των παραπάνω, αρκετές εργασίες συμπληρώνουν το τοπίο βελτιστοποίησης
-του \HQC σε μη-RISC-V πλατφόρμες:
 
 \paragraph{Hardware σχεδιάσεις.}
 Οι Deshpande et al.~\cite{Deshpande2023-HQC-HW} παρουσίασαν πλήρη FPGA

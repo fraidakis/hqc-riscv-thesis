@@ -1,5 +1,11 @@
-\chapter{Συζήτηση και Ερμηνεία Αποτελεσμάτων}
+\chapter{Εκτεταμένη Ανάλυση και Συζήτηση}
 \label{ch:discussion}
+
+Το κεφάλαιο αυτό ερμηνεύει σε βάθος τα αποτελέσματα που παρουσιάστηκαν στο
+προηγούμενο κεφάλαιο, συνδέοντας τις μετρήσεις απόδοσης με τους αρχιτεκτονικούς
+παράγοντες που τις καθορίζουν, τοποθετώντας τα ευρήματα στο διεθνές τοπίο και
+ολοκληρώνοντας με την επαλήθευση σταθερού χρόνου εκτέλεσης των βελτιστοποιημένων
+υλοποιήσεων.
 
 \section{Σύγκριση με Ετερογενείς Αρχιτεκτονικές}
 \label{sec:cross-architecture}
@@ -943,262 +949,16 @@ crypto extensions είναι τριπλή:
 \end{enumerate}
 
 %% ==========================================================================
-%% §9.6 Επαλήθευση Σταθερού Χρόνου Εκτέλεσης
+%% §9.6 Επαλήθευση Σταθερού Χρόνου: Αποτελέσματα και Ερμηνεία
 %% ==========================================================================
-\section{Επαλήθευση Σταθερού Χρόνου Εκτέλεσης}
+\section{Επαλήθευση Σταθερού Χρόνου: Αποτελέσματα και Ερμηνεία}
 \label{sec:ct-verification}
 
-Η επιτάχυνση κρυπτογραφικού κώδικα δεν έχει αξία εάν εισάγει πλευρικά
-κανάλια χρονισμού (timing side-channels).  Η ενότητα αυτή τεκμηριώνει ότι
-οι βελτιστοποιημένες υλοποιήσεις \HQC διατηρούν constant-time συμπεριφορά
-— η εκτέλεσή τους είναι ανεξάρτητη από μυστικά δεδομένα.  Η στρατηγική
-επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: στατική ανάλυση
-μέσω ctgrind (Valgrind Memcheck) και στατιστική ανίχνευση διαρροής μέσω
-dudect σε πραγματικό hardware.
-
-%% --------------------------------------------------------------------------
-\subsection{Μοντέλο Απειλής και Ορισμός Constant-Time}
-\label{ssec:ct-threat-model}
-
-Μια κρυπτογραφική υλοποίηση ικανοποιεί τη constant-time ιδιότητα όταν η
-παρατηρήσιμη συμπεριφορά εκτέλεσης (χρονισμός, cache access patterns,
-branch outcomes) είναι ανεξάρτητη από μυστικές εισόδους.  Για τον \HQC,
-τα μυστικά δεδομένα περιλαμβάνουν το ιδιωτικό κλειδί
-$\mathbf{sk} = (\mathbf{x}, \mathbf{y})$ (αραιά δυαδικά διανύσματα) και
-το αποκρυπτογραφημένο μήνυμα $m'$ κατά τη διαδικασία decapsulation.
-
-Τυπικά, μια υλοποίηση ικανοποιεί constant-time πειθαρχία όταν:
-\begin{enumerate}
-  \item κανένα conditional branch δεν εξαρτάται από μυστικά δεδομένα,
-  \item καμία διεύθυνση load/store δεν εξαρτάται από μυστικά δεδομένα, και
-  \item κάθε εκτελούμενη εντολή ανήκει στο Zkt subset — εντολές με
-    αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση ανεξαρτήτως τιμών
-    τελεστέων \cite{riscv-scalar-crypto-2022}.
-\end{enumerate}
-
-Η extension Zkt ορίζει τυπικά αυτή την εγγύηση: για κάθε εντολή
-$i \in \mathcal{I}_{\mathrm{Zkt}}$ και οποιαδήποτε δύο ζεύγη τελεστέων
-$x, y$ ίσου εύρους, υπό σταθερό μικροαρχιτεκτονικό context $\mu$, ισχύει
-\begin{equation}
-  T(i, x, \mu) = T(i, y, \mu).
-  \label{eq:zkt-timing}
-\end{equation}
-Η ιδιότητα αυτή εξασφαλίζει ότι ο χρονισμός κάθε μεμονωμένης εντολής
-δεν αποκαλύπτει πληροφορία για τα δεδομένα που επεξεργάζεται.
-
-\paragraph{Ανάλυση κατά συνιστώσα.}
-Δεν απαιτούν όλες οι συνιστώσες του \HQC decapsulation constant-time
-υλοποίηση.  Η Fujisaki-Okamoto (FO) transform σχεδιάστηκε ώστε μόνο η
-σύγκριση ciphertext και η επιλογή εξόδου να πρέπει να είναι constant-time
-για τη διασφάλιση IND-CCA2 ασφάλειας.  Ο πολυωνυμικός πολλαπλασιασμός
-(\code{vect\_mul}) επεξεργάζεται απευθείας το μυστικό κλειδί $\mathbf{y}$
-και απαιτεί constant-time εκτέλεση.  Αντίθετα, η αποκωδικοποίηση
-Reed-Muller/Reed-Solomon δύναται να είναι variable-time χωρίς να
-παραβιάζεται η ασφάλεια — η FO transform μασκάρει τη χρονική πληροφορία
-μέσω του re-encryption ελέγχου.  Ο Keccak/SHAKE είναι εγγενώς
-constant-time λόγω αλγοριθμικής δομής: η permutation Keccak-f[1600]
-αποτελείται αποκλειστικά από bitwise πράξεις (XOR, AND, NOT, ROT) χωρίς
-data-dependent branches ή table lookups.
-
-%% --------------------------------------------------------------------------
-\subsection{Σχεδιαστικά Πρότυπα για CT Αριθμητική στο \texorpdfstring{$\GFpoly$}{GF(2)[x]}}
-\label{ssec:ct-design-patterns}
-
-Η constant-time ιδιότητα των βελτιστοποιημένων υλοποιήσεων δεν αποτελεί
-τυχαίο αποτέλεσμα αλλά σχεδιαστική επιλογή σε τρία επίπεδα.
-
-\paragraph{Hardware-guaranteed σταθερή καθυστέρηση (\Zbc).}
-Οι εντολές \clmul/\clmulh της extension \Zbc παρέχουν carry-less
-πολλαπλασιασμό με αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση (Zkt-compliant).
-Η latency είναι ανεξάρτητη από τις τιμές τελεστέων — δεν υπάρχει
-early-termination βελτιστοποίηση βασισμένη σε leading zeros.  Το αποτέλεσμα
-είναι πάντοτε \num{128} bits ανεξαρτήτως μεγέθους εισόδου.
-
-\paragraph{Ντετερμινιστική αναδρομή Karatsuba.}
-Η αναδρομική δομή Karatsuba διαιρεί πολυώνυμα βάσει βαθμού (compile-time
-σταθερά), ποτέ βάσει τιμών συντελεστών.  Το βάθος αναδρομής είναι σταθερό
-για δεδομένο security level, δεν υπάρχει data-dependent early exit, και
-κάθε leaf κλήση εκτελεί ταυτόσημη ακολουθία εντολών.  Ο πλήρως
-ξεδιπλωμένος leaf (\code{clmul\_leaf\_n8}) εκτελεί \num{64} κλήσεις
-\clmul/\clmulh με ντετερμινιστικό XOR assembly — μηδέν branches εντός
-του hot path.
-
-\paragraph{Vector carry-less multiply (\RVV + \Zvbc).}
-Η υλοποίηση \code{karatsuba\_rvv} χρησιμοποιεί \vclmul/\vclmulh vector
-εντολές.  Υπό Zkt, vector εντολές με ταυτόσημα \VLEN και \SEW
-configurations έχουν σταθερή latency.  Η \RVV υλοποίηση χρησιμοποιεί
-σταθερά \LMUL και element width για όλες τις πράξεις, επεξεργάζεται
-polynomial limbs μέσω strided vector loads (address-independent), και
-αποφεύγει \insn{vcompress} ή predicated operations σε μυστικά δεδομένα.
-Η VLA δομή εγγυάται ότι η ροή ελέγχου εξαρτάται αποκλειστικά από δημόσιες
-παραμέτρους (μέγεθος πολυωνύμου) ανεξαρτήτως του \VLEN που παρέχει το
-hardware.
-
-%% --------------------------------------------------------------------------
-\subsection{Στατική Επαλήθευση: ctgrind (Valgrind Memcheck)}
-\label{ssec:ct-ctgrind}
-
-Η ctgrind μεθοδολογία αξιοποιεί τον Valgrind Memcheck ως εργαλείο
-ανίχνευσης secret-dependent ροής ελέγχου.  Τα μυστικά δεδομένα
-σημαίνονται ως \q{uninitialized} μέσω \code{VALGRIND\_MAKE\_MEM\_UNDEFINED},
-και ο Memcheck αναφέρει κάθε conditional branch ή indexed memory access
-που εξαρτάται από \q{uninitialized} bytes.
-
-\paragraph{Ενσωμάτωση στο CI pipeline.}
-Το workflow \code{ct-verify.yml} εκτελεί ctgrind για κάθε συνδυασμό
-(security level $\times$ variant) σε κάθε push στο main branch.  Ο
-harness (\code{ct\_harness.c}) ασκεί τη συνάρτηση \code{crypto\_kem\_dec()}
-με τα bytes sigma (μυστικό fallback material) σημασμένα ως undefined.
-Η επιλογή poisoning μόνο του sigma — αντί ολόκληρου του secret key —
-αποφεύγει false positives από data-dependent loops στην ανακατασκευή
-κλειδιού της reference υλοποίησης.
-
-\paragraph{Αποτελέσματα.}
-Η στατική επαλήθευση ολοκληρώνεται χωρίς violations σε όλα τα security
-levels (128, 192, 256) για το \code{scalar\_ref} variant.  Ο Memcheck
-δεν αναφέρει κανένα \q{Conditional jump depends on uninitialised value}
-ούτε \q{Use of uninitialised value} — επιβεβαιώνοντας ότι η αλγοριθμική
-δομή δεν περιέχει secret-dependent branches ή memory indexing.
-
-\paragraph{Περιορισμοί.}
-Η ctgrind παρουσιάζει τρεις δομικούς περιορισμούς.  Πρώτον, επαληθεύει
-μόνο το \code{scalar\_ref} variant — τα RISC-V intrinsics δεν
-μεταγλωττίζονται σε x86-64.  Δεύτερον, δεν ανιχνεύει μικροαρχιτεκτονικά
-κανάλια χρονισμού (cache timing, pipeline effects, speculation).  Τρίτον,
-υποθέτει ότι ο compiler δεν εισάγει CT violations κατά τη βελτιστοποίηση
-— μια υπόθεση που δεν επαληθεύεται στατικά.  Παρ' όλα αυτά, ένα
-\q{clean} αποτέλεσμα εγγυάται απουσία secret-dependent branches και loads
-στα traced paths — ισχυρή ένδειξη αλγοριθμικής ορθότητας.
-
-%% --------------------------------------------------------------------------
-\subsection{Εμπειρική Επαλήθευση σε Hardware: Dudect (BPI-F3)}
-\label{ssec:ct-dudect}
-
-Η dudect μεθοδολογία \cite{Reparaz2017-dudect} αποτελεί εργαλείο
-στατιστικής ανίχνευσης διαρροής βασισμένο στο Welch's t-test.  Οι
-είσοδοι ταξινομούνται σε δύο κλάσεις:
-\begin{itemize}
-  \item \textbf{Class A (fixed):} η ίδια μυστική είσοδος επαναλαμβάνεται
-    σε κάθε μέτρηση.
-  \item \textbf{Class B (random):} νέα τυχαία είσοδος ανά μέτρηση.
-\end{itemize}
-Εάν η υλοποίηση είναι constant-time, οι κατανομές χρονισμού των δύο
-κλάσεων είναι στατιστικά αδιάκριτες, παράγοντας $|t| < 4.5$ (threshold
-που αντιστοιχεί σε $p < 6.8 \times 10^{-6}$, two-tailed).
-
-\paragraph{Hardware target.}
-Οι dudect harnesses εκτελούνται natively στο Banana Pi BPI-F3 (SpacemiT K1,
-rv64gcv).  Ο χρονισμός μετράται μέσω \code{perf\_event\_open} hardware
-counters (userspace-only cycles).  Η process isolation εξασφαλίζεται μέσω
-\code{taskset -c 7} (CPU pinning σε isolated core), \code{nice -n -20}
-(μέγιστη προτεραιότητα), και CPU governor κλειδωμένο σε \code{performance}
-mode.  Όλα τα tests μεταγλωττίζονται με \code{-O3 -static}, ταυτόσημα
-με το production optimization level.
-
-\paragraph{Σχεδιαστική απόφαση: prepare-then-measure.}
-Κατά την ανάπτυξη εντοπίστηκε ότι η naive interleaved προσέγγιση (παραγωγή
-εισόδου → άμεση μέτρηση) εισάγει συστηματικό cache-state bias που παράγει
-false positives ακόμη και σε γνωστά constant-time κώδικα
-(βλ.\ \cref{ssec:ct-cache-bias}).  Η λύση ακολουθεί το canonical
-prepare-then-measure pattern:
-\begin{enumerate}
-  \item \textbf{Phase 1 (Prepare):} παραγωγή όλων των εισόδων του batch
-    σε pre-allocated buffers — αμφότερες οι κλάσεις γράφουν στην ίδια
-    δομή buffer, εξασφαλίζοντας συμμετρική κατάσταση cache.
-  \item \textbf{Phase 2 (Measure):} tight loop μέτρησης χωρίς κλήσεις
-    \gls{prng} ή class-dependent branching εντός της χρονομετρούμενης
-    περιοχής.
-\end{enumerate}
-
-\paragraph{Warm-up round.}
-Πριν τον κύριο βρόχο μέτρησης, ένα πλήρες batch εκτελείται και
-απορρίπτεται.  Η τεχνική αυτή εξαλείφει cold-start transients από
-instruction cache misses, TLB fills, branch predictor training, και page
-table walks — φαινόμενα που θα εισήγαγαν ασύμμετρη διακύμανση στα πρώτα
-batches.
-
-\paragraph{Percentile cropping (second-order test).}
-Ο δεύτερος t-test εφαρμόζει percentile cropping: μετρήσεις πάνω από το
-95ο εκατοστημόριο κάθε batch απορρίπτονται πριν τροφοδοτηθούν στον
-t-test accumulator.  Η τεχνική αυτή αφαιρεί outliers από OS interrupts,
-context switches, και DVFS transients που θα μασκάριζαν λεπτά σήματα
-διαρροής.
-
-%% --------------------------------------------------------------------------
-\subsection{Στόχοι Δοκιμών και Πίνακας Variants}
-\label{ssec:ct-test-targets}
-
-Δύο harnesses καλύπτουν διαφορετικά επίπεδα αφαίρεσης:
-
-\begin{table}[htbp]
-  \centering
-  \caption{Dudect test harnesses: στόχοι και σκοπός κάθε δοκιμής.}
-  \label{tab:dudect-harnesses}
-  \small
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Harness} & \textbf{Target} & \textbf{Σκοπός} \\
-    \midrule
-    \code{dudect\_polymul} & \code{vect\_mul()} &
-      Απομονωμένος polymul — ενισχυμένη ευαισθησία \\
-    \code{dudect\_kem} & \code{crypto\_kem\_dec()} &
-      Πλήρες \KEM — end-to-end ασφάλεια \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Η επιλογή αυτή βασίζεται σε ανάλυση ροής δεδομένων.  Ο \code{dudect\_polymul}
-παρέχει ενισχυμένο signal-to-noise ratio: η συνεισφορά του polymul
-(\pct{30}–\pct{40} του συνολικού χρόνου decapsulation) αραιώνεται στο
-\code{dudect\_kem} από τις υπόλοιπες πράξεις.  Μια διαρροή \num{50}
-κύκλων στο polymul θα παρήγαγε $|t| \approx 2.0$ στο \KEM test αλλά
-$|t| \approx 5.0$ στο απομονωμένο polymul test.
-
-\paragraph{Γιατί δεν υπάρχει \code{dudect\_decode}.}
-Η αποκωδικοποίηση Reed-Muller/Reed-Solomon είναι πιθανώς variable-time
-(data-dependent iteration counts στον Berlekamp-Massey).  Αυτό δεν
-αποτελεί ευπάθεια: η FO transform μασκάρει τη χρονική πληροφορία μέσω
-re-encryption.  Ο επιτιθέμενος παρατηρεί τον συνολικό χρόνο
-\code{crypto\_kem\_dec()}, ο οποίος περιλαμβάνει re-encryption σταθερού
-κόστους.  Εάν το \code{dudect\_kem} περνά, η ασφάλεια σε επίπεδο
-πρωτοκόλλου ισχύει — ανεξαρτήτως εάν η decode είναι μεμονωμένα
-constant-time.
-
-\paragraph{Γιατί δεν υπάρχει \code{dudect\_keccak}.}
-Ο Keccak είναι constant-time εκ κατασκευής: η permutation Keccak-f[1600]
-αποτελείται αποκλειστικά από bitwise πράξεις σε σταθερό state χωρίς
-table lookups ή data-dependent branches.  Στο RISC-V, η scalar υλοποίηση
-μεταγλωττίζεται σε \code{xor}, \code{and}, \code{or}, \code{sll},
-\code{srl}, load/store σε σταθερές διευθύνσεις — εντολές χωρίς
-input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσμα
-θα ήταν trivially αναμενόμενο χωρίς πρόσθετη πληροφοριακή αξία.
-
-\paragraph{Πίνακας variants.}
-Τρία variants αξιολογούνται σε τρία security levels:
-
-\begin{table}[htbp]
-  \centering
-  \caption{Dudect variant matrix.  Το \code{karatsuba\_zvbc} (Tier~3) δεν
-    δοκιμάζεται λόγω απουσίας \Zvbc/\Zvbb υποστήριξης στο SpacemiT K1.}
-  \label{tab:dudect-variants}
-  \small
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Variant} & \textbf{ISA Extensions} & \textbf{Περιγραφή} \\
-    \midrule
-    \code{ref\_scalar}    & RV64GC           & Vendor reference (baseline CT) \\
-    \code{karatsuba\_zbc} & RV64GC + \Zbc + \Zbb & Scalar Karatsuba + carry-less \\
-    \code{karatsuba\_rvv} & RV64GCV + \Zbc + \Zbb & \RVV vectorized hybrid \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Η κάλυψη του Tier~3 (\code{karatsuba\_zvbc}) παραμένει μελλοντική εργασία
-εκκρεμούσα RVA23-compliant hardware (βλ.\ \cref{sec:future-work}).
-Η αρχιτεκτονική ανάλυση (\cref{ssec:ct-design-patterns}) τεκμηριώνει ότι
-οι \vclmul/\vclmulh εντολές είναι Zkt-compliant (σταθερή καθυστέρηση
-ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση εν αναμονή εμπειρικής
-επιβεβαίωσης.
+Η μεθοδολογία επαλήθευσης σταθερού χρόνου εκτέλεσης — το μοντέλο απειλής, τα
+σχεδιαστικά πρότυπα και τα εργαλεία ctgrind και dudect — παρουσιάστηκε στο
+\cref{sec:ct-methodology}.  Η ενότητα αυτή παρουσιάζει και ερμηνεύει τα
+εμπειρικά αποτελέσματα, ξεκινώντας από ένα μεθοδολογικό εύρημα που επηρέασε
+τον σχεδιασμό των μετρήσεων.
 
 %% --------------------------------------------------------------------------
 \subsection{Μεθοδολογικά Ευρήματα: Cache-State Bias και False Positives}
