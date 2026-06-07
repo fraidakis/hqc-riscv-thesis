@@ -1335,13 +1335,13 @@ pqm4 project \cite{pqm4} (Valgrind on host + timing on Cortex-M4) —
     \toprule
     \textbf{Ιδιότητα} & \textbf{ctgrind} & \textbf{dudect} \\
     \midrule
-    Secret-dependent branches        & \checkmark & \checkmark \\
-    Secret-dependent memory access   & \checkmark & \checkmark \\
-    Μικροαρχιτεκτονικά κανάλια       & —          & \checkmark \\
-    Compiler-introduced violations   & —          & \checkmark \\
+    Secret-dependent branches        & \ding{51} & \ding{51} \\
+    Secret-dependent memory access   & \ding{51} & \ding{51} \\
+    Μικροαρχιτεκτονικά κανάλια       & —          & \ding{51} \\
+    Compiler-introduced violations   & —          & \ding{51} \\
     Speculative execution            & —          & $\triangle$ \\
-    RISC-V \Zbc/\RVV variants        & —          & \checkmark \\
-    CI automation                    & \checkmark & — \\
+    RISC-V \Zbc/\RVV variants        & —          & \ding{51} \\
+    CI automation                    & \ding{51} & — \\
     \bottomrule
   \end{tabular}
 \end{table}

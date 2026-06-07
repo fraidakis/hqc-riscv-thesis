@@ -47,6 +47,11 @@
 \newcommand{\eg}{e.g.\@,\xspace}
 \newcommand{\cf}{cf.\@\xspace}
 
+% --- Symbols ---
+% Fix checkmark for Greek context (unicode-math provides it, but font may not have glyph)
+% Use pifont's \ding{51} as fallback
+\providecommand{\checkmark}{\ding{51}}
+
 % --- Emphasis ---
 \newcommand{\defterm}[1]{\textbf{\textit{#1}}}
 \newcommand{\code}[1]{\texttt{#1}}
