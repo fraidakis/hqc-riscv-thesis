@@ -66,7 +66,7 @@ void gf_generate(uint16_t *exp, uint16_t *log, const int16_t m) {
  *
  * This function performs modular reduction of a 16-bit polynomial `x`
  * by the irreducible polynomial PARAM_GF_POLY = 0x11D
- * (i.e., x⁸ + x⁴ + x³ + x + 1), used in GF(2^8).
+ * (i.e., x⁸ + x⁴ + x³ + x² + 1), used in GF(2^8).
  *
  * It assumes the input polynomial has degree ≤ 14 and uses a fixed
  * number of reduction steps and fixed feedback tap positions
