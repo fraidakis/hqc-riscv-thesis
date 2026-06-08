@@ -365,18 +365,18 @@ Keccak και NTT. Η πρόταση Saarinen~\cite{Saarinen2024-vkeccak} για
   \item \textbf{Tier~1 — Scalar} (rv64gc + \Zbc/\Zbb): στοχεύει ενσωματωμένες
     πλατφόρμες χωρίς διανυσματική μονάδα. Ο πολυωνυμικός πολλαπλασιασμός
     επιταχύνεται μέσω Karatsuba με στατικά παραγόμενο δέντρο αναδρομής
-    (\gls{ap2}) και \clmul/\clmulh leaves, επιτυγχάνοντας \speedup{91} στο
+    (\gls{ap2}) και \clmul/\clmulh leaves, επιτυγχάνοντας \speedup{87} στο
     polymul και \speedup{28} στο \Decaps (HQC-128).
 
   \item \textbf{Tier~2 — Base-RVV} (rv64gcv + \Zbc/\Zbb): αξιοποιεί τη
     διανυσματική μονάδα RVV~1.0 για τη διανυσματοποίηση των recomposition
     βρόχων και της αποκωδικοποίησης, διατηρώντας scalar Keccak (υβριδική
-    αρχιτεκτονική). Επιτυγχάνεται \speedup{118} στο polymul και \speedup{41} στο \Decaps.
+    αρχιτεκτονική). Επιτυγχάνεται \speedup{118} στο polymul και \speedup{52} στο \Decaps.
 
   \item \textbf{Tier~3 — Vector-Crypto} (rv64gcv + \Zvbc/\Zvbb): πλήρης
     αξιοποίηση κρυπτογραφικών vector extensions — \vclmul/\vclmulh στα leaf
-    kernels, \vror/\insn{vandn.vv} στον Keccak. Επιτυγχάνεται \speedup{255}
-    στο polymul και \speedup{63} στο \Decaps.
+    kernels, \vror/\insn{vandn.vv} στον Keccak. Επιτυγχάνεται \speedup{296}
+    στο polymul και \speedup{141} στο \Decaps.
 \end{itemize}
 
 \paragraph{Αρχιτεκτονική σημασία.}
