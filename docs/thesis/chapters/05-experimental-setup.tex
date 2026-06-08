@@ -285,10 +285,16 @@ bare-metal cross-compilation mode με target triple \code{riscv64-unknown-elf}.
 Πρώτον, ο Clang παρέχει πλήρη και type-checked υποστήριξη του RVV 1.0 intrinsic
 API μέσω του header \code{<riscv\_vector.h>}, συμπεριλαμβανομένων των
 \code{\_\_riscv\_vclmul\_vv\_u64m1()} και \code{\_\_riscv\_vror\_vv\_u64m1()} που
-αποτελούν τη βάση των Tier~2 και Tier~3 πυρήνων.  Ο GCC~14, αν και υποστηρίζει
-τις ίδιες εντολές, παρουσιάζει ασυμβατότητα κατά τη μεταγλώττιση πυρήνων \gls{zvbb}
-(\code{gcc\_zvbb\_incompatible}), καθιστώντας αδύνατη τη δημιουργία των
-Vector-Crypto targets.
+αποτελούν τη βάση των Tier~2 και Tier~3 πυρήνων.  Ο GCC~15.2, αν και υποστηρίζει
+τις ίδιες εντολές σε επίπεδο opcode, παρουσιάζει δύο project-specific ζητήματα
+κατά τη μεταγλώττιση πυρήνων \Zvbb: πρώτον, απουσία υποστήριξης για πίνακες
+sizeless vector types (\code{vint64m8\_t[]}) λόγω strict τήρησης του RVV spec
+(language extension gap, σε αντίθεση με την επέκταση \code{riscv\_rvv\_vector\_bits}
+του Clang), και δεύτερον, εσφαλμένη κατανομή καταχωρητών στα LMUL=8 patterns
+(κατανάλωση και των 32 vector registers χωρίς δυνατότητα spilling) που οδηγεί σε
+infinite loop στον παραγόμενο κώδικα.  Τα δύο αυτά ζητήματα καθιστούν τον GCC
+ακατάλληλο για τα \Zvbb targets (\code{gcc\_zvbb\_incompatible} στο benchmark
+pipeline), χωρίς να αναιρούν τη γενική υποστήριξή του για Vector-Crypto opcodes.
 
 Δεύτερον, ο Clang παρέχει διαγνωστικά vectorization
 (\code{-Rpass=loop-vectorize}) που επιτρέπουν τον εντοπισμό βρόχων που δεν
@@ -296,10 +302,10 @@ Vector-Crypto targets.
 instruction scheduler του Clang παράγει σταθερά πιο compact κώδικα για δομημένους
 intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse64}).
 
-Ο \textbf{GCC~14} διατηρεί συμπληρωματικό ρόλο: χρησιμοποιείται ως εναλλακτικός
+Ο \textbf{GCC~15.2} διατηρεί συμπληρωματικό ρόλο: χρησιμοποιείται ως εναλλακτικός
 μεταγλωττιστής για τα scalar-only variants (\code{scalar\_ref},
 \code{scalar\_zb}) και ως cross-validation εργαλείο.  Η σύγκριση GCC–Clang
-στο reference scalar baseline αποκαλύπτει ότι ο GCC~14 με \code{-O3} παράγει
+στο reference scalar baseline αποκαλύπτει ότι ο GCC~15.2 με \code{-O3} παράγει
 \pct{2.9} λιγότερες εντολές από τον Clang (\num{113958344} έναντι
 \num{117344266} στο HQC-128), ενώ στα υψηλότερα security levels η διαφορά
 παραμένει σταθερή (\pct{2.9}–\pct{1.9}).  Η διαφορά αυτή οφείλεται στην
@@ -815,7 +821,8 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
     \text{ss}_{\text{dec}}$ (consistency check — επιβεβαιώνει ότι η
     αποενθυλάκωση ανακτά το ίδιο μυστικό).
   \item Εκπομπή του $\text{ss}_{\text{enc}}$ σε hexadecimal μέσω HTIF/UART
-    console (\code{ss: <64 hex chars>}).
+    console (\code{ss: <64 hex chars>}, δηλ.\ \num{32} bytes, ίσο με
+    \code{CRYPTO\_BYTES} και για τα τρία security levels).
 \end{enumerate}
 
 \noindent

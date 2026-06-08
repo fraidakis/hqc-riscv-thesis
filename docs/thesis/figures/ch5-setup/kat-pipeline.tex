@@ -32,7 +32,7 @@
 \draw[arr] (elf) -- (sim);
 
 % Row 3: Validation
-\node[data, below=1.8cm of sim] (log) {Console output\\(\texttt{ss: <hex>} $\times$ 100)};
+\node[data, below=1.8cm of sim] (log) {Console output\\(\texttt{ss: <64 hex>} $\times$ 100)};
 \node[tool, left=of log] (check) {\texttt{kat\_check.py}\\(diff)};
 \node[result, left=of check] (verdict) {\textbf{PASS} / \textbf{FAIL}};
 
