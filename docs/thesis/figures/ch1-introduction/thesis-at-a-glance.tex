@@ -31,13 +31,13 @@
 % Approach column
 \node[approach] (riscv) at (5.0, 1.8) {RISC-V ISA Extensions\\[-2pt]\scriptsize Zbc, Zvbc, Zvbb};
 \node[tierbox] (t1) at (5.0, 0.4) {Tier 1: Scalar\\[-1pt]\scriptsize rv64gc + Zbc/Zbb};
-\node[tierbox] (t2) at (5.0, -0.7) {Tier 2: Base-RVV\\[-1pt]\scriptsize rv64gcv};
+\node[tierbox] (t2) at (5.0, -0.7) {Tier 2: Base-RVV\\[-1pt]\scriptsize rv64gcv + Zbc/Zbb};
 \node[tierbox] (t3) at (5.0, -1.8) {Tier 3: Vector-Crypto\\[-1pt]\scriptsize rv64gcv + Zvbc/Zvbb};
 
 % Results column
-\node[result] (r1) at (10.5, 0.4) {Tier 1: $\approx$\speedup{18}\\[-2pt]\scriptsize polymul speedup};
-\node[result] (r2) at (10.5, -0.7) {Tier 2: $\approx$\speedup{20}\\[-2pt]\scriptsize polymul speedup};
-\node[result] (r3) at (10.5, -1.8) {Tier 3: $\approx$\speedup{30}\\[-2pt]\scriptsize polymul speedup};
+\node[result] (r1) at (10.5, 0.4) {Tier 1: \speedup{34}\\[-2pt]\scriptsize full KEM (HQC-128)};
+\node[result] (r2) at (10.5, -0.7) {Tier 2: \speedup{57}\\[-2pt]\scriptsize full KEM (HQC-128)};
+\node[result] (r3) at (10.5, -1.8) {Tier 3: \speedup{154}\\[-2pt]\scriptsize full KEM (HQC-128)};
 \node[result] (kat) at (10.5, 1.8) {KAT-verified\\[-2pt]\scriptsize 3 security levels};
 
 % Arrows: Problem → Approach
