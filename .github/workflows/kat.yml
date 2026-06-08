@@ -106,10 +106,10 @@ jobs:
       - name: Run KAT under QEMU
         run: |
           chmod +x scripts/test/run_kat.sh
-          scripts/test/run_kat.sh --sim qemu \
-            build/qemu/hqc${{ matrix.level }}_${{ matrix.polymul }}.elf \
-            ${{ matrix.level }} \
-            ${{ matrix.polymul }}
+          scripts/test/run_kat.sh \
+            --variant ${{ matrix.polymul }} \
+            --level ${{ matrix.level }} \
+            --qemu
 
       - name: Upload QEMU console log on failure
         if: failure()
@@ -155,6 +155,6 @@ jobs:
 
       - name: Run KAT under Spike
         run: |
-          bash scripts/test/run_kat.sh --sim spike \
-            build/spike/hqc${{ matrix.level }}_fafft_zvbc.elf \
-            tests/kat/PQCkemKAT_${{ matrix.level }}.rsp
+          bash scripts/test/run_kat.sh \
+            --variant fafft_zvbc \
+            --level ${{ matrix.level }}

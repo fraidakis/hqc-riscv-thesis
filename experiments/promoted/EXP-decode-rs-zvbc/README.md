@@ -72,8 +72,8 @@ make -C build -j$(nproc) kat_hqc128_karatsuba_zvbc kat_hqc192_karatsuba_zvbc kat
 Or via the scripts:
 ```bash
 source toolchain/toolchain.env
-./scripts/test/run_kat.sh --mul karatsuba_zvbc --keccak opt --decode rs_zvbc_exp
-./scripts/bench/run_benchmarks.sh --mode kem --mul karatsuba_zvbc --decode rs_zvbc_exp
+./scripts/test/run_kat.sh --variant karatsuba_zvbc --keccak opt --decode rs_zvbc_exp
+./scripts/bench/run_benchmarks.sh --mode kem --variant karatsuba_zvbc --decode rs_zvbc_exp
 ```
 
 ## Expected Gains

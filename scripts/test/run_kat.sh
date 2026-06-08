@@ -12,12 +12,12 @@ source "${SCRIPT_DIR}/../bench/lib_bench.sh"
 usage() {
     cat <<'EOF'
 Usage:
-    run_kat.sh --mul <name> [--keccak <impl>] [--decode <impl>]
+    run_kat.sh --variant <name> [--keccak <impl>] [--decode <impl>]
                [--level <128|192|256|all|csv>] [--qemu]
 
 Flags:
-    --mul <name>       Polymul variant name (required)
-    --keccak <impl>    Keccak implementation (auto-mapped from --mul suffix if omitted)
+    --variant <name>   Polymul variant name (required)
+    --keccak <impl>    Keccak implementation (auto-mapped from --variant suffix if omitted)
     --decode <impl>    Decode implementation (default: ref)
     --level <value>    Security level(s) to run.
                        Accepts: 128, 192, 256, all, or comma-separated values
@@ -35,7 +35,7 @@ USE_SPIKE=1
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --mul|--keccak|--decode)
+        --variant|--keccak|--decode)
             shift 2
             ;;
         --level)
@@ -68,7 +68,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$MUL_VARIANT" ]]; then
-    echo "ERROR: --mul is required" >&2
+    echo "ERROR: --variant is required" >&2
     usage >&2
     exit 1
 fi

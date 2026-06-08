@@ -49,7 +49,7 @@ cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DH
 cmake --build build/qemu -j$(nproc)
 
 # 4. Run KAT under QEMU
-./scripts/test/run_kat.sh --sim qemu build/qemu/hqc128_karatsuba_ref.elf tests/kat/PQCkemKAT_128.rsp
+./scripts/test/run_kat.sh --variant scalar_ref --level 128 --qemu
 ```
 
 ## Simulation Targets

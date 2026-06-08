@@ -314,7 +314,7 @@ case "$PLATFORM" in
             slug="$(bench_variant_slug "$variant")"
 
             # Set up track args for keccak/decode auto-mapping
-            local track_args=("--mul" "$variant")
+            local track_args=("--variant" "$variant")
             if [[ -n "$KECCAK_IMPL" ]]; then
                 track_args+=("--keccak" "$KECCAK_IMPL")
             fi
@@ -725,7 +725,7 @@ ${output}"
             timestamp="$(date +'%Y-%m-%d_%H-%M')"
 
             # Auto-map keccak/decode implementations from variant
-            local track_args=("--mul" "$variant")
+            local track_args=("--variant" "$variant")
             if [[ -n "$KECCAK_IMPL" ]]; then
                 track_args+=("--keccak" "$KECCAK_IMPL")
             fi

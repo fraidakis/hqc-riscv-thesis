@@ -411,11 +411,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
         endif()
 
         # CTest KAT gate — must pass before any branch is merged.
-        # run_kat.sh(elf, level, polymul) drives simulator (Spike by default, QEMU with --sim) and diffs against .rsp
+        # run_kat.sh drives simulator (Spike by default, QEMU with --qemu) and diffs against .rsp
         add_test(
             NAME "kat_${KAT_TARGET}"
             COMMAND ${CMAKE_SOURCE_DIR}/scripts/test/run_kat.sh
-                    $<TARGET_FILE:${KAT_TARGET}> ${LEVEL} ${POLYMUL}
+                    --variant ${POLYMUL} --level ${LEVEL}
         )
 
         # BENCH target  (bench_hqc${LEVEL}_${POLYMUL}) ─────────────────────

@@ -87,8 +87,8 @@ high-risk and must be done on a separate branch with its own KAT validation.
 # Apply C-4a/b/c and measure:
 git stash   # or implement the changes manually
 cmake --build build/spike/kat --target hqc128_karatsuba_zvbc -j$(nproc)
-./scripts/test/run_kat.sh --mul karatsuba_zvbc --decode rvv --level 128
-./scripts/report/run_full_analysis.sh --mul karatsuba_zvbc --decode rvv --level 128
+./scripts/test/run_kat.sh --variant karatsuba_zvbc --decode rvv --level 128
+./scripts/report/run_full_analysis.sh --variant karatsuba_zvbc --decode rvv --level 128
 # Observe KeccakF instret increase and decaps regression.
 git stash pop
 ```
