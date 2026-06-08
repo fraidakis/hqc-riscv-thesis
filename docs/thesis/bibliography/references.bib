@@ -234,7 +234,7 @@
   title        = {Hamming Quasi-Cyclic ({HQC}): Specification},
   year         = {2024},
   howpublished = {\url{https://pqc-hqc.org/}},
-  note         = {NIST PQC Round 4 updated specification (February 2024). Accessed: 2026}
+  note         = {NIST PQC Round 4 updated specification (23 February 2024). Accessed: 2026}
 }
 
 @inproceedings{FujisakiOkamoto1999,
@@ -412,14 +412,14 @@
   journal   = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
   volume    = {2025},
   number    = {1},
-  pages     = {340--364},
+  pages     = {632--655},
   year      = {2025},
-  doi       = {10.46586/tches.v2025.i1.340-364},
+  doi       = {10.46586/tches.v2025.i1.632-655},
   note      = {Platform: T-Head C908 (VLEN=128), Linux perf events. Methodology template for ISS + CPI microbenchmarks}
 }
 
 @inproceedings{ras-nist2025,
-  author    = {Ras, Cl{\'e}ment and Loiseau, Antoine and Music, Lazar and Music, Damir and Music, Edin and Music, Jasmin},
+  author    = {Antonio Ras and Antoine Loiseau and Mika{\"e}l Carmona and Simon Ponti{\'e} and Gu{\'e}na{\"e}l Renault and Benjamin Smith and Emanuele Valea},
   title     = {Optimizing {HQC} using {Frobenius} Additive {FFT} on a {RISC-V}-based {SoC}},
   booktitle = {Proceedings of the 6th NIST PQC Standardization Conference},
   year      = {2025},
@@ -439,7 +439,11 @@
 @article{Ji2024-ECO-CRYSTALS,
   author    = {Xinyi Ji and Jiankuo Dong and Junhao Huang and Zhijian Yuan and Wangchen Dai and Fu Xiao and Jingqiang Lin},
   title     = {{ECO-CRYSTALS}: Efficient Cryptography {CRYSTALS} on Standard {RISC-V} {ISA}},
-  journal   = {IEEE Transactions on Circuits and Systems I: Regular Papers},
+  journal   = {IEEE Transactions on Computers},
+  volume    = {74},
+  number    = {2},
+  pages     = {401--413},
+  doi       = {10.1109/TC.2024.3483631},
   year      = {2024},
   note      = {Platform: VisionFive~2 (SiFive U74, RV64IMB, in-order dual-issue). Kyber1024 + Dilithium5. Keccak 59.18\% speedup, NTT 76--85\% speedup, end-to-end 60--65\% speedup vs reference}
 }
@@ -455,10 +459,10 @@
 
 @misc{Ras2026-FAFFT-RISCV,
   author       = {Antonio Ras and Antoine Loiseau and Mika{\"e}l Carmona and Simon Ponti{\'e} and Gu{\'e}na{\"e}l Renault and Benjamin Smith and Emanuele Valea},
-  title        = {{PHOENIX}: Crypto-Agile Hardware Sharing for {ML-KEM} and {HQC}},
+  title        = {Optimizing {HQC} using {Frobenius} Additive {FFT} on a {RISC-V}-based {System-on-Chip}},
   year         = {2025},
-  howpublished = {Cryptology {ePrint} Archive, Paper 2025/601},
-  url          = {https://eprint.iacr.org/2025/601},
+  howpublished = {6th NIST PQC Standardization Conference; HAL Archive, Paper cea-05318642},
+  url          = {https://cea.hal.science/cea-05318642},
   note         = {FAFFT on RV32 SoC (CV32E40P) with ANDROMEDA platform, Xilinx Kintex-7 FPGA. $\times$9.64--$\times$19.22 speedup with hardware coprocessor}
 }
 

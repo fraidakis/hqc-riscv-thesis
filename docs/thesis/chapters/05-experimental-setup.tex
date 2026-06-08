@@ -1266,8 +1266,9 @@ machine.  Η διάταξη τμημάτων ακολουθεί τη σειρά 
     (μέγιστο throughput), ενεργή σε vector targets.  Η \code{memcpy} χρησιμοποιεί
     strip-mining με \code{vle8}/\code{vse8} σε \SEW $= 8$, επεξεργαζόμενη
     $\VLEN \times 8 / 8 = \VLEN$ bytes ανά iteration.  Για \VLEN $= \num{256}$
-    bits, κάθε iteration μεταφέρει \num{256} bytes — \speedup{32} σε throughput
-    έναντι του byte-by-byte fallback.
+    bits, κάθε iteration μεταφέρει \num{256} bytes — θεωρητικό ανώτατο
+    όριο \speedup{256} σε εντολές/iteration έναντι του byte-by-byte scalar
+    fallback (1~byte/εντολή).
 \end{itemize}
 
 \noindent
@@ -1446,10 +1447,6 @@ register.  Πέραν αυτών των δύο σημείων, κανένας κ
     (\cf \cref{sec:polymul-scalar}) και στην αριθμητική $\GF{2^8}$ του
     Reed-Solomon decoder.
 
-  \item \textbf{Scalar \gls{zbb}} (\code{<riscv\_bitmanip.h>}):
-    \code{\_\_riscv\_ror\_64()} — \num{64}-bit rotation στο θ-step του Keccak
-    (scalar path).
-
   \item \textbf{\RVV 1.0} (\code{<riscv\_vector.h>}):
     \code{\_\_riscv\_vsetvl\_e64m4()}, \code{\_\_riscv\_vle64\_v\_u64m4()},
     \code{\_\_riscv\_vxor\_vv\_u64m4()}, \code{\_\_riscv\_vse64\_v\_u64m4()} —
@@ -1496,6 +1493,9 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
     Bitwise patterns σε βοηθητικές ρουτίνες.  Η έκφραση \code{\textasciitilde a \& b}
     μεταγλωττίζεται σε \insn{andn}, ενώ rotation idioms
     (\code{(x << n) | (x >> (64-n))}) μεταγλωττίζονται σε \rori.
+    Χαρακτηριστικό παράδειγμα: η \code{rol1\_zbb()} στο θ-step του Keccak
+    (scalar path) εκφράζεται ως \code{ROL(x,\,1)} και μεταγλωττίζεται
+    αυτόματα σε \code{rori rd, rs, 63}.
 \end{itemize}
 
 \noindent
@@ -1530,12 +1530,12 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
       Δεν υπάρχει intrinsic \\
     \addlinespace
     C Intrinsics & \code{gf2x\_vclmul.c}, \code{gf2x\_clmul.c},
-      \code{fips202\_zvbb\_x2.c}, \code{gf.c} &
+      \code{fips202\_zvbb\_x2.c}, \code{gf.c}, \code{vector.c} &
       \clmul, \clmulh, \vclmul, \vclmulh, \vror, \insn{vandn},
       \insn{vle64}, \insn{vse64}, \insn{vxor} &
       Type safety, optimizer visibility, portability \\
     \addlinespace
-    Auto-Lowering & \code{vector.c}, recomposition loops &
+    Auto-Lowering & \code{vector.c} (Zba/Zbs), recomposition loops &
       \insn{sh3add} (Zba), \insn{bset} (Zbs), \insn{andn} (Zbb) &
       Μηδενική αλλαγή κώδικα \\
     \bottomrule
