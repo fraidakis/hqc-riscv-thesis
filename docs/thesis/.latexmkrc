@@ -26,8 +26,16 @@ symlink("build/figures-cache", "figures-cache")
 $lualatex = 'lualatex -shell-escape -interaction=batchmode -synctex=1 %O %S';
 $f = 1;  # latexmk -f: continue even if lualatex returns non-zero
 
-# Use biber (not bibtex) — override the bibtex command to call biber
-$bibtex = 'biber --input-directory . %O %B';
+# Bibliography backend = biber. latexmk auto-detects the .bcf file and runs the
+# $biber command (NOT $bibtex), so the previous `$bibtex = 'biber ...'` override
+# was dead code; worse, its `--input-directory .` pointed biber at the project
+# root while the .bcf lives under $out_dir=build/, so if it had ever been used it
+# would fail to find build/main.bcf and silently leave main.bbl unbuilt.
+# Use the correct $biber command and force the bib step to always run, so the
+# bibliography/cross-reference cycle (lualatex -> biber -> lualatex x2) can never
+# be skipped (which is what makes every \cite / \cref render as "??").
+$biber = 'biber %O %S';   # %S = build/main.bcf (out_dir-aware)
+$bibtex_use = 2;          # always run biber when the document cites
 
 # Clean extensions
 # Note: build/figures-cache/ PDFs are NOT cleaned here (intentional cache).

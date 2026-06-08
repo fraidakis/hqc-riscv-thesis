@@ -90,14 +90,37 @@
 % the subprocess context — causing "File ended while scanning \@writefile".
 % \nofiles makes \@writefile a no-op, fixing this without side effects on
 % figure rendering (figures don't need to write toc/lot/lof entries).
-% Detection: in subprocess mode \jobname = "figures-cache/figname" != "main".
+%
+% Detection: in the figure subprocess the system call (see \tikzset above) passes
+% -jobname "\image", so \jobname expands to the figure's cache filename
+% (e.g. "ch3-riscv-rvv-xor-example") — never "main".
+% In the main full run, \jobname = "main".
+% In chapter-only or figures-parallel pass-1, lualatex is invoked without
+% -jobname, so \jobname = "texput".
+%
+% IMPORTANT: \jobname produces catcode-12 tokens; a literal "main" in TeX
+% source has catcode-11 letter tokens.  \ifx comparison fails across catcodes.
+% We use \detokenize{main} to normalise both sides to catcode-12 before \ifx.
+%
+% Summary of \nofiles cases:
+%   • figure subprocess  → \jobname = <figure> ≠ "main", ≠ "texput" → \nofiles ✓
+%   • main full run      → \jobname = "main"  = \detokenize{main}    → skip    ✓
+%   • chapter-only       → \jobname = "texput"= \detokenize{texput}  → skip    ✓
+%   • figures-parallel 1 → \jobname = "texput"                       → skip    ✓
+\makeatletter
 \AtBeginDocument{%
-  \edef\tikz@extern@jobname{\jobname}%
-  \edef\tikz@extern@mainname{main}%
-  \ifx\tikz@extern@jobname\tikz@extern@mainname\else
-    \nofiles  % subprocess: suppress all aux file writes
+  \ifdefined\tikzexternalrealjob
+    \edef\pgf@tempa{\jobname}%
+    \edef\pgf@tempb{\detokenize{main}}%
+    \edef\pgf@tempc{\detokenize{texput}}%
+    \ifx\pgf@tempa\pgf@tempb\else    % not the main run
+      \ifx\pgf@tempa\pgf@tempc\else  % not a texput (chapter-only / pass-1) run
+        \nofiles  % we are in a tikz/external figure subprocess
+      \fi
+    \fi
   \fi
 }
+\makeatother
 
 
 % --- Tables ---
