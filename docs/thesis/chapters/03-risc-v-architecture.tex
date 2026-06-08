@@ -55,7 +55,8 @@ Lee~\cite{Waterman2011-riscv}. Η αρχική κινητήρια δύναμη �
 στην~\cref{ssec:agility-requirement}. Η απουσία vendor lock-in εγγυάται ότι
 κώδικας γραμμένος για τυποποιημένες επεκτάσεις (π.χ.\ \gls{zbc}, \gls{zvbc}) εκτελείται
 σε οποιαδήποτε συμβατή υλοποίηση, ανεξαρτήτως κατασκευαστή. Ο οργανισμός
-RISC-V International, που ιδρύθηκε το 2015, διαχειρίζεται τη διαδικασία
+RISC-V International — ιδρυθείς ως RISC-V Foundation το 2015 και
+μετονομασθείς σε RISC-V International το 2020 — διαχειρίζεται τη διαδικασία
 τυποποίησης και διασφαλίζει τη συμβατότητα μεταξύ υλοποιήσεων μέσω
 compliance test suites.
 
@@ -132,8 +133,9 @@ M-mode. Η παρούσα εργασία εκτελεί αποκλειστικά
 όπου \code{XLEN} είναι το πλάτος καταχωρητών (32 ή 64), \code{base} είναι
 το base ISA (I), και \code{extensions} είναι η λίστα ενεργών επεκτάσεων. Η
 συντομογραφία \code{G} (General) αντιστοιχεί στο σύνολο
-\code{IMAFD} — δηλαδή base integer, πολλαπλασιασμός/διαίρεση, atomics,
-single-precision floating-point και double-precision floating-point. Η
+\code{IMAFDZicsr\_Zifencei} — δηλαδή base integer, πολλαπλασιασμός/διαίρεση,
+atomics, single-precision και double-precision floating-point, καθώς και τις
+υποχρεωτικές επεκτάσεις \code{Zicsr} και \code{Zifencei}. Η
 επέκταση \code{C} (Compressed) προσθέτει 16-bit εντολές για μείωση code
 density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} αντιστοιχεί στο
 πλήρες \code{RV64IMAFDC} — το ελάχιστο σύνολο για γενικού σκοπού εφαρμογές
@@ -215,17 +217,17 @@ Android RISC-V ABI και στοχεύεται από κάθε σημαντικ�
 
 \paragraph{Concrete hardware: SpacemiT K1 X60.}
 Ως συγκεκριμένο παράδειγμα RVA22-compliant hardware, ο επεξεργαστής SpacemiT K1
-X60 (Banana Pi BPI-F3) υλοποιεί RV64GCVB με \VLEN $= \num{256}$~bits και
+X60 (Banana Pi BPI-F3) υλοποιεί RV64GCVB με $\VLEN = \num{256}$~bits και
 dual-issue in-order pipeline. Η πλατφόρμα αυτή χρησιμοποιείται στην παρούσα
 εργασία ως hardware validation platform για επικύρωση των αποτελεσμάτων σε
 πραγματικό silicon (λεπτομέρειες στην~\cref{ssec:bpi-f3}). Ο K1 X60 υποστηρίζει
-εγγενώς τις scalar επεκτάσεις (\gls{zbc}, \gls{zbb}) και τη διανυσματική μονάδα \RVV~1.0,
+εγγενώς τις scalar επεκτάσεις (\gls{zbc}, \gls{zbb}) και τη διανυσματική μονάδα \gls{rvv},
 καλύπτοντας πλήρως τα Tier~1 και Tier~2 variants, αλλά δεν υλοποιεί τις
 Vector-Crypto επεκτάσεις \gls{zvbc} και \gls{zvbb} — αυτές απαιτούν συμμόρφωση με το
 προφίλ RVA23, το οποίο δεν είναι ακόμη διαθέσιμο σε silicon. Η ύπαρξη
-εμπορικού hardware που υποστηρίζει τις επεκτάσεις Tier~1 και Tier~2 επιβεβαιώνει
-ότι η προσέγγιση της παρούσας εργασίας δεν αποτελεί θεωρητική άσκηση αλλά
-στοχεύει ήδη διαθέσιμες πλατφόρμες.
+εμπορικού hardware που υποστηρίζει τις επεκτάσεις Tier~1 και Tier~2
+καταδεικνύει ότι η προσέγγιση της παρούσας εργασίας στοχεύει ήδη
+διαθέσιμες πλατφόρμες.
 
 \subsection{Σύγκριση Σχεδιαστικής Φιλοσοφίας με ARM και x86}
 \label{ssec:arch-comparison}
@@ -262,7 +264,7 @@ x86-64. Η \cref{tab:arch-comparison} συνοψίζει τις θεμελιώδ
     \addlinespace
     Vector μοντέλο &
       VLA (μεταβλητό VLEN) &
-      SVE: VLA (128–2048 bit) NEON: σταθερό 128-bit &
+      SVE: VLA (128–2048 bit); NEON: σταθερό 128-bit &
       Σταθερό (128/256/512-bit) \\
     \addlinespace
     Register file &
@@ -288,19 +290,19 @@ compressed εντολές αποσυμπιέζονται σε πλήρεις 32-
 Οι τρεις αρχιτεκτονικές ακολουθούν θεμελιωδώς διαφορετικές φιλοσοφίες στην
 υποστήριξη κρυπτογραφικών πράξεων. Η ARM παρέχει \defterm{dedicated
 macro-operations}: εντολές όπως η EOR3 (τριπλό XOR), η RAX1 (rotate-and-XOR)
-και η BCAX (bit-clear-and-XOR) σχεδιάστηκαν αποκλειστικά για τα βήματα θ, ρ
-και χ του Keccak~\cite{RISCV-crypto-spec}. Αυτές οι εντολές μεγιστοποιούν
+και η BCAX (bit-clear-and-XOR) σχεδιάστηκαν για την επιτάχυνση των βημάτων θ, ρ
+και χ του Keccak~\cite{arm-arm-aprofile}. Αυτές οι εντολές μεγιστοποιούν
 την απόδοση για τον συγκεκριμένο αλγόριθμο αλλά δεν εξυπηρετούν άλλες
 εφαρμογές. Η x86-64 παρέχει \defterm{wide SIMD}: η εντολή
 \insn{vpclmulqdq} εκτελεί carry-less multiplication σε 512-bit ZMM
-registers, επεξεργαζόμενη \num{8} ζεύγη 64-bit πολυωνύμων ταυτόχρονα — αλλά
+registers~\cite{intel-sdm}, επεξεργαζόμενη \num{4} ζεύγη 64-bit πολυωνύμων ταυτόχρονα — αλλά
 απαιτεί σταθερό πλάτος register file και δεν κλιμακώνεται σε μικρότερες
 υλοποιήσεις.
 
 Το RISC-V ακολουθεί μια ενδιάμεση προσέγγιση: \defterm{γενικού σκοπού
 κρυπτογραφικές extensions}. Η εντολή \clmul εκτελεί carry-less
 multiplication — χρήσιμη τόσο στον \gls{hqc} (πολυωνυμικός πολλαπλασιασμός σε
-$\GF{2}[x]$) όσο και σε GCM, CRC, GHASH και Barrett reduction. Η εντολή
+$\GF{2}[x]$) όσο και σε GHASH/GCM, CRC και Barrett reduction. Η εντολή
 \vror εκτελεί vector rotation — χρήσιμη τόσο στον Keccak (βήμα ρ) όσο και
 σε ChaCha20, BLAKE3 και γενικό bit-manipulation. Αυτή η φιλοσοφία θυσιάζει
 μέρος της peak single-operation απόδοσης (μία \insn{EOR3} αντικαθιστά τρεις
@@ -405,10 +407,10 @@ $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογισ�
 απαιτεί έναν βρόχο \num{64} επαναλήψεων: σε κάθε επανάληψη εξάγεται ένα bit
 του δεύτερου τελεστέου, δημιουργείται μάσκα, εκτελείται conditional XOR του
 ολισθημένου πρώτου τελεστέου, και ενημερώνεται ο συσσωρευτής. Η διαδικασία
-απαιτεί περίπου \num{640} εντολές ανά 64-bit γινόμενο (10 εντολές ανά
+απαιτεί περίπου \num{704} εντολές ανά 64-bit γινόμενο (11 εντολές ανά
 επανάληψη $\times$ 64 επαναλήψεις). Με τη \gls{zbc}, το ίδιο αποτέλεσμα
 παράγεται σε ακριβώς \num{2} εντολές: \clmul (κάτω 64~bit) και \clmulh
-(άνω 64~bit). Η μείωση ανέρχεται σε \speedup{320} σε instruction count
+(άνω 64~bit). Η μείωση αντιστοιχεί σε παράγοντα \speedup{352} σε instruction count
 ανά στοιχειώδες γινόμενο — μια μετάβαση που μετασχηματίζει τον πολυωνυμικό
 πολλαπλασιασμό από compute-bound σε memory-bound πρόβλημα.
 
@@ -419,9 +421,9 @@ $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογισ�
   \centering
   \input{figures/ch3-riscv/clmul-before-after.tex}
   \caption{Σύγκριση assembly για πολλαπλασιασμό 64-bit πολυωνύμων σε
-    $\GFpoly$. Αριστερά: naive shift-and-XOR βρόχος (\num{640} εντολές).
+    $\GFpoly$. Αριστερά: naive shift-and-XOR βρόχος (\num{704} εντολές).
     Δεξιά: ζεύγος \clmul/\clmulh (\num{2} εντολές). Η μείωση
-    \speedup{320} σε instruction count αποτελεί τη θεμελιώδη βελτιστοποίηση
+    \speedup{352} σε instruction count αποτελεί τη θεμελιώδη βελτιστοποίηση
     του Tier~1 scalar path (βλ.~\cref{sec:polymul-scalar}).}
   \label{fig:clmul-before-after}
 \end{figure}
@@ -441,9 +443,10 @@ instruction scheduling, CSE), σε αντίθεση με inline assembly που 
 αξιοποιείται και στην αριθμητική $\GF{2^8}$ που απαιτεί ο αποκωδικοποιητής
 Reed-Solomon (βλ.~\cref{sec:ecc-theory}). Ο πολλαπλασιασμός δύο
 στοιχείων $a, b \in \GF{2^8}$ υπολογίζεται ως carry-less product ακολουθούμενο
-από modular reduction ως προς το αναγωγικό πολυώνυμο $x^8 + x^4 + x^3 + x + 1$.
-Η \clmul υπολογίζει το 16-bit γινόμενο σε μία εντολή (αντί \num{56} εντολών
-στον software βρόχο της reference υλοποίησης), ενώ η reduction εκτελείται σε
+από modular reduction ως προς το αναγωγικό πολυώνυμο $x^8 + x^4 + x^3 + x^2 + 1$ (0x11D).
+Η \clmul υπολογίζει το 16-bit γινόμενο σε μία εντολή (αντί περίπου
+\num{100} εντολών στον constant-time software βρόχο της reference
+υλοποίησης~\cite{Brent2008-gf2x}), ενώ η reduction εκτελείται σε
 σταθερό αριθμό shift-and-XOR πράξεων.
 
 \subsection{Η Επέκταση \Zbb: Basic Bit-Manipulation}
@@ -469,12 +472,12 @@ Reed-Solomon (βλ.~\cref{sec:ecc-theory}). Ο πολλαπλασιασμός δ
 
 \paragraph{Αντιστοίχιση σε Keccak.}
 Η εσωτερική μετάθεση Keccak-f[1600] (βλ.~\cref{sec:keccak-theory}) απαιτεί
-\num{25} lane rotations ανά γύρο (βήμα $\rho$) και \num{5} AND-NOT πράξεις
+\num{24} μη τετριμμένες lane rotations ανά γύρο (βήμα $\rho$) και \num{5} AND-NOT πράξεις
 ανά σειρά (βήμα $\chi$). Χωρίς \gls{zbb}, κάθε 64-bit rotation απαιτεί δύο
 εντολές shift και μία OR (\code{slli} + \code{srli} + \code{or} = 3 εντολές),
 ενώ κάθε AND-NOT απαιτεί μία αντιστροφή και μία AND (\code{not} + \code{and}
 = 2 εντολές). Με \gls{zbb}, η rotation εκτελείται σε μία \rori και η AND-NOT σε
-μία \insn{andn} — μείωση \pct{67} και \pct{50} αντίστοιχα σε instruction
+μία \insn{andn} — μείωση κατά παράγοντα \speedup{3} και \speedup{2} αντίστοιχα σε instruction
 count ανά πράξη.
 
 \paragraph{Μηχανισμός auto-lowering.}
@@ -512,7 +515,8 @@ GHASH), αλλά δεν αξιοποιείται στην παρούσα υλο�
   \centering
   \caption{Scalar κρυπτογραφικές εντολές και η αντιστοίχισή τους σε
     primitives της παρούσας εργασίας. Η στήλη \q{Χωρίς extension} δείχνει
-    τον αριθμό base-integer εντολών που απαιτούνται για ισοδύναμη λειτουργία.}
+    τον ενδεικτικό αριθμό base-integer εντολών μιας τυπικής ακολουθίας για
+    ισοδύναμη λειτουργία (ο ακριβής αριθμός εξαρτάται από τον compiler).}
   \label{tab:scalar-crypto-instructions}
   \small
   \begin{tabular}{lllcl}
@@ -533,12 +537,11 @@ GHASH), αλλά δεν αξιοποιείται στην παρούσα υλο�
 \paragraph{Σύνοψη αρχιτεκτονικής συνεισφοράς.}
 Οι scalar κρυπτογραφικές επεκτάσεις μετασχηματίζουν τους δύο κυρίαρχους
 υπολογιστικούς πυρήνες του \gls{hqc} σε επίπεδο μεμονωμένων πράξεων: η \gls{zbc}
-μειώνει το κόστος κάθε στοιχειώδους πολυωνυμικού γινομένου κατά \speedup{320},
+μειώνει το κόστος κάθε στοιχειώδους πολυωνυμικού γινομένου κατά \speedup{352},
 ενώ η \gls{zbb} μειώνει το κόστος κάθε Keccak rotation και AND-NOT κατά
 \speedup{3} και \speedup{2} αντίστοιχα. Η αξιοποίηση αυτών των εντολών στο
 πλαίσιο ολόκληρου του αλγορίθμου — μέσω Karatsuba recursion, software
-pipelining και compile-time code generation — παρουσιάζεται αναλυτικά στα
-Κεφάλαια~\ref{ch:polymul-optimization} και~\ref{ch:kernel-optimization}.
+pipelining και compile-time code generation — παρουσιάζεται αναλυτικά στο~\cref{ch:polymul-optimization} και στο~\cref{ch:kernel-optimization}.
 
 \section{Αρχιτεκτονική Διανυσματικής Μονάδας (RVV 1.0)}
 \label{sec:rvv-architecture}
@@ -583,7 +586,7 @@ binary εκτελείται σε οποιοδήποτε hardware \VLEN χωρί�
 από τα packed-SIMD μοντέλα παλαιότερων αρχιτεκτονικών. Η πρακτική συνέπεια
 είναι ότι κώδικας γραμμένος σήμερα για \VLEN=256 θα αξιοποιήσει αυτόματα
 μελλοντικό υλικό με \VLEN=512 ή \VLEN=1024 — η ανάλυση κλιμάκωσης ως προς
-\VLEN παρουσιάζεται στο \cref{ch:results}.
+\VLEN παρουσιάζεται στο~\cref{ch:results}.
 
 \subsection{Control/Status Registers και Παραμετροποίηση}
 \label{ssec:rvv-csrs}
@@ -629,7 +632,7 @@ binary εκτελείται σε οποιοδήποτε hardware \VLEN χωρί�
 
 \paragraph{Παράδειγμα.}
 Σε hardware με $\VLEN = 256$, η ρύθμιση $\SEW = 64$, $\LMUL = 1$ παρέχει
-$\VLMAX = 256 / 64 \times 1 = 4$ στοιχεία ανά vector register. Αυξάνοντας
+$\VLMAX = 256 / 64 \times 1 = 4$ στοιχεία ανά vector register (\cref{eq:vlmax}). Αυξάνοντας
 σε $\LMUL = 4$, τέσσερις διαδοχικοί καταχωρητές ομαδοποιούνται σε ένα
 logical register group, παρέχοντας $\VLMAX = 16$ στοιχεία — αρκετά για να
 καλύψουν ολόκληρο τον Karatsuba leaf ($n = 16$ λέξεις) σε μία vector
@@ -684,7 +687,10 @@ iterations (η τελευταία με $\code{vl} = 4$). Ο κώδικας πα�
 \paragraph{Πρακτικό παράδειγμα: VLA helper.}
 Η ακόλουθη συνάρτηση αποτελεί πραγματικό κώδικα από την παρούσα υλοποίηση
 — εκτελεί element-wise XOR δύο arrays 64-bit λέξεων χρησιμοποιώντας
-strip-mining με $\SEW = 64$, $\LMUL = 4$ (\cref{lst:rvv-xor-helper}):
+strip-mining με $\SEW = 64$, $\LMUL = 4$ (\cref{lst:rvv-xor-helper}) — η
+επιλογή $\LMUL = 4$ (αντί του πιο επιθετικού $\LMUL = 8$ του γενικού XOR
+παραδείγματος) περιορίζει το register pressure των ενδιάμεσων Karatsuba
+αποτελεσμάτων:
 
 \begin{lstlisting}[language=C, caption={VLA helper \code{rvv\_xor\_u64} από
   τον Karatsuba recomposition πυρήνα. Η παραμετροποίηση $\LMUL = 4$
@@ -706,8 +712,7 @@ static inline void rvv_xor_u64(uint64_t *dst,
 \end{lstlisting}
 
 Η συνάρτηση αυτή αντικαθιστά τον scalar 4$\times$-unrolled βρόχο στον
-generated Karatsuba header, μειώνοντας τον αριθμό εντολών ανά στοιχείο
-και ενεργοποιώντας κλιμάκωση ως προς \VLEN (βλ.~\cref{ch:results}).
+generated Karatsuba header (ποσοτική ανάλυση στο~\cref{ch:results}).
 
 \subsection{Tail/Mask Policies και Κατηγορίες Εντολών}
 \label{ssec:rvv-policies-instructions}
@@ -734,8 +739,9 @@ inactive elements — η ορθότητα εξασφαλίζεται μέσω τ
 κάθε bit $i$ του \code{v0} καθορίζει αν το στοιχείο $i$ θα επεξεργαστεί
 (bit = 1) ή θα παραμείνει ανεπηρέαστο (bit = 0). Η παρούσα εργασία
 αξιοποιεί masked operations στον constant-time sampling πυρήνα
-(βλ.~\cref{sec:polymul-scalar}), όπου η εντολή \insn{vmseq} παράγει mask
-και η \insn{vcpop} μετράει τα ενεργά bits.
+(βλ.~\cref{sec:decode-rvv}), όπου η εντολή \insn{vmseq} παράγει mask, η
+\insn{vcpop} μετράει τα ενεργά bits και η \insn{vfirst} εντοπίζει το πρώτο
+ενεργό στοιχείο.
 
 \paragraph{LMUL register grouping.}
 Ο μηχανισμός \gls{lmul} επιτρέπει την ομαδοποίηση διαδοχικών vector
@@ -785,7 +791,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
   \input{figures/ch3-riscv/rvv-instruction-categories.tex}
 \end{table}
 
-\subsection{Motivating Example: XOR Loop σε RVV}
+\subsection{Ολοκληρωμένο Παράδειγμα: XOR Loop σε RVV}
 \label{ssec:rvv-xor-example}
 
 Η πρακτική εφαρμογή των μηχανισμών strip-mining, \insn{vsetvl} και VLA
@@ -806,15 +812,17 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
   \label{fig:rvv-xor-comparison}
 \end{figure}
 
-Η scalar υλοποίηση εκτελεί \num{3} εντολές ανά στοιχείο (load, XOR,
-store) σε \code{size} iterations. Η \RVV υλοποίηση εκτελεί \num{5}
-εντολές ανά iteration (\insn{vsetvli} + \insn{vle64} $\times 2$ +
-\insn{vxor} + \insn{vse64}), αλλά κάθε iteration επεξεργάζεται \VLMAX
-στοιχεία. Σε $\VLEN = 256$, $\LMUL = 8$: $\VLMAX = 32$ στοιχεία ανά
-iteration, δηλαδή $5 / 32 \approx 0.16$ εντολές ανά στοιχείο — μείωση
-\speedup{19} σε instruction count. Η πραγματική μείωση εξαρτάται από τον
-αριθμό στοιχείων (overhead \insn{vsetvli} αμελητέο για μεγάλα arrays) και
-τη ρύθμιση \LMUL.
+Η scalar υλοποίηση εκτελεί \num{3} core εντολές ανά στοιχείο (load, XOR,
+store), εξαιρουμένου του loop overhead (increment, compare, branch), σε
+\code{size} iterations. Η \RVV υλοποίηση εκτελεί \num{5} εντολές ανά
+iteration (\insn{vsetvli} + \insn{vle64} $\times 2$ + \insn{vxor} +
+\insn{vse64}), αλλά κάθε iteration επεξεργάζεται \VLMAX στοιχεία. Σε
+$\VLEN = 256$, $\LMUL = 8$: $\VLMAX = 32$ στοιχεία ανά iteration, δηλαδή
+$5 / 32 \approx 0.16$ εντολές ανά στοιχείο — λόγος instruction count
+περίπου \num{19}:1 (όχι κατ' ανάγκη ισοδύναμος με runtime speedup, ο οποίος
+εξαρτάται από microarchitecture και memory bandwidth). Η πραγματική μείωση
+εξαρτάται από τον αριθμό στοιχείων (overhead \insn{vsetvli} αμελητέο για
+μεγάλα arrays) και τη ρύθμιση \LMUL.
 
 Η συνάρτηση \code{vect\_add} αποτελεί χαρακτηριστικό παράδειγμα
 auto-vectorization candidate: ο scalar βρόχος είναι αρκετά απλός ώστε ο
@@ -840,7 +848,7 @@ Keccak permutation, και στη vectorized \code{memcpy}. Η ομοιομορ�
 φυσική προέκταση των scalar επεκτάσεων \gls{zbc} και \gls{zbb}
 (βλ.~\cref{sec:scalar-extensions}) στο vector domain. Τυποποιήθηκαν τον
 Σεπτέμβριο 2023 ως μέρος του Volume~II (Vector Cryptography) της
-προδιαγραφής RISC-V Cryptography Extensions~\cite{RISCV-crypto-spec} και
+προδιαγραφής RISC-V Cryptography Extensions~\cite{RISCV-crypto-spec,RISCV-crypto-vol2} και
 αποτελούν τη βάση του Tier~3 profile της παρούσας εργασίας.
 Η ενότητα αυτή παρουσιάζει τη σημασιολογία κάθε εντολής, την αντιστοίχισή
 της σε κρυπτογραφικά primitives, και τον λόγο που αυτές οι εντολές δεν
@@ -877,7 +885,8 @@ Keccak permutation, και στη vectorized \code{memcpy}. Η ομοιομορ�
 j + \code{vl} - 1]$ μέσω ενός ζεύγους \vclmul/\vclmulh (sweep). Αυτό
 αντικαθιστά \code{vl} ζεύγη scalar \clmul/\clmulh με \num{3} vector
 εντολές (\insn{vmv.v.x} + \vclmul + \vclmulh), μειώνοντας τον αριθμό
-δυναμικών εντολών κατά παράγοντα $\sim\!\VLMAX / 3$.
+δυναμικών εντολών κατά παράγοντα $\sim\!2\,\VLMAX / 3$ (κάθε leaf
+αντικαθιστά $2\,\VLMAX$ scalar εντολές με \num{3} vector εντολές).
 
 \paragraph{Περιορισμός \SEW.}
 Η \gls{zvbc} υποστηρίζει αποκλειστικά $\SEW = 64$ — δεν ορίζονται εκδόσεις
@@ -903,18 +912,24 @@ operations πάνω στα 64-bit αποτελέσματα. Στην παρού�
   \item \insn{vandn.vv}~\code{vd, vs2, vs1}: AND-NOT ανά στοιχείο
     ($\text{vs2}[i] \wedge \overline{\text{vs1}[i]}$).
   \item \insn{vbrev8.v}~\code{vd, vs2}: bit-reverse εντός κάθε byte
-    κάθε στοιχείου.
+    κάθε στοιχείου — χρήσιμη σε bit-reflection (\eg CRC, GHASH), αλλά εκτός
+    του hot path του \gls{hqc} στην παρούσα υλοποίηση.
 \end{itemize}
 
 \paragraph{Αντιστοίχιση σε Keccak.}
 Η εσωτερική μετάθεση Keccak-f[1600] (βλ.~\cref{sec:keccak-theory})
 αποτελεί τον κύριο beneficiary της \gls{zvbb} στην παρούσα εργασία. Το βήμα
-$\rho$ (lane rotation) απαιτεί \num{25} rotations ανά γύρο με
-διαφορετικό offset ανά lane — η \insn{vror.vv} εκτελεί όλες τις
+$\rho$ (lane rotation) απαιτεί \num{24} μη τετριμμένες rotations ανά γύρο
+(ένα lane παραμένει αμετάβλητο) με διαφορετικό offset ανά lane — η \insn{vror.vv} εκτελεί όλες τις
 rotations ενός vector register σε μία εντολή, χρησιμοποιώντας ένα
 δεύτερο vector register ως πίνακα offsets. Το βήμα $\chi$ (μη γραμμικό
 βήμα) απαιτεί \num{5} AND-NOT πράξεις ανά σειρά — η \insn{vandn.vv}
 εκτελεί κάθε μία σε μία εντολή αντί δύο (inversion + AND).
+
+Η παρούσα εργασία υλοποιεί δύο εναλλακτικά vector backends για τον Keccak
+(αναλυτικά στο~\cref{sec:keccak-zvbb-soa}): (α) ένα μονό register group με
+$\LMUL = 8$ και \insn{vrgather} για τη μετάθεση, και (β) μια 2-way SoA
+διάταξη με \insn{vror.vi}.
 
 Στη vectorized υλοποίηση Keccak (LMUL=8, $\VLEN \geq 256$), ολόκληρο
 το 25-lane state φορτώνεται σε ένα vector register group. Τα βήματα
@@ -928,20 +943,23 @@ $\rho$ και $\pi$ εκτελούνται μέσω ενός ζεύγους \ins
 
 \paragraph{Η \insn{vror.vi} και compile-time immediates.}
 Η μορφή \insn{vror.vi} (immediate rotation) αποτελεί ιδιαίτερα σημαντική
-βελτιστοποίηση για τον Keccak: τα rotation offsets του βήματος $\rho$
-είναι σταθερές γνωστές κατά τη μεταγλώττιση (0, 1, 62, 28, 27, 36, 44,
-\ldots). Στη 2-way SoA (Structure-of-Arrays) υλοποίηση, κάθε lane
-αποθηκεύεται σε ξεχωριστό vector register ($\LMUL = 1$, \code{vl} = 2
-streams), και η rotation εκτελείται μέσω \insn{vror.vx} με scalar
-immediate — ο compiler εκπέμπει \insn{vror.vi} για offsets $\leq 31$
-και \insn{li} + \insn{vror.vx} για offsets $32$–$63$. Αυτό εξαλείφει
-πλήρως τις memory loads για τον πίνακα rotation offsets.
+βελτιστοποίηση για τον Keccak: τα rotation amounts του βήματος $\rho$
+είναι σταθερές γνωστές κατά τη μεταγλώττιση — οι precomputed
+right-rotation immediates (που ενσωματώνουν και τη μετάθεση π) είναι
+$(0, 20, 21, 43, 50, 36, 44, 61, 19, 3, 63, 58, 39, 56, 46, 37, 28, 54,
+49, 8, 2, 9, 25, 23, 62)$. Στη 2-way SoA (Structure-of-Arrays) υλοποίηση,
+κάθε lane αποθηκεύεται σε ξεχωριστό vector register ($\LMUL = 1$,
+\code{vl} = 2 streams), και η rotation εκτελείται μέσω \insn{vror.vi} με
+6-bit immediate που καλύπτει ολόκληρο το εύρος offsets $0$–$63$ σε μία
+εντολή (η \insn{vror.vx} δέχεται το rotation amount από GPR). Αυτό
+εξαλείφει πλήρως τις memory loads για τον πίνακα rotation offsets.
 
 \subsection{Ποσοτική Σύγκριση: Before/After}
 \label{ssec:zvbc-zvbb-comparison}
 
-Η \cref{tab:zvbc-zvbb-before-after} συνοψίζει την ποσοτική επίπτωση
-των \gls{zvbc} και \gls{zvbb} σε τυπικές κρυπτογραφικές πράξεις. Η σύγκριση
+Οι επεκτάσεις \gls{zvbc} και \gls{zvbb} μειώνουν δραστικά τον αριθμό vector
+εντολών ανά κρυπτογραφική πράξη· η \cref{tab:zvbc-zvbb-before-after}
+συνοψίζει την ποσοτική επίπτωσή τους σε τυπικές πράξεις. Η σύγκριση
 αφορά τον αριθμό vector εντολών ανά πράξη — η πραγματική μείωση σε
 δυναμικές εντολές εξαρτάται από τον αριθμό επαναλήψεων κάθε πράξης
 στον αλγόριθμο.
@@ -961,9 +979,10 @@ iteration του εσωτερικού βρόχου εκτελεί ένα ζεύ�
 αντικαθιστά $\VLMAX$ ζεύγη scalar \clmul/\clmulh. Σε $\VLEN = 256$,
 $\LMUL = 4$: $\VLMAX = 16$, δηλαδή \num{16} carry-less γινόμενα ανά
 ζεύγος vector εντολών. Η \gls{zvbb} παρέχει μικρότερη αλλά σταθερή βελτίωση
-στον Keccak: \num{25} rotations $\times$ \num{24} γύρους $= 600$
-εξοικονομημένες εντολές ανά permutation call (2 εντολές αντί 3 ανά
-rotation).
+στον Keccak: η \insn{vror.vi} εκτελεί κάθε lane rotation σε \num{1} εντολή
+αντί \num{3} (\insn{vsll} + \insn{vsrl} + \insn{vor}), εξοικονομώντας
+περίπου \num{1200} εντολές ανά permutation call, όπως
+επιβεβαιώνεται εμπειρικά στο~\cref{ch:results}.
 
 \subsection{Αδυναμία Αυτόματης Εκπομπής από τον Compiler}
 \label{ssec:zvbc-no-autoemit}
@@ -1013,13 +1032,13 @@ pipeline (register allocation, scheduling), αλλά η επιλογή χρήσ�
 Οι επεκτάσεις \gls{zvbc} και \gls{zvbb} μετασχηματίζουν τους δύο κυρίαρχους
 υπολογιστικούς πυρήνες του \gls{hqc} στο vector domain: η \gls{zvbc} παρέχει
 $\VLMAX$-fold παραλληλισμό στον carry-less πολλαπλασιασμό (Karatsuba
-leaf), ενώ η \gls{zvbb} μειώνει κατά \speedup{3} τις εντολές rotation και
-κατά \speedup{2} τις εντολές AND-NOT στον Keccak. Σε συνδυασμό με τη
+leaf), ενώ η \gls{zvbb} μειώνει τις εντολές rotation κατά παράγοντα \num{3}
+($3 \to 1$) και τις εντολές AND-NOT κατά παράγοντα \num{2} ($2 \to 1$) στον
+Keccak. Σε συνδυασμό με τη
 \gls{vla} φιλοσοφία του \RVV, η απόδοση κλιμακώνεται αυτόματα με το
 hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα. Η αναλυτική
 παρουσίαση της αξιοποίησης αυτών των εντολών στους βελτιστοποιημένους
-πυρήνες ακολουθεί στα
-Κεφάλαια~\ref{ch:polymul-optimization} και~\ref{ch:kernel-optimization}.
+πυρήνες ακολουθεί στο~\cref{ch:polymul-optimization} και στο~\cref{ch:kernel-optimization}.
 
 
 \section{Μέθοδοι Προγραμματισμού RISC-V: Φάσμα Αφαίρεσης}
@@ -1029,9 +1048,9 @@ hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα
 προηγούμενες ενότητες απαιτεί κατάλληλη μέθοδο παραγωγής κώδικα. Η
 αρχιτεκτονική RISC-V παρέχει τέσσερις διακριτές μεθόδους, ταξινομημένες
 κατά φθίνοντα βαθμό ελέγχου του προγραμματιστή επί του παραγόμενου κώδικα
-μηχανής. Η ενότητα αυτή παρουσιάζει κάθε μέθοδο σε γενικό πλαίσιο —
-ανεξάρτητα εφαρμογής — ενώ η συγκεκριμένη αντιστοίχιση στους πυρήνες της
-παρούσας εργασίας τεκμηριώνεται στην~\cref{sec:methods-application}.
+μηχανής. Κάθε μέθοδος παρουσιάζεται σε γενικό πλαίσιο· η αντιστοίχισή της
+στους πυρήνες της παρούσας εργασίας τεκμηριώνεται
+στην~\cref{sec:methods-application}.
 
 Η \cref{fig:programming-spectrum} απεικονίζει το φάσμα αφαίρεσης: στο
 αριστερό άκρο ο προγραμματιστής ελέγχει πλήρως κάθε εντολή, ενώ στο δεξιό
@@ -1053,7 +1072,7 @@ hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα
 \subsection{Καθαρή Assembly (\texttt{.S} αρχεία)}
 \label{ssec:pure-assembly}
 
-Η πρώτη μέθοδος παρέχει πλήρη χειροκίνητο έλεγχο σε κάθε πτυχή του
+Η καθαρή assembly παρέχει πλήρη χειροκίνητο έλεγχο σε κάθε πτυχή του
 παραγόμενου κώδικα: register allocation, instruction ordering, memory
 layout, και ακριβή encoding κάθε εντολής. Ο μεταγλωττιστής δεν παρεμβαίνει
 — ο κώδικας assembly μεταφράζεται απευθείας σε κώδικα μηχανής χωρίς
@@ -1061,8 +1080,8 @@ layout, και ακριβή encoding κάθε εντολής. Ο μεταγλω�
 
 \paragraph{Ευθύνες του προγραμματιστή.}
 Η απουσία compiler intervention μεταφέρει ολόκληρο το βάρος ορθότητας στον
-προγραμματιστή. Η συμμόρφωση με το RISC-V calling convention (ABI) πρέπει
-να εξασφαλιστεί χειροκίνητα: σωστή χρήση caller-saved (\code{t0}–\code{t6},
+προγραμματιστή. Η συμμόρφωση με το RISC-V calling convention (ABI)~\autocite{RISCV-psABI}
+πρέπει να εξασφαλιστεί χειροκίνητα: σωστή χρήση caller-saved (\code{t0}–\code{t6},
 \code{a0}–\code{a7}) και callee-saved (\code{s0}–\code{s11}) καταχωρητών,
 ευθυγράμμιση stack pointer σε 16-byte boundary, και σωστή τοποθέτηση
 ορισμάτων/επιστρεφόμενων τιμών. Σφάλματα σε αυτά τα σημεία δεν ανιχνεύονται
@@ -1096,7 +1115,7 @@ inline assembly — αποτελεί privileged operation που απαιτεί 
 \subsection{Inline Assembly (\texttt{\_\_asm\_\_} / \texttt{\_\_asm\_\_ volatile})}
 \label{ssec:inline-assembly}
 
-Η δεύτερη μέθοδος ενσωματώνει μεμονωμένες εντολές assembly μέσα σε
+Η inline assembly ενσωματώνει μεμονωμένες εντολές assembly μέσα σε
 συναρτήσεις C. Ο μεταγλωττιστής αντιμετωπίζει τα \code{volatile} blocks
 ως \defterm{αδιαφανή} (opaque): δεν μπορεί να αναδιατάξει, εξαλείψει ή
 βελτιστοποιήσει γύρω τους. Η σύνδεση μεταξύ assembly εντολών και C
@@ -1126,9 +1145,8 @@ corruption: ο compiler μπορεί να τοποθετήσει είσοδο κ
 \glspl{csr} μέτρησης απόδοσης, για τις οποίες δεν υπάρχει C intrinsic (\cref{lst:csr-read}):
 
 \begin{lstlisting}[language=C,
-  caption={Ανάγνωση \code{mcycle} (CSR 0xb00) μέσω inline assembly. Η
-    δήλωση \code{volatile} εμποδίζει τον compiler να εξαλείψει ή
-    αναδιατάξει την ανάγνωση — κρίσιμο για ακρίβεια μετρήσεων.},
+  caption={Ανάγνωση \code{mcycle} (CSR 0xb00) μέσω inline assembly με
+    \code{volatile} για ακρίβεια μετρήσεων.},
   label={lst:csr-read}]
 uint64_t hqc_rdcycle(void) {
     uint64_t cycles;
@@ -1157,7 +1175,7 @@ elimination (CSE), dead code elimination (DCE) ή instruction scheduling
 \subsection{C Intrinsics (\texttt{\_\_riscv\_*})}
 \label{ssec:c-intrinsics}
 
-Η τρίτη μέθοδος παρέχει συναρτήσεις μεταγλωττιστή (compiler builtins) που
+Τα C intrinsics παρέχουν συναρτήσεις μεταγλωττιστή (compiler builtins) που
 αντιστοιχούν 1:1 σε εντολές μηχανής αλλά συμμετέχουν πλήρως στο
 optimization pipeline. Σε αντίθεση με την inline assembly, τα intrinsics
 είναι πλήρως ορατά στον compiler: υπόκεινται σε register allocation,
@@ -1167,10 +1185,10 @@ instruction scheduling, common subexpression elimination, constant folding
 \paragraph{Διαθέσιμα headers.}
 Τα RISC-V intrinsics παρέχονται μέσω δύο standard headers:
 \begin{itemize}
-  \item \code{<riscv\_bitmanip.h>}: scalar intrinsics για \gls{zbc}, \gls{zbb} και
+  \item \code{<riscv\_bitmanip.h>}~\autocite{RISCV-bitmanip-spec}: scalar intrinsics για \gls{zbc}, \gls{zbb} και
     Zbs — \eg \code{\_\_riscv\_clmul\_64(a, b)},
     \code{\_\_riscv\_clmulh\_64(a, b)}, \code{\_\_riscv\_ror\_64(x, k)}.
-  \item \code{<riscv\_vector.h>}: vector intrinsics για \RVV 1.0, \gls{zvbc}
+  \item \code{<riscv\_vector.h>}~\autocite{RISCV-vector-spec}: vector intrinsics για \RVV 1.0, \gls{zvbc}
     και \gls{zvbb} — \eg \code{\_\_riscv\_vclmul\_vv\_u64m4(vs2, vs1, vl)},
     \code{\_\_riscv\_vror\_vv\_u64m8(vs2, vs1, vl)},
     \code{\_\_riscv\_vsetvl\_e64m4(avl)}.
@@ -1186,13 +1204,14 @@ instruction scheduling, common subexpression elimination, constant folding
 πλεονάζοντες υπολογισμούς, να αναδιατάξει εντολές για βέλτιστο pipeline
 utilization, και να εκχωρήσει καταχωρητές βάσει global register pressure
 analysis. Η \defterm{φορητότητα μεταξύ compiler versions} εξασφαλίζεται
-από τον τυποποιημένο ορισμό κάθε intrinsic — σε αντίθεση με τη σύνταξη
+από τον τυποποιημένο ορισμό κάθε intrinsic~\autocite{RISCV-c-api} — σε αντίθεση με τη σύνταξη
 constraints που μπορεί να διαφέρει μεταξύ GCC και Clang.
 
 Η \cref{fig:inline-vs-intrinsic} παρουσιάζει τη σύγκριση για τον ίδιο
-υπολογισμό (scalar carry-less multiply): η inline assembly απαιτεί
-\num{5} γραμμές constraint syntax και παράγει αδιαφανές block, ενώ το
-intrinsic απαιτεί \num{1} γραμμή και παραμένει πλήρως βελτιστοποιήσιμο.
+υπολογισμό (scalar carry-less multiply): η inline assembly απαιτεί ένα
+πεντάγραμμο block (asm template, constraints εισόδου/εξόδου και clobber
+list) και παράγει αδιαφανές block, ενώ το intrinsic απαιτεί μία μόνο γραμμή
+και παραμένει πλήρως βελτιστοποιήσιμο.
 
 \begin{figure}[htbp]
   \centering
@@ -1216,7 +1235,7 @@ flow (\insn{ecall}, \insn{wfi}) ή ειδικές λειτουργίες hardwar
 \subsection{Απλός C με Compiler Auto-Lowering}
 \label{ssec:auto-lowering}
 
-Η τέταρτη μέθοδος δεν απαιτεί καμία ρητή παρέμβαση του προγραμματιστή:
+Ο απλός C με auto-lowering δεν απαιτεί καμία ρητή παρέμβαση του προγραμματιστή:
 ο μεταγλωττιστής αναγνωρίζει αυτόματα C idioms και εκπέμπει εξειδικευμένες
 εντολές, αρκεί η αντίστοιχη extension να είναι ενεργή στο \code{-march}
 flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος — η βελτιστοποίηση προκύπτει
@@ -1268,7 +1287,7 @@ auto-lowering.
 \begin{table}[htbp]
   \centering
   \caption{Συγκριτική αξιολόγηση των τεσσάρων μεθόδων προγραμματισμού
-    RISC-V. Η μέθοδος C intrinsics συνδυάζει υψηλό βαθμό ελέγχου με
+    RISC-V. Η μέθοδος C intrinsics συνδυάζει μέτριο βαθμό ελέγχου με
     πλήρη compiler optimization — αποτελεί τη βέλτιστη επιλογή για
     κρυπτογραφικούς πυρήνες.}
   \label{tab:programming-methods}
