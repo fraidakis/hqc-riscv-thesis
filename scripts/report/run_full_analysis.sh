@@ -9,17 +9,20 @@ source "${SCRIPT_DIR}/../bench/lib_bench.sh"
 usage() {
     cat <<'EOF'
 Usage:
-        scripts/report/run_full_analysis.sh --variant <name> [--level <128|192|256|all>]
+        scripts/report/run_full_analysis.sh --variant <name> [--level <128|192|256|all>] [--report-only]
 
 Arguments:
-  --variant <name>     Required benchmark/profiler variant name.
-    --level <value>       Optional level: 128, 192, 256, or all (default: 128).
-  -h, --help            Show this help message.
+  --variant <name>     Required benchmark/profiler variant name (or "all").
+  --level <value>      Optional level: 128, 192, 256, or all (default: 128).
+  --report-only        Skip all benchmarks/profiling; regenerate Markdown reports
+                       from whatever CSV results already exist on disk.
+  -h, --help           Show this help message.
 EOF
 }
 
 LEVEL="128"
 MUL_VARIANT=""
+REPORT_ONLY=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -43,6 +46,10 @@ while [[ $# -gt 0 ]]; do
             fi
             LEVEL="$2"
             shift 2
+            ;;
+        --report-only)
+            REPORT_ONLY=1
+            shift
             ;;
         -h|--help)
             usage
@@ -262,7 +269,7 @@ generate_report() {
     tmp_cc_192="$(mktemp)"
     tmp_cc_256="$(mktemp)"
 
-    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}" "${tmp_histogram:-}" "${tmp_compiler:-}" "${tmp_vlen_128:-}" "${tmp_vlen_192:-}" "${tmp_vlen_256:-}" "${tmp_cc_128:-}" "${tmp_cc_192:-}" "${tmp_cc_256:-}"' RETURN
+    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}" "${tmp_histogram:-}" "${tmp_compiler:-}" "${tmp_vlen_128:-}" "${tmp_vlen_192:-}" "${tmp_vlen_256:-}" "${tmp_cc_128:-}" "${tmp_cc_192:-}" "${tmp_cc_256:-}" "${tmp_report:-}"' RETURN
 
     if [[ -f "$poly_csv" ]]; then
         awk -F',' '
@@ -402,6 +409,13 @@ generate_report() {
 
     local _git_sha
     _git_sha="$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+
+    # Write to a temp file first so we can compare against the existing report
+    # before deciding whether to overwrite it.  This avoids false-positive git
+    # diffs caused by the timestamp / commit lines changing on every run.
+    local tmp_report
+    tmp_report="$(mktemp)"
+
     {
         printf "# HQC-RISC-V Analysis: \`%s\`\n\n" "${MUL_VARIANT}"
         printf "| Property | Value |\n"
@@ -413,47 +427,49 @@ generate_report() {
         printf "| Commit | \`%s\` |\n" "${_git_sha}"
         printf "\n---\n\n"
         printf "## 1. Cycle Counts\n\n"
-    } > "$report_file"
+    } > "$tmp_report"
 
-    append_table_or_note "$report_file" "Polymul Isolated" "$tmp_poly"
-    append_table_or_note "$report_file" "Full KEM Suite" "$tmp_kem"
+    # Re-point append_table_or_note at the temp file for the rest of the report.
+    # We do this by writing sections to tmp_report directly.
+    append_table_or_note "$tmp_report" "Polymul Isolated" "$tmp_poly"
+    append_table_or_note "$tmp_report" "Full KEM Suite" "$tmp_kem"
 
     {
         echo "## 2. Memory & Cache"
         echo ""
-    } >> "$report_file"
+    } >> "$tmp_report"
 
-    append_table_or_note "$report_file" "Cache Misses (Top 10 Rows)" "$tmp_cache"
-    append_table_or_note "$report_file" "Memory Footprint" "$tmp_memory"
+    append_table_or_note "$tmp_report" "Cache Misses (Top 10 Rows)" "$tmp_cache"
+    append_table_or_note "$tmp_report" "Memory Footprint" "$tmp_memory"
 
     {
         echo "## 3. Hotspots"
         echo ""
-    } >> "$report_file"
+    } >> "$tmp_report"
 
-    append_table_or_note "$report_file" "Function-Level Hotspots (Top 20 Rows)" "$tmp_trace_hot"
-    append_table_or_note "$report_file" "Line-Level Hotspots (Top 20 Rows)" "$tmp_trace_lines"
-    append_table_or_note "$report_file" "Basic Block Histogram (Top 20)" "$tmp_histogram"
+    append_table_or_note "$tmp_report" "Function-Level Hotspots (Top 20 Rows)" "$tmp_trace_hot"
+    append_table_or_note "$tmp_report" "Line-Level Hotspots (Top 20 Rows)" "$tmp_trace_lines"
+    append_table_or_note "$tmp_report" "Basic Block Histogram (Top 20)" "$tmp_histogram"
 
     if [[ "$TRACK" == "vector" ]]; then
         {
             echo "## 4. VLEN Scaling Sweep"
             echo ""
-        } >> "$report_file"
+        } >> "$tmp_report"
 
-        append_table_or_note "$report_file" "VLEN Sweep — HQC-128" "$tmp_vlen_128"
-        append_table_or_note "$report_file" "VLEN Sweep — HQC-192" "$tmp_vlen_192"
-        append_table_or_note "$report_file" "VLEN Sweep — HQC-256" "$tmp_vlen_256"
+        append_table_or_note "$tmp_report" "VLEN Sweep — HQC-128" "$tmp_vlen_128"
+        append_table_or_note "$tmp_report" "VLEN Sweep — HQC-192" "$tmp_vlen_192"
+        append_table_or_note "$tmp_report" "VLEN Sweep — HQC-256" "$tmp_vlen_256"
     fi
 
     {
         echo "## 5. Compiler Comparison"
         echo ""
-    } >> "$report_file"
+    } >> "$tmp_report"
 
-    append_table_or_note "$report_file" "HQC-128" "$tmp_cc_128"
-    append_table_or_note "$report_file" "HQC-192" "$tmp_cc_192"
-    append_table_or_note "$report_file" "HQC-256" "$tmp_cc_256"
+    append_table_or_note "$tmp_report" "HQC-128" "$tmp_cc_128"
+    append_table_or_note "$tmp_report" "HQC-192" "$tmp_cc_192"
+    append_table_or_note "$tmp_report" "HQC-256" "$tmp_cc_256"
 
     {
         echo "## 6. Cross-Variant Reports"
@@ -464,9 +480,19 @@ generate_report() {
         echo "- Speedup summary: \`results/reports/summaries/speedups_simulation.md\`"
         echo "- Compiler showdown: \`results/reports/summaries/compiler_analysis.md\`"
         echo ""
-    } >> "$report_file"
+    } >> "$tmp_report"
 
-    echo "[done] Report written: ${report_file}"
+    # Compare new content against existing report, ignoring the two volatile
+    # metadata lines (Generated / Commit).  Only overwrite when data has changed.
+    local meta_strip='/^\| \(Generated\|Commit\) /d'
+    if [[ -f "$report_file" ]] && \
+       diff <(sed "$meta_strip" "$report_file") <(sed "$meta_strip" "$tmp_report") >/dev/null 2>&1; then
+        echo "[skip] Report unchanged (data): ${report_file}"
+    else
+        mv "$tmp_report" "$report_file"
+        tmp_report=""   # already moved; prevent trap from deleting it
+        echo "[done] Report written: ${report_file}"
+    fi
 }
 
 generate_reports() {
@@ -480,6 +506,32 @@ generate_reports() {
         REPORT_LEVEL="$LEVEL"
         generate_report
     fi
+}
+
+run_report_only_variant() {
+    local variant="$1"
+    export MUL_VARIANT="$variant"
+
+    TRACK="scalar"
+    if [[ "${MUL_VARIANT}" == vector_* ]]; then
+        TRACK="vector"
+    fi
+
+    bench_parse_track_args --variant "$MUL_VARIANT"
+
+    REPORT_LEVEL="$LEVEL"
+    if [[ "$REPORT_LEVEL" == "all" ]]; then
+        REPORT_LEVEL="128"
+    fi
+
+    echo ""
+    echo "============================================================"
+    echo "         REPORT-ONLY: ${MUL_VARIANT}  (level: ${LEVEL})"
+    echo "============================================================"
+    echo ""
+
+    cd "$REPO_ROOT"
+    generate_reports
 }
 
 run_variant_analysis() {
@@ -568,7 +620,15 @@ run_variant_analysis() {
 
 bench_load_implemented_variants "$REPO_ROOT"
 
-if [[ "$MUL_VARIANT" == "all" ]]; then
+if [[ "$REPORT_ONLY" -eq 1 ]]; then
+    if [[ "$MUL_VARIANT" == "all" ]]; then
+        for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
+            run_report_only_variant "$variant"
+        done
+    else
+        run_report_only_variant "$MUL_VARIANT"
+    fi
+elif [[ "$MUL_VARIANT" == "all" ]]; then
     for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
         run_variant_analysis "$variant"
     done

@@ -1,121 +1,177 @@
-# Full Analysis Report
+# HQC-RISC-V Analysis: `scalar_ref`
 
-- Variant: ref_scalar
-- Level: 128
-- Date: 2026-05-20 23:17:44
+| Property | Value |
+| --- | --- |
+| Track | scalar |
+| Security levels | 128 · 192 · 256 |
+| Report level (profiles) | 128 |
+| Generated | 2026-06-08 14:02:15 |
+| Commit | `216edab` |
+
+---
 
 ## 1. Cycle Counts
 
 ### Polymul Isolated
-| level | op | instructions | codesize |
-| --- | --- | --- | --- |
-| 128 | vect_mul | 19214281 | 2292 |
-| 192 | vect_mul | 58433901 | 2316 |
-| 256 | vect_mul | 142641044 | 2314 |
+
+| Level | Operation | Instructions | Code (B) |
+| ---: | --- | ---: | ---: |
+| 128 | vect_mul | 19,214,277 | 2012 |
+| 192 | vect_mul | 58,433,896 | 2016 |
+| 256 | vect_mul | 142,641,043 | 2026 |
 
 ### Full KEM Suite
-| level | variant | op | instructions | codesize |
-| --- | --- | --- | --- | --- |
-| 128 | keypair | 19454626 | 32158 |  |
-| 128 | encaps | 38875925 | 32158 |  |
-| 128 | decaps | 59013715 | 32158 |  |
-| 128 | total | 117344266 | 32158 |  |
-| 192 | keypair | 58895392 | 33916 |  |
-| 192 | encaps | 117744966 | 33916 |  |
-| 192 | decaps | 177662247 | 33916 |  |
-| 192 | total | 354302605 | 33916 |  |
-| 256 | keypair | 143382635 | 41390 |  |
-| 256 | encaps | 286701285 | 41390 |  |
-| 256 | decaps | 431890526 | 41390 |  |
-| 256 | total | 861974446 | 41390 |  |
+
+| Level | Operation | Instructions | Code (B) |
+| ---: | --- | ---: | ---: |
+| 128 | keypair | 19,454,626 | 32,176 |
+| 128 | encaps | 38,875,925 | 32,176 |
+| 128 | decaps | 59,013,743 | 32,176 |
+| 128 | **total** | 117,344,294 | 32,176 |
+| 192 | keypair | 58,895,392 | 33,930 |
+| 192 | encaps | 117,744,966 | 33,930 |
+| 192 | decaps | 177,662,495 | 33,930 |
+| 192 | **total** | 354,302,853 | 33,930 |
+| 256 | keypair | 143,382,635 | 41,392 |
+| 256 | encaps | 286,701,285 | 41,392 |
+| 256 | decaps | 431,890,526 | 41,392 |
+| 256 | **total** | 861,974,446 | 41,392 |
 
 ## 2. Memory & Cache
 
 ### Cache Misses (Top 10 Rows)
-| level | dc_misses | dc_read_misses | dc_write_misses | dc_writebacks | dc_bytes_read | dc_bytes_written | dc_read_accesses | dc_write_accesses |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 128 | 1368 | 89 | 1279 | 134 | 372778750 | 237238975 | 46808199 | 30976101 |
-| 192 | 3338 | 297 | 3041 | 909 | 1123678443 | 719469355 | 140827943 | 93611439 |
-| 256 | 7736 | 1135 | 6601 | 3880 | 2808152658 | 1824016558 | 351651057 | 233898829 |
+
+| Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 128 | 1358 | 87 | 1271 | 125 | 372,774,966 | 237,223,951 | 46,807,726 | 30,974,223 |
+| 192 | 3325 | 287 | 3038 | 906 | 1,123,633,067 | 719,436,907 | 140,822,271 | 93,607,383 |
+| 256 | 7878 | 1136 | 6742 | 4027 | 2,808,117,202 | 1,823,990,638 | 351,646,625 | 233,895,589 |
 
 ### Memory Footprint
-| level | load_instructions | store_instructions | load_bytes | store_bytes | est_cache_lines_load | est_cache_lines_store |
-| --- | --- | --- | --- | --- | --- | --- |
-| 128 | 1667 | 2153 | 7907 | 10805 | 124 | 169 |
-| 192 | 1836 | 2265 | 8335 | 10976 | 131 | 172 |
-| 256 | 1844 | 2242 | 7799 | 10135 | 122 | 159 |
+
+| Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 128 | 1643 | 2131 | 7715 | 10,629 | 121 | 167 |
+| 192 | 1810 | 2240 | 8127 | 10,776 | 127 | 169 |
+| 256 | 1829 | 2226 | 7659 | 9993 | 120 | 157 |
 
 ## 3. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
-| function | instructions | percentage |  |
-| --- | --- | --- | --- |
-| schoolbook_mul | 112621824 | 95.96 |  |
-| memset | 1995963 | 1.70 |  |
-| karatsuba_mul | 958428 | 0.82 |  |
-| KeccakF1600_StatePermute | 578792 | 0.49 |  |
-| hadamard | 186162 | 0.16 |  |
-| keccak_inc_absorb | 141110 | 0.12 |  |
-| support_contains_value | 139683 | 0.12 |  |
-| memcpy | 124446 | 0.11 |  |
-| gf_reduce | 106191 | 0.09 |  |
-| find_peaks | 105965 | 0.09 |  |
-| keccak_inc_squeeze | 95576 | 0.08 |  |
-| expand_and_sum | 90206 | 0.08 |  |
-| vect_compare | 31058 | 0.03 |  |
-| gf_mul | 23702 | 0.02 |  |
-| reduce | 19997 | 0.02 |  |
-| vect_add | 15781 | 0.01 |  |
-| compute_syndromes | 13770 | 0.01 |  |
-| compute_elp | 12090 | 0.01 |  |
-| vect_generate_random_support2 | 11718 | 0.01 |  |
-| code_decode | 11387 | 0.01 |  |
+
+| Function | Instructions | % Total |
+| --- | ---: | ---: |
+| schoolbook_mul | 112,621,824 | 95.96 |
+| memset | 1,995,963 | 1.70 |
+| karatsuba_mul | 958,428 | 0.82 |
+| KeccakF1600_StatePermute | 578,792 | 0.49 |
+| hadamard | 186,162 | 0.16 |
+| keccak_inc_absorb | 141,110 | 0.12 |
+| support_contains_value | 139,683 | 0.12 |
+| memcpy | 124,446 | 0.11 |
+| gf_reduce | 106,191 | 0.09 |
+| find_peaks | 105,965 | 0.09 |
+| keccak_inc_squeeze | 95,567 | 0.08 |
+| expand_and_sum | 90,206 | 0.08 |
+| vect_compare | 31,058 | 0.03 |
+| gf_mul | 23,702 | 0.02 |
+| reduce | 19,997 | 0.02 |
+| vect_add | 15,781 | 0.01 |
+| compute_syndromes | 13,770 | 0.01 |
+| compute_elp | 12,117 | 0.01 |
+| vect_generate_random_support2 | 11,718 | 0.01 |
+| code_decode | 11,387 | 0.01 |
 
 ### Line-Level Hotspots (Top 20 Rows)
-| function | instructions | percentage |  |
-| --- | --- | --- | --- |
-| schoolbook_mul at gf2x.c:55 | 43214472 | 36.82 |  |
-| schoolbook_mul at gf2x.c:54 | 36012060 | 30.69 |  |
-| schoolbook_mul at gf2x.c:53 | 22419936 | 19.10 |  |
-| schoolbook_mul at gf2x.c:0 | 4115100 | 3.51 |  |
-| schoolbook_mul at gf2x.c:44 | 2476800 | 2.11 |  |
-| schoolbook_mul at gf2x.c:43 | 1651200 | 1.41 |  |
-| memset at mem.c:84 | 1331280 | 1.13 |  |
-| schoolbook_mul at gf2x.c:48 | 825600 | 0.70 |  |
-| schoolbook_mul at gf2x.c:47 | 812700 | 0.69 |  |
-| memset at mem.c:85 | 662961 | 0.56 |  |
-| schoolbook_mul at gf2x.c:50 | 571620 | 0.49 |  |
-| schoolbook_mul at gf2x.c:49 | 355872 | 0.30 |  |
-| karatsuba_mul at gf2x.c:115 | 159510 | 0.14 |  |
-| karatsuba_mul at gf2x.c:114 | 154608 | 0.13 |  |
-| schoolbook_mul at gf2x.c:42 | 103200 | 0.09 |  |
-| KeccakF1600_StatePermute at fips202.c:0 | 98548 | 0.08 |  |
-| support_contains_value at vector.c:81 | 92340 | 0.08 |  |
-| karatsuba_mul at gf2x.c:119 | 89904 | 0.08 |  |
-| karatsuba_mul at gf2x.c:116 | 89904 | 0.08 |  |
-| keccak_inc_absorb at fips202.c:438 | 85750 | 0.07 |  |
+
+| Function | Instructions | % Total |
+| --- | ---: | ---: |
+| schoolbook_mul at gf2x.c:55 | 43,214,472 | 36.82 |
+| schoolbook_mul at gf2x.c:54 | 36,012,060 | 30.69 |
+| schoolbook_mul at gf2x.c:53 | 22,419,936 | 19.10 |
+| schoolbook_mul at gf2x.c:0 | 4,115,100 | 3.51 |
+| schoolbook_mul at gf2x.c:44 | 2,476,800 | 2.11 |
+| schoolbook_mul at gf2x.c:43 | 1,651,200 | 1.41 |
+| memset at mem.c:84 | 1,331,280 | 1.13 |
+| schoolbook_mul at gf2x.c:48 | 825,600 | 0.70 |
+| schoolbook_mul at gf2x.c:47 | 812,700 | 0.69 |
+| memset at mem.c:85 | 662,961 | 0.56 |
+| schoolbook_mul at gf2x.c:50 | 571,620 | 0.49 |
+| schoolbook_mul at gf2x.c:49 | 355,872 | 0.30 |
+| karatsuba_mul at gf2x.c:115 | 159,510 | 0.14 |
+| karatsuba_mul at gf2x.c:114 | 154,608 | 0.13 |
+| schoolbook_mul at gf2x.c:42 | 103,200 | 0.09 |
+| KeccakF1600_StatePermute at fips202.c:0 | 98,548 | 0.08 |
+| support_contains_value at vector.c:81 | 92,340 | 0.08 |
+| karatsuba_mul at gf2x.c:119 | 89,904 | 0.08 |
+| karatsuba_mul at gf2x.c:116 | 89,904 | 0.08 |
+| keccak_inc_absorb at fips202.c:438 | 85,750 | 0.07 |
 
 ### Basic Block Histogram (Top 20)
-| instruction | count | percentage |  |
-| --- | --- | --- | --- |
-| ld | 23497986 | 19.86 |  |
-| addi | 16579202 | 14.02 |  |
-| xor | 15005645 | 12.68 |  |
-| sd | 14724263 | 12.45 |  |
-| and | 14536031 | 12.29 |  |
-| bne | 8116107 | 6.86 |  |
-| srl | 8037222 | 6.79 |  |
-| sll | 7212529 | 6.10 |  |
-| mv | 3344975 | 2.83 |  |
-| slli | 918016 | 0.78 |  |
-| beq | 878540 | 0.74 |  |
-| j | 848758 | 0.72 |  |
-| beqz | 829992 | 0.70 |  |
-| srai | 826336 | 0.70 |  |
-| sub | 824034 | 0.70 |  |
-| sb | 700036 | 0.59 |  |
-| bnez | 470020 | 0.40 |  |
-| add | 232454 | 0.20 |  |
-| rori | 98832 | 0.08 |  |
-| andn | 85723 | 0.07 |  |
+
+| instruction | count | % Total |
+| --- | ---: | ---: |
+| ld | 23,497,739 | 19.86 |
+| addi | 16,579,202 | 14.02 |
+| xor | 15,005,645 | 12.68 |
+| sd | 14,724,060 | 12.45 |
+| and | 14,536,031 | 12.29 |
+| bne | 8,116,107 | 6.86 |
+| srl | 8,037,222 | 6.79 |
+| sll | 7,212,529 | 6.10 |
+| mv | 3,345,004 | 2.83 |
+| slli | 918,451 | 0.78 |
+| beq | 878,540 | 0.74 |
+| j | 848,758 | 0.72 |
+| beqz | 829,992 | 0.70 |
+| srai | 826,336 | 0.70 |
+| sub | 824,034 | 0.70 |
+| sb | 700,036 | 0.59 |
+| bnez | 470,006 | 0.40 |
+| add | 232,454 | 0.20 |
+| rori | 98,832 | 0.08 |
+| andn | 85,723 | 0.07 |
+
+## 5. Compiler Comparison
+
+### HQC-128
+
+| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| --- | --- | --- | --- | ---: | ---: |
+| clang | -O2 | ref_scalar | OK | 117,418,020 | 23,972 |
+| clang | -O3 | ref_scalar | OK | 117,344,266 | 32,158 |
+| clang | -Os | ref_scalar | OK | 117,459,473 | 18,264 |
+| gcc | -O2 | ref_scalar | OK | 120,486,098 | 17,834 |
+| gcc | -O3 | ref_scalar | OK | 113,958,344 | 26,270 |
+| gcc | -Os | ref_scalar | OK | 122,366,611 | 16,888 |
+
+### HQC-192
+
+| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| --- | --- | --- | --- | ---: | ---: |
+| clang | -O2 | ref_scalar | OK | 354,434,380 | 25,844 |
+| clang | -O3 | ref_scalar | OK | 354,302,605 | 33,916 |
+| clang | -Os | ref_scalar | OK | 354,513,619 | 19,574 |
+| gcc | -O2 | ref_scalar | OK | 363,797,867 | 18,942 |
+| gcc | -O3 | ref_scalar | OK | 344,003,671 | 28,980 |
+| gcc | -Os | ref_scalar | OK | 369,265,318 | 17,786 |
+
+### HQC-256
+
+| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| --- | --- | --- | --- | ---: | ---: |
+| clang | -O2 | ref_scalar | OK | 862,204,770 | 31,746 |
+| clang | -O3 | ref_scalar | OK | 861,974,446 | 41,390 |
+| clang | -Os | ref_scalar | OK | 862,317,151 | 26,516 |
+| gcc | -O2 | ref_scalar | OK | 898,156,204 | 25,928 |
+| gcc | -O3 | ref_scalar | OK | 845,613,464 | 33,532 |
+| gcc | -Os | ref_scalar | OK | 907,517,922 | 24,678 |
+
+## 6. Cross-Variant Reports
+
+The following reports aggregate data across all variants and are regenerated
+each time a full analysis runs:
+
+- Speedup summary: `results/reports/summaries/speedups_simulation.md`
+- Compiler showdown: `results/reports/summaries/compiler_analysis.md`
 
