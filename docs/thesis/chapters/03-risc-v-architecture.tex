@@ -643,7 +643,7 @@ operation.
 την τιμή \VLEN κατά τη μεταγλώττιση — κατά συνέπεια, δεν μπορεί να
 υπολογίσει στατικά πόσα στοιχεία χωράνε σε ένα vector register. Ο βρόχος
 strip-mining λύνει αυτό το πρόβλημα αντλώντας δυναμικά τόσα στοιχεία όσα
-χωράνε ανά iteration:
+χωράνε ανά iteration (\cref{lst:strip-mining-pattern}):
 
 \begin{lstlisting}[language=C, caption={Θεμελιώδες μοτίβο strip-mining σε
   \RVV. Η \code{vsetvl} επιστρέφει $\code{vl} = \min(n, \VLMAX)$ — ο
@@ -684,7 +684,7 @@ iterations (η τελευταία με $\code{vl} = 4$). Ο κώδικας πα�
 \paragraph{Πρακτικό παράδειγμα: VLA helper.}
 Η ακόλουθη συνάρτηση αποτελεί πραγματικό κώδικα από την παρούσα υλοποίηση
 — εκτελεί element-wise XOR δύο arrays 64-bit λέξεων χρησιμοποιώντας
-strip-mining με $\SEW = 64$, $\LMUL = 4$:
+strip-mining με $\SEW = 64$, $\LMUL = 4$ (\cref{lst:rvv-xor-helper}):
 
 \begin{lstlisting}[language=C, caption={VLA helper \code{rvv\_xor\_u64} από
   τον Karatsuba recomposition πυρήνα. Η παραμετροποίηση $\LMUL = 4$
@@ -1075,7 +1075,7 @@ C runtime), interrupt handlers (ακριβής context save/restore), και ρ�
 που απαιτούν εντολές μη προσβάσιμες από C (\insn{ecall}, \insn{mret},
 χειρισμός \glspl{csr} πριν την ενεργοποίηση C environment). Ο ακόλουθος
 κώδικας αποτελεί χαρακτηριστικό παράδειγμα — ενεργοποίηση της διανυσματικής
-μονάδας μέσω χειρισμού του \code{mstatus} \gls{csr}:
+μονάδας μέσω χειρισμού του \code{mstatus} \gls{csr} (\cref{lst:vector-enable}):
 
 \begin{lstlisting}[language={[RISC-V]Assembler},
   caption={Ενεργοποίηση Vector Unit μέσω \code{mstatus.VS} σε bare-metal
@@ -1123,7 +1123,7 @@ corruption: ο compiler μπορεί να τοποθετήσει είσοδο κ
 
 \paragraph{Χρήση: CSR reads.}
 Η κύρια χρήση inline assembly στην παρούσα εργασία αφορά την ανάγνωση
-\glspl{csr} μέτρησης απόδοσης, για τις οποίες δεν υπάρχει C intrinsic:
+\glspl{csr} μέτρησης απόδοσης, για τις οποίες δεν υπάρχει C intrinsic (\cref{lst:csr-read}):
 
 \begin{lstlisting}[language=C,
   caption={Ανάγνωση \code{mcycle} (CSR 0xb00) μέσω inline assembly. Η

@@ -30,7 +30,7 @@ $\GF{2^8}$.  Η reference υλοποίηση (\code{gf\_carryless\_mul}) χρη�
 το κόστος σε μία εντολή για το γινόμενο, ακολουθούμενη από $\approx\num{12}$
 εντολές modular reduction μέσω \code{gf\_reduce} — σύνολο
 $\approx\num{14}$ εντολές ανά κλήση \code{gf\_mul}, έναντι
-$\approx\num{27}$ στο software path.
+$\approx\num{27}$ στο software path (\cref{lst:gf-mul-zbc}).
 
 \begin{lstlisting}[language=C, caption={Scalar \code{gf\_mul} με \Zbc injection.},
   label={lst:gf-mul-zbc}]
@@ -72,7 +72,7 @@ $\BigO{\delta^2}$ πολλαπλασιασμούς.
 butterfly ζεύγη με stride-2 πρόσβαση — pattern που αντιστοιχεί απευθείας
 στην εντολή \insn{vlse16} (strided load).  Στο \VLEN=256, SEW=16, LMUL=4,
 η hardware vector length φτάνει \num{64} στοιχεία — επαρκή για κάλυψη
-όλων των butterfly ζευγών σε μία μόνο vector πράξη:
+όλων των butterfly ζευγών σε μία μόνο vector πράξη (\cref{lst:hadamard-rvv}):
 
 \begin{lstlisting}[language=C, caption={Vectorized FHT butterfly pass.},
   label={lst:hadamard-rvv}]
@@ -336,7 +336,7 @@ scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction.  Η
 τη χρήση ενός μόνο constant vector και για τις δύο \insn{vclmul.vv} πράξεις.
 
 \paragraph{Υλοποίηση.}
-Η \code{gf\_reduce\_vec\_u64m4} εκτελεί τη reduction σε \num{6} vector
+Η \code{gf\_reduce\_vec\_u64m4} (\cref{lst:barrett-single}) εκτελεί τη reduction σε \num{6} vector
 εντολές (πλέον \num{1} \insn{vmv.v.x} broadcast που ανυψώνεται εκτός
 βρόχου από τον μεταγλωττιστή):
 

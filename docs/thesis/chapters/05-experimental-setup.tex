@@ -201,6 +201,8 @@ speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγμ
 Vector-Crypto variants παραμένει ανοιχτή μέχρι τη διαθεσιμότητα RVA23
 silicon.
 
+\Cref{fig:bananapi-f3} δείχνει την πλατφόρμα πραγματικού hardware (Banana Pi BPI-F3) που χρησιμοποιείται για επικύρωση σε silicon.
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.7\textwidth]{figures/common/BPIF3MAIN11.png}
@@ -1059,7 +1061,7 @@ context switches, και DVFS transients που θα μασκάριζαν λεπ
 \subsection{Στόχοι Δοκιμών και Πίνακας Variants}
 \label{ssec:ct-test-targets}
 
-Δύο harnesses καλύπτουν διαφορετικά επίπεδα αφαίρεσης:
+Δύο harnesses (\cref{tab:dudect-harnesses}) καλύπτουν διαφορετικά επίπεδα αφαίρεσης:
 
 \begin{table}[htbp]
   \centering
@@ -1105,7 +1107,7 @@ input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσ�
 θα ήταν trivially αναμενόμενο χωρίς πρόσθετη πληροφοριακή αξία.
 
 \paragraph{Πίνακας variants.}
-Τρία variants αξιολογούνται σε τρία security levels:
+Τρία variants αξιολογούνται σε τρία security levels (\cref{tab:dudect-variants}):
 
 \begin{table}[htbp]
   \centering

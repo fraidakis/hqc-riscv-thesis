@@ -278,7 +278,7 @@ reference.
 
 Η υλοποίηση χρησιμοποιεί compiler intrinsics αντί inline assembly,
 επιτρέποντας στον μεταγλωττιστή πλήρη ορατότητα για register allocation
-και instruction scheduling:
+και instruction scheduling (\cref{lst:clmul64}):
 
 \begin{lstlisting}[language=C,
   caption={Wrapper carry-less multiply μέσω Zbc intrinsics.},
@@ -289,6 +289,8 @@ static inline void clmul64(uint64_t a, uint64_t b,
     *hi = __riscv_clmulh_64(a, b);
 }
 \end{lstlisting}
+
+\Cref{fig:schoolbook-vs-clmul} αντιπαραβάλλει τον bit-serial schoolbook βρόχο με τον word-level \clmul{} leaf.
 
 \begin{figure}[htbp]
   \centering
@@ -407,6 +409,8 @@ $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$.  Η αναδρομή
     πλήρες unrolling μικρών βρόχων και constant-propagation
     optimizations.
 \end{itemize}
+
+\Cref{fig:ap2-pipeline} συνοψίζει το pipeline του AP-2 generator.
 
 \begin{figure}[htbp]
   \centering
@@ -603,6 +607,8 @@ HQC-256 ($N=901$), η συνολική δέσμευση stack ανέρχεται
 $\sim\SI{42.2}{\kilo\byte}$ — πολύ κάτω από το bare-metal stack limit
 (\SI{512}{\kilo\byte}).
 
+\Cref{fig:direct-write-layout} αντιπαραβάλλει το memory layout πριν και μετά τη direct-write discipline.
+
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/direct-write-layout.tex}
@@ -649,6 +655,8 @@ $r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
     θέσεις $r[n_0{+}2n_1 \ldots]$ χειρίζονται ξεχωριστά — διαβάζουν
     $z_0$ από \code{ta} και παραλείπουν τη μη-υπάρχουσα συνεισφορά $z_2$.
 \end{enumerate}
+
+\Cref{fig:overlap-save} απεικονίζει το aliasing hazard και την overlap-save επίλυση.
 
 \begin{figure}[htbp]
   \centering
@@ -721,7 +729,7 @@ $r[n_0{+}i]$, το $z_\text{mid}[i]$, το $z_0[i]$ (από $r$ ή \code{ta}),
 και το $z_2[i]$.  Τέσσερα register groups σε \LMUL=m2 καταναλώνουν
 $4 \times 2 = 8$ vector registers — αφήνοντας επαρκές headroom στο
 \num{32}-register file για τον accumulator και τα scalar pointers.  Η
-XOR-accumulation εκτελείται ως αλυσίδα τριών \insn{vxor.vv}:
+XOR-accumulation εκτελείται ως αλυσίδα τριών \insn{vxor.vv} (\cref{lst:combine-xor}):
 %
 \begin{lstlisting}[language=C,
   caption={Inline combine XOR (Loop~3A, πρώτο μισό) — \LMUL=m2.},
@@ -1022,7 +1030,7 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
 δεν κυριαρχεί πλέον μονοπωλιακά.  Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
 από $<$\pct{1} σε $\approx$\pct{25} του συνόλου, και η αποκωδικοποίηση
 (Reed-Muller + Reed-Solomon) από $<$\pct{0.5} σε $\approx$\pct{4}.
-\Cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση.
+\Cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση, αντιπαραβάλλοντας το baseline (\cref{fig:pie-baseline}) με την κατανομή μετά το Tier~3 (\cref{fig:pie-post-polymul}).
 
 \begin{figure}[htbp]
   \centering
