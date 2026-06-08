@@ -591,7 +591,8 @@ $z_0$ και $z_2$ στις τελικές θέσεις του output buffer $r$
 
 Η αναδιάρθρωση αυτή εξαλείφει δύο πλήρεις RVV copy loops ανά κόμβο
 αναδρομής σε ολόκληρο το δέντρο.  Για HQC-128 ($N=277$), το δέντρο
-αναδρομής περιέχει περίπου \num{30} non-leaf κόμβους, καθένας από τους
+αναδρομής περιέχει \num{121} non-leaf κόμβους (5 επίπεδα αναδρομής,
+τρία sub-problems ανά κόμβο: $1+3+9+27+81=121$), καθένας από τους
 οποίους εκτελούσε δύο αντιγραφές μεγέθους $\sim n$ words — η direct-write
 discipline αφαιρεί το σύνολό τους.
 
@@ -753,9 +754,11 @@ while (_rem > 0) {
 Η inlining εξαλείφει σε κάθε κόμβο αναδρομής: (α)~τη δημιουργία stack
 frame, (β)~την αποθήκευση/επαναφορά callee-saved registers, (γ)~τη
 μεταφορά arguments μέσω registers (\code{a0}–\code{a7}), και (δ)~το
-\insn{jalr} return.  Σε δέντρο βάθους~5 (HQC-128) με $\sim$\num{30}
-non-leaf κόμβους, αυτό αντιστοιχεί σε $\sim$\num{30}$\times$\num{3}
-= \num{90} εξαλειφθείσες function calls (τρεις helper calls ανά κόμβο).
+\insn{jalr} return.  Σε δέντρο βάθους~5 (HQC-128) με \num{121} non-leaf κόμβους
+(από τους οποίους \num{9} αντιστοιχούν σε μοναδικά μεγέθη — unique
+\code{kmul\_N} function bodies), αυτό αντιστοιχεί σε
+\num{121}$\times$\num{3} = \num{363} εξαλειφθείσες helper-function calls
+(τρεις helper calls ανά κόμβο) ανά \code{vect\_mul} invocation.
 Η inlining επιτρέπει επιπλέον στον compiler cross-operation register
 allocation εντός κάθε \code{kmul\_N} body — αξιοποιώντας registers που
 θα ήταν αλλιώς clobbered από τα helper calls.
@@ -894,10 +897,13 @@ zero-store μεγέθους $n$ words.  Δεδομένου ότι το δέντ�
 $a[i], a[i{+}1], a[i{+}2], a[i{+}3]$, εκπέμπει καθεμία σε ξεχωριστό
 vector register, και εκδίδει $4 \times 2 = 8$ εντολές \vclmul/\vclmulh
 εναντίον του ίδιου φορτωμένου $b$-vector.  Η τεχνική αυτή αμορτίζει
-το κόστος φόρτωσης $b$ σε τέσσερις εξωτερικές iterations και διατηρεί
-οκτώ vector multiply αποτελέσματα ταυτόχρονα σε πτήση, κορεστώντας τη
-vector functional unit pipeline.  Ένας scalar tail loop χειρίζεται τις
-εναπομείνασες $n \bmod 4$ iterations.
+το κόστος φόρτωσης $b$ σε τέσσερις εξωτερικές iterations και επιτρέπει
+στον compiler να interleave την accumulation κάθε strip αμέσως μετά τον
+υπολογισμό του — τα lo/hi αποτελέσματα ενός strip καταναλώνονται μέσω
+XOR-accumulate και store πριν ξεκινήσει ο επόμενος \vclmul/\vclmulh
+κύκλος, διατηρώντας μικρή register pressure παρά τον υψηλό instruction
+throughput.  Ένας scalar tail loop χειρίζεται τις εναπομείνασες
+$n \bmod 4$ iterations.
 
 Ο \cref{lst:vclmul-leaf-core} παρουσιάζει τον πυρήνα του 4$\times$
 unrolled βρόχου — τη φόρτωση $b$, τα τέσσερα splats, και τα οκτώ
@@ -928,14 +934,19 @@ vuint64m4_t vhi3 = __riscv_vclmulh_vv_u64m4(va3, vb, vl);
 
 \paragraph{LMUL selection.}
 Ο leaf χρησιμοποιεί \LMUL=m4 για τις carry-less multiply πράξεις.  Σε
-\VLEN=\num{256}, κάθε m4 group καταλαμβάνει \num{4} physical registers
-(\num{16} registers συνολικά για τα τέσσερα ταυτόχρονα ενεργά groups:
-splat, $b$-vector, lo-result, hi-result).  Η επιλογή αυτή αφήνει
-επαρκές headroom στο \num{32}-register file για τον accumulator
-(\insn{vle64}/\insn{vxor}/\insn{vse64} sequence) χωρίς spilling.
-Μεγαλύτερο \LMUL (m8) θα υπερέβαινε τη χωρητικότητα register file
-κατά τη φάση accumulation, ενώ μικρότερο \LMUL (m2) θα διπλασίαζε
-τον αριθμό inner-loop iterations χωρίς αντίστοιχο κέρδος.
+\VLEN=\num{256}, κάθε m4 group καταλαμβάνει \num{4} physical registers.
+Στο 4$\times$ unrolled loop, τα ταυτόχρονα ζωντανά groups ανά strip είναι:
+$b$-vector (\num{4} registers), splat (\num{4}), lo-result (\num{4}),
+hi-result (\num{4}) — δηλαδή \num{16} registers ανά strip.  Δεδομένου
+ότι η accumulation (XOR-load / XOR / store) κάθε strip εκτελείται
+αμέσως μετά τον υπολογισμό του (interleaved), τα lo/hi registers
+επαναχρησιμοποιούνται μεταξύ strips από τον compiler — η μέγιστη ταυτόχρονη
+πίεση στο register file δεν υπερβαίνει τα \num{20} registers
+(splat + $b$ + lo + hi + accumulator).  Η επιλογή m4 αφήνει επαρκές
+headroom για τον accumulator (\insn{vle64}/\insn{vxor}/\insn{vse64} sequence)
+χωρίς spilling.  Μεγαλύτερο \LMUL (m8) θα υπερέβαινε τη χωρητικότητα
+register file κατά τη φάση accumulation, ενώ μικρότερο \LMUL (m2) θα
+διπλασίαζε τον αριθμό inner-loop iterations χωρίς αντίστοιχο κέρδος.
 
 \subsection{Schoolbook Leaf Trade-offs: Γιατί ο Leaf δεν Κλιμακώνει με VLEN}
 \label{ssec:leaf-vlen-tradeoff}
