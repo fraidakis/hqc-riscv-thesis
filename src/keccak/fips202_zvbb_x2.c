@@ -107,9 +107,10 @@ static const uint64_t theta_col_idx[25] = {
 
 static inline uint64_t rol1_zbb(uint64_t x)
 {
-    uint64_t y;
-    __asm__("rori %0, %1, 63" : "=r"(y) : "r"(x));
-    return y;
+    /* ROL-by-1 = ROR-by-63.  Compiled with -march=..._zbb this
+     * bit-shift expression lowers to a single 'rori rd, rs, 63'
+     * instruction, identical to the former inline asm. */
+    return ROL(x, 1);
 }
 
 /*
@@ -550,7 +551,7 @@ typedef vuint64m1_t vu64m1_fixed_t __attribute__((riscv_rvv_vector_bits(HQC_VECT
 static inline size_t keccak_x2_setvl(void)
 {
     size_t vl;
-    __asm__ volatile("vsetivli %0, 2, e64, m1, ta, ma" : "=r"(vl));
+    vl = __riscv_vsetvl_e64m1(2);
     return vl;
 }
 
