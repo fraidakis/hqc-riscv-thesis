@@ -12,7 +12,7 @@
 Η αξιολόγηση μιας κρυπτογραφικής υλοποίησης αποκτά πλήρες νόημα μόνο σε
 σύγκριση με τις βέλτιστες υλοποιήσεις σε εναλλακτικές αρχιτεκτονικές.
 Η ενότητα αυτή τοποθετεί τα αποτελέσματα της παρούσας εργασίας στο ευρύτερο
-τοπίο υλοποιήσεων \HQC, αναλύοντας τόσο τα ποσοτικά δεδομένα όσο και τους
+τοπίο υλοποιήσεων \gls{hqc}, αναλύοντας τόσο τα ποσοτικά δεδομένα όσο και τους
 μεθοδολογικούς περιορισμούς μιας εγγενώς ετερογενούς σύγκρισης.
 
 %% --------------------------------------------------------------------------
@@ -84,9 +84,9 @@ $\num{400478} / \num{300661} = 1.33$, δηλαδή μόλις \pct{33} περι�
     \textbf{Tier} & {\textbf{\instret}} & \textbf{CPI} &
       {\textbf{Εκτ.\ κύκλοι}} & {\textbf{Κυρ.\ κατηγορία (\%)}} \\
     \midrule
-    Tier~1 (\Zbc)  & 3449795 & 1.37 & 4726219  & {ALU \pct{24.3}, Load \pct{37.5}} \\
+    Tier~1 (\gls{zbc})  & 3449795 & 1.37 & 4726219  & {ALU \pct{24.3}, Load \pct{37.5}} \\
     Tier~2 (\RVV)  & 1975424 & 1.48 & 2923627  & {ALU \pct{19.9}, Load \pct{33.6}} \\
-    Tier~3 (\Zvbc) & 729397  & 1.69 & 1232681  & {Load \pct{32.7}, Vec.\ Mem \pct{18.5}} \\
+    Tier~3 (\gls{zvbc}) & 729397  & 1.69 & 1232681  & {Load \pct{32.7}, Vec.\ Mem \pct{18.5}} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -129,7 +129,7 @@ look-up tables), μεταφράζοντας κάθε λογικό βήμα σε 
 Η παρατήρηση αυτή δεν αποτελεί κριτική της αρχιτεκτονικής Cortex-M4 —
 αντικατοπτρίζει τη θεμελιώδη αρχιτεκτονική αναγκαιότητα εξειδικευμένων
 εντολών για αποδοτική μετα-κβαντική κρυπτογραφία βασισμένη σε κώδικες.
-Η ενσωμάτωση \Zbc/\Zvbc στο RISC-V ISA δεν αποτελεί αισθητική σχεδιαστική
+Η ενσωμάτωση \gls{zbc}/\gls{zvbc} στο RISC-V ISA δεν αποτελεί αισθητική σχεδιαστική
 επιλογή αλλά προϋπόθεση ανταγωνιστικής απόδοσης σε code-based \gls{pqc}.
 
 %% --------------------------------------------------------------------------
@@ -182,7 +182,7 @@ $\GF{2}[x]$ (πολυωνυμική αναπαράσταση) — δεν υπο�
 \subsection{Τοποθέτηση έναντι AVX-512: Ανάλυση Εναπομένοντος Χάσματος}
 \label{ssec:avx512-gap}
 
-Ο Intel AVX-512 champion αποτελεί τη βέλτιστη δημοσιευμένη υλοποίηση \HQC
+Ο Intel AVX-512 champion αποτελεί τη βέλτιστη δημοσιευμένη υλοποίηση \gls{hqc}
 σε οποιαδήποτε πλατφόρμα.  Η ανάλυση του εναπομένοντος χάσματος ($1.33\times$
 σε \instret, $\approx 2.3\times$ σε εκτιμώμενους κύκλους) αποκαλύπτει τρεις
 δομικούς παράγοντες.
@@ -206,7 +206,7 @@ in-order) δεν μπορεί να αξιοποιήσει αυτόν τον πα
 scheduling.
 
 \paragraph{Ωριμότητα οικοσυστήματος.}
-Η υλοποίηση AVX-512 \HQC αξιοποιεί δεκαετίες βελτιστοποίησης compiler
+Η υλοποίηση AVX-512 \gls{hqc} αξιοποιεί δεκαετίες βελτιστοποίησης compiler
 backends (ICC, GCC, Clang) για x86 SIMD, ενώ η RISC-V vector crypto
 υποστήριξη στον LLVM βρίσκεται ακόμη σε πρώιμο στάδιο
 (βλ.\ \cref{sec:compiler-comparison}).
@@ -217,7 +217,7 @@ backends (ICC, GCC, Clang) για x86 SIMD, ενώ η RISC-V vector crypto
 μικροαρχιτεκτονικούς παράγοντες (issue width, register file depth) παρά
 σε αλγοριθμική υστέρηση.  Η γεφύρωση αναμένεται μέσω: (α)~εκτέλεσης σε
 out-of-order RISC-V cores με ευρύτερο \VLEN (RVA23 profile targets), και
-(β)~batching πολλαπλών \KEM sessions για αξιοποίηση pipeline parallelism.
+(β)~batching πολλαπλών \gls{kem} sessions για αξιοποίηση pipeline parallelism.
 
 %% --------------------------------------------------------------------------
 \subsection{Σύνοψη Ετερογενούς Σύγκρισης}
@@ -226,7 +226,7 @@ out-of-order RISC-V cores με ευρύτερο \VLEN (RVA23 profile targets), �
 Η ετερογενής σύγκριση αποκαλύπτει τρία θεμελιώδη ευρήματα.  Πρώτον, η
 παρουσία hardware carry-less multiply αποτελεί τον κυρίαρχο παράγοντα
 απόδοσης σε code-based \gls{pqc} — η διαφορά μεταξύ αρχιτεκτονικών με
-(\Zbc, \code{PCLMULQDQ}, \code{PMULL}) και χωρίς (Cortex-M4) τέτοια
+(\gls{zbc}, \code{PCLMULQDQ}, \code{PMULL}) και χωρίς (Cortex-M4) τέτοια
 υποστήριξη υπερβαίνει μία τάξη μεγέθους.  Δεύτερον, η ασυμπτωτική
 πολυπλοκότητα αλγορίθμου (FAFFT $\BigO{n \log n}$ έναντι Karatsuba
 $\BigO{n^{1.585}}$) δεν μεταφράζεται σε πρακτικό πλεονέκτημα χωρίς
@@ -256,8 +256,8 @@ hardware δυνατοτήτων και αλγοριθμικής απόδοσης
 Ο \cref{tab:ablation-summary} συνοψίζει τα αποτελέσματα ablation για
 \num{11} extensions που αξιολογήθηκαν.  Η στήλη \q{Δ\% (best)} αναφέρεται
 στη μέγιστη μετρηθείσα βελτίωση σε οποιοδήποτε variant και security level.
-Μόνο τέσσερις scalar extensions (\Zbc, \Zbb, \ext{Zba}, \ext{Zbs}) και
-τρεις vector extensions (\RVV, \Zvbc, \Zvbb) παρουσιάζουν μετρήσιμη
+Μόνο τέσσερις scalar extensions (\gls{zbc}, \gls{zbb}, \ext{Zba}, \ext{Zbs}) και
+τρεις vector extensions (\RVV, \gls{zvbc}, \gls{zvbb}) παρουσιάζουν μετρήσιμη
 συνεισφορά· οι υπόλοιπες απορρίφθηκαν λόγω μηδενικής ή αμελητέας
 επίδρασης.
 
@@ -273,13 +273,13 @@ hardware δυνατοτήτων και αλγοριθμικής απόδοσης
   \input{figures/ch9-discussion/ablation-summary-table}
 \end{table}
 
-Η ιεραρχία συνεισφοράς αποκαλύπτει σαφή δομή.  Η \Zbc αποτελεί τη
+Η ιεραρχία συνεισφοράς αποκαλύπτει σαφή δομή.  Η \gls{zbc} αποτελεί τη
 θεμελιώδη extension — η εντολή \clmul μετασχηματίζει τον πολυωνυμικό
 πολλαπλασιασμό από $\BigO{n^2}$ bit-serial πράξεις σε $\BigO{n}$
 word-level carry-less products, παρέχοντας μείωση \pct{96} στο \instret
-του \code{vect\_mul}.  Η \Zvbc επεκτείνει αυτή τη δυνατότητα στο vector
+του \code{vect\_mul}.  Η \gls{zvbc} επεκτείνει αυτή τη δυνατότητα στο vector
 register file, εξαλείφοντας τον scalar loop overhead και παρέχοντας
-πρόσθετη μείωση \pct{59}.  Η \Zbb και η \Zvbb στοχεύουν τον Keccak
+πρόσθετη μείωση \pct{59}.  Η \gls{zbb} και η \gls{zvbb} στοχεύουν τον Keccak
 πυρήνα μέσω native rotations (\rori, \insn{vror.vv}), ενώ η \ext{Zba}
 βελτιστοποιεί τη pointer αριθμητική στα vector paths.
 
@@ -314,7 +314,7 @@ register file, εξαλείφοντας τον scalar loop overhead και πα�
 
 Ο \cref{fig:zba-ablation} αποκαλύπτει έντονη ασυμμετρία μεταξύ variants.
 Η \code{vector\_zvk} ωφελείται κατά $-\pct{5.61}$ στο polymul hotspot
-και $-\pct{3.27}$ στο πλήρες \KEM, ενώ η \code{scalar\_zb} παρουσιάζει
+και $-\pct{3.27}$ στο πλήρες \gls{kem}, ενώ η \code{scalar\_zb} παρουσιάζει
 μηδενική βελτίωση ($-\pct{0.004}$).
 
 \begin{figure}[htbp]
@@ -343,7 +343,7 @@ register.  Η \ext{Zba} δεν έχει τίποτα να συγχωνεύσει
 αποτελεί αμελητέο ποσοστό του συνολικού \instret.
 
 Η \code{vector\_rvv} παρουσιάζει ενδιάμεση βελτίωση ($-\pct{1.03}$
-polymul, $-\pct{0.67}$ \KEM) διότι χρησιμοποιεί scalar \clmul leaves
+polymul, $-\pct{0.67}$ \gls{kem}) διότι χρησιμοποιεί scalar \clmul leaves
 (σταθερές μετατοπίσεις, μη ωφελούμενα) αλλά \RVV recomposition helpers
 με strip-mining loops (\code{ptr += vl} → \insn{sh3add}), οι οποίοι
 ωφελούνται μερικώς.
@@ -430,8 +430,8 @@ compiler να αξιοποιεί αυτόματα τις διαθέσιμες ex
 είναι ενεργή στο \code{-march} flag:
 
 \begin{itemize}
-  \item \code{(x << n) | (x >> (64-n))} → \rori (\Zbb)
-  \item \code{\textasciitilde a \& b} → \insn{andn} (\Zbb)
+  \item \code{(x << n) | (x >> (64-n))} → \rori (\gls{zbb})
+  \item \code{\textasciitilde a \& b} → \insn{andn} (\gls{zbb})
   \item \code{base + idx*8} → \insn{sh3add} (\ext{Zba})
   \item \code{x |= (1ULL << pos)} → \insn{bset} (\ext{Zbs})
 \end{itemize}
@@ -445,7 +445,7 @@ Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
 
 \paragraph{Vector crypto: αδυναμία αυτόματης σύνθεσης.}
 Σε αντίθεση με τα scalar patterns, ο compiler δεν συνθέτει αυτόματα
-\Zvbc/\Zvbb primitives από generic C.  Η πειραματική τεκμηρίωση
+\gls{zvbc}/\gls{zvbb} primitives από generic C.  Η πειραματική τεκμηρίωση
 προέρχεται από δύο ανεξάρτητες παρατηρήσεις:
 
 \begin{enumerate}
@@ -453,7 +453,7 @@ Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
     ίδιου unoptimized reference C (\code{gf2x.c}, \code{fips202.c}) με
     \code{-march=rv64gcv\_zbc\_zbb\_zvbb\_zvbc} και auto-vectorization
     ενεργή παράγει \emph{ταυτόσημο} \instret με τη μεταγλώττιση χωρίς
-    \Zvbc/\Zvbb: \code{vect\_mul} = \cycles{18527412} σε αμφότερες τις
+    \gls{zvbc}/\gls{zvbb}: \code{vect\_mul} = \cycles{18527412} σε αμφότερες τις
     περιπτώσεις.  Ο compiler δεν εκπέμπει ούτε μία εντολή \vclmul ή
     \insn{vror.vv} από generic C loops.
 
@@ -476,7 +476,7 @@ shift-and-XOR loop υλοποιεί carry-less multiplication, διότι η
 \paragraph{Αρχιτεκτονική συνέπεια.}
 Η παρατήρηση αυτή τεκμηριώνει τη σχεδιαστική επιλογή των Κεφαλαίων~6–7:
 τα scalar paths χρησιμοποιούν plain C με auto-lowering (ο compiler
-αξιοποιεί αυτόματα \Zbb/\ext{Zba}/\ext{Zbs}), ενώ τα vector paths
+αξιοποιεί αυτόματα \gls{zbb}/\ext{Zba}/\ext{Zbs}), ενώ τα vector paths
 απαιτούν ρητά intrinsics (\code{\_\_riscv\_vclmul\_vv\_u64m1()},
 \code{\_\_riscv\_vror\_vv\_u64m1()}).  Η διαφοροποίηση δεν είναι
 αυθαίρετη — αντικατοπτρίζει ένα θεμελιώδες όριο στη δυνατότητα
@@ -486,7 +486,7 @@ shift-and-XOR loop υλοποιεί carry-less multiplication, διότι η
 
 \paragraph{Zbb: υποχρεωτική extension χωρίς manual intervention.}
 Η ανάλυση ablation στο Tier~1 champion (\code{scalar\_zb}) αποκαλύπτει
-ότι η αφαίρεση \Zbb εισάγει $+\pct{10.48}$ overhead στο HQC-128 \KEM
+ότι η αφαίρεση \gls{zbb} εισάγει $+\pct{10.48}$ overhead στο HQC-128 \gls{kem}
 (βλ.\ \cref{tab:zbb-ablation-tier1}).  Η επιβάρυνση προέρχεται
 αποκλειστικά από τον Keccak πυρήνα: κάθε μία από τις \num{58} rotations
 ανά permutation call εκτείνεται από μία εντολή \rori σε τρεις εντολές
@@ -504,7 +504,7 @@ level, ενώ ο αριθμός Keccak rotations παραμένει σταθερ
   \small
   \begin{tabular}{l S[table-format=7.0] S[table-format=7.0] S[table-format=7.0] S[table-format=2.2]}
     \toprule
-    \textbf{Level} & {\textbf{Με \Zbb}} & {\textbf{Χωρίς \Zbb}} &
+    \textbf{Level} & {\textbf{Με \gls{zbb}}} & {\textbf{Χωρίς \gls{zbb}}} &
       {\textbf{Δ instret}} & {\textbf{Δ\%}} \\
     \midrule
     HQC-128 & 3394685  & 3750474  & {+355789}  & {+10.48} \\
@@ -514,21 +514,21 @@ level, ενώ ο αριθμός Keccak rotations παραμένει σταθερ
   \end{tabular}
 \end{table}
 
-Η \Zbb αποτελεί υποχρεωτική hard ISA constraint για το Tier~1 profile.
+Η \gls{zbb} αποτελεί υποχρεωτική hard ISA constraint για το Tier~1 profile.
 Η επιβάρυνση $\pct{6}$–$\pct{10}$ δεν αντισταθμίζεται από κανένα
-πλεονέκτημα portability: κάθε RISC-V processor που υλοποιεί \Zbc (η
-θεμελιώδης απαίτηση για carry-less multiply) παρέχει ταυτόχρονα \Zbb —
-silicon με \Zbc χωρίς \Zbb δεν υπάρχει στο production landscape.  Η
+πλεονέκτημα portability: κάθε RISC-V processor που υλοποιεί \gls{zbc} (η
+θεμελιώδης απαίτηση για carry-less multiply) παρέχει ταυτόχρονα \gls{zbb} —
+silicon με \gls{zbc} χωρίς \gls{zbb} δεν υπάρχει στο production landscape.  Η
 τελική ISA baseline του Tier~1 ορίζεται ως \code{rv64gc\_zbc\_zbb\_zbs}.
 
 \paragraph{Zbkb: λειτουργική ισοδυναμία με Zbb.}
 Η extension \ext{Zbkb} (Crypto Bit-Manipulation) ορίζει την εντολή \rori
-με ταυτόσημη κωδικοποίηση και σημασιολογία με τη \Zbb.  Πειραματική
+με ταυτόσημη κωδικοποίηση και σημασιολογία με τη \gls{zbb}.  Πειραματική
 επαλήθευση επιβεβαίωσε ότι η μεταγλώττιση με \code{-march=rv64gc\_zbc\_zbb}
 και \code{-march=rv64gc\_zbc\_zbkb} παράγει ταυτόσημο αριθμό \rori
 (\num{58} ανά ELF) και \instret εντός $\pct{0.02}$ (θόρυβος εκκίνησης
-Spike).  Η \ext{Zbkb} απορρίφθηκε υπέρ της \Zbb λόγω ευρύτερης hardware
-διαθεσιμότητας: κάθε processor με \ext{Zbkb} υλοποιεί και \Zbb, αλλά
+Spike).  Η \ext{Zbkb} απορρίφθηκε υπέρ της \gls{zbb} λόγω ευρύτερης hardware
+διαθεσιμότητας: κάθε processor με \ext{Zbkb} υλοποιεί και \gls{zbb}, αλλά
 το αντίστροφο δεν ισχύει.
 
 \section{Code Size vs Performance Trade-off}
@@ -537,7 +537,7 @@ Spike).  Η \ext{Zbkb} απορρίφθηκε υπέρ της \Zbb λόγω ευ
 \section{Σχεδιαστικές Αρχές που Γενικεύονται}
 \label{sec:general-principles}
 
-Η βελτιστοποίηση του \HQC σε RISC-V ανέδειξε σχεδιαστικές αρχές που
+Η βελτιστοποίηση του \gls{hqc} σε RISC-V ανέδειξε σχεδιαστικές αρχές που
 υπερβαίνουν τον συγκεκριμένο αλγόριθμο.  Οι αρχές αυτές αφορούν κάθε
 κρυπτογραφική υλοποίηση που στοχεύει πολυωνυμική αριθμητική σε δυαδικά
 πεδία, vector-length-agnostic εκτέλεση, ή αξιοποίηση εξειδικευμένων ISA
@@ -566,9 +566,9 @@ schoolbook, $\BigO{n^{1.585}}$ Karatsuba, $\BigO{n \log n}$ FFT) καθίστα�
 δευτερεύουσα όταν η σταθερά ανά leaf operation μειώνεται κατά $64\times$.
 
 Η πρακτική συνέπεια για σχεδιαστές hardware είναι σαφής: η ενσωμάτωση
-\Zbc/\Zvbc σε ένα RISC-V core αποτελεί προϋπόθεση ανταγωνιστικής απόδοσης
+\gls{zbc}/\gls{zvbc} σε ένα RISC-V core αποτελεί προϋπόθεση ανταγωνιστικής απόδοσης
 σε code-based \gls{pqc}, ανεξαρτήτως αλγοριθμικής επιλογής.  Η ablation
-ανάλυση (\cref{ssec:ablation-quantitative}) τεκμηρίωσε ότι η \Zbc μόνη
+ανάλυση (\cref{ssec:ablation-quantitative}) τεκμηρίωσε ότι η \gls{zbc} μόνη
 παρέχει $-\pct{96}$ μείωση \instret στο polymul — καμία αλγοριθμική
 βελτιστοποίηση δεν μπορεί να αντισταθμίσει την απουσία αυτής της εντολής.
 
@@ -593,7 +593,7 @@ $\VLEN = \num{1024}$ (sweep στον Spike) μείωσε τον αριθμό loo
 \paragraph{Αποφυγή VLEN-specific code paths.}
 Σε αρχιτεκτονικές σταθερού εύρους SIMD (AVX-256, AVX-512, NEON), κάθε
 αλλαγή εύρους απαιτεί ξεχωριστό code path ή runtime dispatch.  Η
-υλοποίηση AVX-512 \HQC \cite{Chen2026-TCHES-HQC-FFT} δεν εκτελείται σε
+υλοποίηση AVX-512 \gls{hqc} \cite{Chen2026-TCHES-HQC-FFT} δεν εκτελείται σε
 AVX-256 hardware χωρίς fallback path.  Αντίθετα, η VLA υλοποίηση της
 παρούσας εργασίας εκτελείται ορθά σε κάθε $\VLEN \geq 128$ — από
 embedded cores ($\VLEN = \num{128}$) έως high-performance designs
@@ -607,7 +607,7 @@ iterations αλλάζει, αλλά η ακολουθία εντολών εντ�
 ντετερμινιστική.  Η ιδιότητα αυτή απλοποιεί σημαντικά τη constant-time
 επαλήθευση (βλ.\ \cref{sec:ct-verification}).
 
-Η αρχή αυτή γενικεύεται πέρα από τον \HQC: κάθε κρυπτογραφικός πυρήνας
+Η αρχή αυτή γενικεύεται πέρα από τον \gls{hqc}: κάθε κρυπτογραφικός πυρήνας
 που επεξεργάζεται arrays σταθερού μεγέθους (NTT coefficients, Keccak state
 lanes, AES blocks) ωφελείται από VLA strip-mining.  Η εναλλακτική —
 fixed-width SIMD intrinsics — εισάγει maintenance burden ανάλογο του
@@ -714,22 +714,22 @@ compile-time (security levels, polynomial degrees), ο code generator
 ως παράγοντας απόδοσης σε κρυπτογραφικά workloads.
 
 Η τεκμηρίωση προέρχεται από δύο ανεξάρτητες παρατηρήσεις.  Πρώτον, η
-μετάβαση Tier~1 → Tier~2 (προσθήκη \RVV χωρίς \Zvbc) παρέχει μόλις
+μετάβαση Tier~1 → Tier~2 (προσθήκη \RVV χωρίς \gls{zvbc}) παρέχει μόλις
 $-\pct{8}$ μείωση \instret στο polymul — η vectorization των combine
 loops ($\BigO{n}$ ανά level) δεν αντισταθμίζει τον scalar leaf bottleneck
 ($\BigO{n^2}$ ανά call).  Αντίθετα, η μετάβαση Tier~2 → Tier~3 (προσθήκη
-\Zvbc) παρέχει $-\pct{59}$ — η vectorization του leaf μέσω \vclmul
+\gls{zvbc}) παρέχει $-\pct{59}$ — η vectorization του leaf μέσω \vclmul
 εξαλείφει τον κυρίαρχο bottleneck.  Δεύτερον, η Keccak βελτιστοποίηση
-μέσω \Zvbb (\insn{vror.vv}, \insn{vandn.vv}) παρέχει $-\pct{37}$ στον
+μέσω \gls{zvbb} (\insn{vror.vv}, \insn{vandn.vv}) παρέχει $-\pct{37}$ στον
 Keccak πυρήνα — ενώ η αύξηση \VLEN από \num{256} σε \num{512} (διπλάσιο
-εύρος, ίδιες εντολές) παρέχει μόλις $-\pct{4}$ στο πλήρες \KEM.
+εύρος, ίδιες εντολές) παρέχει μόλις $-\pct{4}$ στο πλήρες \gls{kem}.
 
 Η αρχή αυτή έχει άμεσες σχεδιαστικές συνέπειες για hardware architects:
-η υλοποίηση \Zvbc/\Zvbb σε ένα core με $\VLEN = \num{256}$ παρέχει
+η υλοποίηση \gls{zvbc}/\gls{zvbb} σε ένα core με $\VLEN = \num{256}$ παρέχει
 μεγαλύτερο performance-per-area ratio από τη διπλασίαση του \VLEN σε
 \num{512} χωρίς crypto extensions.  Η παρατήρηση αυτή ευθυγραμμίζεται
 με τη φιλοσοφία του RVA23 profile, το οποίο καθιστά υποχρεωτικές τις
-\Zvbb (vector bit-manipulation) αλλά δεν επιβάλλει ελάχιστο \VLEN πέραν
+\gls{zvbb} (vector bit-manipulation) αλλά δεν επιβάλλει ελάχιστο \VLEN πέραν
 του \num{128}.
 
 \section{Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)}
@@ -756,7 +756,7 @@ Spike \gls{iss}.  Η σύγκριση αποκαλύπτει ότι κανένα
 εξαλείφει τον παράγοντα \q{λάθος flag} και εστιάζει στην εγγενή
 ποιότητα codegen.
 
-Η σύγκριση πραγματοποιήθηκε σε πλήρες \KEM (\KeyGen + \Encaps +
+Η σύγκριση πραγματοποιήθηκε σε πλήρες \gls{kem} (\KeyGen + \Encaps +
 \Decaps) και όχι σε μεμονωμένους πυρήνες, ώστε να αποτυπωθεί η
 αλληλεπίδραση μεταξύ inlining decisions, register allocation pressure,
 και interprocedural optimization.  Τα αποτελέσματα αφορούν ταυτόσημο
@@ -847,7 +847,7 @@ Keccak backend (\code{fips202\_zvbb\_x2.c}), ο οποίος δεν μεταγλ
 Ακόμη και μετά την υλοποίηση GCC-compatible x2 path (flat \code{uint64\_t[50]}
 buffer με named \code{vuint64m1\_t} locals), η single-stream
 \code{KeccakF1600\_StatePermute} — η οποία χρησιμοποιεί LMUL=8
-\insn{vrgather.vv} για τον $\pi$ step και \insn{vror.vv} (\Zvbb) για
+\insn{vrgather.vv} για τον $\pi$ step και \insn{vror.vv} (\gls{zvbb}) για
 τον $\rho$ step — παράγει κώδικα που εισέρχεται σε ατέρμονο βρόχο κατά
 την εκτέλεση στον Spike.  Η ανάλυση του παραγόμενου assembly αποκάλυψε
 ότι ο GCC~15.2 εκπέμπει μόλις \num{4} εντολές \insn{vrgather} (έναντι
@@ -862,7 +862,7 @@ spill/reload εμφανίζεται ελαττωματική.
 Υλοποιήθηκε GCC-compatible path με scalar Keccak fallback (vendor
 \code{fips202.c}).  Η ορθότητα επιβεβαιώθηκε μέσω KAT (100/100 vectors
 bit-for-bit ταυτόσημα).  Η μέτρηση απόδοσης αποκάλυψε ότι η scalar
-fallback εισάγει $+\pct{79}$–$\pct{92}$ overhead στο πλήρες \KEM
+fallback εισάγει $+\pct{79}$–$\pct{92}$ overhead στο πλήρες \gls{kem}
 (\cref{tab:gcc-keccak-fallback}), καθιστώντας τη σύγκριση μη ουσιαστική:
 η διαφορά αντικατοπτρίζει τη Keccak implementation και όχι την ποιότητα
 codegen στον polymul πυρήνα.
@@ -878,7 +878,7 @@ codegen στον polymul πυρήνα.
   \small
   \begin{tabular}{l S[table-format=7.0] S[table-format=7.0] S[table-format=2.1]}
     \toprule
-    \textbf{Level} & {\textbf{Clang (\Zvbb)}} & {\textbf{GCC (scalar)}} &
+    \textbf{Level} & {\textbf{Clang (\gls{zvbb})}} & {\textbf{GCC (scalar)}} &
       {\textbf{Overhead (\%)}} \\
     \midrule
     HQC-128 & 1041630  & 1997817  & 91.8 \\
@@ -896,7 +896,7 @@ codegen στον polymul πυρήνα.
 \subsection{Ερμηνεία: Ωριμότητα Οικοσυστήματος}
 \label{ssec:compiler-ecosystem-maturity}
 
-Η ασυμβατότητα GCC με τον \Zvbb backend δεν αποτελεί αδυναμία της
+Η ασυμβατότητα GCC με τον \gls{zvbb} backend δεν αποτελεί αδυναμία της
 αρχιτεκτονικής RISC-V — αντικατοπτρίζει τη χρονική υστέρηση του GCC
 backend σε σχέση με τον LLVM στην υποστήριξη πρόσφατων vector crypto
 extensions.  Η παρατήρηση αυτή εντάσσεται σε ευρύτερο μοτίβο: ο LLVM
@@ -913,7 +913,7 @@ compiler για KAT validation και scalar baseline, ενώ ο Clang
 compilers παράγουν συμβατά RISC-V ELF objects υπό το ίδιο \code{lp64d}
 ABI.
 
-Η κατάσταση αναμένεται να βελτιωθεί: η υποστήριξη \Zvbb στον GCC
+Η κατάσταση αναμένεται να βελτιωθεί: η υποστήριξη \gls{zvbb} στον GCC
 βρίσκεται υπό ενεργή ανάπτυξη, και η ενσωμάτωση του
 \code{riscv\_rvv\_vector\_bits} attribute αποτελεί ανοιχτή πρόταση στο
 GCC bugzilla.  Η παρούσα εργασία τεκμηριώνει την κατάσταση κατά τον
@@ -930,14 +930,14 @@ register allocation για τον RISC-V integer register file.  Ο Clang
 υπερτερεί σε vector intrinsic-heavy κώδικα (Tier~2/3) χάρη σε πληρέστερη
 υποστήριξη RVV semantics και αποδοτικότερη \insn{vsetvli} emission.
 Το Tier~3 αποτελεί αποκλειστικό πεδίο του Clang λόγω GCC codegen bugs
-στο \Zvbb backend.
+στο \gls{zvbb} backend.
 
 Η σχεδιαστική σύσταση για υλοποιήσεις \gls{pqc} σε RISC-V με vector
 crypto extensions είναι τριπλή:
 
 \begin{enumerate}
   \item Χρήση Clang ως primary compiler για vector crypto kernels —
-    η υπεροχή σε RVV codegen και η αποκλειστική υποστήριξη \Zvbb
+    η υπεροχή σε RVV codegen και η αποκλειστική υποστήριξη \gls{zvbb}
     καθιστούν τον LLVM μονόδρομο για Tier~3 υλοποιήσεις.
   \item Χρήση GCC ως cross-validation compiler για scalar paths —
     η ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου compiler
@@ -1009,14 +1009,14 @@ false positives ακόμη και σε trivially constant-time κώδικα.  Ε
     \code{scalar\_zb} & 128 & polymul & -0.50 & 0.41 & PASS \\
     \code{vector\_rvv} & 128 & polymul & -2.02 & -0.90 & PASS \\
     \code{scalar\_zb} & 192 & polymul & -0.53 & 0.50 & PASS \\
-    \code{scalar\_zb} & 128 & \KEM    & -3.00 & -0.80 & PASS \\
+    \code{scalar\_zb} & 128 & \gls{kem}    & -3.00 & -0.80 & PASS \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 Τρεις παρατηρήσεις αναδεικνύονται.  Πρώτον, όλες οι βελτιστοποιημένες
 υλοποιήσεις περνούν με t-statistics πολύ κάτω από το threshold $4.5$ —
-τεκμηριώνοντας ότι οι βελτιστοποιήσεις (Karatsuba recursion, \Zbc
+τεκμηριώνοντας ότι οι βελτιστοποιήσεις (Karatsuba recursion, \gls{zbc}
 carry-less multiply, \RVV vectorization) δεν εισάγουν timing
 side-channels.  Δεύτερον, ο first-order test ($t_1$) αποτυπώνει raw
 timing distribution differences, ενώ ο second-order ($t_2$, percentile-cropped)
@@ -1066,7 +1066,7 @@ tail/mask agnostic πολιτικές.
 Ο Valgrind (υποστήριξη RISCV64 από v3.25.0, Απρίλιος 2025
 \cite{Valgrind-riscv64}) θα μπορούσε θεωρητικά να εκτελέσει ctgrind
 natively στο BPI-F3.  Ωστόσο, ο instruction interpreter του Valgrind
-δεν υποστηρίζει ακόμη \Zbc (carry-less multiply) ούτε \RVV vector
+δεν υποστηρίζει ακόμη \gls{zbc} (carry-less multiply) ούτε \RVV vector
 εντολές — κάθε binary που χρησιμοποιεί αυτές τις extensions τερματίζεται
 με \q{unhandled instruction bytes}.  Ο περιορισμός αυτός περιορίζει τον
 on-target Valgrind στο \code{scalar\_ref} variant — ακριβώς αυτό που
@@ -1099,7 +1099,7 @@ pqm4 project \cite{pqm4} (Valgrind on host + timing on Cortex-M4) —
     Μικροαρχιτεκτονικά κανάλια       & —          & \ding{51} \\
     Compiler-introduced violations   & —          & \ding{51} \\
     Speculative execution            & —          & $\triangle$ \\
-    RISC-V \Zbc/\RVV variants        & —          & \ding{51} \\
+    RISC-V \gls{zbc}/\RVV variants        & —          & \ding{51} \\
     CI automation                    & \ding{51} & — \\
     \bottomrule
   \end{tabular}
@@ -1145,12 +1145,12 @@ caveats πρέπει να αναγνωριστούν ρητά:
 
 Η formal CT verification για RISC-V binaries με Vector και Vector Crypto
 extensions παραμένει ανοιχτό ερευνητικό πρόβλημα.  Η ανάπτυξη
-σημασιολογικών μοντέλων για \RVV/\Zvbc σε binary analysis frameworks
+σημασιολογικών μοντέλων για \RVV/\gls{zvbc} σε binary analysis frameworks
 αποτελεί σημαντική μελλοντική ερευνητική κατεύθυνση για την κοινότητα
 κρυπτογραφικής μηχανικής RISC-V (βλ.\ \cref{sec:future-work}).
 
 \paragraph{Σύνοψη ασφάλειας.}
-Η βελτιστοποιημένη υλοποίηση \HQC διατηρεί constant-time συμπεριφορά σε
+Η βελτιστοποιημένη υλοποίηση \gls{hqc} διατηρεί constant-time συμπεριφορά σε
 όλα τα optimized variants (\code{scalar\_zb}, \code{vector\_rvv})
 και σε όλα τα security levels (128, 192, 256), όπως τεκμηριώνεται μέσω:
 (α)~αρχιτεκτονικής ανάλυσης — όλες οι εντολές ανήκουν στο Zkt-compliant
@@ -1158,7 +1158,7 @@ subset χωρίς secret-dependent control flow ή memory addressing,
 (β)~στατικής επαλήθευσης — ctgrind περνά χωρίς violations (CI-automated),
 και (γ)~εμπειρικής hardware επαλήθευσης — dudect περνά στο BPI-F3 με
 t-statistics πολύ κάτω από το detection threshold.  Τα performance gains
-μέσω Karatsuba recursion, \Zbc carry-less multiply, και \RVV vectorization
+μέσω Karatsuba recursion, \gls{zbc} carry-less multiply, και \RVV vectorization
 δεν παραβιάζουν την timing-side-channel αντοχή που απαιτείται για
-μετα-κβαντικές \KEM deployments.
+μετα-κβαντικές \gls{kem} deployments.
 
