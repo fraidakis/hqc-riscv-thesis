@@ -1,7 +1,7 @@
 \chapter{Αρχιτεκτονική RISC-V και Κρυπτογραφικές Επεκτάσεις}
 \label{ch:risc-v-architecture}
 
-Στο προηγούμενο κεφάλαιο παρουσιάστηκε η αλγοριθμική δομή του \HQC και οι
+Στο προηγούμενο κεφάλαιο παρουσιάστηκε η αλγοριθμική δομή του \gls{hqc} και οι
 υπολογιστικοί πυρήνες που κυριαρχούν στο κόστος εκτέλεσης. Το παρόν κεφάλαιο
 εξετάζει την αρχιτεκτονική πλατφόρμα στην οποία υλοποιούνται αυτοί οι πυρήνες:
 την αρχιτεκτονική RISC-V, τις κρυπτογραφικές επεκτάσεις που αξιοποιεί η
@@ -53,7 +53,7 @@ Lee~\cite{Waterman2011-riscv}. Η αρχική κινητήρια δύναμη �
 μπορεί να εξελίσσεται παράλληλα με τις αλγοριθμικές ανάγκες — ακριβώς η
 κρυπτογραφική ευελιξία που τεκμηριώθηκε ως απαίτηση
 στην~\cref{ssec:agility-requirement}. Η απουσία vendor lock-in εγγυάται ότι
-κώδικας γραμμένος για τυποποιημένες επεκτάσεις (π.χ.\ \Zbc, \Zvbc) εκτελείται
+κώδικας γραμμένος για τυποποιημένες επεκτάσεις (π.χ.\ \gls{zbc}, \gls{zvbc}) εκτελείται
 σε οποιαδήποτε συμβατή υλοποίηση, ανεξαρτήτως κατασκευαστή. Ο οργανισμός
 RISC-V International, που ιδρύθηκε το 2015, διαχειρίζεται τη διαδικασία
 τυποποίησης και διασφαλίζει τη συμβατότητα μεταξύ υλοποιήσεων μέσω
@@ -159,13 +159,13 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
     \toprule
     \textbf{Επέκταση} & \textbf{Περιγραφή} & \textbf{Ratified} & \textbf{Tier} \\
     \midrule
-    \Zbc  & Carry-less multiplication (\clmul, \clmulh) & 11/2021 & 1 \\
-    \Zbb  & Basic bit-manipulation (\rori, \insn{andn}, \insn{rev8}) & 11/2021 & 1 \\
+    \gls{zbc}  & Carry-less multiplication (\clmul, \clmulh) & 11/2021 & 1 \\
+    \gls{zbb}  & Basic bit-manipulation (\rori, \insn{andn}, \insn{rev8}) & 11/2021 & 1 \\
     Zbs   & Single-bit operations (\insn{bset}, \insn{bext}) & 11/2021 & 1 \\
     V     & Vector extension 1.0 (RVV) & 11/2021 & 2 \\
     Zba   & Address generation (\insn{sh1add}–\insn{sh3add}) & 11/2021 & 2 \\
-    \Zvbc & Vector carry-less multiplication (\vclmul, \vclmulh) & 09/2023 & 3 \\
-    \Zvbb & Vector bit-manipulation (\vror, \insn{vandn}, \insn{vbrev8}) & 09/2023 & 3 \\
+    \gls{zvbc} & Vector carry-less multiplication (\vclmul, \vclmulh) & 09/2023 & 3 \\
+    \gls{zvbb} & Vector bit-manipulation (\vror, \insn{vandn}, \insn{vbrev8}) & 09/2023 & 3 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -183,9 +183,9 @@ Android RISC-V ABI και στοχεύεται από κάθε σημαντικ�
 
 Η \cref{tab:rva23-extensions} παρουσιάζει τη σχέση μεταξύ των επεκτάσεων που
 αξιοποιεί η παρούσα εργασία και του προφίλ RVA23. Η διανυσματική επέκταση V,
-η \Zvbb και η \Zbb είναι υποχρεωτικές (mandatory) στο RVA23, ενώ η \Zvbc
+η \gls{zvbb} και η \gls{zbb} είναι υποχρεωτικές (mandatory) στο RVA23, ενώ η \gls{zvbc}
 αποτελεί development option — προορίζεται να καταστεί υποχρεωτική σε
-μελλοντικό προφίλ. Η scalar \Zbc αποτελεί expansion option. Κατά συνέπεια,
+μελλοντικό προφίλ. Η scalar \gls{zbc} αποτελεί expansion option. Κατά συνέπεια,
 κάθε μελλοντικός επεξεργαστής που πληροί το RVA23 θα υποστηρίζει εγγενώς τις
 περισσότερες επεκτάσεις της παρούσας εργασίας, επιβεβαιώνοντας ότι η
 προσέγγιση βρίσκεται στο mainstream adoption path.
@@ -203,11 +203,11 @@ Android RISC-V ABI και στοχεύεται από κάθε σημαντικ�
     \textbf{Επέκταση} & \textbf{Κατάσταση RVA23} & \textbf{Σημασία} \\
     \midrule
     V (RVV 1.0)  & Mandatory & Εγγυημένη παρουσία σε κάθε RVA23 chip \\
-    \Zbb         & Mandatory & Rotations, \insn{andn} διαθέσιμα παντού \\
-    \Zvbb        & Mandatory & Vector rotations/\insn{vandn} εγγυημένα \\
+    \gls{zbb}         & Mandatory & Rotations, \insn{andn} διαθέσιμα παντού \\
+    \gls{zvbb}        & Mandatory & Vector rotations/\insn{vandn} εγγυημένα \\
     Zba          & Mandatory & Address generation βελτιστοποιήσεις \\
-    \Zvbc        & Development option & Αναμένεται mandatory σε RVA24+ \\
-    \Zbc         & Expansion option & Scalar carry-less multiply \\
+    \gls{zvbc}        & Development option & Αναμένεται mandatory σε RVA24+ \\
+    \gls{zbc}         & Expansion option & Scalar carry-less multiply \\
     Zbs          & Mandatory & Single-bit operations \\
     \bottomrule
   \end{tabular}
@@ -219,9 +219,9 @@ X60 (Banana Pi BPI-F3) υλοποιεί RV64GCVB με \VLEN $= \num{256}$~bits �
 dual-issue in-order pipeline. Η πλατφόρμα αυτή χρησιμοποιείται στην παρούσα
 εργασία ως hardware validation platform για επικύρωση των αποτελεσμάτων σε
 πραγματικό silicon (λεπτομέρειες στην~\cref{ssec:bpi-f3}). Ο K1 X60 υποστηρίζει
-εγγενώς τις scalar επεκτάσεις (\Zbc, \Zbb) και τη διανυσματική μονάδα \RVV~1.0,
+εγγενώς τις scalar επεκτάσεις (\gls{zbc}, \gls{zbb}) και τη διανυσματική μονάδα \RVV~1.0,
 καλύπτοντας πλήρως τα Tier~1 και Tier~2 variants, αλλά δεν υλοποιεί τις
-Vector-Crypto επεκτάσεις \Zvbc και \Zvbb — αυτές απαιτούν συμμόρφωση με το
+Vector-Crypto επεκτάσεις \gls{zvbc} και \gls{zvbb} — αυτές απαιτούν συμμόρφωση με το
 προφίλ RVA23, το οποίο δεν είναι ακόμη διαθέσιμο σε silicon. Η ύπαρξη
 εμπορικού hardware που υποστηρίζει τις επεκτάσεις Tier~1 και Tier~2 επιβεβαιώνει
 ότι η προσέγγιση της παρούσας εργασίας δεν αποτελεί θεωρητική άσκηση αλλά
@@ -256,7 +256,7 @@ x86-64. Η \cref{tab:arch-comparison} συνοψίζει τις θεμελιώδ
       Ιδιόκτητο, patents \\
     \addlinespace
     Crypto υποστήριξη &
-      Γενικού σκοπού extensions (\Zbc, \Zvbc) &
+      Γενικού σκοπού extensions (\gls{zbc}, \gls{zvbc}) &
       Dedicated macro-ops (\insn{pmull}, EOR3, RAX1) &
       Wide SIMD (\insn{vpclmulqdq} σε 512-bit) \\
     \addlinespace
@@ -299,7 +299,7 @@ registers, επεξεργαζόμενη \num{8} ζεύγη 64-bit πολυωνύ
 
 Το RISC-V ακολουθεί μια ενδιάμεση προσέγγιση: \defterm{γενικού σκοπού
 κρυπτογραφικές extensions}. Η εντολή \clmul εκτελεί carry-less
-multiplication — χρήσιμη τόσο στον \HQC (πολυωνυμικός πολλαπλασιασμός σε
+multiplication — χρήσιμη τόσο στον \gls{hqc} (πολυωνυμικός πολλαπλασιασμός σε
 $\GF{2}[x]$) όσο και σε GCM, CRC, GHASH και Barrett reduction. Η εντολή
 \vror εκτελεί vector rotation — χρήσιμη τόσο στον Keccak (βήμα ρ) όσο και
 σε ChaCha20, BLAKE3 και γενικό bit-manipulation. Αυτή η φιλοσοφία θυσιάζει
@@ -346,7 +346,7 @@ $\GFpoly$, rotations για Keccak, και byte-level μετασχηματισμ
 \subsection{Η Επέκταση \Zbc: Carry-Less Multiplication}
 \label{ssec:zbc-extension}
 
-Η επέκταση \Zbc (Carry-less multiplication), τυποποιημένη τον Νοέμβριο
+Η επέκταση \gls{zbc} (Carry-less multiplication), τυποποιημένη τον Νοέμβριο
 2021~\cite{RISCV-bitmanip-spec}, ορίζει τρεις εντολές που εκτελούν
 πολλαπλασιασμό χωρίς κρατούμενο (carry-less multiplication) μεταξύ δύο
 64-bit τελεστέων:
@@ -390,9 +390,9 @@ $b(x) = \sum_{j=0}^{63} b_j x^j$ είναι πολυώνυμα σε $\GFpoly$ α
 
 \paragraph{Αντιστοίχιση σε κρυπτογραφικά primitives.}
 Η carry-less multiplication αποτελεί τη θεμελιώδη πράξη σε πολλαπλά
-κρυπτογραφικά πρωτόκολλα. Στο \HQC, ο πολυωνυμικός πολλαπλασιασμός σε
+κρυπτογραφικά πρωτόκολλα. Στο \gls{hqc}, ο πολυωνυμικός πολλαπλασιασμός σε
 $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογιστικό πυρήνα
-(βλ.~\cref{sec:polymul-theory}). Πέραν του \HQC, η ίδια πράξη χρησιμοποιείται
+(βλ.~\cref{sec:polymul-theory}). Πέραν του \gls{hqc}, η ίδια πράξη χρησιμοποιείται
 στο GCM (Galois/Counter Mode) για τον υπολογισμό GHASH, στον υπολογισμό CRC
 (Cyclic Redundancy Check), και στη Barrett reduction σε δυαδικά
 πεδία~\cite{RISCV-crypto-spec}. Η γενικότητα αυτή επιβεβαιώνει τη
@@ -406,7 +406,7 @@ $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογισ�
 του δεύτερου τελεστέου, δημιουργείται μάσκα, εκτελείται conditional XOR του
 ολισθημένου πρώτου τελεστέου, και ενημερώνεται ο συσσωρευτής. Η διαδικασία
 απαιτεί περίπου \num{640} εντολές ανά 64-bit γινόμενο (10 εντολές ανά
-επανάληψη $\times$ 64 επαναλήψεις). Με τη \Zbc, το ίδιο αποτέλεσμα
+επανάληψη $\times$ 64 επαναλήψεις). Με τη \gls{zbc}, το ίδιο αποτέλεσμα
 παράγεται σε ακριβώς \num{2} εντολές: \clmul (κάτω 64~bit) και \clmulh
 (άνω 64~bit). Η μείωση ανέρχεται σε \speedup{320} σε instruction count
 ανά στοιχειώδες γινόμενο — μια μετάβαση που μετασχηματίζει τον πολυωνυμικό
@@ -427,13 +427,13 @@ $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογισ�
 \end{figure}
 
 \paragraph{Χρήση μέσω C intrinsics.}
-Η πρόσβαση στις εντολές \Zbc γίνεται μέσω των compiler intrinsics
+Η πρόσβαση στις εντολές \gls{zbc} γίνεται μέσω των compiler intrinsics
 \code{\_\_riscv\_clmul\_64(a, b)} και \code{\_\_riscv\_clmulh\_64(a, b)},
 ορισμένων στο header \code{<riscv\_bitmanip.h>}. Τα intrinsics συμμετέχουν
 πλήρως στο optimization pipeline του compiler (register allocation,
 instruction scheduling, CSE), σε αντίθεση με inline assembly που αποτελεί
 αδιαφανές block. Η παρούσα εργασία χρησιμοποιεί αποκλειστικά intrinsics για
-τις εντολές \Zbc — η αρχική υλοποίηση μέσω inline assembly αντικαταστάθηκε
+τις εντολές \gls{zbc} — η αρχική υλοποίηση μέσω inline assembly αντικαταστάθηκε
 κατά τη φάση βελτιστοποίησης (βλ.~\cref{sec:polymul-scalar}).
 
 \paragraph{Δευτερεύουσα χρήση: αριθμητική $\GF{2^8}$.}
@@ -449,7 +449,7 @@ Reed-Solomon (βλ.~\cref{sec:ecc-theory}). Ο πολλαπλασιασμός δ
 \subsection{Η Επέκταση \Zbb: Basic Bit-Manipulation}
 \label{ssec:zbb-extension}
 
-Η επέκταση \Zbb (Basic bit-manipulation), τυποποιημένη τον Νοέμβριο
+Η επέκταση \gls{zbb} (Basic bit-manipulation), τυποποιημένη τον Νοέμβριο
 2021~\cite{RISCV-bitmanip-spec}, παρέχει εντολές bit-level χειρισμού που
 εξαλείφουν σύνθετες ακολουθίες βασικών εντολών. Οι εντολές με κρυπτογραφική
 σημασία για την παρούσα εργασία είναι:
@@ -470,18 +470,18 @@ Reed-Solomon (βλ.~\cref{sec:ecc-theory}). Ο πολλαπλασιασμός δ
 \paragraph{Αντιστοίχιση σε Keccak.}
 Η εσωτερική μετάθεση Keccak-f[1600] (βλ.~\cref{sec:keccak-theory}) απαιτεί
 \num{25} lane rotations ανά γύρο (βήμα $\rho$) και \num{5} AND-NOT πράξεις
-ανά σειρά (βήμα $\chi$). Χωρίς \Zbb, κάθε 64-bit rotation απαιτεί δύο
+ανά σειρά (βήμα $\chi$). Χωρίς \gls{zbb}, κάθε 64-bit rotation απαιτεί δύο
 εντολές shift και μία OR (\code{slli} + \code{srli} + \code{or} = 3 εντολές),
 ενώ κάθε AND-NOT απαιτεί μία αντιστροφή και μία AND (\code{not} + \code{and}
-= 2 εντολές). Με \Zbb, η rotation εκτελείται σε μία \rori και η AND-NOT σε
+= 2 εντολές). Με \gls{zbb}, η rotation εκτελείται σε μία \rori και η AND-NOT σε
 μία \insn{andn} — μείωση \pct{67} και \pct{50} αντίστοιχα σε instruction
 count ανά πράξη.
 
 \paragraph{Μηχανισμός auto-lowering.}
-Σε αντίθεση με τη \Zbc, οι εντολές \Zbb εκπέμπονται αυτόματα από τον
+Σε αντίθεση με τη \gls{zbc}, οι εντολές \gls{zbb} εκπέμπονται αυτόματα από τον
 compiler χωρίς χρήση intrinsics. Ο μεταγλωττιστής αναγνωρίζει τα C idioms
 \code{(x << k) | (x >> (64-k))} και \code{\textasciitilde{}b \& a} και τα
-αντικαθιστά με \rori και \insn{andn} αντίστοιχα, αρκεί η επέκταση \Zbb να
+αντικαθιστά με \rori και \insn{andn} αντίστοιχα, αρκεί η επέκταση \gls{zbb} να
 είναι ενεργή στο \code{-march} flag. Αυτός ο μηχανισμός
 \defterm{auto-lowering} σημαίνει ότι ο πηγαίος κώδικας δεν χρειάζεται
 τροποποίηση — η βελτιστοποίηση προκύπτει αποκλειστικά από τις compilation
@@ -494,17 +494,17 @@ flags. Τα ποσοτικά αποτελέσματα του auto-lowering αν�
 Η επέκταση Zbkb (Bit-manipulation for cryptography) αποτελεί υποσύνολο
 εντολών σχεδιασμένων ειδικά για κρυπτογραφικές εφαρμογές. Στην πράξη, οι
 εντολές που αξιοποιεί η παρούσα εργασία (\rori, \insn{andn}, \insn{rev8})
-ανήκουν ταυτόχρονα στη \Zbb και στη Zbkb — η Zbkb ορίστηκε ως ξεχωριστή
-επέκταση για να επιτρέψει σε μικροελεγκτές που δεν υλοποιούν πλήρη \Zbb να
+ανήκουν ταυτόχρονα στη \gls{zbb} και στη Zbkb — η Zbkb ορίστηκε ως ξεχωριστή
+επέκταση για να επιτρέψει σε μικροελεγκτές που δεν υλοποιούν πλήρη \gls{zbb} να
 παρέχουν τουλάχιστον τις κρυπτογραφικά κρίσιμες εντολές. Η εντολή
 \insn{brev8} (bit-reverse εντός κάθε byte) ανήκει αποκλειστικά στη Zbkb και
 χρησιμοποιείται σε αλγορίθμους που απαιτούν bit-reflection (π.χ.\ CRC,
-GHASH), αλλά δεν αξιοποιείται στην παρούσα υλοποίηση \HQC.
+GHASH), αλλά δεν αξιοποιείται στην παρούσα υλοποίηση \gls{hqc}.
 
 \paragraph{Σχέση μεταξύ επεκτάσεων.}
 Η \cref{tab:scalar-crypto-instructions} συνοψίζει τις εντολές ανά επέκταση
 και την αντιστοίχισή τους σε κρυπτογραφικά primitives της παρούσας εργασίας.
-Η αλληλοεπικάλυψη μεταξύ \Zbb και Zbkb αντικατοπτρίζει τη σχεδιαστική
+Η αλληλοεπικάλυψη μεταξύ \gls{zbb} και Zbkb αντικατοπτρίζει τη σχεδιαστική
 φιλοσοφία του RISC-V: οι ίδιες εντολές εξυπηρετούν τόσο γενικό bit-manipulation
 όσο και κρυπτογραφικές ανάγκες, μεγιστοποιώντας την αξιοποίηση πυριτίου.
 
@@ -518,13 +518,13 @@ GHASH), αλλά δεν αξιοποιείται στην παρούσα υλο�
   \begin{tabular}{lllcl}
     \toprule
     \textbf{Εντολή} & \textbf{Extension} & \textbf{Primitive} &
-      \textbf{Χωρίς ext.} & \textbf{Χρήση στο \HQC} \\
+      \textbf{Χωρίς ext.} & \textbf{Χρήση στο \gls{hqc}} \\
     \midrule
-    \clmul   & \Zbc  & $\GFpoly$ multiply (low)  & $\sim$640 & Karatsuba leaf, $\GF{2^8}$ mul \\
-    \clmulh  & \Zbc  & $\GFpoly$ multiply (high) & (μαζί)    & Karatsuba leaf \\
-    \rori    & \Zbb/Zbkb & 64-bit rotation       & 3         & Keccak $\rho$-step \\
-    \insn{andn} & \Zbb/Zbkb & AND-NOT            & 2         & Keccak $\chi$-step \\
-    \insn{rev8} & \Zbb/Zbkb & Byte-reverse       & 7         & Endianness conversion \\
+    \clmul   & \gls{zbc}  & $\GFpoly$ multiply (low)  & $\sim$640 & Karatsuba leaf, $\GF{2^8}$ mul \\
+    \clmulh  & \gls{zbc}  & $\GFpoly$ multiply (high) & (μαζί)    & Karatsuba leaf \\
+    \rori    & \gls{zbb}/Zbkb & 64-bit rotation       & 3         & Keccak $\rho$-step \\
+    \insn{andn} & \gls{zbb}/Zbkb & AND-NOT            & 2         & Keccak $\chi$-step \\
+    \insn{rev8} & \gls{zbb}/Zbkb & Byte-reverse       & 7         & Endianness conversion \\
     \insn{brev8} & Zbkb & Bit-reverse per byte   & $\sim$12  & (μη αξιοποιούμενη) \\
     \bottomrule
   \end{tabular}
@@ -532,9 +532,9 @@ GHASH), αλλά δεν αξιοποιείται στην παρούσα υλο�
 
 \paragraph{Σύνοψη αρχιτεκτονικής συνεισφοράς.}
 Οι scalar κρυπτογραφικές επεκτάσεις μετασχηματίζουν τους δύο κυρίαρχους
-υπολογιστικούς πυρήνες του \HQC σε επίπεδο μεμονωμένων πράξεων: η \Zbc
+υπολογιστικούς πυρήνες του \gls{hqc} σε επίπεδο μεμονωμένων πράξεων: η \gls{zbc}
 μειώνει το κόστος κάθε στοιχειώδους πολυωνυμικού γινομένου κατά \speedup{320},
-ενώ η \Zbb μειώνει το κόστος κάθε Keccak rotation και AND-NOT κατά
+ενώ η \gls{zbb} μειώνει το κόστος κάθε Keccak rotation και AND-NOT κατά
 \speedup{3} και \speedup{2} αντίστοιχα. Η αξιοποίηση αυτών των εντολών στο
 πλαίσιο ολόκληρου του αλγορίθμου — μέσω Karatsuba recursion, software
 pipelining και compile-time code generation — παρουσιάζεται αναλυτικά στα
@@ -791,7 +791,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
 Η πρακτική εφαρμογή των μηχανισμών strip-mining, \insn{vsetvl} και VLA
 αποσαφηνίζεται μέσω ενός πλήρους worked example: η συνάρτηση
 \code{vect\_add} εκτελεί element-wise XOR δύο πολυωνυμικών vectors —
-θεμελιώδης πράξη στο \HQC (πρόσθεση πολυωνύμων σε $\GFpoly$). Η
+θεμελιώδης πράξη στο \gls{hqc} (πρόσθεση πολυωνύμων σε $\GFpoly$). Η
 \cref{fig:rvv-xor-comparison} παρουσιάζει τη σύγκριση μεταξύ scalar C
 και \RVV intrinsics.
 
@@ -836,8 +836,8 @@ Keccak permutation, και στη vectorized \code{memcpy}. Η ομοιομορ�
 \section{Διανυσματικές Κρυπτογραφικές Επεκτάσεις (\Zvbc, \Zvbb)}
 \label{sec:vector-crypto-extensions}
 
-Οι διανυσματικές κρυπτογραφικές επεκτάσεις \Zvbc και \Zvbb αποτελούν τη
-φυσική προέκταση των scalar επεκτάσεων \Zbc και \Zbb
+Οι διανυσματικές κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb} αποτελούν τη
+φυσική προέκταση των scalar επεκτάσεων \gls{zbc} και \gls{zbb}
 (βλ.~\cref{sec:scalar-extensions}) στο vector domain. Τυποποιήθηκαν τον
 Σεπτέμβριο 2023 ως μέρος του Volume~II (Vector Cryptography) της
 προδιαγραφής RISC-V Cryptography Extensions~\cite{RISCV-crypto-spec} και
@@ -849,7 +849,7 @@ Keccak permutation, και στη vectorized \code{memcpy}. Η ομοιομορ�
 \subsection{Η Επέκταση \Zvbc: Vector Carry-Less Multiplication}
 \label{ssec:zvbc-extension}
 
-Η επέκταση \Zvbc ορίζει δύο εντολές που εκτελούν carry-less multiplication
+Η επέκταση \gls{zvbc} ορίζει δύο εντολές που εκτελούν carry-less multiplication
 σε κάθε στοιχείο ενός vector register ανεξάρτητα:
 
 \begin{itemize}
@@ -880,7 +880,7 @@ j + \code{vl} - 1]$ μέσω ενός ζεύγους \vclmul/\vclmulh (sweep). �
 δυναμικών εντολών κατά παράγοντα $\sim\!\VLMAX / 3$.
 
 \paragraph{Περιορισμός \SEW.}
-Η \Zvbc υποστηρίζει αποκλειστικά $\SEW = 64$ — δεν ορίζονται εκδόσεις
+Η \gls{zvbc} υποστηρίζει αποκλειστικά $\SEW = 64$ — δεν ορίζονται εκδόσεις
 για μικρότερα πλάτη στοιχείων. Αυτός ο περιορισμός αντικατοπτρίζει τη
 σχεδιαστική απόφαση ότι carry-less multiplication σε μικρότερα πλάτη
 (8, 16, 32~bit) μπορεί να εξυπηρετηθεί μέσω widening ή narrowing
@@ -892,7 +892,7 @@ operations πάνω στα 64-bit αποτελέσματα. Στην παρού�
 \subsection{Η Επέκταση \Zvbb: Vector Bit-Manipulation}
 \label{ssec:zvbb-extension}
 
-Η επέκταση \Zvbb παρέχει vector εκδόσεις εντολών bit-manipulation
+Η επέκταση \gls{zvbb} παρέχει vector εκδόσεις εντολών bit-manipulation
 σχεδιασμένων για κρυπτογραφικές εφαρμογές:
 
 \begin{itemize}
@@ -908,7 +908,7 @@ operations πάνω στα 64-bit αποτελέσματα. Στην παρού�
 
 \paragraph{Αντιστοίχιση σε Keccak.}
 Η εσωτερική μετάθεση Keccak-f[1600] (βλ.~\cref{sec:keccak-theory})
-αποτελεί τον κύριο beneficiary της \Zvbb στην παρούσα εργασία. Το βήμα
+αποτελεί τον κύριο beneficiary της \gls{zvbb} στην παρούσα εργασία. Το βήμα
 $\rho$ (lane rotation) απαιτεί \num{25} rotations ανά γύρο με
 διαφορετικό offset ανά lane — η \insn{vror.vv} εκτελεί όλες τις
 rotations ενός vector register σε μία εντολή, χρησιμοποιώντας ένα
@@ -921,7 +921,7 @@ rotations ενός vector register σε μία εντολή, χρησιμοπο�
 $\rho$ και $\pi$ εκτελούνται μέσω ενός ζεύγους \insn{vrgather.vv}
 (permutation) + \insn{vror.vv} (rotation), ενώ το βήμα $\chi$ εκτελείται
 μέσω δύο \insn{vrgather.vv} (ανάκτηση $A[x+1]$ και $A[x+2]$) +
-\insn{vandn.vv} + \insn{vxor.vv}. Χωρίς \Zvbb, κάθε rotation θα
+\insn{vandn.vv} + \insn{vxor.vv}. Χωρίς \gls{zvbb}, κάθε rotation θα
 απαιτούσε τρεις εντολές (\insn{vsll} + \insn{vsrl} + \insn{vor}) και
 κάθε AND-NOT δύο (\insn{vnot} + \insn{vand}) — αύξηση \pct{200} και
 \pct{100} αντίστοιχα σε instruction count ανά πράξη.
@@ -941,7 +941,7 @@ immediate — ο compiler εκπέμπει \insn{vror.vi} για offsets $\leq 3
 \label{ssec:zvbc-zvbb-comparison}
 
 Η \cref{tab:zvbc-zvbb-before-after} συνοψίζει την ποσοτική επίπτωση
-των \Zvbc και \Zvbb σε τυπικές κρυπτογραφικές πράξεις. Η σύγκριση
+των \gls{zvbc} και \gls{zvbb} σε τυπικές κρυπτογραφικές πράξεις. Η σύγκριση
 αφορά τον αριθμό vector εντολών ανά πράξη — η πραγματική μείωση σε
 δυναμικές εντολές εξαρτάται από τον αριθμό επαναλήψεων κάθε πράξης
 στον αλγόριθμο.
@@ -956,11 +956,11 @@ immediate — ο compiler εκπέμπει \insn{vror.vi} για offsets $\leq 3
   \input{figures/ch3-riscv/zvbc-zvbb-before-after.tex}
 \end{table}
 
-Η κυρίαρχη βελτίωση προέρχεται από τη \Zvbc: στον Karatsuba leaf, κάθε
+Η κυρίαρχη βελτίωση προέρχεται από τη \gls{zvbc}: στον Karatsuba leaf, κάθε
 iteration του εσωτερικού βρόχου εκτελεί ένα ζεύγος \vclmul/\vclmulh που
 αντικαθιστά $\VLMAX$ ζεύγη scalar \clmul/\clmulh. Σε $\VLEN = 256$,
 $\LMUL = 4$: $\VLMAX = 16$, δηλαδή \num{16} carry-less γινόμενα ανά
-ζεύγος vector εντολών. Η \Zvbb παρέχει μικρότερη αλλά σταθερή βελτίωση
+ζεύγος vector εντολών. Η \gls{zvbb} παρέχει μικρότερη αλλά σταθερή βελτίωση
 στον Keccak: \num{25} rotations $\times$ \num{24} γύρους $= 600$
 εξοικονομημένες εντολές ανά permutation call (2 εντολές αντί 3 ανά
 rotation).
@@ -968,8 +968,8 @@ rotation).
 \subsection{Αδυναμία Αυτόματης Εκπομπής από τον Compiler}
 \label{ssec:zvbc-no-autoemit}
 
-Σε αντίθεση με τις scalar εντολές \Zbb (βλ.~\cref{ssec:zbb-extension}),
-οι εντολές \Zvbc και \Zvbb δεν εκπέμπονται αυτόματα από τον compiler
+Σε αντίθεση με τις scalar εντολές \gls{zbb} (βλ.~\cref{ssec:zbb-extension}),
+οι εντολές \gls{zvbc} και \gls{zvbb} δεν εκπέμπονται αυτόματα από τον compiler
 μέσω pattern recognition. Η αιτία είναι δομική: ο compiler αναγνωρίζει
 scalar idioms (\eg \code{(x << k) | (x >> (64-k))} $\to$ \rori) επειδή
 αυτά αντιστοιχούν σε μεμονωμένες C εκφράσεις με σαφή σημασιολογία. Οι
@@ -998,7 +998,7 @@ passes.
     (unit-stride, strided, gather/scatter).
 \end{enumerate}
 
-Κατά συνέπεια, η αξιοποίηση \Zvbc και \Zvbb απαιτεί ρητή χρήση C
+Κατά συνέπεια, η αξιοποίηση \gls{zvbc} και \gls{zvbb} απαιτεί ρητή χρήση C
 intrinsics: \code{\_\_riscv\_vclmul\_vv\_u64m4()},
 \code{\_\_riscv\_vclmulh\_vv\_u64m4()}, \code{\_\_riscv\_vror\_vv\_u64m8()},
 \code{\_\_riscv\_vandn\_vv\_u64m8()}. Τα intrinsics αυτά ορίζονται στο
@@ -1010,10 +1010,10 @@ pipeline (register allocation, scheduling), αλλά η επιλογή χρήσ�
 αναλύεται στην~\cref{sec:isa-ablation}.
 
 \paragraph{Σύνοψη αρχιτεκτονικής συνεισφοράς.}
-Οι επεκτάσεις \Zvbc και \Zvbb μετασχηματίζουν τους δύο κυρίαρχους
-υπολογιστικούς πυρήνες του \HQC στο vector domain: η \Zvbc παρέχει
+Οι επεκτάσεις \gls{zvbc} και \gls{zvbb} μετασχηματίζουν τους δύο κυρίαρχους
+υπολογιστικούς πυρήνες του \gls{hqc} στο vector domain: η \gls{zvbc} παρέχει
 $\VLMAX$-fold παραλληλισμό στον carry-less πολλαπλασιασμό (Karatsuba
-leaf), ενώ η \Zvbb μειώνει κατά \speedup{3} τις εντολές rotation και
+leaf), ενώ η \gls{zvbb} μειώνει κατά \speedup{3} τις εντολές rotation και
 κατά \speedup{2} τις εντολές AND-NOT στον Keccak. Σε συνδυασμό με τη
 \gls{vla} φιλοσοφία του \RVV, η απόδοση κλιμακώνεται αυτόματα με το
 hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα. Η αναλυτική
@@ -1167,11 +1167,11 @@ instruction scheduling, common subexpression elimination, constant folding
 \paragraph{Διαθέσιμα headers.}
 Τα RISC-V intrinsics παρέχονται μέσω δύο standard headers:
 \begin{itemize}
-  \item \code{<riscv\_bitmanip.h>}: scalar intrinsics για \Zbc, \Zbb και
+  \item \code{<riscv\_bitmanip.h>}: scalar intrinsics για \gls{zbc}, \gls{zbb} και
     Zbs — \eg \code{\_\_riscv\_clmul\_64(a, b)},
     \code{\_\_riscv\_clmulh\_64(a, b)}, \code{\_\_riscv\_ror\_64(x, k)}.
-  \item \code{<riscv\_vector.h>}: vector intrinsics για \RVV 1.0, \Zvbc
-    και \Zvbb — \eg \code{\_\_riscv\_vclmul\_vv\_u64m4(vs2, vs1, vl)},
+  \item \code{<riscv\_vector.h>}: vector intrinsics για \RVV 1.0, \gls{zvbc}
+    και \gls{zvbb} — \eg \code{\_\_riscv\_vclmul\_vv\_u64m4(vs2, vs1, vl)},
     \code{\_\_riscv\_vror\_vv\_u64m8(vs2, vs1, vl)},
     \code{\_\_riscv\_vsetvl\_e64m4(avl)}.
 \end{itemize}
@@ -1209,7 +1209,7 @@ intrinsic απαιτεί \num{1} γραμμή και παραμένει πλήρ
 privileged operations (\insn{csrr}, \insn{csrw}, \insn{mret}), control
 flow (\insn{ecall}, \insn{wfi}) ή ειδικές λειτουργίες hardware
 (\insn{fence.i}) δεν καλύπτονται — για αυτές απαιτείται inline assembly.
-Ωστόσο, το σύνολο των κρυπτογραφικών εντολών (\Zbc, \Zbb, \Zvbc, \Zvbb)
+Ωστόσο, το σύνολο των κρυπτογραφικών εντολών (\gls{zbc}, \gls{zbb}, \gls{zvbc}, \gls{zvbb})
 καλύπτεται πλήρως από intrinsics, καθιστώντας την inline assembly περιττή
 για τους υπολογιστικούς πυρήνες.
 
@@ -1226,9 +1226,9 @@ flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος
 Ο compiler αναγνωρίζει τα ακόλουθα C idioms και τα αντικαθιστά με
 μονολεκτικές εντολές:
 \begin{itemize}
-  \item \code{\textasciitilde{}a \& b} $\to$ \insn{andn} (\Zbb): η
+  \item \code{\textasciitilde{}a \& b} $\to$ \insn{andn} (\gls{zbb}): η
     αντιστροφή και η σύζευξη συγχωνεύονται σε μία εντολή.
-  \item \code{(x << n) | (x >> (64-n))} $\to$ \rori (\Zbb): το
+  \item \code{(x << n) | (x >> (64-n))} $\to$ \rori (\gls{zbb}): το
     rotation idiom αναγνωρίζεται ανεξαρτήτως σειράς shift/OR.
   \item \code{base + idx*8} $\to$ \insn{sh3add} (Zba): η πράξη
     address scaling (\code{slli 3} + \code{add}) συγχωνεύεται σε μία
@@ -1240,9 +1240,9 @@ flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος
 \paragraph{Πλεονέκτημα: μηδενική αλλαγή πηγαίου κώδικα.}
 Η μέθοδος auto-lowering παρέχει βελτιστοποίηση χωρίς κόστος συντήρησης:
 ο ίδιος πηγαίος κώδικας μεταγλωττίζεται σε διαφορετικές εντολές ανάλογα
-με τις ενεργές extensions. Σε target χωρίς \Zbb, η έκφραση
+με τις ενεργές extensions. Σε target χωρίς \gls{zbb}, η έκφραση
 \code{(x << 3) | (x >> 61)} μεταγλωττίζεται σε τρεις εντολές
-(\insn{slli} + \insn{srli} + \insn{or}). Σε target με \Zbb, η ίδια
+(\insn{slli} + \insn{srli} + \insn{or}). Σε target με \gls{zbb}, η ίδια
 έκφραση μεταγλωττίζεται σε μία \insn{rori rd, rs, 61}. Η αλλαγή
 απαιτεί μόνο τροποποίηση του \code{-march} flag — ο πηγαίος κώδικας
 παραμένει ίδιος.
@@ -1303,6 +1303,6 @@ intrinsics χρησιμοποιούνται όπου απαιτείται ρητ
 RISC-V — σε συνδυασμό με τυποποιημένες κρυπτογραφικές extensions και
 πλούσιο σύνολο C intrinsics — παρέχει τα εργαλεία για υψηλή απόδοση
 χωρίς θυσία κρυπτογραφικής ευελιξίας ή φορητότητας. Στο επόμενο κεφάλαιο
-εξετάζεται η υπάρχουσα βιβλιογραφία υλοποιήσεων \HQC σε διάφορες
+εξετάζεται η υπάρχουσα βιβλιογραφία υλοποιήσεων \gls{hqc} σε διάφορες
 πλατφόρμες, τεκμηριώνοντας το ερευνητικό κενό που καλύπτει η παρούσα
 εργασία.

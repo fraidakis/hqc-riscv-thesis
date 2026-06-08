@@ -11,10 +11,10 @@
 \section{Πλατφόρμες Εκτέλεσης και Μέτρησης}
 \label{sec:emulators}
 
-Η αξιολόγηση απόδοσης σε RISC-V με κρυπτογραφικές επεκτάσεις \Zvbc και \Zvbb
+Η αξιολόγηση απόδοσης σε RISC-V με κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb}
 αντιμετωπίζει ένα πρακτικό εμπόδιο: κατά τη στιγμή εκπόνησης της εργασίας δεν
 υπάρχει διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει ταυτόχρονα
-\RVV 1.0, \Zvbc και \Zvbb σε προσβάσιμη πλατφόρμα.  Κατά συνέπεια, η πειραματική
+\RVV 1.0, \gls{zvbc} και \gls{zvbb} σε προσβάσιμη πλατφόρμα.  Κατά συνέπεια, η πειραματική
 υποδομή βασίζεται σε τρεις συμπληρωματικές πλατφόρμες: τον Spike \gls{iss} για
 ντετερμινιστική καταμέτρηση εντολών, τον QEMU για ταχεία λειτουργική
 επαλήθευση, και το Banana Pi BPI-F3 (SpacemiT K1 X60) για μετρήσεις κύκλων
@@ -146,7 +146,7 @@ Cluster~1 (\num{4} cores, \SI{32}{\kilo\byte} L1, \SI{512}{\kilo\byte} L2).
 
 Ο K1 X60 υποστηρίζει RV64IMAFDCV + \ext{Zba} + \ext{Zbb} + \ext{Zbc} +
 \ext{Zbs} (RVA22 mandatory extensions).  Ωστόσο, \textbf{δεν υποστηρίζει}
-\Zvbc και \Zvbb — αυτές απαιτούν το RVA23 profile, το οποίο δεν υπάρχει
+\gls{zvbc} και \gls{zvbb} — αυτές απαιτούν το RVA23 profile, το οποίο δεν υπάρχει
 ακόμη σε διαθέσιμο silicon.  Η πρακτική συνέπεια είναι ότι τα scalar και
 Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
 \code{vector\_rvv}) εκτελούνται natively στο hardware, ενώ τα
@@ -196,8 +196,8 @@ speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγμ
 χρονισμού (βλ.\ \cref{sec:future-ct}).  Η μεθοδολογία dudect απαιτεί
 πραγματικούς κύκλους hardware — οι εξομοιωτές (Spike, QEMU) δεν παρέχουν
 αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage.  Η κάλυψη
-περιορίζεται στα Tier~1 (scalar \Zbc) και Tier~2 (Base-RVV) variants, καθώς
-ο K1 X60 δεν υποστηρίζει \Zvbc/\Zvbb — η CT επαλήθευση των Tier~3
+περιορίζεται στα Tier~1 (scalar \gls{zbc}) και Tier~2 (Base-RVV) variants, καθώς
+ο K1 X60 δεν υποστηρίζει \gls{zvbc}/\gls{zvbb} — η CT επαλήθευση των Tier~3
 Vector-Crypto variants παραμένει ανοιχτή μέχρι τη διαθεσιμότητα RVA23
 silicon.
 
@@ -221,7 +221,7 @@ silicon.
 \begin{itemize}
   \item \textbf{Spike:} ντετερμινιστική καταμέτρηση εντολών (\instret), profiling
     μέσω PC histograms, VLEN sweep (\num{256}–\num{2048}), και πλήρης κάλυψη
-    όλων των variants (συμπεριλαμβανομένων \Zvbc/\Zvbb).  Αποτελεί την αυθεντική
+    όλων των variants (συμπεριλαμβανομένων \gls{zvbc}/\gls{zvbb}).  Αποτελεί την αυθεντική
     πηγή για κάθε αριθμητικό αποτέλεσμα που αναφέρεται στα
     \cref{ch:polymul-optimization} και \cref{ch:results}.
   \item \textbf{QEMU:} λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από
@@ -268,7 +268,7 @@ silicon.
 \label{sec:toolchains}
 
 Η μεταγλώττιση κρυπτογραφικού κώδικα RISC-V με πέντε ταυτόχρονες επεκτάσεις
-(\Zbc, \Zbb, \RVV 1.0, \Zvbc, \Zvbb) θέτει αυστηρές απαιτήσεις στην αλυσίδα
+(\gls{zbc}, \gls{zbb}, \RVV 1.0, \gls{zvbc}, \gls{zvbb}) θέτει αυστηρές απαιτήσεις στην αλυσίδα
 εργαλείων: πλήρης υποστήριξη intrinsics για Vector-Crypto εντολές, σωστή
 κωδικοποίηση opcodes, και συμβατότητα με bare-metal εκτέλεση χωρίς λειτουργικό
 σύστημα.  Η παρούσα ενότητα περιγράφει τη στρατηγική cross-compilation, τη
@@ -286,7 +286,7 @@ bare-metal cross-compilation mode με target triple \code{riscv64-unknown-elf}.
 API μέσω του header \code{<riscv\_vector.h>}, συμπεριλαμβανομένων των
 \code{\_\_riscv\_vclmul\_vv\_u64m1()} και \code{\_\_riscv\_vror\_vv\_u64m1()} που
 αποτελούν τη βάση των Tier~2 και Tier~3 πυρήνων.  Ο GCC~14, αν και υποστηρίζει
-τις ίδιες εντολές, παρουσιάζει ασυμβατότητα κατά τη μεταγλώττιση πυρήνων \Zvbb
+τις ίδιες εντολές, παρουσιάζει ασυμβατότητα κατά τη μεταγλώττιση πυρήνων \gls{zvbb}
 (\code{gcc\_zvbb\_incompatible}), καθιστώντας αδύνατη τη δημιουργία των
 Vector-Crypto targets.
 
@@ -460,11 +460,14 @@ version.  Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελ�
 
 \section{Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής}
 \label{sec:benchmarking}
+\label{conv:baseline}%
+
+\noindent\textbf{Σύμβαση baseline.} Οι επιταχύνσεις αναφέρονται ως προς το baseline του εκάστοτε tier: το Tier~1 (\code{scalar\_zb}) ως προς το \code{scalar\_ref}, ενώ τα Tier~2 (\code{vector\_rvv}) και Tier~3 (\code{vector\_zvk}) ως προς το \code{vector\_ref}.
 
 Η πρωτεύουσα μετρική απόδοσης της παρούσας εργασίας είναι ο αριθμός
 \defterm{δυναμικών αποσυρθεισών εντολών} (retired instruction count, \instret) —
 όχι κύκλοι ρολογιού, όχι wall-clock χρόνος.  Η επιλογή αυτή υπαγορεύεται από τον
-πειραματικό περιορισμό (απουσία silicon με \Zvbc κατά τη στιγμή εκπόνησης) αλλά
+πειραματικό περιορισμό (απουσία silicon με \gls{zvbc} κατά τη στιγμή εκπόνησης) αλλά
 είναι μεθοδολογικά αποδεκτή στη βιβλιογραφία \gls{pqc}: το pqm4
 framework~\cite{pqm4} και ο Spike \gls{iss} χρησιμοποιούνται ευρέως για
 αναφορά instruction counts σε εργασίες δημοσιευμένες σε TCHES και στα NIST PQC
@@ -497,7 +500,7 @@ harness εκτελεί μία μόνο μέτρηση ανά λειτουργί�
 
 \paragraph{Profiling μέσω PC Histograms και DWARF Symbols}
 
-Πέραν της μέτρησης \instret πλήρους \KEM, η υποδομή παρέχει δύο μηχανισμούς
+Πέραν της μέτρησης \instret πλήρους \gls{kem}, η υποδομή παρέχει δύο μηχανισμούς
 λεπτομερούς profiling για τον εντοπισμό hotspots:
 
 \begin{enumerate}
@@ -570,7 +573,7 @@ max.  Η \textbf{median} επιλέγεται ως πρωτεύουσα μετρ
 
 Το overhead του measurement harness (4 \code{ioctl} κλήσεις + 2 \code{read}
 κλήσεις ανά iteration) εκτιμάται σε $\approx \num{100}$–\num{200} cycles.
-Για operations $>\num{100000}$ cycles (κάθε \KEM λειτουργία στο HQC-128
+Για operations $>\num{100000}$ cycles (κάθε \gls{kem} λειτουργία στο HQC-128
 υπερβαίνει τα \num{500000} cycles), το overhead αντιπροσωπεύει $<\pct{0.04}$
 — αμελητέο.  Η εκτίμηση αυτή επιβεβαιώνεται μέσω σύγκρισης με
 \code{perf stat} (εξωτερική μέτρηση χωρίς per-iteration overhead): η
@@ -706,14 +709,14 @@ cache misses — ένα πλεονέκτημα αόρατο στη μετρικ�
     (memory-bound ή data hazards).
   \item \textbf{Wall-clock time} $= \text{HW\_cycles} / \SI{1.6}{\giga\hertz}$:
     Πρακτική μετρική deployment readiness — πόσα microseconds απαιτεί κάθε
-    \KEM λειτουργία στο συγκεκριμένο hardware.
+    \gls{kem} λειτουργία στο συγκεκριμένο hardware.
 \end{itemize}
 
 \noindent
 Οι μετρικές αυτές παρέχουν πρακτική αξιολόγηση: η \gls{ipc} αποκαλύπτει αν
 η vectorization βελτιώνει τη pipeline utilization (αναμενόμενο: RVV code
 $\gls{ipc} > $ scalar code $\gls{ipc}$ λόγω dual-issue + vector throughput),
-ενώ ο wall-clock time τεκμηριώνει ότι ο \HQC είναι πρακτικά deployable σε
+ενώ ο wall-clock time τεκμηριώνει ότι ο \gls{hqc} είναι πρακτικά deployable σε
 real-world εφαρμογές.  Τα αναλυτικά αποτελέσματα παρουσιάζονται στο
 \cref{ch:results}.
 
@@ -761,7 +764,7 @@ al.~\cite{ras-nist2025} (\gls{iss}-based \instret ως πρωτεύουσα με
 \section{Επαλήθευση Ορθότητας (KAT Tests)}
 \label{sec:kat-tests}
 
-Κάθε βελτιστοποίηση που εφαρμόζεται στον κώδικα \HQC εισάγει κίνδυνο
+Κάθε βελτιστοποίηση που εφαρμόζεται στον κώδικα \gls{hqc} εισάγει κίνδυνο
 αλγοριθμικής παραβίασης: μία λανθασμένη αναδιάταξη bits στον πολυωνυμικό
 πολλαπλασιασμό, ένα off-by-one σε index αναδρομής, ή μία εσφαλμένη reduction
 mask αρκούν για να παράγουν λανθασμένο shared secret χωρίς runtime crash.
@@ -847,7 +850,7 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
 
 Η \gls{kat} επαλήθευση εκτελείται για κάθε polymul variant σε όλα τα security
 levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500}$ πλήρεις
-\KEM κύκλους ανά εκτέλεση.  Η αυτοματοποίηση πραγματοποιείται σε δύο επίπεδα:
+\gls{kem} κύκλους ανά εκτέλεση.  Η αυτοματοποίηση πραγματοποιείται σε δύο επίπεδα:
 
 \begin{itemize}
   \item \textbf{Τοπικά:} Το script \code{run\_kat.sh} δέχεται ως παράμετρο
@@ -861,7 +864,7 @@ levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500
     κάθε push στους branches \code{main} και \code{dev}.  Η λίστα variants
     ανιχνεύεται δυναμικά από το αρχείο
     \code{scripts/implemented\_variants.txt}, εξαλείφοντας χειροκίνητη
-    συντήρηση.  Variants που απαιτούν \Zvbc δρομολογούνται αυτόματα στον Spike,
+    συντήρηση.  Variants που απαιτούν \gls{zvbc} δρομολογούνται αυτόματα στον Spike,
     ενώ τα υπόλοιπα εκτελούνται στον QEMU για ταχύτερη ανατροφοδότηση.
 \end{itemize}
 
@@ -883,7 +886,7 @@ bit-exact σωστά αποτελέσματα.  Η αναπαραγωγιμότ�
 
 Η επιτάχυνση κρυπτογραφικού κώδικα δεν έχει αξία εάν εισάγει πλευρικά
 κανάλια χρονισμού (timing side-channels).  Η ενότητα αυτή παρουσιάζει τη μεθοδολογία με την οποία επαληθεύεται ότι
-οι βελτιστοποιημένες υλοποιήσεις \HQC διατηρούν constant-time συμπεριφορά
+οι βελτιστοποιημένες υλοποιήσεις \gls{hqc} διατηρούν constant-time συμπεριφορά
 — η εκτέλεσή τους είναι ανεξάρτητη από μυστικά δεδομένα.  Η στρατηγική
 επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: στατική ανάλυση
 μέσω ctgrind (Valgrind Memcheck) και στατιστική ανίχνευση διαρροής μέσω
@@ -895,7 +898,7 @@ dudect σε πραγματικό hardware.  Τα εμπειρικά αποτελ
 
 Μια κρυπτογραφική υλοποίηση ικανοποιεί τη constant-time ιδιότητα όταν η
 παρατηρήσιμη συμπεριφορά εκτέλεσης (χρονισμός, cache access patterns,
-branch outcomes) είναι ανεξάρτητη από μυστικές εισόδους.  Για τον \HQC,
+branch outcomes) είναι ανεξάρτητη από μυστικές εισόδους.  Για τον \gls{hqc},
 τα μυστικά δεδομένα περιλαμβάνουν το ιδιωτικό κλειδί
 $\mathbf{sk} = (\mathbf{x}, \mathbf{y})$ (αραιά δυαδικά διανύσματα) και
 το αποκρυπτογραφημένο μήνυμα $m'$ κατά τη διαδικασία decapsulation.
@@ -920,7 +923,7 @@ $x, y$ ίσου εύρους, υπό σταθερό μικροαρχιτεκτο
 δεν αποκαλύπτει πληροφορία για τα δεδομένα που επεξεργάζεται.
 
 \paragraph{Ανάλυση κατά συνιστώσα.}
-Δεν απαιτούν όλες οι συνιστώσες του \HQC decapsulation constant-time
+Δεν απαιτούν όλες οι συνιστώσες του \gls{hqc} decapsulation constant-time
 υλοποίηση.  Η Fujisaki-Okamoto (FO) transform σχεδιάστηκε ώστε μόνο η
 σύγκριση ciphertext και η επιλογή εξόδου να πρέπει να είναι constant-time
 για τη διασφάλιση IND-CCA2 ασφάλειας.  Ο πολυωνυμικός πολλαπλασιασμός
@@ -941,7 +944,7 @@ data-dependent branches ή table lookups.
 τυχαίο αποτέλεσμα αλλά σχεδιαστική επιλογή σε τρία επίπεδα.
 
 \paragraph{Hardware-guaranteed σταθερή καθυστέρηση (\Zbc).}
-Οι εντολές \clmul/\clmulh της extension \Zbc παρέχουν carry-less
+Οι εντολές \clmul/\clmulh της extension \gls{zbc} παρέχουν carry-less
 πολλαπλασιασμό με αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση (Zkt-compliant).
 Η latency είναι ανεξάρτητη από τις τιμές τελεστέων — δεν υπάρχει
 early-termination βελτιστοποίηση βασισμένη σε leading zeros.  Το αποτέλεσμα
@@ -1075,7 +1078,7 @@ context switches, και DVFS transients που θα μασκάριζαν λεπ
     \code{dudect\_polymul} & \code{vect\_mul()} &
       Απομονωμένος polymul — ενισχυμένη ευαισθησία \\
     \code{dudect\_kem} & \code{crypto\_kem\_dec()} &
-      Πλήρες \KEM — ασφάλεια άκρο-σε-άκρο \\
+      Πλήρες \gls{kem} — ασφάλεια άκρο-σε-άκρο \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1084,7 +1087,7 @@ context switches, και DVFS transients που θα μασκάριζαν λεπ
 παρέχει ενισχυμένο signal-to-noise ratio: η συνεισφορά του polymul
 (\pct{30}–\pct{40} του συνολικού χρόνου decapsulation) αραιώνεται στο
 \code{dudect\_kem} από τις υπόλοιπες πράξεις.  Μια διαρροή \num{50}
-κύκλων στο polymul θα παρήγαγε $|t| \approx 2.0$ στο \KEM test αλλά
+κύκλων στο polymul θα παρήγαγε $|t| \approx 2.0$ στο \gls{kem} test αλλά
 $|t| \approx 5.0$ στο απομονωμένο polymul test.
 
 \paragraph{Γιατί δεν υπάρχει \code{dudect\_decode}.}
@@ -1120,8 +1123,8 @@ input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσ�
     \textbf{Variant} & \textbf{ISA Extensions} & \textbf{Περιγραφή} \\
     \midrule
     \code{scalar\_ref}    & RV64GC           & Vendor reference (baseline CT) \\
-    \code{scalar\_zb} & RV64GC + \Zbc + \Zbb & Scalar Karatsuba + carry-less \\
-    \code{vector\_rvv} & RV64GCV + \Zbc + \Zbb & \RVV vectorized hybrid \\
+    \code{scalar\_zb} & RV64GC + \gls{zbc} + \gls{zbb} & Scalar Karatsuba + carry-less \\
+    \code{vector\_rvv} & RV64GCV + \gls{zbc} + \gls{zbb} & \RVV vectorized hybrid \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1356,7 +1359,7 @@ uint64_t t1 = hqc_rdinstret();
 (\code{startup.S}), μηδενισμού BSS, ή εκτύπωσης αποτελεσμάτων.  Οι δύο
 εντολές \code{csrr} (ανάγνωση \code{minstret}) αποτελούν σταθερό overhead
 \num{2} εντολών ανά μέτρηση — αμελητέο σε σχέση με τα εκατομμύρια εντολών
-του \KEM κύκλου.
+του \gls{kem} κύκλου.
 
 \section{Εφαρμογή Μεθόδων Προγραμματισμού στην Παρούσα Εργασία}
 \label{sec:methods-application}
@@ -1380,8 +1383,8 @@ assembly, C intrinsics, και auto-lowering μέσω compiler.  Η παρούσ
 API.
 
 Η επιλογή intrinsics τεκμηριώνεται από τρεις παράγοντες.  Πρώτον, ο Clang~18
-παρέχει πλήρες type-checked intrinsic API για \Zbc, \Zbb, \RVV 1.0, \Zvbc και
-\Zvbb — κάθε εντολή που αξιοποιεί η υλοποίηση διαθέτει αντίστοιχο intrinsic.
+παρέχει πλήρες type-checked intrinsic API για \gls{zbc}, \gls{zbb}, \RVV 1.0, \gls{zvbc} και
+\gls{zvbb} — κάθε εντολή που αξιοποιεί η υλοποίηση διαθέτει αντίστοιχο intrinsic.
 Δεύτερον, τα intrinsics συμμετέχουν πλήρως στο optimization pipeline (register
 allocation, instruction scheduling, CSE, dead code elimination), ενώ τα
 \code{volatile} inline assembly blocks αποτελούν αδιαφανή φράγματα.  Τρίτον,
@@ -1430,13 +1433,13 @@ register.  Πέραν αυτών των δύο σημείων, κανένας κ
 πυρήνες, καλύπτοντας πέντε κατηγορίες εντολών:
 
 \begin{itemize}
-  \item \textbf{Scalar \Zbc} (\code{<riscv\_bitmanip.h>}):
+  \item \textbf{Scalar \gls{zbc}} (\code{<riscv\_bitmanip.h>}):
     \code{\_\_riscv\_clmul\_64()} και \code{\_\_riscv\_clmulh\_64()} — carry-less
     πολλαπλασιασμός \num{64}-bit πολυωνύμων στα Karatsuba leaves
     (\cf \cref{sec:polymul-scalar}) και στην αριθμητική $\GF{2^8}$ του
     Reed-Solomon decoder.
 
-  \item \textbf{Scalar \Zbb} (\code{<riscv\_bitmanip.h>}):
+  \item \textbf{Scalar \gls{zbb}} (\code{<riscv\_bitmanip.h>}):
     \code{\_\_riscv\_ror\_64()} — \num{64}-bit rotation στο θ-step του Keccak
     (scalar path).
 
@@ -1446,12 +1449,12 @@ register.  Πέραν αυτών των δύο σημείων, κανένας κ
     strip-mining, vector load/store, και XOR σε ολόκληρη τη διανυσματική
     υλοποίηση (recomposition βρόχοι, \code{vect\_add}, \code{memcpy}).
 
-  \item \textbf{\Zvbc} (\code{<riscv\_vector.h>}):
+  \item \textbf{\gls{zvbc}} (\code{<riscv\_vector.h>}):
     \code{\_\_riscv\_vclmul\_vv\_u64m4()} και
     \code{\_\_riscv\_vclmulh\_vv\_u64m4()} — vectorized carry-less multiply
     στα Tier~3 leaf kernels (\cf \cref{sec:polymul-zvbc}).
 
-  \item \textbf{\Zvbb} (\code{<riscv\_vector.h>}):
+  \item \textbf{\gls{zvbb}} (\code{<riscv\_vector.h>}):
     \code{\_\_riscv\_vror\_vv\_u64m8()} και \code{\_\_riscv\_vandn\_vv\_u64m8()}
     — vectorized rotation (ρ-step) και AND-NOT (χ-step) στον Keccak
     (\cf \cref{sec:keccak-optimization}).
@@ -1543,11 +1546,11 @@ compiler χωρίς θυσία ελέγχου στα κρίσιμα σημεία
 \section{Baseline Profiling}
 \label{sec:baseline-profiling}
 
-Η πρώτη εκτέλεση του reference \HQC στο Spike environment επιβεβαιώνει ότι η
+Η πρώτη εκτέλεση του reference \gls{hqc} στο Spike environment επιβεβαιώνει ότι η
 πειραματική υποδομή (§§5.1–5.6) λειτουργεί ολοκληρωμένα: ο κώδικας
 μεταγλωττίζεται, εκτελείται σε bare-metal, παράγει bit-exact σωστά αποτελέσματα
 (\gls{kat} validation), και εξάγει ντετερμινιστικές μετρήσεις \instret.  Η
-ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \KEM για το
+ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \gls{kem} για το
 scalar baseline — τους αριθμούς που αποτελούν τον παρονομαστή κάθε speedup
 calculation στα \cref{ch:polymul-optimization} και \cref{ch:results}.
 
@@ -1555,10 +1558,10 @@ calculation στα \cref{ch:polymul-optimization} και \cref{ch:results}.
 \label{ssec:baseline-kem-instret}
 
 Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για κάθε
-λειτουργία \KEM στο scalar baseline (\code{scalar\_ref}, μεταγλωττισμένο με
+λειτουργία \gls{kem} στο scalar baseline (\code{scalar\_ref}, μεταγλωττισμένο με
 Clang~18, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}).  Η υλοποίηση
 αντιστοιχεί στον αρχικό κώδικα αναφοράς του \gls{nist} χωρίς αλγοριθμικές
-βελτιστοποιήσεις — μόνο η αυτόματη αξιοποίηση \Zbc/\Zbb μέσω auto-lowering
+βελτιστοποιήσεις — μόνο η αυτόματη αξιοποίηση \gls{zbc}/\gls{zbb} μέσω auto-lowering
 (\cf \cref{sec:methods-application}).
 
 \begin{table}[htbp]
@@ -1653,7 +1656,7 @@ Reed-Solomon) αντιπροσωπεύει \pct{0.16} — ομοίως αμελ�
 \subsection{Isolated Polymul Baseline}
 \label{ssec:baseline-polymul}
 
-Πέραν της μέτρησης πλήρους \KEM, η υποδομή παρέχει isolated μέτρηση του
+Πέραν της μέτρησης πλήρους \gls{kem}, η υποδομή παρέχει isolated μέτρηση του
 πολυωνυμικού πολλαπλασιασμού (\code{vect\_mul}) — αποκλειστικά η πράξη
 $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead.
 Ο \cref{tab:baseline-polymul} παρουσιάζει τα isolated \instret:
@@ -1669,7 +1672,7 @@ $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead
     \toprule
     {Level} & {\code{vect\_mul} \instret} & {\% του \KeyGen} \\
     \midrule
-    HQC-128 & 19214281  & 98.8 \\
+    HQC-128 & 19214277  & 98.8 \\
     HQC-192 & 58433901  & 99.2 \\
     HQC-256 & 142641044 & 99.5 \\
     \bottomrule
@@ -1682,7 +1685,7 @@ $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead
 η υπερ-γραμμική κλιμάκωση του πολλαπλασιασμού κυριαρχεί πλήρως στα
 υψηλότερα επίπεδα ασφαλείας.  Η isolated μέτρηση χρησιμοποιείται ως
 denominator για τα polymul-specific speedups στο \cref{ch:polymul-optimization},
-ενώ η μέτρηση πλήρους \KEM χρησιμοποιείται για τα system-level speedups
+ενώ η μέτρηση πλήρους \gls{kem} χρησιμοποιείται για τα system-level speedups
 στο \cref{ch:results}.
 
 \subsection{Θεμελίωση Στρατηγικής Βελτιστοποίησης}
@@ -1711,12 +1714,12 @@ Tier~1) υπολείπεται της isolated polymul επιτάχυνσης (\
 \begin{enumerate}
   \item \textbf{Πολυωνυμικός πολλαπλασιασμός} (\cref{ch:polymul-optimization}):
     Αντικατάσταση του bit-serial schoolbook με word-level Karatsuba αξιοποιώντας
-    \clmul/\clmulh (\Zbc) και \vclmul/\vclmulh (\Zvbc).  Στόχος: μείωση του
+    \clmul/\clmulh (\gls{zbc}) και \vclmul/\vclmulh (\gls{zvbc}).  Στόχος: μείωση του
     κυρίαρχου \pct{97} κατά τουλάχιστον δύο τάξεις μεγέθους.
 
   \item \textbf{Keccak και αποκωδικοποίηση} (\cref{ch:kernel-optimization}):
     Μετά τη βελτιστοποίηση polymul, το Keccak και η αποκωδικοποίηση
-    αναδεικνύονται σε νέα bottlenecks.  Βελτιστοποίηση μέσω \Zvbb
+    αναδεικνύονται σε νέα bottlenecks.  Βελτιστοποίηση μέσω \gls{zvbb}
     (vectorized rotations) και vectorized Reed-Muller/Reed-Solomon.
 
   \item \textbf{Βοηθητικοί πυρήνες} (\cref{ch:kernel-optimization}):

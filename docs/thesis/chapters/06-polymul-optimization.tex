@@ -5,8 +5,8 @@
 καταναλώνει $\approx\pct{97}$ του συνολικού \instret στο reference scalar
 HQC-128, καθιστώντας τον μοναδικό κυρίαρχο bottleneck.  Το παρόν κεφάλαιο
 παρουσιάζει τη συστηματική βελτιστοποίηση αυτού του πυρήνα σε τρία tiers αυξανόμενης αρχιτεκτονικής πολυπλοκότητας — από scalar Karatsuba με
-\Zbc, μέσω διανυσματοποίησης recomposition με \RVV, έως πλήρη αξιοποίηση
-\Zvbc στα leaf kernels.
+\gls{zbc}, μέσω διανυσματοποίησης recomposition με \RVV, έως πλήρη αξιοποίηση
+\gls{zvbc} στα leaf kernels.
 
 %% ============================================================================
 \section{Σχεδιαστικό Πλαίσιο: Hardware Tiers και Implementation Paths}
@@ -118,7 +118,7 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
 Το Tier~1 στοχεύει πλατφόρμες χωρίς διανυσματική μονάδα — ενσωματωμένους
 επεξεργαστές και IoT κόμβους που υλοποιούν μόνο τις scalar bit-manipulation
 extensions.  Η κρίσιμη αρχιτεκτονική δυνατότητα είναι η εντολή \clmul{} της
-\Zbc: ένα ζεύγος \clmul/\clmulh υπολογίζει το πλήρες \num{128}-bit carry-less
+\gls{zbc}: ένα ζεύγος \clmul/\clmulh υπολογίζει το πλήρες \num{128}-bit carry-less
 γινόμενο δύο \num{64}-bit πολυωνύμων σε δύο εντολές μηχανής, αντικαθιστώντας
 τον bit-serial βρόχο \num{64} conditional shift-XOR iterations του reference
 implementation.
@@ -144,7 +144,7 @@ implementation.
 Η ISA string \code{rv64gc\_zbc\_zbb\_zbs} μεταγλωττίζεται με
 \code{-fno-tree-vectorize}, εξασφαλίζοντας ότι ο compiler δεν εκπέμπει
 RVV εντολές — η μέτρηση αντικατοπτρίζει αποκλειστικά scalar εκτέλεση.
-Η \Zbb παρέχει \rori{} (native rotate) και \insn{andn} (AND-NOT) που
+Η \gls{zbb} παρέχει \rori{} (native rotate) και \insn{andn} (AND-NOT) που
 αξιοποιούνται αυτόματα μέσω compiler auto-lowering χωρίς αλλαγή πηγαίου
 κώδικα.
 
@@ -158,7 +158,7 @@ RVV~1.0 αλλά χωρίς τις κρυπτογραφικές vector extension
 data-parallel πράξεων σε ευρείς vector registers (\VLEN bits ανά register,
 τυπικά \num{128}–\num{2048}).
 
-Η αρχιτεκτονική παρατήρηση-κλειδί είναι ότι η \Zvbc δεν είναι διαθέσιμη
+Η αρχιτεκτονική παρατήρηση-κλειδί είναι ότι η \gls{zvbc} δεν είναι διαθέσιμη
 σε αυτό το tier: η εντολή \vclmul{} απουσιάζει, επομένως ο leaf kernel
 παραμένει scalar (\clmul/\clmulh, ταυτόσημος με Tier~1).  Η διανυσματική
 μονάδα αξιοποιείται αποκλειστικά στους recomposition loops — τους γραμμικού
@@ -210,7 +210,7 @@ instructions.  Σε \VLEN=\num{256} με \LMUL=m4, κάθε vector register grou
 επομένως ο εσωτερικός βρόχος συμπτύσσεται σε μία μόνο vector iteration
 ανά εξωτερικό index.
 
-Η \Zvbb παρέχει επιπλέον τις εντολές \vror{} (vector rotate) και
+Η \gls{zvbb} παρέχει επιπλέον τις εντολές \vror{} (vector rotate) και
 \insn{vandn.vv} (vector AND-NOT), οι οποίες αξιοποιούνται στον Keccak
 πυρήνα (\cref{ch:kernel-optimization}) αλλά δεν επηρεάζουν άμεσα τον
 πολυωνυμικό πολλαπλασιασμό.
@@ -241,12 +241,12 @@ variant με αυστηρά ελεγχόμενη \code{-march} string
 
 Το scalar path αποτελεί τη θεμελιώδη βελτιστοποίηση του πολυωνυμικού
 πολλαπλασιασμού — εφαρμόσιμη σε κάθε RISC-V πλατφόρμα που υλοποιεί την
-\Zbc extension, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας.  Η ενότητα αυτή
+\gls{zbc} extension, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας.  Η ενότητα αυτή
 παρουσιάζει τη μετάβαση από τον bit-serial schoolbook του reference
 implementation σε έναν πλήρως βελτιστοποιημένο Karatsuba πυρήνα με
 compile-time generated recursion tree.  Η συνολική μείωση \instret στον
 πολυωνυμικό πολλαπλασιασμό HQC-128 ανέρχεται σε \speedup{121} — από
-\cycles{19214281} σε \cycles{158928} εντολές.
+\num{19214277} σε \num{158928} εντολές.
 
 \subsection{Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό}
 \label{ssec:bit-to-word}
@@ -261,7 +261,7 @@ bit $k$ είναι ενεργό, εκτελείται conditional shift-XOR το
 προσέγγιση portable αλλά εντελώς αδιάφορη προς hardware carry-less
 multiply υποστήριξη.
 
-Η \Zbc extension παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
+Η \gls{zbc} extension παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
 υπολογίζουν το πλήρες \num{128}-bit carry-less γινόμενο δύο \num{64}-bit
 πολυωνύμων σε $\GFpoly$ χωρίς modular reduction:
 %
@@ -502,8 +502,8 @@ Spike ISS.
 
 Τα αποτελέσματα ήταν αρνητικά: ο TC3 παρουσίασε regression
 \speedup{4}–\speedup{5} σε σχέση με τον Karatsuba champion.
-Συγκεκριμένα, για HQC-128 ο TC3 απαίτησε \cycles{344973} \instret
-έναντι \cycles{66916} του Karatsuba Zvbc — αύξηση \pct{415}.  Η
+Συγκεκριμένα, για HQC-128 ο TC3 απαίτησε \num{344973} \instret
+έναντι \num{66916} του Karatsuba Zvbc — αύξηση \pct{415}.  Η
 αιτία εντοπίζεται στο overhead evaluation/interpolation: οι
 carry-propagating shifts για αξιολόγηση στα σημεία $x$ και $x{+}1$
 είναι sequential (μη vectorizable), η interpolation απαιτεί \num{12}
@@ -527,7 +527,7 @@ FFT.  Η θεμελιώδης δυσκολία στο HQC είναι ότι οι
 \num{65536}$ — περίπου $4\times$ padding overhead.
 
 Η εκτίμηση κόστους για HQC-128 σε Zvbc ανέρχεται σε
-$\sim\num{68800000}$ \instret — έναντι \cycles{72644} του Karatsuba
+$\sim\num{68800000}$ \instret — έναντι \num{62530} του Karatsuba
 champion.  Η διαφορά αυτή ($\sim\speedup{950}$ regression) καθιστά
 τον FAFFT μη βιώσιμο στα μεγέθη HQC.  Μία πειραματική υλοποίηση FAFFT
 με tower-field αριθμητική επιβεβαίωσε ασυμβατότητα με τη \vclmul{} (η
@@ -554,7 +554,7 @@ HQC απέρριψε τη sparse multiplication στην τελική spec (2024
 
 Η μετάβαση από Tier~1 σε Tier~2 εισάγει τη διανυσματική μονάδα RVV~1.0 στον
 πολυωνυμικό πολλαπλασιασμό, χωρίς ωστόσο να αλλάζει τον leaf kernel — η
-εντολή \vclmul{} δεν είναι διαθέσιμη χωρίς \Zvbc.  Η βελτιστοποίηση
+εντολή \vclmul{} δεν είναι διαθέσιμη χωρίς \gls{zvbc}.  Η βελτιστοποίηση
 εστιάζεται αποκλειστικά στους recomposition loops: τους γραμμικού κόστους
 $\BigO{n}$ βρόχους XOR, copy, και modular reduction που εκτελούνται σε κάθε
 κόμβο του δέντρου αναδρομής.  Η αρχιτεκτονική αυτή αποτελεί
@@ -568,7 +568,7 @@ aliasing (\defterm{overlap-save}) που αποκαθιστά την ορθότ�
 direct-write, και (γ)~inline RVV intrinsics με per-operation \LMUL tuning
 που μεγιστοποιούν τη χρήση της vector register file.  Η συνδυασμένη επίδραση
 μειώνει το polymul \instret κατά \pct{27.5} σε σχέση με το Tier~1 — από
-\cycles{221026} σε \cycles{160215} εντολές για HQC-128.
+\num{221030} σε \num{157473} εντολές για HQC-128.
 
 \subsection{Direct-Write Discipline: Εξάλειψη Αντιγραφών z0/z2}
 \label{ssec:direct-write}
@@ -792,8 +792,8 @@ scalar bottleneck στο data path μετά τον Karatsuba tree.
 Η direct-write discipline με overlap-save στενεύει σημαντικά το χάσμα
 μεταξύ Tier~2 και Tier~1, εξαλείφοντας τους δύο κυρίαρχους copy loops
 που αποτελούσαν το μεγαλύτερο μέρος του non-leaf overhead στο Track~B.
-Η συνολική μείωση \instret ανέρχεται σε \pct{27.5} — από \cycles{221026}
-(Tier~1) σε \cycles{160215} (Tier~2) για HQC-128.
+Η συνολική μείωση \instret ανέρχεται σε \pct{28.8} — από \num{221030}
+(Tier~1) σε \num{157473} (Tier~2) για HQC-128.
 
 Ωστόσο, ο θεμελιώδης αρχιτεκτονικός περιορισμός παραμένει: ο scalar
 \clmul/\clmulh leaf αποτελεί το \defterm{binding constraint}.  Οι
@@ -811,12 +811,12 @@ recomposition loops είναι $\BigO{n}$ ανά επίπεδο αναδρομή
 Η μετάβαση από Tier~2 σε Tier~3 αντιπροσωπεύει τη θεμελιώδη αρχιτεκτονική
 αλλαγή στον πολυωνυμικό πολλαπλασιασμό: η διανυσματοποίηση εισχωρεί στον
 ίδιο τον leaf kernel — τον τετραγωνικού κόστους $\BigO{n^2}$ πυρήνα που
-αποτελούσε το binding constraint στο Tier~2.  Η εντολή \vclmul{} της \Zvbc
+αποτελούσε το binding constraint στο Tier~2.  Η εντολή \vclmul{} της \gls{zvbc}
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
 παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
 \clmul/\clmulh βρόχο με μία μόνο vector iteration ανά εξωτερικό index.
 Η συνδυασμένη επίδραση μειώνει το polymul \instret κατά \pct{61} σε σχέση
-με το Tier~2 — από \cycles{160215} σε \cycles{62526} εντολές για HQC-128.
+με το Tier~2 — από \num{157473} σε \num{62530} εντολές για HQC-128.
 
 \subsection{Splat-and-Sweep: Διανυσματοποίηση του Schoolbook Leaf}
 \label{ssec:vclmul-leaf}
@@ -975,8 +975,8 @@ thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτε
 \paragraph{Ποσοτική σύγκριση Tier~2 $\to$ Tier~3.}
 Ο \cref{tab:tier2-vs-tier3} συνοψίζει τη μείωση \instret στον πολυωνυμικό
 πολλαπλασιασμό κατά τη μετάβαση από scalar leaf (Tier~2) σε vector leaf
-(Tier~3).  Η επιτάχυνση κυμαίνεται από \speedup{2.56} (HQC-128) έως
-\speedup{5.61} (HQC-256) — η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
+(Tier~3).  Η επιτάχυνση κυμαίνεται από \speedup{2.52} (HQC-128) έως
+\speedup{5.54} (HQC-256) — η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
 στο βαθύτερο δέντρο αναδρομής, όπου περισσότεροι leaf calls ωφελούνται
 από τη διανυσματοποίηση.
 
@@ -992,16 +992,16 @@ thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτε
     \textbf{Level} & \textbf{Tier~2 (instret)}
       & \textbf{Tier~3 (instret)} & \textbf{Speedup} \\
     \midrule
-    HQC-128 & \cycles{160215} & \cycles{62526}   & \speedup{2.56} \\
-    HQC-192 & \cycles{481715} & \cycles{185116}  & \speedup{2.60} \\
-    HQC-256 & \cycles{1519801} & \cycles{271002} & \speedup{5.61} \\
+    HQC-128 & \num{157473} & \num{62530}   & \speedup{2.52} \\
+    HQC-192 & \num{473083} & \num{185120}  & \speedup{2.56} \\
+    HQC-256 & \num{1502171} & \num{271006} & \speedup{5.54} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 Σε σχέση με το reference scalar baseline, η συνολική επιτάχυνση του
-Tier~3 ανέρχεται σε \speedup{307} για HQC-128 — από \cycles{19214281}
-σε \cycles{62526} εντολές.  Η μείωση αυτή αντικατοπτρίζει τη
+Tier~3 ανέρχεται σε \speedup{296} για HQC-128 ως προς \code{vector\_ref}
+(\cref{conv:baseline}) — από \num{18527409} σε \num{62530} εντολές.  Η μείωση αυτή αντικατοπτρίζει τη
 σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
 αναδιάρθρωση (Karatsuba + AP-2), εξάλειψη πλεονάζουσας μνήμης
 (assign-on-first-write), και διανυσματοποίηση του binding constraint
@@ -1017,8 +1017,8 @@ Tier~3 ανέρχεται σε \speedup{307} για HQC-128 — από \cycles{1
 \label{sec:polymul-assessment}
 
 Οι βελτιστοποιήσεις των \cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
-μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \cycles{19214281} σε
-\cycles{62526} εντολές στο Tier~3 — μείωση \speedup{307}.  Η μείωση αυτή
+μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \num{18527409} σε
+\num{62530} εντολές στο Tier~3 — μείωση \speedup{296} ως προς \code{vector\_ref}.  Η μείωση αυτή
 μετασχηματίζει ριζικά την κατανομή υπολογιστικού κόστους ολόκληρου του
 \gls{kem}, αποκαλύπτοντας πυρήνες που στο baseline αποτελούσαν αμελητέο
 ποσοστό ως νέα κυρίαρχα bottlenecks.
@@ -1049,37 +1049,37 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
   \end{subfigure}
   \caption{Ανακατανομή \instret στο HQC-128 KEM πριν και μετά τη
     βελτιστοποίηση πολυωνυμικού πολλαπλασιασμού.  Ο νόμος του Amdahl σε
-    δράση: η \speedup{307} μείωση του polymul αποκαλύπτει τον Keccak
+    δράση: η \speedup{296} μείωση του polymul αποκαλύπτει τον Keccak
     ($\approx$\pct{25}) και τη decode ($\approx$\pct{4}) ως νέα
     bottlenecks.}
   \label{fig:pie-redistribution}
 \end{figure}
 
 Η ποσοτική αυτή ανακατανομή αποτελεί άμεση εκδήλωση του νόμου του Amdahl.
-Έστω $f = 0.97$ το αρχικό ποσοστό του polymul και $S_\text{local} = 307$
+Έστω $f = 0.97$ το αρχικό ποσοστό του polymul και $S_\text{local} = 296$
 η τοπική επιτάχυνση.  Η μέγιστη θεωρητική system-level επιτάχυνση
 περιορίζεται σε:
 %
 \begin{equation}
   S_\text{system} \leq \frac{1}{(1 - f) + f / S_\text{local}}
-  = \frac{1}{0.03 + 0.97/307}
-  \approx 30.3.
+  = \frac{1}{0.03 + 0.97/296}
+  \approx 30.1.
   \label{eq:amdahl-polymul}
 \end{equation}
 %
-Η πραγματική μέτρηση — \speedup{157} speedup πλήρους \KEM στο Tier~3
+Η πραγματική μέτρηση — \speedup{154} speedup πλήρους \gls{kem} στο Tier~3
 (\cref{tab:polymul-tier-summary}) — υπερβαίνει αυτό το θεωρητικό όριο,
 διότι η βελτιστοποίηση polymul συρρικνώνει ταυτόχρονα και τμήμα του
 non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reduction).
-Ωστόσο, η κεντρική παρατήρηση παραμένει: η \speedup{307} τοπική μείωση
-μεταφράζεται σε \speedup{157} system-level — η απόκλιση τεκμηριώνει ότι
+Ωστόσο, η κεντρική παρατήρηση παραμένει: η \speedup{296} τοπική μείωση
+μεταφράζεται σε \speedup{154} system-level — η απόκλιση τεκμηριώνει ότι
 τα μη-polymul components αποτελούν πλέον τον binding constraint.
 
 \begin{table}[htbp]
   \centering
   \caption{Σύνοψη βελτιστοποίησης polymul ανά tier (HQC-128).  Η στήλη
     \q{KEM Speedup} αναφέρει τη συνολική επιτάχυνση πλήρους \KEM
-    (\KeyGen + \Encaps + \Decaps) σε σχέση με το reference baseline.}
+    (\KeyGen + \Encaps + \Decaps).  Οι επιταχύνσεις ακολουθούν τη σύμβαση baseline ανά tier (\cref{conv:baseline}).}
   \label{tab:polymul-tier-summary}
   \small
   \begin{tabular}{clrrrl}
@@ -1091,13 +1091,13 @@ non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reducti
       & \textbf{Speedup} & \textbf{hotspot} \\
     \midrule
     — & \code{scalar\_ref}
-      & \num{19214281} & — & — & polymul (\pct{97}) \\
+      & \num{19214277} & — & — & polymul (\pct{97}) \\
     1 & \code{scalar\_zb}
-      & \num{221026} & $\times$87 & $\times$34 & Keccak (\pct{17}) \\
+      & \num{221030} & $\times$87 & $\times$34 & Keccak (\pct{17}) \\
     2 & \code{vector\_rvv}
-      & \num{160215} & $\times$120 & $\times$57 & Keccak (\pct{29}) \\
+      & \num{157473} & $\times$118 & $\times$57 & Keccak (\pct{29}) \\
     3 & \code{vector\_zvk}
-      & \num{62526} & $\times$307 & $\times$157 & Keccak (\pct{25}) \\
+      & \num{62530} & $\times$296 & $\times$154 & Keccak (\pct{25}) \\
     \bottomrule
   \end{tabular}
 \end{table}
