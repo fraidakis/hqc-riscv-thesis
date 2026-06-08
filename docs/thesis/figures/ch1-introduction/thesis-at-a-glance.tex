@@ -25,7 +25,7 @@
 
 % Problem column
 \node[problem] (hqc) at (0, 1.8) {\HQC \KEM\\[-2pt]\scriptsize (NIST PQC, 2025)};
-\node[problem] (bottleneck) at (0, 0.0) {Polymul $\approx$ \pct{96}\\[-2pt]\scriptsize του υπολογιστικού κόστους};
+\node[problem] (bottleneck) at (0, 0.0) {Polymul $\approx$ \pct{96}\\[-2pt]\scriptsize του \instret};
 \node[problem] (nogap) at (0, -1.8) {Κανένα end-to-end\\[-2pt]\scriptsize RISC-V implementation};
 
 % Approach column
@@ -35,9 +35,9 @@
 \node[tierbox] (t3) at (5.0, -1.8) {Tier 3: Vector-Crypto\\[-1pt]\scriptsize rv64gcv + Zvbc/Zvbb};
 
 % Results column
-\node[result] (r1) at (10.5, 0.4) {Tier 1: \speedup{34}\\[-2pt]\scriptsize full KEM (HQC-128)};
-\node[result] (r2) at (10.5, -0.7) {Tier 2: \speedup{57}\\[-2pt]\scriptsize full KEM (HQC-128)};
-\node[result] (r3) at (10.5, -1.8) {Tier 3: \speedup{154}\\[-2pt]\scriptsize full KEM (HQC-128)};
+\node[result] (r1) at (10.5, 0.4) {Tier 1: \speedup{49}\\[-2pt]\scriptsize full-KEM speedup (HQC-256)};
+\node[result] (r2) at (10.5, -0.7) {Tier 2: \speedup{70}\\[-2pt]\scriptsize full-KEM speedup (HQC-256)};
+\node[result] (r3) at (10.5, -1.8) {Tier 3: \speedup{317}\\[-2pt]\scriptsize full-KEM speedup (HQC-256)};
 \node[result] (kat) at (10.5, 1.8) {KAT-verified\\[-2pt]\scriptsize 3 security levels};
 
 % Arrows: Problem → Approach
