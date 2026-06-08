@@ -385,7 +385,7 @@ extensions παρέχει σημαντική επιτάχυνση σε ολόκ�
 
 \paragraph{Το reference κλιμακώνει σχεδόν τετραγωνικά.}
 Ο λόγος \instret μεταξύ HQC-256 και HQC-128 στο \code{scalar\_ref} είναι
-$\num{431890526} / \num{59013715} = 7.32$, κάτω από τον θεωρητικό
+$\num{431890526} / \num{59013743} = 7.32$, κάτω από τον θεωρητικό
 $(57637/17669)^2 = 10.6$.  Ο πρακτικός εκθέτης ανέρχεται σε $\sim 1.7$
 (αντί $2.0$ ακριβώς) — η απόκλιση οφείλεται στο σταθερό κόστος Keccak
 και decode που δεν κλιμακώνει τετραγωνικά.  Στο reference αυτά αποτελούν
@@ -685,7 +685,7 @@ store-to-load forwarding, dual-issue scheduling και scalar↔vector transitio
 penalties παραμένουν αόρατα σε ένα CPI$=$1 μοντέλο.  Η παρούσα ενότητα
 συμπληρώνει την εικόνα με μετρήσεις κύκλων σε πραγματικό silicon — το Banana Pi
 BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\hertz},
-βλ.\ \cref{ssec:bpi-f3-platform}).  Οι μετρήσεις αφορούν τα Tier~1
+βλ.\ \cref{ssec:bpi-f3}).  Οι μετρήσεις αφορούν τα Tier~1
 (\code{scalar\_zb}) και Tier~2 (\code{vector\_rvv}) — τα μοναδικά variants
 εκτελέσιμα στο διαθέσιμο hardware, καθώς ο X60 δεν υλοποιεί \gls{zvbc}/\gls{zvbb}.
 

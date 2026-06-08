@@ -21,7 +21,6 @@
 σε πραγματικό hardware.
 
 \paragraph{Spike — Ο Αναφορικός ISA Simulator}
-\label{ssec:spike-iss}
 
 Ο Spike αποτελεί τον επίσημο αναφορικό εξομοιωτή της αρχιτεκτονικής RISC-V,
 αναπτυγμένο από τη RISC-V Software Foundation~\cite{spike-github}.  Υλοποιεί ένα
@@ -66,7 +65,6 @@ spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
 \end{figure}
 
 \paragraph{QEMU — Ταχεία Λειτουργική Επαλήθευση}
-\label{ssec:qemu}
 
 Ο QEMU~\cite{qemu-riscv} λειτουργεί ως συμπληρωματικό εργαλείο αποκλειστικά για
 λειτουργική επαλήθευση (correctness), χωρίς ρόλο στη μέτρηση απόδοσης.  Σε
@@ -96,7 +94,6 @@ qemu-system-riscv64 -machine virt \
 χρησιμοποιείται στα αποτελέσματα της εργασίας}.
 
 \paragraph{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60)}
-\label{ssec:bpi-f3-platform}
 \label{ssec:bpi-f3}
 
 Η τρίτη πλατφόρμα της πειραματικής υποδομής είναι το Banana Pi BPI-F3, μία
@@ -145,7 +142,7 @@ Cluster~1 (\num{4} cores, \SI{32}{\kilo\byte} L1, \SI{512}{\kilo\byte} L2).
 \subparagraph{Υποστηριζόμενες Επεκτάσεις.}
 
 Ο K1 X60 υποστηρίζει RV64IMAFDCV + \ext{Zba} + \ext{Zbb} + \ext{Zbc} +
-\ext{Zbs} (RVA22 mandatory extensions).  Ωστόσο, \textbf{δεν υποστηρίζει}
+\ext{Zbs}.  Από αυτές, οι \ext{Zba}/\ext{Zbb}/\ext{Zbs} ανήκουν στο RVA22 mandatory set, ενώ η \ext{Zbc} δεν περιλαμβάνεται στο υποχρεωτικό προφίλ.  Ωστόσο, \textbf{δεν υποστηρίζει}
 \gls{zvbc} και \gls{zvbb} — αυτές απαιτούν το RVA23 profile, το οποίο δεν υπάρχει
 ακόμη σε διαθέσιμο silicon.  Η πρακτική συνέπεια είναι ότι τα scalar και
 Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
@@ -193,7 +190,7 @@ speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγμ
 
 Πέραν της αξιολόγησης απόδοσης, το BPI-F3 αποτελεί την πλατφόρμα εμπειρικής
 επαλήθευσης constant-time εκτέλεσης μέσω dudect-based στατιστικής ανάλυσης
-χρονισμού (βλ.\ \cref{sec:future-ct}).  Η μεθοδολογία dudect απαιτεί
+χρονισμού (βλ.\ \cref{ssec:ct-dudect}).  Η μεθοδολογία dudect απαιτεί
 πραγματικούς κύκλους hardware — οι εξομοιωτές (Spike, QEMU) δεν παρέχουν
 αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage.  Η κάλυψη
 περιορίζεται στα Tier~1 (scalar \gls{zbc}) και Tier~2 (Base-RVV) variants, καθώς
@@ -214,7 +211,6 @@ silicon.
 \end{figure}
 
 \paragraph{Στρατηγική Τριπλής Πλατφόρμας}
-\label{ssec:triple-platform}
 
 Η συνδυαστική χρήση των τριών πλατφορμών ακολουθεί αυστηρό διαχωρισμό ρόλων:
 
@@ -249,7 +245,7 @@ silicon.
     \midrule
     Μετρική          & \instret (ντετερμ.) & — (χωρίς σημασία) & cycles (στατιστ.) \\
     Pipeline model   & Κανένα (CPI=1)      & Κανένα             & Real 8-stage dual-issue \\
-    Cache model      & Κανένα              & Κανένο             & Real 32KB L1 + 512KB L2 \\
+    Cache model      & Κανένα              & Κανένα             & Real 32KB L1 + 512KB L2 \\
     Variant coverage & Όλα (incl.\ Zvbc)   & Όλα                & Scalar + RVV μόνο \\
     Ταχύτητα         & Αργός               & Ταχύς (JIT)        & Real-time \\
     Χρήση            & Benchmarking         & KAT validation     & HW validation \\
@@ -268,7 +264,7 @@ silicon.
 \label{sec:toolchains}
 
 Η μεταγλώττιση κρυπτογραφικού κώδικα RISC-V με πέντε ταυτόχρονες επεκτάσεις
-(\gls{zbc}, \gls{zbb}, \RVV 1.0, \gls{zvbc}, \gls{zvbb}) θέτει αυστηρές απαιτήσεις στην αλυσίδα
+(\gls{zbc}, \gls{zbb}, \RVV, \gls{zvbc}, \gls{zvbb}) θέτει αυστηρές απαιτήσεις στην αλυσίδα
 εργαλείων: πλήρης υποστήριξη intrinsics για Vector-Crypto εντολές, σωστή
 κωδικοποίηση opcodes, και συμβατότητα με bare-metal εκτέλεση χωρίς λειτουργικό
 σύστημα.  Η παρούσα ενότητα περιγράφει τη στρατηγική cross-compilation, τη
@@ -278,7 +274,7 @@ silicon.
 \subsection{Στρατηγική Μεταγλώττισης και Επιλογή Compiler}
 \label{ssec:compiler-strategy}
 
-Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{Clang/LLVM 18} σε
+Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{Clang/LLVM 21.1.1} σε
 bare-metal cross-compilation mode με target triple \code{riscv64-unknown-elf}.
 Η επιλογή αυτή τεκμηριώνεται από τρεις παράγοντες.
 
@@ -307,8 +303,8 @@ intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse
 \code{scalar\_zb}) και ως cross-validation εργαλείο.  Η σύγκριση GCC–Clang
 στο reference scalar baseline αποκαλύπτει ότι ο GCC~15.2 με \code{-O3} παράγει
 \pct{2.9} λιγότερες εντολές από τον Clang (\num{113958344} έναντι
-\num{117344266} στο HQC-128), ενώ στα υψηλότερα security levels η διαφορά
-παραμένει σταθερή (\pct{2.9}–\pct{1.9}).  Η διαφορά αυτή οφείλεται στην
+\num{117344294} στο HQC-128), ενώ στα υψηλότερα security levels η διαφορά
+μειώνεται ελαφρά (από \pct{2.9} σε \pct{1.9}).  Η διαφορά αυτή οφείλεται στην
 επιθετικότερη loop unrolling πολιτική του GCC στον bit-serial πολλαπλασιασμό —
 ένα πλεονέκτημα που εξαφανίζεται στους βελτιστοποιημένους Karatsuba πυρήνες
 όπου η δομή κώδικα είναι πλήρως compile-time generated.
@@ -359,7 +355,7 @@ cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
   \centering
   \resizebox{\textwidth}{!}{\input{figures/ch5-setup/build-pipeline}}
   \caption{Ροή μεταγλώττισης και εκτέλεσης: ο πηγαίος κώδικας μεταγλωττίζεται
-    μέσω CMake και Clang~18 σε bare-metal ELF, το οποίο εκτελείται στον Spike
+    μέσω CMake και Clang~21.1.1 σε bare-metal ELF, το οποίο εκτελείται στον Spike
     για εξαγωγή \instret.  Η συμβολοσειρά \code{-march} καθορίζει τις
     διαθέσιμες επεκτάσεις ανά variant.}
   \label{fig:build-pipeline}
@@ -399,8 +395,8 @@ variant:
 
 \noindent
 Η επέκταση \ext{Zba} (address generation: \insn{sh1add}/\insn{sh2add}/\insn{sh3add})
-προστέθηκε στα vector variants μετά από ablation μέτρηση που έδειξε $-\pct{5.6}$
-polymul \instret στο \code{vector\_zvk} και $-\pct{2.6}$ στο
+προστέθηκε στα vector variants μετά από ablation μέτρηση που έδειξε $-\pct{5.61}$
+polymul \instret στο \code{vector\_zvk} και $-\pct{1.0}$ στο
 \code{vector\_rvv} — η βελτίωση προέρχεται από αποδοτικότερη pointer
 αριθμητική στους recomposition βρόχους.  Η επέκταση \ext{Zbs} (bit-set/clear)
 περιλαμβάνεται στα scalar variants για τη βελτιστοποίηση bit-scatter patterns
@@ -462,7 +458,7 @@ compile-time generated και δεν αφήνει περιθώριο στον op
 ρύθμιση \code{-mno-relax} εγγυάται ταυτόσημο binary output ανεξαρτήτως linker
 version.  Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελεί
 αυτοματοποιημένα KAT tests σε κάθε commit, επιβεβαιώνοντας bit-exact
-ορθότητα σε ελεγχόμενο περιβάλλον (Ubuntu, Clang~18, QEMU).
+ορθότητα σε ελεγχόμενο περιβάλλον (Ubuntu, Clang~21.1.1, QEMU).
 
 \section{Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής}
 \label{sec:benchmarking}
@@ -491,7 +487,7 @@ Conferences~\cite{zhang-tches2025, ras-nist2025}.  Η μετρική αυτή
 λειτουργικού συστήματος:
 
 \begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\small]
-csrr  a0, 0xb02    ; read minstret (retired instruction count)
+csrr  a0, 0xb02    # read minstret (retired instruction count)
 \end{lstlisting}
 
 \noindent
@@ -642,7 +638,7 @@ counters):
     \toprule
     {Level} & {Spike Speedup} & {Hardware Speedup} & {HW/Spike} \\
     \midrule
-    HQC-128 & 34.01 & 34.61 & 1.02 \\
+    HQC-128 & 34.01 & 34.33 & 1.01 \\
     HQC-192 & 45.36 & 46.15 & 1.02 \\
     HQC-256 & 49.11 & 59.14 & 1.20 \\
     \bottomrule
@@ -968,8 +964,8 @@ early-termination βελτιστοποίηση βασισμένη σε leading z
 
 \paragraph{Vector carry-less multiply (\RVV + \Zvbc).}
 Η υλοποίηση \code{vector\_rvv} χρησιμοποιεί \vclmul/\vclmulh vector
-εντολές.  Υπό Zkt, vector εντολές με ταυτόσημα \VLEN και \SEW
-configurations έχουν σταθερή latency.  Η \RVV υλοποίηση χρησιμοποιεί
+εντολές.  Υπό Zvkt, vector εντολές με ταυτόσημα \VLEN και \SEW
+configurations έχουν σταθερή latency~\cite{RISCV-crypto-vol2}.  Η \RVV υλοποίηση χρησιμοποιεί
 σταθερά \LMUL και element width για όλες τις πράξεις, επεξεργάζεται
 polynomial limbs μέσω strided vector loads (address-independent), και
 αποφεύγει \insn{vcompress} ή predicated operations σε μυστικά δεδομένα.
@@ -1060,7 +1056,7 @@ instruction cache misses, TLB fills, branch predictor training, και page
 table walks — φαινόμενα που θα εισήγαγαν ασύμμετρη διακύμανση στα πρώτα
 batches.
 
-\paragraph{Percentile cropping (second-order test).}
+\paragraph{Percentile cropping (δεύτερος t-test).}
 Ο δεύτερος t-test εφαρμόζει percentile cropping: μετρήσεις πάνω από το
 95ο εκατοστημόριο κάθε batch απορρίπτονται πριν τροφοδοτηθούν στον
 t-test accumulator.  Η τεχνική αυτή αφαιρεί outliers από OS interrupts,
@@ -1139,7 +1135,7 @@ input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσ�
 Η κάλυψη του Tier~3 (\code{vector\_zvk}) παραμένει μελλοντική εργασία
 εκκρεμούσα RVA23-compliant hardware (βλ.\ \cref{sec:future-work}).
 Η αρχιτεκτονική ανάλυση (\cref{ssec:ct-design-patterns}) τεκμηριώνει ότι
-οι \vclmul/\vclmulh εντολές είναι Zkt-compliant (σταθερή καθυστέρηση
+οι \vclmul/\vclmulh εντολές είναι Zvkt-compliant (σταθερή καθυστέρηση
 ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση εν αναμονή εμπειρικής
 επιβεβαίωσης.
 
@@ -1163,7 +1159,7 @@ Machine mode χωρίς λειτουργικό σύστημα, runtime βιβλ�
 \code{-nostdlib}, εξαλείφοντας κάθε εξάρτηση από C runtime initialization
 (\code{crt0.o}) και standard library.  Η αρχικοποίηση του επεξεργαστή
 υλοποιείται σε εξειδικευμένο αρχείο assembly (\code{startup.S}) που εκτελεί
-πέντε βήματα σε αυστηρή σειρά, όπως απεικονίζεται στο \cref{fig:boot-sequence}.
+έξι βήματα σε αυστηρή σειρά, όπως απεικονίζεται στο \cref{fig:boot-sequence}.
 
 \paragraph{Βήμα 1: Αρχικοποίηση Stack Pointer}
 
@@ -1182,9 +1178,9 @@ Machine mode χωρίς λειτουργικό σύστημα, runtime βιβλ�
 εγγραφής στο πεδίο \code{mstatus.VS}:
 
 \begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\small]
-li   t0, 0x600          ; mstatus.VS = Dirty (bits [10:9] = 11)
-csrs mstatus, t0        ; set VS field
-vsetvli t0, zero, e64, m1, ta, ma  ; configure vtype
+li   t0, 0x600          # mstatus.VS = Dirty (bits [10:9] = 11)
+csrs mstatus, t0        # set VS field
+vsetvli t0, zero, e64, m1, ta, ma  # configure vtype
 \end{lstlisting}
 
 \noindent
@@ -1229,7 +1225,7 @@ mask-agnostic — η τυπική ρύθμιση για τους κρυπτογ�
 
 \paragraph{Linker Script και Memory Layout}
 
-Το linker script (\code{link.ld}) ορίζει μία ενιαία περιοχή RAM \num{128}\,MiB
+Το linker script (\code{link.ld}) ορίζει μία ενιαία περιοχή RAM \SI{128}{\mebi\byte}
 με βάση τη διεύθυνση \code{0x80000000} — κοινή μεταξύ Spike και QEMU virt
 machine.  Η διάταξη τμημάτων ακολουθεί τη σειρά που απεικονίζεται στο
 \cref{fig:memory-map}: ο κώδικας εκκίνησης τοποθετείται πρώτος
@@ -1250,7 +1246,7 @@ machine.  Η διάταξη τμημάτων ακολουθεί τη σειρά 
 
 \noindent
 Ένας \code{ASSERT} στο τέλος του linker script ελέγχει κατά τη σύνδεση ότι
-το σύνολο \code{.bss} + \code{.stack} δεν υπερβαίνει τα \num{128}\,MiB,
+το σύνολο \code{.bss} + \code{.stack} δεν υπερβαίνει τα \SI{128}{\mebi\byte},
 αποτρέποντας σιωπηλή υπερχείλιση σε μεγαλύτερα security levels (HQC-256
 απαιτεί μεγαλύτερους πολυωνυμικούς buffers).
 
@@ -1284,7 +1280,7 @@ $\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration.  Η βελτιστ�
 Οι ρουτίνες μνήμης σχεδιάστηκαν με πρόθεση σταθερού χρόνου: η ροή ελέγχου
 εξαρτάται αποκλειστικά από δημόσιες παραμέτρους (μέγεθος \code{n}, ευθυγράμμιση
 δεικτών) και ποτέ από το περιεχόμενο των δεδομένων.  Η ιδιότητα αυτή δεν
-αποτελεί εγγύηση side-channel resistance (βλ.\ \cref{sec:future-ct} για
+αποτελεί εγγύηση side-channel resistance (βλ.\ \cref{sec:ct-methodology} και \cref{sec:future-ct} για
 μελλοντική εργασία), αλλά εξασφαλίζει ότι η μετρική \instret δεν εξαρτάται
 από τις τιμές εισόδου — προϋπόθεση για ντετερμινιστικές μετρήσεις.
 
@@ -1312,7 +1308,7 @@ $\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration.  Η βελτιστ�
 σε δεκαδική αναπαράσταση μέσω επαναλαμβανόμενης διαίρεσης.
 
 \subsection{Καθαρότητα Μέτρησης (Measurement Purity)}
-\label{sec:measurement-purity}
+\label{ssec:measurement-purity}
 
 Η bare-metal εκτέλεση σε Machine mode παρέχει τρεις θεμελιώδεις εγγυήσεις
 που καθιστούν τις μετρήσεις \instret αξιόπιστες και αναπαραγώγιμες.
@@ -1355,7 +1351,7 @@ benchmark harness (\code{bench\_kem.c}) εκτελεί πρώτα ένα warmup 
 λειτουργία ξεχωριστά:
 
 \begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
-uint64_t t0 = hqc_rdinstret();
+uint64_t t0 = hqc_rdinstret();  // minstret (CSR 0xb02)
 crypto_kem_keypair(pk, sk);
 uint64_t t1 = hqc_rdinstret();
 // keypair_instret = t1 - t0
@@ -1383,14 +1379,14 @@ assembly, C intrinsics, και auto-lowering μέσω compiler.  Η παρούσ
 Η κεντρική σχεδιαστική απόφαση είναι η χρήση \textbf{C intrinsics ως default
 μέθοδος} σε όλους τους κρυπτογραφικούς πυρήνες.  Inline assembly χρησιμοποιείται
 αποκλειστικά όπου δεν υπάρχει αντίστοιχο intrinsic (\eg ανάγνωση \glspl{csr}),
-ενώ auto-lowering αξιοποιείται ως δωρεάν bonus χωρίς αλλαγή πηγαίου κώδικα.
+ενώ auto-lowering αξιοποιείται ως πρόσθετο όφελος χωρίς αλλαγή πηγαίου κώδικα.
 Η προσέγγιση αυτή αντιδιαστέλλεται με πολλές embedded crypto υλοποιήσεις στη
 βιβλιογραφία~\cite{zhang-tches2025, ras-nist2025} που γράφουν ολόκληρους
 πυρήνες σε assembly — θυσιάζοντας portability, maintainability, και ορατότητα
 στον optimizer χωρίς αντίστοιχο κέρδος σε αρχιτεκτονικές με πλούσιο intrinsic
 API.
 
-Η επιλογή intrinsics τεκμηριώνεται από τρεις παράγοντες.  Πρώτον, ο Clang~18
+Η επιλογή intrinsics τεκμηριώνεται από τρεις παράγοντες.  Πρώτον, ο Clang~21.1.1
 παρέχει πλήρες type-checked intrinsic API για \gls{zbc}, \gls{zbb}, \RVV 1.0, \gls{zvbc} και
 \gls{zvbb} — κάθε εντολή που αξιοποιεί η υλοποίηση διαθέτει αντίστοιχο intrinsic.
 Δεύτερον, τα intrinsics συμμετέχουν πλήρως στο optimization pipeline (register
@@ -1417,7 +1413,7 @@ assembly δεν χρησιμοποιείται στους κρυπτογραφι
 Η inline assembly χρησιμοποιείται αποκλειστικά για δύο λειτουργίες στο αρχείο
 \code{bench.c}: ανάγνωση των \glspl{csr} \code{mcycle} και \code{minstret},
 και η εντολή \insn{wfi} (Wait For Interrupt) στον βρόχο τερματισμού.  Κανένα
-από αυτά δεν διαθέτει C intrinsic στον Clang~18 — η ανάγνωση \glspl{csr}
+από αυτά δεν διαθέτει C intrinsic στον Clang~21.1.1 — η ανάγνωση \glspl{csr}
 απαιτεί ρητή κωδικοποίηση της διεύθυνσης CSR:
 
 \begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
@@ -1482,7 +1478,7 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
     Pointer αριθμητική στους recomposition βρόχους.  Η έκφραση
     \code{base + idx * 8} μεταγλωττίζεται αυτόματα σε \insn{sh3add} αντί
     \insn{slli} + \insn{add} — εξοικονόμηση μίας εντολής ανά πρόσβαση.
-    Ablation μέτρηση: $-\pct{5.6}$ polymul \instret στο \code{vector\_zvk}.
+    Ablation μέτρηση: $-\pct{5.61}$ polymul \instret στο \code{vector\_zvk}.
 
   \item \textbf{\ext{Zbs}} (\insn{bset}/\insn{bclr}/\insn{bext}):
     Bit-scatter patterns στη \code{vect\_write\_support\_to\_vector()}.  Η
@@ -1514,7 +1510,7 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
 \begin{table}[htbp]
   \centering
   \caption{Αντιστοίχιση μεθόδων προγραμματισμού σε αρχεία και πυρήνες.
-    Τα C intrinsics αποτελούν τη μέθοδο σε $>\pct{99}$ του κρυπτογραφικού
+    Τα C intrinsics αποτελούν τη μέθοδο στη συντριπτική πλειονότητα του κρυπτογραφικού
     κώδικα.}
   \label{tab:method-mapping}
   \begin{tabular}{p{2.4cm} p{3.8cm} p{3.5cm} p{3.8cm}}
@@ -1544,7 +1540,7 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
 
 \noindent
 Η ιεραρχία αυτή — assembly μόνο για boot, inline asm μόνο για CSR, intrinsics
-για κρυπτογραφία, auto-lowering ως bonus — εξασφαλίζει μέγιστη ορατότητα στον
+για κρυπτογραφία, auto-lowering ως πρόσθετο όφελος — εξασφαλίζει μέγιστη ορατότητα στον
 compiler χωρίς θυσία ελέγχου στα κρίσιμα σημεία.  Η πρακτική αυτή αποδεικνύεται
 αποτελεσματική: κανένα σημείο στην υλοποίηση δεν απαιτεί χειρόγραφη assembly
 για επίτευξη βέλτιστης απόδοσης, καθώς η δομή του compile-time generated κώδικα
@@ -1554,7 +1550,7 @@ compiler χωρίς θυσία ελέγχου στα κρίσιμα σημεία
 \label{sec:baseline-profiling}
 
 Η πρώτη εκτέλεση του reference \gls{hqc} στο Spike environment επιβεβαιώνει ότι η
-πειραματική υποδομή (§§5.1–5.6) λειτουργεί ολοκληρωμένα: ο κώδικας
+πειραματική υποδομή (\crefrange{sec:emulators}{sec:bare-metal}) λειτουργεί ολοκληρωμένα: ο κώδικας
 μεταγλωττίζεται, εκτελείται σε bare-metal, παράγει bit-exact σωστά αποτελέσματα
 (\gls{kat} validation), και εξάγει ντετερμινιστικές μετρήσεις \instret.  Η
 ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \gls{kem} για το
@@ -1566,7 +1562,7 @@ calculation στα \cref{ch:polymul-optimization} και \cref{ch:results}.
 
 Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για κάθε
 λειτουργία \gls{kem} στο scalar baseline (\code{scalar\_ref}, μεταγλωττισμένο με
-Clang~18, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}).  Η υλοποίηση
+Clang~21.1.1, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}).  Η υλοποίηση
 αντιστοιχεί στον αρχικό κώδικα αναφοράς του \gls{nist} χωρίς αλγοριθμικές
 βελτιστοποιήσεις — μόνο η αυτόματη αξιοποίηση \gls{zbc}/\gls{zbb} μέσω auto-lowering
 (\cf \cref{sec:methods-application}).
@@ -1582,7 +1578,7 @@ Clang~18, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}).  Η υλοποίησ
     \toprule
     {Level} & {\KeyGen} & {\Encaps} & {\Decaps} & {Total} \\
     \midrule
-    HQC-128 & 19454626  & 38875925  & 59013715  & 117344266 \\
+    HQC-128 & 19454626  & 38875925  & 59013743  & 117344294 \\
     HQC-192 & 58895392  & 117744966 & 177662247 & 354302605 \\
     HQC-256 & 143382635 & 286701285 & 431890526 & 861974446 \\
     \bottomrule
@@ -1595,13 +1591,13 @@ Clang~18, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}).  Η υλοποίησ
 πολυωνυμικών πολλαπλασιασμών σε κάθε λειτουργία (ένας στο \KeyGen, δύο στο
 \Encaps, τρεις στο \Decaps — ο τρίτος προέρχεται από το re-encryption check
 του Fujisaki-Okamoto transform).  Δεύτερον, η κλιμάκωση μεταξύ security levels
-είναι υπερ-γραμμική: η μετάβαση από HQC-128 σε HQC-256 αυξάνει το \instret
-κατά \speedup{7.3}, αντικατοπτρίζοντας την $\BigO{n^{\log_2 3}}$ πολυπλοκότητα
-του Karatsuba πολλαπλασιασμού στο reference implementation (bit-serial
-schoolbook στα φύλλα).  Τρίτον, το απόλυτο μέγεθος — \cycles{59013715} εντολές
+είναι σχεδόν τετραγωνική: η μετάβαση από HQC-128 σε HQC-256 αυξάνει το \instret
+κατά \num{7.3}$\times$, αντικατοπτρίζοντας την $\BigO{n^2}$ πολυπλοκότητα
+του bit-serial schoolbook πολλαπλασιασμού που κυριαρχεί στο reference
+implementation.  Τρίτον, το απόλυτο μέγεθος — \num{59013743} εντολές
 για ένα μόνο \Decaps στο HQC-128 — καθιστά σαφή την ανάγκη βελτιστοποίησης:
 σε πυρήνα \SI{1}{\giga\hertz} με \gls{cpi} $= 1$, αυτό αντιστοιχεί σε
-$\approx \SI{59}{\milli\second}$ ανά αποενθυλάκωση.
+$\approx \SI{59}{\milli\second}$ ανά αποενθυλάκωση· σε πραγματικό πυρήνα με \gls{cpi} $> 1$ ο χρόνος είναι αναλόγως μεγαλύτερος.
 
 \subsection{Κατανομή Υπολογιστικού Κόστους (Hotspot Analysis)}
 \label{ssec:baseline-hotspots}
@@ -1613,7 +1609,7 @@ HQC-128 \Decaps:
 
 \begin{table}[htbp]
   \centering
-  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM, \cycles{117344266} εντολές).  Ο πολυωνυμικός πολλαπλασιασμός
+  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM, \num{117344294} εντολές).  Ο πολυωνυμικός πολλαπλασιασμός
     (\code{schoolbook\_mul} + \code{karatsuba\_mul}) κυριαρχεί με \pct{96.8}
     του συνολικού κόστους.}
   \label{tab:baseline-hotspots}
@@ -1627,7 +1623,7 @@ HQC-128 \Decaps:
     \code{KeccakF1600\_StatePermute}  & 578792    & 0.49 \\
     \code{hadamard}                   & 186162    & 0.16 \\
     \code{keccak\_inc\_absorb}        & 141110    & 0.12 \\
-    Λοιπές                            & 861987    & 0.75 \\
+    Λοιπές                            & 862015    & 0.75 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1645,8 +1641,7 @@ scratch buffers πριν από κάθε πολλαπλασιασμό — ένα
 Ο Keccak (\code{KeccakF1600\_StatePermute} + \code{keccak\_inc\_absorb})
 αντιπροσωπεύει μόλις \pct{0.6} — αμελητέο στο αρχικό προφίλ, αλλά
 αναδεικνύεται σε σημαντικό bottleneck μετά τη βελτιστοποίηση του polymul
-(\cf \cref{ch:kernel-optimization}).  Η αποκωδικοποίηση (\code{hadamard} +
-Reed-Solomon) αντιπροσωπεύει \pct{0.16} — ομοίως αμελητέα αρχικά.
+(\cf \cref{ch:kernel-optimization}).  Η αποκωδικοποίηση \code{hadamard} αντιπροσωπεύει \pct{0.16} — ομοίως αμελητέα αρχικά· η Reed-Solomon περιλαμβάνεται στις λοιπές συναρτήσεις.
 
 \Cref{fig:baseline-pie} απεικονίζει γραφικά την κατανομή κόστους σε τέσσερις
 κατηγορίες.
@@ -1672,8 +1667,7 @@ $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead
   \centering
   \caption{Isolated polymul \instret (reference scalar baseline) ανά security
     level.  Η σύγκριση με τον \cref{tab:baseline-kem} επιβεβαιώνει ότι ο
-    πολυωνυμικός πολλαπλασιασμός αποτελεί $\approx\pct{97}$ του \KeyGen
-    και $\approx\pct{33}$ του πλήρους \KEM.}
+    πολυωνυμικός πολλαπλασιασμός αποτελεί $\approx\pct{99}$ του \KeyGen.}
   \label{tab:baseline-polymul}
   \begin{tabular}{l S[table-format=9.0] S[table-format=2.1]}
     \toprule
@@ -1689,7 +1683,7 @@ $a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead
 \noindent
 Η αναλογία \code{vect\_mul}/\KeyGen αυξάνεται με το security level (από
 \pct{98.8} στο HQC-128 σε \pct{99.5} στο HQC-256), επιβεβαιώνοντας ότι
-η υπερ-γραμμική κλιμάκωση του πολλαπλασιασμού κυριαρχεί πλήρως στα
+η σχεδόν τετραγωνική κλιμάκωση του πολλαπλασιασμού κυριαρχεί πλήρως στα
 υψηλότερα επίπεδα ασφαλείας.  Η isolated μέτρηση χρησιμοποιείται ως
 denominator για τα polymul-specific speedups στο \cref{ch:polymul-optimization},
 ενώ η μέτρηση πλήρους \gls{kem} χρησιμοποιείται για τα system-level speedups
@@ -1711,9 +1705,11 @@ denominator για τα polymul-specific speedups στο \cref{ch:polymul-optimi
 \noindent
 όπου $p$ το κλάσμα του χρόνου που βελτιστοποιείται και $s$ η τοπική
 επιτάχυνση.  Για $p = 0{,}97$ (polymul) και $s \to \infty$, η μέγιστη
-system-level επιτάχυνση τείνει σε $S_{\max} \approx 33\times$ — ένα θεωρητικό
-ανώτατο όριο που εξηγεί γιατί η επιτάχυνση σε επίπεδο συστήματος (\speedup{28} στο
-Tier~1) υπολείπεται της isolated polymul επιτάχυνσης (\speedup{91}).
+system-level επιτάχυνση τείνει σε $S_{\max} \approx 33\times$ — μια θεωρητική
+τάξη μεγέθους συμβατή με τη μετρημένη συνολική επιτάχυνση \gls{kem} (\speedup{34}
+στο Tier~1· η οριακή υπέρβαση του $S_{\max}$ οφείλεται στο ότι το πραγματικό $p$
+ελαφρώς υπερβαίνει το $0{,}97$), η οποία παραμένει αισθητά χαμηλότερη από την
+isolated polymul επιτάχυνση (\speedup{86.9}).
 
 Η στρατηγική βελτιστοποίησης ακολουθεί τρεις φάσεις, κατά σειρά
 αποτελεσματικότητας:
@@ -1738,7 +1734,7 @@ Tier~1) υπολείπεται της isolated polymul επιτάχυνσης (\
 Η σειρά αυτή δεν είναι αυθαίρετη: κάθε φάση στοχεύει το τρέχον κυρίαρχο
 bottleneck, εξασφαλίζοντας ότι η προσπάθεια βελτιστοποίησης αποδίδει μέγιστο
 system-level κέρδος.  Η ανακατανομή του προφίλ μετά από κάθε φάση
-τεκμηριώνεται ποσοτικά στο \cref{ch:polymul-optimization} (§6.5).
+τεκμηριώνεται ποσοτικά στο \cref{sec:polymul-assessment}.
 
 \bigskip
 \noindent

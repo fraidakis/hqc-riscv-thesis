@@ -865,7 +865,7 @@ vclmul_leaf(result + offset, a + half, b + half);
 
 \paragraph{Ασυμμετρική επίπτωση μεταξύ variants.}
 Η μέτρηση σε Spike αποκάλυψε μία εντυπωσιακή ασυμμετρία: η \ext{Zba}
-μειώνει το polymul \instret κατά \pct{5.6} στο \code{vector\_zvk}
+μειώνει το polymul \instret κατά \pct{5.61} στο \code{vector\_zvk}
 (Tier~3), κατά \pct{1.0} στο \code{vector\_rvv} (Tier~2), αλλά κατά
 μόλις \pct{0.004} στο \code{scalar\_zb} (Tier~1) και \pct{0} στα
 reference baselines.  Η ερμηνεία βρίσκεται στη δομή του hot path:
@@ -891,7 +891,7 @@ extension είναι ανάλογη με τη \emph{δυναμική πυκνό�
 pattern εντός του hot path — όχι με τον αριθμό στατικών εμφανίσεων
 στο ELF.  Στο \code{vector\_zvk}, η πυκνότητα pointer-arithmetic
 instructions ανέρχεται σε \pct{12}–\pct{15} του polymul loop body,
-ερμηνεύοντας πλήρως τη μείωση \pct{5.6}.
+ερμηνεύοντας πλήρως τη μείωση \pct{5.61}.
 
 \paragraph{Απόφαση.}
 Η \ext{Zba} προστέθηκε στα march strings των vector variants
