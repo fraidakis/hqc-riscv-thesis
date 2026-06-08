@@ -83,8 +83,9 @@
 \ifdefined\tikzListAndMake
   \tikzset{external/mode=list and make}
 \fi
-% Allow \includegraphics to find externalized PDFs under build/
-\graphicspath{{./}{build/}}
+% Allow \includegraphics to find externalized PDFs under build/ and
+% generated benchmark plots under results/reports/figures/ (not committed).
+\graphicspath{{./}{build/}{../../results/reports/figures/}}
 % Fix: tikzexternalize subprocess reads old .aux files and tries to re-execute
 % \@writefile{lot/toc}{...} commands, but those write streams aren't open in
 % the subprocess context — causing "File ended while scanning \@writefile".
