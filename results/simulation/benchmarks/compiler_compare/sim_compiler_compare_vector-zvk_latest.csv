@@ -1,21 +1,21 @@
-# date: 2026-05-26 16:46
-# commit: c56c136
+# date: 2026-06-09 20:04
+# commit: 445e0cb
 compiler,opt,level,variant,status,instructions,text_bytes,elf,error
-clang,-O2,128,karatsuba_zvbc,OK,716983,45570,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O2/bench_hqc128_karatsuba_zvbc.elf,
-clang,-O3,128,karatsuba_zvbc,OK,716983,45570,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O3/bench_hqc128_karatsuba_zvbc.elf,
-clang,-Os,128,karatsuba_zvbc,OK,716983,45570,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_Os/bench_hqc128_karatsuba_zvbc.elf,
+clang,-O2,128,karatsuba_zvbc,OK,715844,46104,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O2/bench_hqc128_vector_zvk.elf,
+clang,-O3,128,karatsuba_zvbc,OK,715844,46104,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O3/bench_hqc128_vector_zvk.elf,
+clang,-Os,128,karatsuba_zvbc,OK,715844,46104,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_Os/bench_hqc128_vector_zvk.elf,
 gcc,-O2,128,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_O2/bench_hqc128_karatsuba_zvbc.elf,gcc_zvbb_incompatible
 gcc,-O3,128,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_O3/bench_hqc128_karatsuba_zvbc.elf,gcc_zvbb_incompatible
 gcc,-Os,128,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_Os/bench_hqc128_karatsuba_zvbc.elf,gcc_zvbb_incompatible
-clang,-O2,192,karatsuba_zvbc,OK,1694892,49782,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O2/bench_hqc192_karatsuba_zvbc.elf,
-clang,-O3,192,karatsuba_zvbc,OK,1694892,49782,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O3/bench_hqc192_karatsuba_zvbc.elf,
-clang,-Os,192,karatsuba_zvbc,OK,1694892,49782,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_Os/bench_hqc192_karatsuba_zvbc.elf,
+clang,-O2,192,karatsuba_zvbc,OK,1693005,50316,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O2/bench_hqc192_vector_zvk.elf,
+clang,-O3,192,karatsuba_zvbc,OK,1693005,50316,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O3/bench_hqc192_vector_zvk.elf,
+clang,-Os,192,karatsuba_zvbc,OK,1693005,50316,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_Os/bench_hqc192_vector_zvk.elf,
 gcc,-O2,192,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_O2/bench_hqc192_karatsuba_zvbc.elf,gcc_zvbb_incompatible
 gcc,-O3,192,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_O3/bench_hqc192_karatsuba_zvbc.elf,gcc_zvbb_incompatible
 gcc,-Os,192,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_Os/bench_hqc192_karatsuba_zvbc.elf,gcc_zvbb_incompatible
-clang,-O2,256,karatsuba_zvbc,OK,2611338,56916,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O2/bench_hqc256_karatsuba_zvbc.elf,
-clang,-O3,256,karatsuba_zvbc,OK,2611338,56916,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O3/bench_hqc256_karatsuba_zvbc.elf,
-clang,-Os,256,karatsuba_zvbc,OK,2611338,56916,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_Os/bench_hqc256_karatsuba_zvbc.elf,
+clang,-O2,256,karatsuba_zvbc,OK,2606989,57448,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O2/bench_hqc256_vector_zvk.elf,
+clang,-O3,256,karatsuba_zvbc,OK,2606989,57448,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_O3/bench_hqc256_vector_zvk.elf,
+clang,-Os,256,karatsuba_zvbc,OK,2606989,57448,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_clang_Os/bench_hqc256_vector_zvk.elf,
 gcc,-O2,256,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_O2/bench_hqc256_karatsuba_zvbc.elf,gcc_zvbb_incompatible
 gcc,-O3,256,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_O3/bench_hqc256_karatsuba_zvbc.elf,gcc_zvbb_incompatible
 gcc,-Os,256,karatsuba_zvbc,SKIP,,,/home/fraidakisg/Thesis/hqc-riscv/build/spike/bench_kzvbb_x2_soa_dzvbc_gcc_Os/bench_hqc256_karatsuba_zvbc.elf,gcc_zvbb_incompatible

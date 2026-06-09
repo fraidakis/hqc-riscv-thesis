@@ -15,6 +15,27 @@ VARIANT_SLUG_MAP: dict[str, str] = {
     "vector_zvk": "vector-zvk",
 }
 
+# Maps legacy/CSV variant names to canonical names used in reports and tables.
+LEGACY_VARIANT_MAP: dict[str, str] = {
+    "ref_scalar": "scalar_ref",
+    "karatsuba_zbc": "scalar_zb",
+    "ref_vector": "vector_ref",
+    "karatsuba_rvv": "vector_rvv",
+    "karatsuba_zvbc": "vector_zvk",
+}
+
+
+def resolve_variant(raw: str) -> str:
+    """Resolve a raw variant name (possibly legacy) to its canonical form.
+
+    Args:
+        raw: A variant name as found in CSV files (e.g., "karatsuba_zbc").
+
+    Returns:
+        The canonical variant name (e.g., "scalar_zb").
+    """
+    return LEGACY_VARIANT_MAP.get(raw, raw)
+
 
 def variant_slug(variant: str) -> str:
     """Return the hyphenated slug for a canonical variant name.
