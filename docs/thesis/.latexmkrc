@@ -8,34 +8,29 @@ $pdf_mode = 4;  # lualatex
 $out_dir = 'build';
 $aux_dir = 'build';
 
-# Pre-create needed subdirectories in build/ for \include aux files and
-# the tikz externalization cache.
+# Pre-create needed subdirectories in build/ for \include aux files
+# build/figures-cache/ stores the tikz-externalized figure PDFs
+# (prefix is 'figures-cache/' and -output-directory=build, so files land here)
 use File::Path qw(make_path);
 make_path("build/figures-cache", "build/chapters", "build/frontmatter", "build/appendices");
 
 # Symlink figures-cache/ -> build/figures-cache/ at the thesis root.
-# Needed because tikz/external uses prefix=figures-cache/ (relative to CWD),
-# while -output-directory=build causes lualatex to write files to build/.
-# The symlink makes both resolve to the same real directory.
-# It is .gitignored and recreated automatically on every latexmk run.
+# Needed because lualatex reads \includegraphics paths relative to CWD
+# but -output-directory=build causes \openout to write there.
+# The symlink makes both point to the same real directory.
 symlink("build/figures-cache", "figures-cache")
     unless -e "figures-cache" || -l "figures-cache";
 
 # Shell-escape for tikz/external, batchmode suppresses console output (logs go
 # to build/main.log), -f forces latexmk to continue past non-fatal errors.
 $lualatex = 'lualatex -shell-escape -interaction=batchmode -synctex=1 %O %S';
-$f = 1;  # latexmk -f: continue even if lualatex returns non-zero
+$force_mode = 1;  # continue even if lualatex returns non-zero
 
 # Bibliography backend = biber. latexmk auto-detects the .bcf file and runs the
-# $biber command (NOT $bibtex), so the previous `$bibtex = 'biber ...'` override
-# was dead code; worse, its `--input-directory .` pointed biber at the project
-# root while the .bcf lives under $out_dir=build/, so if it had ever been used it
-# would fail to find build/main.bcf and silently leave main.bbl unbuilt.
-# Use the correct $biber command and force the bib step to always run, so the
-# bibliography/cross-reference cycle (lualatex -> biber -> lualatex x2) can never
-# be skipped (which is what makes every \cite / \cref render as "??").
+# $biber command (NOT $bibtex), so overriding $bibtex is dead code.
+# Use the correct $biber command and force the bib step to always run.
 $biber = 'biber %O %S';   # %S = build/main.bcf (out_dir-aware)
-$bibtex_use = 2;          # always run biber when the document cites
+$bibtex_use = 2;           # always run biber when the document cites
 
 # Clean extensions
 # Note: build/figures-cache/ PDFs are NOT cleaned here (intentional cache).

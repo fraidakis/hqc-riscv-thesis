@@ -50,11 +50,9 @@
 % To disable for a single environment: \tikzexternaldisable ... \tikzexternalenable
 %
 % Path note: lualatex runs with -output-directory=build, so \openout prepends
-% build/ automatically. The prefix must NOT include build/ or it double-prefixes.
-% Cached PDFs therefore land in build/figures-cache/.
-% A symlink figures-cache/ -> build/figures-cache/ at the thesis root lets
-% \includegraphics (which resolves paths relative to CWD) find them.
-% The symlink is created by .latexmkrc on every run and is .gitignored.
+% build/ automatically. prefix must NOT include build/ or it double-prefixes.
+% The subprocess also gets -output-directory=build so its PDFs land in build/figures-cache/.
+% \graphicspath{{build/}} lets \includegraphics find them there.
 \usetikzlibrary{external}
 % PGF's \pgfexternal@nofiles calls \nofiles early in the preamble (inside
 % \tikzexternalize), before glossaries-extra initializes, causing "Too many }'s"
@@ -62,20 +60,6 @@
 % calls \nofiles correctly after all packages are loaded.
 \makeatletter\let\pgfexternal@nofiles\@empty\makeatother
 \tikzexternalize[prefix=figures-cache/]{main}
-% LuaLaTeX-specific system call: spawn lualatex (not pdflatex) for sub-jobs.
-% -output-directory=build ensures cached PDFs land in build/figures-cache/.
-\tikzset{external/system call={%
-  lualatex -shell-escape -halt-on-error -interaction=batchmode
-  -output-directory=build -jobname "\image" "\tikzexternalrealjob"%
-}}
-% Support 'make chapter-only ch=N':
-%   With explicit \tikzsetnextfilename{} on every figure, cached filenames are
-%   stable regardless of \includeonly — no numbering shift.  Normal externalization
-%   works: tikz-external checks the md5 of each figure and re-renders only those
-%   that changed (subprocess writes to build/figures-cache/ via the system call).
-%   New or modified figures are rendered on-the-fly; unchanged figures use cache.
-%   The Makefile symlinks build/chapter-preview/figures-cache → ../figures-cache
-%   so .md5 writes from both the main process and subprocess land in the same dir.
 % Support 'make figures-parallel': if \tikzListAndMake is defined (injected
 % via the lualatex command line as \def\tikzListAndMake{1}), switch to
 % 'list and make' mode so lualatex writes build/main.makefile instead of
@@ -83,6 +67,12 @@
 \ifdefined\tikzListAndMake
   \tikzset{external/mode=list and make}
 \fi
+% LuaLaTeX-specific system call: spawn lualatex (not pdflatex) for sub-jobs.
+% -output-directory=build ensures cached PDFs land in build/figures-cache/.
+\tikzset{external/system call={%
+  lualatex -shell-escape -halt-on-error -interaction=batchmode
+  -output-directory=build -jobname "\image" "\tikzexternalrealjob"%
+}}
 % Allow \includegraphics to find externalized PDFs under build/ and
 % generated benchmark plots under results/reports/figures/ (not committed).
 \graphicspath{{./}{build/}{../../results/reports/figures/}}
@@ -92,22 +82,15 @@
 % \nofiles makes \@writefile a no-op, fixing this without side effects on
 % figure rendering (figures don't need to write toc/lot/lof entries).
 %
-% Detection: in the figure subprocess the system call (see \tikzset above) passes
-% -jobname "\image", so \jobname expands to the figure's cache filename
-% (e.g. "ch3-riscv-rvv-xor-example") — never "main".
+% Detection: in the figure subprocess the system call passes -jobname "\image",
+% so \jobname expands to the figure's cache filename (e.g.
+% "figures-cache/ch9-discussion-waterfall-ablation") — never "main".
 % In the main full run, \jobname = "main".
-% In chapter-only or figures-parallel pass-1, lualatex is invoked without
-% -jobname, so \jobname = "texput".
+% In chapter-only or figures-parallel pass-1, \jobname = "texput".
 %
 % IMPORTANT: \jobname produces catcode-12 tokens; a literal "main" in TeX
 % source has catcode-11 letter tokens.  \ifx comparison fails across catcodes.
 % We use \detokenize{main} to normalise both sides to catcode-12 before \ifx.
-%
-% Summary of \nofiles cases:
-%   • figure subprocess  → \jobname = <figure> ≠ "main", ≠ "texput" → \nofiles ✓
-%   • main full run      → \jobname = "main"  = \detokenize{main}    → skip    ✓
-%   • chapter-only       → \jobname = "texput"= \detokenize{texput}  → skip    ✓
-%   • figures-parallel 1 → \jobname = "texput"                       → skip    ✓
 \makeatletter
 \AtBeginDocument{%
   \ifdefined\tikzexternalrealjob
@@ -117,6 +100,10 @@
     \ifx\pgf@tempa\pgf@tempb\else    % not the main run
       \ifx\pgf@tempa\pgf@tempc\else  % not a texput (chapter-only / pass-1) run
         \nofiles  % we are in a tikz/external figure subprocess
+        % Disable todonotes in subprocess: \todo creates margin floats that
+        % cause "Float(s) lost" when the subprocess ends after the figure.
+        \renewcommand{\todo}[2][]{}%
+        \renewcommand{\missingfigure}[2][]{}%
       \fi
     \fi
   \fi
@@ -217,6 +204,12 @@
 \usepackage{setspace}           % Line spacing control
 \usepackage{caption}            % Caption formatting
 \usepackage[colorinlistoftodos,prependcaption]{todonotes}  % Visible TODO markers (\todo{text}, \missingfigure{text})
+% todonotes uses TikZ internally for its note boxes.  Without exclusion,
+% tikz/external tries to externalize them as main-figureN and the subprocess
+% fails ("Float(s) lost").  The 'only named' key skips any tikzpicture that
+% lacks an explicit \tikzsetnextfilename — this covers todonotes, inline
+% tikz snippets, and any other unnamed picture.
+\tikzset{external/only named=true}
 
 % --- Colored boxes (definitions, key results, remarks) ---
 \usepackage{tcolorbox}
