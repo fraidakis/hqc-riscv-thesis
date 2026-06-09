@@ -426,7 +426,7 @@
   pages     = {608--615},
   address   = {Salerno, Italy},
   publisher = {IEEE},
-  note      = {Platform: CV32E40P (RV32IMC), Xilinx Kintex-7 FPGA. CSR cycle counter}
+  note      = {Platform: CV32E40P (RV32IMC), Xilinx Kintex-7 FPGA (ANDROMEDA). CSR cycle counter. Also presented at the 6th NIST PQC Standardization Conference (HAL cea-05318642)}
 }
 
 @inproceedings{pqm4,
@@ -467,15 +467,6 @@
   howpublished = {RISC-V International, Spec Jira RVS-2360},
   url          = {https://lf-riscv.atlassian.net/wiki/spaces/PQC/pages/485425183/PQC+Keccak+Instructions+Ratification+Plan},
   note         = {Task Group: RVG-84 Post-Quantum Cryptography TG. Specification under development; target ratification v1.0 by Dec 2026 (indicative). Accessed: June 2026}
-}
-
-@misc{Ras2026-FAFFT-RISCV,
-  author       = {Antonio Ras and Antoine Loiseau and Mika{\"e}l Carmona and Simon Ponti{\'e} and Gu{\'e}na{\"e}l Renault and Benjamin Smith and Emanuele Valea},
-  title        = {Optimizing {HQC} using {Frobenius} Additive {FFT} on a {RISC-V}-based {System-on-Chip}},
-  year         = {2025},
-  howpublished = {6th NIST PQC Standardization Conference; HAL Archive, Paper cea-05318642},
-  url          = {https://cea.hal.science/cea-05318642},
-  note         = {FAFFT on RV32 SoC (CV32E40P) with ANDROMEDA platform, Xilinx Kintex-7 FPGA. $\times$9.64--$\times$19.22 speedup with hardware coprocessor}
 }
 
 @inproceedings{Schoeffel2022-HQC-IoT,
@@ -607,13 +598,6 @@
   publisher = {USENIX Association}
 }
 
-@inproceedings{Gruetter2022-Bedrock2,
-  author    = {Samuel Gr{\"u}tter and Viktor Kun{\v{c}}ak and Martin Odersky},
-  title     = {End-to-End Verification of Constant-Time Code on {RISC-V}},
-  year      = {2022},
-  note      = {Bedrock2 framework: correct-by-construction compilation with CT proof for RISC-V base ISA}
-}
-
 @article{Lindner2019-HolBA,
   author    = {Andreas Lindner and Roberto Guanciale and Roberto Metere},
   title     = {{TrABin}: Trustworthy Analyses of Binaries},
@@ -622,7 +606,7 @@
   pages     = {72--89},
   year      = {2019},
   doi       = {10.1016/j.scico.2019.01.002},
-  note      = {HolBA binary analysis platform in HOL4. Supports ARMv8, Cortex-M0, and RISC-V base ISA. Verified CT for ChaCha20}
+  note      = {HolBA/TrABin binary analysis platform in HOL4 (ARMv8, Cortex-M0). Framework reference only; the RISC-V ChaCha20 functional-correctness case study is Palmskog et al. 2025, not a constant-time proof}
 }
 
 @misc{riscv-scalar-crypto-2022,
@@ -777,4 +761,70 @@
   publisher = {Springer-Verlag},
   year      = {1987},
   doi       = {10.1007/3-540-47721-7_24}
+}
+
+@article{Conoly2025-Bedrock2CT,
+  author  = {Owen Conoly and Andres Erbsen and Adam Chlipala},
+  title   = {Smooth, Integrated Proofs of Cryptographic Constant Time for Nondeterministic Programs and Compilers},
+  journal = {Proc. ACM Program. Lang.},
+  volume  = {9},
+  number  = {PLDI},
+  year    = {2025},
+  doi     = {10.1145/3729318}
+}
+
+@misc{Palmskog2025-HolBA-RISCV,
+  author       = {Karl Palmskog and Andreas Lindner and Benjamin Constable and Roberto Guanciale and Hamed Nemati},
+  title        = {Trustworthy Verification of {RISC-V} Binaries Using Symbolic Execution in {HolBA}},
+  year         = {2025},
+  howpublished = {\url{https://arxiv.org/abs/2503.14135}},
+  note         = {Functional-correctness verification of a ChaCha20 RISC-V binary (base ISA) in HOL4; not a constant-time proof}
+}
+
+@misc{RVV-intrinsic-doc,
+  author       = {RISC-V International},
+  title        = {{RISC-V} Vector Extension Intrinsic Document (v1.0, ratified)},
+  year         = {2024},
+  howpublished = {\url{https://github.com/riscv-non-isa/rvv-intrinsic-doc}},
+  note         = {LLVM/Clang leads reference support (Clang 17/19 ahead of GCC). Accessed: 2026}
+}
+
+@misc{GCC14-changes,
+  author       = {GNU Project},
+  title        = {{GCC} 14 Release Series --- Changes: {RISC-V} Vector Crypto (Zvbb, Zvbc, ...)},
+  year         = {2024},
+  howpublished = {\url{https://gcc.gnu.org/gcc-14/changes.html}},
+  note         = {Vector crypto merged Jul 2023; shipped in GCC 14.1, May 2024. Accessed: 2026}
+}
+
+@misc{GCC-PR112817,
+  author       = {GNU Project},
+  title        = {{GCC} Bugzilla PR 112817: provide attribute riscv\_rvv\_vector\_bits for VLS codegen},
+  year         = {2023},
+  howpublished = {\url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=112817}},
+  note         = {Accessed: 2026}
+}
+
+@misc{LLVM-D145088,
+  author       = {LLVM Project},
+  title        = {[{RISCV}] Add attribute(riscv\_rvv\_vector\_bits(N)) based on AArch64 arm\_sve\_vector\_bits},
+  year         = {2023},
+  howpublished = {\url{https://reviews.llvm.org/D145088}},
+  note         = {Clang-specific fixed-length RVV vector type attribute. Accessed: 2026}
+}
+
+@misc{LLVM-21,
+  author       = {LLVM Project},
+  title        = {{LLVM}/{Clang} 21.1.0 Released},
+  year         = {2025},
+  howpublished = {\url{https://discourse.llvm.org/t/llvm-21-1-0-released/88066}},
+  note         = {Released 26 August 2025. Accessed: 2026}
+}
+
+@misc{GCC-15,
+  author       = {GNU Project},
+  title        = {{GCC} 15.2 Released},
+  year         = {2025},
+  howpublished = {\url{https://gcc.gnu.org/gcc-15/}},
+  note         = {Released 8 August 2025. Accessed: 2026}
 }
