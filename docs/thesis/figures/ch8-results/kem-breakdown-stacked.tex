@@ -1,5 +1,20 @@
 % Stacked bar chart: post-optimization instruction breakdown per tier (HQC-128 Decaps)
 % Shows where time goes AFTER optimization — the new hotspot distribution
+%
+% Data derived from isolated micro-benchmarks (bench_mul, bench_keccak, bench_decode),
+% Decaps total from full KEM suite (Spike, VLEN=256).  Each bar sums to 100% exactly.
+%
+% Breakdown method:
+%   polymul  = 3 × bench_mul instret (3 calls per Decaps)
+%   keccak   = bench_keccak instret (Decaps call pattern)
+%   decode   = bench_decode instret (1 call per Decaps)
+%   misc     = Decaps_total − polymul − keccak − decode  (sampling, memset, memcpy, etc.)
+%
+% Exact values (HQC-128):
+%   scalar_ref: total=59,013,743  polymul=57,642,831(97.7%)  keccak=463,069(0.8%)  decode=384,986(0.7%)  misc=522,857(0.9%)
+%   Tier 1 (Zbc): total=2,088,352  polymul=663,090(31.8%)  keccak=463,069(22.2%)  decode=384,986(18.4%)  misc=577,207(27.6%)
+%   Tier 2 (RVV): total=1,084,132  polymul=472,419(43.6%)  keccak=463,069(42.7%)  decode=122,163(11.3%)  misc=26,481(2.4%)
+%   Tier 3 (Zvbc): total=400,478  polymul=187,590(46.8%)  keccak=131,944(32.9%)  decode=56,515(14.1%)  misc=24,429(6.1%)
 \tikzsetnextfilename{ch8-results-kem-breakdown-stacked}
 \begin{tikzpicture}
 \begin{axis}[
@@ -25,20 +40,15 @@
     area legend,
     enlarge x limits=0.2,
 ]
-% Data derived from profiling traces:
-% scalar_ref: polymul ~96%, keccak ~2.5%, decode ~1%, misc ~0.5%
-% Tier 1 (Zbc): polymul ~54%, keccak ~24%, decode ~12%, misc ~10%
-% Tier 2 (RVV): polymul ~54%, keccak ~42%, decode ~3%, misc ~1%
-% Tier 3 (Zvbc): polymul ~60%, keccak ~26%, decode ~5%, misc ~9%
 
 \addplot[fill=red!70!black, draw=red!70!black]
-  coordinates {(scalar\_ref,96) (Tier~1 (Zbc),54) (Tier~2 (RVV),54) (Tier~3 (Zvbc),60)};
+  coordinates {(scalar\_ref,97.7) (Tier~1 (Zbc),31.8) (Tier~2 (RVV),43.6) (Tier~3 (Zvbc),46.8)};
 \addplot[fill=orange!80, draw=orange!60!black]
-  coordinates {(scalar\_ref,2.5) (Tier~1 (Zbc),24) (Tier~2 (RVV),42) (Tier~3 (Zvbc),26)};
+  coordinates {(scalar\_ref,0.8) (Tier~1 (Zbc),22.2) (Tier~2 (RVV),42.7) (Tier~3 (Zvbc),32.9)};
 \addplot[fill=yellow!70!orange, draw=yellow!60!black]
-  coordinates {(scalar\_ref,1) (Tier~1 (Zbc),12) (Tier~2 (RVV),3) (Tier~3 (Zvbc),5)};
+  coordinates {(scalar\_ref,0.7) (Tier~1 (Zbc),18.4) (Tier~2 (RVV),11.3) (Tier~3 (Zvbc),14.1)};
 \addplot[fill=gray!40, draw=gray!60]
-  coordinates {(scalar\_ref,0.5) (Tier~1 (Zbc),10) (Tier~2 (RVV),1) (Tier~3 (Zvbc),9)};
+  coordinates {(scalar\_ref,0.9) (Tier~1 (Zbc),27.6) (Tier~2 (RVV),2.4) (Tier~3 (Zvbc),6.1)};
 
 \legend{Polymul, Keccak, Decode, Misc}
 \end{axis}

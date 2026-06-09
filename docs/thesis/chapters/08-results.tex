@@ -24,9 +24,12 @@ reference–optimized για τους τρεις πυρήνες στο HQC-128, 
   \centering
   \input{figures/ch8-results/microbench-bar-chart}
   \caption{Σύγκριση \instret ανά πυρήνα και tier για HQC-128 (λογαριθμική
-    κλίμακα).  Ο πολυωνυμικός πολλαπλασιασμός παρουσιάζει τη μεγαλύτερη
-    μείωση (\speedup{296} στο Tier~3), ενώ Keccak και decode ωφελούνται
-    \speedup{3.5} και \speedup{6.8} αντίστοιχα.}
+    κλίμακα).  Η μπάρα «Reference» αντιστοιχεί στο \code{scalar\_ref}
+    ($\num{19214277}$ εντολές για polymul).  Ο πολυωνυμικός πολλαπλασιασμός
+    παρουσιάζει τη μεγαλύτερη μείωση: \speedup{307} ως προς
+    \code{scalar\_ref} και \speedup{296} ως προς \code{vector\_ref}
+    ($\num{18527409}$ εντολές, βλ.\ \cref{conv:baseline}), ενώ Keccak
+    και decode ωφελούνται \speedup{3.5} και \speedup{6.8} αντίστοιχα.}
   \label{fig:microbench-bar}
 \end{figure}
 
@@ -81,14 +84,17 @@ Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι
   \item \code{xof\_init} $+$ \code{vect\_sample\_fixed\_weight} —
     ανακατασκευή μυστικού κλειδιού $y$ από seed,
   \item \code{hash\_h} — SHA3-256 επί \code{PUBLIC\_KEY\_BYTES}
-    ($\approx\SI{2241}{\byte}$ για HQC-128),
+    ($\num{2241}$~\byte{} για HQC-128),
   \item \code{hash\_g} — SHA3-512 επί $\SI{64}{\byte}$,
   \item \code{xof\_init} $+$ $3\times$ \code{vect\_sample\_fixed\_weight}
     $+$ \code{vect\_set\_random} — re-encryption sampling,
-  \item \code{hash\_j} — SHA3-256 επί $\approx\SI{4481}{\byte}$.
+  \item \code{hash\_j} — SHA3-256 επί $\approx\SI{4482}{\byte}$
+    ($H(\mathit{ek})\ 32 + \sigma\ 16 + u\ 2209 + v\ 2208 + \text{salt}\ 16 + \text{domain}\ 1$).
 \end{enumerate}
-Συνολικά εκτελούνται $\sim$6 XOF/hash αρχικοποιήσεις και 30–50
-Keccak-f[1600] permutations ανάλογα με το security level.  Η μέτρηση
+Συνολικά εκτελούνται $\sim$6 XOF/hash αρχικοποιήσεις και
+62, 118 ή 181 Keccak-f[1600] permutations για HQC-128, HQC-192 και
+HQC-256 αντίστοιχα (μετρήθηκαν από το Spike \instret και τον
+per-permutation κόστος $\approx\num{2114}$ εντολών στο Tier~3).  Η μέτρηση
 \emph{δεν} περιλαμβάνει \code{vect\_mul} ή \code{code\_decode} (μετρούνται
 ξεχωριστά), αλλά περιλαμβάνει το κόστος vector sampling (rejection loops,
 bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχώριστο από τη SHAKE squeeze.
@@ -207,7 +213,8 @@ decode) — η χειρότερη δυνατή υλοποίηση χωρίς α�
 \begin{table}[htbp]
   \centering
   \caption{\instret πλήρους \KEM (\KeyGen + \Encaps + \Decaps) ανά security level, λειτουργία και tier
-    (Spike, VLEN $= \num{256}$).  Οι στήλες $\times$T1–T3 δηλώνουν speedup έναντι \code{scalar\_ref} ($\times$T1) και \code{vector\_ref} ($\times$T2 και $\times$T3).  Το Tier~3 επιτυγχάνει \speedup{154} στο HQC-128 και \speedup{317} στο HQC-256.}
+    (Spike, VLEN $= \num{256}$).  Οι στήλες $\times$T1–T3 δηλώνουν speedup έναντι \code{scalar\_ref} ($\times$T1) και \code{vector\_ref} ($\times$T2 και $\times$T3).  Το Tier~3 επιτυγχάνει \speedup{154} στο HQC-128 και \speedup{317} στο HQC-256.
+    Επειδή η μέτρηση \instret στον Spike είναι πλήρως ντετερμινιστική — ίδιο binary παράγει πάντα ίδιο $\Delta\text{instret}$ ανεξαρτήτως επαναλήψεων (βλ.\ \cref{ssec:spike-measurement}) — δεν απαιτείται στατιστική επεξεργασία πολλαπλών εκτελέσεων και δεν αναφέρονται διαστήματα εμπιστοσύνης.}
   \label{tab:kem-results}
   \small
   \input{figures/ch8-results/kem-results-table}
@@ -244,12 +251,12 @@ resources.  Στο HQC-128:
 \begin{itemize}
   \item \textbf{Tier~1 $\to$ Tier~2} (Total \gls{kem}: $\num{3449795} \to \num{1956787}$ \instret, $+\pct{76}$): η vectorization του Karatsuba
     recomposition (\cref{sec:polymul-base-rvv}) μειώνει τις εντολές
-    polymul κατά \pct{26}, ενώ η
+    polymul κατά \pct{28.7} ($\num{221030} \to \num{157473}$), ενώ η
     vectorization του decode (\cref{sec:decode-optimization}) προσθέτει
     επιπλέον \speedup{3.15}.  Ο Keccak παραμένει scalar σε αυτό το tier.
   \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{729397}$ \instret, $+\pct{169}$): η αντικατάσταση των scalar
     \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
-    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{54}$), ενώ η δικαναλική \gls{soa} Keccak
+    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{60.3}$, $\num{157473} \to \num{62530}$), ενώ η δικαναλική \gls{soa} Keccak
     με \gls{zvbb} (\cref{sec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
     \speedup{3.5}.  Η σύνθεση αυτών των βελτιώσεων παράγει τη
     μεγαλύτερη σχετική βελτίωση μεταξύ διαδοχικών tiers.
@@ -268,26 +275,35 @@ resources.  Στο HQC-128:
   \centering
   \input{figures/ch8-results/kem-breakdown-stacked}
   \caption{Αναδιανομή \instret μεταξύ πυρήνων ανά tier (HQC-128 \Decaps).
-    Στο reference, ο polymul κυριαρχεί με \pct{96}.  Μετά τη
+    Τα ποσοστά υπολογίστηκαν από isolated micro-benchmarks:
+    polymul $= 3\times$\code{bench\_mul}, Keccak $=$ \code{bench\_keccak}
+    (Decaps call pattern), decode $=$ \code{bench\_decode},
+    misc $=$ υπόλοιπο \Decaps (δειγματοληψία, \code{memset}/\code{memcpy} κ.λπ.).
+    Στο reference, ο polymul κυριαρχεί με \pct{97.7}.  Μετά τη
     βελτιστοποίηση, ο Keccak αναδεικνύεται ως σημαντικό hotspot
-    (\pct{42} στο Tier~2, \pct{26} στο Tier~3) — κλασική εκδήλωση
+    (\pct{42.7} στο Tier~2, \pct{32.9} στο Tier~3) — κλασική εκδήλωση
     του νόμου Amdahl.}
   \label{fig:kem-breakdown}
 \end{figure}
 
 Στο \code{scalar\_ref}, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
-\pct{96} των εντολών — Keccak και decode είναι πρακτικά αόρατοι.  Μετά
+\pct{97.7} των εντολών — Keccak (\pct{0.8}) και decode (\pct{0.7}) είναι πρακτικά αόρατοι.  Μετά
 τη βελτιστοποίηση, η εικόνα μεταβάλλεται ριζικά:
 \begin{itemize}
-  \item Στο \textbf{Tier~1}, ο polymul μειώνεται σε \pct{54} και ο
-    Keccak αναδεικνύεται στο \pct{24} — η πρώτη ένδειξη ότι η
-    βελτιστοποίηση Keccak αποκτά σημασία.
-  \item Στο \textbf{Tier~2}, ο Keccak φτάνει \pct{42} λόγω της
+  \item Στο \textbf{Tier~1}, ο polymul μειώνεται σε \pct{31.8} και ο
+    Keccak αναδεικνύεται στο \pct{22.2} — η πρώτη ένδειξη ότι η
+    βελτιστοποίηση Keccak αποκτά σημασία.  Το υψηλό misc (\pct{27.6})
+    αντικατοπτρίζει δειγματοληψία, \code{memset} και \code{memcpy}
+    που αποτελούν σταθερό κόστος σε κάθε tier.
+  \item Στο \textbf{Tier~2}, ο Keccak φτάνει \pct{42.7} λόγω της
     απουσίας \gls{zvbb} βελτιστοποίησης σε αυτό το tier (scalar
-    \code{fips202.c}).  Ο polymul παραμένει στο \pct{54} του συνόλου.
+    \code{fips202.c}).  Ο polymul (\pct{43.6}) και ο Keccak ισορροπούν
+    σχεδόν, ενώ το misc συρρικνώνεται στο \pct{2.4} — η vectorized
+    αποκωδικοποίηση έχει απορροφήσει μέρος της σχετικής βαρύτητας.
   \item Στο \textbf{Tier~3}, η δικαναλική \gls{soa} Keccak μειώνει
-    τη συνεισφορά Keccak σε \pct{26}, ενώ ο polymul αυξάνεται σχετικά
-    σε \pct{60} λόγω της ακόμη μεγαλύτερης μείωσης Keccak.  Η \gls{zvbc} acceleration
+    τη συνεισφορά Keccak σε \pct{32.9}, ενώ ο polymul φτάνει
+    στο \pct{46.8} και το decode ανεβαίνει σχετικά σε \pct{14.1}
+    χάρη στη μεγαλύτερη μείωση Keccak.  Η \gls{zvbc} acceleration
     των leaves αποτελεί τον κυρίαρχο παράγοντα αυτής της μείωσης.
 \end{itemize}
 
