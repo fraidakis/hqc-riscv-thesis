@@ -193,16 +193,19 @@ amortization του Keccak overhead μέσω $N$-way batched SHAKE.  Η 2-way \g
 ενδεικτικό.  Η εντολή στοχεύει εφαρμογές σε Application-class επεξεργαστές με
 vector unit, αξιοποιώντας LMUL=\num{2048}/VLEN για αποθήκευση της 1600-bit
 κατάστασης Keccak σε ομαδοποιημένους διανυσματικούς καταχωρητές.  Εφόσον
-τυποποιηθεί, θα εξαλείψει τον Theta scalar bridge που αποτελεί Amdahl's Law
-floor στην τρέχουσα υλοποίηση (\pct{23} του Tier~3 \Decaps).  Βάσει
+τυποποιηθεί, θα εξαλείψει τον Keccak πυρήνα που αποτελεί τον επόμενο Amdahl's Law
+floor στην τρέχουσα υλοποίηση (\pct{24.5} του Tier~3 \gls{kem} \instret,
+\cref{tab:kernel-redistribution}).  Βάσει
 προκαταρκτικών benchmarks σε SpacemiT X60~\cite{Saarinen2024-vkeccak}, η εντολή
-αναμένεται να προσφέρει \speedup{12.7} στον Keccak πυρήνα.
+επιτυγχάνει \speedup{12.74} σε scheme-level Kyber-768 (NTT + \code{vkeccak.vi})
+— αναλογική βελτίωση αναμένεται και στον \gls{hqc}, όπου ο Keccak αποτελεί
+συγκρίσιμο ποσοστό του συνολικού κόστους.
 
 \paragraph{Configurable-polynomial GF reduction extension}
-Η ανάλυση στο \cref{sec:general-principles} τεκμηρίωσε ότι η \gls{zvbc}
-\insn{vclmul.vv} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο $\GFpoly$,
-αλλά η modular reduction σε μικρά πεδία (\eg $\GF{2^8}$) απαιτεί \num{6}
-εντολές ακόμη και μετά τη Barrett optimization.  Μια μελλοντική extension με
+Η \gls{zvbc} \insn{vclmul.vv} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο
+$\GFpoly$, αλλά η modular reduction σε μικρά πεδία (\eg $\GF{2^8}$) απαιτεί
+\num{6} vector εντολές ακόμη και μετά τη single-pass Barrett optimization
+(\cref{sec:decode-barrett}).  Μια μελλοντική extension με
 configurable reduction polynomial (\eg \code{Zvkgf} ή \code{Zvkpoly}) θα
 συμπίεζε τη reduction σε μία εντολή, ωφελώντας τόσο τον HQC Reed-Solomon
 decoder όσο και γενικότερα AES-GCM/GHASH workloads.
