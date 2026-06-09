@@ -184,12 +184,19 @@ amortization του Keccak overhead μέσω $N$-way batched SHAKE.  Η 2-way \g
 \subsection{ISA Extensions Μελλοντικής Γενιάς}
 \label{sec:future-isa}
 
-\paragraph{Εντολή \code{vkeccak.vi} (RISC-V PQC Task Group)}
-Η ομάδα εργασίας PQC του RISC-V International αναπτύσσει αφιερωμένη εντολή
-Keccak permutation (\code{vkeccak.vi}).  Η τυποποίηση αυτής θα εξαλείψει τον
-Theta scalar bridge που αποτελεί Amdahl's Law floor στην τρέχουσα υλοποίηση
-(\pct{23} του Tier~3 \Decaps).  Βάσει προκαταρκτικών benchmarks σε SpacemiT
-X60, η εντολή αυτή αναμένεται να προσφέρει \speedup{12.7} στον Keccak πυρήνα.
+\paragraph{Εντολή \code{vkeccak.vi} (RISC-V PQC Task Group — υπό τυποποίηση)}
+Η ομάδα εργασίας PQC του RISC-V International έχει ξεκινήσει επίσημη διαδικασία
+τυποποίησης αφιερωμένης εντολής Keccak permutation (\code{vkeccak.vi}) υπό τον
+κωδικό RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}.  Το δημοσιευμένο πλάνο θέτει
+στόχο τελικής τυποποίησης (v1.0) έως τον Δεκέμβριο 2026, αν και η προδιαγραφή
+βρίσκεται ακόμη σε πρώιμο στάδιο ανάπτυξης και το χρονοδιάγραμμα παραμένει
+ενδεικτικό.  Η εντολή στοχεύει εφαρμογές σε Application-class επεξεργαστές με
+vector unit, αξιοποιώντας LMUL=\num{2048}/VLEN για αποθήκευση της 1600-bit
+κατάστασης Keccak σε ομαδοποιημένους διανυσματικούς καταχωρητές.  Εφόσον
+τυποποιηθεί, θα εξαλείψει τον Theta scalar bridge που αποτελεί Amdahl's Law
+floor στην τρέχουσα υλοποίηση (\pct{23} του Tier~3 \Decaps).  Βάσει
+προκαταρκτικών benchmarks σε SpacemiT X60~\cite{Saarinen2024-vkeccak}, η εντολή
+αναμένεται να προσφέρει \speedup{12.7} στον Keccak πυρήνα.
 
 \paragraph{Configurable-polynomial GF reduction extension}
 Η ανάλυση στο \cref{sec:general-principles} τεκμηρίωσε ότι η \gls{zvbc}

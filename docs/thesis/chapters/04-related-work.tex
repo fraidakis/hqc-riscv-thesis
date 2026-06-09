@@ -504,7 +504,7 @@ bottleneck μετά τη vectorization του NTT αντικατοπτρίζει
 redistribution που παρατηρείται στην παρούσα εργασία μετά τη βελτιστοποίηση
 του πολυωνυμικού πολλαπλασιασμού (βλ.~\cref{ch:polymul-optimization}).
 
-\subsection{Saarinen 2024 — Πρόταση \texttt{vkeccak.vi}}
+\subsection{Saarinen 2024 — Πρόταση \texttt{vkeccak.vi} (πλέον RVS-2360)}
 \label{ssec:rw-saarinen-vkeccak}
 
 Ο Saarinen (Tampere University, πρόεδρος του RISC-V PQC Task
@@ -536,12 +536,14 @@ $\sim$\pct{53} του συνόλου), ο Keccak αναδεικνύεται ως
 βελτιστοποίησης.
 
 \paragraph{Σχετικότητα με την παρούσα εργασία.}
-Η πρόταση \code{vkeccak.vi} αποτελεί μελλοντική εξέλιξη
-(βλ.~\cref{ch:conclusions}): αν τυποποιηθεί, θα ωφελήσει τον \gls{hqc} εξίσου
-με τα lattice-based σχήματα, καθώς ο Keccak αποτελεί κοινό primitive. Τα
-benchmarks σε X60 (\VLEN $= \num{256}$) παρέχουν real-silicon σημείο αναφοράς για τη
-σύγκριση με τις μετρήσεις hardware της παρούσας εργασίας
+Η εντολή \code{vkeccak.vi} βρίσκεται σε επίσημη διαδικασία τυποποίησης
+(RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}), αν και η προδιαγραφή παραμένει
+σε πρώιμο στάδιο ανάπτυξης.  Εφόσον τυποποιηθεί, θα ωφελήσει τον \gls{hqc}
+εξίσου με τα lattice-based σχήματα, καθώς ο Keccak αποτελεί κοινό primitive.
+Τα benchmarks σε X60 (\VLEN $= \num{256}$) παρέχουν real-silicon σημείο αναφοράς
+για τη σύγκριση με τις μετρήσεις hardware της παρούσας εργασίας
 (βλ.~\cref{sec:emulators}).
+Για λεπτομέρειες εκτιμώμενης επίδρασης στον \gls{hqc}, βλ.~\cref{ch:conclusions}.
 
 \subsection{Σύνοψη και τοποθέτηση}
 \label{ssec:rw-pqc-riscv-summary}
