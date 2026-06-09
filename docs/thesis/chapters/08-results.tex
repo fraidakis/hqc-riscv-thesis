@@ -784,7 +784,7 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
 ξεδιπλωμένος Karatsuba tree παράγει μακρές ακολουθίες ανεξάρτητων εντολών
 (\insn{clmul}/\insn{clmulh} pairs, \insn{xor} chains, \insn{ld}/\insn{sd}
 sequences) χωρίς branches — ιδανικό workload για dual-issue scheduling.
-Η L1D miss rate παραμένει αμελητέα (\pct{0.21}), επιβεβαιώνοντας ότι το
+Η L1D miss rate παραμένει αμελητέα (\pct{0.20}), επιβεβαιώνοντας ότι το
 working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλήρως
 στην L1 cache (\SI{32}{\kilo\byte}).
 
@@ -794,9 +794,10 @@ working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλή�
 αποτελεί το κεντρικό μικροαρχιτεκτονικό εύρημα.  Ο IPC πέφτει στο $0.74$
 λόγω τριών παραγόντων: (α)~scalar store → vector load forwarding failure
 στον αποσυζευγμένο pipeline του X60 (penalty $\approx \num{28}$ κύκλοι ανά
-εμφάνιση), (β)~scalar↔vector pipeline transition cost ($\approx \num{10}$
+εμφάνιση — εκτίμηση από ablation \code{vector\_rvv} vs.\ \code{vector\_rvv\_deferred},
+όχι άμεση μέτρηση performance counter), (β)~scalar↔vector pipeline transition cost ($\approx \num{10}$
 κύκλοι ανά μετάβαση, $\num{363}$ μεταβάσεις στο recursion tree), και
-(γ)~VPU stall accumulation (\num{25842} κύκλοι) από vector load latency
+(γ)~VPU stall accumulation (\num{25911} κύκλοι) από vector load latency
 σε recently-scalar-stored δεδομένα.  Η ανάλυση αυτή τεκμηριώνεται
 αναλυτικά στην \cref{ssec:hw-ipc}.
 
@@ -936,7 +937,14 @@ pipeline εκτελεί παράλληλα.  Ο \code{scalar\_zb} παρουσι
     που ένα vector load (\insn{vle64}) προσπελαύνει διεύθυνση με
     εκκρεμείς scalar stores, ο pipeline πρέπει να αδειάσει τον store
     buffer στην L1 cache πριν προχωρήσει — penalty $\approx \num{28}$
-    κύκλοι ανά εμφάνιση.  Στον \code{vector\_rvv}, η \q{direct-write
+    κύκλοι ανά εμφάνιση.\footnote{Το $\approx\num{28}$ κύκλοι δεν προκύπτει
+    από άμεση ανάγνωση performance counter, αλλά από ablation σύγκριση:
+    η διαφορά κύκλων μεταξύ \code{vector\_rvv} και \code{vector\_rvv\_deferred}
+    (variant χωρίς scalar→vector forwarding) διαιρείται με τον αριθμό
+    forwarding εμφανίσεων στο recursion tree, αποδίδοντας
+    $\approx\num{28}$ κύκλοι ανά εμφάνιση (βλ.\ §9.6 του
+    \texttt{multiplication.md}).}
+    Στον \code{vector\_rvv}, η \q{direct-write
     discipline} γράφει τα $z_0$ και $z_2$ απευθείας στον output buffer
     μέσω scalar \insn{sd}, και στη συνέχεια τα Loop~3 vector operations
     τα διαβάζουν μέσω \insn{vle64} — δημιουργώντας forwarding failure
@@ -948,7 +956,7 @@ pipeline εκτελεί παράλληλα.  Ο \code{scalar\_zb} παρουσι
     recursion tree (HQC-128) και \num{3} μεταβάσεις ανά κόμβο, το
     συνολικό transition overhead ανέρχεται σε $\approx \num{3630}$ κύκλοι.
 
-  \item \textbf{VPU stall accumulation:} Οι \num{25842} VPU stall κύκλοι
+  \item \textbf{VPU stall accumulation:} Οι \num{25911} VPU stall κύκλοι
     προέρχονται από vector load latency σε recently-scalar-stored
     δεδομένα και από chaining inefficiency σε μικρά element counts
     (8–18 elements στα κατώτερα επίπεδα αναδρομής).
