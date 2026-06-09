@@ -1,10 +1,21 @@
 % RS Zvbc Axes B+D optimization results (decaps only)
+% Source: archive/sim_kem_vector-zvk_2026-05-22_13-{19,39}.csv
+%   Baseline  = commit cc403b9 (karatsuba_zvbc polymul, Axis A only: scalar BM/Forney/FFT)
+%   Optimized = commit 9db0c6a (+ Axes B+D vectorized via Zvbc; Axis C still scalar)
+%   Variant: vector_zvk, VLEN=256
 \begin{tabular}{l S[table-format=7.0] S[table-format=7.0] S[table-format=7.0] S[table-format=2.1]}
   \toprule
-  {Security Level} & {Baseline \Decaps} & {Optimized \Decaps} & {$\Delta$ instret} & {$\Delta$ (\%)} \\
+  {Security Level} & {Baseline \Decaps$^\dagger$} & {Optimized \Decaps$^\ddagger$} & {$\Delta$ \instret} & {$\Delta$ (\%)} \\
   \midrule
   HQC-128 & 521613  & 485507  & -36106  & -6.9 \\
   HQC-192 & 1150818 & 1110836 & -39982  & -3.5 \\
   HQC-256 & 1861032 & 1726034 & -134998 & -7.3 \\
+  \midrule[\lightrulewidth]
+  \multicolumn{5}{@{}p{0.92\linewidth}@{}}{\footnotesize
+    $^\dagger$ Variant \texttt{vector\_zvk}, \texttt{karatsuba\_zvbc} polymul,
+    \Zvbc Axis~A (syndromes) vectorized, Axes B/C/D scalar; commit \texttt{cc403b9}, \VLEN=256.
+    $^\ddagger$ Ίδιο variant· Axes B (Berlekamp-Massey) και D (Forney) προστέθηκαν στο
+    \insn{vclmul.vv} pipeline· Axis~C (FFT root-finding) παραμένει scalar.
+  } \\
   \bottomrule
 \end{tabular}

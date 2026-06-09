@@ -1,10 +1,12 @@
 % Decode pipeline instret comparison table
+% Source: results/simulation/benchmarks/components/decode/sim_decode_{ref,zvbc}_latest.csv
+% commit b709a5f (zvbc) / ccbe5e7 (ref); Spike VLEN=256
 \begin{tabular}{l S[table-format=7.0] S[table-format=6.0] S[table-format=1.2]}
   \toprule
   {Security Level} & {Scalar reference} & {Zvbc (πλήρες pipeline)} & {Speedup} \\
   \midrule
-  HQC-128 & 384986  & 60353  & 6.38 \\
-  HQC-192 & 562125  & 77114  & 7.29 \\
-  HQC-256 & 1059605 & 159206 & 6.66 \\
+  HQC-128 & 384986  & 56515  & 6.81 \\
+  HQC-192 & 562125  & 72237  & 7.78 \\
+  HQC-256 & 1059605 & 147077 & 7.21 \\
   \bottomrule
 \end{tabular}

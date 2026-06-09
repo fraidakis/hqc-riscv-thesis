@@ -104,9 +104,18 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 ### `decode`
 
+<!-- Source: sim_decode_ref_latest.csv (commit ccbe5e7) + sim_decode_zvbc_latest.csv (commit b709a5f) -->
+<!-- Speedup = reference instret / zvbc instret -->
+
 | Level | reference (instret) | optimized (instret) | Speedup |
 |-------|----------------------|---------------------|--------|
-| HQC-128 | 384,986 | 56,515 | ×6.8 |
-| HQC-192 | 562,125 | 72,237 | ×7.8 |
-| HQC-256 | 1,059,605 | 147,077 | ×7.2 |
+| HQC-128 | 384,986 | 56,515 | ×6.81 |
+| HQC-192 | 562,125 | 72,237 | ×7.78 |
+| HQC-256 | 1,059,605 | 147,077 | ×7.21 |
+
+> **Note**: Earlier runs with `isolated_decode_zvbc_2026-05-26_01-25.csv` (commit 95eaf30)
+> reported 60,353 / 77,114 / 159,206 — those were produced by a pre-refactor isolated harness
+> before the `bench_decode.c` rewrite in commit b709a5f (2026-05-31). The canonical values
+> above come from the unified `sim_decode_zvbc_latest.csv` harness. The decode-instret-table
+> in ch7 and all prose speedup ranges now reference these values.
 

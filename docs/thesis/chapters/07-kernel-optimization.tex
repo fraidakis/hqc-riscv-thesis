@@ -262,14 +262,19 @@ security levels.
 πάνω από $\GF{2^8}$ (symbol-level διόρθωση μεταξύ symbols).  Μετά τη
 βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (\cref{ch:polymul-optimization})
 και του Keccak (\cref{sec:keccak-optimization}), το decode pipeline αποτελεί
-τον τρίτο μεγαλύτερο πυρήνα — καταναλώνοντας \pct{21}–\pct{34} του
-\Decaps \instret στο scalar reference ανάλογα με το security level.
+τον τρίτο μεγαλύτερο πυρήνα — καταναλώνοντας \pct{18.4} (HQC-128),
+\pct{12.7} (HQC-192) και \pct{10.9} (HQC-256) του \Decaps \instret στο
+\code{scalar\_zb} variant (μετά τη βελτιστοποίηση του polymul).  Η φθίνουσα
+τάση με το security level αντανακλά τον νόμο Amdahl: ο Karatsuba polymul
+κλιμακώνεται υπεργραμμικά με $n$, αυξάνοντας το απόλυτο κόστος του
+ταχύτερα από τον αποκωδικοποιητή, ο οποίος κλιμακώνεται ως
+$\BigO{\delta^2}$ με σταθερό $\delta$ ανά tier.
 
 Η βελτιστοποίηση ακολουθεί τρία tiers αυξανόμενης ISA
 πολυπλοκότητας: scalar με \gls{zbc} injection (Tier~1), Base-\RVV
 διανυσματοποίηση \gls{rm} και \gls{rs} syndromes (Tier~2), και πλήρης
 \gls{zvbc} vectorization όλων των αξόνων \gls{rs} (Tier~3).  Η τελική Tier~3
-υλοποίηση επιτυγχάνει \speedup{6.4}–\speedup{7.3} στο decode pipeline
+υλοποίηση επιτυγχάνει \speedup{6.8}–\speedup{7.8} στο decode pipeline
 σε σχέση με το scalar reference.
 
 %% --------------------------------------------------------------------------
@@ -381,8 +386,17 @@ pass για HQC-128/192 ($N_1 = 46, 56$) και \num{2} passes για HQC-256
 ($\approx\num{12}$ εντολές) αλλά επεξεργάζεται \num{4} φορές περισσότερα
 στοιχεία ανά pass.  Επιπλέον, δεν απαιτεί Vector-Crypto extensions —
 μόνο τη βασική V extension και scalar \gls{zbc} για τα fallback axes B/C/D.
-Σε υλοποιήσεις με αποδοτικές indexed-load μονάδες, ο ευρύτερος
-παραλληλισμός υπερτερεί.
+Σε επίπεδο \instret, ο ευρύτερος παραλληλισμός ανά pass αντισταθμίζει
+το υψηλότερο εντολικό κόστος ανά στοιχείο — ωστόσο σε
+πραγματικό υλικό (SpacemiT X60, VLEN=256) ο ισολογισμός εξαρτάται
+κρίσιμα από τη λανθάνουσα των indexed loads.  Μετρήσεις κύκλων στο
+BPI-F3 δείχνουν ότι η \code{vector\_rvv} (Tier~2) υπολείπεται της
+\code{scalar\_zb} (Tier~1) στον απομονωμένο πολυωνυμικό
+πολλαπλασιασμό (\cycles{211846} έναντι \cycles{148489} κύκλων),
+κερδίζοντας ωστόσο ελαφρά στο πλήρες \Decaps (\cycles{1147999}
+έναντι \cycles{1286829} κύκλων) — αποτέλεσμα που αντανακλά
+τη συμπεριφορά του in-order X60 pipeline και δεν γενικεύεται
+αυτόματα σε υλοποιήσεις με αποδοτικότερες indexed-load μονάδες.
 
 %% --------------------------------------------------------------------------
 \subsection{Vector-Crypto Path: \Zvbc RS (Berlekamp-Massey, Forney)}
@@ -445,8 +459,9 @@ Axes B+D σε απομόνωση (πριν την ενσωμάτωση του Ax
 
 \begin{table}[htbp]
   \centering
-  \caption{Αποτελέσματα \Zvbc vectorization Axes B+D στο \Decaps \instret.
-           Η βελτίωση κλιμακώνεται με $\delta^2$ — μέγιστη στο HQC-256
+  \caption{Αποτελέσματα \Zvbc vectorization Axes B+D στο \Decaps \instret (variant
+           \texttt{vector\_zvk}, \VLEN=256, σε ενδιάμεσο build πριν την ενσωμάτωση
+           του Axis~C).  Η βελτίωση κλιμακώνεται με $\delta^2$ — μέγιστη στο HQC-256
            ($\delta=29$).}
   \label{tab:decode-rs-zvbc}
   \input{figures/ch7-kernels/decode-rs-zvbc-table}
@@ -556,7 +571,7 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
 μειώνοντας αναλογικά το ποσοστό function-call overhead που εξαλείφθηκε.
 
 Συνολικά, η πλήρης Tier~3 decode υλοποίηση (Axes A+B+C+D) επιτυγχάνει
-\speedup{6.38} (HQC-128), \speedup{7.29} (HQC-192) και \speedup{6.66}
+\speedup{6.81} (HQC-128), \speedup{7.78} (HQC-192) και \speedup{7.21}
 (HQC-256) στο decode pipeline.  Η ορθότητα επιβεβαιώθηκε μέσω
 \num{300}/\num{300} \gls{kat} vectors σε όλα τα security levels.
 
@@ -678,9 +693,14 @@ while (i < n) {
 Στο \VLEN=256 με LMUL=8, η hardware vector length ισούται με \num{32}
 elements (64-bit).  Η \num{277}-word πράξη XOR ολοκληρώνεται σε
 $\lceil 277/32 \rceil = 9$ vector iterations, εκάστη αποτελούμενη από
-\num{4} vector εντολές (2 loads, 1 XOR, 1 store) πλέον loop control.
-Το συνολικό εντολικό κόστος ανέρχεται σε $\approx\num{54}$ εντολές —
-μείωση \speedup{20} έναντι του scalar path.
+\num{4} vector εντολές (2 loads, 1 XOR, 1 store) και \num{2} εντολές
+loop control (\insn{add}~$i$\code{+=vl} + \insn{bltu}).
+Το \insn{vsetvli} απαντάται μόνο στην πρώτη iteration, καθώς ο
+μεταγλωττιστής ανυψώνει το \code{vsetvl\_e64m8} εκτός βρόχου για
+σταθερό~$n$ — αφήνοντας $9 \times 6 = 54$ εντολές ανά κλήση
+(εκτίμηση πρώτης τάξης βάσει disassembly \code{-O3}),
+ήτοι $\approx\num{54}$ εντολές —
+μείωση \speedup{20} έναντι του scalar path (\approx\num{1108} εντολές).
 
 Η πράξη XOR είναι εγγενώς ανεξάρτητη δεδομένων και δεν εισάγει
 πλευρικό κανάλι χρονισμού.  Η επιλογή LMUL=8 μεγιστοποιεί τη
@@ -721,10 +741,18 @@ for (uint32_t i = 0; i < VEC_N_SIZE_64; i++) {
 
 Στο HQC-128 ($\code{VEC\_N\_SIZE\_64}=277$, $\code{weight}=75$), ο
 εσωτερικός βρόχος εκτελεί $277 \times 75 = \num{20775}$ iterations,
-εκάστη $\approx\num{8}$ εντολών (αφαίρεση, OR, ολίσθηση, XOR, αρνητικό,
-AND, OR, αποθήκευση).  Profiling κατέταξε τη συνάρτηση ως \pct{20.99}
-του συνολικού \gls{kem} \instret στο scalar baseline — τρίτο hotspot μετά τον
-πολυωνυμικό πολλαπλασιασμό και τον Keccak.
+εκάστη $\approx\num{8}$ εντολών: \insn{sub}~$i-\mathit{index}$ (1),
+\insn{neg}+\insn{or}+\insn{srai}~31 (3), \insn{neg}~mask (1),
+\insn{and}+\insn{or}~$\mathit{val}$ (2), με το branch/counter (+1)
+εφαρμοζόμενο κάθε $j$-iteration — σύνολο $\approx 8$ per inner
+iteration (εκτίμηση πρώτης τάξης· ο ακριβής αριθμός εξαρτάται από
+το unrolling του compiler στο \code{-O3}).  Profiling κατέταξε τη συνάρτηση ως \pct{20.99}
+του συνολικού \gls{kem} \instret στο scalar baseline — δεύτερη μεμονωμένη
+συνάρτηση μετά το \code{memset} (\pct{23.13}) και ανώτερη του
+\code{KeccakF1600\_StatePermute} (\pct{6.65}), ή τρίτο hotspot εφόσον
+ομαδοποιηθούν οι επιμέρους συναρτήσεις πολυωνυμικού πολλαπλασιασμού
+(\code{clmul\_leaf} \pct{14.79} + \code{karatsuba\_clmul} \pct{11.06}
+= \pct{25.85}) σε μία κατηγορία.
 
 \paragraph{Βελτιστοποίηση: $\BigO{weight}$ direct-scatter.}
 Η promoted υλοποίηση αντικαθιστά τον εμφωλευμένο βρόχο με ένα απλό
@@ -750,16 +778,30 @@ index), \insn{andi} (εξαγωγή bit position), και \insn{sll}~+~\insn{or}
 του συνολικού \gls{kem} σε θέση εκτός των \num{20} κορυφαίων hotspots.
 
 \paragraph{Side-channel σκέψεις.}
-Η πρόσβαση \code{v[support[i] >> 6]} εξαρτάται από τα δεδομένα — η
-διεύθυνση εγγραφής αποκαλύπτει τη θέση support.  Για τα εφήμερα
-διανύσματα $r_1$, $r_2$, $e$ (παραγόμενα από δημόσια τυχαιότητα στο
-\Encaps), ο μηχανισμός αυτός δεν συνιστά πλευρικό κανάλι.  Αντιθέτως,
-για τα μυστικά διανύσματα κλειδιού ($x$, $y$ στο \KeyGen), η baseline
-constant-time mask-and-accumulate πρέπει να διατηρηθεί σε deployments
-που απαιτούν αντίσταση σε πλευρικά κανάλια.  Η παρούσα υλοποίηση
-χρησιμοποιεί τον ταχύ μηχανισμό σε όλα τα σημεία κλήσης ως πείραμα
-απόδοσης — η σχεδιαστική αυτή επιλογή αναλύεται περαιτέρω στο
-\cref{ch:discussion}.
+Η πρόσβαση \code{v[support[i] >> 6]} εξαρτάται από τα δεδομένα: η
+διεύθυνση εγγραφής αποκαλύπτει τη θέση support μέσω cache access
+patterns, καθιστώντας τη συνάρτηση \emph{μη} constant-time ως προς
+αυτό το όρισμα.
+%
+Το απειλητικό μοντέλο εξαρτάται κρίσιμα από τον τύπο του διανύσματος:
+%
+\begin{itemize}
+  \item \textbf{Εφήμερα διανύσματα} ($r_1$, $r_2$, $e$ στο \Encaps):
+        η θέση support παράγεται από δημόσιο ή ephemeral randomness και
+        δεν αποτελεί μυστικό υπό κανένα standard threat model.  Ο direct-scatter
+        είναι ασφαλής.
+  \item \textbf{Μυστικά διανύσματα κλειδιού} ($x$, $y$ στο \KeyGen):
+        η θέση support αποτελεί μακροπρόθεσμο μυστικό.  Σε deployments
+        με απαίτηση αντίστασης σε timing ή cache side-channels, η
+        baseline constant-time mask-and-accumulate υλοποίηση \emph{πρέπει
+        να διατηρηθεί} στα αντίστοιχα call sites.
+\end{itemize}
+%
+Η παρούσα υλοποίηση χρησιμοποιεί τον ταχύ direct-scatter \emph{σε όλα}
+τα σημεία κλήσης — συμπεριλαμβανομένου του \KeyGen — ως πείραμα
+απόδοσης σε simulator context.  Η επιλογή αυτή τεκμηριώνεται, και η
+επίπτωσή της στις επαληθεύσεις σταθερού χρόνου αναλύεται στο
+\cref{sec:ct-verification}.
 
 %% --------------------------------------------------------------------------
 \subsection{Πολιτικές Ευθυγράμμισης Μνήμης}
@@ -800,14 +842,23 @@ buffers (\code{memset\_zero} macro σε \code{uint64\_t} arrays).  Η
 $\lceil 277/32 \rceil = 9$ vector iterations αντί \num{277} scalar stores.
 
 \paragraph{Αθροιστικό αποτέλεσμα.}
-Η διανυσματοποίηση \code{memcpy}/\code{memset} μείωσε το συνολικό \gls{kem}
-\instret στο Tier~3 κατά \pct{1.6} (HQC-128), \pct{1.5} (HQC-192) και
-$\approx\pct{1.5}$ (HQC-256).  Η βελτίωση είναι μέτρια αλλά ομοιόμορφη —
-αντανακλώντας τον γεγονός ότι οι memory operations κατανέμονται ομοιόμορφα
-σε όλα τα σημεία του \gls{kem} pipeline.  Σε συνδυασμό με τη \code{vect\_add}
-(\speedup{20}) και τον direct-scatter (\pct{15.2} μείωση \Encaps), οι
-βοηθητικοί πυρήνες συμβάλλουν αθροιστικά $\approx$\pct{17}–\pct{18}
-στη συνολική μείωση \instret.
+Η μέτρηση στο \code{karatsuba\_zvbc} variant (ο πλησιέστερος συγκρίσιμος
+baseline) έδειξε μείωση \pct{1.62} (HQC-128), \pct{1.48} (HQC-192) και
+\pct{1.62} (HQC-256) στο συνολικό \gls{kem} \instret.  Σημειώνεται ότι ο
+αρχικός \code{memset} ήταν ήδη μερικώς αυτόματα διανυσματοποιημένος από τον
+Clang (\code{e8m2}, \num{64}~bytes/iter) — άρα η βελτίωση προέρχεται κυρίως
+από την αντικατάσταση του scalar tail και τη χρήση ευρύτερου LMUL (256 αντί
+64~bytes/iter), όχι από μηδενικό scalar baseline.  Η βελτίωση είναι μέτρια
+αλλά ομοιόμορφη — αντανακλώντας το γεγονός ότι οι memory operations
+κατανέμονται ομοιόμορφα σε όλα τα σημεία του \gls{kem} pipeline.  Στο τελικό προφίλ εκτέλεσης
+(\cref{tab:kernel-redistribution}), οι βοηθητικές λειτουργίες κατέχουν
+αθροιστικά \pct{25.2} του συνολικού \instret (\pct{16.7} στα
+\q{Λοιπά} — sampling, \code{vect\_add}, control — και \pct{8.5} στις
+I/O/μνήμη λειτουργίες).  Η μείωση του \Encaps \instret κατά \pct{15.2}
+(direct-scatter, βάση: \Encaps) και η \speedup{20} μείωση εντολών ανά
+κλήση \code{vect\_add} (βάση: ανά-κλήση εντολές) αντικατοπτρίζονται στο
+τελικό αυτό μερίδιο, χωρίς να αθροίζονται μεταξύ τους — οι δύο μετρήσεις
+έχουν διαφορετικές βάσεις αναφοράς.
 
 %% ============================================================================
 \section{Βελτιστοποιήσεις μέσω Compiler Auto-Lowering}
@@ -866,7 +917,7 @@ vclmul_leaf(result + offset, a + half, b + half);
 \paragraph{Ασυμμετρική επίπτωση μεταξύ variants.}
 Η μέτρηση σε Spike αποκάλυψε μία εντυπωσιακή ασυμμετρία: η \ext{Zba}
 μειώνει το polymul \instret κατά \pct{5.61} στο \code{vector\_zvk}
-(Tier~3), κατά \pct{1.0} στο \code{vector\_rvv} (Tier~2), αλλά κατά
+(Tier~3), κατά \pct{1.03} (polymul micro-benchmark) / \pct{0.67} (πλήρες \gls{kem}) στο \code{vector\_rvv} (Tier~2), αλλά κατά
 μόλις \pct{0.004} στο \code{scalar\_zb} (Tier~1) και \pct{0} στα
 reference baselines.  Η ερμηνεία βρίσκεται στη δομή του hot path:
 %
@@ -889,9 +940,9 @@ reference baselines.  Η ερμηνεία βρίσκεται στη δομή τ�
 Η παρατήρηση αυτή υπογραμμίζει μία γενική αρχή: η ωφέλεια μιας ISA
 extension είναι ανάλογη με τη \emph{δυναμική πυκνότητα} του σχετικού
 pattern εντός του hot path — όχι με τον αριθμό στατικών εμφανίσεων
-στο ELF.  Στο \code{vector\_zvk}, η πυκνότητα pointer-arithmetic
-instructions ανέρχεται σε \pct{12}–\pct{15} του polymul loop body,
-ερμηνεύοντας πλήρως τη μείωση \pct{5.61}.
+στο ELF.  Στο \code{vector\_zvk}, οι εντολές pointer-arithmetic
+αποτελούν σημαντικό κλάσμα του polymul loop body — γεγονός συνεπές
+με τη μέτρηση \pct{5.61}.
 
 \paragraph{Απόφαση.}
 Η \ext{Zba} προστέθηκε στα march strings των vector variants
@@ -1105,7 +1156,7 @@ micro-benchmarks) μεταξύ scalar reference και Tier~3 optimized:
 
 Ο πολυωνυμικός πολλαπλασιασμός επιτυγχάνει τη μεγαλύτερη απόλυτη μείωση
 (\speedup{265} σε isolated benchmark), ο Keccak αποδίδει \speedup{3.5}
-σε επίπεδο πλήρους \Decaps call pattern, και η αποκωδικοποίηση \speedup{6.4}
+σε επίπεδο πλήρους \Decaps call pattern, και η αποκωδικοποίηση \speedup{6.8}
 σε isolated decode.  Η συνδυασμένη εφαρμογή μετατρέπει ένα σύστημα
 κυριαρχούμενο από ένα μονολιθικό hotspot σε ένα ισορροπημένο pipeline — μια
 κλασική μετατόπιση κατά Amdahl, όπου το νέο όριο επιτάχυνσης ορίζεται πλέον

@@ -384,24 +384,29 @@ bit-scatter: \code{v[word] |= (1ULL << bit\_pos)}.  Με \ext{Zbs}, το
 \begin{itemize}
   \item \code{scalar\_zb} \Decaps: $-\num{14684}$ \instret ($-\pct{0.71}$)
   \item \code{scalar\_ref} \Decaps: $-\num{14684}$ \instret ($-\pct{0.025}$)
-  \item \code{vector\_rvv} / \code{vector\_zvk}: \pct{0} βελτίωση
+  \item \code{vector\_rvv} / \code{vector\_zvk}: $-\num{881}$ \instret
+        ($-\pct{0.12}$) — αμελητέο
 \end{itemize}
 
 Η απόλυτη εξοικονόμηση είναι \emph{ταυτόσημη} μεταξύ \code{scalar\_ref}
-και \code{scalar\_zb} — η διαφορά στο σχετικό ποσοστό ($\pct{0.025}$
-έναντι $\pct{0.71}$) αντικατοπτρίζει αποκλειστικά τη διαφορά στο
-συνολικό \instret (παρονομαστής).  Η παρατήρηση αυτή επιβεβαιώνει ότι η
-βελτίωση προέρχεται από τη shared \code{vector.c} βιβλιοθήκη (κοινή σε
-όλα τα variants) και όχι από τον polymul πυρήνα.
+και \code{scalar\_zb} ($-\num{14684}$ \instret) — η διαφορά στο σχετικό
+ποσοστό ($\pct{0.025}$ έναντι $\pct{0.71}$) αντικατοπτρίζει αποκλειστικά
+τη διαφορά στο συνολικό \instret (παρονομαστής).  Η παρατήρηση αυτή
+επιβεβαιώνει ότι η βελτίωση προέρχεται από τη shared \code{vector.c}
+βιβλιοθήκη (κοινή σε όλα τα variants) και όχι από τον polymul πυρήνα.
 
-Τα vector variants (\code{vector\_rvv}, \code{vector\_zvk})
-παρουσιάζουν μηδενική βελτίωση διότι η \code{vect\_write\_support\_to\_vector}
-εκτελεί scalar bit-scatter — η \ext{Zbs} δεν έχει vector αντίστοιχο, και
-η συνάρτηση δεν βρίσκεται στο vector hot path.
+Τα vector variants παρουσιάζουν σημαντικά μικρότερο απόλυτο κέρδος
+($-\num{881}$ \instret) διότι το συνολικό τους \instret
+(\cycles{729397} για \code{vector\_zvk}) είναι $4.7\times$ μικρότερο
+— η συνάρτηση \code{vect\_write\_support\_to\_vector} αποτελεί μικρότερο
+κλάσμα του συνολικού φόρτου.  Η \ext{Zbs} δεν έχει vector αντίστοιχο και
+ο scalar bit-scatter παραμένει στο shared code path, οπότε η εξοικονόμηση
+($-\pct{0.12}$) είναι πραγματική αλλά αμελητέα.
 
 Η \ext{Zbs} ενεργοποιήθηκε μόνο στο \code{HQC\_SCALAR\_MARCH}
 (\code{rv64gc\_zbc\_zbb\_zbs}).  Η προσθήκη στα vector variant march
-strings δεν δικαιολογείται λόγω μηδενικής επίδρασης.
+strings δεν δικαιολογείται: η σχετική βελτίωση ($-\pct{0.12}$) είναι
+αμελητέα και δεν επιβάλλει πρόσθετη ISA δήλωση.
 
 %% --------------------------------------------------------------------------
 \subsection{Compiler Auto-Lowering — Όρια και Ευρήματα}
