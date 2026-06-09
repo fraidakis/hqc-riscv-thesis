@@ -1,6 +1,23 @@
 % Stacked bar chart: instret breakdown into 3 categories
 % (VLEN-scalable, fixed-cost vectorized, non-vectorized)
 % HQC-128, vector_zvk, \VLEN=256
+%
+% Source: vector_zvk_L128_report.md (commit 20def7e), total KEM = 729,397 instret
+%   vclmul_leaf        250,554  34.4%  fixed-vectorized  (Polymul)
+%   KeccakF1600        191,492  26.3%  fixed-vectorized  (Keccak)
+%   rvv recomp helpers  80,202  11.0%  VLEN-scalable     (Polymul)
+%   kmul_N scaffolding  34,506   4.7%  VLEN-scalable     (Polymul, partial)
+%   gf_reduce           44,726   6.1%  scalar            (Decode)
+%   rol1_zbb            17,040   2.3%  scalar            (Keccak)
+%   gf_mul               8,952   1.2%  scalar            (Decode)
+%   Other              101,925  14.0%  mixed             (Other)
+%
+% Per-bar assignments (sum = 100%):
+%   Polymul : scalable=15.7 (11.0+4.7), fixed=34.4, scalar=0     → 50.1%
+%   Keccak  : scalable= 0,   fixed=26.3, scalar=2.3              → 28.6%
+%   Decode  : scalable= 0,   fixed= 0,   scalar=7.3 (6.1+1.2)   →  7.3%
+%   Other   : scalable= 0,   fixed= 0,   scalar=0, +other=14.0  → 14.0%
+%   Total                                                          100.0%
 \tikzsetnextfilename{ch8-results-vlen-budget-breakdown}
 \begin{tikzpicture}
 \begin{axis}[
@@ -11,7 +28,8 @@
   symbolic x coords={Polymul, Keccak, Decode, Other},
   xtick=data,
   ylabel={Ποσοστό \instret (\%)},
-  ymin=0, ymax=105,
+  ymin=0, ymax=60,
+  ytick={0,10,20,30,40,50},
   legend style={at={(0.5,-0.22)}, anchor=north, legend columns=3,
                 font=\small, draw=none},
   nodes near coords style={font=\tiny},
@@ -20,29 +38,37 @@
 ]
 
 % VLEN-scalable portion
+% Polymul: recomposition helpers (11.0%) + kmul_N scaffolding (4.7%) = 15.7%
+% Keccak/Decode/Other: 0 (no scalable component in those groups)
 \addplot[fill=green!50!black, fill opacity=0.7] coordinates {
-  (Polymul, 16)
-  (Keccak, 0)
-  (Decode, 1)
-  (Other, 10)
+  (Polymul, 15.7)
+  (Keccak,   0)
+  (Decode,   0)
+  (Other,    0)
 };
 \addlegendentry{Κλιμακώνει με \VLEN}
 
 % Fixed-cost vectorized (doesn't benefit from wider VLEN)
+% Polymul: vclmul_leaf = 34.4%
+% Keccak:  KeccakF1600 = 26.3%
+% Decode/Other: 0
 \addplot[fill=blue!60, fill opacity=0.7] coordinates {
-  (Polymul, 49)
-  (Keccak, 25)
-  (Decode, 6)
-  (Other, 0)
+  (Polymul, 34.4)
+  (Keccak,  26.3)
+  (Decode,   0)
+  (Other,    0)
 };
 \addlegendentry{Σταθερό (vectorized)}
 
-% Non-vectorized / scalar
+% Non-vectorized / scalar or unclassified
+% Keccak: rol1_zbb = 2.3%
+% Decode: gf_reduce (6.1%) + gf_mul (1.2%) = 7.3%
+% Other:  sampling, memset, RS encode, etc. = 14.0%
 \addplot[fill=gray!50, fill opacity=0.7] coordinates {
-  (Polymul, 0)
-  (Keccak, 2.4)
-  (Decode, 1.2)
-  (Other, 4.4)
+  (Polymul,  0)
+  (Keccak,   2.3)
+  (Decode,   7.3)
+  (Other,   14.0)
 };
 \addlegendentry{Scalar / μη κλιμακούμενο}
 

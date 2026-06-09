@@ -25,38 +25,38 @@
 
 % HQC-256
 \addplot[blue!70!black, mark=square*] coordinates {
-  (256, 2611338)
-  (512, 2469285)
-  (1024, 2450118)
-  (2048, 2466433)
+  (256, 2647710)
+  (512, 2507805)
+  (1024, 2489856)
+  (2048, 2507391)
 };
 \addlegendentry{HQC-256}
 
 % HQC-192
 \addplot[red!70!black, mark=triangle*] coordinates {
-  (256, 1694892)
-  (512, 1601345)
-  (1024, 1588990)
-  (2048, 1608961)
+  (256, 1719038)
+  (512, 1626838)
+  (1024, 1615155)
+  (2048, 1635128)
 };
 \addlegendentry{HQC-192}
 
 % HQC-128
 \addplot[green!50!black, mark=*] coordinates {
-  (256, 716983)
-  (512, 690678)
-  (1024, 692500)
-  (2048, 716821)
+  (256, 729397)
+  (512, 703724)
+  (1024, 706176)
+  (2048, 730499)
 };
 \addlegendentry{HQC-128}
 
 % Annotation: sweet spot at VLEN=512
 \node[anchor=south, font=\scriptsize\itshape, text=blue!60!black]
-  at (axis cs:512, 2469285) {$-\pct{5.4}$};
+  at (axis cs:512, 2507805) {$-\pct{5.3}$};
 \node[anchor=south, font=\scriptsize\itshape, text=red!60!black]
-  at (axis cs:512, 1601345) {$-\pct{5.5}$};
+  at (axis cs:512, 1626838) {$-\pct{5.4}$};
 \node[anchor=south west, font=\scriptsize\itshape, text=green!40!black]
-  at (axis cs:512, 690678) {$-\pct{3.7}$};
+  at (axis cs:512, 703724) {$-\pct{3.5}$};
 
 \end{axis}
 \end{tikzpicture}
