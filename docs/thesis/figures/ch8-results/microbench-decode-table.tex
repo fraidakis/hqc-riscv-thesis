@@ -1,17 +1,21 @@
 % Table: Decode micro-benchmark results (ref, rvv, zvbc)
-\begin{tabular}{l l S[table-format=6.0] S[table-format=5.0] S[table-format=1.2]}
+\begin{tabular}{l l S[table-format=7.0] S[table-format=5.0] S[table-format=1.2]}
   \toprule
   \textbf{Security Level} & \textbf{Variant} & {\textbf{\instret}} & {\textbf{Code size (B)}} & {\textbf{Speedup}} \\
   \midrule
   \multirow{3}{*}{HQC-128}
     & Reference (scalar)  & 384986 & 18202 & {—} \\
-    & Tier~2 (base-RVV)   & 122163 & 15724 & {3.15} \\
+    & Tier~2 (base-RVV)   & 121217 & 15724 & {3.18} \\
     & Tier~3 (\Zvbc)      &  56515 & 17096 & {6.81} \\
   \midrule
-  \multirow{1}{*}{HQC-192}
-    & Tier~3 (\Zvbc)      &  72237 & 18834 & {—} \\
+  \multirow{3}{*}{HQC-192}
+    & Reference (scalar)  & 562125 & 18908 & {—} \\
+    & Tier~2 (base-RVV)   & 156704 & 16610 & {3.59} \\
+    & Tier~3 (\Zvbc)      &  72237 & 18834 & {7.78} \\
   \midrule
-  \multirow{1}{*}{HQC-256}
-    & Tier~3 (\Zvbc)      & 147077 & 27182 & {—} \\
+  \multirow{3}{*}{HQC-256}
+    & Reference (scalar)  & 1059605 & 26412 & {—} \\
+    & Tier~2 (base-RVV)   & 332942 & 24040 & {3.18} \\
+    & Tier~3 (\Zvbc)      &  147077 & 27182 & {7.20} \\
   \bottomrule
 \end{tabular}
