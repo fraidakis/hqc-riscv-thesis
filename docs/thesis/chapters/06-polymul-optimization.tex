@@ -28,11 +28,18 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
 μονάδας, ενώ η διαφορά μεταξύ Tier~2 και Tier~3 απομονώνει το κέρδος των
 κρυπτογραφικών vector extensions.  Τρίτον, αντικατοπτρίζει τη ρεαλιστική
 πορεία υιοθέτησης: σήμερα υπάρχει εμπορικό hardware για Tier~1 και Tier~2
-(SpacemiT K1 X60, βλ.~\cref{ssec:bpi-f3}), ενώ το Tier~3 αντιστοιχεί στο
-προφίλ RVA23 που βρίσκεται σε πορεία υιοθέτησης.
+(SpacemiT K1 X60, βλ.~\cref{ssec:bpi-f3}), ενώ το Tier~3 απαιτεί τις vector-crypto
+επεκτάσεις Zvbc/Zvbb, οι οποίες περιλαμβάνονται ως optional στο ratified
+(Οκτώβριος 2024) προφίλ RVA23 και αναμένονται mandatory σε επόμενο προφίλ.
+Εμπορικό silicon δεν είναι ακόμη διαθέσιμο.
 
 Ο \cref{tab:polymul-tiers} συνοψίζει τα τρία tiers, και το
 \cref{fig:polymul-tiers} απεικονίζει τη σχέση υπερσυνόλου μεταξύ τους.
+Ο πίνακας αποτυπώνει το \emph{αρχιτεκτονικό tier} — το ελάχιστο σύνολο
+επεκτάσεων που ορίζει εννοιολογικά κάθε επίπεδο. Τα πλήρη \code{-march}
+strings του build ενεργοποιούν επιπλέον τις \ext{Zba}/\ext{Zbs} μέσω
+compiler auto-optimization, με την οριακή τους συνεισφορά να ποσοτικοποιείται
+στη μελέτη ablation (\cref{sec:isa-ablation}).
 
 \begin{table}[htbp]
   \centering
@@ -46,10 +53,10 @@ portability: κάθε tier εκτελείται σε οποιονδήποτε ε
     \toprule
     \textbf{Tier} & \textbf{ISA Profile} & \textbf{Κρίσιμες Εντολές} & \textbf{Champion} \\
     \midrule
-    1 & \code{rv64gc + Zbc/Zbb/Zbs}
+    1 & \code{rv64gc + Zbc/Zbb}
       & \clmul, \clmulh, \rori, \insn{andn}
       & \code{scalar\_zb} \\
-    2 & \code{rv64gcv + Zbc/Zbb/Zba}
+    2 & \code{rv64gcv + Zbc/Zbb}
       & + \insn{vle64}, \insn{vxor.vv}, \insn{vsetvl}
       & \code{vector\_rvv} \\
     3 & \code{rv64gcv + Zvbc/Zvbb}
@@ -156,7 +163,7 @@ RVV εντολές — η μέτρηση αντικατοπτρίζει αποκ
 RVV~1.0 αλλά χωρίς τις κρυπτογραφικές vector extensions.  Η ISA string
 \code{rv64gcv\_zbc\_zbb\_zba} προσθέτει τη δυνατότητα εκτέλεσης
 data-parallel πράξεων σε ευρείς vector registers (\VLEN bits ανά register,
-τυπικά \num{128}–\num{2048}).
+τυπικά \num{128}–\num{2048} σε application-class υλοποιήσεις).
 
 Η αρχιτεκτονική παρατήρηση-κλειδί είναι ότι η \gls{zvbc} δεν είναι διαθέσιμη
 σε αυτό το tier: η εντολή \vclmul{} απουσιάζει, επομένως ο leaf kernel
@@ -184,7 +191,7 @@ data-parallel πράξεων σε ευρείς vector registers (\VLEN bits αν
 
 \noindent
 Η δομική αυτή αρχιτεκτονική — scalar leaf + vector recomposition — αποτελεί
-\defterm{υβριδική προσέγγιση}: η αριθμητική πράξη (carry-less multiply)
+\defterm{υβριδική scalar/vector προσέγγιση}: η αριθμητική πράξη (carry-less multiply)
 εκτελείται scalar, ενώ η data-movement πράξη (XOR, copy, reduce)
 εκτελείται vector.  Η προσέγγιση αυτή αποδίδει μετρήσιμη βελτίωση
 (\cref{sec:polymul-base-rvv}), αλλά το κέρδος περιορίζεται δομικά από
@@ -228,7 +235,7 @@ instructions.  Σε \VLEN=\num{256} με \LMUL=m4, κάθε vector register grou
 \bigskip
 \noindent
 Η ορθότητα κάθε tier επαληθεύεται ανεξάρτητα μέσω του πλήρους KAT suite
-(\num{300} vectors, τρία security levels) — κανένα tier δεν εισάγει
+(\num{300} vectors, τρία security levels, βλ.~\cref{sec:kat-tests}) — κανένα tier δεν εισάγει
 αλγοριθμική απόκλιση από τη reference υλοποίηση.  Η μεταγλώττιση κάθε
 variant με αυστηρά ελεγχόμενη \code{-march} string
 (\cf \cref{tab:march-per-variant}) εξασφαλίζει ότι ο assembler απορρίπτει
@@ -245,8 +252,8 @@ variant με αυστηρά ελεγχόμενη \code{-march} string
 παρουσιάζει τη μετάβαση από τον bit-serial schoolbook του reference
 implementation σε έναν πλήρως βελτιστοποιημένο Karatsuba πυρήνα με
 compile-time generated recursion tree.  Η συνολική μείωση \instret στον
-πολυωνυμικό πολλαπλασιασμό HQC-128 ανέρχεται σε \speedup{121} — από
-\num{19214277} σε \num{158928} εντολές.
+πολυωνυμικό πολλαπλασιασμό HQC-128 ανέρχεται σε \speedup{87} — από
+\num{19214277} σε \num{221030} εντολές.
 
 \subsection{Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό}
 \label{ssec:bit-to-word}
@@ -358,7 +365,7 @@ Loop~3 διαβάζει από τον $r$, το προηγούμενο \code{mem
 Η επίδραση αυτής της αναδιάρθρωσης είναι δραματική.  Στο αρχικό Zbc
 profile (μετά τη μετάβαση σε word-level leaf αλλά πριν την εξάλειψη
 \code{memset}), η συνάρτηση \code{memset} αποτελούσε τον κυρίαρχο
-hotspot — \pct{23} του συνολικού \instret.  Η εξάλειψή της αφαιρεί
+hotspot.  Η εξάλειψή της αφαιρεί
 αυτό το overhead χωρίς καμία αλλαγή στην αλγοριθμική ορθότητα, καθώς
 η assign-on-first-write πειθαρχία εγγυάται ότι κάθε θέση εξόδου
 αρχικοποιείται ακριβώς μία φορά πριν από οποιαδήποτε ανάγνωση.
@@ -452,9 +459,10 @@ overhead σε βάρος αυξημένου \code{.text} footprint.  Η ποσο
 αξιολόγηση αυτού του trade-off (recursion depth vs \instret vs
 \code{.text} size) παρουσιάζεται στο \cref{sec:polymul-codesize}.
 
-Στον leaf, η εξειδίκευση \code{clmul\_leaf\_n8} αντικαθιστά τον
-generic \code{clmul\_leaf} για το μέγεθος $n=8$ που κυριαρχεί στο
-δέντρο αναδρομής στο threshold $T=16$.  Η συνάρτηση αυτή αποτελεί
+Στον leaf, η εξειδίκευση \code{clmul\_leaf\_n8} καλύπτει την περίπτωση
+μεγέθους $n=8$ — μειοψηφία των φύλλων στο threshold $T=16$ (37 από τα
+243), ενώ τα κυρίαρχα φύλλα μεγέθους $n=9$ (206 από τα 243) εξυπηρετούνται
+από τον generic \code{clmul\_leaf}.  Η συνάρτηση αυτή αποτελεί
 πλήρως unrolled $8 \times 8$ schoolbook product — \num{64} διαδοχικές
 κλήσεις \code{clmul64} χωρίς κανένα branch, με ενσωματωμένη
 assign-on-first-write πειθαρχία.  Μία ablation study επιβεβαίωσε ότι
@@ -483,11 +491,11 @@ $n = \num{17669}$ bits) εκτελεί τα ακόλουθα βήματα:
 \num{81} ζεύγη ανά leaf.
 
 \subsection{Απορριφθείσες Εναλλακτικές (Toom-Cook, FAFFT)}
-\label{sec:rejected-alternatives}
+\label{ssec:rejected-alternatives}
 
 Η ασυμπτωτική πολυπλοκότητα $\BigO{n^{1.585}}$ του Karatsuba δεν είναι
 η βέλτιστη θεωρητικά — ο Toom-Cook-3 επιτυγχάνει $\BigO{n^{1.465}}$ και
-ο αλγόριθμος FAFFT (Gao-Mateer) $\BigO{n \log n \log \log n}$.  Η
+ο αλγόριθμος FAFFT (Gao-Mateer)~\cite{GaoMateer2010} $\BigO{n \log^2 n}$.  Η
 ενότητα αυτή τεκμηριώνει γιατί κανένας εναλλακτικός αλγόριθμος δεν
 υπερτερεί πρακτικά στα μεγέθη πολυωνύμων του HQC.
 
@@ -503,7 +511,7 @@ Spike ISS.
 Τα αποτελέσματα ήταν αρνητικά: ο TC3 παρουσίασε regression
 \speedup{4}–\speedup{5} σε σχέση με τον Karatsuba champion.
 Συγκεκριμένα, για HQC-128 ο TC3 απαίτησε \num{344973} \instret
-έναντι \num{66916} του Karatsuba Zvbc — αύξηση \pct{415}.  Η
+έναντι \num{62530} του Karatsuba Zvbc — αύξηση \pct{452}.  Η
 αιτία εντοπίζεται στο overhead evaluation/interpolation: οι
 carry-propagating shifts για αξιολόγηση στα σημεία $x$ και $x{+}1$
 είναι sequential (μη vectorizable), η interpolation απαιτεί \num{12}
@@ -528,7 +536,7 @@ FFT.  Η θεμελιώδης δυσκολία στο HQC είναι ότι οι
 
 Η εκτίμηση κόστους για HQC-128 σε Zvbc ανέρχεται σε
 $\sim\num{68800000}$ \instret — έναντι \num{62530} του Karatsuba
-champion.  Η διαφορά αυτή ($\sim\speedup{950}$ regression) καθιστά
+champion.  Η διαφορά αυτή ($\sim\speedup{1100}$ regression) καθιστά
 τον FAFFT μη βιώσιμο στα μεγέθη HQC.  Μία πειραματική υλοποίηση FAFFT
 με tower-field αριθμητική επιβεβαίωσε ασυμβατότητα με τη \vclmul{} (η
 εντολή λειτουργεί σε $\GFpoly$, όχι σε tower-field representations)
@@ -544,8 +552,9 @@ iteration) εξαλείφει το πλεονέκτημα απόδοσης.  Η 
 HQC απέρριψε τη sparse multiplication στην τελική spec (2024) ακριβώς
 για αυτούς τους λόγους, μεταβαίνοντας σε dense Karatsuba.
 
-Η λεπτομερής σύγκριση αλγοριθμικών εναλλακτικών — συμπεριλαμβανομένης
-της ανάλυσης FAFFT με CRT splitting~\cite{Chen2026-TCHES-HQC-FFT} ως μελλοντικής
+Η λεπτομερής σύγκριση αλγοριθμικών εναλλακτικών — συμπεριλαμβανομένων
+πρόσφατων SIMD υλοποιήσεων Toom-Cook/Karatsuba~\cite{Jang2026-gf2x-SIMD} και
+της ανάλυσης FAFFT με CRT splitting~\cite{Chen2026-TCHES-HQC-FFT,Jang2026-CortexM4-HQC} ως μελλοντικής
 κατεύθυνσης — παρουσιάζεται στο \cref{ch:discussion}.
 
 %% ============================================================================
@@ -558,7 +567,7 @@ HQC απέρριψε τη sparse multiplication στην τελική spec (2024
 εστιάζεται αποκλειστικά στους recomposition loops: τους γραμμικού κόστους
 $\BigO{n}$ βρόχους XOR, copy, και modular reduction που εκτελούνται σε κάθε
 κόμβο του δέντρου αναδρομής.  Η αρχιτεκτονική αυτή αποτελεί
-\defterm{υβριδική scalar/vector προσέγγιση} — η αριθμητική πράξη (carry-less
+υβριδική scalar/vector προσέγγιση — η αριθμητική πράξη (carry-less
 multiply) παραμένει scalar, ενώ η data-movement πράξη εκτελείται vector.
 
 Η βελτιστοποίηση Tier~2 συνδυάζει τρεις αλληλεξαρτώμενες τεχνικές: (α)~μία
@@ -567,7 +576,7 @@ multiply) παραμένει scalar, ενώ η data-movement πράξη εκτε
 aliasing (\defterm{overlap-save}) που αποκαθιστά την ορθότητα μετά τη
 direct-write, και (γ)~inline RVV intrinsics με per-operation \LMUL tuning
 που μεγιστοποιούν τη χρήση της vector register file.  Η συνδυασμένη επίδραση
-μειώνει το polymul \instret κατά \pct{27.5} σε σχέση με το Tier~1 — από
+μειώνει το polymul \instret κατά \pct{28.8} σε σχέση με το Tier~1 — από
 \num{221030} σε \num{157473} εντολές για HQC-128.
 
 \subsection{Direct-Write Discipline: Εξάλειψη Αντιγραφών z0/z2}
@@ -576,7 +585,7 @@ direct-write, και (γ)~inline RVV intrinsics με per-operation \LMUL tuning
 Στην αρχική Track~B υλοποίηση, τα τρία child multiplications ($z_0$, $z_2$,
 $z_\text{mid}$) υπολογίζονταν σε ενδιάμεσους buffers εντός του \code{tmp},
 και στη συνέχεια δύο RVV copy loops (\code{rvv\_copy\_u64}) μετέφεραν τα
-$z_0$ και $z_2$ στις τελικές θέσεις του output buffer $r$.  Η
+$z_0$ και $z_2$ στις τελικές θέσεις του output buffer $r$.
 Η direct-write discipline εξαλείφει αυτές τις δύο αντιγραφές
 κατευθύνοντας τα child calls να γράψουν απευθείας στο $r$:
 %
@@ -634,7 +643,7 @@ $r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
 Χωρίς αντιμετώπιση, η εγγραφή στο $r[n_0{+}i]$ θα κατέστρεφε δεδομένα
 που χρειάζονται σε μεταγενέστερες iterations.
 
-Η \defterm{overlap-save strategy} επιλύει το πρόβλημα σε τρία βήματα:
+Η overlap-save strategy επιλύει το πρόβλημα σε τρία βήματα:
 %
 \begin{enumerate}
   \item \textbf{Αποθήκευση overlap region:} Πριν από το combine step, τα
@@ -727,9 +736,10 @@ groups είναι ταυτόχρονα ενεργά (πηγή και αποτέ�
 \paragraph{Combine XOR (\LMUL=m2).}
 Ο κρίσιμος Loop~3A φορτώνει ταυτόχρονα τέσσερις πηγές: τον destination
 $r[n_0{+}i]$, το $z_\text{mid}[i]$, το $z_0[i]$ (από $r$ ή \code{ta}),
-και το $z_2[i]$.  Τέσσερα register groups σε \LMUL=m2 καταναλώνουν
-$4 \times 2 = 8$ vector registers — αφήνοντας επαρκές headroom στο
-\num{32}-register file για τον accumulator και τα scalar pointers.  Η
+και το $z_2[i]$.  Τέσσερις source groups σε \LMUL=m2 καταναλώνουν
+$4 \times 2 = 8$ vector registers, και μαζί με τον accumulator (που
+επαναχρησιμοποιεί έναν dead source) η μέγιστη πίεση φτάνει τα 8–10
+registers — εντός του \num{32}-register file.  Η
 XOR-accumulation εκτελείται ως αλυσίδα τριών \insn{vxor.vv} (\cref{lst:combine-xor}):
 %
 \begin{lstlisting}[language=C,
@@ -818,7 +828,7 @@ recomposition loops είναι $\BigO{n}$ ανά επίπεδο αναδρομή
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
 παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
 \clmul/\clmulh βρόχο με μία μόνο vector iteration ανά εξωτερικό index.
-Η συνδυασμένη επίδραση μειώνει το polymul \instret κατά \pct{61} σε σχέση
+Η συνδυασμένη επίδραση μειώνει το polymul \instret κατά \pct{60} σε σχέση
 με το Tier~2 — από \num{157473} σε \num{62530} εντολές για HQC-128.
 
 \subsection{Splat-and-Sweep: Διανυσματοποίηση του Schoolbook Leaf}
@@ -831,12 +841,12 @@ recomposition loops είναι $\BigO{n}$ ανά επίπεδο αναδρομή
 Ένα μόνο ζεύγος \vclmul/\vclmulh υπολογίζει ταυτόχρονα όλα τα $n$
 carry-less γινόμενα — χαμηλά και υψηλά μισά αντίστοιχα:
 %
-\begin{align}
+\begin{align*}
   \text{lo}[j] &= a[i] \polymul b[j] \bmod x^{64},
-    \quad j \in [0, n), \label{eq:vclmul-lo} \\
+    \quad j \in [0, n), \\
   \text{hi}[j] &= \lfloor a[i] \polymul b[j] / x^{64} \rfloor,
-    \quad j \in [0, n). \label{eq:vclmul-hi}
-\end{align}
+    \quad j \in [0, n).
+\end{align*}
 %
 Τα αποτελέσματα συσσωρεύονται στον output buffer μέσω vector
 load-XOR-store: το lo-vector XOR-accumulate στο $r[i \ldots i{+}n{-}1]$
@@ -884,7 +894,7 @@ $a[i]$ splat επαναχρησιμοποιεί τον ίδιο φορτωμέν
     οποιοσδήποτε άλλος writer τις προσεγγίσει.
 \end{enumerate}
 %
-Η αναδιάρθρωση αυτή αντικαθιστά το πλήρες \code{memset(r, 0, 2n$\times$8)}
+Η αναδιάρθρωση αυτή αντικαθιστά το πλήρες \code{memset(r, 0, 2*n*8)}
 — που στο bare-metal περιβάλλον εκτελούνταν ως scalar byte-loop κοστίζοντας
 $3 \times 2n \times 8 = 48n$ εντολές ανά leaf call — με ένα μόνο RVV
 zero-store μεγέθους $n$ words.  Δεδομένου ότι το δέντρο αναδρομής HQC-128
@@ -965,9 +975,10 @@ register file κατά τη φάση accumulation, ενώ μικρότερο \LM
 ήδη μονοβηματικός.  Τα επιπλέον vector lanes παραμένουν αχρησιμοποίητα
 (tail elements), καθώς $n \leq T = 16$ σε κάθε leaf call.
 
-Η παρατήρηση αυτή εξηγεί γιατί η VLEN sweep (\cref{sec:vlen-scaling})
-δείχνει ελάχιστη βελτίωση στο polymul πέραν του \VLEN=\num{256}: η
-μοναδική πηγή κέρδους σε μεγαλύτερο \VLEN προέρχεται από τους
+Η παρατήρηση αυτή συνάδει με τη VLEN sweep (\cref{sec:vlen-scaling}), η
+οποία δείχνει ότι η συνολική επίδοση σταθεροποιείται (plateau) στο εύρος
+\VLEN=\num{256}–\num{512}, με οριακό μόνο κέρδος πέραν του \num{512}: η
+μοναδική πηγή πρόσθετου κέρδους σε μεγαλύτερο \VLEN προέρχεται από τους
 recomposition loops (γραμμικού κόστους, $\BigO{n}$ ανά κόμβο), οι οποίοι
 αποτελούν μικρό κλάσμα του συνολικού polymul \instret μετά τη
 διανυσματοποίηση του leaf.
@@ -1073,12 +1084,13 @@ Vector-Crypto leaf δεν συνιστά συμβιβασμό μεγέθους �
 \section{Αποτίμηση: Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση}
 \label{sec:polymul-assessment}
 
-Οι βελτιστοποιήσεις των \cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
-μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \num{18527409} σε
-\num{62530} εντολές στο Tier~3 — μείωση \speedup{296} ως προς \code{vector\_ref}.  Η μείωση αυτή
+Οι βελτιστοποιήσεις των~\cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
+μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \num{18527409}
+(\code{vector\_ref}, \cref{conv:baseline}) σε \num{62530} εντολές στο
+Tier~3 — μείωση \speedup{296}.  Η μείωση αυτή
 μετασχηματίζει ριζικά την κατανομή υπολογιστικού κόστους ολόκληρου του
 \gls{kem}, αποκαλύπτοντας πυρήνες που στο baseline αποτελούσαν αμελητέο
-ποσοστό ως νέα κυρίαρχα bottlenecks.
+ποσοστό ως νέα, αναδυόμενα bottlenecks.
 
 Στο reference scalar HQC-128, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
 $\approx$\pct{97} του συνολικού \instret (βλ.~\cref{sec:baseline-profiling}).
@@ -1086,7 +1098,7 @@ $\approx$\pct{97} του συνολικού \instret (βλ.~\cref{sec:baseline-p
 $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερος contributor, αλλά
 δεν κυριαρχεί πλέον μονοπωλιακά.  Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
 από $<$\pct{1} σε $\approx$\pct{25} του συνόλου, και η αποκωδικοποίηση
-(Reed-Muller + Reed-Solomon) από $<$\pct{0.5} σε $\approx$\pct{4}.
+(Reed-Muller + Reed-Solomon) από $<$\pct{0.5} σε $\approx$\pct{9}.
 \Cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση, αντιπαραβάλλοντας το baseline (\cref{fig:pie-baseline}) με την κατανομή μετά το Tier~3 (\cref{fig:pie-post-polymul}).
 
 \begin{figure}[htbp]
@@ -1107,7 +1119,7 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
   \caption{Ανακατανομή \instret στο HQC-128 KEM πριν και μετά τη
     βελτιστοποίηση πολυωνυμικού πολλαπλασιασμού.  Ο νόμος του Amdahl σε
     δράση: η \speedup{296} μείωση του polymul αποκαλύπτει τον Keccak
-    ($\approx$\pct{25}) και τη decode ($\approx$\pct{4}) ως νέα
+    ($\approx$\pct{25}) και τη decode ($\approx$\pct{9}) ως νέα
     bottlenecks.}
   \label{fig:pie-redistribution}
 \end{figure}
@@ -1125,12 +1137,15 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
 \end{equation}
 %
 Η πραγματική μέτρηση — \speedup{154} speedup πλήρους \gls{kem} στο Tier~3
-(\cref{tab:polymul-tier-summary}) — υπερβαίνει αυτό το θεωρητικό όριο,
-διότι η βελτιστοποίηση polymul συρρικνώνει ταυτόχρονα και τμήμα του
-non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reduction).
-Ωστόσο, η κεντρική παρατήρηση παραμένει: η \speedup{296} τοπική μείωση
-μεταφράζεται σε \speedup{154} system-level — η απόκλιση τεκμηριώνει ότι
-τα μη-polymul components αποτελούν πλέον τον binding constraint.
+(\cref{tab:polymul-tier-summary}) — υπερβαίνει αυτό το θεωρητικό όριο. Η
+φαινομενική αυτή \q{παραβίαση} του ορίου δεν οφείλεται μόνο στη
+βελτιστοποίηση polymul: το Tier~3 επιταχύνει ταυτόχρονα και το non-polymul
+τμήμα — κυρίως μέσω της διανυσματοποίησης του Keccak
+(\cref{ch:kernel-optimization}) και της εξάλειψης \code{memset} — οπότε η
+προϋπόθεση σταθερού non-polymul χρόνου, στην οποία στηρίζεται το όριο, δεν
+ισχύει. Η κεντρική παρατήρηση παραμένει: μετά την τοπική \speedup{296}
+μείωση του polymul, τα μη-polymul components αποτελούν πλέον τον binding
+constraint.
 
 \begin{table}[htbp]
   \centering
@@ -1143,12 +1158,14 @@ non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reducti
     \toprule
     \textbf{Tier} & \textbf{Variant}
       & \textbf{polymul} & \textbf{Polymul}
-      & \textbf{KEM} & \textbf{Νέο κυρίαρχο} \\
+      & \textbf{KEM} & \textbf{Μεγαλύτερο non-polymul} \\
     & & \textbf{(\instret)} & \textbf{Speedup}
       & \textbf{Speedup} & \textbf{hotspot} \\
     \midrule
     — & \code{scalar\_ref}
       & \num{19214277} & — & — & polymul (\pct{97}) \\
+    — & \code{vector\_ref}
+      & \num{18527409} & — & — & polymul \\
     1 & \code{scalar\_zb}
       & \num{221030} & $\times$87 & $\times$34 & Keccak (\pct{17}) \\
     2 & \code{vector\_rvv}
@@ -1159,13 +1176,14 @@ non-polymul overhead (εξάλειψη \code{memset}, vectorized modular reducti
   \end{tabular}
 \end{table}
 
-Ο \cref{tab:polymul-tier-summary} αποκαλύπτει ένα χαρακτηριστικό pattern:
-σε κάθε tier, ο Keccak αναδεικνύεται ως το κυρίαρχο hotspot μετά τη
+Ο~\cref{tab:polymul-tier-summary} αποκαλύπτει ένα χαρακτηριστικό pattern:
+σε κάθε tier, ο Keccak αναδεικνύεται ως ο μεγαλύτερος non-polymul hotspot μετά τη
 βελτιστοποίηση polymul.  Στο Tier~1, ο Keccak καταλαμβάνει \pct{17} του
 KEM \instret — ήδη ο μεγαλύτερος non-polymul contributor.  Στο Tier~2,
 η περαιτέρω μείωση του polymul ανεβάζει τον Keccak σε \pct{29}.  Στο
-Tier~3, η αναλογία σταθεροποιείται στο \pct{25}, καθώς ο polymul
-παραμένει ελαφρώς μεγαλύτερος σε απόλυτο \instret.
+Tier~3, η αναλογία σταθεροποιείται στο \pct{25}, ενώ ο polymul παραμένει σαφώς ο
+μεγαλύτερος πυρήνας ($\approx$\pct{53} έναντι $\approx$\pct{25}), περίπου
+διπλάσιος σε μερίδιο.
 
 Η ανακατανομή αυτή τεκμηριώνει ποσοτικά τη στόχευση του
 \cref{ch:kernel-optimization}: η βελτιστοποίηση Keccak και decode αποτελεί
