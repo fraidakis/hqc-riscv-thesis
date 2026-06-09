@@ -564,9 +564,9 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
   \input{figures/ch7-kernels/decode-axisc-table}
 \end{table}
 
-Η vectorized FFT επιτυγχάνει $-\pct{31.4}$ (HQC-128) έως $-\pct{35.7}$
+Η vectorized FFT επιτυγχάνει $-\pct{35.8}$ (HQC-128) έως $-\pct{39.8}$
 (HQC-192) μείωση στο Axis~C component.  Η χαμηλότερη βελτίωση στο HQC-256
-($-\pct{22.1}$) οφείλεται στο μεγαλύτερο \code{PARAM\_FFT} (= 5 αντί 4),
+($-\pct{28.0}$) οφείλεται στο μεγαλύτερο \code{PARAM\_FFT} (= 5 αντί 4),
 το οποίο αυξάνει τον αριθμό επιπέδων δέντρου και τα μεγέθη segments —
 μειώνοντας αναλογικά το ποσοστό function-call overhead που εξαλείφθηκε.
 
@@ -1126,7 +1126,7 @@ target pattern εντός του hot path — μια extension με εκατον
 Μετά τη βελτιστοποίηση polymul (Karatsuba + \gls{zvbc} vectorization), ο
 πολυωνυμικός πολλαπλασιασμός μειώνεται δραστικά και αποκαλύπτονται
 δευτερεύοντα bottlenecks: ο Keccak αναδύεται σε \pct{29} και η
-αποκωδικοποίηση σε \pct{11}–\pct{19}.  Στο τελικό στάδιο, η εφαρμογή
+αποκωδικοποίηση σε \pct{11.2} (HQC-128).  Στο τελικό στάδιο, η εφαρμογή
 \gls{zvbb} 2-way \gls{soa} Keccak, η Zvbc FFT root-finding, και οι βοηθητικοί
 πυρήνες ισορροπούν πλήρως το προφίλ: polymul (\pct{34.5}), Keccak
 (\pct{24.5}), GF αριθμητική (\pct{7.4}), I/O και μνήμη (\pct{8.5}),
