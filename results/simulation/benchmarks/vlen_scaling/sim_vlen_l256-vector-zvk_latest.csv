@@ -1,21 +1,21 @@
-# date: 2026-05-26 16:16
-# commit: c56c136
-# variant: karatsuba_zvbc
+# date: 2026-06-09 11:30
+# commit: 783fdca
+# variant: vector_zvk
 # level: 256
 op,vlen,instructions
-keypair,256,383592
-keypair,512,360872
-keypair,1024,358150
-keypair,2048,361612
-encaps,256,816033
-encaps,512,771161
-encaps,1024,763827
-encaps,2048,767360
-decaps,256,1411713
-decaps,512,1337252
-decaps,1024,1328141
-decaps,2048,1337461
-total,256,2611338
-total,512,2469285
-total,1024,2450118
-total,2048,2466433
+keypair,256,389753
+keypair,512,367035
+keypair,1024,364313
+keypair,2048,367777
+encaps,256,827937
+encaps,512,783065
+encaps,1024,775731
+encaps,2048,779264
+decaps,256,1430020
+decaps,512,1357705
+decaps,1024,1349812
+decaps,2048,1360350
+total,256,2647710
+total,512,2507805
+total,1024,2489856
+total,2048,2507391
