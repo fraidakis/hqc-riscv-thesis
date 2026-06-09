@@ -1,0 +1,70 @@
+% Dual-axis chart: polymul .text (KB) vs instret per tier (HQC-128)
+% Data source: results/simulation/benchmarks/components/poly_mul/sim_mul_*_latest.csv
+% §9.3
+\tikzsetnextfilename{ch9-discussion-code-size-dual-axis}
+\begin{tikzpicture}
+\pgfplotsset{
+    every axis/.append style={
+        width=0.78\textwidth,
+        height=6.5cm,
+    }
+}
+\begin{axis}[
+    ybar,
+    bar width=20pt,
+    axis y line*=left,
+    ylabel={polymul \instret ($\times 10^3$)},
+    ylabel style={blue!70!black},
+    symbolic x coords={scalar\_ref, scalar\_zb, vector\_rvv, vector\_zvk},
+    xtick=data,
+    x tick label style={font=\small, rotate=15, anchor=east},
+    ymin=0,
+    ymax=300,
+    ytick={0,50,100,150,200,250},
+    y tick label style={blue!70!black},
+    nodes near coords,
+    nodes near coords style={font=\tiny, anchor=south, blue!70!black},
+    point meta=explicit symbolic,
+    axis lines*=left,
+    grid=major,
+    grid style={gray!15},
+    legend style={at={(0.02,0.98)}, anchor=north west, font=\small},
+]
+
+% instret bars (divided by 1000 for readability; scalar_ref excluded from main plot due to scale)
+\addplot[fill=blue!50, draw=blue!80!black] coordinates {
+    (scalar\_ref, 0) [{\footnotesize N/A}]
+    (scalar\_zb, 221.0) [\num{221030}]
+    (vector\_rvv, 157.5) [\num{157473}]
+    (vector\_zvk, 62.5) [\num{62530}]
+};
+\addlegendentry{polymul \instret}
+
+\end{axis}
+
+\begin{axis}[
+    axis y line*=right,
+    axis x line=none,
+    ylabel={\code{.text} polymul (\si{\kilo\byte})},
+    ylabel style={red!70!black},
+    symbolic x coords={scalar\_ref, scalar\_zb, vector\_rvv, vector\_zvk},
+    xtick=\empty,
+    ymin=0,
+    ymax=18,
+    ytick={0,3,6,9,12,15,18},
+    y tick label style={red!70!black},
+    width=0.78\textwidth,
+    height=6.5cm,
+    legend style={at={(0.02,0.85)}, anchor=north west, font=\small},
+]
+
+\addplot[red!70!black, ultra thick, mark=diamond*, mark size=4pt] coordinates {
+    (scalar\_ref, 2.0)
+    (scalar\_zb, 15.3)
+    (vector\_rvv, 8.0)
+    (vector\_zvk, 5.9)
+};
+\addlegendentry{\code{.text} polymul}
+
+\end{axis}
+\end{tikzpicture}

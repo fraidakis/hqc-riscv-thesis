@@ -32,7 +32,7 @@ rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimiza
 Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vv} επιτυγχάνει \speedup{296} στο
 polymul (HQC-128) και \speedup{513} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
 \speedup{154} (HQC-128) και \speedup{317} (HQC-256), τοποθετώντας τον
-\instret σε \num{729397} — της ίδιας τάξης μεγέθους με τον Intel AVX-512
+\instret σε \num{729397} — της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT
 champion (\cref{ssec:avx512-gap}).
 
 \paragraph{Βοηθητικοί πυρήνες}
@@ -83,7 +83,7 @@ vector pipeline stalls.  Η πραγματική απόδοση σε silicon α�
 unit.
 
 \paragraph{Ετερογένεια μετρικών στη cross-architecture σύγκριση}
-Η σύγκριση με Intel AVX-512, AMD Zen~4, και ARM Cortex-M4
+Η σύγκριση με x86-64 (AVX2+GFNI), AMD Zen~4, και ARM Cortex-M4
 (\cref{sec:cross-architecture}) αντιπαραθέτει \instret (Spike) με κύκλους
 ρολογιού (πραγματικό hardware).  Η άμεση αριθμητική σύγκριση δεν επιτρέπεται
 χωρίς επιφυλάξεις — ο \instret αποτελεί κάτω φράγμα κύκλων σε κάθε ρεαλιστικό

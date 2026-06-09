@@ -259,8 +259,8 @@
 ### §9.3 Code Size vs Performance Trade-off
 
 * `scripts/gen/gen_karatsuba_specialized.py` - **Script** - Generator controls unroll depth; different depths produce different .text sizes
-* `results/reports/variants/scalar_Zb_L128_report.md` - **Data Report** - Contains .text size data for scalar fully-unrolled path
-* `results/reports/variants/vector_Zvk_L128_report.md` - **Data Report** - Contains .text size data for vector path (compact VLA helpers)
+* `results/reports/variants/scalar_zb_L128_report.md` - **Data Report** - Contains .text size data for scalar fully-unrolled path
+* `results/reports/variants/vector_zvk_L128_report.md` - **Data Report** - Contains .text size data for vector path (compact VLA helpers)
 * `scripts/experiments/run_hybrid_depth_sweep.sh` - **Script** - Hybrid recursion depth sweep used to scan the depth × instret × .text trade-off
 * `results/reports/figures/scatter_code_size.pdf` - **Figure** - Scatter plot: .text size vs instret per variant/configuration
 

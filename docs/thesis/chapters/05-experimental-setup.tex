@@ -303,7 +303,7 @@ intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse
 \code{scalar\_zb}) και ως cross-validation εργαλείο.  Η σύγκριση GCC–Clang
 στο reference scalar baseline αποκαλύπτει ότι ο GCC~15.2 με \code{-O3} παράγει
 \pct{2.9} λιγότερες εντολές από τον Clang (\num{113958344} έναντι
-\num{117344294} στο HQC-128), ενώ στα υψηλότερα security levels η διαφορά
+\num{117344266} στο HQC-128), ενώ στα υψηλότερα security levels η διαφορά
 μειώνεται ελαφρά (από \pct{2.9} σε \pct{1.9}).  Η διαφορά αυτή οφείλεται στην
 επιθετικότερη loop unrolling πολιτική του GCC στον bit-serial πολλαπλασιασμό —
 ένα πλεονέκτημα που εξαφανίζεται στους βελτιστοποιημένους Karatsuba πυρήνες

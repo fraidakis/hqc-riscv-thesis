@@ -1,0 +1,23 @@
+% Table: Full-KEM .text footprint per tier and security level
+% Data source: results/simulation/benchmarks/kem/sim_kem_*_latest.csv (commit ccbe5e7/20def7e/445e0cb)
+% §9.3
+\begin{tabular}{l
+    S[table-format=5.0] S[table-format=2.1]
+    S[table-format=5.0] S[table-format=2.1]
+    S[table-format=5.0] S[table-format=2.1]}
+  \toprule
+  \textbf{Variant (Tier)} &
+    \multicolumn{2}{c}{\textbf{HQC-128}} &
+    \multicolumn{2}{c}{\textbf{HQC-192}} &
+    \multicolumn{2}{c}{\textbf{HQC-256}} \\
+  \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+  & {\code{.text} (B)} & {\si{\kilo\byte}} &
+    {\code{.text} (B)} & {\si{\kilo\byte}} &
+    {\code{.text} (B)} & {\si{\kilo\byte}} \\
+  \midrule
+  \code{scalar\_ref} (Tier~0)  & 32176 & 31.4 & 33930 & 33.1 & 41392 & 40.4 \\
+  \code{scalar\_zb}  (Tier~1)  & 47788 & 46.7 & 50940 & 49.7 & 55672 & 54.4 \\
+  \code{vector\_rvv} (Tier~2)  & 40890 & 39.9 & 44602 & 43.6 & 48600 & 47.5 \\
+  \code{vector\_zvk} (Tier~3)  & 46104 & 45.0 & 50316 & 49.1 & 57448 & 56.1 \\
+  \bottomrule
+\end{tabular}
