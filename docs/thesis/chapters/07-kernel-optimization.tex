@@ -18,7 +18,7 @@
 Η μετάθεση Keccak-f[1600] αποτελεί τον υπολογιστικό πυρήνα κάθε κλήσης
 SHAKE-256 και SHA3 εντός του \gls{hqc}.  Μετά τη βελτιστοποίηση του πολυωνυμικού
 πολλαπλασιασμού, το ποσοστό του Keccak στο συνολικό \gls{kem} \instret αυξήθηκε
-από $\approx\pct{2}$ (στο reference baseline) σε \pct{17}–\pct{34} ανάλογα
+από $<\pct{1}$ σε \pct{17}–\pct{33} ανάλογα
 με το tier — αποτέλεσμα του νόμου Amdahl.  Η ενότητα αυτή
 παρουσιάζει τρεις εναλλακτικές υλοποιήσεις αυξανόμενης πολυπλοκότητας:
 scalar με \gls{zbb} auto-lowering, Base-\RVV (απορριφθείσα), και Vector-Crypto
@@ -26,10 +26,10 @@ scalar με \gls{zbb} auto-lowering, Base-\RVV (απορριφθείσα), κα�
 
 %% --------------------------------------------------------------------------
 \subsection{Scalar Path: Αξιοποίηση \Zbb}
-\label{sec:keccak-scalar-zbb}
+\label{ssec:keccak-scalar-zbb}
 
 Ο scalar πυρήνας Keccak αποτελεί τη βάση αναφοράς για τα Tier~1 και Tier~2
-profiles.  Η reference υλοποίηση (προερχόμενη από το PQClean)
+profiles.  Η reference υλοποίηση (προερχόμενη από το PQClean~\cite{pqclean2022})
 εφαρμόζει \num{24} γύρους της πεντάβηθμης απεικόνισης
 $\theta \to \rho \to \pi \to \chi \to \iota$ σε μία κατάσταση \num{25}
 lanes $\times$ \num{64} bits.  Κάθε γύρος χρησιμοποιεί τρία κρίσιμα
@@ -64,7 +64,7 @@ reference baseline (schoolbook polymul), η αφαίρεση της \gls{zbb} π
 $\approx\speedup{34}$, η αφαίρεση της \gls{zbb} επιβάλλει ποινή \pct{10.5}
 (HQC-128), \pct{8.7} (HQC-192) και \pct{6.0} (HQC-256) στο συνολικό \gls{kem}
 \instret.  Η φθίνουσα τάση επιβεβαιώνει τον μηχανισμό Amdahl: ο αριθμός
-περιστροφών Keccak (\num{58} ανά permutation) παραμένει σταθερός, ενώ το
+περιστροφών Keccak (\num{58} \rori εντολές στατικά στο ELF) παραμένει σταθερός, ενώ το
 κόστος Karatsuba αυξάνεται υπεργραμμικά με το security level.
 
 Η \gls{zbb} αποτελεί συνεπώς υποχρεωτική αρχιτεκτονική απαίτηση για το Tier~1
@@ -72,12 +72,12 @@ profile.  Η αναθεωρημένη ελάχιστη ISA ορίζεται ως
 
 %% --------------------------------------------------------------------------
 \subsection{Base-RVV Path και το \q{RVV Paradox}}
-\label{sec:keccak-rvv-paradox}
+\label{ssec:keccak-rvv-paradox}
 
 Η πρώτη προσπάθεια διανυσματοποίησης του Keccak χρησιμοποίησε αποκλειστικά
 τη βασική \RVV 1.0 extension (χωρίς \gls{zvbb}).  Η κατάσταση \num{25} lanes
 αναπαραστάθηκε ως ένα LMUL=8 vector register group (\code{vuint64m8\_t},
-$\text{vl}=25$ στο \VLEN=256), και τα βήματα $\rho$/$\pi$ υλοποιήθηκαν μέσω
+$\text{vl}=25$ στο \VLEN{}=\num{256}), και τα βήματα $\rho$/$\pi$ υλοποιήθηκαν μέσω
 \insn{vrgather.vv}.
 
 Η κρίσιμη αδυναμία εντοπίζεται στο βήμα $\rho$: χωρίς την εντολή
@@ -90,7 +90,7 @@ permutation) υπερκαλύπτει κάθε κέρδος παραλληλισ
 Η μέτρηση σε Spike επιβεβαίωσε την υπόθεση: η Base-\RVV υλοποίηση απαιτεί
 \cycles{7100} \instret ανά απομονωμένη Keccak-f[1600] permutation, έναντι
 \cycles{4680} του scalar reference — αύξηση \pct{52}.  Η
-\defterm{διανυσματοποίηση επιδεινώνει} την απόδοση αντί να τη βελτιώνει.
+\emph{διανυσματοποίηση επιδεινώνει} την απόδοση αντί να τη βελτιώνει.
 
 Το φαινόμενο αυτό ονομάζεται εδώ \defterm{RVV Paradox}: για ακανόνιστες
 μεταθέσεις (irregular permutations) όπως ο Keccak, η πληρότητα του ISA
@@ -99,12 +99,12 @@ permutation) υπερκαλύπτει κάθε κέρδος παραλληλισ
 εγγυάται επιτάχυνση — ιδιαίτερα όταν η κατάσταση (\num{1600} bits) χωράει
 ήδη στο scalar register file (\num{32} $\times$ \num{64} = \num{2048} bits).
 
-Η σύγκριση με την αρχιτεκτονική ARM ενισχύει το επιχείρημα.  Η ARMv8.2+SHA3
+Η σύγκριση με την αρχιτεκτονική ARM ενισχύει το επιχείρημα.  Η ARMv8.2-SHA3 (FEAT\_SHA3)
 παρέχει τέσσερις αφιερωμένες εντολές: \insn{eor3} (3-way XOR για $\theta$),
 \insn{rax1} (rotate-accumulate XOR), \insn{xar} (XOR + rotate για
 $\rho$/$\pi$), και \insn{bcax} (bit-clear-and-XOR για $\chi$).  Κάθε μία
-αντικαθιστά \num{2}–\num{3} γενικές εντολές, παρέχοντας \speedup{4}–\speedup{6}
-έναντι scalar σε A55/A72 πυρήνες.  Στο RISC-V, η πλησιέστερη αντιστοιχία
+αντικαθιστά \num{2}–\num{3} γενικές εντολές, παρέχοντας έως \speedup{1.89}~\cite{becker2022keccak}
+έναντι scalar σε πυρήνες με ARMv8.2-SHA3/ARMv8.4-A SHA-3 (οι Cortex-A55/A72 δεν υλοποιούν τις εντολές αυτές).  Στο RISC-V, η πλησιέστερη αντιστοιχία
 απαιτεί \gls{zvbb} (\insn{vror.vv} + \insn{vandn.vv}) — χωρίς αυτήν, η
 αρχιτεκτονική υστερεί δομικά.
 
@@ -116,7 +116,7 @@ $\rho$/$\pi$), και \insn{bcax} (bit-clear-and-XOR για $\chi$).  Κάθε �
   \centering
   \caption{Εντολικό κόστος Keccak rotation ανά ISA configuration.  Η στήλη
            \q{instret/perm} αναφέρεται σε απομονωμένη Keccak-f[1600]
-           permutation μετρημένη σε Spike (\VLEN=256).}
+           permutation μετρημένη σε Spike (\VLEN{}=\num{256}).}
   \label{tab:keccak-rotation-cost}
   \input{figures/ch7-kernels/keccak-rotation-comparison}
 \end{table}
@@ -127,7 +127,7 @@ Tier~2 χρησιμοποιούν τον scalar \gls{zbb} πυρήνα, ενώ �
 
 %% --------------------------------------------------------------------------
 \subsection{Vector-Crypto Path: Δικαναλική SoA Αρχιτεκτονική με \Zvbb}
-\label{sec:keccak-zvbb-soa}
+\label{ssec:keccak-zvbb-soa}
 
 Η \gls{zvbb} extension προσθέτει δύο κρίσιμες εντολές: \insn{vror.vv}/\insn{vror.vi}
 (vector rotate-right) και \insn{vandn.vv} (vector AND-NOT).  Αυτές εξαλείφουν
@@ -146,7 +146,7 @@ group και χρησιμοποίησε \insn{vrgather.vv} για το $\pi$ ste
 ένα δομικό αρχιτεκτονικό εμπόδιο.
 
 \paragraph{Φάση 2: Ανακάλυψη του Register Wall.}
-Στο \VLEN=256 με LMUL=8, το vector register file διαιρείται σε ακριβώς
+Στο \VLEN{}=\num{256} με LMUL=8, το vector register file διαιρείται σε ακριβώς
 \num{4} groups.  Η ταυτόχρονη διατήρηση του state vector, ενός scratch
 group, και τεσσάρων hoisted index vectors απαιτεί \num{5} groups — ένα
 περισσότερο από τα διαθέσιμα.  Ο μεταγλωττιστής αντέδρασε εκχύνοντας
@@ -156,7 +156,7 @@ $48 \times \insn{vse64.v} + 48 \times \insn{vle64.v}$ — κόστος που
 Η μετρούμενη παλινδρόμηση ήταν $+\num{47663}$ \instret στο \Decaps path.
 
 Η παρατήρηση αυτή εδραίωσε μία θεμελιώδη αρχιτεκτονική αρχή: σε LMUL=8
-στο \VLEN=256, η loop-invariant code motion για vector σταθερές είναι
+στο \VLEN{}=\num{256}, η loop-invariant code motion για vector σταθερές είναι
 αντιπαραγωγική.  Οι \num{4} διαθέσιμοι groups καταναλώνονται πλήρως από
 (state + scratch), και κάθε πρόσθετη live σταθερά επιβάλλει spill
 μεγαλύτερου κόστους από τον υπολογισμό που αντικαθιστά.
@@ -196,11 +196,7 @@ $48 \times \insn{vse64.v} + 48 \times \insn{vle64.v}$ — κόστος που
 του call graph του \gls{hqc} αποκάλυψε ότι η μέγιστη ταυτόχρονη ανεξαρτησία
 SHAKE contexts εντός μίας \gls{kem} κλήσης είναι $N=2$ (στο \KeyGen, όπου
 δύο XOF contexts — \code{dk\_xof\_ctx} και \code{ek\_xof\_ctx} — εξελίσσονται
-ανεξάρτητα μετά την κοινή seed derivation).  Μία 4-way υλοποίηση θα
-απαιτούσε $25 \times 4 = 100$ lanes — πολύ περισσότερα από τους \num{32}
-διαθέσιμους vector registers — προκαλώντας register spilling.  Πειραματική
-επιβεβαίωση: ένα 4-way prototype εγκαταλείφθηκε λόγω register pressure
-($25 \times 4 > 32$).
+ανεξάρτητα μετά την κοινή seed derivation).  Μία 4-way υλοποίηση δεν θα απέδιδε επιπλέον όφελος: το \gls{hqc} δεν εκθέτει περισσότερα από \num{2} ανεξάρτητα SHAKE contexts ταυτόχρονα, οπότε δύο από τις τέσσερις λωρίδες θα έμεναν ανεκμετάλλευτες, με πρόσθετο κόστος packing/interleaving.  Η οροφή είναι αλγοριθμική (συντρέχουσα ανεξαρτησία $N=2$), όχι περιορισμός register pressure: στο \VLEN{}=\num{256} ένας LMUL=1 καταχωρητής χωρά \num{4} λωρίδες των \num{64} bit, άρα ακόμη και μια 4-way διάταξη ($\text{vl}=4$) θα χρησιμοποιούσε μόνο \num{25} καταχωρητές.
 
 \paragraph{Ποσοτικά αποτελέσματα.}
 Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2}) επιτυγχάνει
@@ -214,7 +210,7 @@ SHAKE contexts εντός μίας \gls{kem} κλήσης είναι $N=2$ (στ
 
 %% --------------------------------------------------------------------------
 \subsection{Βελτιστοποιήσεις Absorb/Squeeze I/O}
-\label{sec:keccak-io}
+\label{ssec:keccak-io}
 
 Πέρα από τον permutation core, οι φάσεις absorb και squeeze αποτελούν
 δευτερεύον hotspot.  Η reference υλοποίηση χρησιμοποιεί δύο
@@ -226,7 +222,7 @@ instruction-heavy patterns: (α) byte-by-byte XOR βρόχο στη
 \paragraph{RVV Byte-Streaming.}
 Ο scalar word-aligned βρόχος αντικαταστάθηκε από ένα \RVV VLA
 byte-streaming loop χρησιμοποιώντας \insn{vle8.v}/\insn{vxor.vv}/\insn{vse8.v}
-σε LMUL=8.  Στο \VLEN=256, $\text{vlmax} = 256$ bytes — επαρκές για κάλυψη
+σε LMUL=8.  Στο \VLEN{}=\num{256}, $\text{vlmax} = 256$ bytes — επαρκές για κάλυψη
 οποιουδήποτε Keccak-rate block (SHAKE-256: \num{136} bytes, SHAKE-128:
 \num{168} bytes) σε μία μόνο vector iteration.  Μία scalar pre-alignment
 φάση προωθεί τον byte pointer σε 8-byte σύνορο πριν εισέλθει στον vector
@@ -328,8 +324,8 @@ $\BigO{\delta^2}$ πολλαπλασιασμούς.
 και \code{find\_peaks} (εύρεση θέσης μεγίστου).
 
 Ο πυρήνας της vectorization είναι ο FHT.  Κάθε pass εκτελεί \num{64}
-butterfly ζεύγη με stride-2 πρόσβαση — pattern που αντιστοιχεί απευθείας
-στην εντολή \insn{vlse16} (strided load).  Στο \VLEN=256, SEW=16, LMUL=4,
+butterfly ζεύγη με stride-2 πρόσβαση (σε στοιχεία· ισοδύναμο με byte-stride \num{4} για \code{int16}) — pattern που αντιστοιχεί απευθείας
+στην εντολή \insn{vlse16} (strided load).  Στο \VLEN{}=\num{256}, SEW=16, LMUL=4,
 η hardware vector length φτάνει \num{64} στοιχεία — επαρκή για κάλυψη
 όλων των butterfly ζευγών σε μία μόνο vector πράξη (\cref{lst:hadamard-rvv}):
 
@@ -341,6 +337,8 @@ vint16m4_t odd  = vlse16_v(in + 1, stride=4); // p1[1,3,...,127]
 vse16_v(out,      vadd_vv(even, odd, vl));     // sums
 vse16_v(out + 64, vsub_vv(even, odd, vl));     // diffs
 \end{lstlisting}
+
+\noindent Τα intrinsics στα listings παρατίθενται σε συντομευμένη μορφή (π.χ. \code{vlse16\_v}, \code{vadd\_vv})· τα πλήρη ονόματα ακολουθούν τη σύμβαση \code{\_\_riscv\_*} (π.χ. \code{\_\_riscv\_vlse16\_v\_i16m4}).
 
 Κάθε pass απαιτεί ακριβώς \num{6} vector εντολές (2 strided loads, 2
 αριθμητικές, 2 contiguous stores) — σύνολο \num{42} vector εντολές για
@@ -367,13 +365,13 @@ LMUL=8 ($\text{vl}=128$) για σάρωση ολόκληρου του μετα�
 %
 μέσω πέντε vectorized βημάτων ανά iteration: (1)~indexed gather στον
 \code{gf\_log[]} πίνακα μέσω \insn{vluxei16}, (2)~modular πρόσθεση
-λογαρίθμων με branchless conditional subtract ($\geq 255 \Rightarrow -255$),
+λογαρίθμων με branchless conditional subtract ($\geq 255 \Rightarrow -255$)~(\cref{sec:ct-verification}, χωρίς εξάρτηση από \ext{Zkt}),
 (3)~indexed gather στον \code{gf\_exp[]} πίνακα, (4)~zero-masking μέσω
 \insn{vmsne} + \insn{vmand} + \insn{vmerge} για τη συνθήκη $0 \cdot x = 0$,
 και (5)~XOR-reduction μέσω \insn{vredxor}.
 
 Η παραμετροποίηση SEW=16, LMUL=4 παρέχει $\text{vl}=64$ lanes στο
-\VLEN=256 — \num{4} φορές ευρύτερο παραλληλισμό ανά pass σε σχέση με
+\VLEN{}=\num{256} — \num{4} φορές ευρύτερο παραλληλισμό ανά pass σε σχέση με
 την \gls{zvbc} lane-packing προσέγγιση (SEW=64, $\text{vl}=16$).  Ο αριθμός
 passes ανά syndrome είναι $\lceil (N_1 - 1) / 64 \rceil$: μόλις \num{1}
 pass για HQC-128/192 ($N_1 = 46, 56$) και \num{2} passes για HQC-256
@@ -410,7 +408,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
 στους εσωτερικούς βρόχους.
 
 \paragraph{Axis B: Berlekamp-Massey (\code{compute\_elp\_zvbc}).}
-Ο αλγόριθμος \gls{bm} εκτελεί $2\delta$ εξωτερικές επαναλήψεις, κάθε μία
+Ο αλγόριθμος \gls{bm}~\autocite{Berlekamp1978} εκτελεί $2\delta$ εξωτερικές επαναλήψεις, κάθε μία
 εξαρτώμενη διαδοχικά από την τιμή discrepancy $d$ και τις μεταβλητές
 ελέγχου βαθμού.  Ο εξωτερικός βρόχος δεν παραλληλοποιείται.  Ωστόσο, κάθε
 επανάληψη περιέχει τρεις εσωτερικούς βρόχους αυξανόμενου μήκους (από
@@ -421,7 +419,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
         — broadcast του scalar $dd$ μέσω \insn{vmv.v.x}, \insn{vclmul.vv}
         με τα zero-extended $X_{\sigma_p}$ στοιχεία, Barrett reduction, και
         XOR με τα τρέχοντα $\sigma$ values.
-  \item \textbf{Blend}: constant-time conditional copy μέσω bitwise select
+  \item \textbf{Blend}: constant-time conditional copy~(\cref{sec:ct-verification}) μέσω bitwise select
         pattern (\insn{vand} + \insn{vxor}) σε SEW=16, LMUL=4 — χωρίς
         $\GF{2^8}$ πολλαπλασιασμό.
   \item \textbf{Discrepancy dot-product}: φόρτωση $\sigma[1..n]$ contiguously
@@ -430,12 +428,12 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
         XOR-accumulation μέσω \insn{vredxor}.
 \end{enumerate}
 
-Στο LMUL=4, SEW=64, $\text{vl}=16$ (\VLEN=256): οι εσωτερικοί βρόχοι
+Στο LMUL=4, SEW=64, $\text{vl}=16$ (\VLEN{}=\num{256}): οι εσωτερικοί βρόχοι
 χωράνε σε \num{1} vector pass για HQC-128 ($\delta=15$) και HQC-192
 ($\delta=16$), και σε \num{2} passes για HQC-256 ($\delta=29$).
 
 \paragraph{Axis D: Forney Error-Values (\code{compute\_error\_values\_zvbc}).}
-Ο τύπος Forney υπολογίζει τιμές σφάλματος $e_j$ για κάθε θέση σφάλματος.
+Ο τύπος Forney~\autocite{Forney1966} υπολογίζει τιμές σφάλματος $e_j$ για κάθε θέση σφάλματος.
 Δύο δομές vectorized:
 
 \begin{itemize}
@@ -460,7 +458,7 @@ Axes B+D σε απομόνωση (πριν την ενσωμάτωση του Ax
 \begin{table}[htbp]
   \centering
   \caption{Αποτελέσματα \Zvbc vectorization Axes B+D στο \Decaps \instret (variant
-           \texttt{vector\_zvk}, \VLEN=256, σε ενδιάμεσο build πριν την ενσωμάτωση
+           \texttt{vector\_zvk}, \VLEN{}=\num{256}, σε ενδιάμεσο build πριν την ενσωμάτωση
            του Axis~C).  Η βελτίωση κλιμακώνεται με $\delta^2$ — μέγιστη στο HQC-256
            ($\delta=29$).}
   \label{tab:decode-rs-zvbc}
@@ -480,7 +478,7 @@ throughput.  Τα \KeyGen και \Encaps παραμένουν αμετάβλητ
 
 Ο Axis~C αξιολογεί το error-locator πολυώνυμο $\sigma(x)$ σε όλα τα
 $2^M = 256$ σημεία του $\GF{2^8}$ μέσω αναδρομικής radix αποσύνθεσης
-(additive Gao-Mateer \gls{fft}).  Η reference υλοποίηση (\code{fft\_rec})
+(additive Gao-Mateer \gls{fft}~\autocite{GaoMateer2010}).  Η reference υλοποίηση (\code{fft\_rec})
 εκτελεί depth-first αναδρομική διάσχιση ενός δυαδικού δέντρου βάθους
 \code{PARAM\_M} (= 8), με $\BigO{2^M}$ κλήσεις συναρτήσεων.
 
@@ -527,11 +525,11 @@ allocation.
         \insn{vzext} u16→u64 → \insn{vclmul.vv} → Barrett reduction →
         narrowing u64→u16 → \insn{vse16}.  Η περίπτωση $\beta = 1$
         (identity) εκτελείται χωρίς branch — η \code{gf\_mul}(1, x) = x
-        αποτελεί fixed-latency vector no-op.
+        αποτελεί fixed-latency vector no-op~(\cref{sec:ct-verification}).
   \item \textbf{\code{xor\_broadcast\_zvbc}$(dst, src, len, val)$}: υπολογίζει
         $dst[k] = src[k] \oplus val$ μέσω \gls{vla} loop:
         \insn{vle16}/\insn{vxor.vx}/\insn{vse16} σε SEW=16, LMUL=4
-        ($\text{vl}=64$ στο \VLEN=256).  Αντικαθιστά τον scalar βρόχο
+        ($\text{vl}=64$ στο \VLEN{}=\num{256}).  Αντικαθιστά τον scalar βρόχο
         XOR-broadcast σε κάθε επίπεδο δέντρου.
   \item \textbf{\code{gammas\_sums\_combine\_zvbc}$(out, u, gs, v, count)$}:
         υπολογίζει $out[i] = u[i] \oplus \text{gf\_mul}(gs[i], v[i])$ μέσω
@@ -551,7 +549,7 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
   \centering
   \caption{Συνολικό decode pipeline \instret: scalar reference έναντι
            πλήρους \Zvbc υλοποίησης (Axes A+B+C+D).  Μέτρηση σε Spike,
-           \VLEN=256.}
+           \VLEN{}=\num{256}.}
   \label{tab:decode-instret}
   \input{figures/ch7-kernels/decode-instret-table}
 \end{table}
@@ -571,7 +569,7 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
 μειώνοντας αναλογικά το ποσοστό function-call overhead που εξαλείφθηκε.
 
 Συνολικά, η πλήρης Tier~3 decode υλοποίηση (Axes A+B+C+D) επιτυγχάνει
-\speedup{6.81} (HQC-128), \speedup{7.78} (HQC-192) και \speedup{7.21}
+\speedup{6.81} (HQC-128), \speedup{7.78} (HQC-192) και \speedup{7.20}
 (HQC-256) στο decode pipeline.  Η ορθότητα επιβεβαιώθηκε μέσω
 \num{300}/\num{300} \gls{kat} vectors σε όλα τα security levels.
 
@@ -588,12 +586,12 @@ scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction.  Η
 κόστος σε \num{6} vector εντολές.
 
 \paragraph{Μαθηματική θεμελίωση.}
-Η Barrett reduction στο $\GF{2}[x]$ υπολογίζει:
+Η Barrett reduction στο $\GF{2}[x]$~\cite{Barrett1986} υπολογίζει:
 \begin{align}
-  \text{high} &= v \gg 8 \label{eq:barrett-high} \\
-  q &= (\text{high} \otimes \mu) \gg 8 \label{eq:barrett-q} \\
-  \text{corr} &= q \otimes p(x) \label{eq:barrett-corr} \\
-  r &= (v \oplus \text{corr}) \mathbin{\&} \text{0xFF} \label{eq:barrett-r}
+  \text{high} &= v \gg 8 \\
+  q &= (\text{high} \otimes \mu) \gg 8 \\
+  \text{corr} &= q \otimes p(x) \\
+  r &= (v \oplus \text{corr}) \mathbin{\&} \text{0xFF}
 \end{align}
 %
 όπου $\mu = \lfloor x^{16} / p(x) \rfloor = \text{0x11C}$ στο $\GF{2}[x]$
@@ -638,7 +636,6 @@ $\GF{2^8}$ irreducible $\text{0x11D}$.  Πειραματική επαλήθευ�
 μικρή απόλυτη τιμή αντανακλά το γεγονός ότι η reduction αποτελεί μικρό
 κλάσμα του ήδη βελτιστοποιημένου decode pipeline — αλλά η \pct{50} μείωση
 εντολών ανά reduction κλήση αθροίζεται σε χιλιάδες εκτελέσεις ανά \Decaps.
-Η ορθότητα επιβεβαιώθηκε μέσω \num{300}/\num{300} \gls{kat} vectors.
 
 %% ============================================================================
 \section{Βοηθητικοί Πυρήνες και Πρωτόγονες Πράξεις}
@@ -660,7 +657,7 @@ $\GF{2^8}$ irreducible $\text{0x11D}$.  Πειραματική επαλήθευ�
 
 Η \code{vect\_add} εκτελεί bitwise XOR δύο πολυωνυμικών διανυσμάτων
 αναπαρασταμένων ως πίνακες \code{uint64\_t} μήκους \code{VEC\_N\_SIZE\_64}.
-Καλείται \num{3}–\num{5} φορές ανά \gls{kem} κλήση (μία στο \KeyGen, δύο στο
+Καλείται \num{5} φορές ανά πλήρη \gls{kem} κύκλο (μία στο \KeyGen, δύο στο
 \Encaps, δύο στο \Decaps) και αποτελεί θεμελιώδη πρωτόγονη πράξη του
 αλγορίθμου.
 
@@ -690,7 +687,7 @@ while (i < n) {
 }
 \end{lstlisting}
 
-Στο \VLEN=256 με LMUL=8, η hardware vector length ισούται με \num{32}
+Στο \VLEN{}=\num{256} με LMUL=8, η hardware vector length ισούται με \num{32}
 elements (64-bit).  Η \num{277}-word πράξη XOR ολοκληρώνεται σε
 $\lceil 277/32 \rceil = 9$ vector iterations, εκάστη αποτελούμενη από
 \num{4} vector εντολές (2 loads, 1 XOR, 1 store) και \num{2} εντολές
@@ -700,7 +697,7 @@ loop control (\insn{add}~$i$\code{+=vl} + \insn{bltu}).
 σταθερό~$n$ — αφήνοντας $9 \times 6 = 54$ εντολές ανά κλήση
 (εκτίμηση πρώτης τάξης βάσει disassembly \code{-O3}),
 ήτοι $\approx\num{54}$ εντολές —
-μείωση \speedup{20} έναντι του scalar path (\approx\num{1108} εντολές).
+μείωση του αριθμού εντολών κατά παράγοντα \num{20} έναντι του scalar path ($\approx\num{1108}$ εντολές).
 
 Η πράξη XOR είναι εγγενώς ανεξάρτητη δεδομένων και δεν εισάγει
 πλευρικό κανάλι χρονισμού.  Η επιλογή LMUL=8 μεγιστοποιεί τη
@@ -740,14 +737,14 @@ for (uint32_t i = 0; i < VEC_N_SIZE_64; i++) {
 \end{lstlisting}
 
 Στο HQC-128 ($\code{VEC\_N\_SIZE\_64}=277$, $\code{weight}=75$), ο
-εσωτερικός βρόχος εκτελεί $277 \times 75 = \num{20775}$ iterations,
+εσωτερικός βρόχος εκτελεί $277 \times 75 = 20775$ iterations (το $\code{weight}=75$ αφορά τα $r_1, r_2, e$ του \Encaps μέσω \code{PARAM\_OMEGA\_R}· για τα $x, y$ του \KeyGen ισχύει $\code{weight}=66$, δηλ. $277 \times 66 = 18282$),
 εκάστη $\approx\num{8}$ εντολών: \insn{sub}~$i-\mathit{index}$ (1),
 \insn{neg}+\insn{or}+\insn{srai}~31 (3), \insn{neg}~mask (1),
 \insn{and}+\insn{or}~$\mathit{val}$ (2), με το branch/counter (+1)
 εφαρμοζόμενο κάθε $j$-iteration — σύνολο $\approx 8$ per inner
 iteration (εκτίμηση πρώτης τάξης· ο ακριβής αριθμός εξαρτάται από
 το unrolling του compiler στο \code{-O3}).  Profiling κατέταξε τη συνάρτηση ως \pct{20.99}
-του συνολικού \gls{kem} \instret στο scalar baseline — δεύτερη μεμονωμένη
+του συνολικού \gls{kem} \instret στο post-Karatsuba scalar (\code{scalar\_zb}) προφίλ — δεύτερη μεμονωμένη
 συνάρτηση μετά το \code{memset} (\pct{23.13}) και ανώτερη του
 \code{KeccakF1600\_StatePermute} (\pct{6.65}), ή τρίτο hotspot εφόσον
 ομαδοποιηθούν οι επιμέρους συναρτήσεις πολυωνυμικού πολλαπλασιασμού
@@ -770,7 +767,7 @@ for (size_t i = 0; i < weight; i++) {
 index), \insn{andi} (εξαγωγή bit position), και \insn{sll}~+~\insn{or}
 (τοποθέτηση bit).  Σε targets με \ext{Zbs}, το ζεύγος shift-and-OR
 αντικαθίσταται από μία εντολή \insn{bset}.  Ο αριθμός iterations μειώνεται
-από \num{20775} σε \num{75} — παράγοντας μείωσης \speedup{277}.
+από \num{20775} σε \num{75} — παράγοντας μείωσης \num{277}.
 
 \paragraph{Ποσοτικό αποτέλεσμα.}
 Η βελτιστοποίηση μείωσε το \Encaps \instret στο HQC-128 από \num{1165906}
@@ -822,10 +819,10 @@ linker script και η διανυσματοποίηση των runtime memory r
 
 \paragraph{RVV-Vectorized \code{memcpy}.}
 Η freestanding \code{memcpy} αντικαταστάθηκε με ένα \RVV VLA byte-streaming
-loop σε LMUL=8, \SEW=8.  Στο \VLEN=256, η vector length ισούται με \num{256}
+loop σε LMUL=8, \SEW=8.  Στο \VLEN{}=\num{256}, η vector length ισούται με \num{256}
 bytes ανά iteration.  Ένα αντίγραφο \code{VEC\_N\_SIZE\_BYTES} = \num{2216}
 bytes (HQC-128) ολοκληρώνεται σε $\lceil 2216/256 \rceil = 9$ iterations —
-μείωση \speedup{246} σε αριθμό scalar iterations.  Η βελτιστοποίηση
+μείωση κατά παράγοντα \num{246} σε αριθμό iterations έναντι του scalar μονοπατιού.  Η βελτιστοποίηση
 ενεργοποιείται για runtime-variable-size copies (σειριοποίηση κλειδιών,
 parsing ciphertext), ενώ compile-time-constant copies (\eg αντιγραφές
 seeds) μετασχηματίζονται αυτόματα σε native \insn{ld}/\insn{sd} ακολουθίες
@@ -836,7 +833,7 @@ seeds) μετασχηματίζονται αυτόματα σε native \insn{ld}
 buffers (\code{memset\_zero} macro σε \code{uint64\_t} arrays).  Η
 βελτιστοποιημένη υλοποίηση εντοπίζει αυτήν τη χρήση μέσω τριπλού
 φρουρού (\code{c==0}, 8-byte aligned pointer, μήκος πολλαπλάσιο του
-\num{8}) και εκτελεί \RVV zero-fill σε \SEW=64, LMUL=8.  Στο \VLEN=256,
+\num{8}) και εκτελεί \RVV zero-fill σε \SEW=64, LMUL=8.  Στο \VLEN{}=\num{256},
 \num{32} words (\num{256} bytes) μηδενίζονται ανά iteration.  Ο μηδενισμός
 ενός \code{VEC\_N\_SIZE\_64} = \num{277} word buffer ολοκληρώνεται σε
 $\lceil 277/32 \rceil = 9$ vector iterations αντί \num{277} scalar stores.
@@ -858,7 +855,21 @@ I/O/μνήμη λειτουργίες).  Η μείωση του \Encaps \instret
 (direct-scatter, βάση: \Encaps) και η \speedup{20} μείωση εντολών ανά
 κλήση \code{vect\_add} (βάση: ανά-κλήση εντολές) αντικατοπτρίζονται στο
 τελικό αυτό μερίδιο, χωρίς να αθροίζονται μεταξύ τους — οι δύο μετρήσεις
-έχουν διαφορετικές βάσεις αναφοράς.
+έχουν διαφορετικές βάσεις αναφοράς.  Ο \cref{tab:auxiliary-kernels-summary}
+συνοψίζει τις τέσσερις βελτιστοποιήσεις της ενότητας, παρέχοντας
+άμεση σύγκριση baseline έναντι optimized ανά πυρήνα.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύνοψη βελτιστοποιήσεων βοηθητικών πυρήνων (HQC-128,
+           \VLEN{}=\num{256}).  Οι στήλες \q{Baseline}/\q{Optimized}
+           αναφέρονται σε iterations ή εντολές ανά κλήση — βλ.~υποσημείωση
+           για λεπτομέρειες.  Το αποτέλεσμα \code{vect\_write\_support}
+           εκφράζεται ως $\Delta$~\Encaps \instret· το αποτέλεσμα μνήμης
+           ως $\Delta$~\KEM \instret.}
+  \label{tab:auxiliary-kernels-summary}
+  \input{figures/ch7-kernels/auxiliary-kernels-summary-table}
+\end{table}
 
 %% ============================================================================
 \section{Βελτιστοποιήσεις μέσω Compiler Auto-Lowering}
@@ -908,7 +919,7 @@ vclmul_leaf(result + offset, a + half, b + half);
 Κάθε κλήση απαιτεί \num{3}–\num{5} υπολογισμούς pointer offset.
 Για HQC-128, το Karatsuba tree εκτελεί $\approx\num{70}$ αναδρομικές
 κλήσεις — συνολικά \num{210}–\num{350} ζεύγη \code{slli+add} που
-μετατρέπονται σε ισάριθμα \insn{sh3add}.  Πρόσθετη πηγή βελτίωσης
+μετατρέπονται σε ισάριθμα \insn{sh3add} (δυναμικές εκφράσεις ανά εκτέλεση)· οι αντίστοιχες στατικές εμφανίσεις στο ELF είναι \num{146}–\num{211}, όπως καταγράφει ο \cref{tab:extensions-summary}.  Πρόσθετη πηγή βελτίωσης
 αποτελούν οι \RVV strip-mining βρόχοι στις recomposition helpers
 (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}), όπου η προώθηση
 δείκτη \code{ptr += vl} σε \code{uint64\_t*} context δημιουργεί ένα
@@ -953,13 +964,6 @@ extension στο RVA22U64 profile — η ενεργοποίησή της δεν 
 πρόσθετη hardware απαίτηση σε κανένα standards-conformant application
 processor.
 
-\paragraph{Αξιολόγηση \ext{Zicond}.}
-Παράλληλα αξιολογήθηκε η \ext{Zicond} (conditional-zero:
-\insn{czero.eqz}/\allowbreak\insn{czero.nez}).  Η μέτρηση αποκάλυψε μηδενικές
-δυναμικές εκτελέσεις \insn{czero} στο \code{vector\_zvk} — ο compiler
-χρησιμοποιεί εναλλακτικά branchless idioms (conditional moves μέσω
-\code{sub+sra} masking).  Η \ext{Zicond} απορρίφθηκε ως μη ωφέλιμη.
-
 %% --------------------------------------------------------------------------
 \subsection{\ext{Zbs} Single-Bit Operations: \insn{bset}/\insn{bclr}/\insn{bext}}
 \label{ssec:zbs-single-bit}
@@ -998,18 +1002,24 @@ for (size_t i = 0; i < weight; i++) {
 hot paths.
 
 \paragraph{Επίπτωση σε επίπεδο \KEM.}
-Η δυναμική εξοικονόμηση περιορίζεται σε $\approx$\num{375}–\num{450}
-εντολές ανά \gls{kem} κλήση ($1~\text{insn} \times 75~\text{iter.}
-\times 5\text{–}6~\text{calls}$).  Η βελτίωση εντοπίζεται αποκλειστικά
-στο \Decaps path, όπου η re-encapsulation εκτελεί τρεις κλήσεις της
-scatter function.  Σε σχετικούς όρους:
+Στατικά, η βελτιστοποίηση \ext{Zbs} επηρεάζει \num{2} call sites της scatter
+function.  Δυναμικά, η re-encapsulation στο \Decaps path εκτελεί τρεις
+κλήσεις ($r_1$, $r_2$, $e$), εκάστη \num{75} iterations, ήτοι
+$\approx\num{225}$ εντολές καθαρά scatter εξοικονόμησης ανά \Decaps.  Η
+συνολική διαφορά \instret είναι ωστόσο μεγαλύτερη: τα \code{scalar\_ref} και
+\code{scalar\_zb} μοιράζονται πανομοιότυπο \code{vector.c}, οπότε η
+ενεργοποίηση της \ext{Zbs} επαναμεταγλωττίζει ολόκληρη τη μονάδα και το
+καταγεγραμμένο delta αντανακλά τη συνολική recompile, όχι μόνο τη scatter.
+Σε σχετικούς όρους:
 %
 \begin{itemize}
   \item \code{scalar\_zb} (Tier~1): $-\num{14684}$ \instret στο
-        \Decaps ($-\pct{0.71}$), $-\pct{0.44}$ στο πλήρες \gls{kem}.
+        \Decaps ($-\pct{0.70}$), $-\pct{0.43}$ στο πλήρες \gls{kem}
+        (delta πλήρους recompile της κοινής \code{vector.c}, όχι μόνο της
+        scatter).
   \item \code{vector\_zvk} (Tier~3): $-\num{881}$ \instret
         ($-\pct{0.12}$) — αμελητέα, διότι το συνολικό \gls{kem} \instret
-        (\cycles{760132}) είναι δραματικά μικρότερο.
+        (\num{760132}) είναι δραματικά μικρότερο.
 \end{itemize}
 %
 Η αντίστροφη σχέση μεταξύ σχετικής ωφέλειας και tier
@@ -1021,11 +1031,11 @@ scatter function.  Σε σχετικούς όρους:
 \paragraph{Απόφαση.}
 Η \ext{Zbs} ενεργοποιήθηκε μόνο στο scalar march string
 (\code{rv64gc\_zbc\_zbb\_zbs}), όπου η σχετική ωφέλεια είναι μετρήσιμη
-(\pct{0.44}–\pct{0.71} στο \Decaps).  Δεν προστέθηκε στα vector variant
+(\pct{0.43}–\pct{0.70} στο \Decaps).  Δεν προστέθηκε στα vector variant
 march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την πρόσθετη ISA
 δήλωση.  Η επέκταση αποτελεί mandatory στο RVA22U64, επομένως η
 διαθεσιμότητά της σε hardware είναι εγγυημένη — η σχεδιαστική επιλογή
-αφορά αποκλειστικά τη σαφήνεια του ελάχιστου ISA profile ανά tier.
+αφορά αποκλειστικά τη σαφήνεια του ελάχιστου ISA profile ανά tier.  Τα ποσοστά \ext{Zbs} προέρχονται από screening ablation στο scalar profile· καθώς η επέκταση απορρίφθηκε για τα vector variants, δεν εκτελέστηκαν production runs σε L128 με ενεργή \ext{Zbs} — η τιμή \num{760132} αντιστοιχεί στη μέτρηση ablation, έναντι \num{729397} του \code{vector\_zvk\_L128}.
 
 %% --------------------------------------------------------------------------
 \subsection{Πρόσθετες Extensions: Αξιολόγηση και Απόρριψη}
@@ -1047,7 +1057,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
   \item \textbf{\ext{Zicond}} (czero.eqz/czero.nez): μηδενικές δυναμικές
         εκτελέσεις στο \code{vector\_zvk}, $-\pct{0.38}$ στο
         \code{scalar\_zb}.  Ο compiler προτιμά εναλλακτικά branchless
-        idioms.
+        idioms (conditional moves μέσω \code{sub+sra} masking).
   \item \textbf{\ext{Zcb}} (compressed 16-bit encodings): μηδενική μεταβολή
         \instret (η extension αφορά αποκλειστικά code-size encoding).  Η
         μείωση \code{.text} ($-\pct{1}$, $-456$ bytes) είναι αμελητέα
@@ -1069,7 +1079,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
     \midrule
     \ext{Zba} (\insn{sh3add})   & 146–211 & $-\pct{5.61}$ polymul (zvbc) & Promoted \\
     \ext{Zbb} (\rori, \insn{andn}) & 9+ & Ήδη στο baseline & Included \\
-    \ext{Zbs} (\insn{bset})     & 5       & $-\pct{0.44}$ KEM (zbc) & Scalar only \\
+    \ext{Zbs} (\insn{bset})     & 5       & $-\pct{0.43}$ KEM (zbc) & Scalar only \\
     \ext{Zbkb} (pack, brev8)    & 0       & \pct{0}        & Dropped \\
     \ext{Zbkc} (clmulr)         & 0       & \pct{0}        & Dropped \\
     \ext{Zicond} (czero)        & 0–73    & $-\pct{0.38}$  & Dropped \\
@@ -1107,7 +1117,7 @@ target pattern εντός του hot path — μια extension με εκατον
 \paragraph{Εξέλιξη κατανομής σε τρία στάδια.}
 Ο \cref{tab:kernel-redistribution} συνοψίζει τη μετατόπιση ποσοστών μεταξύ
 τριών σταδίων βελτιστοποίησης για το HQC-128, Tier~3
-(\code{vector\_zvk}, \VLEN=256):
+(\code{vector\_zvk}, \VLEN{}=\num{256}):
 %
 \begin{table}[htbp]
   \centering
@@ -1122,12 +1132,12 @@ target pattern εντός του hot path — μια extension με εκατον
 \end{table}
 
 Στο baseline, ο schoolbook πολυωνυμικός πολλαπλασιασμός καταλαμβάνει
-\pct{96} του συνολικού \instret — κάθε άλλος πυρήνας είναι αμελητέος.
-Μετά τη βελτιστοποίηση polymul (Karatsuba + \gls{zvbc} vectorization), ο
+\pct{96} του συνολικού \instret (μερίδιο in-KEM, όχι isolated)· κάθε άλλος πυρήνας είναι αμελητέος.
+Μετά τη βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (Karatsuba + \gls{zvbc} vectorization), ο
 πολυωνυμικός πολλαπλασιασμός μειώνεται δραστικά και αποκαλύπτονται
 δευτερεύοντα bottlenecks: ο Keccak αναδύεται σε \pct{29} και η
 αποκωδικοποίηση σε \pct{11.2} (HQC-128).  Στο τελικό στάδιο, η εφαρμογή
-\gls{zvbb} 2-way \gls{soa} Keccak, η Zvbc FFT root-finding, και οι βοηθητικοί
+\gls{zvbb} 2-way \gls{soa} Keccak, η \gls{zvbc} FFT root-finding, και οι βοηθητικοί
 πυρήνες ισορροπούν πλήρως το προφίλ: polymul (\pct{34.5}), Keccak
 (\pct{24.5}), GF αριθμητική (\pct{7.4}), I/O και μνήμη (\pct{8.5}),
 decode (\pct{8.4}), και λοιπά (\pct{16.7}).
@@ -1155,12 +1165,10 @@ micro-benchmarks) μεταξύ scalar reference και Tier~3 optimized:
 \end{table}
 
 Ο πολυωνυμικός πολλαπλασιασμός επιτυγχάνει τη μεγαλύτερη απόλυτη μείωση
-(\speedup{265} σε isolated benchmark), ο Keccak αποδίδει \speedup{3.5}
+(\speedup{296} σε isolated benchmark), ο Keccak αποδίδει \speedup{3.5}
 σε επίπεδο πλήρους \Decaps call pattern, και η αποκωδικοποίηση \speedup{6.8}
 σε isolated decode.  Η συνδυασμένη εφαρμογή μετατρέπει ένα σύστημα
-κυριαρχούμενο από ένα μονολιθικό hotspot σε ένα ισορροπημένο pipeline — μια
-κλασική μετατόπιση κατά Amdahl, όπου το νέο όριο επιτάχυνσης ορίζεται πλέον
-από τους πρώην δευτερεύοντες πυρήνες (Keccak, decode) και όχι από τον πολλαπλασιασμό.
+κυριαρχούμενο από ένα μονολιθικό hotspot σε ένα ισορροπημένο pipeline.
 
 \paragraph{Γέφυρα προς τα αποτελέσματα.}
 Τα αναλυτικά αποτελέσματα πλήρους \gls{kem} ανά security level, tier,

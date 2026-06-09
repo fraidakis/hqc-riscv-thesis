@@ -62,7 +62,7 @@ variants και security levels.  Η στήλη speedup υπολογίζεται
 Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.  Πρώτον, η μετάβαση
 από \code{scalar\_ref} σε \code{vector\_ref} παρέχει αμελητέα βελτίωση
 ($\approx\pct{4}$) — ο compiler δεν μπορεί να vectorize αυτόματα τον
-schoolbook πολλαπλασιασμό σε $\GFpoly$ (βλ.\ \cref{sec:keccak-rvv-paradox}
+schoolbook πολλαπλασιασμό σε $\GFpoly$ (βλ.\ \cref{ssec:keccak-rvv-paradox}
 για ανάλογη παρατήρηση στον Keccak).  Δεύτερον, η κλιμάκωση μεταξύ security
 levels ακολουθεί τη θεωρητική πολυπλοκότητα $\BigO{N^{\log_2 3}}$ του
 Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι $\num{271006}
@@ -84,7 +84,7 @@ Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι
   \item \code{xof\_init} $+$ \code{vect\_sample\_fixed\_weight} —
     ανακατασκευή μυστικού κλειδιού $y$ από seed,
   \item \code{hash\_h} — SHA3-256 επί \code{PUBLIC\_KEY\_BYTES}
-    ($\num{2241}$~\byte{} για HQC-128),
+    ($\SI{2241}{\byte}$ για HQC-128),
   \item \code{hash\_g} — SHA3-512 επί $\SI{64}{\byte}$,
   \item \code{xof\_init} $+$ $3\times$ \code{vect\_sample\_fixed\_weight}
     $+$ \code{vect\_set\_random} — re-encryption sampling,
@@ -101,7 +101,7 @@ bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχ�
 
 Ο \cref{tab:microbench-keccak} παρουσιάζει τη σύγκριση μεταξύ reference
 (scalar \code{fips202.c}) και βελτιστοποιημένης υλοποίησης (δικαναλική
-\gls{soa} αρχιτεκτονική με \gls{zvbb}, βλ.\ \cref{sec:keccak-zvbb-soa}).
+\gls{soa} αρχιτεκτονική με \gls{zvbb}, βλ.\ \cref{ssec:keccak-zvbb-soa}).
 
 \begin{table}[htbp]
   \centering
@@ -257,7 +257,7 @@ resources.  Στο HQC-128:
   \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{729397}$ \instret, $+\pct{169}$): η αντικατάσταση των scalar
     \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
     (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{60.3}$, $\num{157473} \to \num{62530}$), ενώ η δικαναλική \gls{soa} Keccak
-    με \gls{zvbb} (\cref{sec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
+    με \gls{zvbb} (\cref{ssec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
     \speedup{3.5}.  Η σύνθεση αυτών των βελτιώσεων παράγει τη
     μεγαλύτερη σχετική βελτίωση μεταξύ διαδοχικών tiers.
 \end{itemize}
@@ -441,9 +441,16 @@ levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασ
 tier.  Στο Tier~3, ο isolated polymul κλιμακώνει ως $\num{62530} \to
 \num{185120} \to \num{271006}$ (λόγοι $2.96\times$ και $4.33\times$) —
 ο εκθέτης $\log(4.33)/\log(3.26) = 1.24$ επιβεβαιώνει τη sub-Karatsuba
-συμπεριφορά.  Στο Tier~1, η κλιμάκωση είναι πιο απότομη (εκθέτης
-$\approx 1.6$, κοντά στον θεωρητικό Karatsuba) διότι τα scalar
-\insn{clmul} leaves δεν ωφελούνται από τη vectorized recomposition.
+συμπεριφορά.  Στο Tier~1, ο isolated polymul κλιμακώνει ως $\num{221030} \to
+\num{670293} \to \num{1879602}$ (λόγοι $3.03\times$ και $8.50\times$) — ο
+εκθέτης εξαρτάται από το εύρος σύγκρισης: $\log(3.03)/\log(2.03) = 1.57$
+(192/128, κοντά στον θεωρητικό Karatsuba $1.585$) αλλά
+$\log(8.50)/\log(3.26) = 1.81$ για το πλήρες εύρος 256/128.
+Η επιδείνωση στα υψηλότερα levels οφείλεται στο γεγονός ότι τα scalar
+\insn{clmul} leaves δεν ωφελούνται από τη vectorized recomposition: καθώς
+βαθαίνει το recursion tree (από $d=9$ σε $d=10$ και $d=11$), το
+recomposition overhead — που παραμένει scalar στο Tier~1 — αυξάνεται
+απότομα και ωθεί τον πρακτικό εκθέτη ψηλότερα από τον θεωρητικό Karatsuba.
 
 \paragraph{Keccak — γραμμική κλιμάκωση.}
 Ο Keccak κλιμακώνει σχεδόν γραμμικά: $\num{131944} \to \num{249581} \to
@@ -537,36 +544,49 @@ protocol.
 χωρίζεται σε τρεις κατηγορίες ως προς την ευαισθησία στο \VLEN:
 
 \begin{enumerate}
-  \item \textbf{Κλιμακούμενο κλάσμα ($\approx\pct{16}$):} Οι
-    recomposition helpers (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
-    \code{rvv\_xor\_u64}) χρησιμοποιούν VLA strip-mining σε LMUL$=$m4.
+  \item \textbf{Πλήρως κλιμακούμενο κλάσμα ($\approx\pct{11}$ του
+    συνολικού \KEM):} Οι recomposition helpers
+    (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64})
+    χρησιμοποιούν VLA strip-mining σε LMUL$=$m4 —
+    $\num{80202}$ \instret ($\pct{11.0}$ του συνολικού \KEM).
     Στο \VLEN$= \num{256}$, \VLMAX$= \num{16}$ words ανά iteration·
     στο \VLEN$= \num{512}$, \VLMAX$= \num{32}$.  Κάθε εξαλειφθείσα
     iteration εξοικονομεί το πλήρες σώμα strip-mining (\insn{vsetvli}
     $+$ \insn{vle64} $+$ \insn{vse64} $+$ pointer arithmetic).
-  \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{60}$):} Ο
-    \code{vclmul\_leaf} (\pct{35}) λειτουργεί σε σταθερό $n = \num{16}$
+    Το \code{kmul\_N} scaffolding ($\num{34506}$ \instret, $\pct{4.7}$)
+    κλιμακώνει \emph{μερικώς} — περιέχει τόσο κλήσεις recomposition
+    helpers όσο και σταθερό bookkeeping overhead — και δεν
+    προσμετράται στο θεωρητικό ανώτατο όριο.
+  \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{61}$):} Ο
+    \code{vclmul\_leaf} (\pct{34.4}) λειτουργεί σε σταθερό $n = \num{16}$
     elements — στο \VLEN$= \num{256}$ ήδη $\text{VLMAX} = n$, επομένως
-    ευρύτερο \VLEN δεν μειώνει iterations.  Ο Keccak (\pct{25})
+    ευρύτερο \VLEN δεν μειώνει iterations.  Ο Keccak (\pct{26.3})
     λειτουργεί σε σταθερή 25-lane κατάσταση με LMUL$=$m8 — ήδη
     $\text{VLMAX} = \num{32} \geq 25$.
-  \item \textbf{Μη κλιμακούμενο κλάσμα ($\approx\pct{24}$):} Scalar
-    helpers (\code{rol1\_zbb}, \pct{2.4}), σειριακή GF($2^8$)
-    αριθμητική (\code{gf\_reduce}, \pct{6.2}), δειγματοληψία, και
-    λοιπά.
+  \item \textbf{Μη κλιμακούμενο / λοιπό κλάσμα ($\approx\pct{28}$):} Scalar
+    helpers (\code{rol1\_zbb}, \pct{2.3}), σειριακή GF($2^8$)
+    αριθμητική (\code{gf\_reduce}, \pct{6.1}, \code{gf\_mul}, \pct{1.2}),
+    δειγματοληψία, \code{memset}/\code{memcpy} και λοιπά (\pct{14.0}),
+    καθώς και το μερικώς κλιμακούμενο \code{kmul\_N} scaffolding (\pct{4.7}).
+    Κανένα από αυτά δεν ωφελείται πλήρως από ευρύτερο \VLEN.
 \end{enumerate}
 
 Ο \cref{fig:vlen-budget} απεικονίζει τη σύνθεση αυτή.  Το θεωρητικό
 ανώτατο όριο βελτίωσης από αύξηση \VLEN περιορίζεται στο
-$\approx\pct{16}$ — ακόμη και με άπειρο \VLEN, μόνο οι recomposition
-loops θα εξαλειφθούν πλήρως.
+$\approx\pct{11}$ — ακόμη και με άπειρο \VLEN, μόνο οι recomposition
+helpers (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
+\code{rvv\_xor\_u64}) θα εξαλειφθούν πλήρως.
 
 \begin{figure}[htbp]
   \centering
   \input{figures/ch8-results/vlen-budget-breakdown}
   \caption{Κατανομή \instret σε τρεις κατηγορίες ευαισθησίας \VLEN
-    (HQC-128, \code{vector\_zvk}, \VLEN$= \num{256}$).  Μόνο
-    $\approx\pct{16}$ του συνολικού \KEM ωφελείται από ευρύτερο \VLEN.}
+    (HQC-128, \code{vector\_zvk}, \VLEN$= \num{256}$, σύνολο
+    $\num{729397}$ \instret).  Μόνο $\approx\pct{11}$ του συνολικού
+    \KEM ωφελείται από ευρύτερο \VLEN (recomposition helpers
+    \code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64}).
+    Το \code{kmul\_N} scaffolding ($\pct{4.7}$) κλιμακώνει μερικώς
+    και δεν προσμετράται στο θεωρητικό ανώτατο όριο.}
   \label{fig:vlen-budget}
 \end{figure}
 
@@ -581,9 +601,10 @@ $\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels.  Ο
 \begin{table}[htbp]
   \centering
   \caption{Total \KEM \instret ως συνάρτηση \VLEN
-    (\code{vector\_zvk}, Spike).  Η βέλτιστη τιμή ανά security
-    level σημειώνεται με έντονη γραφή.  Το sweet spot εντοπίζεται στο
-    \VLEN$= \num{512}$–$\num{1024}$ με \pct{3.7}–\pct{6.2} μείωση.}
+    (\code{vector\_zvk}, Spike).  Το πρακτικό sweet spot εντοπίζεται
+    στο \VLEN$= \num{512}$ με \pct{3.5}–\pct{5.4} μείωση ανά security
+    level· το \VLEN$= \num{1024}$ προσφέρει οριακό επιπλέον κέρδος
+    (έως \pct{6.0}) μόνο στα HQC-192/256.}
   \label{tab:vlen-sweep}
   \input{figures/ch8-results/vlen-sweep-table}
 \end{table}
@@ -602,8 +623,8 @@ $\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels.  Ο
 Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
 
 \paragraph{Τα υψηλότερα security levels ωφελούνται περισσότερο.}
-Το HQC-128 επιτυγχάνει μέγιστη μείωση \pct{3.7} (στο \VLEN$= \num{512}$),
-ενώ τα HQC-192 και HQC-256 φτάνουν \pct{6.2} (στο \VLEN$= \num{1024}$).
+Το HQC-128 επιτυγχάνει μέγιστη μείωση \pct{3.5} (στο \VLEN$= \num{512}$),
+ενώ τα HQC-192 και HQC-256 φτάνουν \pct{6.0} (στο \VLEN$= \num{1024}$).
 Η ασυμμετρία εξηγείται από το μέγεθος πολυωνύμου: τα μεγαλύτερα
 πολυώνυμα ($\num{561}$ και $\num{901}$ words αντί $\num{277}$) παράγουν
 περισσότερα επίπεδα αναδρομής και μεγαλύτερους ενδιάμεσους πίνακες στα
@@ -622,8 +643,8 @@ HQC-128.  Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
 
 \paragraph{Το HQC-128 παλινδρομεί στο \VLEN$= \num{2048}$.}
 Στο \VLEN$= \num{2048}$, το HQC-128 επιστρέφει στη βάση αναφοράς
-($-\pct{0.02}$), ενώ τα HQC-192/256 διατηρούν τα κέρδη τους
-($-\pct{5.1}$ και $-\pct{5.5}$).  Η παλινδρόμηση οφείλεται σε δύο
+($+\pct{0.2}$), ενώ τα HQC-192/256 διατηρούν τα κέρδη τους
+($-\pct{4.9}$ και $-\pct{5.3}$).  Η παλινδρόμηση οφείλεται σε δύο
 παράγοντες: (α)~στο HQC-128, οι recomposition loops (μεγέθη 16–34 words)
 ολοκληρώνονται ήδη σε 1 iteration στο \VLEN$= \num{1024}$
 ($\text{VLMAX} = \num{64}$) — το \VLEN$= \num{2048}$ δεν προσφέρει
@@ -636,7 +657,7 @@ Keccak, m2 σε βοηθητικές ρουτίνες), και αυτό το ove
 \subsection{Αρχιτεκτονικοί Περιορισμοί Κλιμάκωσης}
 \label{ssec:vlen-constraints}
 
-Η ανάλυση αυτή τεκμηριώνει γιατί $\approx\pct{60}$ του \instret
+Η ανάλυση αυτή τεκμηριώνει γιατί $\approx\pct{61}$ του \instret
 παραμένει αμετάβλητο ανεξαρτήτως \VLEN.
 
 \paragraph{\code{vclmul\_leaf} — σταθερό $n = \num{16}$.}
@@ -661,7 +682,7 @@ elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη 
 εντολών ($\approx \num{2114}$ \instret) ανεξαρτήτως \VLEN.
 
 \paragraph{GF($2^8$) αριθμητική — σειριακές εξαρτήσεις.}
-Η \code{gf\_reduce} (\pct{6.2} του \gls{kem}) και η FFT root-finding φάση
+Η \code{gf\_reduce} (\pct{6.1} του \gls{kem}) και η FFT root-finding φάση
 του Reed-Solomon decoder παρουσιάζουν εγγενώς σειριακές εξαρτήσεις
 δεδομένων: κάθε iteration εξαρτάται από το αποτέλεσμα της προηγούμενης.
 Η vectorization αυτών των βρόχων δεν είναι εφικτή ανεξαρτήτως \VLEN.
@@ -675,9 +696,12 @@ elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη 
     \item Το $\VLEN = \num{512}$ αποτελεί το πρακτικό sweet spot:
       \pct{3.7}–\pct{5.5} μείωση \instret χωρίς αύξηση πολυπλοκότητας
       κώδικα.
-    \item Το θεωρητικό ανώτατο όριο βελτίωσης είναι $\approx\pct{16}$
-      (μόνο οι recomposition loops κλιμακώνουν).
-    \item $\approx\pct{60}$ του \instret είναι δομικά ανεξάρτητο από
+    \item Το θεωρητικό ανώτατο όριο βελτίωσης είναι $\approx\pct{11}$
+      (μόνο οι recomposition helpers — \code{rvv\_xor3\_u64},
+      \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64} — κλιμακώνουν πλήρως·
+      το \code{kmul\_N} scaffolding, $\pct{4.7}$, κλιμακώνει μερικώς
+      και δεν προσμετράται στο ceiling).
+    \item $\approx\pct{61}$ του \instret είναι δομικά ανεξάρτητο από
       \VLEN (\code{vclmul\_leaf} $+$ Keccak).
     \item Η αύξηση \VLEN πέραν του $\num{1024}$ δεν προσφέρει πρόσθετη
       βελτίωση — στο HQC-128 προκαλεί παλινδρόμηση.
@@ -725,8 +749,8 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
   \caption{Isolated kernel benchmarks σε πραγματικό hardware (HQC-128,
     BPI-F3 SpacemiT K1 X60, \SI{1.6}{\giga\hertz}, \num{100} iterations).
     Ο \gls{ipc} αποκαλύπτει τη μικροαρχιτεκτονική αποδοτικότητα κάθε
-    variant: ο \code{scalar\_zb} επιτυγχάνει IPC $= 1.31$ χάρη στο
-    dual-issue, ενώ ο \code{vector\_rvv} περιορίζεται σε $0.72$ λόγω
+    variant: ο \code{scalar\_zb} επιτυγχάνει IPC $= 1.49$ χάρη στο
+    dual-issue, ενώ ο \code{vector\_rvv} περιορίζεται σε $0.74$ λόγω
     scalar↔vector transition penalties.}
   \label{tab:hw-microbench}
   \small
@@ -738,16 +762,16 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
     {\textbf{IPC}} & {\textbf{$\mu$s}} \\
     \midrule
     \multirow{4}{*}{Polymul}
-      & \code{scalar\_ref}  & 18258882 & 11664579 & 1.57 & 7290 \\
-      & \code{scalar\_zb}   & 196096   & 149555   & 1.31 & 93 \\
-      & \code{vector\_ref}  & 18118167 & 11687309 & 1.55 & 7305 \\
-      & \code{vector\_rvv}  & 152770   & 211241   & 0.72 & 132 \\
+      & \code{scalar\_ref}  & 19214277 & 11664579 & 1.65 & 7290 \\
+      & \code{scalar\_zb}   & 221030   & 148489   & 1.49 & 93 \\
+      & \code{vector\_ref}  & 18527409 & 11687309 & 1.58 & 7305 \\
+      & \code{vector\_rvv}  & 157473   & 211846   & 0.74 & 132 \\
     \midrule
-    Keccak & \code{ref} & 569016 & 358710 & 1.59 & 224 \\
+    Keccak & \code{scalar\_zb} & 463069 & 358710 & 1.29 & 224 \\
     \midrule
     \multirow{2}{*}{Decode}
-      & \code{ref} & 615843 & 457461 & 1.35 & 286 \\
-      & \code{rvv} & 141148 & 205402 & 0.69 & 128 \\
+      & \code{scalar\_zb}  & 384986 & 457461 & 0.84 & 286 \\
+      & \code{vector\_rvv} & 122163 & 205402 & 0.59 & 128 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -755,7 +779,7 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
 Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
 
 \paragraph{Ο scalar Karatsuba (\code{scalar\_zb}) επιτυγχάνει IPC $> 1$.}
-Ο \code{scalar\_zb} polymul παρουσιάζει IPC $= 1.31$, αξιοποιώντας πλήρως
+Ο \code{scalar\_zb} polymul παρουσιάζει IPC $= 1.49$, αξιοποιώντας πλήρως
 τον dual-issue in-order pipeline του X60.  Η εξήγηση είναι δομική: ο πλήρως
 ξεδιπλωμένος Karatsuba tree παράγει μακρές ακολουθίες ανεξάρτητων εντολών
 (\insn{clmul}/\insn{clmulh} pairs, \insn{xor} chains, \insn{ld}/\insn{sd}
@@ -764,10 +788,10 @@ sequences) χωρίς branches — ιδανικό workload για dual-issue sch
 working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλήρως
 στην L1 cache (\SI{32}{\kilo\byte}).
 
-\paragraph{Ο RVV polymul (\code{vector\_rvv}) είναι \pct{41} αργότερος
-σε κύκλους παρά τις \pct{22} λιγότερες εντολές.}
+\paragraph{Ο RVV polymul (\code{vector\_rvv}) είναι \pct{43} αργότερος
+σε κύκλους παρά τις \pct{29} λιγότερες εντολές.}
 Η αντιστροφή αυτή — λιγότερες εντολές αλλά περισσότεροι κύκλοι —
-αποτελεί το κεντρικό μικροαρχιτεκτονικό εύρημα.  Ο IPC πέφτει στο $0.72$
+αποτελεί το κεντρικό μικροαρχιτεκτονικό εύρημα.  Ο IPC πέφτει στο $0.74$
 λόγω τριών παραγόντων: (α)~scalar store → vector load forwarding failure
 στον αποσυζευγμένο pipeline του X60 (penalty $\approx \num{28}$ κύκλοι ανά
 εμφάνιση), (β)~scalar↔vector pipeline transition cost ($\approx \num{10}$
@@ -776,17 +800,17 @@ working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλή�
 σε recently-scalar-stored δεδομένα.  Η ανάλυση αυτή τεκμηριώνεται
 αναλυτικά στην \cref{ssec:hw-ipc}.
 
-\paragraph{Ο Keccak παρουσιάζει τον υψηλότερο IPC ($1.59$).}
-Ο scalar Keccak-f[1600] permutation επιτυγχάνει IPC $= 1.59$ — ο υψηλότερος
+\paragraph{Ο Keccak παρουσιάζει τον υψηλότερο IPC ($1.29$).}
+Ο scalar Keccak-f[1600] permutation επιτυγχάνει IPC $= 1.29$ — ο υψηλότερος
 μεταξύ όλων των πυρήνων.  Η εξήγηση είναι ότι ο Keccak αποτελείται από
 μακρές ακολουθίες \insn{xor}, \insn{rori} (\gls{zbb}) και \insn{andn} (\gls{zbb})
 χωρίς memory accesses (η κατάσταση 25$\times$64-bit χωράει σε registers),
 παρέχοντας ιδανικό instruction-level parallelism για dual-issue.  Σημειώνεται
 ότι στα vector variants (\code{vector\_ref}, \code{vector\_rvv}), ο compiler
 (GCC \code{-ftree-vectorize}) auto-vectorizes τα θ/χ steps του Keccak-f,
-μειώνοντας τους κύκλους κατά $\approx\pct{12}$ ($\sim\num{314000}$ vs
-$\num{358710}$).  Αυτό δεν αντιφάσκει με το RVV Paradox
-(\cref{sec:keccak-rvv-paradox}): εκεί αξιολογείται χειρόγραφη \RVV
+μειώνοντας τους κύκλους κατά $\approx\pct{12}$ σε σύγκριση με τον
+\code{scalar\_zb} Keccak (\num{358710} κύκλοι).  Αυτό δεν αντιφάσκει με το RVV Paradox
+(\cref{ssec:keccak-rvv-paradox}): εκεί αξιολογείται χειρόγραφη \RVV
 υλοποίηση (intrinsics), ενώ εδώ ο compiler εφαρμόζει συντηρητικότερες
 (και αποδοτικότερες) auto-vectorization επιλογές μόνο στα trivially-parallel
 steps.
@@ -816,12 +840,12 @@ steps.
     {\textbf{$\mu$s$_\text{zb}$}} \\
     & {(cycles)} & {(cycles)} & {(cycles)} & & \\
     \midrule
-    \KeyGen & 11756872 & 262100 & 302331 & 44.9 & 164 \\
-    \Encaps & 23495960 & 519221 & 600421 & 45.3 & 325 \\
-    \Decaps & 35753541 & 1286829 & 1149114 & 27.8 & 804 \\
+    \KeyGen & 11756872 & 262100 & 302181 & 44.9 & 164 \\
+    \Encaps & 23495960 & 519221 & 600692 & 45.3 & 325 \\
+    \Decaps & 35753541 & 1286829 & 1147999 & 27.8 & 804 \\
     \midrule
     \textbf{Total} & \textbf{71006373} & \textbf{2068150} &
-    \textbf{2051866} & \textbf{34.3} & \textbf{1293} \\
+    \textbf{2050872} & \textbf{34.3} & \textbf{1293} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -833,16 +857,18 @@ steps.
 κυρίαρχο πυρήνα — ο \code{scalar\_zb} είναι \pct{13}–\pct{15} ταχύτερος
 από τον \code{vector\_rvv} σε κύκλους.  Η εξήγηση είναι ότι αυτές οι
 λειτουργίες εκτελούν μία μόνο κλήση \code{vect\_mul}, όπου η
-microarchitectural υπεροχή του scalar path (IPC $= 1.31$ vs $0.72$)
+microarchitectural υπεροχή του scalar path (IPC $= 1.49$ vs $0.74$)
 κυριαρχεί.
 
 \paragraph{Ο \code{vector\_rvv} ανακτά στη \Decaps.}
-Στη \Decaps, ο \code{vector\_rvv} (\num{1149114} κύκλοι) υπερτερεί
+Στη \Decaps, ο \code{vector\_rvv} (\num{1147999} κύκλοι) υπερτερεί
 οριακά του \code{scalar\_zb} (\num{1286829} κύκλοι, $-\pct{11}$).  Η
-αντιστροφή οφείλεται στη vectorized αποκωδικοποίηση: ο \code{vector\_rvv}
+αντιστροφή οφείλεται κυρίως στη vectorized αποκωδικοποίηση: ο \code{vector\_rvv}
 χρησιμοποιεί \RVV decode (\num{205402} κύκλοι) αντί scalar decode
-(\num{457461} κύκλοι), εξοικονομώντας $\num{252059}$ κύκλοι — αρκετοί
-για να αντισταθμίσουν τους $\num{61686}$ επιπλέον κύκλους polymul.
+(\num{457461} κύκλοι), εξοικονομώντας $\num{252059}$ κύκλοι στον decoder.
+Η εξοικονόμηση αυτή υπερκαλύπτει τους $\num{63357}$ επιπλέον κύκλους
+polymul και τη μικρή αύξηση κόστους στους λοιπούς πυρήνες (Keccak,
+sampling), δίνοντας συνολικό όφελος $\num{138830}$ κύκλων στη \Decaps.
 Η \Decaps αποτελεί τη μοναδική λειτουργία όπου εκτελείται
 \code{code\_decode}, καθιστώντας τη vectorization του decoder κρίσιμη
 για αυτή τη λειτουργία.
@@ -869,7 +895,7 @@ stalls.  Ο \cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant �
   \caption{IPC ανά variant και πυρήνα (HQC-128, BPI-F3).  Ο scalar
     κώδικας αξιοποιεί πλήρως τον dual-issue pipeline (IPC $\geq 1.3$),
     ενώ ο \RVV κώδικας υποφέρει από pipeline transition penalties
-    (IPC $\approx 0.7$).}
+    (IPC $\approx 0.74$).}
   \label{tab:hw-ipc}
   \begin{tabular}{l S[table-format=1.2] S[table-format=1.2]
                   S[table-format=1.2] S[table-format=1.2]}
@@ -877,9 +903,9 @@ stalls.  Ο \cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant �
     \textbf{Πυρήνας} & {\textbf{scalar\_ref}} & {\textbf{scalar\_zb}} &
     {\textbf{vector\_ref}} & {\textbf{vector\_rvv}} \\
     \midrule
-    Polymul & 1.57 & 1.31 & 1.55 & 0.72 \\
-    Keccak  & {—}  & 1.59 & {—}  & {—} \\
-    Decode  & {—}  & 1.35 & {—}  & 0.69 \\
+    Polymul & 1.65 & 1.49 & 1.58 & 0.74 \\
+    Keccak  & {—}  & 1.29 & {—}  & {—} \\
+    Decode  & {—}  & 0.84 & {—}  & 0.59 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -888,18 +914,18 @@ stalls.  Ο \cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant �
 κώδικα στον SpacemiT X60.
 
 \paragraph{Scalar code: IPC $\geq 1.3$ — dual-issue σε πλήρη αξιοποίηση.}
-Ο \code{scalar\_ref} polymul επιτυγχάνει IPC $= 1.57$ — ο υψηλότερος
+Ο \code{scalar\_ref} polymul επιτυγχάνει IPC $= 1.65$ — ο υψηλότερος
 μεταξύ polymul variants.  Η τιμή αυτή υπερβαίνει τη μονάδα διότι ο
 schoolbook πολλαπλασιασμός αποτελείται από μακρές ακολουθίες ανεξάρτητων
 \insn{xor} εντολών (partial product accumulation) που ο dual-issue
 pipeline εκτελεί παράλληλα.  Ο \code{scalar\_zb} παρουσιάζει ελαφρώς
-χαμηλότερο IPC ($1.31$) λόγω των data dependencies μεταξύ
+χαμηλότερο IPC ($1.49$) λόγω των data dependencies μεταξύ
 \insn{clmul}/\insn{clmulh} pairs — κάθε \insn{clmulh} εξαρτάται από
 τον ίδιο operand με τον προηγούμενο \insn{clmul}, περιορίζοντας τις
 ευκαιρίες dual-issue.
 
-\paragraph{Vector code: IPC $\approx 0.7$ — pipeline transitions κυριαρχούν.}
-Ο \code{vector\_rvv} polymul παρουσιάζει IPC $= 0.72$ — σημαντικά κάτω
+\paragraph{Vector code: IPC $\approx 0.74$ — pipeline transitions κυριαρχούν.}
+Ο \code{vector\_rvv} polymul παρουσιάζει IPC $= 0.74$ — σημαντικά κάτω
 από τη μονάδα.  Η ανάλυση μέσω hardware performance counters αποκαλύπτει
 τρεις αιτίες:
 
@@ -940,10 +966,12 @@ deployment.
 \paragraph{Σύγκριση με Saarinen 2024.}
 Τα αποτελέσματα IPC είναι συμβατά με τα ευρήματα του Saarinen
 \cite{Saarinen2024-vkeccak} στην ίδια πλατφόρμα (SpacemiT X60,
-VLEN$= \num{256}$): ο Saarinen αναφέρει IPC $\approx 0.85$ για
-vectorized Kyber-768 (NTT-based, χωρίς scalar↔vector transitions) —
-υψηλότερο από τον δικό μας \code{vector\_rvv} ($0.72$) ακριβώς διότι
-ο NTT παραμένει εξ ολοκλήρου στο vector pipeline, αποφεύγοντας τα
+VLEN$= \num{256}$): ο Saarinen αναφέρει $\sim 5\times$ NTT vector speedup
+για Kyber-768 (NTT-based, χωρίς scalar↔vector transitions), με τον
+SHA3/SHAKE να αναδεικνύεται σε bottleneck μετά τη vectorization.  Η
+υψηλότερη σχετική αποδοτικότητα του NTT path — σε σχέση με τον δικό μας
+\code{vector\_rvv} (IPC $= 0.75$) — εξηγείται δομικά: ο NTT παραμένει
+εξ ολοκλήρου στο vector pipeline, αποφεύγοντας τα scalar↔vector
 transition penalties που πλήττουν τον hybrid Karatsuba.
 
 %% --------------------------------------------------------------------------
@@ -969,14 +997,14 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
     {\textbf{HW Speedup}} & {\textbf{HW/Spike}} \\
     \midrule
     \multicolumn{4}{l}{\textit{\code{scalar\_zb} vs \code{scalar\_ref}}} \\
-    \quad Polymul  & 90.70 & 78.00 & 0.86 \\
+    \quad Polymul  & 86.90 & 78.55 & 0.90 \\
     \quad \Decaps  & 28.26 & 27.79 & 0.98 \\
     \quad Total \gls{kem} & 34.01 & 34.33 & 1.01 \\
     \midrule
     \multicolumn{4}{l}{\textit{\code{vector\_rvv} vs \code{vector\_ref}}} \\
-    \quad Polymul  & 117.73 & 55.31 & 0.47 \\
-    \quad \Decaps  & 51.53 & 31.57 & 0.61 \\
-    \quad Total \gls{kem} & 56.89 & 34.61 & 0.61 \\
+    \quad Polymul  & 117.73 & 55.17 & 0.47 \\
+    \quad \Decaps  & 51.53 & 31.60 & 0.61 \\
+    \quad Total \gls{kem} & 56.89 & 35.17 & 0.62 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -988,16 +1016,16 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
 σε $1.01$ — σχεδόν τέλεια συμφωνία.  Η εξήγηση είναι ότι τόσο ο
 reference όσο και ο optimized variant εκτελούνται αποκλειστικά στον scalar
 pipeline, με παρόμοιο IPC ($\sim 1.3$–$1.6$).  Ο λόγος IPC$_\text{ref}$ /
-IPC$_\text{opt}$ ($= 1.57 / 1.31 = 1.20$) εξηγεί τη μικρή απόκλιση στο
-isolated polymul (HW/Spike $= 0.86$): ο reference polymul αξιοποιεί
+IPC$_\text{opt}$ ($= 1.65 / 1.48 = 1.11$) εξηγεί τη μικρή απόκλιση στο
+isolated polymul (HW/Spike $= 0.90$): ο reference polymul αξιοποιεί
 ελαφρώς καλύτερα τον dual-issue λόγω μεγαλύτερου instruction-level
 parallelism στον schoolbook loop.  Στο πλήρες \gls{kem}, η απόκλιση αυτή
 αμβλύνεται από τους υπόλοιπους πυρήνες (Keccak, decode, sampling) που
 παρουσιάζουν παρόμοιο IPC μεταξύ reference και optimized.
 
 \paragraph{Vector path: σημαντική απόκλιση (HW/Spike $\approx 0.6$).}
-Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.61$ στο \gls{kem} — η
-πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{39}.  Η
+Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.62$ στο \gls{kem} — η
+πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{38}.  Η
 απόκλιση οφείλεται εξ ολοκλήρου στα microarchitectural penalties που
 αναλύθηκαν στην \cref{ssec:hw-ipc}: ο Spike μοντελοποιεί κάθε εντολή
 ως CPI$=$1, αγνοώντας τα scalar↔vector transition costs και τα store
@@ -1044,10 +1072,10 @@ threshold μειώνει τον αριθμό recursion levels αλλά αυξά�
       Spike prediction accuracy: $\pct{98}$ (HW/Spike $= 1.01$ στο \gls{kem}).
     \item \textbf{Tier~2 (\code{vector\_rvv}):} \Decaps σε
       \SI{718}{\micro\second}, \speedup{31.1} έναντι reference.
-      Spike υπερεκτιμά κατά \pct{39} λόγω scalar↔vector penalties.
+      Spike υπερεκτιμά κατά \pct{38} λόγω scalar↔vector penalties.
     \item \textbf{Microarchitectural insight:} Ο αποσυζευγμένος
       scalar/vector pipeline του X60 τιμωρεί τον hybrid Karatsuba
-      (IPC $= 0.72$) αλλά ευνοεί τον pure-scalar path (IPC $= 1.31$).
+      (IPC $= 0.74$) αλλά ευνοεί τον pure-scalar path (IPC $= 1.49$).
     \item \textbf{Deployment:} Πλήρες key exchange σε
       $\approx\SI{1.3}{\milli\second}$ — αποδεκτό για TLS και IoT.
     \item \textbf{Πρόβλεψη Tier~3:} Η \gls{zvbc} υλοποίηση αναμένεται να
