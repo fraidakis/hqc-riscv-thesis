@@ -5,7 +5,7 @@
 %   +Zbc     : scalar_zb no-Zbb  = 2,263,224  (zbb_ablation_study.md, karatsuba_zbc no-Zbb)
 %   +Zbb     : scalar_zb Decaps  = 2,088,352  (scalar_zb_L128_report.md)
 %   +RVV     : vector_rvv Decaps = 1,084,132  (vector_rvv_L128_report.md)
-%   +Zvbc+Zvbb: vector_zvk Decaps = 400,478   (vector_zvk_L128_report.md)
+%   +Zvbc+Zvbb: vector_zvk Decaps = 393,086   (vector_zvk_L128_report.md)
 %              (Zvbc and Zvbb combined — no separate archived intermediate measurement)
 \tikzsetnextfilename{ch9-discussion-waterfall-ablation}
 \begin{tikzpicture}
@@ -34,7 +34,7 @@
     ({+\Zbc},            2263224)
     ({+\Zbb},            2088352)
     ({+\RVV},            1084132)
-    ({+\Zvbc{}+\Zvbb},    400478)
+    ({+\Zvbc{}+\Zvbb},    393086)
 };
 
 \end{axis}
@@ -43,10 +43,10 @@
 % +Zbc:        (59013743 - 2263224) / 59013743 = -96.2%
 % +Zbb:        (2263224  - 2088352) / 2263224  = -7.7%
 % +RVV:        (2088352  - 1084132) / 2088352  = -48.1%
-% +Zvbc+Zvbb:  (1084132  -  400478) / 1084132  = -63.1%
+% +Zvbc+Zvbb:  (1084132  -  393086) / 1084132  = -63.7%
 \node[font=\scriptsize, text=green!50!black] at (2.3, 4.8) {$-\pct{96}$};
 \node[font=\scriptsize, text=green!50!black] at (3.7, 1.2) {$-\pct{8}$};
 \node[font=\scriptsize, text=green!50!black] at (5.1, 0.9) {$-\pct{48}$};
-\node[font=\scriptsize, text=green!50!black] at (6.5, 0.6) {$-\pct{63}$};
+\node[font=\scriptsize, text=green!50!black] at (6.5, 0.6) {$-\pct{64}$};
 
 \end{tikzpicture}
