@@ -44,10 +44,10 @@
 Τρεις βασικές παρατηρήσεις αναδεικνύονται από τον πίνακα.  Πρώτον, το
 Tier~3 (\code{vector\_zvk}) επιτυγχάνει \instret της ίδιας τάξης
 μεγέθους με τον x86-64 champion — ο λόγος \Decaps ανέρχεται σε
-$\num{400478}$ \instret έναντι \num{245000} κύκλων ($1.63\times$ σε δυναμικές εντολές· σε εκτιμώμενους κύκλους ρολογιού, μετά από CPI adjustment, το ρεαλιστικό χάσμα ανέρχεται σε $\approx 2.8\times$, βλ.\ \cref{ssec:methodology-caveat}).  Δεύτερον, η απόσταση από τον Cortex-M4 champion
-ανέρχεται σε $\num{7502580} / \num{400478} = 18.7\times$ — αντικατοπτρίζοντας
+$\num{393086}$ \instret έναντι \num{245000} κύκλων ($1.60\times$ σε δυναμικές εντολές· σε εκτιμώμενους κύκλους ρολογιού, μετά από CPI adjustment, το ρεαλιστικό χάσμα ανέρχεται σε $\approx 2.7\times$, βλ.\ \cref{ssec:methodology-caveat}).  Δεύτερον, η απόσταση από τον Cortex-M4 champion
+ανέρχεται σε $\num{7502580} / \num{393086} = 19.1\times$ — αντικατοπτρίζοντας
 άμεσα την αξία του hardware carry-less multiply.  Τρίτον, η παρούσα
-υλοποίηση υπερτερεί κατά $\num{38099269} / \num{400478} = 95.1\times$ έναντι
+υλοποίηση υπερτερεί κατά $\num{38099269} / \num{393086} = 96.9\times$ έναντι
 της pure-software FAFFT σε scalar RISC-V — τεκμηριώνοντας ότι η αλγοριθμική
 ανωτερότητα $\BigO{n \log n}$ δεν εκδηλώνεται χωρίς κατάλληλη hardware
 υποστήριξη.
@@ -72,8 +72,8 @@ $\num{400478}$ \instret έναντι \num{245000} κύκλων ($1.63\times$ σ�
 προέρχεται από ανάλυση του πλήρους \gls{kem} instruction mix και χρησιμοποιείται
 ως proxy για τη \Decaps, δεδομένου ότι η \Decaps κυριαρχείται από τον ίδιο
 polymul/Keccak πυρήνα.  Η εφαρμογή του proxy CPI οδηγεί σε εκτιμώμενους
-$\num{400478} \times 1.69 \approx \num{676808}$ κύκλους για \Decaps — τιμή
-που παραμένει $\num{676808} / \num{245000} = 2.8\times$ υψηλότερη από τον
+$\num{393086} \times 1.69 \approx \num{664315}$ κύκλους για \Decaps — τιμή
+που παραμένει $\num{664315} / \num{245000} = 2.7\times$ υψηλότερη από τον
 x86-64 champion.
 
 \begin{table}[htbp]
@@ -89,7 +89,7 @@ x86-64 champion.
     \midrule
     Tier~1 (\gls{zbc})  & 3449795 & 1.37 & 4726219  & {ALU \pct{24.3}, Load \pct{37.5}} \\
     Tier~2 (\RVV)  & 1956787 & 1.48 & 2896044  & {ALU \pct{19.9}, Load \pct{33.6}} \\
-    Tier~3 (\gls{zvbc}) & 729397  & 1.69 & 1232681  & {Load \pct{32.7}, Vec.\ Mem \pct{18.5}} \\
+    Tier~3 (\gls{zvbc}) & 715844  & 1.69 & 1209776  & {Load \pct{32.7}, Vec.\ Mem \pct{18.5}} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -99,7 +99,7 @@ x86-64 champion.
 (\insn{vle64.v}/\insn{vse64.v}) και οι vector crypto operations
 (\vclmul/\vclmulh) κυριαρχούν στο instruction mix, εισάγοντας υψηλότερη
 μέση latency ανά εντολή.  Παρ' όλα αυτά, η δραματική μείωση \instret
-($\num{3449795} \to \num{729397}$, $-\pct{79}$) υπερκαλύπτει πλήρως την
+($\num{3449795} \to \num{715844}$, $-\pct{79}$) υπερκαλύπτει πλήρως την
 αύξηση CPI ($+\pct{23}$), οδηγώντας σε καθαρή μείωση εκτιμώμενων κύκλων
 κατά $\pct{74}$ μεταξύ Tier~1 και Tier~3.
 
@@ -124,10 +124,10 @@ look-up tables), μεταφράζοντας κάθε λογικό βήμα σε 
 
 Η ποσοτική διαφορά είναι εντυπωσιακή: η \Decaps στον Cortex-M4 απαιτεί
 \cycles{7502580} κύκλους, ενώ το Tier~3 της παρούσας εργασίας εκτελεί
-\cycles{400478} δυναμικές εντολές — λόγος $18.7\times$.  Ακόμη και υπό τη
+\cycles{393086} δυναμικές εντολές — λόγος $19.1\times$.  Ακόμη και υπό τη
 συντηρητική υπόθεση CPI $= 2.0$ για τον RISC-V pipeline (σημαντικά
 υψηλότερη από την εκτιμώμενη $1.69$), οι αναμενόμενοι κύκλοι
-($\approx\num{800956}$) παραμένουν $9.4\times$ χαμηλότεροι.
+($\approx\num{786172}$) παραμένουν $9.5\times$ χαμηλότεροι.
 
 Η παρατήρηση αυτή δεν αποτελεί κριτική της αρχιτεκτονικής Cortex-M4 —
 αντικατοπτρίζει τη θεμελιώδη αρχιτεκτονική αναγκαιότητα εξειδικευμένων
@@ -145,8 +145,8 @@ look-up tables), μεταφράζοντας κάθε λογικό βήμα σε 
 $\GFpoly$, θεωρητικά ανώτερη από τον Karatsuba ($\BigO{n^{\log_2 3}}
 \approx \BigO{n^{1.585}}$).  Παρ' όλα αυτά, η pure-software FAFFT
 υλοποίηση σε scalar RISC-V (CV32E40P)~\cite{ras-nist2025} απαιτεί
-\cycles{38099269} κύκλους για \Decaps HQC-128 — $95.1\times$ περισσότερους
-από τους \cycles{400478} \instret του Tier~3 Karatsuba.
+\cycles{38099269} κύκλους για \Decaps HQC-128 — $96.9\times$ περισσότερους
+από τους \cycles{393086} \instret του Tier~3 Karatsuba.
 
 Τρεις δομικοί παράγοντες εξηγούν αυτό το παράδοξο.
 
@@ -437,7 +437,7 @@ bit-scatter: \code{v[word] |= (1ULL << bit\_pos)}.  Με \gls{zbs}, το
 
 Τα vector variants παρουσιάζουν σημαντικά μικρότερο απόλυτο κέρδος
 ($-\num{881}$ \instret) διότι το συνολικό τους \instret
-(\cycles{729397} για \code{vector\_zvk}, σε βάση συνολικού \KEM) είναι $4.7\times$ μικρότερο
+(\cycles{715844} για \code{vector\_zvk}, σε βάση συνολικού \KEM) είναι $4.8\times$ μικρότερο
 — η συνάρτηση \code{vect\_write\_support\_to\_vector} αποτελεί μικρότερο
 κλάσμα του συνολικού φόρτου.  Η \gls{zbs} δεν έχει vector αντίστοιχο και
 ο scalar bit-scatter παραμένει στο shared code path, οπότε η εξοικονόμηση
@@ -635,7 +635,7 @@ $6.66\times$ μεγαλύτερο αποτύπωμα από τη reference
 (\code{fft\_zvbc.c}, \code{reed\_solomon\_zvbc.c}), οι οποίοι εισάγουν
 πρόσθετο κώδικα για τα vector crypto paths.  Η αύξηση αυτή
 αντισταθμίζεται πλήρως από τη μείωση \instret ($\num{1084132} \to
-\num{400478}$, $-\pct{63}$ στο \Decaps HQC-128).
+\num{393086}$, $-\pct{64}$ στο \Decaps HQC-128).
 
 %% --------------------------------------------------------------------------
 \subsection{Ανάλυση Αποδοτικότητας: \instret ανά KB}
@@ -660,12 +660,12 @@ $6.66\times$ μεγαλύτερο αποτύπωμα από τη reference
     \code{scalar\_ref} (Tier~0)  & 59013743 & 31.4 & 1879545 \\
     \code{scalar\_zb}  (Tier~1)  & 2088352  & 46.7 & 44720 \\
     \code{vector\_rvv} (Tier~2)  & 1084132  & 39.9 & 27171 \\
-    \code{vector\_zvk} (Tier~3)  & 400478   & 45.0 & 8900 \\
+    \code{vector\_zvk} (Tier~3)  & 393086   & 45.0 & 8735 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Ο \cref{tab:instret-per-kb} αποκαλύπτει τεράστια διακύμανση.  Η μετρική ορίζεται ρητά ως ο λόγος του \Decaps \instret (HQC-128) προς το μέγεθος \code{.text} του πλήρους \KEM binary σε kilobytes, και προκύπτει απευθείας από τις δύο πρώτες στήλες του πίνακα: το Tier~3 επιτυγχάνει $\num{400478} / 45.0 = \num{8900}$ instret/KB — $\num{44720} / \num{8900} = 5.0\times$ αποδοτικότερο από το Tier~1 και $\num{1879545} / \num{8900} = 211\times$ αποδοτικότερο από τη reference.  Πρόκειται για λόγους αποδοτικότητας (\instret ανά \code{.text} KB), όχι για speedup ratios.  Η βελτίωση αυτή αντικατοπτρίζει τον συνδυασμό
+Ο \cref{tab:instret-per-kb} αποκαλύπτει τεράστια διακύμανση.  Η μετρική ορίζεται ρητά ως ο λόγος του \Decaps \instret (HQC-128) προς το μέγεθος \code{.text} του πλήρους \KEM binary σε kilobytes, και προκύπτει απευθείας από τις δύο πρώτες στήλες του πίνακα: το Tier~3 επιτυγχάνει $\num{393086} / 45.0 = \num{8735}$ instret/KB — $\num{44720} / \num{8735} = 5.1\times$ αποδοτικότερο από το Tier~1 και $\num{1879545} / \num{8735} = 215\times$ αποδοτικότερο από τη reference.  Πρόκειται για λόγους αποδοτικότητας (\instret ανά \code{.text} KB), όχι για speedup ratios.  Η βελτίωση αυτή αντικατοπτρίζει τον συνδυασμό
 δραματικής μείωσης δυναμικών εντολών (ISA completeness,
 \cref{ssec:principle-completeness}) με ελάχιστη αύξηση στατικού κώδικα
 (VLA strip-mining, \cref{ssec:principle-vla}).
@@ -993,7 +993,7 @@ security level, και tier.  Η στήλη \q{Δ\%} αντιπροσωπεύε�
 
 \paragraph{Εύρημα 1: Ο GCC υπερτερεί στον scalar κώδικα.}
 Στα Tier~0 και Tier~1 variants, ο GCC παράγει σταθερά λιγότερες δυναμικές
-εντολές — η υπεροχή κυμαίνεται από \pct{1.2} (\code{vector\_ref}, L256)
+εντολές — η υπεροχή κυμαίνεται από \pct{1.9} (\code{scalar\_ref}, L256)
 έως \pct{22.6} (\code{scalar\_zb}, L256).  Η εξήγηση βρίσκεται στη
 δομή του hot path: ο πλήρως ξεδιπλωμένος scalar leaf (\code{clmul\_leaf\_n8})
 αποτελεί ακολουθία \num{64} εντολών \clmul/\clmulh χωρίς control flow.
@@ -1082,7 +1082,7 @@ codegen στον polymul πυρήνα.
     η οποία δεν αποτελεί μέρος του committed κώδικα.
     Η στήλη \q{Clang (\Zvbb)} αντιπροσωπεύει τον Clang
     με τη \Zvbb\ x2 SoA διαδρομή του πειραματικού dual-path build·
-    η υψηλότερη τιμή έναντι των \num{729397} (\cref{tab:compiler-comparison})
+    η υψηλότερη τιμή έναντι των \num{715844} (\cref{tab:compiler-comparison})
     οφείλεται στο runtime overhead της GCC-compat δομής κώδικα.
     Η στήλη \q{GCC (scalar)} χρησιμοποιεί τον vendor scalar Keccak ως fallback.
     Το ποσοστό overhead αντανακλά αποκλειστικά τη διαφορά Keccak πυρήνα.}

@@ -59,17 +59,13 @@ variants και security levels. Η στήλη speedup υπολογίζεται 
   \input{figures/ch8-results/microbench-polymul-table}
 \end{table}
 
-Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα. Πρώτον, η μετάβαση
-από \code{scalar\_ref} σε \code{vector\_ref} παρέχει αμελητέα βελτίωση
-($\approx\pct{4}$) — ο compiler δεν μπορεί να vectorize αυτόματα τον
-schoolbook πολλαπλασιασμό σε $\GFpoly$ (βλ.\ \cref{ssec:keccak-rvv-paradox}
-για ανάλογη παρατήρηση στον Keccak). Δεύτερον, η κλιμάκωση μεταξύ security
+Δύο παρατηρήσεις αναδεικνύονται από τα δεδομένα. Πρώτον, η κλιμάκωση μεταξύ security
 levels παραμένει κάτω από τη θεωρητική πολυπλοκότητα $\BigO{N^{\log_2 3}}$ του
 Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι $\num{271006}
 / \num{62530} = 4.33$ στο Tier~3 — χαμηλότερος από το pure-Karatsuba
 $(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκωση
 οφείλεται στο σταθερό overhead και στη γραμμική \insn{vclmul} συνιστώσα
-που αμορτίζονται σε μικρά $N$. Τρίτον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
+που αμορτίζονται σε μικρά $N$. Δεύτερον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
 \SI{15.3}{\kilo\byte} στο Tier~1) αντικατοπτρίζει το κόστος του πλήρως
 ξεδιπλωμένου Karatsuba tree — ένα trade-off που αναλύεται στην
 \cref{sec:polymul-codesize}.
@@ -265,7 +261,7 @@ resources. Στο HQC-128:
     polymul κατά \pct{28.7} ($\num{221030} \to \num{157473}$), ενώ η
     vectorization του decode (\cref{sec:decode-optimization}) επιταχύνει
     την αποκωδικοποίηση κατά \speedup{3.15}. Ο Keccak παραμένει scalar σε αυτό το tier.
-  \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{729397}$ \instret, $+\pct{168}$): η αντικατάσταση των scalar
+  \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{715844}$ \instret, $+\pct{173}$): η αντικατάσταση των scalar
     \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
     (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{60.3}$, $\num{157473} \to \num{62530}$), ενώ η δικαναλική \gls{soa} Keccak
     με \gls{zvbb} (\cref{ssec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
@@ -572,26 +568,26 @@ protocol.
     συνολικού \KEM):} Οι recomposition helpers
     (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64})
     χρησιμοποιούν VLA strip-mining σε LMUL$=$m4 —
-    $\num{80202}$ \instret ($\pct{11.0}$ του συνολικού \KEM).
+    $\num{80202}$ \instret ($\pct{11.2}$ του συνολικού \KEM).
     Στο \VLEN$= \num{256}$, \VLMAX$= \num{16}$ words ανά iteration·
     στο \VLEN$= \num{512}$, \VLMAX$= \num{32}$. Κάθε εξαλειφθείσα
     iteration εξοικονομεί το πλήρες σώμα strip-mining (\insn{vsetvli}
     $+$ \insn{vle64} $+$ \insn{vse64} $+$ pointer arithmetic).
-    Το \code{kmul\_N} scaffolding ($\num{34506}$ \instret, $\pct{4.7}$)
+    Το \code{kmul\_N} scaffolding ($\num{34506}$ \instret, $\pct{4.8}$)
     κλιμακώνει \emph{μερικώς} — περιέχει τόσο κλήσεις recomposition
     helpers όσο και σταθερό bookkeeping overhead — και δεν
     προσμετράται στο θεωρητικό ανώτατο όριο.
-  \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{61}$):} Ο
-    \code{vclmul\_leaf} (\pct{34.4}) λειτουργεί σε σταθερό $n = \num{16}$
+  \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{60}$):} Ο
+    \code{vclmul\_leaf} (\pct{35.0}) λειτουργεί σε σταθερό $n = \num{16}$
     elements — στο \VLEN$= \num{256}$ ήδη $\text{VLMAX} = n$, επομένως
-    ευρύτερο \VLEN δεν μειώνει iterations. Ο Keccak (\pct{26.3})
+    ευρύτερο \VLEN δεν μειώνει iterations. Ο Keccak (\pct{24.8})
     λειτουργεί σε σταθερή 25-lane κατάσταση με LMUL$=$m8 — ήδη
     $\text{VLMAX} = \num{32} \geq 25$.
   \item \textbf{Μη κλιμακούμενο / λοιπό κλάσμα ($\approx\pct{28}$):} Scalar
-    helpers (\code{rol1\_zbb}, \pct{2.3}), σειριακή GF($2^8$)
-    αριθμητική (\code{gf\_reduce}, \pct{6.1}, \code{gf\_mul}, \pct{1.2}),
-    δειγματοληψία, \code{memset}/\code{memcpy} και λοιπά (\pct{14.0}),
-    καθώς και το μερικώς κλιμακούμενο \code{kmul\_N} scaffolding (\pct{4.7}).
+    helpers (\code{rol1\_zbb}, \pct{2.4}), σειριακή GF($2^8$)
+    αριθμητική (\code{gf\_reduce}, \pct{6.3}, \code{gf\_mul}, \pct{1.3}),
+    δειγματοληψία, \code{memset}/\code{memcpy} και λοιπά (\pct{14.2}),
+    καθώς και το μερικώς κλιμακούμενο \code{kmul\_N} scaffolding (\pct{4.8}).
     Κανένα από αυτά δεν ωφελείται πλήρως από ευρύτερο \VLEN.
 \end{enumerate}
 
@@ -606,13 +602,13 @@ helpers (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
   \input{figures/ch8-results/vlen-budget-breakdown}
   \caption{Κατανομή \instret σε τρεις κατηγορίες ευαισθησίας \VLEN
     (HQC-128, \code{vector\_zvk}, \VLEN$= \num{256}$, σύνολο
-    $\num{729397}$ \instret). Μόνο $\approx\pct{11}$ του συνολικού
+    $\num{715844}$ \instret). Μόνο $\approx\pct{11}$ του συνολικού
     \KEM ωφελείται από ευρύτερο \VLEN (recomposition helpers
     \code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64}).
-    Το \code{kmul\_N} scaffolding ($\pct{4.7}$) κλιμακώνει μερικώς
+    Το \code{kmul\_N} scaffolding ($\pct{4.8}$) κλιμακώνει μερικώς
     και δεν προσμετράται στο θεωρητικό ανώτατο όριο. Η πράσινη μπάρα του
-    polymul ($\pct{15.7}$) αναλύεται σε \pct{11.0} recomposition helpers
-    (πλήρως κλιμακούμενα) συν \pct{4.7} scaffolding (μερικώς κλιμακούμενο).  Scope: τα ποσοστά εκφράζουν μερίδιο επί του συνολικού \KEM· το decode αφορά τα scalar \code{gf\_reduce}+\code{gf\_mul}.}
+    polymul ($\pct{16.0}$) αναλύεται σε \pct{11.2} recomposition helpers
+    (πλήρως κλιμακούμενα) συν \pct{4.8} scaffolding (μερικώς κλιμακούμενο).  Scope: τα ποσοστά εκφράζουν μερίδιο επί του συνολικού \KEM· το decode αφορά τα scalar \code{gf\_reduce}+\code{gf\_mul}.}
   \label{fig:vlen-budget}
 \end{figure}
 
@@ -627,9 +623,9 @@ $\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels. Το~\cre
   \centering
   \caption{Total \KEM \instret ως συνάρτηση \VLEN
     (\code{vector\_zvk}, Spike). Το πρακτικό sweet spot εντοπίζεται
-    στο \VLEN$= \num{512}$ με \pct{3.5}–\pct{5.4} μείωση ανά security
+    στο \VLEN$= \num{512}$ με \pct{3.6}–\pct{5.4} μείωση ανά security
     level· το \VLEN$= \num{1024}$ προσφέρει οριακό επιπλέον κέρδος
-    (έως \pct{6.0}) μόνο στα HQC-192/256.}
+    (έως \pct{6.1}) μόνο στα HQC-192/256.}
   \label{tab:vlen-sweep}
   \input{figures/ch8-results/vlen-sweep-table}
 \end{table}
@@ -648,8 +644,8 @@ $\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels. Το~\cre
 Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
 
 \paragraph{Τα υψηλότερα security levels ωφελούνται περισσότερο.}
-Το HQC-128 επιτυγχάνει μέγιστη μείωση \pct{3.5} (στο \VLEN$= \num{512}$),
-ενώ τα HQC-192 και HQC-256 φτάνουν \pct{6.0} (στο \VLEN$= \num{1024}$).
+Το HQC-128 επιτυγχάνει μέγιστη μείωση \pct{3.6} (στο \VLEN$= \num{512}$),
+ενώ τα HQC-192 και HQC-256 φτάνουν \pct{6.1} (στο \VLEN$= \num{1024}$).
 Η ασυμμετρία εξηγείται από το μέγεθος πολυωνύμου: τα μεγαλύτερα
 πολυώνυμα ($\num{561}$ και $\num{901}$ words αντί $\num{277}$) παράγουν
 περισσότερα επίπεδα αναδρομής και μεγαλύτερους ενδιάμεσους πίνακες στα
@@ -658,7 +654,7 @@ $\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels. Το~\cre
 
 \paragraph{Η βελτίωση συγκεντρώνεται στη μετάβαση $\num{256} \to \num{512}$.}
 Η πρόσθετη βελτίωση από \VLEN$= \num{512}$ σε \VLEN$= \num{1024}$ είναι
-μόλις \pct{0.7}–\pct{0.8} για τα HQC-192/256 και αρνητική ($+\pct{0.3}$) για το
+μόλις \pct{0.7} για τα HQC-192/256 και αρνητική ($+\pct{0.4}$) για το
 HQC-128. Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
 ($\text{VLMAX} = \num{32}$), οι recomposition loops στα κατώτερα επίπεδα
 αναδρομής (μεγέθη 16–34 words) ολοκληρώνονται ήδη σε 1 iteration. Μόνο
@@ -669,7 +665,7 @@ HQC-128. Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
 \paragraph{Το HQC-128 παλινδρομεί στο \VLEN$= \num{2048}$.}
 Στο \VLEN$= \num{2048}$, το HQC-128 επιστρέφει στη βάση αναφοράς
 ($+\pct{0.2}$), ενώ τα HQC-192/256 διατηρούν τα κέρδη τους
-($-\pct{4.9}$ και $-\pct{5.3}$). Η παλινδρόμηση οφείλεται σε δύο
+($-\pct{5.0}$ και $-\pct{5.4}$). Η παλινδρόμηση οφείλεται σε δύο
 παράγοντες: (α)~στο HQC-128, οι recomposition loops (μεγέθη 16–34 words)
 ολοκληρώνονται ήδη σε 1 iteration στο \VLEN$= \num{1024}$
 ($\text{VLMAX} = \num{64}$) — το \VLEN$= \num{2048}$ δεν προσφέρει
@@ -708,11 +704,11 @@ elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη 
 
 \paragraph{GF($2^8$) αριθμητική — δύο διακριτοί περιορισμοί.}
 Εδώ συνυπάρχουν δύο διαφορετικοί μηχανισμοί. Η \code{gf\_reduce}
-(\pct{6.1} του \gls{kem}) είναι ήδη πλήρως vectorized και ολοκληρώνεται σε
+(\pct{6.3} του \gls{kem}) είναι ήδη πλήρως vectorized και ολοκληρώνεται σε
 μία διέλευση (1-pass) στο \VLEN$= \num{256}$· ευρύτερο \VLEN δεν προσφέρει
 πρόσθετη μείωση επειδή το working set χωράει ήδη σε ένα vector group, και
 όχι λόγω σειριακών εξαρτήσεων. Αντιθέτως, η FFT root-finding φάση του
-Reed-Solomon decoder και η \code{gf\_mul} (\pct{1.2}) παρουσιάζουν εγγενώς
+Reed-Solomon decoder και η \code{gf\_mul} (\pct{1.3}) παρουσιάζουν εγγενώς
 σειριακές εξαρτήσεις δεδομένων — κάθε iteration εξαρτάται από το αποτέλεσμα
 της προηγούμενης — και δεν είναι vectorizable ανεξαρτήτως \VLEN.
 
@@ -728,9 +724,9 @@ Reed-Solomon decoder και η \code{gf\_mul} (\pct{1.2}) παρουσιάζου
     \item Το θεωρητικό ανώτατο όριο βελτίωσης είναι $\approx\pct{11}$
       (μόνο οι recomposition helpers — \code{rvv\_xor3\_u64},
       \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64} — κλιμακώνουν πλήρως·
-      το \code{kmul\_N} scaffolding, $\pct{4.7}$, κλιμακώνει μερικώς
+      το \code{kmul\_N} scaffolding, $\pct{4.8}$, κλιμακώνει μερικώς
       και δεν προσμετράται στο ceiling).
-    \item $\approx\pct{61}$ του \instret είναι δομικά ανεξάρτητο από
+    \item $\approx\pct{60}$ του \instret είναι δομικά ανεξάρτητο από
       \VLEN (\code{vclmul\_leaf} $+$ Keccak).
     \item Η αύξηση \VLEN πέραν του $\num{1024}$ δεν προσφέρει πρόσθετη
       βελτίωση — στο HQC-128 προκαλεί παλινδρόμηση.
@@ -790,10 +786,9 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
     {\textbf{Spike \instret}} & {\textbf{HW cycles}} &
     {\textbf{IPC}} & {\textbf{$\mu$s}} \\
     \midrule
-    \multirow{4}{*}{Polymul}
+    \multirow{3}{*}{Polymul}
       & \code{scalar\_ref}  & 19214277 & 11664579 & 1.65 & 7290 \\
       & \code{scalar\_zb}   & 221030   & 148489   & 1.49 & 93 \\
-      & \code{vector\_ref}  & 18527409 & 11687309 & 1.58 & 7305 \\
       & \code{vector\_rvv}  & 157473   & 211846   & 0.74 & 132 \\
     \midrule
     Keccak & \code{scalar\_zb} & 463069 & 358710 & 1.29 & 224 \\
@@ -836,7 +831,7 @@ working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλή�
 μακρές ακολουθίες \insn{xor}, \insn{rori} (\gls{zbb}) και \insn{andn} (\gls{zbb})
 χωρίς memory accesses (η κατάσταση 25$\times$64-bit χωράει σε registers),
 παρέχοντας ιδανικό instruction-level parallelism για dual-issue. Σημειώνεται
-ότι στα vector variants (\code{vector\_ref}, \code{vector\_rvv}), ο compiler
+ότι στο vector variant (\code{vector\_rvv}), ο compiler
 (GCC \code{-ftree-vectorize}) auto-vectorizes τα θ/χ steps του Keccak-f,
 μειώνοντας τους κύκλους κατά $\approx\pct{12}$ σε σύγκριση με τον
 \code{scalar\_zb} Keccak (\num{358710} κύκλοι). Αυτό δεν αντιφάσκει με το RVV Paradox
@@ -929,14 +924,14 @@ stalls. Ο~\cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant κ
     (IPC $\approx 0.74$).}
   \label{tab:hw-ipc}
   \begin{tabular}{l S[table-format=1.2] S[table-format=1.2]
-                  S[table-format=1.2] S[table-format=1.2]}
+                  S[table-format=1.2]}
     \toprule
     \textbf{Πυρήνας} & {\textbf{scalar\_ref}} & {\textbf{scalar\_zb}} &
-    {\textbf{vector\_ref}} & {\textbf{vector\_rvv}} \\
+    {\textbf{vector\_rvv}} \\
     \midrule
-    Polymul & 1.65 & 1.49 & 1.58 & 0.74 \\
-    Keccak  & {—}  & 1.29 & {—}  & {—} \\
-    Decode  & {—}  & 0.84 & {—}  & 0.59 \\
+    Polymul & 1.65 & 1.49 & 0.74 \\
+    Keccak  & {—}  & 1.29 & {—} \\
+    Decode  & {—}  & 0.84 & 0.59 \\
     \bottomrule
   \end{tabular}
 \end{table}

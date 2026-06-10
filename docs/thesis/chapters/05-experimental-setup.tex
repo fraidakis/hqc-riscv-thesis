@@ -385,7 +385,6 @@ variant:
     \textbf{Variant} & \textbf{Tier} & \textbf{\code{-march}} \\
     \midrule
     \code{scalar\_ref}     & Baseline & \code{rv64gc\_zbc\_zbb\_zbs} \\
-    \code{vector\_ref}     & (deprecated) & \code{rv64gcv\_zbc\_zbb} \\
     \code{scalar\_zb}  & Tier~1   & \code{rv64gc\_zbc\_zbb\_zbs} \\
     \code{vector\_rvv}  & Tier~2   & \code{rv64gcv\_zbc\_zbb\_zba} \\
     \code{vector\_zvk} & Tier~3   & \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} \\
@@ -434,10 +433,10 @@ compile-time generated και δεν αφήνει περιθώριο στον op
 \subsection{LTO και PGO στα Reference Baselines}
 \label{ssec:lto-pgo}
 
-Τα reference baselines (\code{scalar\_ref}, \code{vector\_ref}) μεταγλωττίζονται
+Το reference baseline (\code{scalar\_ref}) μεταγλωττίζεται
 με \gls{lto} ενεργοποιημένο (\code{-flto}), παρέχοντας στον linker πλήρη
 ορατότητα για cross-module inlining και dead code elimination.  Η \gls{lto}
-εφαρμόζεται αποκλειστικά στα baselines ώστε αυτά να αντιπροσωπεύουν τη
+εφαρμόζεται αποκλειστικά στο baseline ώστε αυτό να αντιπροσωπεύει τη
 \emph{βέλτιστη δυνατή} απόδοση του μη-βελτιστοποιημένου κώδικα — κάθε speedup
 που αναφέρεται στα \cref{ch:polymul-optimization} και \cref{ch:results}
 υπολογίζεται έναντι αυτού του ισχυρού baseline.
