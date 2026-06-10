@@ -24,15 +24,15 @@ Karatsuba AP-2 fixed-tree generation και νατιβής \clmul/\clmulh.  Το
 
 \paragraph{Tier~2 — Base-RVV (\RVV + \Zbc/\Zbb)}
 Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
-speedup σε \speedup{118} (HQC-128) και το πλήρες \gls{kem} σε \speedup{57}.
+speedup σε \speedup{122} (HQC-128) και το πλήρες \gls{kem} σε \speedup{60}.
 Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το Base-RVV
 rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
 
 \paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
-Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vv} επιτυγχάνει \speedup{296} στο
-polymul (HQC-128) και \speedup{513} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
-\speedup{154} (HQC-128) και \speedup{317} (HQC-256), τοποθετώντας τον
-\instret σε \num{729397}.  Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
+Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vv} επιτυγχάνει \speedup{307} στο
+polymul (HQC-128) και \speedup{526} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
+\speedup{164} (HQC-128) και \speedup{331} (HQC-256), τοποθετώντας τον
+\instret σε \num{715844}.  Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
 της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion· σε εκτιμώμενους κύκλους
 ρολογιού το χάσμα είναι μεγαλύτερο ($\approx 2.8\times$, \cref{ssec:avx2-gap}), και
 τόσο η άμεση σύγκριση \instret-έναντι-κύκλων όσο και η επικύρωση σε πραγματικό

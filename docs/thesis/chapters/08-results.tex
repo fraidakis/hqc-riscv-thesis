@@ -27,8 +27,8 @@ reference–optimized για τους τρεις πυρήνες στο HQC-128, 
     κλίμακα). Η μπάρα «Reference» αντιστοιχεί στο \code{scalar\_ref}
     ($\num{19214277}$ εντολές για polymul). Ο πολυωνυμικός πολλαπλασιασμός
     παρουσιάζει τη μεγαλύτερη μείωση: \speedup{307} ως προς
-    \code{scalar\_ref} και \speedup{296} ως προς \code{vector\_ref}
-    ($\num{18527409}$ εντολές, βλ.\ \cref{conv:baseline}), ενώ Keccak
+    \code{scalar\_ref}
+    ($\num{19214277}$ εντολές, βλ.\ \cref{conv:baseline}), ενώ Keccak
     και decode ωφελούνται \speedup{3.5} και \speedup{6.8} αντίστοιχα.}
   \label{fig:microbench-bar}
 \end{figure}
@@ -46,17 +46,15 @@ $\omega = \text{PARAM\_OMEGA\_R}$ (μιμείται τα $r_2$ ή $y$). Η μέ�
 ισούται με $3\times$ τα παρακάτω.
 
 Ο~\cref{tab:microbench-polymul} παρουσιάζει τα αποτελέσματα για όλα τα
-variants και security levels. Η στήλη speedup υπολογίζεται ως προς το baseline του εκάστοτε tier
-(\cref{conv:baseline}).
+variants και security levels. Η στήλη speedup υπολογίζεται ως προς το
+\code{scalar\_ref} (\cref{conv:baseline}).
 
 \begin{table}[htbp]
   \centering
   \caption{Isolated polymul \instret ανά variant και security level
-    (Spike, VLEN $= \num{256}$). Τα speedups δίνονται ως προς το baseline
-    του εκάστοτε tier (\cref{conv:baseline}: Tier~1 ως προς \code{scalar\_ref},
-    Tier~2–3 ως προς \code{vector\_ref}). Το Tier~3 (\code{vector\_zvk})
-    επιτυγχάνει \speedup{296} στο HQC-128 και \speedup{513} στο HQC-256
-    ως προς \code{vector\_ref}.}
+    (Spike, VLEN $= \num{256}$). Τα speedups δίνονται ως προς το
+    \code{scalar\_ref} (\cref{conv:baseline}). Το Tier~3 (\code{vector\_zvk})
+    επιτυγχάνει \speedup{307} στο HQC-128 και \speedup{526} στο HQC-256.}
   \label{tab:microbench-polymul}
   \input{figures/ch8-results/microbench-polymul-table}
 \end{table}
@@ -168,7 +166,7 @@ Reed-Solomon κώδικα.
 \label{ssec:microbench-summary}
 
 Ο~\cref{tab:microbench-summary} συνοψίζει τα speedups ανά πυρήνα και tier
-για το HQC-128. Η ασυμμετρία μεταξύ πυρήνων — \speedup{296} polymul
+για το HQC-128. Η ασυμμετρία μεταξύ πυρήνων — \speedup{307} polymul
 έναντι \speedup{3.5} Keccak — αντικατοπτρίζει τη θεμελιώδη διαφορά στην
 αλγοριθμική δομή: ο πολυωνυμικός πολλαπλασιασμός μετασχηματίζεται πλήρως
 μέσω Karatsuba decomposition $+$ hardware carry-less multiply, ενώ ο Keccak
@@ -178,15 +176,14 @@ Reed-Solomon κώδικα.
 \begin{table}[htbp]
   \centering
   \caption{Σύνοψη speedups ανά πυρήνα και tier (HQC-128, Spike,
-    VLEN $= \num{256}$). Η βάση αναφοράς ορίζεται ανά tier
-    (\cref{conv:baseline}): Tier~1 ως προς \code{scalar\_ref}, Tier~2–3 ως
-    προς \code{vector\_ref}.}
+    VLEN $= \num{256}$). Η βάση αναφοράς είναι το \code{scalar\_ref}
+    (\cref{conv:baseline}) για όλα τα tiers.}
   \label{tab:microbench-summary}
   \begin{tabular}{l S[table-format=3.1] S[table-format=3.1] S[table-format=3.1]}
     \toprule
     \textbf{Πυρήνας} & {\textbf{Tier~1}} & {\textbf{Tier~2}} & {\textbf{Tier~3}} \\
     \midrule
-    Polymul (\code{vect\_mul}) & 86.9  & 117.7 & 296.3 \\
+    Polymul (\code{vect\_mul}) & 86.9  & 122.0 & 307.3 \\
     Keccak (\Decaps pattern)    & {—}   & {—}   & 3.51  \\
     Decode (RM+RS)             & {—}   & 3.15  & 6.81  \\
     \bottomrule
@@ -195,7 +192,7 @@ Reed-Solomon κώδικα.
 
 Η ανάλυση αυτή θεμελιώνει τις μετρήσεις πλήρους \gls{kem} που ακολουθούν
 στην~\cref{sec:end-to-end}, όπου η σύνθεση των τριών πυρήνων αποκαλύπτει
-τον νόμο του Amdahl σε δράση: η \speedup{296} μείωση του polymul
+τον νόμο του Amdahl σε δράση: η \speedup{307} μείωση του polymul
 μεταφράζεται σε χαμηλότερο system-level speedup λόγω του μη βελτιστοποιήσιμου
 κλάσματος.
 
@@ -227,7 +224,7 @@ decode) — η χειρότερη δυνατή υλοποίηση χωρίς α�
 \begin{table}[htbp]
   \centering
   \caption{\instret πλήρους \KEM (\KeyGen + \Encaps + \Decaps) ανά security level, λειτουργία και tier
-    (Spike, VLEN $= \num{256}$). Οι στήλες $\times$T1–T3 δηλώνουν speedup έναντι \code{scalar\_ref} ($\times$T1) και \code{vector\_ref} ($\times$T2 και $\times$T3). Το Tier~3 επιτυγχάνει \speedup{154} στο HQC-128 και \speedup{317} στο HQC-256.
+    (Spike, VLEN $= \num{256}$). Οι στήλες $\times$T1–T3 δηλώνουν speedup έναντι \code{scalar\_ref} (\cref{conv:baseline}). Το Tier~3 επιτυγχάνει \speedup{164} στο HQC-128 και \speedup{331} στο HQC-256.
     Επειδή η μέτρηση \instret στον Spike είναι πλήρως ντετερμινιστική — ίδιο binary παράγει πάντα ίδιο $\Delta\text{instret}$ ανεξαρτήτως επαναλήψεων (βλ.\ \cref{ssec:spike-measurement}) — δεν απαιτείται στατιστική επεξεργασία πολλαπλών εκτελέσεων και δεν αναφέρονται διαστήματα εμπιστοσύνης.}
   \label{tab:kem-results}
   \small
@@ -244,15 +241,15 @@ decode) — η χειρότερη δυνατή υλοποίηση χωρίς α�
 (μία αποκρυπτογράφηση $+$ δύο re-encryption στο Fujisaki-Okamoto
 transform) αλλά επιπλέον φέρει το κόστος αποκωδικοποίησης
 (\code{code\_decode}) που δεν υπάρχει στις υπόλοιπες λειτουργίες.
-Συγκεκριμένα, στο HQC-128 Tier~3 η \Decaps επιτυγχάνει \speedup{140.8}
-έναντι \speedup{173.7} της \KeyGen — η διαφορά αντικατοπτρίζει τη
+Συγκεκριμένα, στο HQC-128 Tier~3 η \Decaps επιτυγχάνει \speedup{150.1}
+έναντι \speedup{184.8} της \KeyGen — η διαφορά αντικατοπτρίζει τη
 σταθερή συνεισφορά decode και Keccak που δεν κλιμακώνει αναλογικά με τη
 μείωση του polymul.
 
 Η \KeyGen και η \Encaps παρουσιάζουν παρόμοια speedups σε κάθε tier,
 καθώς η αλγοριθμική δομή τους είναι σχεδόν ταυτόσημη: μία κλήση
 \code{vect\_mul} $+$ δειγματοληψία $+$ hashing. Η ελαφρώς υψηλότερη
-τιμή της \KeyGen στο Tier~3 ($\times$173.7 έναντι $\times$168.5 για
+τιμή της \KeyGen στο Tier~3 ($\times$184.8 έναντι $\times$178.8 για
 \Encaps) οφείλεται στο μικρότερο σχετικό βάρος του hashing στη
 \KeyGen (λιγότερα bytes εισόδου στη \code{hash\_h}).
 
@@ -339,15 +336,15 @@ resources. Στο HQC-128:
     \toprule
     & {\textbf{Tier~1}} & {\textbf{Tier~2}} & {\textbf{Tier~3}} \\
     \midrule
-    \Decaps speedup  & 28.3 & 52.0 & 140.8 \\
-    Total \gls{kem} speedup & 34.0 & 57.4 & 154 \\
-    \Decaps \instret & {\num{2088352}} & {\num{1084132}} & {\num{400478}} \\
+    \Decaps speedup  & 28.3 & 54.4 & 150.1 \\
+    Total \gls{kem} speedup & 34.0 & 60.0 & 163.9 \\
+    \Decaps \instret & {\num{2088352}} & {\num{1084132}} & {\num{393086}} \\
     \bottomrule
   \end{tabular}
 
-  {\footnotesize Βάση αναφοράς (\cref{conv:baseline}): η στήλη Tier~1 είναι
-  ως προς \code{scalar\_ref}, οι Tier~2/Tier~3 ως προς \code{vector\_ref}·
-  οι λόγοι μεταξύ διαφορετικών tiers δεν είναι άμεσα συγκρίσιμοι.}
+  {\footnotesize Βάση αναφοράς (\cref{conv:baseline}): όλα τα speedups
+  υπολογίζονται ως προς \code{scalar\_ref} — οι λόγοι μεταξύ
+  διαφορετικών tiers είναι άμεσα συγκρίσιμοι.}
 \end{keyresultbox}
 
 Τα αποτελέσματα επιβεβαιώνουν ότι η αξιοποίηση ratified RISC-V
@@ -443,17 +440,17 @@ $3^{\Delta d}$ ενώ το recomposition overhead (XOR operations) κλιμακ�
 \paragraph{Το speedup αυξάνεται με το security level.}
 Η αντίστροφη πλευρά της υπο-Karatsuba κλιμάκωσης είναι ότι το speedup
 \emph{αυξάνεται} καθώς μεταβαίνουμε σε υψηλότερα levels. Στο Tier~3
-\Decaps, το speedup εξελίσσεται ως $\speedup{140.8} \to \speedup{186.2}
-\to \speedup{293.5}$ (HQC-128 $\to$ 192 $\to$ 256). Η αύξηση αυτή
+\Decaps, το speedup εξελίσσεται ως $\speedup{150.1} \to \speedup{197.4}
+\to \speedup{306.9}$ (HQC-128 $\to$ 192 $\to$ 256). Η αύξηση αυτή
 αντικατοπτρίζει τη μεγαλύτερη αναλογία polymul στο reference σε υψηλότερα
 levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασιασμός κυριαρχεί
 ακόμη περισσότερο ($>\pct{98}$ στο HQC-256), ενώ η βελτιστοποιημένη
 υλοποίηση κλιμακώνει ηπιότερα.  Συνεπώς το polymul speedup κορυφώνεται στο
-\speedup{513} στο HQC-256 ως άμεση συνέπεια της σχεδόν τετραγωνικής κλιμάκωσης
-της βάσης \code{vector\_ref} έναντι της υπο-Karatsuba κλιμάκωσης του Tier~3
+\speedup{526} στο HQC-256 ως άμεση συνέπεια της σχεδόν τετραγωνικής κλιμάκωσης
+της βάσης \code{scalar\_ref} έναντι της υπο-Karatsuba κλιμάκωσης του Tier~3
 (πρακτικός εκθέτης $\sim 1.24$), και όχι ως μεμονωμένο peak.  Ο γεωμετρικός μέσος
-των Tier~3 polymul speedups στα τρία security levels (\speedup{296}, \speedup{304},
-\speedup{513}) ανέρχεται σε $\approx 359\times$, παρέχοντας αντιπροσωπευτικό αδρό
+των Tier~3 polymul speedups στα τρία security levels (\speedup{307}, \speedup{316},
+\speedup{526}) ανέρχεται σε $\approx 374\times$, παρέχοντας αντιπροσωπευτικό αδρό
 μέγεθος έναντι των μεμονωμένων peak τιμών.
 
 %% --------------------------------------------------------------------------
@@ -505,8 +502,8 @@ $\delta = 15$ στο HQC-128), αυξάνοντας δραματικά τον α
 κωδικοποίηση. Η κλίση χρώματος αποκαλύπτει δύο τάσεις: (α) κάθε
 μετάβαση σε υψηλότερο tier αυξάνει σημαντικά το speedup, και (β) τα
 υψηλότερα security levels ωφελούνται περισσότερο — ιδιαίτερα στο Tier~3,
-όπου το HQC-256 \KeyGen φτάνει \speedup{357.9} έναντι \speedup{173.7}
-στο HQC-128 (ως προς \code{vector\_ref}, \cref{conv:baseline}).
+όπου το HQC-256 \KeyGen φτάνει \speedup{373.8} έναντι \speedup{184.8}
+στο HQC-128 (ως προς \code{scalar\_ref}, \cref{conv:baseline}).
 
 \begin{figure}[htbp]
   \centering
@@ -516,8 +513,8 @@ $\delta = 15$ στο HQC-128), αυξάνοντας δραματικά τον α
     υψηλότερο speedup. Η \KeyGen και \Encaps παρουσιάζουν συστηματικά
     υψηλότερα speedups από τη \Decaps λόγω απουσίας decode overhead.
     Τα υψηλότερα security levels ωφελούνται δυσανάλογα στο Tier~3.
-    Βάση αναφοράς: Tier~1 ως προς \code{scalar\_ref}, Tier~2–3 ως προς
-    \code{vector\_ref} (\cref{conv:baseline}).}
+    Βάση αναφοράς: \code{scalar\_ref} για όλα τα tiers
+    (\cref{conv:baseline}).}
   \label{fig:heatmap-speedups}
 \end{figure}
 
@@ -542,8 +539,8 @@ protocol.
     πλήρες \gls{kem}) είναι σημαντικά χαμηλότερος από τον θεωρητικό Karatsuba
     ($1.585$), χάρη στη vectorized recomposition και τη σταθερή
     συνεισφορά Keccak/decode.
-  \item Η αύξηση speedup με το security level ($\speedup{154} \to
-    \speedup{198} \to \speedup{317}$ στο Total \gls{kem} Tier~3) σημαίνει
+  \item Η αύξηση speedup με το security level ($\speedup{164} \to
+    \speedup{209} \to \speedup{331}$ στο Total \gls{kem} Tier~3) σημαίνει
     ότι η σχετική ανταγωνιστικότητα της υλοποίησης \emph{βελτιώνεται}
     σε υψηλότερα security levels — κρίσιμο εύρημα για deployment
     σενάρια που απαιτούν NIST Level~5.
@@ -1049,10 +1046,10 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
     \quad \Decaps  & 28.26 & 27.79 & 0.98 \\
     \quad Total \gls{kem} & 34.01 & 34.33 & 1.01 \\
     \midrule
-    \multicolumn{4}{l}{\textit{\code{vector\_rvv} vs \code{vector\_ref}}} \\
-    \quad Polymul  & 117.73 & 55.17 & 0.47 \\
-    \quad \Decaps  & 52.00 & 31.60 & 0.61 \\
-    \quad Total \gls{kem} & 57.40 & 35.17 & 0.61 \\
+    \multicolumn{4}{l}{\textit{\code{vector\_rvv} vs \code{scalar\_ref}}} \\
+    \quad Polymul  & 122.04 & 55.07 & 0.45 \\
+    \quad \Decaps  & 54.43 & 31.14 & 0.57 \\
+    \quad Total \gls{kem} & 59.96 & 34.62 & 0.58 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1072,8 +1069,8 @@ parallelism στον schoolbook loop. Στο πλήρες \gls{kem}, η απόκ
 παρουσιάζουν παρόμοιο IPC μεταξύ reference και optimized.
 
 \paragraph{Vector path: σημαντική απόκλιση (HW/Spike $\approx 0.6$).}
-Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.61$ στο \gls{kem} — η
-πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{38}. Η
+Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.58$ στο \gls{kem} — η
+πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{42}. Η
 απόκλιση οφείλεται εξ ολοκλήρου στα microarchitectural penalties που
 αναλύθηκαν στην~\cref{ssec:hw-ipc}: ο Spike μοντελοποιεί κάθε εντολή
 ως CPI$=$1, αγνοώντας τα scalar↔vector transition costs και τα store
@@ -1119,10 +1116,8 @@ threshold μειώνει τον αριθμό recursion levels αλλά αυξά�
       \SI{804}{\micro\second}, \speedup{27.8} έναντι reference.
       Spike prediction accuracy: $\pct{98}$ (HW/Spike $= 1.01$ στο \gls{kem}).
     \item \textbf{Tier~2 (\code{vector\_rvv}):} \Decaps σε
-      \SI{718}{\micro\second}, \speedup{31.1} έναντι \code{scalar\_ref}
-      (ως προς \code{vector\_ref} το αντίστοιχο speedup είναι \speedup{31.60},
-      βλ.\ \cref{tab:hw-spike-prediction}).
-      Spike υπερεκτιμά κατά \pct{38} λόγω scalar↔vector penalties.
+      \SI{718}{\micro\second}, \speedup{31.1} έναντι \code{scalar\_ref}.
+      Spike υπερεκτιμά κατά \pct{42} λόγω scalar↔vector penalties.
     \item \textbf{Microarchitectural insight:} Ο αποσυζευγμένος
       scalar/vector pipeline του X60 τιμωρεί τον hybrid Karatsuba
       (IPC $= 0.74$) αλλά ευνοεί τον pure-scalar path (IPC $= 1.49$).

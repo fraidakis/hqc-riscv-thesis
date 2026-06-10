@@ -385,7 +385,7 @@ variant:
     \textbf{Variant} & \textbf{Tier} & \textbf{\code{-march}} \\
     \midrule
     \code{scalar\_ref}     & Baseline & \code{rv64gc\_zbc\_zbb\_zbs} \\
-    \code{vector\_ref}     & Baseline & \code{rv64gcv\_zbc\_zbb} \\
+    \code{vector\_ref}     & (deprecated) & \code{rv64gcv\_zbc\_zbb} \\
     \code{scalar\_zb}  & Tier~1   & \code{rv64gc\_zbc\_zbb\_zbs} \\
     \code{vector\_rvv}  & Tier~2   & \code{rv64gcv\_zbc\_zbb\_zba} \\
     \code{vector\_zvk} & Tier~3   & \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} \\
@@ -466,7 +466,7 @@ version.  Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελ�
 \label{sec:benchmarking}
 \label{conv:baseline}%
 
-\noindent\textbf{Σύμβαση baseline.} Οι επιταχύνσεις αναφέρονται ως προς το baseline του εκάστοτε tier: το Tier~1 (\code{scalar\_zb}) ως προς το \code{scalar\_ref}, ενώ τα Tier~2 (\code{vector\_rvv}) και Tier~3 (\code{vector\_zvk}) ως προς το \code{vector\_ref}.
+\noindent\textbf{Σύμβαση baseline.} Όλες οι επιταχύνσεις αναφέρονται ως προς το \code{scalar\_ref} — τον μη βελτιστοποιημένο κώδικα αναφοράς (schoolbook πολλαπλασιασμός, scalar Keccak, scalar decode) χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις.  Αυτή η ενιαία βάση αναφοράς καθιστά τα speedups μεταξύ διαφορετικών tiers άμεσα συγκρίσιμα.
 
 Η πρωτεύουσα μετρική απόδοσης της παρούσας εργασίας είναι ο αριθμός
 \defterm{δυναμικών αποσυρθεισών εντολών} (retired instruction count, \instret) —

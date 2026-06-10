@@ -20,6 +20,23 @@
 \input{preamble/macros}
 \input{preamble/glossary}    % acronym definitions (\gls{} first-use expansion)
 
+% --- Figure subprocess: suppress aux writes to prevent parallel race conditions ---
+% Must be called AFTER \makenoidxglossaries (in glossary.tex) but BEFORE
+% \begin{document}.  Prevents parallel figure subprocesses from overwriting the
+% shared build/main.aux mid-read ("File ended while scanning \BKM@entry").
+\makeatletter
+\ifdefined\tikzexternalrealjob
+  \edef\pgf@tempa{\jobname}%
+  \edef\pgf@tempb{\detokenize{main}}%
+  \edef\pgf@tempc{\detokenize{texput}}%
+  \ifx\pgf@tempa\pgf@tempb\else    % not the main run
+    \ifx\pgf@tempa\pgf@tempc\else  % not a texput (chapter-only / pass-1) run
+      \nofiles  % figure subprocess — no aux/toc/lof/lot writes
+    \fi
+  \fi
+\fi
+\makeatother
+
 % --- Document ---
 \begin{document}
 

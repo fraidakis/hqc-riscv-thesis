@@ -91,17 +91,25 @@
 % IMPORTANT: \jobname produces catcode-12 tokens; a literal "main" in TeX
 % source has catcode-11 letter tokens.  \ifx comparison fails across catcodes.
 % We use \detokenize{main} to normalise both sides to catcode-12 before \ifx.
+%
+% \nofiles MUST be called in the preamble (before \begin{document}) so that
+% figure subprocesses never open build/main.aux for writing.  If deferred to
+% \AtBeginDocument, the aux file is already opened for write by that point,
+% causing race conditions when parallel subprocesses overwrite each other's aux
+% mid-read ("File ended while scanning use of \BKM@entry").
+% NOTE: The actual \nofiles call is placed AFTER glossaries-extra loads (below)
+% because calling \nofiles before glossaries causes "Too many }'s".
+%
+% Disable todonotes in figure subprocesses: \todo creates margin floats that
+% cause "Float(s) lost" when the subprocess ends after the figure.
 \makeatletter
 \AtBeginDocument{%
   \ifdefined\tikzexternalrealjob
     \edef\pgf@tempa{\jobname}%
     \edef\pgf@tempb{\detokenize{main}}%
     \edef\pgf@tempc{\detokenize{texput}}%
-    \ifx\pgf@tempa\pgf@tempb\else    % not the main run
-      \ifx\pgf@tempa\pgf@tempc\else  % not a texput (chapter-only / pass-1) run
-        \nofiles  % we are in a tikz/external figure subprocess
-        % Disable todonotes in subprocess: \todo creates margin floats that
-        % cause "Float(s) lost" when the subprocess ends after the figure.
+    \ifx\pgf@tempa\pgf@tempb\else
+      \ifx\pgf@tempa\pgf@tempc\else
         \renewcommand{\todo}[2][]{}%
         \renewcommand{\missingfigure}[2][]{}%
       \fi

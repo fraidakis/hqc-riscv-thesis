@@ -378,18 +378,19 @@ Keccak και NTT. Η πρόταση Saarinen~\cite{Saarinen2024-vkeccak} για
   \item \textbf{Tier~2 — Base-RVV} (\code{rv64gcv} + \gls{zbc}/\gls{zbb}): αξιοποιεί τη
     διανυσματική μονάδα \RVV 1.0 για τη διανυσματοποίηση των recomposition
     βρόχων και της αποκωδικοποίησης, διατηρώντας scalar Keccak (υβριδική
-    αρχιτεκτονική). Επιτυγχάνεται \speedup{118} στο polymul και \speedup{57} στο πλήρες \gls{kem}.
+    αρχιτεκτονική). Επιτυγχάνεται \speedup{122} στο polymul και \speedup{60} στο πλήρες \gls{kem}.
 
   \item \textbf{Tier~3 — Vector-Crypto} (\code{rv64gcv} + \gls{zvbc}/\gls{zvbb}): πλήρης
     αξιοποίηση κρυπτογραφικών vector extensions — \vclmul/\vclmulh στα leaf
-    kernels, \vror/\insn{vandn.vv} στον Keccak. Επιτυγχάνεται \speedup{296}
-    στο polymul και \speedup{154} στο πλήρες \gls{kem}.
+    kernels, \vror/\insn{vandn.vv} στον Keccak. Επιτυγχάνεται \speedup{307}
+    στο polymul και \speedup{164} στο πλήρες \gls{kem}.
 \end{itemize}
 
 \paragraph{Σύμβαση βάσης αναφοράς.}
-Οι επιταχύνσεις ανά tier ορίζονται έναντι διαφορετικών baselines σύμφωνα με τη
-\cref{conv:baseline}: το Tier~1 μετριέται έναντι του \code{scalar\_ref}
-(schoolbook, scalar), ενώ τα Tier~2 και Tier~3 έναντι του \code{vector\_ref}.
+Όλες οι επιταχύνσεις ορίζονται έναντι του \code{scalar\_ref} σύμφωνα με τη
+\cref{conv:baseline} — τον μη βελτιστοποιημένο κώδικα αναφοράς χωρίς
+αλγοριθμικές ή ISA βελτιστοποιήσεις.  Η ενιαία βάση αναφοράς καθιστά τα
+speedups μεταξύ tiers άμεσα συγκρίσιμα.
 Όλα τα μεγέθη \speedup{} εκφράζονται σε αλγοριθμικό αριθμό εντολών (\instret)
 στον Spike \gls{iss}.
 

@@ -5,14 +5,14 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-This diploma thesis presents the first fully optimized pure-software implementation of the HQC post-quantum
-key encapsulation mechanism on RISC-V, leveraging ratified ISA extensions including
-Zbc (carry-less multiplication), Zvbc (vector carry-less multiplication), Zbb
-(bit manipulation), and Zvbb (vector bit manipulation). At the HQC-128 level, the fully vectorized (Tier~3) implementation achieves a \speedup{296} speedup on polynomial multiplication and \speedup{154} on the full \gls{kem} relative to the vectorized reference, measured in instruction count (\instret) on the \gls{iss}. At the HQC-256 security level, the corresponding full-KEM speedup reaches \speedup{317}. These Tier~3 figures quantify the algorithmic instruction count (\instret) on the \gls{iss}; cycle-accurate validation on physical RISC-V silicon remains future work.
+This thesis develops the first fully optimized pure-software implementation of the HQC post-quantum
+\gls{kem} on RISC-V. The implementation leverages the ratified \gls{isa} extensions
+Zbc and Zvbc (carry-less multiplication) as well as Zbb and Zvbb (bit manipulation). At the HQC-128 level, the implementation exploiting all of these extensions achieves a \speedup{307} speedup on polynomial multiplication and \speedup{164} on the full \gls{kem} relative to the unoptimized scalar reference, measured in instruction count (\instret); this benefit is sustained across all three security levels (HQC-128/192/256), reaching \speedup{331} at HQC-256. Beyond the \gls{iss}, the measurements are validated on real RISC-V silicon (Banana Pi BPI-F3, SpacemiT K1): a full HQC-128 key exchange completes in $\approx\SI{1.3}{\milli\second}$ at \SI{1.6}{\giga\hertz} (\speedup{34.3} over the reference). Cycle-accurate validation of the fully vectorized variant awaits silicon implementing Zvbc/Zvbb.
 
 \begin{thesiskeywords}
-  post-quantum cryptography,\; HQC,\; RISC-V,\; polynomial multiplication,\;
-  Karatsuba,\; vector extensions,\; ISA optimization
+  post-quantum cryptography,\; HQC,\; KEM,\; RISC-V,\; RVV,\;
+  carry-less multiplication (Zbc/Zvbc),\; polynomial multiplication,\;
+  Karatsuba,\; Keccak,\; Reed-Muller/Reed-Solomon decoding,\; NIST PQC
 \end{thesiskeywords}
 
 \vspace{1em}
