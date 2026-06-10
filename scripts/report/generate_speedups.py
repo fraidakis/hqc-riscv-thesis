@@ -58,13 +58,13 @@ TIERS = [
     },
     {
         "label": "Table 2 — Tier 2 (Edge RVV)",
-        "baseline_variant": "vector_ref",
+        "baseline_variant": "scalar_ref",
         "champion_variant": "vector_rvv",
         "note": "rv64gcv + Zbc/Zbb; AP-2 fixed-tree polymul, scalar Keccak",
     },
     {
         "label": "Table 3 — Tier 3 (High-End Zvbc)",
-        "baseline_variant": "vector_ref",
+        "baseline_variant": "scalar_ref",
         "champion_variant": "vector_zvk",
         "note": "rv64gcv + Zvbc/Zvbb/Zvl256b",
     },
@@ -424,7 +424,7 @@ def generate_cross_report(out_path: Path | None) -> None:
         {
             "variant": "vector_rvv",
             "label": "Vector RVV (Vector Tier)",
-            "sim_baseline_variant": "vector_ref",
+            "sim_baseline_variant": "scalar_ref",
             "sim_champion_variant": "vector_rvv",
         },
     ]
