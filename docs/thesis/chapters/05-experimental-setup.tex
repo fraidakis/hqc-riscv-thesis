@@ -914,7 +914,7 @@ $\mathbf{sk} = (\mathbf{x}, \mathbf{y})$ (αραιά δυαδικά διανύσ
   \item καμία διεύθυνση load/store δεν εξαρτάται από μυστικά δεδομένα, και
   \item κάθε εκτελούμενη εντολή ανήκει στο Zkt subset — εντολές με
     αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση ανεξαρτήτως τιμών
-    τελεστέων \cite{riscv-scalar-crypto-2022}.
+    τελεστέων \cite{RISCV-crypto-spec}.
 \end{enumerate}
 
 Η extension Zkt ορίζει τυπικά αυτή την εγγύηση: για κάθε εντολή
@@ -922,7 +922,6 @@ $i \in \mathcal{I}_{\mathrm{Zkt}}$ και οποιαδήποτε δύο ζεύγ
 $x, y$ ίσου εύρους, υπό σταθερό μικροαρχιτεκτονικό context $\mu$, ισχύει
 \begin{equation}
   T(i, x, \mu) = T(i, y, \mu).
-  \label{eq:zkt-timing}
 \end{equation}
 Η ιδιότητα αυτή εξασφαλίζει ότι ο χρονισμός κάθε μεμονωμένης εντολής
 δεν αποκαλύπτει πληροφορία για τα δεδομένα που επεξεργάζεται.
@@ -1701,7 +1700,6 @@ denominator για τα polymul-specific speedups στο \cref{ch:polymul-optimi
 
 \begin{equation}
   S_{\max} = \frac{1}{(1 - p) + p/s}
-  \label{eq:amdahl}
 \end{equation}
 
 \noindent

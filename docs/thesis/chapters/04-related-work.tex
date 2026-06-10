@@ -61,7 +61,7 @@ Karatsuba~\cite{HQC-spec2024}. Δευτερευόντως, η πλατφόρμα
 F$2^8$ εντολή) στερείται 64-bit datapath και ratified \gls{zbc}/\gls{zvbc}, σε
 αντίθεση με τους RV64 application-class επεξεργαστές που στοχεύει η παρούσα εργασία.
 
-\subsection{Ras et al.\ 2026 — FAFFT σε CV32E40P SoC}
+\subsection{Ras et al.\ 2025 — FAFFT σε CV32E40P SoC}
 \label{ssec:rw-ras-fafft}
 
 Πρόσφατη εργασία υλοποίησης \gls{hqc} σε RISC-V προέρχεται από τους Ras,
@@ -105,7 +105,7 @@ Karatsuba), υλοποιημένο στον RV32IMC CV32E40P χωρίς αξιο
 \subsection{PHOENIX — Crypto-Agile HW Coprocessor}
 \label{ssec:rw-phoenix}
 
-Η ίδια ερευνητική ομάδα (CEA-Leti) παρουσίασε το PHOENIX~\cite{PHOENIX2026},
+Η ίδια ερευνητική ομάδα (CEA-Leti) παρουσίασε το PHOENIX~\cite{PHOENIX2025},
 τον πρώτο crypto-agile hardware coprocessor που υποστηρίζει ταυτόχρονα
 lattice-based (\gls{mlkem}) και code-based (\gls{hqc}) \gls{kem} σε κοινό hardware.
 
@@ -156,7 +156,7 @@ hardware.
       & RV32IC & sparse$\times$dense & R-Unit, RM-Dec., F$2^8$-Unit & 2022 \\
     Ras et al.~\cite{ras-nist2025}
       & RV32IMC & FAFFT & ANDROMEDA & 2025 \\
-    PHOENIX~\cite{PHOENIX2026}
+    PHOENIX~\cite{PHOENIX2025}
       & ARM Cortex-A9 & FAFFT & SuperButterfly & 2025 \\
     \midrule
     \textbf{Παρούσα εργασία}
@@ -293,10 +293,10 @@ FFT-based υλοποίηση των Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} υ
 του RISC-V vector model εισάγει πρόσθετες σχεδιαστικές προκλήσεις που δεν
 υφίστανται σε fixed-width SIMD.
 
-\subsection{Jang et al.\ 2026 — Cortex-M4 Polymul (FAFFT-CRT/Karatsuba)}
+\subsection{Jang et al.\ 2025 — Cortex-M4 Polymul (FAFFT-CRT/Karatsuba)}
 \label{ssec:rw-jang-m4}
 
-Η εργασία~\cite{Jang2026-CortexM4-HQC} στοχεύει τον ARM Cortex-M4, μία
+Η εργασία~\cite{Jang2025-CortexM4-HQC} στοχεύει τον ARM Cortex-M4, μία
 πλατφόρμα χωρίς hardware carry-less multiply, και προτείνει τρεις
 εναλλακτικές προσεγγίσεις: Hybrid FAFFT-CRT, Hybrid FAFFT-Karatsuba, και
 radix-16.
@@ -391,7 +391,7 @@ SIMD εντολών (\texttt{VPCLMULQDQ}, \texttt{PMULL}) ή η χρήση FFT-b
     Jang et al.~\cite{Jang2026-gf2x-SIMD}
       & x86 AVX2 & Toom/Karatsuba & VPCLMULQDQ & \pct{17}–\pct{32} polymul \\
     & ARM Neon & Toom/Karatsuba & PMULL & — \\
-    Jang et al.~\cite{Jang2026-CortexM4-HQC}
+    Jang et al.~\cite{Jang2025-CortexM4-HQC}
       & Cortex-M4 & FAFFT-CRT & — & \pct{33.4} polymul \\
     Chen et al.~\cite{Chen2021-BIKE-Haswell-M4}
       & x86 Haswell & Karatsuba (5-way Bernstein) & PCLMULQDQ & — \\
@@ -618,7 +618,7 @@ hardware accelerator ANDROMEDA. Ο CV32E40P (RV32IMC) δεν υποστηρίζ�
 είτε στον custom CFB unit. Η εργασία δεν αποτελεί pure-software υλοποίηση και
 δεν αξιοποιεί ratified extensions.
 
-\paragraph{PHOENIX~\cite{PHOENIX2026}.}
+\paragraph{PHOENIX~\cite{PHOENIX2025}.}
 Ο crypto-agile coprocessor SuperButterfly αποτελεί custom FPGA σχεδίαση — δεν
 είναι τυποποιημένη RISC-V extension και δεν είναι portable σε εμπορικούς
 επεξεργαστές. Η φιλοσοφία hardware sharing (NTT + FAFFT) είναι ορθογώνια προς
@@ -631,7 +631,7 @@ hardware accelerator ANDROMEDA. Ο CV32E40P (RV32IMC) δεν υποστηρίζ�
 πολλαπλασιασμού ακολουθεί sparse$\times$dense, σε αντίθεση με το
 dense$\times$dense Karatsuba της reference υλοποίησης που υιοθετεί η παρούσα εργασία.
 
-\paragraph{Jang et al.\ 2026~\cite{Jang2026-CortexM4-HQC}.}
+\paragraph{Jang et al.\ 2025~\cite{Jang2025-CortexM4-HQC}.}
 Η εργασία στοχεύει ARM Cortex-M4, πλατφόρμα χωρίς hardware carry-less multiply.
 Η χρήση \gls{fafft} αποτελεί αναγκαστική επιλογή λόγω απουσίας \insn{clmul} —
 σε αντίθεση με τη RISC-V αρχιτεκτονική όπου η \gls{zbc} παρέχει νατιβή υποστήριξη.
@@ -692,11 +692,11 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
       & \ding{51} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
     Ras et al.~\cite{ras-nist2025}
       & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
-    PHOENIX~\cite{PHOENIX2026}
+    PHOENIX~\cite{PHOENIX2025}
       & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
     OptHQC~\cite{OptHQC2025}
       & \ding{55} & \ding{51} & — & \ding{55} & \ding{51} \\
-    Jang et al.~\cite{Jang2026-CortexM4-HQC}
+    Jang et al.~\cite{Jang2025-CortexM4-HQC}
       & \ding{55} & \ding{51} & — & \ding{51} & \ding{55} \\
     Jang et al.~\cite{Jang2026-gf2x-SIMD}
       & \ding{55} & \ding{51} & — & \ding{51} & \ding{55} \\

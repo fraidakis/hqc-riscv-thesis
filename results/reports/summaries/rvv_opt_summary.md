@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED — μη χρησιμοποιείται.** Ενδιάμεσο report από παλαιότερο harness με superseded τιμές (T2/T3 polymul 160215 / 72644). Οι canonical τιμές είναι στο `speedups_simulation.md` (157473 / 62530) και τις χρησιμοποιεί η διατριβή. Διατηρείται μόνο για ιστορικούς λόγους.
+
 # RVV Optimization — Final Summary Comparison
 
 **Date:** 2026-05-28  

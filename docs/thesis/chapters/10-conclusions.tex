@@ -87,8 +87,10 @@ unit.
 Η σύγκριση με x86-64 (AVX2+PCLMULQDQ+GFNI), AMD Zen~4, και ARM Cortex-M4
 (\cref{sec:cross-architecture}) αντιπαραθέτει \instret (Spike) με κύκλους
 ρολογιού (πραγματικό hardware).  Η άμεση αριθμητική σύγκριση δεν επιτρέπεται
-χωρίς επιφυλάξεις — ο \instret αποτελεί κάτω φράγμα κύκλων σε κάθε ρεαλιστικό
-pipeline, αλλά δεν ενσωματώνει ILP, OoO execution, ή cache effects.
+χωρίς επιφυλάξεις — ο \instret αποτελεί κάτω φράγμα κύκλων σε in-order pipelines, αλλά σε
+superscalar/dual-issue πυρήνες (όπως ο SpacemiT X60 με IPC $\approx 1.49$)
+γίνεται άνω φράγμα· σε κάθε περίπτωση δεν ενσωματώνει ILP, OoO execution, ή
+cache effects.
 
 \paragraph{Residual OS noise στις hardware μετρήσεις}
 Οι μετρήσεις κύκλων στο BPI-F3 πραγματοποιήθηκαν σε Linux userspace μέσω

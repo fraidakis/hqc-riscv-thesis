@@ -402,7 +402,6 @@ $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$.  Η αναδρομή
 \begin{equation}
   277 \rightarrow (139, 138) \rightarrow (70, 69) \rightarrow
   (35, 34) \rightarrow (18, 17) \rightarrow (9, 8).
-  \label{eq:recursion-tree-128}
 \end{equation}
 %
 Κάθε παραγόμενη συνάρτηση (\code{kmul\_277}, \code{kmul\_139}, \ldots,
@@ -554,7 +553,7 @@ HQC απέρριψε τη sparse multiplication στην τελική spec (2024
 
 Η λεπτομερής σύγκριση αλγοριθμικών εναλλακτικών — συμπεριλαμβανομένων
 πρόσφατων SIMD υλοποιήσεων Toom-Cook/Karatsuba~\cite{Jang2026-gf2x-SIMD} και
-της ανάλυσης FAFFT με CRT splitting~\cite{Chen2026-TCHES-HQC-FFT,Jang2026-CortexM4-HQC} ως μελλοντικής
+της ανάλυσης FAFFT με CRT splitting~\cite{Chen2026-TCHES-HQC-FFT,Jang2025-CortexM4-HQC} ως μελλοντικής
 κατεύθυνσης — παρουσιάζεται στο \cref{ch:discussion}.
 
 %% ============================================================================
@@ -1133,7 +1132,6 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
   S_\text{system} \leq \frac{1}{(1 - f) + f / S_\text{local}}
   = \frac{1}{0.03 + 0.97/296}
   \approx 30.1.
-  \label{eq:amdahl-polymul}
 \end{equation}
 %
 Η πραγματική μέτρηση — \speedup{154} speedup πλήρους \gls{kem} στο Tier~3

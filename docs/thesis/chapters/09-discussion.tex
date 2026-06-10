@@ -32,7 +32,7 @@
     δεδομένα x86-64 (FFT+CRT) προέρχονται από \cite{Chen2026-TCHES-HQC-FFT}
     (AVX2 + PCLMULQDQ + GFNI, AMD EPYC 9754, full-KEM cache-key), τα
     SUPERCOP/Zen~4 από \cite{OptHQC2025}, τα Cortex-M4 από
-    \cite{Jang2026-CortexM4-HQC}, και τα FAFFT RISC-V από
+    \cite{Jang2025-CortexM4-HQC}, και τα FAFFT RISC-V από
     \cite{ras-nist2025}.  Η παρούσα εργασία χρησιμοποιεί \instret μέσω
     Spike ISS (βλ.\ \cref{ssec:methodology-caveat} για μεθοδολογικές
     επιφυλάξεις).}%
@@ -120,7 +120,7 @@ benchmarking \cite{pqm4, zhang-tches2025} για υλοποιήσεις που �
 $\GFpoly$ υλοποιείται μέσω bit-slicing ή πινάκων αναζήτησης (NTL
 look-up tables), μεταφράζοντας κάθε λογικό βήμα σε δεκάδες scalar εντολές
 με εντατική χρήση καταχωρητών και πολλαπλές προσβάσεις στη μνήμη L1
-\cite{Jang2026-CortexM4-HQC}.
+\cite{Jang2025-CortexM4-HQC}.
 
 Η ποσοτική διαφορά είναι εντυπωσιακή: η \Decaps στον Cortex-M4 απαιτεί
 \cycles{7502580} κύκλους, ενώ το Tier~3 της παρούσας εργασίας εκτελεί
