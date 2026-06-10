@@ -1,21 +1,21 @@
-# date: 2026-05-26 16:15
-# commit: c56c136
-# variant: karatsuba_rvv
+# date: 2026-06-10 17:16
+# commit: 9121a2c
+# variant: vector_rvv
 # level: 128
 op,vlen,instructions
-keypair,256,289001
-keypair,512,283317
-keypair,1024,281755
-keypair,2048,282157
-encaps,256,591892
-encaps,512,578861
-encaps,1024,573761
-encaps,2048,577937
-decaps,256,1094531
-decaps,512,1074632
-decaps,1024,1068113
-decaps,2048,1073610
-total,256,1975424
-total,512,1936810
-total,1024,1923629
-total,2048,1933704
+keypair,256,286255
+keypair,512,281828
+keypair,1024,281533
+keypair,2048,282479
+encaps,256,586400
+encaps,512,575883
+encaps,1024,573317
+encaps,2048,578581
+decaps,256,1084132
+decaps,512,1069052
+decaps,1024,1067294
+decaps,2048,1074423
+total,256,1956787
+total,512,1926763
+total,1024,1922144
+total,2048,1935483
