@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-07 15:56:41 |
-| Commit | `20def7e` |
+| Generated | 2026-06-10 17:41:00 |
+| Commit | `1df8302` |
 
 ---
 
@@ -24,10 +24,10 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 107,408 | 45,504 |
-| 128 | encaps | 221,511 | 45,504 |
-| 128 | decaps | 400,478 | 45,504 |
-| 128 | **total** | 729,397 | 45,504 |
+| 128 | keypair | 105,279 | 46,104 |
+| 128 | encaps | 217,479 | 46,104 |
+| 128 | decaps | 393,086 | 46,104 |
+| 128 | **total** | 715,844 | 46,104 |
 | 192 | keypair | 262,108 | 49,716 |
 | 192 | encaps | 542,410 | 49,716 |
 | 192 | decaps | 914,520 | 49,716 |
@@ -61,26 +61,26 @@
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| vclmul_leaf | 250,554 | 33.90 |
-| KeccakF1600_StatePermute | 191,492 | 25.91 |
-| gf_reduce | 44,726 | 6.05 |
-| rvv_xor3_u64 | 31,464 | 4.26 |
-| rvv_copy_u64 | 26,418 | 3.57 |
-| rvv_xor_u64 | 22,320 | 3.02 |
-| rol1_zbb | 17,040 | 2.31 |
-| kmul_17 | 15,762 | 2.13 |
-| kmul_18 | 9636 | 1.30 |
-| kmul_35 | 9108 | 1.23 |
-| gf_mul | 8952 | 1.21 |
-| support_contains_value | 8877 | 1.20 |
-| reed_solomon_encode | 8058 | 1.09 |
-| memset | 6790 | 0.92 |
-| vect_generate_random_support2 | 6156 | 0.83 |
-| vect_write_support_to_vector | 5847 | 0.79 |
-| expand_and_sum | 5060 | 0.68 |
-| ?? ??:0 | 4292 | 0.58 |
-| keccak_extract_bytes | 3909 | 0.53 |
-| reduce | 3594 | 0.49 |
+| vclmul_leaf | 250,554 | 34.54 |
+| KeccakF1600_StatePermute | 177,860 | 24.52 |
+| gf_reduce | 44,726 | 6.17 |
+| rvv_xor3_u64 | 31,464 | 4.34 |
+| rvv_copy_u64 | 26,418 | 3.64 |
+| rvv_xor_u64 | 22,320 | 3.08 |
+| rol1_zbb | 17,040 | 2.35 |
+| kmul_17 | 15,762 | 2.17 |
+| kmul_18 | 9,636 | 1.33 |
+| kmul_35 | 9,108 | 1.26 |
+| gf_mul | 8,952 | 1.23 |
+| support_contains_value | 8,877 | 1.22 |
+| reed_solomon_encode | 8,058 | 1.11 |
+| memset | 6,790 | 0.94 |
+| vect_generate_random_support2 | 6,156 | 0.85 |
+| vect_write_support_to_vector | 5,847 | 0.81 |
+| expand_and_sum | 5,060 | 0.70 |
+| ?? ??:0 | 4,292 | 0.59 |
+| keccak_extract_bytes | 3,909 | 0.54 |
+| reduce | 3,594 | 0.50 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
