@@ -557,7 +557,7 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
 \begin{table}[htbp]
   \centering
   \caption{Απομονωμένη συνεισφορά Axis~C (FFT root-finding): σύγκριση
-           \Zvbc pipeline με scalar FFT έναντι vectorized FFT.}
+           \Zvbc pipeline με scalar FFT έναντι vectorized FFT.  Scope: μόνο το Axis~C (όχι πλήρες decode).}
   \label{tab:decode-axisc}
   \input{figures/ch7-kernels/decode-axisc-table}
 \end{table}
@@ -1159,7 +1159,7 @@ micro-benchmarks) μεταξύ scalar reference και Tier~3 optimized:
   \centering
   \caption{Σύνοψη βελτιστοποίησης ανά πυρήνα (HQC-128, isolated
            micro-benchmarks).  Η στήλη \q{Τελικό \%} δείχνει τη
-           συνεισφορά κάθε πυρήνα στο τελικό \KEM \instret.}
+           συνεισφορά κάθε πυρήνα στο τελικό \KEM \instret.  Το decode εδώ αναφέρεται στο πλήρες decode pipeline (RM\,+\,RS).}
   \label{tab:kernel-speedup-summary}
   \input{figures/ch7-kernels/kernel-speedup-summary-table}
 \end{table}

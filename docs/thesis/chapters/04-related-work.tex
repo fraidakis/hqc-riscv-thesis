@@ -66,7 +66,7 @@ F$2^8$ εντολή) στερείται 64-bit datapath και ratified \gls{zbc
 
 Πρόσφατη εργασία υλοποίησης \gls{hqc} σε RISC-V προέρχεται από τους Ras,
 Loiseau, Carmona, Pontié, Renault, Smith και Valea (CEA-Leti / INRIA /
-ANSSI)~\cite{Ras2026-FAFFT-RISCV}. Αντί Karatsuba, προτείνεται η χρήση
+ANSSI)~\cite{ras-nist2025}. Αντί Karatsuba, προτείνεται η χρήση
 \gls{fafft} ως εναλλακτική μέθοδος πολυωνυμικού πολλαπλασιασμού, σε συνδυασμό
 με τον hardware accelerator ANDROMEDA.
 
@@ -153,14 +153,14 @@ hardware.
     \textbf{Εργασία} & \textbf{ISA} & \textbf{Polymul} & \textbf{HW Accel.} & \textbf{Spec} \\
     \midrule
     Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
-      & RV32IC & sparse$\times$dense & R-Unit, RM-Dec., F$2^8$-Unit & pre-2024 \\
-    Ras et al.~\cite{Ras2026-FAFFT-RISCV}
-      & RV32IMC & FAFFT & ANDROMEDA & 2024 \\
+      & RV32IC & sparse$\times$dense & R-Unit, RM-Dec., F$2^8$-Unit & 2022 \\
+    Ras et al.~\cite{ras-nist2025}
+      & RV32IMC & FAFFT & ANDROMEDA & 2025 \\
     PHOENIX~\cite{PHOENIX2026}
-      & ARM Cortex-A9 & FAFFT & SuperButterfly & 2024 \\
+      & ARM Cortex-A9 & FAFFT & SuperButterfly & 2025 \\
     \midrule
     \textbf{Παρούσα εργασία}
-      & RV64GCV & Karatsuba & \textbf{Καμία} & 2024 \\
+      & RV64GCV & Karatsuba & \textbf{Καμία} & 2026 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -611,7 +611,7 @@ side-channel ευπαθειών~\cite{HQC-spec2024}. Κατά συνέπεια, 
 (custom ISA) όσο και ο αλγόριθμος (sparse$\times$dense) καθιστούν αυτή την
 εργασία μη εφαρμόσιμη στο σύγχρονο \gls{hqc}.
 
-\paragraph{Ras et al.\ 2026~\cite{Ras2026-FAFFT-RISCV}.}
+\paragraph{Ras et al.\ 2025~\cite{ras-nist2025}.}
 Η εργασία χρησιμοποιεί τον αλγόριθμο \gls{fafft} σε συνδυασμό με τον custom
 hardware accelerator ANDROMEDA. Ο CV32E40P (RV32IMC) δεν υποστηρίζει \gls{zbc} ή
 \gls{zvbc} — ο carry-less πολλαπλασιασμός εκτελείται είτε σε software (shift-and-add)
@@ -690,7 +690,7 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
     \midrule
     Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
       & \ding{51} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
-    Ras et al.~\cite{Ras2026-FAFFT-RISCV}
+    Ras et al.~\cite{ras-nist2025}
       & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
     PHOENIX~\cite{PHOENIX2026}
       & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\

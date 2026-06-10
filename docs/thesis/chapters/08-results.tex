@@ -154,7 +154,7 @@ auto-lowering.
   \input{figures/ch8-results/microbench-decode-table}
 \end{table}
 
-Η μετάβαση από Tier~2 σε Tier~3 παρέχει επιπλέον \speedup{2.15}
+Η μετάβαση από Tier~2 σε Tier~3 παρέχει επιπλέον \speedup{2.14}
 ($\num{121217} / \num{56515}$), αποδεικνύοντας ότι η \gls{zvbc} acceleration
 του Berlekamp-Massey, Forney και FFT root-finding (βλ.\
 \cref{sec:decode-zvbc-bm-forney} και \cref{sec:decode-zvbc-fft}) προσφέρει ουσιαστική
@@ -289,7 +289,7 @@ resources. Στο HQC-128:
     Στο reference, ο polymul κυριαρχεί με \pct{97.7}. Μετά τη
     βελτιστοποίηση, ο Keccak αναδεικνύεται ως σημαντικό hotspot
     (\pct{42.7} στο Tier~2, \pct{32.9} στο Tier~3) — κλασική εκδήλωση
-    του νόμου Amdahl.}
+    του νόμου Amdahl.  Scope: όλα τα ποσοστά εκφράζουν μερίδιο επί του \Decaps (decode = full decode pipeline).}
   \label{fig:kem-breakdown}
 \end{figure}
 
@@ -602,7 +602,7 @@ helpers (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
     Το \code{kmul\_N} scaffolding ($\pct{4.7}$) κλιμακώνει μερικώς
     και δεν προσμετράται στο θεωρητικό ανώτατο όριο. Η πράσινη μπάρα του
     polymul ($\pct{15.7}$) αναλύεται σε \pct{11.0} recomposition helpers
-    (πλήρως κλιμακούμενα) συν \pct{4.7} scaffolding (μερικώς κλιμακούμενο).}
+    (πλήρως κλιμακούμενα) συν \pct{4.7} scaffolding (μερικώς κλιμακούμενο).  Scope: τα ποσοστά εκφράζουν μερίδιο επί του συνολικού \KEM· το decode αφορά τα scalar \code{gf\_reduce}+\code{gf\_mul}.}
   \label{fig:vlen-budget}
 \end{figure}
 

@@ -111,7 +111,7 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 |-------|----------------------|---------------------|--------|
 | HQC-128 | 384,986 | 56,515 | ×6.81 |
 | HQC-192 | 562,125 | 72,237 | ×7.78 |
-| HQC-256 | 1,059,605 | 147,077 | ×7.21 |
+| HQC-256 | 1,059,605 | 147,077 | ×7.20 |
 
 > **Note**: Earlier runs with `isolated_decode_zvbc_2026-05-26_01-25.csv` (commit 95eaf30)
 > reported 60,353 / 77,114 / 159,206 — those were produced by a pre-refactor isolated harness
