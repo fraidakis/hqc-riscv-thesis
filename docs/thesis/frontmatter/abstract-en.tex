@@ -5,14 +5,13 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-This thesis develops the first fully optimized pure-software implementation of the HQC post-quantum
-\gls{kem} on RISC-V. The implementation leverages the ratified \gls{isa} extensions
-Zbc and Zvbc (carry-less multiplication) as well as Zbb and Zvbb (bit manipulation). At the HQC-128 level, the implementation exploiting all of these extensions achieves a \speedup{307} speedup on polynomial multiplication and \speedup{164} on the full \gls{kem} relative to the unoptimized scalar reference, measured in instruction count (\instret); this benefit is sustained across all three security levels (HQC-128/192/256), reaching \speedup{331} at HQC-256. Beyond the \gls{iss}, the measurements are validated on real RISC-V silicon (Banana Pi BPI-F3, SpacemiT K1): a full HQC-128 key exchange completes in $\approx\SI{1.3}{\milli\second}$ at \SI{1.6}{\giga\hertz} (\speedup{34.3} over the reference). Cycle-accurate validation of the fully vectorized variant awaits silicon implementing Zvbc/Zvbb.
+This thesis develops the first optimized pure-software (no specialized hardware) implementation of HQC, a post-quantum \gls{kem}, on RISC-V. The implementation leverages the ratified \gls{isa} extensions
+Zbc and Zvbc (carry-less multiplication) as well as Zbb and Zvbb (bit manipulation). At the HQC-128 level, the optimized implementation achieves a \speedup{307} speedup on polynomial multiplication and \speedup{164} on the full \gls{kem} relative to the HQC team's reference implementation, measured in instruction count (\instret). This benefit is sustained across all three security levels (HQC-128/192/256), reaching \speedup{526} on polynomial multiplication and \speedup{331} on the full KEM at HQC-256. Beyond the \gls{iss}, the measurements are evaluated on real RISC-V silicon (Banana Pi BPI-F3, SpacemiT K1). As the available hardware does not yet support the Zvbc/Zvbb vector extensions, a not-fully-optimized version is run on the available silicon, achieving \speedup{34} at HQC-128 over the reference.
 
 \begin{thesiskeywords}
-  post-quantum cryptography,\; HQC,\; KEM,\; RISC-V,\; RVV,\;
-  carry-less multiplication (Zbc/Zvbc),\; polynomial multiplication,\;
-  Karatsuba,\; Keccak,\; Reed-Muller/Reed-Solomon decoding,\; NIST PQC
+  post-quantum cryptography (PQC),\; HQC,\; RISC-V,\;
+  vector extensions (RVV),\; carry-less multiplication (Zbc/Zvbc),\;
+  polynomial multiplication,\; Keccak,\; Reed-Muller/Reed-Solomon decoding
 \end{thesiskeywords}
 
 \vspace{1em}

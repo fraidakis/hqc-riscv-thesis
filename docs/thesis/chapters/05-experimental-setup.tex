@@ -465,7 +465,7 @@ version.  Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελ�
 \label{sec:benchmarking}
 \label{conv:baseline}%
 
-\noindent\textbf{Σύμβαση baseline.} Όλες οι επιταχύνσεις αναφέρονται ως προς το \code{scalar\_ref} — τον μη βελτιστοποιημένο κώδικα αναφοράς (schoolbook πολλαπλασιασμός, scalar Keccak, scalar decode) χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις.  Αυτή η ενιαία βάση αναφοράς καθιστά τα speedups μεταξύ διαφορετικών tiers άμεσα συγκρίσιμα.
+\noindent\textbf{Σύμβαση baseline.} Όλες οι επιταχύνσεις αναφέρονται ως προς το \code{scalar\_ref} — τον μη βελτιστοποιημένο κώδικα αναφοράς~\cite{HQC-reference-impl} (schoolbook πολλαπλασιασμός, scalar Keccak, scalar decode) χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις.  Αυτή η ενιαία βάση αναφοράς καθιστά τα speedups μεταξύ διαφορετικών tiers άμεσα συγκρίσιμα.
 
 Η πρωτεύουσα μετρική απόδοσης της παρούσας εργασίας είναι ο αριθμός
 \defterm{δυναμικών αποσυρθεισών εντολών} (retired instruction count, \instret) —
