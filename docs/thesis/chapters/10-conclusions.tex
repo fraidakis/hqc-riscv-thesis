@@ -32,8 +32,11 @@ rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimiza
 Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vv} επιτυγχάνει \speedup{296} στο
 polymul (HQC-128) και \speedup{513} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
 \speedup{154} (HQC-128) και \speedup{317} (HQC-256), τοποθετώντας τον
-\instret σε \num{729397} — της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT
-champion (\cref{ssec:avx2-gap}).
+\instret σε \num{729397}.  Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
+της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion· σε εκτιμώμενους κύκλους
+ρολογιού το χάσμα είναι μεγαλύτερο ($\approx 2.8\times$, \cref{ssec:avx2-gap}), και
+τόσο η άμεση σύγκριση \instret-έναντι-κύκλων όσο και η επικύρωση σε πραγματικό
+silicon παραμένουν μελλοντική εργασία (\cref{sec:future-work}).
 
 \paragraph{Βοηθητικοί πυρήνες}
 Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
@@ -214,9 +217,14 @@ vector unit, αξιοποιώντας register group αρκετά μεγάλο �
 floor στην τρέχουσα υλοποίηση (\pct{24.5} του Tier~3 \gls{kem} \instret,
 \cref{tab:kernel-redistribution}).  Βάσει
 προκαταρκτικών benchmarks σε SpacemiT X60~\cite{Saarinen2024-vkeccak}, η εντολή
-επιτυγχάνει \speedup{12.74} σε scheme-level Kyber-768 (NTT + \code{vkeccak.vi})
-— αναλογική βελτίωση αναμένεται και στον \gls{hqc}, όπου ο Keccak αποτελεί
-συγκρίσιμο ποσοστό του συνολικού κόστους.
+μειώνει το κόστος μίας Keccak permutation από $\sim$\num{2000} σε $\sim$\num{30}
+κύκλους, αποφέροντας βελτίωση \speedup{12.74} σε scheme-level Kyber-768
+(NTT + \code{vkeccak.vi}).  Δεδομένου του \pct{24.5} μεριδίου του Keccak στον
+Tier~3 \gls{hqc} \gls{kem} \instret, μια προκαταρκτική προβολή — βασισμένη σε
+Spike, χωρίς hardware proof-of-concept — υποδεικνύει αναλογική βελτίωση της τάξης
+$10$–$13\times$ σε επίπεδο σχήματος για τον \gls{hqc}.  Η ποσοτικοποίηση αυτή
+παραμένει εκτίμηση έως την τυποποίηση (RVS-2360) και την εμπειρική επικύρωση σε
+silicon.
 
 \paragraph{Configurable-polynomial GF reduction extension}
 Η \gls{zvbc} \insn{vclmul.vv} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο

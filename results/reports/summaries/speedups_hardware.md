@@ -7,7 +7,7 @@
 | VLEN | 256 |
 | Compiler | GCC (native) |
 | Isolation | taskset (single-core pinning) |
-| Iterations | 100 |
+| Iterations | 10000 (+100 warm-up) |
 
 Speedup = baseline_median_cycles / champion_median_cycles (higher is better).
 

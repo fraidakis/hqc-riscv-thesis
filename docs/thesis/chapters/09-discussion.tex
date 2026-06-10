@@ -44,7 +44,7 @@
 Τρεις βασικές παρατηρήσεις αναδεικνύονται από τον πίνακα.  Πρώτον, το
 Tier~3 (\code{vector\_zvk}) επιτυγχάνει \instret της ίδιας τάξης
 μεγέθους με τον x86-64 champion — ο λόγος \Decaps ανέρχεται σε
-$\num{400478}$ \instret έναντι \num{245000} κύκλων ($1.63\times$· δυναμικές εντολές έναντι κύκλων, βλ.\ \cref{ssec:methodology-caveat}).  Δεύτερον, η απόσταση από τον Cortex-M4 champion
+$\num{400478}$ \instret έναντι \num{245000} κύκλων ($1.63\times$ σε δυναμικές εντολές· σε εκτιμώμενους κύκλους ρολογιού, μετά από CPI adjustment, το ρεαλιστικό χάσμα ανέρχεται σε $\approx 2.8\times$, βλ.\ \cref{ssec:methodology-caveat}).  Δεύτερον, η απόσταση από τον Cortex-M4 champion
 ανέρχεται σε $\num{7502580} / \num{400478} = 18.7\times$ — αντικατοπτρίζοντας
 άμεσα την αξία του hardware carry-less multiply.  Τρίτον, η παρούσα
 υλοποίηση υπερτερεί κατά $\num{38099269} / \num{400478} = 95.1\times$ έναντι
@@ -571,7 +571,7 @@ level, ενώ ο αριθμός Keccak rotations παραμένει σταθερ
 Η επιβάρυνση $\pct{6}$–$\pct{10}$ δεν αντισταθμίζεται από κανένα
 πλεονέκτημα portability: κάθε RISC-V processor που υλοποιεί \gls{zbc} (η
 θεμελιώδης απαίτηση για carry-less multiply) παρέχει ταυτόχρονα \gls{zbb} —
-silicon με \gls{zbc} χωρίς \gls{zbb} δεν υπάρχει στο production landscape.  Η
+silicon με \gls{zbc} χωρίς \gls{zbb} δεν απαντάται στα γνωστά production RVA22/RVA23 cores.  Η
 τελική ISA baseline του Tier~1 ορίζεται ως \code{rv64gc\_zbc\_zbb\_zbs}.
 
 \paragraph{Zbkb: λειτουργική ισοδυναμία με Zbb.}
@@ -1380,7 +1380,7 @@ extensions παραμένει ανοιχτό ερευνητικό πρόβλημ
 subset χωρίς secret-dependent control flow ή memory addressing,
 (β)~στατικής επαλήθευσης — ctgrind περνά χωρίς violations (CI-automated),
 και (γ)~εμπειρικής hardware επαλήθευσης στα μετρημένα σημεία — dudect περνά στο BPI-F3 με
-t-statistics πολύ κάτω από το detection threshold για τα μετρηθέντα κελιά (\code{scalar\_zb}: L128/L192 polymul και L128 \gls{kem}· \code{vector\_rvv}: L128 polymul).  Η εμπειρική επαλήθευση (γ) καλύπτει ρητά μόνο αυτά τα (variant, level, target) σημεία· η γενίκευση σε όλα τα levels και variants στηρίζεται στους πυλώνες (α) και (β) — δηλαδή στην αρχιτεκτονική ισοδυναμία των instruction paths (η αλλαγή security level μεταβάλλει μόνο μήκη δεδομένων, όχι control flow ή memory addressing) εντός του Zkt-compliant subset.  Τα performance gains
+t-statistics πολύ κάτω από το detection threshold για τα μετρηθέντα κελιά (\code{scalar\_zb}: L128/L192 polymul και L128 \gls{kem}· \code{vector\_rvv}: L128 polymul).  Η εμπειρική επαλήθευση (γ) καλύπτει ρητά μόνο αυτά τα (variant, level, target) σημεία· η γενίκευση σε όλα τα levels και variants στηρίζεται στους πυλώνες (α) και (β) — δηλαδή στην αρχιτεκτονική ισοδυναμία των instruction paths (η αλλαγή security level μεταβάλλει μόνο μήκη δεδομένων, όχι control flow ή memory addressing) εντός του Zkt-compliant subset.  Για το Tier~3 variant (\code{vector\_zvk}) η constant-time τεκμηρίωση είναι αρχιτεκτονική μόνο: οι \vclmul, \vclmulh και \vror εντολές ανήκουν στη vector data-independent execution latency λίστα (Zvkt, το vector ανάλογο του scalar Zkt)~\cite{RISCV-crypto-spec}, ενώ η εμπειρική dudect επαλήθευσή τους σε silicon δεν είναι ακόμη εφικτή (απουσία \gls{zvbc}/\gls{zvbb} hardware) και παραμένει μελλοντική εργασία (\cref{sec:future-work}).  Τα performance gains
 μέσω Karatsuba recursion, \gls{zbc} carry-less multiply, και \RVV vectorization
 δεν παραβιάζουν την timing-side-channel αντοχή που απαιτείται για
 μετα-κβαντικές \gls{kem} deployments.

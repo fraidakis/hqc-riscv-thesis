@@ -386,6 +386,13 @@ Keccak και NTT. Η πρόταση Saarinen~\cite{Saarinen2024-vkeccak} για
     στο polymul και \speedup{154} στο πλήρες \gls{kem}.
 \end{itemize}
 
+\paragraph{Σύμβαση βάσης αναφοράς.}
+Οι επιταχύνσεις ανά tier ορίζονται έναντι διαφορετικών baselines σύμφωνα με τη
+\cref{conv:baseline}: το Tier~1 μετριέται έναντι του \code{scalar\_ref}
+(schoolbook, scalar), ενώ τα Tier~2 και Tier~3 έναντι του \code{vector\_ref}.
+Όλα τα μεγέθη \speedup{} εκφράζονται σε αλγοριθμικό αριθμό εντολών (\instret)
+στον Spike \gls{iss}.
+
 \paragraph{Αρχιτεκτονική σημασία.}
 Η τρι-επίπεδη δομή αντικατοπτρίζει τη modular φιλοσοφία του RISC-V \gls{isa}:
 κάθε extension είναι προαιρετική, κάθε tier ελέγχεται αυστηρά μέσω compilation

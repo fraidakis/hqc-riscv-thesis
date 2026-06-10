@@ -217,6 +217,13 @@ security levels και τις τρεις βαθμίδες hardware. Η βάση 
 decode) — η χειρότερη δυνατή υλοποίηση χωρίς αλγοριθμικές ή ISA
 βελτιστοποιήσεις.
 
+\paragraph{Σταθεροποίηση μετρήσεων (benchmark freeze).}
+Όλα τα \instret μεγέθη του κεφαλαίου αντιστοιχούν στο commit \code{20def7e}
+(2026-06-07· HQC-128 \gls{kem} σύνολο \num{729397}).  Μεταγενέστερες cosmetic
+αλλαγές (Keccak asm$\to$intrinsics, διόρθωση \code{gf.c}) στο \code{445e0cb}
+(2026-06-09) μειώνουν το σύνολο κατά \pct{1.9} (\num{715844}), χωρίς να
+μεταβάλλουν τα συμπεράσματα ή τις τάξεις μεγέθους των speedups.
+
 \begin{table}[htbp]
   \centering
   \caption{\instret πλήρους \KEM (\KeyGen + \Encaps + \Decaps) ανά security level, λειτουργία και tier
@@ -441,7 +448,13 @@ $3^{\Delta d}$ ενώ το recomposition overhead (XOR operations) κλιμακ�
 αντικατοπτρίζει τη μεγαλύτερη αναλογία polymul στο reference σε υψηλότερα
 levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασιασμός κυριαρχεί
 ακόμη περισσότερο ($>\pct{98}$ στο HQC-256), ενώ η βελτιστοποιημένη
-υλοποίηση κλιμακώνει ηπιότερα.
+υλοποίηση κλιμακώνει ηπιότερα.  Συνεπώς το polymul speedup κορυφώνεται στο
+\speedup{513} στο HQC-256 ως άμεση συνέπεια της σχεδόν τετραγωνικής κλιμάκωσης
+της βάσης \code{vector\_ref} έναντι της υπο-Karatsuba κλιμάκωσης του Tier~3
+(πρακτικός εκθέτης $\sim 1.24$), και όχι ως μεμονωμένο peak.  Ο γεωμετρικός μέσος
+των Tier~3 polymul speedups στα τρία security levels (\speedup{296}, \speedup{304},
+\speedup{513}) ανέρχεται σε $\approx 359\times$, παρέχοντας αντιπροσωπευτικό αδρό
+μέγεθος έναντι των μεμονωμένων peak τιμών.
 
 %% --------------------------------------------------------------------------
 \subsection{Ανάλυση Κλιμάκωσης ανά Πυρήνα}
@@ -748,10 +761,10 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 (\code{scalar\_zb}) και Tier~2 (\code{vector\_rvv}) — τα μοναδικά variants
 εκτελέσιμα στο διαθέσιμο hardware, καθώς ο X60 δεν υλοποιεί \gls{zvbc}/\gls{zvbb}.
 
-Κάθε benchmark εκτελείται \num{100} iterations μετά από \num{10} warmup iterations,
+Κάθε benchmark εκτελείται \num{10000} iterations μετά από \num{100} warmup iterations,
 σε single-core pinning (\code{taskset}) υπό Linux. Η μετρική είναι η διάμεσος
 κύκλων (\code{rdcycle}) — ανθεκτική σε outliers από interrupts ή scheduling jitter.
-Η μεθοδολογία μέτρησης τεκμηριώνεται στην~\cref{ssec:hw-measurement}.
+Η μεθοδολογία μέτρησης τεκμηριώνεται στην~\cref{ssec:hw-measurement}.  Οι hardware μετρήσεις εμφανίζουν χαμηλή διασπορά (coefficient of variation $\approx \pct{2}$ μεταξύ επαναλήψεων)· αναφέρεται η διάμεσος ως ανθεκτικό στατιστικό έναντι outliers από interrupts ή scheduling jitter.
 
 %% --------------------------------------------------------------------------
 \subsection{Μικρο-αξιολογήσεις σε Hardware (Cycles)}
@@ -759,14 +772,14 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 
 Ο~\cref{tab:hw-microbench} παρουσιάζει τα αποτελέσματα ανά πυρήνα για το
 HQC-128. Κάθε γραμμή περιλαμβάνει τα Spike \instret (αλγοριθμική βάση),
-τους πραγματικούς κύκλους (median, \num{100} iterations), τον παρατηρούμενο
+τους πραγματικούς κύκλους (median, \num{10000} iterations), τον παρατηρούμενο
 \gls{ipc} ($= \text{instret} / \text{cycles}$), και τον αντίστοιχο
 wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
 
 \begin{table}[htbp]
   \centering
   \caption{Isolated kernel benchmarks σε πραγματικό hardware (HQC-128,
-    BPI-F3 SpacemiT K1 X60, \SI{1.6}{\giga\hertz}, \num{100} iterations).
+    BPI-F3 SpacemiT K1 X60, \SI{1.6}{\giga\hertz}, \num{10000} iterations).
     Ο \gls{ipc} αποκαλύπτει τη μικροαρχιτεκτονική αποδοτικότητα κάθε
     variant: ο \code{scalar\_zb} επιτυγχάνει IPC $= 1.49$ χάρη στο
     dual-issue, ενώ ο \code{vector\_rvv} περιορίζεται σε $0.74$ λόγω
