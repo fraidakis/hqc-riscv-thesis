@@ -154,8 +154,8 @@ auto-lowering.
   \input{figures/ch8-results/microbench-decode-table}
 \end{table}
 
-Η μετάβαση από Tier~2 σε Tier~3 παρέχει επιπλέον \speedup{2.16}
-($\num{122163} / \num{56515}$), αποδεικνύοντας ότι η \gls{zvbc} acceleration
+Η μετάβαση από Tier~2 σε Tier~3 παρέχει επιπλέον \speedup{2.15}
+($\num{121217} / \num{56515}$), αποδεικνύοντας ότι η \gls{zvbc} acceleration
 του Berlekamp-Massey, Forney και FFT root-finding (βλ.\
 \cref{sec:decode-zvbc-bm-forney} και \cref{sec:decode-zvbc-fft}) προσφέρει ουσιαστική
 βελτίωση πέραν της βασικής \RVV vectorization. Η κλιμάκωση μεταξύ security
@@ -790,7 +790,7 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
     \midrule
     \multirow{2}{*}{Decode}
       & \code{scalar\_zb}  & 384986 & 457461 & 0.84 & 286 \\
-      & \code{vector\_rvv} & 122163 & 205402 & 0.59 & 128 \\
+      & \code{vector\_rvv} & 141148 & 205402 & 0.69 & 128 \\
     \bottomrule
   \end{tabular}
 \end{table}

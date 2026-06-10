@@ -11,7 +11,7 @@
 \label{sec:summary}
 
 Η παρούσα εργασία παρουσίασε την πρώτη πλήρως βελτιστοποιημένη υλοποίηση του \gls{hqc} \gls{kem}
-σε RISC-V, αξιοποιώντας αποκλειστικά ratified κρυπτογραφικές επεκτάσεις (\gls{zbc},
+σε RISC-V σε καθαρό λογισμικό (χωρίς custom hardware), αξιοποιώντας αποκλειστικά ratified επεκτάσεις bit-manipulation και vector-crypto (\gls{zbc},
 \gls{zbb}, \gls{zvbc}, \gls{zvbb}).  Η υλοποίηση οργανώθηκε σε τρία tiers που
 αντιστοιχούν στη σταδιακή υιοθέτηση ISA extensions:
 
@@ -33,7 +33,7 @@ rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimiza
 polymul (HQC-128) και \speedup{513} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
 \speedup{154} (HQC-128) και \speedup{317} (HQC-256), τοποθετώντας τον
 \instret σε \num{729397} — της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT
-champion (\cref{ssec:avx512-gap}).
+champion (\cref{ssec:avx2-gap}).
 
 \paragraph{Βοηθητικοί πυρήνες}
 Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
@@ -44,16 +44,17 @@ champion (\cref{ssec:avx512-gap}).
 \paragraph{Constant-time ασφάλεια}
 Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής: στατική
 ανάλυση ctgrind (Valgrind Memcheck) και εμπειρική στατιστική ανίχνευση dudect
-σε πραγματικό hardware (BPI-F3, SpacemiT K1 X60) για τα Tier~1 και Tier~2
-variants (\cref{sec:ct-verification}).  Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
+σε πραγματικό hardware (BPI-F3 / SpacemiT K1 X60) για τα Tier~1 και Tier~2
+variants (\cref{sec:ct-verification})· η εμπειρική dudect κάλυψη του Tier~2 περιορίζεται σε επίπεδο polymul.  Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
 θεωρητική CT συμμόρφωση για το Tier~3.
 
 \paragraph{Hardware validation}
 Τα Tier~1 και Tier~2 επικυρώθηκαν σε πραγματικό RISC-V hardware (BPI-F3,
 SpacemiT K1 X60, VLEN $= \num{256}$), παρέχοντας μετρήσεις κύκλων με pipeline
-effects (\cref{sec:hw-evaluation}).  Ο scalar path επιτυγχάνει IPC $\approx 1.0$,
-επιβεβαιώνοντας ότι τα Spike \instret αποτελούν αξιόπιστη πρόβλεψη κύκλων για
-in-order scalar κώδικα.
+effects (\cref{sec:hw-evaluation}).  Ο scalar path επιτυγχάνει IPC $\approx 1.49$· συνεπώς ο \instret δεν αποτελεί
+απόλυτο cycle predictor (υπερεκτιμά τους κύκλους κατά περίπου \pct{50}), αλλά παρέχει
+συνεπή, αναλογικό προγνωστικό δείκτη κύκλων για in-order scalar κώδικα, όπου ο
+σταθερός IPC δίνει κύκλους $\approx \instret/\text{IPC}$.
 
 \paragraph{Σχεδιαστικές αρχές}
 Η εργασία ανέδειξε τέσσερις γενικεύσιμες αρχές (\cref{sec:general-principles}):
@@ -75,7 +76,7 @@ metaprogramming (code generation) έναντι hand-tuning για βαθιά α�
 
 \paragraph{Απουσία Tier~3 hardware validation}
 Το Tier~3 (\gls{zvbc}/\gls{zvbb}) αξιολογήθηκε αποκλειστικά σε εξομοίωση (Spike ISS)
-λόγω απουσίας RVA23-compliant silicon με πλήρη \gls{zvbc} υποστήριξη.  Τα
+λόγω απουσίας silicon με την (προαιρετική στο RVA23) \gls{zvbc} υποστήριξη.  Τα
 αποτελέσματα αντιπροσωπεύουν \instret (αριθμό δυναμικά εκτελεσθεισών εντολών)
 υπό ιδανικές pipeline συνθήκες — χωρίς cache misses, branch mispredictions, ή
 vector pipeline stalls.  Η πραγματική απόδοση σε silicon αναμένεται να
@@ -83,7 +84,7 @@ vector pipeline stalls.  Η πραγματική απόδοση σε silicon α�
 unit.
 
 \paragraph{Ετερογένεια μετρικών στη cross-architecture σύγκριση}
-Η σύγκριση με x86-64 (AVX2+GFNI), AMD Zen~4, και ARM Cortex-M4
+Η σύγκριση με x86-64 (AVX2+PCLMULQDQ+GFNI), AMD Zen~4, και ARM Cortex-M4
 (\cref{sec:cross-architecture}) αντιπαραθέτει \instret (Spike) με κύκλους
 ρολογιού (πραγματικό hardware).  Η άμεση αριθμητική σύγκριση δεν επιτρέπεται
 χωρίς επιφυλάξεις — ο \instret αποτελεί κάτω φράγμα κύκλων σε κάθε ρεαλιστικό
@@ -96,7 +97,7 @@ pipeline, αλλά δεν ενσωματώνει ILP, OoO execution, ή cache ef
 \SI{4}{\milli\second}) εισάγει μικρή αβεβαιότητα στις μετρήσεις.
 
 \paragraph{Εμπειρική CT verification μόνο για Tier~1/2}
-Η dudect εμπειρική επαλήθευση καλύπτει μόνο τα variants \code{scalar\_zb}
+Η dudect εμπειρική επαλήθευση καλύπτει τα variants \code{scalar\_ref}, \code{scalar\_zb}
 (Tier~1) και \code{vector\_rvv} (Tier~2).  Το \code{vector\_zvk}
 (Tier~3) δεν δοκιμάστηκε με dudect λόγω απουσίας \gls{zvbc}/\gls{zvbb} στον SpacemiT K1.
 Η αρχιτεκτονική ανάλυση Zkt (\cref{ssec:ct-design-patterns}) τεκμηριώνει
@@ -104,8 +105,8 @@ pipeline, αλλά δεν ενσωματώνει ILP, OoO execution, ή cache ef
 παραμένει εκκρεμής.
 
 \paragraph{Compiler ecosystem ωριμότητα}
-Ο \Zvbb-accelerated Keccak backend (\code{fips202\_zvbb\_x2}) μεταγλωττίζεται
-αποκλειστικά με Clang/LLVM λόγω ασυμβατότητας GCC με LMUL=8 \gls{zvbb} codegen
+Ο \Zvbb-accelerated Keccak backend (\code{fips202\_zvbb\_x2.c}) μεταγλωττίζεται
+αποκλειστικά με Clang/LLVM λόγω ασυμβατότητας του GCC στο RVV/\gls{zvbb} codegen
 (\cref{ssec:gcc-zvbb-incompatibility}).  Η εξάρτηση από μονό compiler αποτελεί
 πρακτικό περιορισμό για production deployment.
 
@@ -113,6 +114,19 @@ pipeline, αλλά δεν ενσωματώνει ILP, OoO execution, ή cache ef
 Η αξιολόγηση εστιάζει σε single-core εκτέλεση.  Σε multi-session σενάρια
 (\eg TLS server με πολλαπλές ταυτόχρονες KEM operations), η απόδοση εξαρτάται
 από cache contention, memory bandwidth, και NUMA effects που δεν εξετάστηκαν.
+
+\paragraph{Απουσία energy/power χαρακτηρισμού}
+Όλες οι μετρικές αφορούν performance proxies (\instret/κύκλοι)· δεν πραγματοποιήθηκαν
+μετρήσεις energy-per-operation ή power envelope.  Για embedded/edge στόχευση, όπου η
+ενεργειακή κατανάλωση αποτελεί ουσιώδη διάσταση (ιδίως για τα Tier~3 vector paths),
+η ενεργειακή αποδοτικότητα παραμένει αχαρτογράφητη.
+
+\paragraph{Μονή μικροαρχιτεκτονική στην hardware validation}
+Η hardware validation των Tier~1/2 στηρίζεται σε έναν μόνο in-order πυρήνα
+(SpacemiT K1 X60)· δεν δοκιμάστηκε out-of-order RISC-V silicon.  Η μεταφορά των
+cycle-based συμπερασμάτων σε άλλες μικροαρχιτεκτονικές (OoO execution, διαφορετικό
+vector pipeline) μπορεί να μεταβάλει τον IPC και άρα τη σχέση
+\instret$\leftrightarrow$κύκλων.
 
 %% ==========================================================================
 \section{Μελλοντική Έρευνα}
@@ -191,8 +205,9 @@ amortization του Keccak overhead μέσω $N$-way batched SHAKE.  Η 2-way \g
 στόχο τελικής τυποποίησης (v1.0) έως τον Δεκέμβριο 2026, αν και η προδιαγραφή
 βρίσκεται ακόμη σε πρώιμο στάδιο ανάπτυξης και το χρονοδιάγραμμα παραμένει
 ενδεικτικό.  Η εντολή στοχεύει εφαρμογές σε Application-class επεξεργαστές με
-vector unit, αξιοποιώντας LMUL=\num{2048}/VLEN για αποθήκευση της 1600-bit
-κατάστασης Keccak σε ομαδοποιημένους διανυσματικούς καταχωρητές.  Εφόσον
+vector unit, αξιοποιώντας register group αρκετά μεγάλο ώστε να χωρά την 1600-bit
+κατάσταση Keccak ($25\times64$-bit words) — λ.χ. LMUL=8 σε \VLEN${}=256$ (group 2048 bits) —
+αποθηκευμένη σε ομαδοποιημένους διανυσματικούς καταχωρητές.  Εφόσον
 τυποποιηθεί, θα εξαλείψει τον Keccak πυρήνα που αποτελεί τον επόμενο Amdahl's Law
 floor στην τρέχουσα υλοποίηση (\pct{24.5} του Tier~3 \gls{kem} \instret,
 \cref{tab:kernel-redistribution}).  Βάσει
