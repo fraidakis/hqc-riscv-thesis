@@ -7,7 +7,7 @@ RISC-V αντίστοιχα. Το παρόν κεφάλαιο εξετάζει �
 \gls{hqc} σε διάφορες πλατφόρμες, καθώς και τις γενικότερες εργασίες βελτιστοποίησης
 μετα-κβαντικών αλγορίθμων σε RISC-V. Η ανασκόπηση αυτή τεκμηριώνει το
 ερευνητικό κενό που καλύπτει η παρούσα εργασία: την απουσία ολοκληρωμένης
-βελτιστοποίησης του \gls{hqc} σε RISC-V με αξιοποίηση τυποποιημένων κρυπτογραφικών
+βελτιστοποίησης του \gls{hqc} σε RISC-V με αξιοποίηση επικυρωμένων κρυπτογραφικών
 επεκτάσεων.
 
 \section{Υλοποιήσεις \HQC σε RISC-V}
@@ -131,7 +131,7 @@ dedicated NTT accelerators, με overhead λόγω crypto-agility.
 υλοποίηση και δεν αξιοποιεί ratified RISC-V extensions. Η φιλοσοφία του
 (hardware sharing μεταξύ NTT και FAFFT) είναι ορθογώνια προς την παρούσα
 εργασία, η οποία αποδεικνύει ότι υψηλή απόδοση επιτυγχάνεται χωρίς custom
-hardware, αξιοποιώντας αποκλειστικά τις ήδη τυποποιημένες \gls{zbc} και \gls{zvbc}
+hardware, αξιοποιώντας αποκλειστικά τις ήδη επικυρωμένες \gls{zbc} και \gls{zvbc}
 extensions. Ωστόσο, η ύπαρξη του PHOENIX τεκμηριώνει τη σημασία της
 κρυπτογραφικής ευελιξίας (crypto-agility) ως σχεδιαστική απαίτηση — θέμα που
 αναλύεται στην \cref{sec:crypto-agility}.
@@ -367,7 +367,7 @@ rejection sampling για τη γέννηση fixed-weight διανυσμάτω�
 σε x86 και ARM. Κοινός παρονομαστής αποτελεί η αξιοποίηση platform-specific
 SIMD εντολών (\texttt{VPCLMULQDQ}, \texttt{PMULL}) ή η χρήση FFT-based
 μεθόδων σε πλατφόρμες χωρίς carry-less multiply hardware. Καμία εργασία δεν
-στοχεύει RISC-V ούτε αξιοποιεί τις τυποποιημένες \gls{zbc}/\gls{zvbc} extensions.
+στοχεύει RISC-V ούτε αξιοποιεί τις επικυρωμένες \gls{zbc}/\gls{zvbc} extensions.
 
 \begin{table}[htbp]
   \centering
@@ -404,7 +404,7 @@ SIMD εντολών (\texttt{VPCLMULQDQ}, \texttt{PMULL}) ή η χρήση FFT-b
 \end{table}
 
 Η τελευταία γραμμή του πίνακα τοποθετεί την παρούσα εργασία: αξιοποιεί τις
-τυποποιημένες RISC-V carry-less multiply extensions (\insn{clmul}/\vclmul) ως
+επικυρωμένες RISC-V carry-less multiply extensions (\insn{clmul}/\vclmul) ως
 base multiplication εντός Karatsuba decomposition — μία στρατηγική αναλογική
 με τη χρήση \texttt{VPCLMULQDQ} στο x86, αλλά σε VLA vector αρχιτεκτονική
 με διαφορετικές σχεδιαστικές προκλήσεις (VLEN-agnostic κώδικας, register
@@ -592,11 +592,11 @@ $\GF{2}[x]$ με \gls{zbc}/\gls{zvbc} carry-less multiply. Η αλλαγή αρ�
 
 Η ανασκόπηση των προηγούμενων ενοτήτων αποκαλύπτει ένα σαφές ερευνητικό κενό:
 δεν υπάρχει δημοσιευμένη εργασία που να παρέχει ολοκληρωμένη βελτιστοποίηση του
-\gls{hqc} \gls{kem} σε αρχιτεκτονική RISC-V αξιοποιώντας αποκλειστικά τυποποιημένες
-(ratified) κρυπτογραφικές επεκτάσεις. Η παρούσα ενότητα τεκμηριώνει αυτό το
+\gls{hqc} \gls{kem} σε αρχιτεκτονική RISC-V αξιοποιώντας αποκλειστικά επικυρωμένες
+κρυπτογραφικές επεκτάσεις. Η παρούσα ενότητα τεκμηριώνει αυτό το
 κενό συστηματικά, εξετάζοντας κάθε σχετική εργασία ως προς τρεις διαστάσεις:
 (α)~πλατφόρμα στόχευσης, (β)~αλγοριθμική κάλυψη, και (γ)~εξάρτηση από
-μη-τυποποιημένο hardware.
+μη-επικυρωμένο hardware.
 
 \subsection{Ανάλυση κενού ανά εργασία}
 \label{ssec:rw-gap-per-paper}
@@ -620,7 +620,7 @@ hardware accelerator ANDROMEDA. Ο CV32E40P (RV32IMC) δεν υποστηρίζ�
 
 \paragraph{PHOENIX~\cite{PHOENIX2025}.}
 Ο crypto-agile coprocessor SuperButterfly αποτελεί custom FPGA σχεδίαση — δεν
-είναι τυποποιημένη RISC-V extension και δεν είναι portable σε εμπορικούς
+είναι επικυρωμένη RISC-V επέκταση και δεν είναι portable σε εμπορικούς
 επεξεργαστές. Η φιλοσοφία hardware sharing (NTT + FAFFT) είναι ορθογώνια προς
 την pure-software προσέγγιση.
 
@@ -727,7 +727,7 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
     (οποιοδήποτε profile).
   \item \textbf{Pure SW:} Η υλοποίηση δεν απαιτεί custom hardware accelerators
     — εκτελείται αποκλειστικά σε general-purpose πυρήνα.
-  \item \textbf{Ratified ext.:} Αξιοποιούνται μόνο τυποποιημένες RISC-V
+  \item \textbf{Ratified ext.:} Αξιοποιούνται μόνο επικυρωμένες RISC-V
     extensions (Zbc, Zbb, Zvbc, Zvbb) — όχι custom ISA εντολές.
   \item \textbf{Dense$\times$dense:} Ο πολυωνυμικός πολλαπλασιασμός είναι
     dense (μη-sparse) και συμβατός με την τελική specification
@@ -743,7 +743,7 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
 
 Η παρούσα εργασία καλύπτει το τεκμηριωμένο κενό παρέχοντας την πρώτη
 pure-software, ολοκληρωμένη βελτιστοποίηση του \gls{hqc} \gls{kem} σε RISC-V με
-αποκλειστική αξιοποίηση ratified κρυπτογραφικών επεκτάσεων. Η συνεισφορά
+αποκλειστική αξιοποίηση επικυρωμένων κρυπτογραφικών επεκτάσεων. Η συνεισφορά
 διαρθρώνεται σε τρεις διαστάσεις:
 
 \paragraph{Αλγοριθμική.}
