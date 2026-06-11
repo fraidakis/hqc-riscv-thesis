@@ -87,19 +87,29 @@
   ]\textbf{Λέξεις-κλειδιά:}\enspace\itshape
 }{\end{tcolorbox}}
 
+% --- Scope \& contribution box (harmonized w/ keywords style) ---
+\newenvironment{thesisscope}{%
+  \par\vspace{0.8em}
+  \noindent\begin{tcolorbox}[
+    enhanced, colback=thesisblue!5, colframe=thesisblue!40,
+    arc=2pt, boxrule=0.5pt, left=6pt, right=6pt, top=3pt, bottom=3pt
+  ]\small
+}{\end{tcolorbox}}
+
 \newcommand{\thesismetabox}{%
   \begin{tcolorbox}[
     enhanced, colback=gray!4, colframe=gray!40,
-    arc=3pt, boxrule=0.5pt, left=8pt, right=8pt, top=5pt, bottom=5pt
+    arc=2pt, boxrule=0.5pt, left=8pt, right=8pt, top=5pt, bottom=5pt
   ]
   \small\sffamily
-  \begin{tabular}{@{}ll@{}}
+  \renewcommand{\arraystretch}{1.25}%
+  \begin{tabular}{@{}l@{\hspace{1.5em}}l@{}}
     \textbf{Author:}      & Fraidakis Ioannis \\
     \textbf{Supervisor:}  & Papaeustathiou Ioannis, Professor, A.U.Th.\ \\
     \textbf{Institution:} & Aristotle University of Thessaloniki \\
     \textbf{Department:}  & Electrical \& Computer Engineering \\
     \textbf{Submitted:}   & June 2026 \\
-    \textbf{Code:}        & \href{https://github.com/fraidakis/hqc-riscv-thesis}{github.com/fraidakis/hqc-riscv-thesis} \\
+    \textbf{Code:}        & \href{https://github.com/fraidakis/hqc-riscv-thesis}{\texttt{github.com/fraidakis/hqc-riscv-thesis}} \\
   \end{tabular}
   \end{tcolorbox}%
 }
@@ -107,16 +117,17 @@
 \newcommand{\thesismetaboxel}{%
   \begin{tcolorbox}[
     enhanced, colback=gray!4, colframe=gray!40,
-    arc=3pt, boxrule=0.5pt, left=8pt, right=8pt, top=5pt, bottom=5pt
+    arc=2pt, boxrule=0.5pt, left=8pt, right=8pt, top=5pt, bottom=5pt
   ]
   \small\sffamily
-  \begin{tabular}{@{}ll@{}}
+  \renewcommand{\arraystretch}{1.25}%
+  \begin{tabular}{@{}l@{\hspace{1.5em}}l@{}}
     \textbf{Συγγραφέας:}     & Φραϊδάκης Ιωάννης \\
     \textbf{Επιβλέπων:}      & Παπαευσταθίου Ιωάννης, Καθηγητής, Α.Π.Θ.\ \\
     \textbf{Ίδρυμα:}         & Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης \\
     \textbf{Τμήμα:}          & Ηλεκτρολόγων Μηχανικών \& Μηχανικών Υπολογιστών \\
     \textbf{Υποβολή:}        & Ιούνιος 2026 \\
-    \textbf{Κώδικας:}        & \href{https://github.com/fraidakis/hqc-riscv-thesis}{github.com/fraidakis/hqc-riscv-thesis} \\
+    \textbf{Κώδικας:}        & \href{https://github.com/fraidakis/hqc-riscv-thesis}{\texttt{github.com/fraidakis/hqc-riscv-thesis}} \\
   \end{tabular}
   \end{tcolorbox}%
 }

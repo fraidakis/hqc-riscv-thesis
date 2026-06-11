@@ -16,7 +16,7 @@ RISC-V αντίστοιχα. Το παρόν κεφάλαιο εξετάζει �
 Οι υπάρχουσες υλοποιήσεις του \gls{hqc} σε αρχιτεκτονική RISC-V ακολουθούν
 αποκλειστικά την προσέγγιση HW/SW co-design: συνδυάζουν έναν ενσωματωμένο
 επεξεργαστή RISC-V με εξειδικευμένους hardware accelerators σχεδιασμένους ad hoc
-για τον αλγόριθμο. Καμία δεν αξιοποιεί τυποποιημένες κρυπτογραφικές επεκτάσεις
+για τον αλγόριθμο. Καμία δεν αξιοποιεί επικυρωμένες κρυπτογραφικές επεκτάσεις
 (\gls{zbc}, \gls{zvbc}) ούτε στοχεύει pure-software βελτιστοποίηση σε RV64.
 
 \subsection{Schöffel et al.\ 2022 — HW/SW Co-Design σε RV32IC}
@@ -144,7 +144,7 @@ hardware.
 \begin{table}[htbp]
   \centering
   \caption{Σύνοψη υπαρχουσών υλοποιήσεων \HQC σε RISC-V. Καμία δεν αξιοποιεί
-    ratified κρυπτογραφικές επεκτάσεις (\Zbc/\Zvbc) ούτε στοχεύει pure-software
+    επικυρωμένες κρυπτογραφικές επεκτάσεις (\Zbc/\Zvbc) ούτε στοχεύει pure-software
     βελτιστοποίηση σε RV64.}
   \label{tab:rw-riscv-summary}
   \small
@@ -602,7 +602,7 @@ $\GF{2}[x]$ με \gls{zbc}/\gls{zvbc} carry-less multiply. Η αλλαγή αρ�
 \label{ssec:rw-gap-per-paper}
 
 \paragraph{Schöffel et al.\ 2022~\cite{Schoeffel2022-HQC-IoT}.}
-Η πρώτη υλοποίηση \gls{hqc} σε RISC-V βασίζεται σε τρεις μη-τυποποιημένες
+Η πρώτη υλοποίηση \gls{hqc} σε RISC-V βασίζεται σε τρεις μη-επικυρωμένες
 επεκτάσεις: custom R-Unit, Sampling-Unit, και F$2^8$-Unit. Η πλατφόρμα είναι
 RV32IC χωρίς 64-bit registers, χωρίς vector unit, και χωρίς carry-less multiply
 (\gls{zbc}/\gls{zvbc}). Η αλγοριθμική βάση (sparse$\times$dense πολλαπλασιασμός)
