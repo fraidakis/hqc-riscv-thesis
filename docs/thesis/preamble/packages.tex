@@ -219,6 +219,10 @@
 % tikz snippets, and any other unnamed picture.
 \tikzset{external/only named=true}
 
+% --- LuaLaTeX page niceties ---
+\usepackage{emptypage}          % strip headers/footers from blank pages
+\usepackage{bookmark}           % robust PDF bookmarks (loads after hyperref)
+
 % --- Colored boxes (definitions, key results, remarks) ---
 \usepackage{tcolorbox}
 \tcbuselibrary{breakable,skins}

@@ -14,6 +14,14 @@
 % --- Color palette (single source of truth) ---
 \definecolor{thesisblue}{RGB}{10,40,80}    % Primary accent: midnight navy — change here to restyle
 
+% --- Semantic palette derived from thesisblue (single source of truth) ---
+\colorlet{thesisaccent}{thesisblue}
+\colorlet{thesiskeyword}{thesisblue!85!black}
+\definecolor{thesiscodebg}{RGB}{246,248,251}
+\colorlet{thesiscomment}{green!45!black}
+\colorlet{thesisstring}{red!55!black}
+\colorlet{thesisrule}{thesisblue!25}
+
 % --- Fonts ---
 % Main: Libertinus Serif — modern, elegant, full Greek, matched math
 \setmainfont{Libertinus Serif}[
@@ -102,6 +110,9 @@
 % --- Line spacing: 1.15× (between single and 1.5) ---
 \setstretch{1.15}
 
+% --- List spacing (enumitem) ---
+\setlist{topsep=8pt, itemsep=4pt}
+
 % --- Caption styling: bold coloured label, hang format, small text (t07) ---
 \captionsetup{
   labelfont={bf, color=thesisblue},
@@ -122,6 +133,8 @@
 \hypersetup{
   bookmarksnumbered=true,
   bookmarksopen=true,
+  pdflang={el},
+  pdfdisplaydoctitle=true,
   pdfauthor={Φραϊδάκης Γ.},
   pdftitle={Βελτιστοποίηση HQC Post-Quantum Κρυπτογραφίας σε RISC-V μέσω ISA Extensions},
   pdfsubject={Διπλωματική Εργασία},
@@ -152,6 +165,12 @@
 }
 
 % --- pgfplots: global thesis chart style ---
+% Tier-aware, colorblind-safe cycle: same color+marker per tier across all plots
+\pgfplotscreateplotcyclelist{thesistiers}{%
+  {thesisblue, mark=*},%
+  {orange!85!black, mark=square*},%
+  {teal!70!black, mark=triangle*}%
+}
 \pgfplotsset{
   thesis/.style={
     width=0.85\linewidth,
@@ -167,7 +186,7 @@
       at={(0.98,0.98)}, anchor=north east
     },
     every axis/.append style={font=\small},
-    cycle list name=color list,
+    cycle list name=thesistiers,
   },
   every axis/.append style={thesis},   % apply to all axes by default
 }
@@ -175,15 +194,19 @@
 % --- Listings ---
 \lstdefinestyle{thesis}{
   basicstyle=\ttfamily\small,
-  keywordstyle=\bfseries\color{blue!70!black},
-  commentstyle=\itshape\color{green!50!black},
-  stringstyle=\color{red!60!black},
+  backgroundcolor=\color{thesiscodebg},
+  keywordstyle=\bfseries\color{thesiskeyword},
+  commentstyle=\itshape\color{thesiscomment},
+  stringstyle=\color{thesisstring},
   numbers=left,
   numberstyle=\tiny\color{gray},
   numbersep=8pt,
-  frame=single,
-  framerule=0.4pt,
-  rulecolor=\color{gray!40},
+  frame=leftline,
+  framerule=0.6pt,
+  rulecolor=\color{thesisblue!40},
+  xleftmargin=1.2em,
+  aboveskip=1em,
+  belowskip=1em,
   breaklines=true,
   breakatwhitespace=true,
   tabsize=4,
