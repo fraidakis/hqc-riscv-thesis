@@ -93,7 +93,7 @@ compliance test suites.
 Κάθε εντολή RV64I έχει σταθερό μήκος \num{32}~bit, οργανωμένη σε έξι
 βασικές μορφές (instruction formats): R-type (register-register), I-type
 (immediate), S-type (store), B-type (branch), U-type (upper immediate) και
-J-type (jump). Η \cref{fig:rv64-formats} παρουσιάζει τη δομή κάθε μορφής.
+J-type (jump). Το~\cref{fig:rv64-formats} παρουσιάζει τη δομή κάθε μορφής.
 Η σταθερή θέση των πεδίων \code{rs1}, \code{rs2} και \code{rd} σε όλες τις
 μορφές (bits 19:15, 24:20 και 11:7 αντίστοιχα) επιτρέπει στο υλικό να
 ξεκινήσει ανάγνωση του register file πριν ολοκληρωθεί η αποκωδικοποίηση
@@ -142,7 +142,7 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
 64-bit.
 
 \paragraph{Επεκτάσεις σχετικές με την παρούσα εργασία.}
-Η \cref{tab:extensions-used} συνοψίζει τις επεκτάσεις που αξιοποιεί η
+Ο \cref{tab:extensions-used} συνοψίζει τις επεκτάσεις που αξιοποιεί η
 παρούσα εργασία. Κάθε επέκταση τυποποιήθηκε (ratified) ανεξάρτητα από τον
 οργανισμό RISC-V International, εγγυώντας σταθερότητα και διαλειτουργικότητα
 μεταξύ υλοποιήσεων. Τα ISA strings που χρησιμοποιούνται στη μεταγλώττιση
@@ -183,7 +183,7 @@ RVA23~\cite{RVA23-profile}, που τυποποιήθηκε τον Οκτώβρ�
 Android RISC-V ABI και στοχεύεται από κάθε σημαντικό κατασκευαστή
 επεξεργαστών RISC-V.
 
-Η \cref{tab:rva23-extensions} παρουσιάζει τη σχέση μεταξύ των επεκτάσεων που
+Ο \cref{tab:rva23-extensions} παρουσιάζει τη σχέση μεταξύ των επεκτάσεων που
 αξιοποιεί η παρούσα εργασία και του προφίλ RVA23. Η διανυσματική επέκταση V,
 η \gls{zvbb} και η \gls{zbb} είναι υποχρεωτικές (mandatory) στο RVA23, ενώ η \gls{zvbc}
 αποτελεί development option — προορίζεται να καταστεί υποχρεωτική σε
@@ -234,7 +234,7 @@ Vector-Crypto επεκτάσεις \gls{zvbc} και \gls{zvbb} — αυτές �
 
 Η κατανόηση των σχεδιαστικών επιλογών του RISC-V αποσαφηνίζεται μέσω
 σύγκρισης με τις δύο κυρίαρχες εμπορικές αρχιτεκτονικές: ARM (AArch64) και
-x86-64. Η \cref{tab:arch-comparison} συνοψίζει τις θεμελιώδεις διαφορές σε
+x86-64. Ο \cref{tab:arch-comparison} συνοψίζει τις θεμελιώδεις διαφορές σε
 πέντε άξονες σχετικούς με κρυπτογραφικές υλοποιήσεις.
 
 \begin{table}[htbp]
@@ -376,7 +376,7 @@ $b(x) = \sum_{j=0}^{63} b_j x^j$ είναι πολυώνυμα σε $\GFpoly$ α
   \label{eq:clmul-definition}
 \end{equation}
 Το αποτέλεσμα είναι πολυώνυμο βαθμού $\leq 126$, αναπαριστώμενο σε 128~bit.
-Η \cref{fig:clmul-semantics} απεικονίζει τη διαδικασία σε μικρό μέγεθος
+Το~\cref{fig:clmul-semantics} απεικονίζει τη διαδικασία σε μικρό μέγεθος
 (4~bit), αναδεικνύοντας τη θεμελιώδη διαφορά από τον ακέραιο
 πολλαπλασιασμό: τα μερικά γινόμενα συνδυάζονται αποκλειστικά μέσω XOR.
 
@@ -414,7 +414,7 @@ $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογισ�
 ανά στοιχειώδες γινόμενο — μια μετάβαση που μετασχηματίζει τον πολυωνυμικό
 πολλαπλασιασμό από compute-bound σε memory-bound πρόβλημα.
 
-Η \cref{fig:clmul-before-after} παρουσιάζει τη σύγκριση σε επίπεδο assembly:
+Το~\cref{fig:clmul-before-after} παρουσιάζει τη σύγκριση σε επίπεδο assembly:
 αριστερά ο naive shift-and-XOR βρόχος, δεξιά το ζεύγος \clmul/\clmulh.
 
 \begin{figure}[htbp]
@@ -505,7 +505,7 @@ flags. Τα ποσοτικά αποτελέσματα του auto-lowering αν�
 GHASH), αλλά δεν αξιοποιείται στην παρούσα υλοποίηση \gls{hqc}.
 
 \paragraph{Σχέση μεταξύ επεκτάσεων.}
-Η \cref{tab:scalar-crypto-instructions} συνοψίζει τις εντολές ανά επέκταση
+Ο \cref{tab:scalar-crypto-instructions} συνοψίζει τις εντολές ανά επέκταση
 και την αντιστοίχισή τους σε κρυπτογραφικά primitives της παρούσας εργασίας.
 Η αλληλοεπικάλυψη μεταξύ \gls{zbb} και Zbkb αντικατοπτρίζει τη σχεδιαστική
 φιλοσοφία του RISC-V: οι ίδιες εντολές εξυπηρετούν τόσο γενικό bit-manipulation
@@ -563,7 +563,7 @@ pipelining και compile-time code generation — παρουσιάζεται α
 επεξεργαστή και παραμένει σταθερή κατά την εκτέλεση. Τυπικές τιμές
 κυμαίνονται από \num{128}~bits (ελάχιστη συμβατή υλοποίηση) έως
 \num{2048}~bits (υψηλής απόδοσης σχεδιασμοί), με τον περιορισμό ότι
-$\VLEN = 2^k$ για κάποιο ακέραιο $k \geq 7$. Η \cref{fig:rvv-regfile}
+$\VLEN = 2^k$ για κάποιο ακέραιο $k \geq 7$. Το~\cref{fig:rvv-regfile}
 απεικονίζει τη δομή του vector register file.
 
 \begin{figure}[htbp]
@@ -616,7 +616,7 @@ binary εκτελείται σε οποιοδήποτε hardware \VLEN χωρί�
   \VLMAX = \frac{\VLEN}{\SEW} \times \LMUL.
   \label{eq:vlmax}
 \end{equation}
-Η \cref{tab:vlmax-combinations} παρουσιάζει τιμές \VLMAX για
+Ο \cref{tab:vlmax-combinations} παρουσιάζει τιμές \VLMAX για
 αντιπροσωπευτικούς συνδυασμούς. Στην παρούσα εργασία, η κυρίαρχη
 παραμετροποίηση είναι $\SEW = 64$, $\LMUL = 4$ (Karatsuba recomposition
 και Zvbc leaf), η οποία παρέχει $\VLMAX = 16$ στοιχεία σε \VLEN=256.
@@ -667,7 +667,7 @@ $\code{vl} \leq \VLMAX$ — στην τελευταία iteration, αν τα ε�
 ακριβή αριθμό τους. Αυτός ο μηχανισμός εγγυάται ορθότητα χωρίς
 boundary checks ή padding.
 
-Η \cref{fig:strip-mining-vis} απεικονίζει τη λειτουργία strip-mining σε
+Το~\cref{fig:strip-mining-vis} απεικονίζει τη λειτουργία strip-mining σε
 array \num{20} στοιχείων: σε hardware με $\VLMAX = 4$ απαιτούνται \num{5}
 iterations, ενώ σε hardware με $\VLMAX = 8$ απαιτούνται μόνο \num{3}
 iterations (η τελευταία με $\code{vl} = 4$). Ο κώδικας παραμένει ίδιος —
@@ -748,7 +748,7 @@ inactive elements — η ορθότητα εξασφαλίζεται μέσω τ
 registers σε ένα logical register group. Σε $\LMUL = 4$, οι καταχωρητές
 \code{v0}–\code{v3} αποτελούν μία ομάδα, οι \code{v4}–\code{v7} μία
 δεύτερη, κ.ο.κ. — συνολικά \num{8} ανεξάρτητες ομάδες αντί \num{32}
-μεμονωμένων καταχωρητών. Η \cref{fig:lmul-grouping} απεικονίζει τη
+μεμονωμένων καταχωρητών. Το~\cref{fig:lmul-grouping} απεικονίζει τη
 διαφορά. Η αύξηση \LMUL αυξάνει τον αριθμό στοιχείων ανά vector operation
 (μεγαλύτερο \VLMAX) αλλά μειώνει τον αριθμό διαθέσιμων ανεξάρτητων
 τελεστέων — ένα trade-off μεταξύ throughput ανά εντολή και register
@@ -773,7 +773,7 @@ pressure.
 $\LMUL = 8$ για μεγιστοποίηση bandwidth.
 
 \paragraph{Κατηγορίες εντολών.}
-Η \cref{tab:rvv-instruction-categories} ταξινομεί τις κατηγορίες vector
+Ο \cref{tab:rvv-instruction-categories} ταξινομεί τις κατηγορίες vector
 εντολών του \RVV μαζί με τη χρήση τους στην παρούσα εργασία. Η ταξινόμηση
 αναδεικνύει ότι η υλοποίηση αξιοποιεί ευρύ φάσμα κατηγοριών — από
 unit-stride memory access (κυρίαρχη κατηγορία σε αριθμό εκτελέσεων) έως
@@ -927,7 +927,7 @@ rotations ενός vector register σε μία εντολή, χρησιμοπο�
 εκτελεί κάθε μία σε μία εντολή αντί δύο (inversion + AND).
 
 Η παρούσα εργασία υλοποιεί δύο εναλλακτικά vector backends για τον Keccak
-(αναλυτικά στο~\cref{ssec:keccak-zvbb-soa}): (α) ένα μονό register group με
+(αναλυτικά στην~\cref{ssec:keccak-zvbb-soa}): (α) ένα μονό register group με
 $\LMUL = 8$ και \insn{vrgather} για τη μετάθεση, και (β) μια 2-way SoA
 διάταξη με \insn{vror.vi}.
 
@@ -958,7 +958,7 @@ $(0, 20, 21, 43, 50, 36, 44, 61, 19, 3, 63, 58, 39, 56, 46, 37, 28, 54,
 \label{ssec:zvbc-zvbb-comparison}
 
 Οι επεκτάσεις \gls{zvbc} και \gls{zvbb} μειώνουν δραστικά τον αριθμό vector
-εντολών ανά κρυπτογραφική πράξη· η \cref{tab:zvbc-zvbb-before-after}
+εντολών ανά κρυπτογραφική πράξη· Ο \cref{tab:zvbc-zvbb-before-after}
 συνοψίζει την ποσοτική επίπτωσή τους σε τυπικές πράξεις. Η σύγκριση
 αφορά τον αριθμό vector εντολών ανά πράξη — η πραγματική μείωση σε
 δυναμικές εντολές εξαρτάται από τον αριθμό επαναλήψεων κάθε πράξης
@@ -1052,7 +1052,7 @@ hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα
 στους πυρήνες της παρούσας εργασίας τεκμηριώνεται
 στην~\cref{sec:methods-application}.
 
-Η \cref{fig:programming-spectrum} απεικονίζει το φάσμα αφαίρεσης: στο
+Το~\cref{fig:programming-spectrum} απεικονίζει το φάσμα αφαίρεσης: στο
 αριστερό άκρο ο προγραμματιστής ελέγχει πλήρως κάθε εντολή, ενώ στο δεξιό
 ο μεταγλωττιστής αναλαμβάνει αυτόνομα την εκπομπή εξειδικευμένων εντολών.
 Κάθε μετακίνηση προς τα δεξιά αυξάνει τη δυνατότητα βελτιστοποίησης από
@@ -1207,7 +1207,7 @@ analysis. Η \defterm{φορητότητα μεταξύ compiler versions} εξ�
 από τον τυποποιημένο ορισμό κάθε intrinsic~\autocite{RISCV-c-api} — σε αντίθεση με τη σύνταξη
 constraints που μπορεί να διαφέρει μεταξύ GCC και Clang.
 
-Η \cref{fig:inline-vs-intrinsic} παρουσιάζει τη σύγκριση για τον ίδιο
+Το~\cref{fig:inline-vs-intrinsic} παρουσιάζει τη σύγκριση για τον ίδιο
 υπολογισμό (scalar carry-less multiply): η inline assembly απαιτεί ένα
 πεντάγραμμο block (asm template, constraints εισόδου/εξόδου και clobber
 list) και παράγει αδιαφανές block, ενώ το intrinsic απαιτεί μία μόνο γραμμή
@@ -1278,7 +1278,7 @@ auto-lowering εφαρμόζεται αποκλειστικά σε απλά bit-
 \subsection{Συγκριτική Αξιολόγηση}
 \label{ssec:methods-comparison}
 
-Η \cref{tab:programming-methods} συνοψίζει τα χαρακτηριστικά κάθε μεθόδου
+Ο \cref{tab:programming-methods} συνοψίζει τα χαρακτηριστικά κάθε μεθόδου
 σε πέντε άξονες. Η επιλογή μεθόδου καθορίζεται από τη φύση κάθε πυρήνα:
 boot code και CSR manipulation απαιτούν assembly, κρυπτογραφικοί πυρήνες
 αξιοποιούν intrinsics, και γενικός κώδικας επωφελείται αυτόματα από

@@ -456,7 +456,7 @@ zero runtime dispatch.  Η σχεδιαστική αυτή απόφαση εξα
 threshold comparison, dynamic pointer arithmetic, και stack frame
 overhead σε βάρος αυξημένου \code{.text} footprint.  Η ποσοτική
 αξιολόγηση αυτού του trade-off (recursion depth vs \instret vs
-\code{.text} size) παρουσιάζεται στο \cref{sec:polymul-codesize}.
+\code{.text} size) παρουσιάζεται στην \cref{sec:polymul-codesize}.
 
 Στον leaf, η εξειδίκευση \code{clmul\_leaf\_n8} καλύπτει την περίπτωση
 μεγέθους $n=8$ — μειοψηφία των φύλλων στο threshold $T=16$ (37 από τα
@@ -855,7 +855,7 @@ load-XOR-store: το lo-vector XOR-accumulate στο $r[i \ldots i{+}n{-}1]$
 συνέπεια, ο εσωτερικός βρόχος συμπτύσσεται σε μία μόνο vector iteration
 ανά εξωτερικό index $i$, εξαλείφοντας πλήρως τον scalar $j$-loop.
 
-Ο \cref{fig:vclmul-leaf-dataflow} απεικονίζει τη ροή δεδομένων μίας
+Το \cref{fig:vclmul-leaf-dataflow} απεικονίζει τη ροή δεδομένων μίας
 iteration του \code{vclmul\_leaf}.  Η κρίσιμη παρατήρηση είναι ότι η
 φόρτωση του $b$-vector εκτελείται μία φορά ανά εξωτερικό index — κάθε
 $a[i]$ splat επαναχρησιμοποιεί τον ίδιο φορτωμένο $b$-vector, αμορτίζοντας
@@ -1083,7 +1083,7 @@ Vector-Crypto leaf δεν συνιστά συμβιβασμό μεγέθους �
 \section{Αποτίμηση: Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση}
 \label{sec:polymul-assessment}
 
-Οι βελτιστοποιήσεις των~\cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
+Οι βελτιστοποιήσεις στις~\cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
 μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \num{19214277}
 (\code{scalar\_ref}, \cref{conv:baseline}) σε \num{62530} εντολές στο
 Tier~3 — μείωση \speedup{307}.  Η μείωση αυτή
