@@ -57,7 +57,7 @@ spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
 \begin{figure}[htbp]
   \centering
   \resizebox{0.92\textwidth}{!}{\input{figures/ch5-setup/spike-architecture}}
-  \caption{Αρχιτεκτονική εκτέλεσης στον Spike \gls{iss}.  Κάθε εντολή
+  \caption[Αρχιτεκτονική εκτέλεσης στον Spike ISS]{Αρχιτεκτονική εκτέλεσης στον Spike \glsfmtshort{iss}.  Κάθε εντολή
     αποκωδικοποιείται και εκτελείται σειριακά χωρίς μοντέλο pipeline ή cache.
     Ο μετρητής \texttt{minstret} αυξάνεται κατά ένα ανά αποσυρθείσα εντολή,
     παρέχοντας ντετερμινιστική και αναπαραγώγιμη μετρική.}
@@ -843,10 +843,10 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
 \begin{figure}[htbp]
   \centering
   \resizebox{\textwidth}{!}{\input{figures/ch5-setup/kat-pipeline}}
-  \caption{Ροή επαλήθευσης ορθότητας μέσω \glspl{kat}: τα \num{100} entropy
+  \caption[Ροή επαλήθευσης ορθότητας μέσω KAT]{Ροή επαλήθευσης ορθότητας μέσω \glsfmtshortpl{kat}: τα \num{100} entropy
     seeds εξάγονται offline σε C header, ενσωματώνονται στο bare-metal ELF,
     εκτελούνται στον simulator, και η console output συγκρίνεται byte-exact
-    με τις αναμενόμενες τιμές του \gls{nist}.}
+    με τις αναμενόμενες τιμές του \glsfmtshort{nist}.}
   \label{fig:kat-pipeline}
 \end{figure}
 

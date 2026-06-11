@@ -349,7 +349,7 @@ register file, εξαλείφοντας τον scalar loop overhead και πα�
 \begin{figure}[htbp]
   \centering
   \input{figures/ch9-discussion/zba-ablation-bar}
-  \caption{Επίδραση \gls{zba} στο polymul \instret ανά variant (HQC-128).
+  \caption[Επίδραση Zba στο polymul instret ανά variant (HQC-128)]{Επίδραση \glsfmtshort{zba} στο polymul \instret ανά variant (HQC-128).
     Η βελτίωση συσχετίζεται με την πυκνότητα δυναμικών pointer-scaling
     εντολών σχετικά με το συνολικό \instret.}
   \label{fig:zba-ablation}
@@ -411,7 +411,7 @@ bit-scatter: \code{v[word] |= (1ULL << bit\_pos)}.  Με \gls{zbs}, το
 \begin{figure}[htbp]
   \centering
   \input{figures/ch9-discussion/zbs-ablation-bar}
-  \caption{Επίδραση \gls{zbs} στο \Decaps \instret ανά variant (HQC-128).
+  \caption[Επίδραση Zbs στο Decaps instret ανά variant (HQC-128)]{Επίδραση \glsfmtshort{zbs} στο \Decaps \instret ανά variant (HQC-128).
     Η απόλυτη εξοικονόμηση ($-\num{14684}$ \instret) είναι ταυτόσημη
     μεταξύ \code{scalar\_zb} και \code{scalar\_ref}, επιβεβαιώνοντας
     ότι η βελτίωση προέρχεται αποκλειστικά από τη shared
