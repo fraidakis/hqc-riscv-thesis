@@ -1,48 +1,55 @@
 % HQC KEM sequence diagram: Alice ↔ Bob key exchange
+% Ops moved fully outside the lifelines + activation bars (U1) + primitive tags (U2)
 % Usage: \input{figures/hqc-kem-sequence}
 \tikzsetnextfilename{ch2-background-hqc-kem-sequence}
 \begin{tikzpicture}[
-  entity/.style={draw, rounded corners=3pt, fill=thesisblue!8,
-                 minimum width=2.2cm, minimum height=0.8cm, font=\sffamily\bfseries},
-  msg/.style={->, >=stealth, thick},
-  op/.style={font=\small, align=left},
-  note/.style={font=\scriptsize\itshape, text=gray!70!black},
+  entity/.style={draw=thesisblue!70, rounded corners=3pt, fill=thesisblue!10,
+                 minimum width=2.3cm, minimum height=0.85cm, font=\sffamily\bfseries},
+  life/.style={dashed, gray!50},
+  msg/.style={-{Stealth[length=2.5mm]}, thick, thesisblue!80},
+  act/.style={draw=thesisblue!65, fill=thesisblue!15, rounded corners=1pt},
+  op/.style={font=\small\bfseries, text=thesisblue!85!black},
+  noteR/.style={font=\scriptsize, align=left},
+  noteL/.style={font=\scriptsize, align=right},
+  prim/.style={font=\scriptsize\itshape, text=red!65!black},
 ]
 
-% Entities
-\node[entity] (alice) at (0, 0) {Alice};
-\node[entity] (bob) at (8, 0) {Bob};
+% Actors
+\node[entity] (alice) at (0,0) {Alice};
+\node[entity] (bob)   at (7,0) {Bob};
 
 % Lifelines
-\draw[dashed, gray!50] (alice.south) -- ++(0, -9.5);
-\draw[dashed, gray!50] (bob.south) -- ++(0, -9.5);
+\draw[life] (alice.south) -- ++(0,-8.4);
+\draw[life] (bob.south)   -- ++(0,-8.4);
 
-% KeyGen (Bob)
-\node[op, right] at (6.5, -1.2) {\KeyGen};
-\node[note, right] at (6.5, -1.7) {$(ek, dk) \leftarrow \KeyGen()$};
+% KeyGen (Bob): activation on the lifeline, label to the RIGHT of Bob
+\draw[act] (6.91,-0.75) rectangle (7.09,-1.95);
+\node[op,    anchor=west] at (7.35,-1.0)  {\KeyGen};
+\node[noteR, anchor=west] at (7.35,-1.45) {$(ek, dk) \leftarrow \KeyGen()$};
+\node[prim,  anchor=west] at (7.35,-1.85) {polymul, Keccak};
 
-% Send public key
-\draw[msg, <-] (0, -2.5) -- node[above, font=\small] {$ek$} (8, -2.5);
+% Send public key: Bob -> Alice
+\draw[msg] (7,-2.4) -- node[above, font=\small] {$ek$} (0,-2.4);
 
-% Encaps (Alice)
-\node[op, left] at (1.5, -3.5) {\Encaps};
-\node[note, left] at (1.5, -4.0) {$(ct, ss) \leftarrow \Encaps(ek)$};
+% Encaps (Alice): activation on the lifeline, label to the LEFT of Alice
+\draw[act] (-0.09,-2.85) rectangle (0.09,-4.05);
+\node[op,    anchor=east] at (-0.35,-3.1)  {\Encaps};
+\node[noteL, anchor=east] at (-0.35,-3.55) {$(ct, ss) \leftarrow \Encaps(ek)$};
+\node[prim,  anchor=east] at (-0.35,-3.95) {polymul, Keccak};
 
-% Send ciphertext
-\draw[msg] (0, -5.0) -- node[above, font=\small] {$ct$} (8, -5.0);
+% Send ciphertext: Alice -> Bob
+\draw[msg] (0,-4.6) -- node[above, font=\small] {$ct$} (7,-4.6);
 
-% Decaps (Bob)
-\node[op, right] at (6.5, -6.0) {\Decaps};
-\node[note, right] at (6.5, -6.5) {$ss' \leftarrow \Decaps(dk, ct)$};
+% Decaps (Bob): activation on the lifeline, label to the RIGHT of Bob
+\draw[act] (6.91,-5.35) rectangle (7.09,-6.55);
+\node[op,    anchor=west] at (7.35,-5.6)  {\Decaps};
+\node[noteR, anchor=west] at (7.35,-6.05) {$ss' \leftarrow \Decaps(dk, ct)$};
+\node[prim,  anchor=west] at (7.35,-6.45) {polymul, Keccak, decode};
 
 % Shared secret
-\node[font=\small\bfseries, text=green!50!black] at (0, -7.8) {$ss$};
-\node[font=\small\bfseries, text=green!50!black] at (8, -7.8) {$ss' = ss$};
-\draw[thick, green!50!black, dashed] (0.5, -7.8) -- (7.5, -7.8);
-\node[note, above] at (4, -7.6) {κοινό μυστικό};
-
-% Annotations: which kernel is called where
-\node[note, left, text=red!60!black] at (-0.3, -4.5) {polymul, Keccak};
-\node[note, right, text=red!60!black] at (8.3, -6.8) {polymul, Keccak, decode};
+\node[font=\small\bfseries, text=green!50!black] at (0,-7.6) {$ss$};
+\node[font=\small\bfseries, text=green!50!black] at (7,-7.6) {$ss' = ss$};
+\draw[dashed, thick, green!50!black] (0.5,-7.6) -- (6.5,-7.6);
+\node[font=\scriptsize\itshape, text=gray!70!black, above] at (3.5,-7.5) {κοινό μυστικό};
 
 \end{tikzpicture}

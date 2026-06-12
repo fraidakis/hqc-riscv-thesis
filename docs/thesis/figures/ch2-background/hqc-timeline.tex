@@ -1,38 +1,48 @@
-% HQC standardization timeline
-% Usage: \input{figures/hqc-timeline}
-\tikzsetnextfilename{ch2-background-hqc-timeline}
+% HQC standardization timeline — variant B+C
+% (minimal milestone dots + leader labels, equal horizontal spacing)
+% Usage: \input{figures/hqc-timeline_v2}
+\tikzsetnextfilename{ch2-background-hqc-timeline_v2}
 \begin{tikzpicture}[
-  x=1.8cm,
-  event/.style={fill=thesisblue!15, draw=thesisblue!60, rounded corners=2pt,
-                font=\small, inner sep=3pt, align=center},
-  specchange/.style={fill=red!10, draw=red!60, rounded corners=2pt,
-                     font=\small, inner sep=3pt, align=center},
-  final/.style={fill=green!15, draw=green!60!black, rounded corners=2pt,
-                font=\small\bfseries, inner sep=3pt, align=center},
-  timeline/.style={thick, ->, >=stealth},
-  yearmark/.style={font=\footnotesize\sffamily, below},
+  timeline/.style={semithick, -{Stealth[length=3mm]}, thesisblue!70},
+  dot/.style={circle, inner sep=0pt, minimum size=7pt, draw=white, line width=0.6pt},
+  evdot/.style={dot, fill=thesisblue!80},
+  spdot/.style={dot, fill=red!70},
+  fidot/.style={dot, fill=green!60!black},
+  lead/.style={thin, gray!55},
+  mlabel/.style={align=center, inner sep=1.5pt},
 ]
 
-% Timeline axis
-\draw[timeline] (0,0) -- (8.5,0);
+\def\step{2.0}
+\draw[timeline] (-0.7,0) -- (\step*6+0.7,0);
 
-% Year marks
-\foreach \x/\yr in {0/2017, 1.5/2019, 3/2020, 4.5/2022, 5.5/2024, 7/2025, 8.2/2027} {
-  \draw (\x, 0.1) -- (\x, -0.1) node[yearmark] {\yr};
-}
-
-% Events
-\node[event, above=0.5cm] at (0,0) {Υποβολή\\Round 1};
-\node[event, above=0.5cm] at (1.5,0) {Round 2};
-\node[event, above=0.5cm] at (3,0) {Round 3};
-\node[event, above=0.5cm] at (4.5,0) {Round 4};
-\node[specchange, above=0.5cm] at (5.5,0) {Spec change\\dense$\times$dense};
-\node[final, above=0.5cm] at (7,0) {Επιλογή\\τυποποίησης};
-\node[event, above=0.5cm] at (8.2,0) {Τελικό\\πρότυπο};
-
-% Annotation for spec change
-\draw[red!60, thick, dashed] (5.5, -0.3) -- (5.5, -1.0)
-  node[below, font=\scriptsize, text=red!70!black, align=center]
-  {Ακύρωση sparse$\times$dense\\υλοποιήσεων};
+% Each milestone: dot on the axis + leader line + stacked label (year + description).
+% 2017 — above
+\draw[lead] (0,0) -- (0,0.85);
+\node[mlabel, anchor=south] at (0,0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2017}\\{\scriptsize\color{gray!70!black}Υποβολή Round~1}};
+\node[evdot] at (0,0) {};
+% 2019 — below
+\draw[lead] (\step*1,0) -- (\step*1,-0.85);
+\node[mlabel, anchor=north] at (\step*1,-0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2019}\\{\scriptsize\color{gray!70!black}Round~2}};
+\node[evdot] at (\step*1,0) {};
+% 2020 — above
+\draw[lead] (\step*2,0) -- (\step*2,0.85);
+\node[mlabel, anchor=south] at (\step*2,0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2020}\\{\scriptsize\color{gray!70!black}Round~3}};
+\node[evdot] at (\step*2,0) {};
+% 2022 — below
+\draw[lead] (\step*3,0) -- (\step*3,-0.85);
+\node[mlabel, anchor=north] at (\step*3,-0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2022}\\{\scriptsize\color{gray!70!black}Round~4}};
+\node[evdot] at (\step*3,0) {};
+% 2024 — above (spec change)
+\draw[lead, red!40] (\step*4,0) -- (\step*4,0.85);
+\node[mlabel, anchor=south] at (\step*4,0.9) {{\sffamily\bfseries\color{red!70!black}2024}\\{\scriptsize\color{gray!70!black}Spec change dense$\times$dense}\\{\scriptsize\itshape\color{red!70!black}ακύρωση sparse$\times$dense}};
+\node[spdot] at (\step*4,0) {};
+% 2025 — below (selection)
+\draw[lead, green!50!black] (\step*5,0) -- (\step*5,-0.85);
+\node[mlabel, anchor=north] at (\step*5,-0.9) {{\sffamily\bfseries\color{green!55!black}2025}\\{\scriptsize\color{gray!70!black}Επιλογή τυποποίησης}};
+\node[fidot] at (\step*5,0) {};
+% 2027 — above (final standard)
+\draw[lead, green!50!black] (\step*6,0) -- (\step*6,0.85);
+\node[mlabel, anchor=south] at (\step*6,0.9) {{\sffamily\bfseries\color{green!55!black}2027}\\{\scriptsize\color{gray!70!black}Τελικό πρότυπο}};
+\node[fidot] at (\step*6,0) {};
 
 \end{tikzpicture}
