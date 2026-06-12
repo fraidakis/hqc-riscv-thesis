@@ -62,9 +62,10 @@ spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
 \section{Επαλήθευση Ορθότητας}
 
 Η bit-exact ορθότητα επαληθεύεται μέσω των NIST \glspl{kat}
-(\cref{sec:kat-tests})· η σταθερότητα χρόνου εκτέλεσης ελέγχεται στατικά με
-ctgrind και εμπειρικά με dudect (\cref{sec:ct-methodology}).  Το CI pipeline
-εκτελεί αυτόματα τα KAT tests σε κάθε commit (\cref{ssec:build-reproducibility}).
+(\cref{sec:kat-tests})· η σταθερότητα χρόνου εκτέλεσης τεκμηριώνεται μέσω
+αρχιτεκτονικής ανάλυσης Zkt και εμπειρικής dudect επαλήθευσης σε hardware
+(\cref{sec:ct-methodology}).  Το CI pipeline εκτελεί αυτόματα τα KAT tests
+σε κάθε commit (\cref{ssec:build-reproducibility}).
 
 \section{Αντιστοίχιση Αποτελεσμάτων}
 

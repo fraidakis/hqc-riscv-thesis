@@ -1163,7 +1163,7 @@ crypto extensions είναι τριπλή:
 \label{sec:ct-verification}
 
 Η μεθοδολογία επαλήθευσης σταθερού χρόνου εκτέλεσης — το μοντέλο απειλής, τα
-σχεδιαστικά πρότυπα και τα εργαλεία ctgrind και dudect — παρουσιάστηκε στο
+σχεδιαστικά πρότυπα και η εμπειρική dudect μεθοδολογία — παρουσιάστηκε στο
 \cref{sec:ct-methodology}.  Η ενότητα αυτή παρουσιάζει και ερμηνεύει τα
 εμπειρικά αποτελέσματα, ξεκινώντας από ένα μεθοδολογικό εύρημα που επηρέασε
 τον σχεδιασμό των μετρήσεων.
@@ -1282,13 +1282,13 @@ compilation με αποδεδειγμένες constant-time εγγυήσεις �
 δυναμικό \VLMAX, και τις tail/mask agnostic πολιτικές.
 
 Ο Valgrind (υποστήριξη RISCV64 από v3.25.0, Απρίλιος 2025
-\cite{Valgrind-riscv64}) θα μπορούσε θεωρητικά να εκτελέσει ctgrind
-natively στο BPI-F3.  Ωστόσο, ο instruction interpreter του Valgrind
+\cite{Valgrind-riscv64}) θα μπορούσε θεωρητικά να εκτελέσει Valgrind-based
+CT taint tracking natively στο BPI-F3.  Ωστόσο, ο instruction interpreter
 δεν υποστηρίζει ακόμη \gls{zbc} (carry-less multiply) ούτε \RVV vector
 εντολές — κάθε binary που χρησιμοποιεί αυτές τις extensions τερματίζεται
-με \q{unhandled instruction bytes}.  Ο περιορισμός αυτός περιορίζει τον
-on-target Valgrind στο \code{scalar\_ref} variant — ακριβώς αυτό που
-ήδη επαληθεύεται μέσω ctgrind σε x86 στο CI.
+με \q{unhandled instruction bytes}.  Ο περιορισμός αυτός καθιστά τη στατική
+instrumentation μη εφαρμόσιμη στα βελτιστοποιημένα variants (βλ.\
+\cref{ssec:ct-ctgrind} για πλήρη ανάλυση).
 
 Η εμπειρική dudect μεθοδολογία αποτελεί state-of-the-art για αυτές τις
 νέες ISA extensions.  Η προσέγγιση αυτή ακολουθεί την πρακτική των mupq/pqm4 frameworks \cite{pqm4} (Valgrind on host σε συνδυασμό με timing μετρήσεις στο target) —
@@ -1298,32 +1298,34 @@ on-target Valgrind στο \code{scalar\_ref} variant — ακριβώς αυτό
 \subsection{Συμπληρωματικότητα Στρωμάτων Επαλήθευσης}
 \label{ssec:ct-complementarity}
 
-Τα δύο στρώματα επαλήθευσης ανιχνεύουν διαφορετικές κατηγορίες
-ευπαθειών, όπως συνοψίζει ο \cref{tab:ct-complementarity}.
+Η CT τεκμηρίωση στηρίζεται σε δύο συμπληρωματικούς πυλώνες: αρχιτεκτονική
+ανάλυση Zkt και εμπειρική dudect μέτρηση.  Ο \cref{tab:ct-complementarity}
+συνοψίζει τι ανιχνεύει κάθε μέθοδος.
 
 \begin{table}[htbp]
   \centering
-  \caption{Συμπληρωματικότητα ctgrind (στατική) και dudect (δυναμική/HW).
-    Κάθε μέθοδος καλύπτει κενά της άλλης.}
+  \caption{Συμπληρωματικότητα αρχιτεκτονικής ανάλυσης Zkt και εμπειρικής
+    dudect μέτρησης.  Κάθε μέθοδος καλύπτει κενά της άλλης.}
   \label{tab:ct-complementarity}
   \small
   \begin{tabular}{lcc}
     \toprule
-    \textbf{Ιδιότητα} & \textbf{ctgrind} & \textbf{dudect} \\
+    \textbf{Ιδιότητα} & \textbf{Zkt ανάλυση} & \textbf{dudect} \\
     \midrule
     Secret-dependent branches        & \ding{51} & \ding{51} \\
     Secret-dependent memory access   & \ding{51} & \ding{51} \\
     Μικροαρχιτεκτονικά κανάλια       & —          & \ding{51} \\
     Compiler-introduced violations   & —          & \ding{51} \\
     Speculative execution            & —          & $\triangle$ \\
-    RISC-V \gls{zbc}/\RVV variants        & —          & \ding{51} \\
-    CI automation                    & \ding{51} & — \\
+    RISC-V \gls{zbc}/\RVV variants        & \ding{51} & \ding{51} \\
+    Τεκμηρίωση χωρίς hardware        & \ding{51} & — \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Η ctgrind παρέχει γρήγορη, ντετερμινιστική ανατροφοδότηση στο CI και
-ανιχνεύει αλγοριθμικού επιπέδου CT violations νωρίς στην ανάπτυξη.
+Η αρχιτεκτονική ανάλυση Zkt παρέχει ντετερμινιστική τεκμηρίωση ότι κάθε
+εντολή στα critical paths ανήκει στο data-independent timing subset — ισχύει
+για όλα τα variants ανεξαρτήτως hardware διαθεσιμότητας.
 Η dudect παρέχει ground-truth εμπειρική τεκμηρίωση στο πραγματικό
 deployment target, επαληθεύοντας ότι η μικροαρχιτεκτονική συμπεριφορά
 ευθυγραμμίζεται με το Zkt timing model.  Η συνδυαστική χρήση αμφοτέρων
@@ -1378,9 +1380,8 @@ extensions παραμένει ανοιχτό ερευνητικό πρόβλημ
 και σε όλα τα security levels (128, 192, 256), όπως τεκμηριώνεται μέσω:
 (α)~αρχιτεκτονικής ανάλυσης — όλες οι εντολές ανήκουν στο Zkt-compliant
 subset χωρίς secret-dependent control flow ή memory addressing,
-(β)~στατικής επαλήθευσης — ctgrind περνά χωρίς violations (CI-automated),
-και (γ)~εμπειρικής hardware επαλήθευσης στα μετρημένα σημεία — dudect περνά στο BPI-F3 με
-t-statistics πολύ κάτω από το detection threshold για τα μετρηθέντα κελιά (\code{scalar\_zb}: L128/L192 polymul και L128 \gls{kem}· \code{vector\_rvv}: L128 polymul).  Η εμπειρική επαλήθευση (γ) καλύπτει ρητά μόνο αυτά τα (variant, level, target) σημεία· η γενίκευση σε όλα τα levels και variants στηρίζεται στους πυλώνες (α) και (β) — δηλαδή στην αρχιτεκτονική ισοδυναμία των instruction paths (η αλλαγή security level μεταβάλλει μόνο μήκη δεδομένων, όχι control flow ή memory addressing) εντός του Zkt-compliant subset.  Για το Tier~3 variant (\code{vector\_zvk}) η constant-time τεκμηρίωση είναι αρχιτεκτονική μόνο: οι \vclmul, \vclmulh και \vror εντολές ανήκουν στη vector data-independent execution latency λίστα (Zvkt, το vector ανάλογο του scalar Zkt)~\cite{RISCV-crypto-spec}, ενώ η εμπειρική dudect επαλήθευσή τους σε silicon δεν είναι ακόμη εφικτή (απουσία \gls{zvbc}/\gls{zvbb} hardware) και παραμένει μελλοντική εργασία (\cref{sec:future-work}).  Τα performance gains
+και (β)~εμπειρικής hardware επαλήθευσης στα μετρημένα σημεία — dudect περνά στο BPI-F3 με
+t-statistics πολύ κάτω από το detection threshold για τα μετρηθέντα κελιά (\code{scalar\_zb}: L128/L192 polymul και L128 \gls{kem}· \code{vector\_rvv}: L128 polymul).  Η εμπειρική επαλήθευση (β) καλύπτει ρητά μόνο αυτά τα (variant, level, target) σημεία· η γενίκευση σε όλα τα levels και variants στηρίζεται στον πυλώνα (α) — δηλαδή στην αρχιτεκτονική ισοδυναμία των instruction paths (η αλλαγή security level μεταβάλλει μόνο μήκη δεδομένων, όχι control flow ή memory addressing) εντός του Zkt-compliant subset.  Για το Tier~3 variant (\code{vector\_zvk}) η constant-time τεκμηρίωση είναι αρχιτεκτονική μόνο: οι \vclmul, \vclmulh και \vror εντολές ανήκουν στη vector data-independent execution latency λίστα (Zvkt, το vector ανάλογο του scalar Zkt)~\cite{RISCV-crypto-spec}, ενώ η εμπειρική dudect επαλήθευσή τους σε silicon δεν είναι ακόμη εφικτή (απουσία \gls{zvbc}/\gls{zvbb} hardware) και παραμένει μελλοντική εργασία (\cref{sec:future-work}).  Τα performance gains
 μέσω Karatsuba recursion, \gls{zbc} carry-less multiply, και \RVV vectorization
 δεν παραβιάζουν την timing-side-channel αντοχή που απαιτείται για
 μετα-κβαντικές \gls{kem} deployments.

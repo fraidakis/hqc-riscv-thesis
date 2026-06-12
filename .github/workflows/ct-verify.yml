@@ -1,24 +1,30 @@
-name: Constant-Time Verification
+name: Constant-Time Verification (DISABLED)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STATUS: DISABLED — This workflow is retained for reference but does not
+# provide meaningful coverage of the optimized RISC-V variants.
+#
+# PROBLEM SUMMARY:
+#   1. All RISC-V-specific variants (scalar_zb, vector_rvv, vector_zvk, etc.)
+#      use RISC-V intrinsics (__riscv_clmul_64, <riscv_vector.h>) that cannot
+#      compile on x86-64. The script skips them with exit 0.
+#   2. The only variant that actually runs (scalar_ref, vector_ref) is the
+#      upstream vendor reference code — verifying it adds no new information.
+#   3. Valgrind's RISC-V backend (v3.25.0+) does not yet support Zbc or RVV
+#      instructions, so native on-target execution is also not possible.
+#
+# CONSEQUENCE: CT verification relies exclusively on:
+#   - Architectural Zkt analysis (all instructions are data-independent timing)
+#   - Empirical dudect measurement on BPI-F3 hardware
+#
+# FUTURE: A cross-compiled QEMU user-mode approach with riscv64-linux-gnu
+# toolchain could enable Valgrind-based CT checks for the optimized variants.
+# See tests/ct/README.md for implementation notes.
+# ═══════════════════════════════════════════════════════════════════════════════
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'scripts/report/**'
-      - 'results/**'
-      - 'experiments/**'
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'scripts/report/**'
-      - 'results/**'
-      - 'experiments/**'
+  workflow_dispatch:   # manual-only — no longer triggered on push/PR
+
 
 jobs:
   # ── Read the single source of truth for implemented variants ───────────────

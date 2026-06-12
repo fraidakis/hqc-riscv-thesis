@@ -892,9 +892,11 @@ bit-exact σωστά αποτελέσματα.  Η αναπαραγωγιμότ�
 κανάλια χρονισμού (timing side-channels).  Η ενότητα αυτή παρουσιάζει τη μεθοδολογία με την οποία επαληθεύεται ότι
 οι βελτιστοποιημένες υλοποιήσεις \gls{hqc} διατηρούν constant-time συμπεριφορά
 — η εκτέλεσή τους είναι ανεξάρτητη από μυστικά δεδομένα.  Η στρατηγική
-επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: στατική ανάλυση
-μέσω ctgrind (Valgrind Memcheck) και στατιστική ανίχνευση διαρροής μέσω
-dudect σε πραγματικό hardware.  Τα εμπειρικά αποτελέσματα της επαλήθευσης και η ερμηνεία τους παρουσιάζονται στην \cref{sec:ct-verification}.
+επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: αρχιτεκτονική ανάλυση
+Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο data-independent timing subset)
+και στατιστική ανίχνευση διαρροής μέσω dudect σε πραγματικό hardware.  Τα
+εμπειρικά αποτελέσματα της επαλήθευσης και η ερμηνεία τους παρουσιάζονται
+στην \cref{sec:ct-verification}.
 
 %% --------------------------------------------------------------------------
 \subsection{Μοντέλο Απειλής και Ορισμός Constant-Time}
@@ -974,40 +976,37 @@ polynomial limbs μέσω strided vector loads (address-independent), και
 hardware.
 
 %% --------------------------------------------------------------------------
-\subsection{Στατική Επαλήθευση: ctgrind (Valgrind Memcheck)}
+\subsection{Μη Εφαρμοσιμότητα Στατικής Instrumentation (Valgrind/ctgrind)}
 \label{ssec:ct-ctgrind}
 
 Η ctgrind μεθοδολογία αξιοποιεί τον Valgrind Memcheck ως εργαλείο
-ανίχνευσης secret-dependent ροής ελέγχου.  Τα μυστικά δεδομένα
+ανίχνευσης secret-dependent ροής ελέγχου: τα μυστικά δεδομένα
 σημαίνονται ως \q{uninitialized} μέσω \code{VALGRIND\_MAKE\_MEM\_UNDEFINED},
 και ο Memcheck αναφέρει κάθε conditional branch ή indexed memory access
-που εξαρτάται από \q{uninitialized} bytes.
+που εξαρτάται από \q{uninitialized} bytes.  Η τεχνική αυτή αποτελεί
+ευρέως χρησιμοποιούμενη πρακτική στη βιβλιογραφία~\cite{Reparaz2017-dudect}
+και θα μπορούσε θεωρητικά να παρέχει στατική τεκμηρίωση CT ορθότητας.
 
-\paragraph{Ενσωμάτωση στο CI pipeline.}
-Το workflow \code{ct-verify.yml} εκτελεί ctgrind για κάθε συνδυασμό
-(security level $\times$ variant) σε κάθε push στο main branch.  Ο
-harness (\code{ct\_harness.c}) ασκεί τη συνάρτηση \code{crypto\_kem\_dec()}
-με τα bytes sigma (μυστικό fallback material) σημασμένα ως undefined.
-Η επιλογή poisoning μόνο του sigma — αντί ολόκληρου του secret key —
-αποφεύγει false positives από data-dependent loops στην ανακατασκευή
-κλειδιού της reference υλοποίησης.
+\paragraph{Δομικοί περιορισμοί στην παρούσα εργασία.}
+Η στατική Valgrind-based επαλήθευση δεν εφαρμόζεται ουσιαστικά στα
+βελτιστοποιημένα variants για δύο λόγους.  Πρώτον, τα RISC-V-specific
+variants (\code{scalar\_zb}, \code{vector\_rvv}, \code{vector\_zvk})
+χρησιμοποιούν RISC-V intrinsics (\code{\_\_riscv\_clmul\_64},
+\code{\_\_riscv\_vle64\_v\_u64m4}) που δεν μεταγλωττίζονται σε x86-64 —
+μόνο η vendor reference υλοποίηση (\code{scalar\_ref}) δύναται να ελεγχθεί
+natively, πράγμα που δεν παρέχει νέα πληροφορία (η ορθότητά της είναι ήδη
+γνωστή).  Δεύτερον, ο Valgrind (v3.25.0+) υποστηρίζει RISC-V 64-bit αλλά
+ο instruction interpreter δεν αναγνωρίζει ακόμη \gls{zbc} (carry-less
+multiply) ούτε \RVV vector εντολές — κάθε binary που χρησιμοποιεί αυτές
+τις extensions τερματίζεται με \q{unhandled instruction bytes}.
 
-\paragraph{Αποτελέσματα.}
-Η στατική επαλήθευση ολοκληρώνεται χωρίς violations σε όλα τα security
-levels (128, 192, 256) για το \code{scalar\_ref} variant.  Ο Memcheck
-δεν αναφέρει κανένα \q{Conditional jump depends on uninitialised value}
-ούτε \q{Use of uninitialised value} — επιβεβαιώνοντας ότι η αλγοριθμική
-δομή δεν περιέχει secret-dependent branches ή memory indexing.
-
-\paragraph{Περιορισμοί.}
-Η ctgrind παρουσιάζει τρεις δομικούς περιορισμούς.  Πρώτον, επαληθεύει
-μόνο το \code{scalar\_ref} variant — τα RISC-V intrinsics δεν
-μεταγλωττίζονται σε x86-64.  Δεύτερον, δεν ανιχνεύει μικροαρχιτεκτονικά
-κανάλια χρονισμού (cache timing, pipeline effects, speculation).  Τρίτον,
-υποθέτει ότι ο compiler δεν εισάγει CT violations κατά τη βελτιστοποίηση
-— μια υπόθεση που δεν επαληθεύεται στατικά.  Παρ' όλα αυτά, ένα
-\q{clean} αποτέλεσμα εγγυάται απουσία secret-dependent branches και loads
-στα traced paths — ισχυρή ένδειξη αλγοριθμικής ορθότητας.
+Η cross-compiled εκτέλεση μέσω QEMU user-mode θα μπορούσε θεωρητικά να
+αντιμετωπίσει τον πρώτο περιορισμό, αλλά απαιτεί Linux-ABI toolchain
+(\code{riscv64-linux-gnu}) αντί bare-metal — υποδομή που υπερβαίνει
+το scope της παρούσας εργασίας.  Κατά συνέπεια, η CT τεκμηρίωση
+στηρίζεται αποκλειστικά στην αρχιτεκτονική ανάλυση Zkt
+(\cref{ssec:ct-design-patterns}) σε συνδυασμό με εμπειρική dudect
+επαλήθευση στο BPI-F3 (\cref{ssec:ct-dudect}).
 
 %% --------------------------------------------------------------------------
 \subsection{Εμπειρική Επαλήθευση σε Hardware: Dudect (BPI-F3)}

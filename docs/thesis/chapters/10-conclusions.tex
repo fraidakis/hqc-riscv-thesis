@@ -45,10 +45,12 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 \RVV vectorization και \gls{zvbc} GF($2^8$) acceleration).
 
 \paragraph{Constant-time ασφάλεια}
-Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής: στατική
-ανάλυση ctgrind (Valgrind Memcheck) και εμπειρική στατιστική ανίχνευση dudect
+Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής:
+αρχιτεκτονική ανάλυση Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο
+data-independent timing subset) και εμπειρική στατιστική ανίχνευση dudect
 σε πραγματικό hardware (BPI-F3 / SpacemiT K1 X60) για τα Tier~1 και Tier~2
-variants (\cref{sec:ct-verification})· η εμπειρική dudect κάλυψη του Tier~2 περιορίζεται σε επίπεδο polymul.  Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
+variants (\cref{sec:ct-verification})· η εμπειρική dudect κάλυψη του Tier~2
+περιορίζεται σε επίπεδο polymul.  Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
 θεωρητική CT συμμόρφωση για το Tier~3.
 
 \paragraph{Hardware validation}
