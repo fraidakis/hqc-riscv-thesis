@@ -976,39 +976,6 @@ polynomial limbs μέσω strided vector loads (address-independent), και
 hardware.
 
 %% --------------------------------------------------------------------------
-\subsection{Μη Εφαρμοσιμότητα Στατικής Instrumentation (Valgrind/ctgrind)}
-\label{ssec:ct-ctgrind}
-
-Η ctgrind μεθοδολογία αξιοποιεί τον Valgrind Memcheck ως εργαλείο
-ανίχνευσης secret-dependent ροής ελέγχου: τα μυστικά δεδομένα
-σημαίνονται ως \q{uninitialized} μέσω \code{VALGRIND\_MAKE\_MEM\_UNDEFINED},
-και ο Memcheck αναφέρει κάθε conditional branch ή indexed memory access
-που εξαρτάται από \q{uninitialized} bytes.  Η τεχνική αυτή αποτελεί
-ευρέως χρησιμοποιούμενη πρακτική στη βιβλιογραφία~\cite{Reparaz2017-dudect}
-και θα μπορούσε θεωρητικά να παρέχει στατική τεκμηρίωση CT ορθότητας.
-
-\paragraph{Δομικοί περιορισμοί στην παρούσα εργασία.}
-Η στατική Valgrind-based επαλήθευση δεν εφαρμόζεται ουσιαστικά στα
-βελτιστοποιημένα variants για δύο λόγους.  Πρώτον, τα RISC-V-specific
-variants (\code{scalar\_zb}, \code{vector\_rvv}, \code{vector\_zvk})
-χρησιμοποιούν RISC-V intrinsics (\code{\_\_riscv\_clmul\_64},
-\code{\_\_riscv\_vle64\_v\_u64m4}) που δεν μεταγλωττίζονται σε x86-64 —
-μόνο η vendor reference υλοποίηση (\code{scalar\_ref}) δύναται να ελεγχθεί
-natively, πράγμα που δεν παρέχει νέα πληροφορία (η ορθότητά της είναι ήδη
-γνωστή).  Δεύτερον, ο Valgrind (v3.25.0+) υποστηρίζει RISC-V 64-bit αλλά
-ο instruction interpreter δεν αναγνωρίζει ακόμη \gls{zbc} (carry-less
-multiply) ούτε \RVV vector εντολές — κάθε binary που χρησιμοποιεί αυτές
-τις extensions τερματίζεται με \q{unhandled instruction bytes}.
-
-Η cross-compiled εκτέλεση μέσω QEMU user-mode θα μπορούσε θεωρητικά να
-αντιμετωπίσει τον πρώτο περιορισμό, αλλά απαιτεί Linux-ABI toolchain
-(\code{riscv64-linux-gnu}) αντί bare-metal — υποδομή που υπερβαίνει
-το scope της παρούσας εργασίας.  Κατά συνέπεια, η CT τεκμηρίωση
-στηρίζεται αποκλειστικά στην αρχιτεκτονική ανάλυση Zkt
-(\cref{ssec:ct-design-patterns}) σε συνδυασμό με εμπειρική dudect
-επαλήθευση στο BPI-F3 (\cref{ssec:ct-dudect}).
-
-%% --------------------------------------------------------------------------
 \subsection{Εμπειρική Επαλήθευση σε Hardware: Dudect (BPI-F3)}
 \label{ssec:ct-dudect}
 

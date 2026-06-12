@@ -1281,15 +1281,6 @@ compilation με αποδεδειγμένες constant-time εγγυήσεις �
 μοντέλα για τη σημασιολογία VLA εκτέλεσης — τον \code{vtype} CSR, το
 δυναμικό \VLMAX, και τις tail/mask agnostic πολιτικές.
 
-Ο Valgrind (υποστήριξη RISCV64 από v3.25.0, Απρίλιος 2025
-\cite{Valgrind-riscv64}) θα μπορούσε θεωρητικά να εκτελέσει Valgrind-based
-CT taint tracking natively στο BPI-F3.  Ωστόσο, ο instruction interpreter
-δεν υποστηρίζει ακόμη \gls{zbc} (carry-less multiply) ούτε \RVV vector
-εντολές — κάθε binary που χρησιμοποιεί αυτές τις extensions τερματίζεται
-με \q{unhandled instruction bytes}.  Ο περιορισμός αυτός καθιστά τη στατική
-instrumentation μη εφαρμόσιμη στα βελτιστοποιημένα variants (βλ.\
-\cref{ssec:ct-ctgrind} για πλήρη ανάλυση).
-
 Η εμπειρική dudect μεθοδολογία αποτελεί state-of-the-art για αυτές τις
 νέες ISA extensions.  Η προσέγγιση αυτή ακολουθεί την πρακτική των mupq/pqm4 frameworks \cite{pqm4} (Valgrind on host σε συνδυασμό με timing μετρήσεις στο target) —
 αναγνωρισμένη πρακτική στην κοινότητα \gls{pqc} benchmarking.
