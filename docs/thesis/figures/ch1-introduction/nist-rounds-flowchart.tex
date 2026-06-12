@@ -1,116 +1,81 @@
-% NIST PQC Standardization Timeline
-% Horizontal timeline with alternating above/below event boxes
-% Fits within \textwidth (~15.5cm) via resizebox
+% NIST PQC Standardization Timeline — horizontal, NARRATIVE variant.
+% A: process (rounds) neutral vs milestones (FIPS, HQC) in accent/solution.
+% B: numbered round badges 1–4. C: trimmed text (1 headline + 1 detail),
+%    uniform box height. D: uniform leader lines. Consistency: \HQC vocab.
+% Palette & styles from figures/thesis-tikz-styles.tex. Fits \textwidth via resizebox.
 \resizebox{\textwidth}{!}{%
-\tikzsetnextfilename{ch1-introduction-nist-rounds-flowchart}
+\tikzsetnextfilename{ch1-introduction-nist-rounds-flowchart-v3}
 \begin{tikzpicture}[
-  % Styles
-  eventbox/.style={
-    draw=gray!40, rounded corners=2pt, text width=4.2cm,
-    font=\footnotesize, align=left, inner sep=5pt,
-    fill=gray!3
+  procbox/.style={
+    draw=figrule, rounded corners=2pt, text width=3.7cm, minimum height=1.5cm,
+    font=\footnotesize, align=left, inner sep=5pt, fill=figneutral!8
   },
-  hqceventbox/.style={
-    eventbox, draw=thesisblue!60, fill=thesisblue!5,
-    thick
-  },
-  connector/.style={
-    thick, gray!50
-  },
-  hqcconnector/.style={
-    thick, thesisblue!70
-  },
-  timelinedot/.style={
-    circle, fill=gray!60, inner sep=1.8pt
-  },
-  hqcdot/.style={
-    circle, fill=thesisblue, inner sep=2.5pt
-  },
+  solbox/.style={procbox, draw=figsolution!60, fill=figsolution!10},
+  hqcbox/.style={procbox, draw=figaccent, fill=figaccent!8, line width=1pt},
+  connector/.style={semithick, figrule},
+  dot/.style={circle, fill=figneutral, inner sep=1.6pt},
+  soldot/.style={circle, fill=figsolution, inner sep=1.8pt},
+  hqcdot/.style={circle, fill=figaccent, inner sep=2.6pt},
 ]
 
-% --- Timeline axis ---
-\draw[very thick, gray!40] (-0.3,0) -- (19.8,0);
-\draw[very thick, gray!40, -{Stealth[length=5pt]}] (19.8,0) -- (20.2,0);
-
-% --- Year tick marks ---
-\foreach \x/\yr in {0.5/2016, 3/2017, 6.5/2019, 10/2020, 13.5/2022, 16.5/2024, 19/2025} {
-  \draw[gray!50] (\x, -0.1) -- (\x, 0.1);
-  \node[below, font=\scriptsize\sffamily\color{gray!60}] at (\x, -0.18) {\yr};
+% --- Axis ---
+\draw[very thick, figrule] (-0.3,0) -- (19.8,0);
+\draw[very thick, figrule, -{Stealth[length=5pt]}] (19.8,0) -- (20.2,0);
+\foreach \x/\yr in {0.5/2016, 2.56/2017, 6.67/2019, 8.72/2020, 12.83/2022, 16.94/2024, 19.0/2025} {
+  \draw[figrule] (\x,-0.1) -- (\x,0.1);
+  \node[below, font=\scriptsize\sffamily, text=figneutral] at (\x,-0.18) {\yr};
 }
+\foreach \x in {0.5,2.56,6.67,8.72,12.83,16.94} { \node[dot] at (\x,0) {}; }
+\node[soldot] at (16.94,0) {};
+\node[hqcdot] at (19.0,0) {};
 
-% --- Dots on timeline ---
-\node[timelinedot] at (0.5, 0) {};
-\node[timelinedot] at (3, 0) {};
-\node[timelinedot] at (6.5, 0) {};
-\node[timelinedot] at (10, 0) {};
-\node[timelinedot] at (13.5, 0) {};
-\node[timelinedot] at (16.5, 0) {};
-\node[hqcdot] at (19, 0) {};
-
-% === ABOVE BOXES (events 1, 3, 5, 7) ===
-
-% Box 1: Call for Proposals
-\node[eventbox, anchor=south] (call) at (0.5, 0.7) {%
-  {\sffamily\bfseries\color{thesisblue!85!black} 2016–2017}\\[1pt]
+% === ABOVE (uniform leaders, length 0.75) ===
+\node[procbox, anchor=south] (call) at (0.5,0.75) {%
   {\sffamily\bfseries Πρόσκληση Υποβολών}\\[2pt]
-  Ανοιχτή διαδικασία τυποποίησης PQC.
-  82 υποβολές· 69 δεκτοί υποψήφιοι.%
+  82 υποβολές $\to$ 69 υποψήφιοι.%
 };
-\draw[connector] (0.5, 0.12) -- (0.5, 0.7);
+\draw[connector] (0.5,0.12) -- (0.5,0.75);
 
-% Box 3: Round 2
-\node[eventbox, anchor=south] (r2) at (6.5, 0.7) {%
-  {\sffamily\bfseries\color{thesisblue!85!black} 2019–2020}\\[1pt]
-  {\sffamily\bfseries Γύρος 2}\\[2pt]
-  Αξιολόγηση απόδοσης \& ασφάλειας.
+\node[procbox, anchor=south] (r2) at (6.67,0.75) {%
+  {\sffamily\bfseries Γύρος 2 · Αξιολόγηση}\\[2pt]
   26 $\to$ 7 finalists + 8 alternates.%
 };
-\draw[connector] (6.5, 0.12) -- (6.5, 0.7);
+\draw[connector] (6.67,0.12) -- (6.67,0.75);
+\node[figbadge] at (r2.north west) {2};
 
-% Box 5: Round 4
-\node[eventbox, anchor=south] (r4) at (13.5, 0.7) {%
-  {\sffamily\bfseries\color{thesisblue!85!black} 2022–2025}\\[1pt]
-  {\sffamily\bfseries Γύρος 4: Μη-Lattice KEM}\\[2pt]
-  Τέσσερις υποψήφιοι (BIKE, Classic McEliece, HQC, SIKE).%
+\node[procbox, anchor=south] (r4) at (12.83,0.75) {%
+  {\sffamily\bfseries Γύρος 4 · Μη-Lattice KEM}\\[2pt]
+  BIKE, Classic McEliece, \HQC, SIKE.%
 };
-\draw[connector] (13.5, 0.12) -- (13.5, 0.7);
+\draw[connector] (12.83,0.12) -- (12.83,0.75);
+\node[figbadge] at (r4.north west) {4};
 
-% Box 7: HQC Selection — highlighted
-\node[hqceventbox, anchor=south] (hqc) at (19, 0.7) {%
-  {\sffamily\bfseries\color{thesisblue} Μάρτιος 2025}\\[1pt]
-  {\sffamily\bfseries Επιλογή \textsc{hqc}}\\[2pt]
-  Πέμπτο PQC πρότυπο. Draft FIPS 2026, τελικό πρότυπο 2027.%
+\node[hqcbox, anchor=south] (hqc) at (19.0,0.75) {%
+  {\sffamily\bfseries\color{figaccent} Επιλογή \HQC (2025)}\\[2pt]
+  5ο πρότυπο PQC · FIPS 2027.%
 };
-\draw[hqcconnector] (19, 0.15) -- (19, 0.7);
+\draw[figaccentleader] (19.0,0.15) -- (19.0,0.75);
 
-% === BELOW BOXES (events 2, 4, 6) ===
-
-% Box 2: Round 1
-\node[eventbox, anchor=north] (r1) at (3, -0.7) {%
-  {\sffamily\bfseries\color{thesisblue!85!black} 2017–2019}\\[1pt]
-  {\sffamily\bfseries Γύρος 1: Αρχική Αξιολόγηση}\\[2pt]
-  Δημόσια κρυπτανάλυση των υποψηφίων.
-  69 $\to$ 26 για τον Γύρο 2.%
+% === BELOW ===
+\node[procbox, anchor=north] (r1) at (2.56,-0.75) {%
+  {\sffamily\bfseries Γύρος 1 · Κρυπτανάλυση}\\[2pt]
+  69 $\to$ 26 υποψήφιοι.%
 };
-\draw[connector] (3, -0.12) -- (3, -0.7);
+\draw[connector] (2.56,-0.12) -- (2.56,-0.75);
+\node[figbadge] at (r1.north west) {1};
 
-% Box 4: Round 3
-\node[eventbox, anchor=north] (r3) at (10, -0.7) {%
-  {\sffamily\bfseries\color{thesisblue!85!black} 2020–2022}\\[1pt]
-  {\sffamily\bfseries Γύρος 3: Τελικοί Υποψήφιοι}\\[2pt]
-  7+8 υποψήφιοι $\to$ 4 προς τυποποίηση
-  + 4 KEMs στον Γύρο 4.%
+\node[procbox, anchor=north] (r3) at (8.72,-0.75) {%
+  {\sffamily\bfseries Γύρος 3 · Τελικοί}\\[2pt]
+  $\to$ 4 προς τυποποίηση + 4 KEMs.%
 };
-\draw[connector] (10, -0.12) -- (10, -0.7);
+\draw[connector] (8.72,-0.12) -- (8.72,-0.75);
+\node[figbadge] at (r3.north west) {3};
 
-% Box 6: FIPS Standards
-\node[eventbox, anchor=north] (fips) at (16.5, -0.7) {%
-  {\sffamily\bfseries\color{thesisblue!85!black} Αύγουστος 2024}\\[1pt]
-  {\sffamily\bfseries Πρώτα Πρότυπα FIPS}\\[2pt]
-  FIPS 203 (ML-KEM), 204 (ML-DSA), 205 (SLH-DSA).
-  Lattice \& hash-based σχήματα.%
+\node[solbox, anchor=north] (fips) at (16.94,-0.75) {%
+  {\sffamily\bfseries\color{figsolution!55!black} Πρώτα Πρότυπα FIPS (2024)}\\[2pt]
+  FIPS 203 / 204 / 205.%
 };
-\draw[connector] (16.5, -0.12) -- (16.5, -0.7);
+\draw[connector] (16.94,-0.12) -- (16.94,-0.75);
 
 \end{tikzpicture}%
 }% end resizebox

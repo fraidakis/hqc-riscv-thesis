@@ -1,0 +1,49 @@
+% =====================================================================
+% thesis-tikz-styles.tex — Shared TikZ styles & figure palette
+% Single source of truth for figure colours, box/milestone styles,
+% line weights and secondary-text style across ALL chapter figures.
+% Loaded once from main.tex AFTER preamble/settings (needs \thesisblue).
+% Redefinition-safe (only \definecolor / \colorlet / \tikzset): may be
+% \input more than once without error.
+% =====================================================================
+
+% --- Okabe-Ito colour-blind-safe palette ---
+\definecolor{oiBlue}{HTML}{0072B2}
+\definecolor{oiSky}{HTML}{56B4E9}
+\definecolor{oiGreen}{HTML}{009E73}
+\definecolor{oiOrange}{HTML}{E69F00}
+\definecolor{oiVermillion}{HTML}{D55E00}
+\definecolor{oiYellow}{HTML}{F0E442}
+\definecolor{oiPurple}{HTML}{CC79A7}
+
+% --- Semantic roles (use THESE names in figures, not raw colours) ---
+\colorlet{figaccent}{thesisblue}     % primary thesis accent / focal node (HQC)
+\colorlet{figprocess}{oiBlue}        % process / neutral-cool (e.g. NIST rounds)
+\colorlet{figthreat}{oiVermillion}   % threat / warning (Shor, Harvest-Now)
+\colorlet{figsolution}{oiGreen}      % solution / standardisation
+\colorlet{figneutral}{black!55}      % secondary grey text
+\colorlet{figrule}{black!30}         % hairline borders / leader lines
+
+% --- Shared node & line styles ---
+\tikzset{
+  figbox/.style={
+    draw=figrule, rounded corners=2pt, align=left,
+    inner sep=5pt, font=\footnotesize, fill=white
+  },
+  figaccentbox/.style={
+    figbox, draw=figaccent, line width=0.9pt, fill=figaccent!6
+  },
+  figmilestone/.style={
+    circle, fill=figprocess, inner sep=0pt, minimum size=5pt
+  },
+  figmilestoneaccent/.style={
+    circle, fill=figaccent, inner sep=0pt, minimum size=7pt
+  },
+  figleader/.style={semithick, figrule},
+  figaccentleader/.style={thick, figaccent!70},
+  figsecondary/.style={font=\scriptsize, text=figneutral},
+  figbadge/.style={
+    circle, draw=figprocess, fill=figprocess!12, text=figprocess!75!black,
+    font=\scriptsize\bfseries, inner sep=1pt, minimum size=4.6mm
+  }
+}
