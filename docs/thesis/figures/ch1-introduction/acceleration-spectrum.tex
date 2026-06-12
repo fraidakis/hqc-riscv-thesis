@@ -1,46 +1,57 @@
-% Acceleration spectrum: Pure Software ← ISA Extensions ← FPGA ← ASIC
-% Shows the trade-off between flexibility and peak performance
+% Acceleration spectrum: Generic C -> ISA Extensions -> FPGA -> ASIC.
+% Upgrades (applied): (A) single gradient spectrum bar replaces the two crossing
+% arrows (flexibility<->peak-performance continuum); (D) "Par. ergasia" pill badge
+% on the ISA box; plus the "Chronos allagis" labeled row aligning change-times.
+% FIT: wrapped in \resizebox{\textwidth}{!}{...} so the wide 4-box layout never
+% overflows the text block.
+% CENTERING: the "Chronos allagis" title is left-aligned to the diagram's left
+% edge (sw.west) as a row heading above the value cells — it no longer protrudes
+% left of the diagram, so the tikzpicture bounding box matches the visible
+% diagram and \centering (set in chapters/01-introduction.tex) centres it.
+% Palette & styles from figures/thesis-tikz-styles.tex.
+\resizebox{\textwidth}{!}{%
 \tikzsetnextfilename{ch1-introduction-acceleration-spectrum}
 \begin{tikzpicture}[
   node distance=0.8cm,
   box/.style={
-    draw, rounded corners=3pt, minimum width=3.2cm, minimum height=1.4cm,
-    align=center, font=\small\sffamily
+    draw=figrule, rounded corners=3pt, minimum width=3cm, minimum height=1.4cm,
+    align=center, font=\small\sffamily, fill=white
   },
-  arrow/.style={-{Stealth[length=3mm]}, thick, gray!70},
-  label/.style={font=\footnotesize\sffamily, text=gray!80},
-  highlight/.style={box, fill=thesisblue!12, draw=thesisblue!60, line width=1pt}
+  highlight/.style={box, fill=figaccent!10, draw=figaccent, line width=1pt},
+  endlabel/.style={font=\footnotesize\sffamily, text=figneutral},
+  rowtitle/.style={font=\footnotesize\sffamily\bfseries, text=figneutral, anchor=west},
+  ch/.style={font=\scriptsize, text=figneutral, align=center},
 ]
 
-% Boxes (left to right: most flexible → least flexible)
-\node[box, fill=gray!8] (sw) {Γενικός κώδικας C\\[-2pt]\footnotesize (base ISA)};
-\node[highlight, right=1.0cm of sw] (isa) {ISA Extensions\\[-2pt]\footnotesize (Zbc, Zvbc, Zvbb)};
-\node[box, fill=gray!8, right=1.0cm of isa] (fpga) {FPGA\\[-2pt]\footnotesize Accelerator};
-\node[box, fill=gray!8, right=1.0cm of fpga] (asic) {Custom ASIC\\[-2pt]\footnotesize (σταθερή λειτουργία)};
+% --- Boxes (left = most flexible, right = least flexible) ---
+\node[box] (sw) {Γενικός κώδικας C\\[-2pt]\footnotesize (base ISA)};
+\node[highlight, right=0.8cm of sw] (isa) {ISA Extensions\\[-2pt]\footnotesize (Zbc, Zvbc, Zvbb)};
+\node[box, right=0.8cm of isa] (fpga) {FPGA\\[-2pt]\footnotesize Accelerator};
+\node[box, right=0.8cm of fpga] (asic) {Custom ASIC\\[-2pt]\footnotesize (σταθερή λειτουργία)};
 
-% Top arrow: Flexibility increases ←
-\draw[arrow] ([yshift=1.0cm]asic.north east) -- ([yshift=1.0cm]sw.north west)
-  node[midway, above, label] {Ευελιξία αυξάνεται};
+% --- Gradient spectrum bar (above the boxes; spans the full diagram width) ---
+\shade[left color=figsolution!35, right color=figthreat!42, rounded corners=2pt]
+  ([yshift=0.70cm]sw.north west) rectangle ([yshift=1.18cm]asic.north east);
+\node[endlabel, anchor=west] at ([xshift=2pt,yshift=0.94cm]sw.north west)
+  {$\leftarrow$ Μεγαλύτερη ευελιξία};
+\node[endlabel, anchor=east] at ([xshift=-2pt,yshift=0.94cm]asic.north east)
+  {Μεγαλύτερη απόδοση $\rightarrow$};
 
-% Bottom arrow: Peak performance increases →
-\draw[arrow] ([yshift=-2.0cm]sw.south west) -- ([yshift=-2.0cm]asic.south east)
-  node[midway, below, label] {Μέγιστη απόδοση αυξάνεται};
+% --- "You are here" pill on the ISA box ---
+\node[draw=figaccent, fill=figaccent!12, rounded corners=3pt, inner sep=3pt,
+      font=\footnotesize\sffamily\bfseries, text=figaccent!80!black,
+      below=0.55cm of isa] (here) {Παρούσα εργασία};
+\draw[figaccentleader] (isa.south) -- (here.north);
 
-% Annotation for "this work"
-\draw[thesisblue!80, thick, dashed]
-  ([xshift=-0.15cm, yshift=-0.85cm]isa.south west) --
-  ([xshift=0.15cm, yshift=-0.85cm]isa.south east);
-\node[font=\footnotesize\sffamily\bfseries, text=thesisblue!80, below=0.95cm of isa]
-  {Παρούσα εργασία};
+% --- "Chronos allagis": title aligned to diagram's left edge (no left overhang),
+%     values aligned under each box. Keeps the bounding box symmetric. ---
+\coordinate (titley) at ([yshift=-1.9cm]sw.south);
+\node[rowtitle] at (sw.west |- titley) {Χρόνος αλλαγής:};
+\coordinate (rowy) at ([yshift=-2.5cm]sw.south);
+\node[ch] at (sw |- rowy)   {λεπτά–ώρες};
+\node[ch] at (isa |- rowy)  {λεπτά (recompile)};
+\node[ch] at (fpga |- rowy) {ημέρες–εβδομάδες};
+\node[ch] at (asic |- rowy) {μήνες–έτη};
 
-% Characteristics below each box
-\node[font=\scriptsize, text=gray!70, below=0.15cm of sw]
-  {Αλλαγή: λεπτά–ώρες};
-\node[font=\scriptsize, text=gray!70, below=0.15cm of fpga]
-  {Αλλαγή: ημέρες–εβδομάδες};
-\node[font=\scriptsize, text=gray!70, below=0.15cm of asic]
-  {Αλλαγή: μήνες–έτη};
-\node[font=\scriptsize, text=gray!70, below=0.15cm of isa]
-  {Αλλαγή: λεπτά (recompile)};
-
-\end{tikzpicture}
+\end{tikzpicture}%
+}% end resizebox

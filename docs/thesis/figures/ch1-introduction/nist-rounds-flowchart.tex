@@ -1,81 +1,69 @@
-% NIST PQC Standardization Timeline — horizontal, NARRATIVE variant.
-% A: process (rounds) neutral vs milestones (FIPS, HQC) in accent/solution.
-% B: numbered round badges 1–4. C: trimmed text (1 headline + 1 detail),
-%    uniform box height. D: uniform leader lines. Consistency: \HQC vocab.
-% Palette & styles from figures/thesis-tikz-styles.tex. Fits \textwidth via resizebox.
-\resizebox{\textwidth}{!}{%
-\tikzsetnextfilename{ch1-introduction-nist-rounds-flowchart-v3}
+% NIST PQC Standardization Timeline — VERTICAL (top-to-bottom) variant.
+% A: rounds in a cool gray-blue gradient (deepening), milestones (FIPS, HQC)
+%    in accent/solution. B: HQC node emphasised (accent border + larger dot).
+% C: vertical layout => more room for Greek text, zero crowding. D: uniform
+%    box width (8.2cm) on a single left axis. Palette from thesis-tikz-styles.tex.
+% Suited to a tall/portrait or full-page float.
+\tikzsetnextfilename{ch1-introduction-nist-rounds-flowchart}
 \begin{tikzpicture}[
-  procbox/.style={
-    draw=figrule, rounded corners=2pt, text width=3.7cm, minimum height=1.5cm,
-    font=\footnotesize, align=left, inner sep=5pt, fill=figneutral!8
+  vbox/.style={
+    draw=figrule, rounded corners=2pt, text width=8.2cm, align=left,
+    inner sep=6pt, font=\footnotesize, anchor=west
   },
-  solbox/.style={procbox, draw=figsolution!60, fill=figsolution!10},
-  hqcbox/.style={procbox, draw=figaccent, fill=figaccent!8, line width=1pt},
-  connector/.style={semithick, figrule},
-  dot/.style={circle, fill=figneutral, inner sep=1.6pt},
-  soldot/.style={circle, fill=figsolution, inner sep=1.8pt},
-  hqcdot/.style={circle, fill=figaccent, inner sep=2.6pt},
+  roundbox/.style={vbox, fill=figprocess!#1},
+  milestonebox/.style={vbox, draw=figsolution!60, fill=figsolution!8, line width=0.8pt},
+  hqcbox/.style={vbox, draw=figaccent, fill=figaccent!8, line width=1.1pt},
+  vdot/.style={circle, fill=figprocess, inner sep=2pt},
+  vdotsol/.style={circle, fill=figsolution, inner sep=2pt},
+  vdotacc/.style={circle, fill=figaccent, inner sep=3pt},
+  yr/.style={font=\scriptsize\sffamily\bfseries, text=figneutral, anchor=east},
 ]
+\def\bx{1.3}
 
-% --- Axis ---
-\draw[very thick, figrule] (-0.3,0) -- (19.8,0);
-\draw[very thick, figrule, -{Stealth[length=5pt]}] (19.8,0) -- (20.2,0);
-\foreach \x/\yr in {0.5/2016, 2.56/2017, 6.67/2019, 8.72/2020, 12.83/2022, 16.94/2024, 19.0/2025} {
-  \draw[figrule] (\x,-0.1) -- (\x,0.1);
-  \node[below, font=\scriptsize\sffamily, text=figneutral] at (\x,-0.18) {\yr};
-}
-\foreach \x in {0.5,2.56,6.67,8.72,12.83,16.94} { \node[dot] at (\x,0) {}; }
-\node[soldot] at (16.94,0) {};
-\node[hqcdot] at (19.0,0) {};
+% --- Vertical axis ---
+\draw[very thick, figrule] (0,0.7) -- (0,-13.0);
+\draw[very thick, figrule, -{Stealth[length=5pt]}] (0,-13.0) -- (0,-13.4);
 
-% === ABOVE (uniform leaders, length 0.75) ===
-\node[procbox, anchor=south] (call) at (0.5,0.75) {%
-  {\sffamily\bfseries Πρόσκληση Υποβολών}\\[2pt]
-  82 υποβολές $\to$ 69 υποψήφιοι.%
+% --- Helper: leader from axis to each box ---
+\foreach \y in {0,-2,-4,-6,-8,-10,-12} { \draw[figleader] (0,\y) -- (\bx,\y); }
+
+% === Rounds (process, deepening cool tint) ===
+\node[vdot] at (0,0) {}; \node[yr] at (-0.18,0) {2016};
+\node[roundbox=12, anchor=west] at (\bx,0) {%
+  {\sffamily\bfseries\color{figprocess!80!black} Πρόσκληση Υποβολών}\\[1pt]
+  Ανοιχτή διαδικασία τυποποίησης PQC· 82 υποβολές $\to$ 69 δεκτοί υποψήφιοι.%
 };
-\draw[connector] (0.5,0.12) -- (0.5,0.75);
-
-\node[procbox, anchor=south] (r2) at (6.67,0.75) {%
-  {\sffamily\bfseries Γύρος 2 · Αξιολόγηση}\\[2pt]
-  26 $\to$ 7 finalists + 8 alternates.%
+\node[vdot] at (0,-2) {}; \node[yr] at (-0.18,-2) {2017};
+\node[roundbox=20, anchor=west] at (\bx,-2) {%
+  {\sffamily\bfseries\color{figprocess!80!black} Γύρος 1 · Αρχική Αξιολόγηση}\\[1pt]
+  Δημόσια κρυπτανάλυση των υποψηφίων· 69 $\to$ 26 για τον Γύρο 2.%
 };
-\draw[connector] (6.67,0.12) -- (6.67,0.75);
-\node[figbadge] at (r2.north west) {2};
-
-\node[procbox, anchor=south] (r4) at (12.83,0.75) {%
-  {\sffamily\bfseries Γύρος 4 · Μη-Lattice KEM}\\[2pt]
-  BIKE, Classic McEliece, \HQC, SIKE.%
+\node[vdot] at (0,-4) {}; \node[yr] at (-0.18,-4) {2019};
+\node[roundbox=30, anchor=west] at (\bx,-4) {%
+  {\sffamily\bfseries\color{figprocess!80!black} Γύρος 2 · Αξιολόγηση Απόδοσης}\\[1pt]
+  Απόδοση \& ασφάλεια· 26 $\to$ 7 finalists + 8 alternates.%
 };
-\draw[connector] (12.83,0.12) -- (12.83,0.75);
-\node[figbadge] at (r4.north west) {4};
-
-\node[hqcbox, anchor=south] (hqc) at (19.0,0.75) {%
-  {\sffamily\bfseries\color{figaccent} Επιλογή \HQC (2025)}\\[2pt]
-  5ο πρότυπο PQC · FIPS 2027.%
+\node[vdot] at (0,-6) {}; \node[yr] at (-0.18,-6) {2020};
+\node[roundbox=40, anchor=west] at (\bx,-6) {%
+  {\sffamily\bfseries\color{figprocess!85!black} Γύρος 3 · Τελικοί Υποψήφιοι}\\[1pt]
+  7+8 υποψήφιοι $\to$ 4 προς τυποποίηση + 4 KEMs στον Γύρο 4.%
 };
-\draw[figaccentleader] (19.0,0.15) -- (19.0,0.75);
-
-% === BELOW ===
-\node[procbox, anchor=north] (r1) at (2.56,-0.75) {%
-  {\sffamily\bfseries Γύρος 1 · Κρυπτανάλυση}\\[2pt]
-  69 $\to$ 26 υποψήφιοι.%
+\node[vdot] at (0,-8) {}; \node[yr] at (-0.18,-8) {2022};
+\node[roundbox=50, anchor=west] at (\bx,-8) {%
+  {\sffamily\bfseries\color{figprocess!90!black} Γύρος 4 · Μη-Lattice KEM}\\[1pt]
+  Τέσσερις υποψήφιοι: BIKE, Classic McEliece, \HQC, SIKE.%
 };
-\draw[connector] (2.56,-0.12) -- (2.56,-0.75);
-\node[figbadge] at (r1.north west) {1};
 
-\node[procbox, anchor=north] (r3) at (8.72,-0.75) {%
-  {\sffamily\bfseries Γύρος 3 · Τελικοί}\\[2pt]
-  $\to$ 4 προς τυποποίηση + 4 KEMs.%
+% === Milestones (accent / solution) ===
+\node[vdotsol] at (0,-10) {}; \node[yr] at (-0.18,-10) {2024};
+\node[milestonebox, anchor=west] at (\bx,-10) {%
+  {\sffamily\bfseries\color{figsolution!55!black} Πρώτα Πρότυπα FIPS}\\[1pt]
+  FIPS 203 (ML-KEM), 204 (ML-DSA), 205 (SLH-DSA) — lattice \& hash-based.%
 };
-\draw[connector] (8.72,-0.12) -- (8.72,-0.75);
-\node[figbadge] at (r3.north west) {3};
-
-\node[solbox, anchor=north] (fips) at (16.94,-0.75) {%
-  {\sffamily\bfseries\color{figsolution!55!black} Πρώτα Πρότυπα FIPS (2024)}\\[2pt]
-  FIPS 203 / 204 / 205.%
+\node[vdotacc] at (0,-12) {}; \node[yr] at (-0.18,-12) {2025};
+\node[hqcbox, anchor=west] at (\bx,-12) {%
+  {\sffamily\bfseries\color{figaccent} Επιλογή \HQC · Μάρτιος 2025}\\[1pt]
+  Πέμπτο PQC πρότυπο· draft FIPS 2026, τελικό πρότυπο 2027.%
 };
-\draw[connector] (16.94,-0.12) -- (16.94,-0.75);
 
-\end{tikzpicture}%
-}% end resizebox
+\end{tikzpicture}
