@@ -1,19 +1,18 @@
-% Timeline: Classical Crypto -> Quantum Threat -> NIST Competition -> Standardisation
-% Upgrades (applied; option B skipped => axis kept equally spaced/schematic):
-% (A) continuous era BANDS along the axis instead of floating boxes;
-% (C) faint shaded span behind the Harvest-Now interval + brace;
-% (D) milestone GLYPHS differentiate event type (circle = event, diamond = standard).
-% Palette from figures/thesis-tikz-styles.tex (era colours kept distinct here).
-\tikzsetnextfilename{ch1-introduction-timeline-pqc}
+% VARIANT — not \input by main.tex; promote manually (mv timeline-pqc_v1.tex timeline-pqc.tex).
+% _v1 — beautified original + TOKEN MIGRATION of timeline-pqc.tex.
+% Same data & horizontal era-band layout; inline fonts/weights/leaders migrated
+% to the semantic tokens of figures/thesis-tikz-styles.tex.
+% NOTE: era colours (figneutral/oiVermillion/oiOrange/oiGreen) are categorical
+%   per-era encodings and are intentionally kept distinct.
+\tikzsetnextfilename{ch1-introduction-timeline-pqc_v1}
 \begin{tikzpicture}[
   x=2.8cm,
-  every node/.style={font=\small},
   eraband/.style={fill=#1!15, draw=#1!55, rounded corners=2pt},
-  eralabel/.style={font=\small\sffamily, align=center, text=#1!45!black},
-  evt/.style={circle, fill=#1!80, inner sep=0pt, minimum size=6pt},
-  std/.style={diamond, fill=#1!80, inner sep=0pt, minimum size=7pt},
-  yearlab/.style={font=\footnotesize\sffamily, below=3pt, text=figneutral},
-  annotation/.style={font=\scriptsize, text width=2.2cm, align=center, text=figneutral},
+  eralabel/.style={figT/label, align=center, text=#1!45!black},
+  evt/.style={circle,  fill=#1!85, inner sep=0pt, minimum size=6pt},
+  std/.style={diamond, fill=#1!85, inner sep=0pt, minimum size=7pt},
+  yearlab/.style={figT/micro, below=3pt, text=figneutral},
+  annotation/.style={figT/annot, text width=2.2cm, align=center},
 ]
 
 % --- Era bands (continuous, above the axis) ---
@@ -26,10 +25,10 @@
 \node[eralabel=oiOrange]     at (3.10,1.2) {NIST PQC\\Competition};
 \node[eralabel=oiGreen]      at (4.52,1.2) {Τυποποίηση\\PQC};
 
-% --- Main timeline axis ---
-\draw[thick, figrule, -{Stealth[length=5pt]}] (-0.3,0) -- (5.3,0);
+% --- Main timeline axis (figedge = figrule + Stealth tip) ---
+\draw[figedge] (-0.3,0) -- (5.3,0);
 
-% --- Milestone glyphs on the axis (circle = event, diamond = standard) ---
+% --- Milestone glyphs (circle = event, diamond = standard) ---
 \node[evt=figneutral]    (m1) at (0.5,0) {};
 \node[evt=oiVermillion]  (m2) at (1.8,0) {};
 \node[evt=oiOrange]      (m3) at (3.1,0) {};
@@ -51,12 +50,12 @@
 \node[annotation, below=14pt] at (m5) {CNSA 2.0\\deadline};
 
 % --- Leader lines from era bands down to milestones ---
-\foreach \m in {m1,m2,m3,m4} { \draw[figrule, thin] (\m) -- ++(0,0.55); }
+\foreach \m in {m1,m2,m3,m4} { \draw[figrule, figLW/hair] (\m) -- ++(0,0.55); }
 
-% --- Styled WARNING brace (amber/red, emphasised) ---
-\draw[figthreat, line width=1pt, decorate, decoration={brace, amplitude=5pt, mirror}]
+% --- Harvest-Now WARNING brace (threat colour + emphasis weight via tokens) ---
+\draw[draw=figthreat, figLW/emph, decorate, decoration={brace, amplitude=5pt, mirror}]
   (1.8,-1.7) -- (5.0,-1.7)
-  node[midway, below=7pt, font=\scriptsize\sffamily\bfseries, text=figthreat, text width=4.8cm, align=center]
+  node[midway, below=7pt, font=\sffamily\bfseries\scriptsize, text=figthreat, text width=4.8cm, align=center]
   {Harvest Now, Decrypt Later\\(δεδομένα ήδη σε κίνδυνο)};
 
 \end{tikzpicture}
