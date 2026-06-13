@@ -38,14 +38,5 @@
 \node[figpill, below=0.55cm of isa] (here) {Παρούσα εργασία};
 \draw[draw=figaccent, figLW/base] (isa.south) -- (here.north);
 
-% --- "Χρόνος αλλαγής": row heading + per-box values ---
-\coordinate (titley) at ([yshift=-1.9cm]sw.south);
-\node[rowtitle] at (sw.west |- titley) {Χρόνος αλλαγής:};
-\coordinate (rowy) at ([yshift=-2.5cm]sw.south);
-\node[ch] at (sw |- rowy)   {λεπτά–ώρες};
-\node[ch] at (isa |- rowy)  {λεπτά (recompile)};
-\node[ch] at (fpga |- rowy) {ημέρες–εβδομάδες};
-\node[ch] at (asic |- rowy) {μήνες–έτη};
-
 \end{tikzpicture}%
 }% end resizebox

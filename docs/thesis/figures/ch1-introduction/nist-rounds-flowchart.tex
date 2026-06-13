@@ -1,67 +1,44 @@
 % VARIANT — not \input by main.tex; promote manually.
-% _v1 — beautified original + TOKEN MIGRATION of nist-rounds-flowchart.tex.
-% Same vertical top-to-bottom layout & data; local glyph/leader/box styles
-% migrated to thesis-tikz-styles.tex tokens. FIX: the original used an UNDEFINED
-% `figleader' style for the axis-to-box leaders (no such token in the style
-% file) — replaced here with the hairline `figrule, figLW/hair'. The deepening
-% process tint (roundbox=#1) is an intentional gradient, kept.
-\tikzsetnextfilename{ch1-introduction-nist-rounds-flowchart_v1}
+% LAYOUT variant of nist-rounds-flowchart.tex — same data as an ATTRITION FUNNEL.
+% Shrinking trapezia convey candidate attrition (82 -> 69 -> 26 -> 7+8 -> 4 -> HQC).
+% Each segment carries the full count transition; concise stage descriptions sit
+% in the left labels. The 2024 first-FIPS milestone is a compact OFF-FUNNEL side
+% note to the right (a standardisation event, not a candidate pool), placed level
+% with the throat — chronologically between Round 4 (2022) and the HQC pick (2025).
+% shapes.geometric (trapezium); tokens only.
+\tikzsetnextfilename{ch1-introduction-nist-rounds-flowchart_funnel}
 \begin{tikzpicture}[
-  vbox/.style={
-    draw=figrule, rounded corners=2pt, text width=8.2cm, align=left,
-    inner sep=6pt, figT/label, anchor=west
-  },
-  roundbox/.style={vbox, fill=figprocess!#1},
-  milestonebox/.style={vbox, draw=figsolution, figLW/base, fill=figsolutionfill},
-  hqcbox/.style={vbox, draw=figaccent, figLW/emph, fill=figaccentfill},
-  yr/.style={font=\sffamily\scriptsize\bfseries, text=figneutral, anchor=east},
+  seg/.style 2 args={
+    trapezium, trapezium left angle=78, trapezium right angle=78,
+    trapezium stretches=true, draw=figprocess!#1!black, fill=figprocess!#2,
+    minimum height=1.0cm, align=center, figT/label, text=black,
+    anchor=north},
+  ll/.style={figT/annot, anchor=east, align=right, text width=4.0cm},
 ]
-\def\bx{1.3}
+% --- Funnel segments (full count transitions inside) ---
+\node[seg={55}{14}, minimum width=7.8cm] (f0) at (0,0)      {82 υποβολές $\to$ 69 δεκτοί υποψήφιοι};
+\node[seg={60}{20}, minimum width=6.3cm] (f1) at (0,-1.15)  {69 $\to$ 26 υποψήφιοι};
+\node[seg={65}{30}, minimum width=5.0cm] (f2) at (0,-2.30)  {26 $\to$ 7 finalists + 8 alternates};
+\node[seg={70}{42}, minimum width=4.0cm] (f3) at (0,-3.45)  {7+8 $\to$ 4 (τυποπ.) + 4 KEMs};
+\node[seg={75}{55}, minimum width=3.0cm] (f4) at (0,-4.60)  {4 KEMs};
+% Focal HQC throat (directly below Round 4)
+\node[trapezium, trapezium left angle=78, trapezium right angle=78,
+  trapezium stretches=true, draw=figaccent, figLW/emph, fill=figaccentfill,
+  minimum width=1.7cm, minimum height=1.0cm, align=center,
+  figT/label, text=figaccent, anchor=north] (f5) at (0,-5.75) {\HQC};
 
-% --- Vertical axis ---
-\draw[figrule, figLW/emph] (0,0.7) -- (0,-13.0);
-\draw[figrule, figLW/emph, -{Stealth[length=5pt]}] (0,-13.0) -- (0,-13.4);
+% --- 2024 standardisation milestone: compact OFF-FUNNEL side note (right of throat) ---
+\node[draw=figsolution, figLW/base, fill=figsolutionfill, rounded corners=3pt,
+  align=center, figT/annot, text=figsolution!45!black, text width=3.7cm,
+  inner sep=4pt, anchor=west] (fips) at (2.0,-5.5)
+  {\textbf{2024} · Πρώτα πρότυπα FIPS 203 / 204 / 205\\[1pt]{\scriptsize ML-KEM · ML-DSA · SLH-DSA}};
 
-% --- Leader from axis to each box (FIX: was undefined figleader) ---
-\foreach \y in {0,-2,-4,-6,-8,-10,-12} { \draw[figrule, figLW/hair] (0,\y) -- (\bx,\y); }
-
-% === Rounds (process, deepening cool tint) ===
-\node[figglyph/event] at (0,0) {}; \node[yr] at (-0.18,0) {2016};
-\node[roundbox=12, anchor=west] at (\bx,0) {%
-  {\sffamily\bfseries\color{figprocess!80!black} Πρόσκληση Υποβολών}\\[1pt]
-  Ανοιχτή διαδικασία τυποποίησης PQC· 82 υποβολές $\to$ 69 δεκτοί υποψήφιοι.%
-};
-\node[figglyph/event] at (0,-2) {}; \node[yr] at (-0.18,-2) {2017};
-\node[roundbox=20, anchor=west] at (\bx,-2) {%
-  {\sffamily\bfseries\color{figprocess!80!black} Γύρος 1 · Αρχική Αξιολόγηση}\\[1pt]
-  Δημόσια κρυπτανάλυση των υποψηφίων· 69 $\to$ 26 για τον Γύρο 2.%
-};
-\node[figglyph/event] at (0,-4) {}; \node[yr] at (-0.18,-4) {2019};
-\node[roundbox=30, anchor=west] at (\bx,-4) {%
-  {\sffamily\bfseries\color{figprocess!80!black} Γύρος 2 · Αξιολόγηση Απόδοσης}\\[1pt]
-  Απόδοση \& ασφάλεια· 26 $\to$ 7 finalists + 8 alternates.%
-};
-\node[figglyph/event] at (0,-6) {}; \node[yr] at (-0.18,-6) {2020};
-\node[roundbox=40, anchor=west] at (\bx,-6) {%
-  {\sffamily\bfseries\color{figprocess!85!black} Γύρος 3 · Τελικοί Υποψήφιοι}\\[1pt]
-  7+8 υποψήφιοι $\to$ 4 προς τυποποίηση + 4 KEMs στον Γύρο 4.%
-};
-\node[figglyph/event] at (0,-8) {}; \node[yr] at (-0.18,-8) {2022};
-\node[roundbox=50, anchor=west] at (\bx,-8) {%
-  {\sffamily\bfseries\color{figprocess!90!black} Γύρος 4 · Μη-Lattice KEM}\\[1pt]
-  Τέσσερις υποψήφιοι: BIKE, Classic McEliece, \HQC, SIKE.%
-};
-
-% === Milestones (solution / accent) ===
-\node[figglyph/standard] at (0,-10) {}; \node[yr] at (-0.18,-10) {2024};
-\node[milestonebox, anchor=west] at (\bx,-10) {%
-  {\sffamily\bfseries\color{figsolution!55!black} Πρώτα Πρότυπα FIPS}\\[1pt]
-  FIPS 203 (ML-KEM), 204 (ML-DSA), 205 (SLH-DSA) — lattice \& hash-based.%
-};
-\node[figglyph/focal] at (0,-12) {}; \node[yr] at (-0.18,-12) {2025};
-\node[hqcbox, anchor=west] at (\bx,-12) {%
-  {\sffamily\bfseries\color{figaccent} Επιλογή \HQC · Μάρτιος 2025}\\[1pt]
-  Πέμπτο PQC πρότυπο· draft FIPS 2026, τελικό πρότυπο 2027.%
-};
+% --- Left: year + stage labels (at each row's mid-height) ---
+\node[ll] at (-4.4,-0.5)  {\textbf{2016} · Πρόσκληση υποβολών};
+\node[ll] at (-4.4,-1.65) {\textbf{2017} · Γύρος 1 — κρυπτανάλυση};
+\node[ll] at (-4.4,-2.80) {\textbf{2019} · Γύρος 2 — απόδοση};
+\node[ll] at (-4.4,-3.95) {\textbf{2020} · Γύρος 3 — τελικοί υποψήφιοι};
+\node[ll] at (-4.4,-5.10) {\textbf{2022} · Γύρος 4 — μη-lattice: BIKE, McEliece, HQC, SIKE};
+\node[ll, text=figaccent] at (-4.4,-6.25) {\textbf{2025} · Επιλογή \HQC (5ο πρότυπο)};
 
 \end{tikzpicture}
