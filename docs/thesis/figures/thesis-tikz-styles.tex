@@ -1,13 +1,40 @@
 % =====================================================================
-% thesis-tikz-styles.tex — Shared TikZ styles & figure palette
-% Single source of truth for figure colours, box/milestone styles,
-% line weights and secondary-text style across ALL chapter figures.
-% Loaded once from main.tex AFTER preamble/settings (needs \thesisblue).
-% Redefinition-safe (only \definecolor / \colorlet / \tikzset): may be
-% \input more than once without error.
+% thesis-tikz-styles.tex — Shared figure DESIGN SYSTEM (single layer)
+% ---------------------------------------------------------------------
+% Single source of truth for figure colours, typography, line weights,
+% arrows, boxes, glyphs, diagram nodes, CHART styles and TABLE styles
+% across ALL chapter figures.
+%
+% Load order : main.tex \input{...} AFTER preamble/settings (needs
+%              \thesisblue) and AFTER preamble/packages. This file
+%              intentionally OVERRIDES settings.tex's `thesistiers'
+%              cycle list (resolved at axis time -> last definition wins).
+% Deps       : tikz libs arrows.meta, matrix, positioning,
+%              decorations.pathreplacing ; pgfplots ; booktabs ;
+%              siunitx ; tabularray ; xcolor   (all in packages.tex).
+% Safety     : redefinition-safe — only \definecolor / \colorlet /
+%              \tikzset / \pgfplotsset / \pgfplotscreateplotcyclelist /
+%              tabularray specs (+ one guarded \newif). May be \input
+%              more than once without error.
+%
+% Usage contract: in figures USE the semantic tokens below; do NOT
+% inline raw colours (blue!50), font sizes (\footnotesize), line widths
+% (line width=0.9pt) or per-figure arrow/legend/palette definitions.
+%
+% Reorganised by CONCERN (was: historical v1/v2 layers — merged, the
+% split carried no functional meaning; v2 only "built on v1").
+% Changelog: 2026-06 merge of base+v1+v2; de-duplicated overlapping
+%            box/glyph styles (figleader/figaccentleader KEPT — used by
+%            ch1 exemplar figures); added component diagram nodes,
+%            phase/brace styles, waterfall/dual-axis chart styles and
+%            the table design system; Tol pale tints for table fills.
 % =====================================================================
 
-% --- Okabe-Ito colour-blind-safe palette ---
+
+% =====================================================================
+% 1. COLOUR PALETTE
+% =====================================================================
+% --- Okabe-Ito categorical base (colour-blind-safe; do not edit) ------
 \definecolor{oiBlue}{HTML}{0072B2}
 \definecolor{oiSky}{HTML}{56B4E9}
 \definecolor{oiGreen}{HTML}{009E73}
@@ -16,7 +43,19 @@
 \definecolor{oiYellow}{HTML}{F0E442}
 \definecolor{oiPurple}{HTML}{CC79A7}
 
-% --- Semantic roles (use THESE names in figures, not raw colours) ---
+% --- Paul Tol *pale* scheme (ONLY for cell/background fills behind
+%     black text; Tol designed these to be legible as table washes,
+%     unlike the strong Okabe-Ito hues). Used by the table heatmap. ----
+\definecolor{tolPaleBlue}{HTML}{BBCCEE}
+\definecolor{tolPaleCyan}{HTML}{CCEEFF}
+\definecolor{tolPaleGreen}{HTML}{CCDDAA}
+\definecolor{tolPaleYellow}{HTML}{EEEEBB}
+\definecolor{tolPaleRed}{HTML}{FFCCCC}
+\definecolor{tolPaleGrey}{HTML}{DDDDDD}
+
+% --- Semantic roles (USE THESE NAMES in figures, not raw colours) -----
+% Swap the thesis accent in preamble/settings.tex (\thesisblue); every
+% derived token below follows automatically.
 \colorlet{figaccent}{thesisblue}     % primary thesis accent / focal node (HQC)
 \colorlet{figprocess}{oiBlue}        % process / neutral-cool (e.g. NIST rounds)
 \colorlet{figthreat}{oiVermillion}   % threat / warning (Shor, Harvest-Now)
@@ -24,26 +63,270 @@
 \colorlet{figneutral}{black!55}      % secondary grey text
 \colorlet{figrule}{black!30}         % hairline borders / leader lines
 
-% --- Shared node & line styles ---
+% --- Optional grayscale / print-safe mode -----------------------------
+% Set \figmonotrue BEFORE this file is read to remap ALL palettes to
+% greys; marks/glyphs then carry the distinction (a11y). Single block
+% (was split across the old v1/v2 layers).
+\ifdefined\iffigmono\else\newif\iffigmono\fi
+\iffigmono
+  \colorlet{figaccent}{black!85}\colorlet{figprocess}{black!55}%
+  \colorlet{figthreat}{black!70}\colorlet{figsolution}{black!40}%
+\fi
+
+% --- Named tint ramp (USE THESE, not magic !N fills) ------------------
+\colorlet{figaccentfill}{figaccent!8}
+\colorlet{figprocessfill}{figprocess!12}
+\colorlet{figthreatfill}{figthreat!10}
+\colorlet{figsolutionfill}{figsolution!10}
+
+
+% =====================================================================
+% 2. TYPOGRAPHY SCALE  (one small, consistent set; sans throughout)
+% =====================================================================
+\tikzset{
+  figT/title/.style   ={font=\sffamily\bfseries\small},
+  figT/label/.style   ={font=\sffamily\footnotesize},
+  figT/annot/.style   ={font=\sffamily\scriptsize, text=figneutral},
+  figT/micro/.style   ={font=\sffamily\scriptsize},
+  figT/mono/.style    ={font=\ttfamily\footnotesize},          % code / mnemonics
+  figT/callout/.style ={font=\sffamily\scriptsize\itshape, text=figneutral},
+  figT/phase/.style   ={font=\sffamily\bfseries, text=figaccent},% KeyGen/Encaps/Decaps headers
+}
+
+
+% =====================================================================
+% 3. LINE WEIGHTS + ARROWS  (weight encodes hierarchy; one tip family)
+% =====================================================================
+\tikzset{
+  figLW/hair/.style ={line width=0.4pt},
+  figLW/base/.style ={line width=0.7pt},
+  figLW/emph/.style ={line width=1.1pt},
+  % Semantic edges (single arrows.meta Stealth tip everywhere) ---------
+  figedge/.style        ={draw=figrule,    figLW/base, -{Stealth[length=4pt,width=4pt]}},
+  figedge/accent/.style ={draw=figaccent,   figLW/emph, -{Stealth[length=5pt,width=5pt]}},
+  figedge/weak/.style   ={draw=figneutral,  figLW/hair, dashed, -{Stealth[length=3.5pt]}},
+  % Leader / annotation lines (NO arrowhead) connect a label to its target.
+  % Distinct from figedge/* (which carry a Stealth tip). Kept because the ch1
+  % exemplar figures (nist-rounds-flowchart, acceleration-spectrum) use them.
+  figleader/.style       ={semithick, draw=figrule},
+  figaccentleader/.style ={thick,     draw=figaccent!70},
+}
+% Make the bare ->/<- shorthand match figedge/* (covers legacy figures
+% that used >=stealth). Set once for all tikzpictures.
+\tikzset{>={Stealth[length=4pt,width=4pt]}}
+
+
+% =====================================================================
+% 4. BOXES  (built on the tint ramp + figLW; corners/weights uniform)
+% =====================================================================
+% NOTE: the old `figaccentbox' and `figmilestone'/`figmilestoneaccent'
+% are REMOVED — superseded by figbox/focal and figglyph/* below.
 \tikzset{
   figbox/.style={
     draw=figrule, rounded corners=2pt, align=left,
-    inner sep=5pt, font=\footnotesize, fill=white
+    inner sep=5pt, figT/label, fill=white
   },
-  figaccentbox/.style={
-    figbox, draw=figaccent, line width=0.9pt, fill=figaccent!6
-  },
-  figmilestone/.style={
-    circle, fill=figprocess, inner sep=0pt, minimum size=5pt
-  },
-  figmilestoneaccent/.style={
-    circle, fill=figaccent, inner sep=0pt, minimum size=7pt
-  },
-  figleader/.style={semithick, figrule},
-  figaccentleader/.style={thick, figaccent!70},
-  figsecondary/.style={font=\scriptsize, text=figneutral},
-  figbadge/.style={
-    circle, draw=figprocess, fill=figprocess!12, text=figprocess!75!black,
-    font=\scriptsize\bfseries, inner sep=1pt, minimum size=4.6mm
-  }
+  figbox/emph/.style  ={figbox, draw=figprocess, figLW/base, fill=figprocessfill},
+  figbox/focal/.style ={figbox, draw=figaccent,  figLW/emph, fill=figaccentfill},
 }
+
+
+% =====================================================================
+% 5. GLYPHS  (shape backs up colour -> accessibility) + pill + badge
+% =====================================================================
+\tikzset{
+  figglyph/event/.style    ={circle,  fill=figprocess,  inner sep=0pt, minimum size=6pt},
+  figglyph/standard/.style ={diamond, fill=figsolution, inner sep=0pt, minimum size=7pt},
+  figglyph/focal/.style    ={circle,  fill=figaccent,   inner sep=0pt, minimum size=8pt},
+  % Numbered counter badge (e.g. step 1,2,3) ---------------------------
+  figbadge/.style ={circle, draw=figprocess, fill=figprocess!12,
+                    text=figprocess!75!black, font=\sffamily\scriptsize\bfseries,
+                    inner sep=1pt, minimum size=4.6mm},
+  % Inline keyword pill -------------------------------------------------
+  figpill/.style  ={rounded corners=3pt, inner sep=3pt, draw=figaccent,
+                    fill=figaccent!12, text=figaccent!80!black,
+                    font=\sffamily\bfseries\footnotesize},
+}
+
+
+% =====================================================================
+% 6. DATA PALETTE  (charts) — stable colour+glyph per tier / component
+% =====================================================================
+% --- Categorical TIER palette (benchmark series) ----------------------
+% Reference is neutral grey so the optimised tiers carry visual weight.
+\colorlet{figtierRef}{black!55}   % Reference / scalar baseline
+\colorlet{figtier1}{oiBlue}       % Tier 1 - scalar bit-manip (Zb*)
+\colorlet{figtier2}{oiOrange}     % Tier 2 - vector (RVV)
+\colorlet{figtier3}{oiGreen}      % Tier 3 - vector-crypto (Zvbc/Zvbb)
+
+% --- Categorical KERNEL-COMPONENT palette (breakdowns + dataflow) -----
+% SAME colours used by the stacked chart AND the block-diagram nodes
+% (section 7) so "where time goes" reads identically in both views.
+\colorlet{figkPolymul}{oiBlue}
+\colorlet{figkKeccak}{oiOrange}
+\colorlet{figkDecode}{oiGreen}
+\colorlet{figkMisc}{black!35}
+
+% --- Canonical line/marker cycle (4 tiers; OVERRIDES settings.tex) ----
+% Order = Reference, Tier 1, Tier 2, Tier 3. Marks back up colour (a11y).
+\pgfplotscreateplotcyclelist{thesistiers}{%
+  {figtierRef, mark=o,         thick},%
+  {figtier1,   mark=square*,   thick},%
+  {figtier2,   mark=triangle*, thick},%
+  {figtier3,   mark=*,         thick}%
+}
+
+% --- Reusable chart-type styles (build on the `thesis' base axis) ------
+% Charts set ONLY: thesisbar|thesisbarlog|thesisstacked|thesisline|
+% thesiswaterfall|thesisdualaxis + data. Width/height/grid/fonts/legend
+% come for free from `thesis' (preamble/settings.tex).
+\pgfplotsset{
+  % Grouped bars (linear) ----------------------------------------------
+  thesisbar/.style={
+    ybar, bar width=10pt,
+    ymajorgrids=true, xmajorgrids=false,
+    enlarge x limits=0.25,
+    x tick label style={font=\sffamily\small},
+    legend style={at={(0.5,1.03)}, anchor=south, legend columns=-1,
+                  /tikz/every even column/.append style={column sep=8pt}},
+  },
+  % Grouped bars (log y) -----------------------------------------------
+  thesisbarlog/.style={thesisbar, ymode=log, log origin=infty,
+    nodes near coords style={font=\sffamily\tiny, rotate=90, anchor=west}},
+  % Stacked bars (100%% breakdown) --------------------------------------
+  thesisstacked/.style={
+    ybar stacked, bar width=28pt, area legend,
+    ymajorgrids=true, xmajorgrids=false,
+    enlarge x limits=0.2, ymin=0,
+    x tick label style={font=\sffamily\small},
+    every node near coords/.append style={font=\sffamily\tiny, anchor=south, yshift=-1pt},
+    legend style={at={(0.5,-0.22)}, anchor=north, legend columns=-1,
+                  /tikz/every even column/.append style={column sep=8pt}},
+  },
+  % Single-series cumulative waterfall (ISA ablation) ------------------
+  thesiswaterfall/.style={
+    ybar, bar width=22pt,
+    ymajorgrids=true, xmajorgrids=false,
+    enlarge x limits=0.18, ymin=0,
+    every axis plot/.append style={fill=figthreatfill, draw=figthreat, figLW/base},
+    x tick label style={font=\sffamily\small},
+    nodes near coords style={font=\sffamily\tiny, /pgf/number format/fixed},
+  },
+  % Line / sweep plots --------------------------------------------------
+  thesisline/.style={
+    cycle list name=thesistiers,
+    every axis plot/.append style={mark size=2.5pt},
+    legend style={at={(0.98,0.98)}, anchor=north east, draw=figrule,
+                  fill=white, fill opacity=0.85, text opacity=1},
+  },
+  % Dual-axis colour coding (left=accent/process, right=threat) --------
+  thesisaxisL/.style={ylabel style={text=figprocess}, y tick label style={text=figprocess}},
+  thesisaxisR/.style={axis y line*=right, axis x line=none,
+                      ylabel style={text=figthreat}, y tick label style={text=figthreat}},
+}
+
+% --- In-plot delta annotations (improvement vs regression) ------------
+\tikzset{
+  figannot/pos/.style ={font=\sffamily\scriptsize\itshape, text=figsolution!60!black},
+  figannot/neg/.style ={font=\sffamily\scriptsize\itshape, text=figthreat!70!black},
+}
+
+
+% =====================================================================
+% 7. DIAGRAM NODES  (dataflow / block diagrams) + phase + brace + grid
+% =====================================================================
+\tikzset{
+  % Generic role-tinted boxes ------------------------------------------
+  fignode/.style      ={figbox, figLW/base, align=center},
+  fignode/data/.style ={fignode, draw=figrule,     fill=white},
+  fignode/op/.style   ={fignode, draw=figprocess,  fill=figprocessfill,  figT/mono},
+  fignode/acc/.style  ={fignode, draw=figsolution, fill=figsolutionfill, figT/mono},
+  fignode/mem/.style  ={fignode, draw=figneutral,  fill=black!4},
+  fignode/focal/.style={fignode, draw=figaccent,   figLW/emph, fill=figaccentfill},
+  % Kernel-COMPONENT boxes (share the chart component palette) ---------
+  fignode/polymul/.style ={fignode, draw=figkPolymul!70!black, fill=figkPolymul!15},
+  fignode/keccak/.style  ={fignode, draw=figkKeccak!70!black,  fill=figkKeccak!15},
+  fignode/decode/.style  ={fignode, draw=figkDecode!70!black,  fill=figkDecode!15},
+  fignode/misc/.style    ={fignode, draw=figkMisc!90!black,    fill=figkMisc!15},
+  % Phase header (KeyGen / Encaps / Decaps) ----------------------------
+  figphase/.style ={figT/phase},
+  % Annotation brace ----------------------------------------------------
+  figbrace/.style ={decorate, decoration={brace, amplitude=5pt, raise=2pt},
+                    draw=figrule, figLW/base},
+  figbrace/warn/.style ={figbrace, draw=figthreat, figLW/emph},
+  % Layout rhythm -------------------------------------------------------
+  figgrid/.style ={node distance=8mm and 14mm},
+}
+
+
+% =====================================================================
+% 8. LEGENDS  (self-contained, reusable matrix legend)
+% =====================================================================
+\tikzset{
+  figlegend/.style ={matrix of nodes, draw=figrule, figLW/hair, rounded corners=2pt,
+                     inner sep=5pt, row sep=2pt, column sep=8pt, nodes={anchor=west},
+                     font=\sffamily\scriptsize},
+}
+
+
+% =====================================================================
+% 9. TABLE DESIGN SYSTEM   [NEW — review/verify locally]
+% =====================================================================
+% Rationale: the 32 table figures currently roll plain booktabs+siunitx
+% with NO shared header style, NO rule colour, NO zebra and a misnamed
+% "heatmap" that has no colour. Below is a tabularray (tblr) based set
+% (tabularray is already loaded; it does cell/row colour natively, so
+% no colortbl / [table]{xcolor} needed). booktabs rules still apply.
+%
+% Migration: replace `\begin{tabular}{...}' with `\begin{thesistblr}{...}'
+% and drop manual \toprule/\midrule/\bottomrule (handled by hlines spec).
+% S-columns from siunitx still work inside tblr via `si()` or `Q[si=...]`.
+
+% --- Rule + header colours -------------------------------------------
+\colorlet{figtablerule}{figaccent!55!black}
+\colorlet{figtableheadbg}{figaccent!10}
+\colorlet{figtablezebra}{black!4}
+
+% --- Reusable thesis table environment --------------------------------
+% Bold sans header row on a faint accent wash, accent booktabs-style
+% rules, optional zebra via row style. Light, print-safe.
+\NewTblrEnviron{thesistblr}
+\SetTblrInner[thesistblr]{
+  rowsep      = 2pt,
+  colsep      = 6pt,
+  hline{1,Z}  = {0.8pt, figtablerule},   % top + bottom (booktabs weight)
+  hline{2}    = {0.5pt, figtablerule},   % under header
+  row{1}      = {font=\sffamily\bfseries, bg=figtableheadbg},
+}
+
+% --- Heatmap cell tint (REAL heatmap for the speedup matrix) ----------
+% Tol *pale* washes behind black text (the correct choice for tables).
+% Use at the START of a cell to tint it by improvement magnitude, e.g.
+%   & \heatHigh{184.8} &   ->  pale-green cell behind the number.
+\NewDocumentCommand{\heatLow}{m}{\SetCell{bg=tolPaleYellow}#1}
+\NewDocumentCommand{\heatMid}{m}{\SetCell{bg=tolPaleCyan}#1}
+\NewDocumentCommand{\heatHigh}{m}{\SetCell{bg=tolPaleGreen}#1}
+
+% --- Best-value emphasis (numeric highlight, no colour dependence) ----
+\NewDocumentCommand{\best}{m}{\textbf{#1}}
+
+% --- Disassembly / before-after diff cells ----------------------------
+% For zba/zbs/keccak-rotation "without vs with" code comparison tables.
+\NewDocumentCommand{\diffOld}{m}{\SetCell{bg=tolPaleRed}   \texttt{#1}}
+\NewDocumentCommand{\diffNew}{m}{\SetCell{bg=tolPaleGreen} \texttt{#1}}
+
+% =====================================================================
+% 10. MONO-MODE PARITY for the data + component palettes
+% =====================================================================
+% Section 1 remapped the SEMANTIC colours; the tier/component palettes
+% are built on raw Okabe-Ito, so remap them here too (marks/glyphs carry
+% the distinction in grayscale).
+\iffigmono
+  \colorlet{figtierRef}{black!30}\colorlet{figtier1}{black!50}%
+  \colorlet{figtier2}{black!70}\colorlet{figtier3}{black!88}%
+  \colorlet{figkPolymul}{black!50}\colorlet{figkKeccak}{black!70}%
+  \colorlet{figkDecode}{black!30}\colorlet{figkMisc}{black!12}%
+\fi
+% =====================================================================
+% end thesis-tikz-styles.tex
+% =====================================================================

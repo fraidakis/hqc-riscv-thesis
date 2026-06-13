@@ -165,12 +165,11 @@
 }
 
 % --- pgfplots: global thesis chart style ---
-% Tier-aware, colorblind-safe cycle: same color+marker per tier across all plots
-\pgfplotscreateplotcyclelist{thesistiers}{%
-  {thesisblue, mark=*},%
-  {orange!85!black, mark=square*},%
-  {teal!70!black, mark=triangle*}%
-}
+% Tier-aware, colorblind-safe cycle: same color+marker per tier across all plots.
+% NOTE: the canonical \pgfplotscreateplotcyclelist{thesistiers} (4-entry) now
+% lives in figures/thesis-tikz-styles.tex, which is \input AFTER this file in
+% main.tex. The `cycle list name=thesistiers' reference below is a forward
+% reference resolved when each axis is drawn, so no definition is needed here.
 \pgfplotsset{
   thesis/.style={
     width=0.85\linewidth,

@@ -1,0 +1,41 @@
+% VARIANT — not \input by main.tex; promote manually.
+% _v2 — RETHINK of acceleration-spectrum.tex as a 2-D trade-off plane:
+%   Performance (x) vs Flexibility (y). The four approaches sit on the
+%   flexibility/performance frontier; the ISA-extension point is the focal
+%   "Παρούσα εργασία". Same qualitative ordering & change-time notes as the
+%   original; no quantitative data introduced. Tokens from thesis-tikz-styles.tex.
+\tikzsetnextfilename{ch1-introduction-acceleration-spectrum_v2}
+\begin{tikzpicture}[
+  axisline/.style={draw=figrule, figLW/base, -{Stealth[length=6pt]}},
+  pt/.style={figbox, align=center, text width=2.2cm, figT/annot, text=black},
+  focal/.style={pt, draw=figaccent, figLW/emph, fill=figaccentfill},
+  plain/.style={pt, draw=figrule, fill=white},
+  axislab/.style={figT/label, text=figneutral},
+  frontier/.style={draw=figneutral, figLW/hair, dashed},
+  ct/.style={figT/micro, text=figneutral, align=center},
+]
+% --- Axes ---
+\draw[axisline] (0,0) -- (7.0,0);
+\draw[axisline] (0,0) -- (0,5.2);
+\node[axislab, anchor=west] at (1.0,-0.45) {Απόδοση $\rightarrow$};
+\node[axislab, rotate=90, anchor=east] at (-0.4,1.0) {Ευελιξία $\rightarrow$};
+
+% --- Trade-off frontier (dashed, secondary) ---
+\draw[frontier] (1.1,4.4) -- (2.9,3.6) -- (4.6,2.2) -- (6.1,0.9);
+
+% --- Approach points along the frontier ---
+\node[plain] (c)    at (1.1,4.4) {Γενικός κώδικας C};
+\node[focal] (isa)  at (2.9,3.6) {ISA Extensions\\(Zbc, Zvbc, Zvbb)};
+\node[plain] (fpga) at (4.6,2.2) {FPGA Accelerator};
+\node[plain] (asic) at (6.1,0.9) {Custom ASIC};
+
+% --- "Παρούσα εργασία" pill anchored to the focal point ---
+\node[figpill, above=4pt of isa] {Παρούσα εργασία};
+
+% --- Change-time micro-notes ---
+\node[ct, below=2pt of c]    {αλλαγή: λεπτά–ώρες};
+\node[ct, below=2pt of isa]  {αλλαγή: λεπτά (recompile)};
+\node[ct, below=2pt of fpga] {αλλαγή: ημέρες–εβδομάδες};
+\node[ct, below=2pt of asic] {αλλαγή: μήνες–έτη};
+
+\end{tikzpicture}

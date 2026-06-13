@@ -1,4 +1,4 @@
-% Genealogy diagram: McEliece → Niederreiter → MDPC → QC-MDPC → HQC
+% Genealogy diagram: McEliece → Niederreiter → quasi-cyclic codes → {HQC, BIKE}
 % Shows the evolution of code-based cryptography from 1978 to present
 \tikzsetnextfilename{ch2-background-code-based-genealogy}
 \begin{tikzpicture}[
@@ -31,7 +31,7 @@
 \node[mainbox, below=of mceliece] (niederreiter) {Niederreiter\\(syndrome-based)};
 \node[yearlabel, right=2pt of niederreiter.north east, anchor=north west] {1986};
 
-\node[mainbox, below=of niederreiter] (qcmdpc) {MDPC / QC-MDPC\\(moderate density, quasi-cyclic)};
+\node[mainbox, below=of niederreiter] (qcmdpc) {Quasi-cyclic codes\\(moderate density)};
 \node[yearlabel, right=2pt of qcmdpc.north east, anchor=north west] {2013};
 
 % Branching: HQC and alternatives

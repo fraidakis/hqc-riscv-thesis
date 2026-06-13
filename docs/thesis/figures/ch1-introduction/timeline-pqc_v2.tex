@@ -1,0 +1,61 @@
+% VARIANT — not \input by main.tex; promote manually.
+% _v2 — RETHINK of timeline-pqc.tex as a two-lane "race" swimlane: upper lane =
+%   threat, lower lane = defence/standardisation, sharing one central year axis.
+%   Foregrounds the attack-vs-defence race and the Harvest-Now exposure window.
+%   Same milestones/years; no data changed. Tokens from thesis-tikz-styles.tex.
+\tikzsetnextfilename{ch1-introduction-timeline-pqc_v2}
+\begin{tikzpicture}[
+  x=2.6cm,
+  axisline/.style={draw=figrule, figLW/base, -{Stealth[length=5pt]}},
+  card/.style={figbox, align=center, text width=2.1cm, figT/annot, text=black},
+  threatcard/.style={card, draw=figthreat, fill=figthreatfill},
+  defcard/.style={card, draw=figsolution, fill=figsolutionfill},
+  yearlab/.style={figT/micro, text=figneutral},
+  lanetag/.style={figT/label, anchor=east, align=right},
+  drop/.style={draw=figrule, figLW/hair},
+]
+\def\yT{1.7}
+\def\yD{-1.7}
+
+% --- Lane tags ---
+\node[lanetag, text=figthreat]   at (-0.55,\yT) {Απειλή};
+\node[lanetag, text=figsolution] at (-0.55,\yD) {Άμυνα \&\\Τυποποίηση};
+
+% --- Central year axis ---
+\draw[axisline] (-0.35,0) -- (4.5,0);
+\foreach \x/\yr in {0/1978, 1/1994, 2/2016, 3/2024, 4/2035} {
+  \node[yearlab, below=2pt] at (\x,0) {\yr};
+}
+
+% --- 1978 RSA (classical anchor) ---
+\node[figglyph/event, fill=figneutral] (e0) at (0,0) {};
+\node[card, draw=figrule, fill=white, above=18pt] (c0) at (0,0) {RSA δημοσιεύεται};
+\draw[drop] (e0) -- (c0);
+
+% --- 1994 Shor (threat lane) ---
+\node[figglyph/event, fill=figthreat] (e1) at (1,0) {};
+\node[threatcard] (c1) at (1,\yT) {Αλγόριθμος Shor};
+\draw[drop] (e1) -- (c1);
+
+% --- 2016 NIST Call (defence lane) ---
+\node[figglyph/event, fill=figprocess] (e2) at (2,0) {};
+\node[defcard] (c2) at (2,\yD) {NIST Call for Proposals};
+\draw[drop] (e2) -- (c2);
+
+% --- 2024 ML-KEM/DSA (defence lane, standard) ---
+\node[figglyph/standard] (e3) at (3,0) {};
+\node[defcard] (c3) at (3,\yD) {ML-KEM/DSA τυποποιούνται};
+\draw[drop] (e3) -- (c3);
+
+% --- 2035 CNSA 2.0 (defence lane, standard/deadline) ---
+\node[figglyph/standard] (e4) at (4,0) {};
+\node[defcard] (c4) at (4,\yD) {CNSA 2.0 deadline};
+\draw[drop] (e4) -- (c4);
+
+% --- Harvest-Now exposure window (threat brace above the threat lane) ---
+\draw[draw=figthreat, figLW/emph, decorate, decoration={brace, amplitude=5pt}]
+  (1,2.7) -- (4,2.7)
+  node[midway, above=6pt, font=\sffamily\bfseries\scriptsize, text=figthreat, align=center, text width=5.2cm]
+  {Harvest Now, Decrypt Later — παράθυρο έκθεσης};
+
+\end{tikzpicture}

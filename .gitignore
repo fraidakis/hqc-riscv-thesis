@@ -8,6 +8,7 @@ proposals/
 repo/
 *.zip
 EDITS-REPORT.md
+FIGURE-VARIANTS-REPORT.md
 
 # Build outputs — hierarchical matrix lives under build/<sim>/<context>/
 build/
