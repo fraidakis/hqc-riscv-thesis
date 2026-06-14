@@ -1,0 +1,33 @@
+% Karatsuba recursion schematic: depth 2, schoolbook at leaves
+% Used in 2.3.3 (sec:karatsuba-algorithm)
+\tikzsetnextfilename{ch2-background-karatsuba-tree-schematic}
+\begin{tikzpicture}[
+  level distance=2.0cm,
+  level 1/.style={sibling distance=4.4cm},
+  level 2/.style={sibling distance=1.5cm},
+  every node/.style={
+    draw, rounded corners=2pt, minimum width=1.9cm, minimum height=0.7cm,
+    font=\small, align=center
+  },
+  edge from parent/.style={draw, ->, >=stealth, thick},
+  leaf/.style={fill=blue!8, font=\scriptsize, minimum width=1.2cm, minimum height=0.6cm}
+]
+
+\node {$a(x) \cdot b(x)$}
+  child { node {$z_0 = a_L b_L$}
+    child { node[leaf] {schoolbook} }
+    child { node[leaf] {schoolbook} }
+    child { node[leaf] {schoolbook} }
+  }
+  child { node {$z_2 = a_H b_H$}
+    child { node[leaf] {schoolbook} }
+    child { node[leaf] {schoolbook} }
+    child { node[leaf] {schoolbook} }
+  }
+  child { node {$z_{\text{mid}}$}
+    child { node[leaf] {schoolbook} }
+    child { node[leaf] {schoolbook} }
+    child { node[leaf] {schoolbook} }
+  };
+
+\end{tikzpicture}
