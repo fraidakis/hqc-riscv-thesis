@@ -65,11 +65,3 @@ $b(x) = \sum_{j=0}^{n} b_j x^j$ με $a_i, b_j \in \{0, 1\}$, το γινόμε�
          & 1 & 0 & 0 & 1 & 0
   \end{array}
 \end{equation*}
-Τέλος, στον δακτύλιο-πηλίκο $\GFquot{3}$ (modulo $x^3-1$) που χρησιμοποιεί το \HQC, επειδή $x^3 \equiv 1$, ο όρος $x^3$ αναδιπλώνεται κυκλικά στη σταθερά:
-\begin{equation}
-  x^3 + x \;\xrightarrow{\,x^3 \equiv 1\,}\;
-  \underbrace{010}_{x^2,\,x,\,1} \mathbin{\oplus} \underbrace{001}_{x^3 \to 1} = 011,
-  \qquad a(x)\,b(x) \equiv x + 1 \pmod{x^3 - 1}.
-  \label{eq:quotient-example}
-\end{equation}
-Ο carry-less πολλαπλασιασμός παραλείπει τα ενδιάμεσα κρατούμενα, ενώ η αναγωγή modulo $x^N-1$ αναδιπλώνει τους όρους υψηλού βαθμού πίσω στις χαμηλές θέσεις.
