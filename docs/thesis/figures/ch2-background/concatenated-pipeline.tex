@@ -1,40 +1,50 @@
-% Concatenated coding pipeline: encoding (Encaps) and decoding (Decaps)
+% Concatenated ECC message journey: encode (RS -> RM) -> noisy channel -> decode (RM -> RS)
+% Serpentine layout: top row left-to-right (encode), bottom row right-to-left (decode).
 \tikzsetnextfilename{ch2-background-concatenated-pipeline}
 \begin{tikzpicture}[
-  node distance=1.8cm,
-  block/.style={rectangle, draw, fill=#1, minimum width=2.6cm,
-    minimum height=0.9cm, text width=2.4cm, align=center,
+  >=stealth,
+  block/.style={rectangle, draw, fill=#1, minimum width=2.7cm,
+    minimum height=1.15cm, text width=2.5cm, align=center,
     rounded corners=2pt, font=\small},
   block/.default={blue!8},
-  arrow/.style={->, >=stealth, thick},
+  arrow/.style={->, thick},
   lbl/.style={font=\scriptsize, midway, above},
-  phase/.style={font=\small\bfseries, anchor=west}
+  vlbl/.style={font=\scriptsize, midway, right},
+  ann/.style={font=\scriptsize, text=gray},
+  phase/.style={font=\sffamily\bfseries, text=thesisblue},
 ]
 
-% === Encoding path (top row) ===
-\node[phase] at (-2.2, 0) {\Encaps:};
-\node[block=blue!10] (msg) at (0.5, 0) {Μήνυμα $m$ ($k$ bytes)};
-\node[block=green!12, right=of msg] (rs-enc) {RS Κωδικοποίηση};
-\node[block=orange!15, right=of rs-enc] (rm-enc) {RM(1,7) Κωδικοποίηση};
-\node[block=yellow!15, right=of rm-enc] (ctext) {Κωδική λέξη ($n_1 \!\times\! n_2$ bits)};
+% Phase headers
+\node[phase] at (6, 1.5) {Κωδικοποίηση (\Encaps)};
+\node[phase] at (6, -4.7) {Αποκωδικοποίηση (\Decaps)};
 
-\draw[arrow] (msg) -- (rs-enc) node[lbl] {$k$ bytes};
-\draw[arrow] (rs-enc) -- (rm-enc) node[lbl] {$n_1$ bytes};
-\draw[arrow] (rm-enc) -- (ctext) node[lbl] {$n_1 \!\times\! n_2$ bits};
+% Row 1 -- encode (left -> right)
+\node[block=blue!10]   (m0)   at (0,0)  {Μήνυμα $m$\\($k$ bytes)};
+\node[block=green!12]  (rse)  at (4,0)  {Reed-Solomon Κωδικοποιητής (εξωτερικός)};
+\node[block=orange!15] (rme)  at (8,0)  {RM(1,7) Κωδικοποιητής (εσωτερικός)};
+\node[block=red!12]    (chan) at (12,0) {Κανάλι / θόρυβος \Decaps};
 
-% === Decoding path (bottom row) ===
-\node[phase] at (-2.2, -2.2) {\Decaps:};
-\node[block=yellow!15] (recv) at (0.5, -2.2) {Ληφθείσα λέξη + θόρυβος};
-\node[block=orange!15, right=of recv] (rm-dec) {RM(1,7) Αποκωδ.};
-\node[block=green!12, right=of rm-dec] (rs-dec) {RS Αποκωδ.};
-\node[block=blue!10, right=of rs-dec] (recov) {Ανακτημένο $m'$ ($k$ bytes)};
+% Row 2 -- decode (right -> left)
+\node[block=yellow!15] (recv) at (12,-3) {Ληφθείσα λέξη ($n_1 \times n_2$ bits)};
+\node[block=orange!15] (rmd)  at (8,-3)  {RM(1,7) Αποκωδικοποιητής (εσωτερικός)};
+\node[block=green!12]  (rsd)  at (4,-3)  {Reed-Solomon Αποκωδικοποιητής (εξωτερικός)};
+\node[block=blue!10]   (mhat) at (0,-3)  {Ανακτημένο μήνυμα $\hat{m}$ ($k$ bytes)};
 
-\draw[arrow] (recv) -- (rm-dec) node[lbl] {$n_1 \!\times\! n_2$ bits};
-\draw[arrow] (rm-dec) -- (rs-dec) node[lbl] {$n_1$ bytes};
-\draw[arrow] (rs-dec) -- (recov) node[lbl] {$k$ bytes};
+% Encode arrows (left -> right)
+\draw[arrow] (m0)  -- (rse)  node[lbl] {$k$ bytes};
+\draw[arrow] (rse) -- (rme)  node[lbl] {$n_1$ σύμβολα};
+\draw[arrow] (rme) -- (chan) node[lbl] {$n_1 \times n_2$ bits};
 
-% Annotations
-\node[font=\scriptsize, below=0.15cm of rm-dec, text=gray] {bit-level};
-\node[font=\scriptsize, below=0.15cm of rs-dec, text=gray] {symbol-level};
+% Serpentine link down
+\draw[arrow] (chan) -- (recv) node[vlbl] {\Decaps};
+
+% Decode arrows (right -> left)
+\draw[arrow] (recv) -- (rmd) node[lbl] {$n_1 \times n_2$ bits};
+\draw[arrow] (rmd)  -- (rsd) node[lbl] {$n_1$ σύμβολα};
+\draw[arrow] (rsd)  -- (mhat) node[lbl] {$k$ bytes};
+
+% Granularity annotations (under decode row)
+\node[ann, below=0.25cm of rmd] {επίπεδο bit};
+\node[ann, below=0.25cm of rsd] {επίπεδο συμβόλου};
 
 \end{tikzpicture}
