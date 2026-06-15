@@ -923,7 +923,7 @@ $\rho$ (lane rotation) απαιτεί \num{24} μη τετριμμένες rotat
 (ένα lane παραμένει αμετάβλητο) με διαφορετικό offset ανά lane — η \insn{vror.vv} εκτελεί όλες τις
 rotations ενός vector register σε μία εντολή, χρησιμοποιώντας ένα
 δεύτερο vector register ως πίνακα offsets. Το βήμα $\chi$ (μη γραμμικό
-βήμα) απαιτεί \num{5} AND-NOT πράξεις ανά σειρά — η \insn{vandn.vv}
+βήμα) απαιτεί \num{5} AND-NOT πράξεις ανά row — η \insn{vandn.vv}
 εκτελεί κάθε μία σε μία εντολή αντί δύο (inversion + AND).
 
 Η παρούσα εργασία υλοποιεί δύο εναλλακτικά vector backends για τον Keccak
