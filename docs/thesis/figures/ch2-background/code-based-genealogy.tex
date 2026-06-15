@@ -1,30 +1,23 @@
-% Genealogy diagram: McEliece → Niederreiter → quasi-cyclic codes → {HQC, BIKE}
-% Shows the evolution of code-based cryptography from 1978 to present
-\tikzsetnextfilename{ch2-background-code-based-genealogy}
+% VARIANT — not \input by main.tex; promote manually
+% code-based-genealogy_critpath — PRESENTATION variant (same vertical layout)
+% Hypothesis: foreground the McEliece -> Niederreiter -> QC -> HQC critical lineage;
+% push the alternatives (BIKE, Classic McEliece) visually to the background so the
+% reader's eye follows the path that leads to the thesis subject (HQC).
+\tikzsetnextfilename{ch2-background-code-based-genealogy_critpath}
 \begin{tikzpicture}[
   node distance=1.8cm and 2.5cm,
-  every node/.style={font=\small},
-  mainbox/.style={
-    rectangle, draw=thesisblue!70, fill=thesisblue!8,
-    rounded corners=3pt, minimum width=3.2cm, minimum height=0.9cm,
-    align=center, font=\small\sffamily
-  },
-  hqcbox/.style={
-    rectangle, draw=green!50!black, fill=green!8,
-    rounded corners=3pt, minimum width=3.2cm, minimum height=0.9cm,
-    align=center, font=\small\sffamily\bfseries
-  },
-  altbox/.style={
-    rectangle, draw=gray!60, fill=gray!8,
-    rounded corners=3pt, minimum width=3.0cm, minimum height=0.9cm,
-    align=center, font=\small\sffamily
-  },
-  arr/.style={-{Stealth[length=5pt]}, thick, thesisblue!70},
-  altarr/.style={-{Stealth[length=5pt]}, thick, gray!60},
-  yearlabel/.style={font=\scriptsize\itshape, text=gray!70}
+  gbox/.style={rounded corners=3pt, minimum width=3.2cm, minimum height=0.9cm,
+               align=center, inner sep=4pt},
+  mainbox/.style={gbox, figbox/emph, figLW/emph},
+  hqcbox/.style={gbox, figbox/focal, font=\sffamily\footnotesize\bfseries},
+  % Backgrounded alternatives: light fill, hairline, muted text
+  altbox/.style={gbox, figbox, draw=figrule, fill=white, text=figneutral,
+                 figLW/hair, minimum width=3.0cm},
+  spine/.style={figedge/accent},
+  altarr/.style={figedge/weak},
+  yearlabel/.style={text=figneutral, font=\sffamily\scriptsize\itshape},
 ]
 
-% Main lineage (vertical)
 \node[mainbox] (mceliece) {McEliece\\(Goppa codes)};
 \node[yearlabel, right=2pt of mceliece.north east, anchor=north west] {1978};
 
@@ -34,7 +27,6 @@
 \node[mainbox, below=of niederreiter] (qcmdpc) {Quasi-cyclic codes\\(moderate density)};
 \node[yearlabel, right=2pt of qcmdpc.north east, anchor=north west] {2013};
 
-% Branching: HQC and alternatives
 \node[hqcbox, below left=1.5cm and 0.5cm of qcmdpc] (hqc) {\HQC\\(NIST Final)};
 \node[yearlabel, left=2pt of hqc.north west, anchor=north east] {2017–2025};
 
@@ -44,17 +36,15 @@
 \node[altbox, right=2.5cm of mceliece] (classic) {Classic McEliece\\(NIST Final)};
 \node[yearlabel, right=2pt of classic.north east, anchor=north west] {conservative};
 
-% Arrows
-\draw[arr] (mceliece) -- (niederreiter);
-\draw[arr] (niederreiter) -- (qcmdpc);
-\draw[arr] (qcmdpc) -- (hqc);
-\draw[arr] (qcmdpc) -- (bike);
+% Critical path (accent, emphasised) all the way to HQC
+\draw[spine] (mceliece) -- (niederreiter);
+\draw[spine] (niederreiter) -- (qcmdpc);
+\draw[spine] (qcmdpc) -- (hqc);
+% Alternatives: weak dashed
+\draw[altarr] (qcmdpc) -- (bike);
 \draw[altarr] (mceliece) -- (classic);
 
-% Annotation
-\node[font=\scriptsize, text=gray!60, below=0.15cm of hqc]
-  {+ concatenated codes (RM+RS)};
-\node[font=\scriptsize, text=gray!60, below=0.15cm of bike]
-  {+ bit-flipping decoder};
+\node[figT/annot, below=0.15cm of hqc]  {+ concatenated codes (RM+RS)};
+\node[figT/annot, below=0.15cm of bike] {+ bit-flipping decoder};
 
 \end{tikzpicture}

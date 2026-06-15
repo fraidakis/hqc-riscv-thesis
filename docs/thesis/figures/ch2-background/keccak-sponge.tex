@@ -1,29 +1,30 @@
-% Sponge construction diagram for SHA-3/Keccak
-% Shows absorb phase (XOR + permute) and squeeze phase (extract + permute)
-\tikzsetnextfilename{ch2-background-keccak-sponge}
+% VARIANT (_phasebands presentation, same layout) — not \input by main.tex; promote manually
+% Keccak sponge with shaded Absorb/Squeeze regions + dashed phase boundary for grouping clarity
+\tikzsetnextfilename{ch2-background-keccak-sponge_phasebands}
 \begin{tikzpicture}[
-  >=stealth,
-  block/.style={draw, minimum width=1.8cm, minimum height=0.9cm,
-                font=\small\sffamily, align=center, rounded corners=2pt},
-  xornode/.style={draw, circle, inner sep=1.5pt, font=\scriptsize},
-  arr/.style={->, thick},
-  brace/.style={decorate, decoration={brace, amplitude=6pt, raise=2pt}},
-  label/.style={font=\footnotesize\sffamily, text=gray!70!black}
+  block/.style={figbox, draw=figprocess, fill=figprocessfill, figLW/base,
+                align=center, minimum width=1.8cm, minimum height=0.9cm},
+  xornode/.style={draw=figrule, circle, inner sep=1.5pt, figT/micro},
+  arr/.style={figedge}
 ]
 
-% State representation
 \def\stateW{3.0}
 \def\rateH{1.2}
 \def\capH{0.6}
 
+% Phase background bands (drawn first => behind all nodes/arrows)
+\fill[figprocess!5]  (-3.0, -1.05) rectangle (8.6, 2.1);
+\fill[figsolution!6] (8.8, -1.05) rectangle (15.3, 2.1);
+\draw[figLW/hair, draw=figrule, dashed] (8.7, -1.05) -- (8.7, 2.1);
+
 % --- Absorb phase ---
-\node[label] at (0, 2.5) {\textbf{Absorb}};
+\node[figT/title] at (0, 2.5) {Absorb};
 
 % Input blocks
-\node[font=\small] (m0) at (-1.5, 1.5) {$m_0$};
-\node[font=\small] (m1) at (2.0, 1.5) {$m_1$};
-\node[font=\small] (m2) at (5.5, 1.5) {$m_2$};
-\node[font=\small] (dots) at (8.2, 1.5) {$\cdots$};
+\node[figT/label] (m0) at (-1.5, 1.5) {$m_0$};
+\node[figT/label] (m1) at (2.0, 1.5) {$m_1$};
+\node[figT/label] (m2) at (5.5, 1.5) {$m_2$};
+\node[figT/label] (dots) at (8.2, 1.5) {$\cdots$};
 
 % XOR nodes
 \node[xornode] (xor0) at (-1.5, 0.5) {$\oplus$};
@@ -31,15 +32,15 @@
 \node[xornode] (xor2) at (5.5, 0.5) {$\oplus$};
 
 % Permutation blocks
-\node[block, fill=blue!10] (f0) at (0.2, -0.5) {$f$};
-\node[block, fill=blue!10] (f1) at (3.7, -0.5) {$f$};
-\node[block, fill=blue!10] (f2) at (7.2, -0.5) {$f$};
+\node[block] (f0) at (0.2, -0.5) {$f$};
+\node[block] (f1) at (3.7, -0.5) {$f$};
+\node[block] (f2) at (7.2, -0.5) {$f$};
 
 % State boxes (rate + capacity)
-\draw[thick, fill=green!8] (-2.5, 0.0) rectangle (-2.5+\stateW, \rateH);
-\node[font=\scriptsize] at (-2.5+\stateW/2, \rateH/2) {$r$ bits};
-\draw[thick, fill=red!8] (-2.5, -\capH) rectangle (-2.5+\stateW, 0.0);
-\node[font=\scriptsize] at (-2.5+\stateW/2, -\capH/2) {$c$ bits};
+\draw[figLW/base, draw=figsolution, fill=figsolutionfill] (-2.5, 0.0) rectangle (-2.5+\stateW, \rateH);
+\node[figT/micro] at (-2.5+\stateW/2, \rateH/2) {$r$ bits};
+\draw[figLW/base, draw=figthreat, fill=figthreatfill] (-2.5, -\capH) rectangle (-2.5+\stateW, 0.0);
+\node[figT/micro] at (-2.5+\stateW/2, -\capH/2) {$c$ bits};
 
 % Arrows: input to XOR
 \draw[arr] (m0) -- (xor0);
@@ -60,15 +61,15 @@
 \draw[arr] (-2.5+\stateW, 0.3) -- (xor0);
 
 % --- Squeeze phase ---
-\node[label] at (9.5, 2.5) {\textbf{Squeeze}};
+\node[figT/title] at (9.5, 2.5) {Squeeze};
 
-\node[block, fill=blue!10] (fs0) at (10.0, -0.5) {$f$};
-\node[block, fill=blue!10] (fs1) at (13.0, -0.5) {$f$};
+\node[block] (fs0) at (10.0, -0.5) {$f$};
+\node[block] (fs1) at (13.0, -0.5) {$f$};
 
 % Output blocks
-\node[font=\small] (z0) at (10.0, 1.5) {$z_0$};
-\node[font=\small] (z1) at (13.0, 1.5) {$z_1$};
-\node[font=\small] (zdots) at (14.8, 1.5) {$\cdots$};
+\node[figT/label] (z0) at (10.0, 1.5) {$z_0$};
+\node[figT/label] (z1) at (13.0, 1.5) {$z_1$};
+\node[figT/label] (zdots) at (14.8, 1.5) {$\cdots$};
 
 % Arrows: f to output
 \draw[arr] (fs0) -- (z0);
@@ -80,13 +81,10 @@
 \draw[arr] (fs1) -- (14.8, -0.5);
 
 % Rate/capacity annotation
-\draw[brace] (-2.5, \rateH+0.1) -- node[above=8pt, font=\scriptsize\sffamily]
-  {rate $r$} (-2.5+\stateW, \rateH+0.1);
-\draw[brace] (-2.5+\stateW, -\capH-0.1) -- node[below=8pt, font=\scriptsize\sffamily]
-  {capacity $c$} (-2.5, -\capH-0.1);
+\draw[figbrace] (-2.5, \rateH+0.1) -- node[above=8pt, figT/micro] {rate $r$} (-2.5+\stateW, \rateH+0.1);
+\draw[figbrace] (-2.5+\stateW, -\capH-0.1) -- node[below=8pt, figT/micro] {capacity $c$} (-2.5, -\capH-0.1);
 
 % Annotation: state width
-\node[font=\scriptsize\sffamily, text=gray] at (-1.0, -1.5)
-  {state = $r + c = \num{1600}$ bits};
+\node[figT/annot] at (-1.0, -1.5) {state = $r + c = \num{1600}$ bits};
 
 \end{tikzpicture}

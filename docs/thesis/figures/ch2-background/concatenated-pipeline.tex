@@ -1,50 +1,51 @@
-% Concatenated ECC message journey: encode (RS -> RM) -> noisy channel -> decode (RM -> RS)
-% Serpentine layout: top row left-to-right (encode), bottom row right-to-left (decode).
-\tikzsetnextfilename{ch2-background-concatenated-pipeline}
+% VARIANT (_granularity presentation, same serpentine layout) — not \input by main.tex; promote manually
+% Emphasises the two-level granularity (outer=symbol level, inner=bit level) across BOTH rows + noise injection
+\tikzsetnextfilename{ch2-background-concatenated-pipeline_granularity}
 \begin{tikzpicture}[
-  >=stealth,
-  block/.style={rectangle, draw, fill=#1, minimum width=2.7cm,
-    minimum height=1.15cm, text width=2.5cm, align=center,
-    rounded corners=2pt, font=\small},
-  block/.default={blue!8},
-  arrow/.style={->, thick},
-  lbl/.style={font=\scriptsize, midway, above},
-  vlbl/.style={font=\scriptsize, midway, right},
-  ann/.style={font=\scriptsize, text=gray},
-  phase/.style={font=\sffamily\bfseries, text=thesisblue},
+  msg/.style ={figbox, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
+  enc/.style ={figbox, draw=figsolution, fill=figsolutionfill, figLW/base, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
+  inn/.style ={figbox, draw=figaccent, fill=figaccentfill, figLW/base, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
+  chn/.style ={figbox, draw=figthreat, fill=figthreatfill, figLW/emph, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
+  recvb/.style={figbox, draw=figneutral, fill=black!4, figLW/base, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
+  arrow/.style={figedge},
+  elbl/.style={figT/micro, midway, above},
+  vlbl/.style={figT/micro, midway, right}
 ]
 
 % Phase headers
-\node[phase] at (6, 1.5) {Κωδικοποίηση (\Encaps)};
-\node[phase] at (6, -4.7) {Αποκωδικοποίηση (\Decaps)};
+\node[figphase] at (6, 1.5) {Κωδικοποίηση (\Encaps)};
+\node[figphase] at (6, -4.7) {Αποκωδικοποίηση (\Decaps)};
 
 % Row 1 -- encode (left -> right)
-\node[block=blue!10]   (m0)   at (0,0)  {Μήνυμα $m$\\($k$ bytes)};
-\node[block=green!12]  (rse)  at (4,0)  {Reed-Solomon Κωδικοποιητής (εξωτερικός)};
-\node[block=orange!15] (rme)  at (8,0)  {RM(1,7) Κωδικοποιητής (εσωτερικός)};
-\node[block=red!12]    (chan) at (12,0) {Κανάλι / θόρυβος \Decaps};
+\node[msg] (m0)   at (0,0)  {Μήνυμα $m$\\($k$ bytes)};
+\node[enc] (rse)  at (4,0)  {Reed-Solomon Κωδικοποιητής (εξωτερικός)};
+\node[inn] (rme)  at (8,0)  {RM(1,7) Κωδικοποιητής (εσωτερικός)};
+\node[chn] (chan) at (12,0) {Κανάλι / θόρυβος \Decaps};
 
 % Row 2 -- decode (right -> left)
-\node[block=yellow!15] (recv) at (12,-3) {Ληφθείσα λέξη ($n_1 \times n_2$ bits)};
-\node[block=orange!15] (rmd)  at (8,-3)  {RM(1,7) Αποκωδικοποιητής (εσωτερικός)};
-\node[block=green!12]  (rsd)  at (4,-3)  {Reed-Solomon Αποκωδικοποιητής (εξωτερικός)};
-\node[block=blue!10]   (mhat) at (0,-3)  {Ανακτημένο μήνυμα $\hat{m}$ ($k$ bytes)};
+\node[recvb] (recv) at (12,-3) {Ληφθείσα λέξη ($n_1 \times n_2$ bits)};
+\node[inn]   (rmd)  at (8,-3)  {RM(1,7) Αποκωδικοποιητής (εσωτερικός)};
+\node[enc]   (rsd)  at (4,-3)  {Reed-Solomon Αποκωδικοποιητής (εξωτερικός)};
+\node[msg]   (mhat) at (0,-3)  {Ανακτημένο μήνυμα $\hat{m}$ ($k$ bytes)};
 
 % Encode arrows (left -> right)
-\draw[arrow] (m0)  -- (rse)  node[lbl] {$k$ bytes};
-\draw[arrow] (rse) -- (rme)  node[lbl] {$n_1$ σύμβολα};
-\draw[arrow] (rme) -- (chan) node[lbl] {$n_1 \times n_2$ bits};
+\draw[arrow] (m0)  -- (rse)  node[elbl] {$k$ bytes};
+\draw[arrow] (rse) -- (rme)  node[elbl] {$n_1$ σύμβολα};
+\draw[arrow] (rme) -- (chan) node[elbl] {$n_1 \times n_2$ bits};
 
-% Serpentine link down
-\draw[arrow] (chan) -- (recv) node[vlbl] {\Decaps};
+% Serpentine link down (noise injection emphasised)
+\draw[figedge/accent] (chan) -- (recv) node[vlbl] {\Decaps};
+\node[figT/callout, right=0.15cm of recv, anchor=west, text width=2.7cm] {εισαγωγή σφαλμάτων στο κανάλι};
 
 % Decode arrows (right -> left)
-\draw[arrow] (recv) -- (rmd) node[lbl] {$n_1 \times n_2$ bits};
-\draw[arrow] (rmd)  -- (rsd) node[lbl] {$n_1$ σύμβολα};
-\draw[arrow] (rsd)  -- (mhat) node[lbl] {$k$ bytes};
+\draw[arrow] (recv) -- (rmd) node[elbl] {$n_1 \times n_2$ bits};
+\draw[arrow] (rmd)  -- (rsd) node[elbl] {$n_1$ σύμβολα};
+\draw[arrow] (rsd)  -- (mhat) node[elbl] {$k$ bytes};
 
-% Granularity annotations (under decode row)
-\node[ann, below=0.25cm of rmd] {επίπεδο bit};
-\node[ann, below=0.25cm of rsd] {επίπεδο συμβόλου};
+% Granularity annotations on BOTH coder pairs (the teaching point)
+\node[figT/annot, below=0.22cm of rse] {επίπεδο συμβόλου};
+\node[figT/annot, below=0.22cm of rme] {επίπεδο bit};
+\node[figT/annot, below=0.25cm of rmd] {επίπεδο bit};
+\node[figT/annot, below=0.25cm of rsd] {επίπεδο συμβόλου};
 
 \end{tikzpicture}

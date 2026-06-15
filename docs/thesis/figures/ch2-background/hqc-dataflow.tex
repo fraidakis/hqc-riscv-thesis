@@ -1,64 +1,65 @@
-% HQC data-flow block diagram: kernels called in KeyGen/Encaps/Decaps
-% Usage: \input{figures/hqc-dataflow}
-\tikzsetnextfilename{ch2-background-hqc-dataflow}
+% VARIANT — not \input by main.tex; promote manually
+% hqc-dataflow_v1 — baseline refined (SAME three-column KeyGen/Encaps/Decaps layout)
+% Token migration to the CANONICAL kernel-component palette (fignode/polymul|keccak|
+% decode|misc), so "where time goes" reads identically here, in the stacked chart
+% and in the cost-distribution donut: polymul=blue, Keccak=orange, decode=green.
+% (Original used red/orange/yellow inline — inconsistent with the component palette.)
+\tikzsetnextfilename{ch2-background-hqc-dataflow_v1}
 \begin{tikzpicture}[
   >=stealth,
-  block/.style={draw, rounded corners=2pt, minimum width=2.0cm,
-                minimum height=0.7cm, font=\small\sffamily, align=center},
-  polymul/.style={block, fill=red!15, draw=red!50!black},
-  keccak/.style={block, fill=orange!15, draw=orange!60!black},
-  decode/.style={block, fill=yellow!15, draw=yellow!60!black},
-  misc/.style={block, fill=gray!10, draw=gray!50},
-  phase/.style={font=\sffamily\bfseries, text=thesisblue},
-  arr/.style={->, thick},
+  blk/.style={minimum width=2.0cm, minimum height=0.7cm, align=center, inner sep=4pt},
+  polymul/.style={fignode/polymul, blk},
+  keccak/.style={fignode/keccak, blk},
+  decode/.style={fignode/decode, blk},
+  misc/.style={fignode/misc, blk},
+  sw/.style={draw, rounded corners=1pt, minimum width=8mm, minimum height=3.5mm, inner sep=0pt},
 ]
 
 % === KeyGen column ===
-\node[phase] at (0, 4.5) {\KeyGen};
+\node[figphase] at (0, 4.5) {\KeyGen};
 \node[keccak] (kg-shake) at (0, 3.5) {SHAKE256\\(expand seed)};
 \node[misc] (kg-sample) at (0, 2.3) {Sampling\\$x, y, h$};
 \node[polymul] (kg-mul) at (0, 1.1) {$s = x + h \cdot y$\\(polymul)};
 \node[misc] (kg-out) at (0, 0) {$ek = (\text{seed}, s)$};
 
-\draw[arr] (kg-shake) -- (kg-sample);
-\draw[arr] (kg-sample) -- (kg-mul);
-\draw[arr] (kg-mul) -- (kg-out);
+\draw[figedge] (kg-shake) -- (kg-sample);
+\draw[figedge] (kg-sample) -- (kg-mul);
+\draw[figedge] (kg-mul) -- (kg-out);
 
 % === Encaps column ===
-\node[phase] at (4.5, 4.5) {\Encaps};
+\node[figphase] at (4.5, 4.5) {\Encaps};
 \node[keccak] (enc-hash) at (4.5, 3.5) {SHA3 / SHAKE\\(hash $m$, derive $\theta$)};
 \node[misc] (enc-sample) at (4.5, 2.3) {Sampling\\$r_1, r_2, e$};
 \node[polymul] (enc-mul) at (4.5, 1.1) {$u = r_1 + h \cdot r_2$\\$v' = s \cdot r_2 + e$};
 \node[misc] (enc-encode) at (4.5, -0.1) {Encode($m$)\\$v = m \cdot G + v'$};
 \node[keccak] (enc-ss) at (4.5, -1.3) {SHA3\\($ss$)};
 
-\draw[arr] (enc-hash) -- (enc-sample);
-\draw[arr] (enc-sample) -- (enc-mul);
-\draw[arr] (enc-mul) -- (enc-encode);
-\draw[arr] (enc-encode) -- (enc-ss);
+\draw[figedge] (enc-hash) -- (enc-sample);
+\draw[figedge] (enc-sample) -- (enc-mul);
+\draw[figedge] (enc-mul) -- (enc-encode);
+\draw[figedge] (enc-encode) -- (enc-ss);
 
 % === Decaps column ===
-\node[phase] at (9, 4.5) {\Decaps};
+\node[figphase] at (9, 4.5) {\Decaps};
 \node[polymul] (dec-mul) at (9, 3.5) {$u \cdot y$\\(polymul)};
 \node[misc] (dec-sub) at (9, 2.3) {$v - u \cdot y$};
 \node[decode] (dec-decode) at (9, 1.1) {Decode\\(RM + RS)};
 \node[keccak] (dec-reenc) at (9, -0.1) {Re-encrypt\\+ SHA3};
 \node[misc] (dec-check) at (9, -1.3) {FO check\\$ct' \stackrel{?}{=} ct$};
 
-\draw[arr] (dec-mul) -- (dec-sub);
-\draw[arr] (dec-sub) -- (dec-decode);
-\draw[arr] (dec-decode) -- (dec-reenc);
-\draw[arr] (dec-reenc) -- (dec-check);
+\draw[figedge] (dec-mul) -- (dec-sub);
+\draw[figedge] (dec-sub) -- (dec-decode);
+\draw[figedge] (dec-decode) -- (dec-reenc);
+\draw[figedge] (dec-reenc) -- (dec-check);
 
-% Legend
-\matrix[draw, anchor=north west, column sep=8pt, row sep=2pt,
-        inner sep=4pt, font=\scriptsize\sffamily] at (-1.5, -2.5) {
-  \node[polymul, minimum width=1cm, minimum height=0.4cm] {}; &
-  \node {Πολυωνυμικός πολλαπλασιασμός}; \\
-  \node[keccak, minimum width=1cm, minimum height=0.4cm] {}; &
-  \node {Keccak / SHA-3}; \\
-  \node[decode, minimum width=1cm, minimum height=0.4cm] {}; &
-  \node {Αποκωδικοποίηση (RM + RS)}; \\
+% Legend (canonical component palette)
+\matrix[figlegend, anchor=north west] at (-1.7, -2.5) {
+  \node[sw, fill=figkPolymul!15, draw=figkPolymul!70!black]{}; &
+  \node{Πολυωνυμικός πολλαπλασιασμός}; \\
+  \node[sw, fill=figkKeccak!15, draw=figkKeccak!70!black]{}; &
+  \node{Keccak / SHA-3}; \\
+  \node[sw, fill=figkDecode!15, draw=figkDecode!70!black]{}; &
+  \node{Αποκωδικοποίηση (RM + RS)}; \\
 };
 
 \end{tikzpicture}

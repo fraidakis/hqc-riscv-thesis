@@ -1,48 +1,47 @@
-% HQC standardization timeline — variant B+C
-% (minimal milestone dots + leader labels, equal horizontal spacing)
-% Usage: \input{figures/hqc-timeline_v2}
-\tikzsetnextfilename{ch2-background-hqc-timeline_v2}
+% VARIANT — not \input by main.tex; promote manually
+% hqc-timeline_v1 — baseline refined (SAME horizontal milestone-timeline layout)
+% Token migration: figedge/accent axis, figT/* type, semantic palette
+% (process = NIST rounds, threat = 2024 spec change, solution = standardisation).
+% Dots kept circular (conservative); shape-coding is introduced in _phased.
+\tikzsetnextfilename{ch2-background-hqc-timeline_v1}
 \begin{tikzpicture}[
-  timeline/.style={semithick, -{Stealth[length=3mm]}, thesisblue!70},
   dot/.style={circle, inner sep=0pt, minimum size=7pt, draw=white, line width=0.6pt},
-  evdot/.style={dot, fill=thesisblue!80},
-  spdot/.style={dot, fill=red!70},
-  fidot/.style={dot, fill=green!60!black},
-  lead/.style={thin, gray!55},
+  evdot/.style={dot, fill=figprocess},
+  spdot/.style={dot, fill=figthreat},
+  fidot/.style={dot, fill=figsolution},
   mlabel/.style={align=center, inner sep=1.5pt},
 ]
 
 \def\step{2.0}
-\draw[timeline] (-0.7,0) -- (\step*6+0.7,0);
+\draw[figedge/accent] (-0.7,0) -- (\step*6+0.7,0);
 
-% Each milestone: dot on the axis + leader line + stacked label (year + description).
 % 2017 — above
-\draw[lead] (0,0) -- (0,0.85);
-\node[mlabel, anchor=south] at (0,0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2017}\\{\scriptsize\color{gray!70!black}Υποβολή Round~1}};
+\draw[figleader] (0,0) -- (0,0.85);
+\node[mlabel, anchor=south] at (0,0.9) {{\sffamily\bfseries\color{figprocess}2017}\\{\sffamily\scriptsize\color{figneutral}Υποβολή Round~1}};
 \node[evdot] at (0,0) {};
 % 2019 — below
-\draw[lead] (\step*1,0) -- (\step*1,-0.85);
-\node[mlabel, anchor=north] at (\step*1,-0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2019}\\{\scriptsize\color{gray!70!black}Round~2}};
+\draw[figleader] (\step*1,0) -- (\step*1,-0.85);
+\node[mlabel, anchor=north] at (\step*1,-0.9) {{\sffamily\bfseries\color{figprocess}2019}\\{\sffamily\scriptsize\color{figneutral}Round~2}};
 \node[evdot] at (\step*1,0) {};
 % 2020 — above
-\draw[lead] (\step*2,0) -- (\step*2,0.85);
-\node[mlabel, anchor=south] at (\step*2,0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2020}\\{\scriptsize\color{gray!70!black}Round~3}};
+\draw[figleader] (\step*2,0) -- (\step*2,0.85);
+\node[mlabel, anchor=south] at (\step*2,0.9) {{\sffamily\bfseries\color{figprocess}2020}\\{\sffamily\scriptsize\color{figneutral}Round~3}};
 \node[evdot] at (\step*2,0) {};
 % 2022 — below
-\draw[lead] (\step*3,0) -- (\step*3,-0.85);
-\node[mlabel, anchor=north] at (\step*3,-0.9) {{\sffamily\bfseries\color{thesisblue!85!black}2022}\\{\scriptsize\color{gray!70!black}Round~4}};
+\draw[figleader] (\step*3,0) -- (\step*3,-0.85);
+\node[mlabel, anchor=north] at (\step*3,-0.9) {{\sffamily\bfseries\color{figprocess}2022}\\{\sffamily\scriptsize\color{figneutral}Round~4}};
 \node[evdot] at (\step*3,0) {};
 % 2024 — above (spec change)
-\draw[lead, red!40] (\step*4,0) -- (\step*4,0.85);
-\node[mlabel, anchor=south] at (\step*4,0.9) {{\sffamily\bfseries\color{red!70!black}2024}\\{\scriptsize\color{gray!70!black}Spec change dense$\times$dense}\\{\scriptsize\itshape\color{red!70!black}ακύρωση sparse$\times$dense}};
+\draw[figleader, draw=figthreat] (\step*4,0) -- (\step*4,0.85);
+\node[mlabel, anchor=south] at (\step*4,0.9) {{\sffamily\bfseries\color{figthreat}2024}\\{\sffamily\scriptsize\color{figneutral}Spec change dense$\times$dense}\\{\sffamily\scriptsize\itshape\color{figthreat}ακύρωση sparse$\times$dense}};
 \node[spdot] at (\step*4,0) {};
 % 2025 — below (selection)
-\draw[lead, green!50!black] (\step*5,0) -- (\step*5,-0.85);
-\node[mlabel, anchor=north] at (\step*5,-0.9) {{\sffamily\bfseries\color{green!55!black}2025}\\{\scriptsize\color{gray!70!black}Επιλογή τυποποίησης}};
+\draw[figleader, draw=figsolution] (\step*5,0) -- (\step*5,-0.85);
+\node[mlabel, anchor=north] at (\step*5,-0.9) {{\sffamily\bfseries\color{figsolution}2025}\\{\sffamily\scriptsize\color{figneutral}Επιλογή τυποποίησης}};
 \node[fidot] at (\step*5,0) {};
 % 2027 — above (final standard)
-\draw[lead, green!50!black] (\step*6,0) -- (\step*6,0.85);
-\node[mlabel, anchor=south] at (\step*6,0.9) {{\sffamily\bfseries\color{green!55!black}2027}\\{\scriptsize\color{gray!70!black}Τελικό πρότυπο}};
+\draw[figleader, draw=figsolution] (\step*6,0) -- (\step*6,0.85);
+\node[mlabel, anchor=south] at (\step*6,0.9) {{\sffamily\bfseries\color{figsolution}2027}\\{\sffamily\scriptsize\color{figneutral}Τελικό πρότυπο}};
 \node[fidot] at (\step*6,0) {};
 
 \end{tikzpicture}

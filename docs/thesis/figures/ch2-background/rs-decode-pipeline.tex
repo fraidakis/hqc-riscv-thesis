@@ -1,20 +1,21 @@
-% Reed-Solomon decoding pipeline: 4 algebraic stages + correction
-\tikzsetnextfilename{ch2-background-rs-decode-pipeline}
+% VARIANT (_costfocus presentation, same layout) — not \input by main.tex; promote manually
+% RS decode pipeline: highlights the dominant-cost stage (FFT Roots, O(M*2^M)) as the optimization target (ch. 7)
+\tikzsetnextfilename{ch2-background-rs-decode-pipeline_costfocus}
 \begin{tikzpicture}[
   node distance=1.4cm,
-  stage/.style={rectangle, draw, fill=#1, minimum width=2.4cm,
-    minimum height=0.9cm, align=center, rounded corners=2pt, font=\small},
-  stage/.default={blue!8},
-  arrow/.style={->, >=stealth, thick},
-  annot/.style={font=\scriptsize, text=gray, align=center}
+  stg/.style={figbox, draw=figprocess, fill=figprocessfill, figLW/base, align=center, minimum width=2.4cm, minimum height=0.9cm},
+  focal/.style={figbox/focal, align=center, minimum width=2.4cm, minimum height=0.9cm},
+  fin/.style={figbox, draw=figsolution, fill=figsolutionfill, figLW/base, align=center, minimum width=2.4cm, minimum height=0.9cm},
+  arrow/.style={figedge},
+  annot/.style={figT/annot, align=center}
 ]
 
-% Pipeline stages (horizontal)
-\node[stage=orange!12] (A) {Στάδιο A\\Syndromes};
-\node[stage=orange!12, right=of A] (B) {Στάδιο B\\BM};
-\node[stage=orange!12, right=of B] (C) {Στάδιο C\\FFT Roots};
-\node[stage=orange!12, right=of C] (D) {Στάδιο D\\Forney};
-\node[stage=green!12, right=of D] (E) {Διόρθωση};
+% Pipeline stages (horizontal); stage C is the dominant cost -> focal
+\node[stg] (A) {Στάδιο A\\Syndromes};
+\node[stg, right=of A] (B) {Στάδιο B\\BM};
+\node[focal, right=of B] (C) {Στάδιο C\\FFT Roots};
+\node[stg, right=of C] (D) {Στάδιο D\\Forney};
+\node[fin, right=of D] (E) {Διόρθωση};
 
 % Arrows
 \draw[arrow] (A) -- (B);
@@ -22,15 +23,21 @@
 \draw[arrow] (C) -- (D);
 \draw[arrow] (D) -- (E);
 
-% Complexity annotations below
+% Complexity annotations below (stage C emphasised)
 \node[annot, below=0.2cm of A] {$\mathcal{O}(\delta \cdot n_1)$};
 \node[annot, below=0.2cm of B] {$\mathcal{O}(\delta^2)$};
-\node[annot, below=0.2cm of C] {$\mathcal{O}(M \cdot 2^M)$};
+\node[below=0.2cm of C, font=\sffamily\scriptsize\bfseries, text=figaccent!80!black] {$\mathcal{O}(M \cdot 2^M)$};
 \node[annot, below=0.2cm of D] {$\mathcal{O}(\delta^2)$};
 \node[annot, below=0.2cm of E] {$\mathcal{O}(n_1)$};
 
+% Dominant-cost brace above stage C
+\draw[figbrace/warn] ([yshift=2pt]C.north west) --
+  node[above=6pt, figT/callout, text width=3.4cm, align=center]
+  {κυρίαρχος όρος κόστους — στόχος βελτιστοποίησης}
+  ([yshift=2pt]C.north east);
+
 % Input/output labels
-\node[font=\scriptsize, left=0.4cm of A] {cdw[$n_1$]};
-\node[font=\scriptsize, right=0.4cm of E] {msg[$k$]};
+\node[figT/micro, left=0.4cm of A] {cdw[$n_1$]};
+\node[figT/micro, right=0.4cm of E] {msg[$k$]};
 
 \end{tikzpicture}

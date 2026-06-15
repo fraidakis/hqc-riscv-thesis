@@ -1,33 +1,36 @@
-% Karatsuba recursion schematic: depth 2, schoolbook at leaves
-% Used in 2.3.3 (sec:karatsuba-algorithm)
-\tikzsetnextfilename{ch2-background-karatsuba-tree-schematic}
+% VARIANT (_layered layout) — not \input by main.tex; promote manually
+% Karatsuba decomposition as an explicitly aligned layered grid (replaces the
+% auto `child' tree whose 1.5cm level-2 siblings crowd); adds a unifying
+% base-case brace under all schoolbook leaves. Same information, 2 levels.
+\tikzsetnextfilename{ch2-background-karatsuba-tree-schematic_layered}
 \begin{tikzpicture}[
-  level distance=2.0cm,
-  level 1/.style={sibling distance=4.4cm},
-  level 2/.style={sibling distance=1.5cm},
-  every node/.style={
-    draw, rounded corners=2pt, minimum width=1.9cm, minimum height=0.7cm,
-    font=\small, align=center
-  },
-  edge from parent/.style={draw, ->, >=stealth, thick},
-  leaf/.style={fill=blue!8, font=\scriptsize, minimum width=1.2cm, minimum height=0.6cm}
+  box/.style={figbox, align=center, minimum width=1.9cm, minimum height=0.7cm},
+  leaf/.style={figbox, fill=black!4, figT/micro, align=center,
+               minimum width=1.2cm, minimum height=0.6cm}
 ]
 
-\node {$a(x) \cdot b(x)$}
-  child { node {$z_0 = a_L b_L$}
-    child { node[leaf] {schoolbook} }
-    child { node[leaf] {schoolbook} }
-    child { node[leaf] {schoolbook} }
+% Level 0 (the product we compute)
+\node[figbox/focal] (root) at (0, 0) {$a(x) \cdot b(x)$};
+
+% Level 1 (three subproblems)
+\node[box, figbox/emph] (z0) at (-5, -2) {$z_0 = a_L b_L$};
+\node[box, figbox/emph] (z2) at ( 0, -2) {$z_2 = a_H b_H$};
+\node[box, figbox/emph] (zm) at ( 5, -2) {$z_{\text{mid}}$};
+
+% Edges root -> subproblems
+\draw[figedge] (root) -- (z0);
+\draw[figedge] (root) -- (z2);
+\draw[figedge] (root) -- (zm);
+
+% Level 2 (schoolbook leaves), explicitly spaced under each parent
+\foreach \px in {-5, 0, 5} {
+  \foreach \dx in {-1.5, 0, 1.5} {
+    \node[leaf] at ({\px+\dx}, -4) {schoolbook};
+    \draw[figedge] (\px, -2.35) -- ({\px+\dx}, -3.68);
   }
-  child { node {$z_2 = a_H b_H$}
-    child { node[leaf] {schoolbook} }
-    child { node[leaf] {schoolbook} }
-    child { node[leaf] {schoolbook} }
-  }
-  child { node {$z_{\text{mid}}$}
-    child { node[leaf] {schoolbook} }
-    child { node[leaf] {schoolbook} }
-    child { node[leaf] {schoolbook} }
-  };
+}
+
+% Unifying base-case brace under all leaves
+\draw[figbrace] (-7.2, -4.55) -- node[below=6pt, figT/annot] {schoolbook (base case)} (7.2, -4.55);
 
 \end{tikzpicture}
