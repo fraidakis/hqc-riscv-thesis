@@ -1,51 +1,49 @@
-% VARIANT (_granularity presentation, same serpentine layout) — not \input by main.tex; promote manually
-% Emphasises the two-level granularity (outer=symbol level, inner=bit level) across BOTH rows + noise injection
-\tikzsetnextfilename{ch2-background-concatenated-pipeline_granularity}
+% VARIANT v8: Large boxes (2.8cm wide, 1.6cm tall) + generous columns (4.4 spacing)
+% Tallest boxes of all variants; wide columns give the most breathing room for arrows.
+% Single-line labels; total span ~15.0cm.
+\tikzsetnextfilename{ch2-background-concatenated-pipeline_v8}
 \begin{tikzpicture}[
-  msg/.style ={figbox, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
-  enc/.style ={figbox, draw=figsolution, fill=figsolutionfill, figLW/base, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
-  inn/.style ={figbox, draw=figaccent, fill=figaccentfill, figLW/base, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
-  chn/.style ={figbox, draw=figthreat, fill=figthreatfill, figLW/emph, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
-  recvb/.style={figbox, draw=figneutral, fill=black!4, figLW/base, align=center, text width=2.5cm, minimum width=2.7cm, minimum height=1.15cm},
+  msg/.style ={figbox, align=center, text width=2.5cm, minimum width=2.8cm, minimum height=1.6cm},
+  enc/.style ={figbox, draw=figsolution, fill=figsolutionfill, figLW/base, align=center, text width=2.5cm, minimum width=2.8cm, minimum height=1.6cm},
+  inn/.style ={figbox, draw=figaccent, fill=figaccentfill, figLW/base, align=center, text width=2.5cm, minimum width=2.8cm, minimum height=1.6cm},
+  chn/.style ={figbox, draw=figthreat, fill=figthreatfill, figLW/base, align=center, text width=2.5cm, minimum width=2.8cm, minimum height=1.6cm},
+  recvb/.style={figbox, draw=figneutral, fill=black!4, figLW/base, align=center, text width=2.5cm, minimum width=2.8cm, minimum height=1.6cm},
   arrow/.style={figedge},
-  elbl/.style={figT/micro, midway, above},
-  vlbl/.style={figT/micro, midway, right}
+  elbl/.style={figT/micro, midway, above, align=center}
 ]
 
-% Phase headers
-\node[figphase] at (6, 1.5) {Κωδικοποίηση (\Encaps)};
-\node[figphase] at (6, -4.7) {Αποκωδικοποίηση (\Decaps)};
+% columns x = -6.6, -2.2, 2.2, 6.6 (span ~15.0cm) ; rows y=0 / y=-3.6
+\node[figphase] at (0, 1.9) {Κωδικοποίηση (\Encaps)};
+\node[figphase] at (0, -5.5) {Αποκωδικοποίηση (\Decaps)};
 
-% Row 1 -- encode (left -> right)
-\node[msg] (m0)   at (0,0)  {Μήνυμα $m$\\($k$ bytes)};
-\node[enc] (rse)  at (4,0)  {Reed-Solomon Κωδικοποιητής (εξωτερικός)};
-\node[inn] (rme)  at (8,0)  {RM(1,7) Κωδικοποιητής (εσωτερικός)};
-\node[chn] (chan) at (12,0) {Κανάλι / θόρυβος \Decaps};
+% Encode row (left -> right)
+\node[msg] (m0)   at (-6.6,0) {Μήνυμα $m$\\($k$ bytes)};
+\node[enc] (rse)  at (-2.2,0) {RS εξωτερ. Κωδικοποιητής};
+\node[inn] (rme)  at ( 2.2,0) {RM(1,7) εσωτερ. Κωδικοποιητής};
+\node[chn] (chan) at ( 6.6,0) {Κανάλι / θόρυβος};
 
-% Row 2 -- decode (right -> left)
-\node[recvb] (recv) at (12,-3) {Ληφθείσα λέξη ($n_1 \times n_2$ bits)};
-\node[inn]   (rmd)  at (8,-3)  {RM(1,7) Αποκωδικοποιητής (εσωτερικός)};
-\node[enc]   (rsd)  at (4,-3)  {Reed-Solomon Αποκωδικοποιητής (εξωτερικός)};
-\node[msg]   (mhat) at (0,-3)  {Ανακτημένο μήνυμα $\hat{m}$ ($k$ bytes)};
+% Decode row (right -> left)
+\node[recvb] (recv) at ( 6.6,-3.6) {Ληφθείσα λέξη ($n_1 \times n_2$ bits)};
+\node[inn]   (rmd)  at ( 2.2,-3.6) {RM(1,7) εσωτερ. Αποκωδικοποιητής};
+\node[enc]   (rsd)  at (-2.2,-3.6) {RS εξωτερ. Αποκωδικοποιητής};
+\node[msg]   (mhat) at (-6.6,-3.6) {Ανακτημένο $\hat{m}$ ($k$ bytes)};
 
-% Encode arrows (left -> right)
+% Encode arrows
 \draw[arrow] (m0)  -- (rse)  node[elbl] {$k$ bytes};
 \draw[arrow] (rse) -- (rme)  node[elbl] {$n_1$ σύμβολα};
 \draw[arrow] (rme) -- (chan) node[elbl] {$n_1 \times n_2$ bits};
 
-% Serpentine link down (noise injection emphasised)
-\draw[figedge/accent] (chan) -- (recv) node[vlbl] {\Decaps};
-\node[figT/callout, right=0.15cm of recv, anchor=west, text width=2.7cm] {εισαγωγή σφαλμάτων στο κανάλι};
+% Serpentine link down
+\draw[figedge/accent] (chan) -- (recv)
+  node[figT/micro, midway, left, align=right, text width=2.3cm] {εισαγωγή σφαλμάτων};
 
-% Decode arrows (right -> left)
+% Decode arrows
 \draw[arrow] (recv) -- (rmd) node[elbl] {$n_1 \times n_2$ bits};
 \draw[arrow] (rmd)  -- (rsd) node[elbl] {$n_1$ σύμβολα};
 \draw[arrow] (rsd)  -- (mhat) node[elbl] {$k$ bytes};
 
-% Granularity annotations on BOTH coder pairs (the teaching point)
-\node[figT/annot, below=0.22cm of rse] {επίπεδο συμβόλου};
-\node[figT/annot, below=0.22cm of rme] {επίπεδο bit};
-\node[figT/annot, below=0.25cm of rmd] {επίπεδο bit};
-\node[figT/annot, below=0.25cm of rsd] {επίπεδο συμβόλου};
+% Granularity labels
+\node[figT/annot, align=center] at (-2.2,-1.8) {επίπεδο\\συμβόλου};
+\node[figT/annot, align=center] at ( 2.2,-1.8) {επίπεδο\\bit};
 
 \end{tikzpicture}

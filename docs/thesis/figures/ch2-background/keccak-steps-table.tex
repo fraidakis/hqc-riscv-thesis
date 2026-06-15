@@ -1,27 +1,18 @@
-% Table of the 5 Keccak-f[1600] round steps
-\begin{tabular}{@{} c l l l @{}}
-  \toprule
-  \textbf{Βήμα} & \textbf{Μαθηματικός Τύπος} & \textbf{Λειτουργία} & \textbf{Χαρακτήρας} \\
-  \midrule
-  $\theta$ &
-    $A[x,y,z] \mathrel{\oplus}= C[x{-}1,z] \oplus C[x{+}1, z{-}1]$ &
-    Column-parity diffusion &
-    Γραμμικός \\[4pt]
-  $\rho$ &
-    $A[x,y] \leftarrow A[x,y] \lll r[x,y]$ &
-    Lane rotation &
-    Γραμμικός \\[4pt]
-  $\pi$ &
-    $B[y, 2x{+}3y] \leftarrow A[x,y]$ &
-    Lane transposition &
-    Γραμμικός \\[4pt]
-  $\chi$ &
-    $A[x] \leftarrow B[x] \oplus (\lnot B[x{+}1] \land B[x{+}2])$ &
-    Row-wise nonlinear &
-    Μη-γραμμικός \\[4pt]
-  $\iota$ &
-    $A[0,0] \mathrel{\oplus}= RC[i_r]$ &
-    Round constant XOR &
-    Σταθερά \\
-  \bottomrule
-\end{tabular}
+% VARIANT — not \input by main.tex; promote manually
+% _v1: baseline refined (SAME layout). tabular -> thesistblr: shared sans
+% bold header on the faint accent wash + accent booktabs-weight rules come
+% from the environment (manual \toprule/\midrule/\bottomrule dropped). The
+% per-row \\[4pt] hand spacing is replaced by the environment rowsep.
+% Same column order, same content. Drop-in for \input (the table float,
+% \caption and \label live in chapters/02-theoretical-background.tex).
+\begin{thesistblr}{
+  colspec = {c l l l},
+  rowsep  = 3pt,
+}
+{Βήμα} & {Μαθηματικός Τύπος} & {Λειτουργία} & {Χαρακτήρας} \\
+$\theta$ & $A[x,y,z] \mathrel{\oplus}= C[x{-}1,z] \oplus C[x{+}1, z{-}1]$ & Column-parity diffusion & Γραμμικός \\
+$\rho$   & $A[x,y] \leftarrow A[x,y] \lll r[x,y]$ & Lane rotation & Γραμμικός \\
+$\pi$    & $B[y, 2x{+}3y] \leftarrow A[x,y]$ & Lane transposition & Γραμμικός \\
+$\chi$   & $A[x] \leftarrow B[x] \oplus (\lnot B[x{+}1] \land B[x{+}2])$ & Row-wise nonlinear & Μη-γραμμικός \\
+$\iota$  & $A[0,0] \mathrel{\oplus}= RC[i_r]$ & Round constant XOR & Σταθερά \\
+\end{thesistblr}

@@ -2,6 +2,11 @@
 % hqc-kem-sequence_v1 — baseline refined (SAME sequence-diagram layout)
 % Token migration: figbox/focal actors, figedge/accent messages, figedge/weak lifelines,
 % figT/* type, semantic palette (shared secret = figsolution). No structural change.
+%
+% v2 correction (per review): in the "κοινό μυστικό" band the vertical lifelines and the
+% horizontal dashed link were crossing through the ss / ss'=ss / caption text. The dashed
+% link is now drawn FIRST and every label is punched through it with a white fill, so no
+% dash crosses any glyph. The caption breaks the line cleanly at the centre.
 \tikzsetnextfilename{ch2-background-hqc-kem-sequence_v1}
 \begin{tikzpicture}[
   entity/.style={figbox/focal, minimum width=2.3cm, minimum height=0.85cm,
@@ -13,6 +18,8 @@
   noteR/.style={figT/label, align=left},
   noteL/.style={figT/label, align=right},
   prim/.style={figT/callout},
+  sslabel/.style={fill=white, inner sep=3pt, font=\sffamily\footnotesize\bfseries,
+                  text=figsolution},
 ]
 
 % Actors
@@ -47,10 +54,11 @@
 \node[noteR, anchor=west] at (7.35,-6.05) {$ss' \leftarrow \Decaps(dk, ct)$};
 \node[prim,  anchor=west] at (7.35,-6.45) {polymul, Keccak, decode};
 
-% Shared secret
-\node[font=\sffamily\footnotesize\bfseries, text=figsolution] at (0,-7.6) {$ss$};
-\node[font=\sffamily\footnotesize\bfseries, text=figsolution] at (7,-7.6) {$ss' = ss$};
+% Shared secret — dashed link drawn FIRST, then labels punched through with white fill
+% so neither the lifelines nor the dashes cross any glyph.
 \draw[dashed, figLW/emph, draw=figsolution] (0.5,-7.6) -- (6.5,-7.6);
-\node[figT/callout, above] at (3.5,-7.5) {κοινό μυστικό};
+\node[figT/callout, fill=white, inner sep=2pt] at (3.5,-7.6) {κοινό μυστικό};
+\node[sslabel] at (0,-7.6) {$ss$};
+\node[sslabel] at (7,-7.6) {$ss' = ss$};
 
 \end{tikzpicture}

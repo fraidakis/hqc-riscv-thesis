@@ -4,6 +4,10 @@
 % decode|misc), so "where time goes" reads identically here, in the stacked chart
 % and in the cost-distribution donut: polymul=blue, Keccak=orange, decode=green.
 % (Original used red/orange/yellow inline — inconsistent with the component palette.)
+%
+% v2 correction (per review): more breathing room. Column pitch 4.5cm -> 5.0cm and row
+% pitch ~1.2cm -> 1.4cm, so the gap between blocks is now a full box-height. Geometry of
+% the flow (columns, order, edges) is otherwise unchanged.
 \tikzsetnextfilename{ch2-background-hqc-dataflow_v1}
 \begin{tikzpicture}[
   >=stealth,
@@ -16,23 +20,23 @@
 ]
 
 % === KeyGen column ===
-\node[figphase] at (0, 4.5) {\KeyGen};
-\node[keccak] (kg-shake) at (0, 3.5) {SHAKE256\\(expand seed)};
-\node[misc] (kg-sample) at (0, 2.3) {Sampling\\$x, y, h$};
-\node[polymul] (kg-mul) at (0, 1.1) {$s = x + h \cdot y$\\(polymul)};
-\node[misc] (kg-out) at (0, 0) {$ek = (\text{seed}, s)$};
+\node[figphase] at (0, 5.6) {\KeyGen};
+\node[keccak] (kg-shake) at (0, 4.4) {SHAKE256\\(expand seed)};
+\node[misc] (kg-sample) at (0, 3.0) {Sampling\\$x, y, h$};
+\node[polymul] (kg-mul) at (0, 1.6) {$s = x + h \cdot y$\\(polymul)};
+\node[misc] (kg-out) at (0, 0.2) {$ek = (\text{seed}, s)$};
 
 \draw[figedge] (kg-shake) -- (kg-sample);
 \draw[figedge] (kg-sample) -- (kg-mul);
 \draw[figedge] (kg-mul) -- (kg-out);
 
 % === Encaps column ===
-\node[figphase] at (4.5, 4.5) {\Encaps};
-\node[keccak] (enc-hash) at (4.5, 3.5) {SHA3 / SHAKE\\(hash $m$, derive $\theta$)};
-\node[misc] (enc-sample) at (4.5, 2.3) {Sampling\\$r_1, r_2, e$};
-\node[polymul] (enc-mul) at (4.5, 1.1) {$u = r_1 + h \cdot r_2$\\$v' = s \cdot r_2 + e$};
-\node[misc] (enc-encode) at (4.5, -0.1) {Encode($m$)\\$v = m \cdot G + v'$};
-\node[keccak] (enc-ss) at (4.5, -1.3) {SHA3\\($ss$)};
+\node[figphase] at (5, 5.6) {\Encaps};
+\node[keccak] (enc-hash) at (5, 4.4) {SHA3 / SHAKE\\(hash $m$, derive $\theta$)};
+\node[misc] (enc-sample) at (5, 3.0) {Sampling\\$r_1, r_2, e$};
+\node[polymul] (enc-mul) at (5, 1.6) {$u = r_1 + h \cdot r_2$\\$v' = s \cdot r_2 + e$};
+\node[misc] (enc-encode) at (5, 0.2) {Encode($m$)\\$v = m \cdot G + v'$};
+\node[keccak] (enc-ss) at (5, -1.2) {SHA3\\($ss$)};
 
 \draw[figedge] (enc-hash) -- (enc-sample);
 \draw[figedge] (enc-sample) -- (enc-mul);
@@ -40,12 +44,12 @@
 \draw[figedge] (enc-encode) -- (enc-ss);
 
 % === Decaps column ===
-\node[figphase] at (9, 4.5) {\Decaps};
-\node[polymul] (dec-mul) at (9, 3.5) {$u \cdot y$\\(polymul)};
-\node[misc] (dec-sub) at (9, 2.3) {$v - u \cdot y$};
-\node[decode] (dec-decode) at (9, 1.1) {Decode\\(RM + RS)};
-\node[keccak] (dec-reenc) at (9, -0.1) {Re-encrypt\\+ SHA3};
-\node[misc] (dec-check) at (9, -1.3) {FO check\\$ct' \stackrel{?}{=} ct$};
+\node[figphase] at (10, 5.6) {\Decaps};
+\node[polymul] (dec-mul) at (10, 4.4) {$u \cdot y$\\(polymul)};
+\node[misc] (dec-sub) at (10, 3.0) {$v - u \cdot y$};
+\node[decode] (dec-decode) at (10, 1.6) {Decode\\(RM + RS)};
+\node[keccak] (dec-reenc) at (10, 0.2) {Re-encrypt\\+ SHA3};
+\node[misc] (dec-check) at (10, -1.2) {FO check\\$ct' \stackrel{?}{=} ct$};
 
 \draw[figedge] (dec-mul) -- (dec-sub);
 \draw[figedge] (dec-sub) -- (dec-decode);
@@ -53,7 +57,7 @@
 \draw[figedge] (dec-reenc) -- (dec-check);
 
 % Legend (canonical component palette)
-\matrix[figlegend, anchor=north west] at (-1.7, -2.5) {
+\matrix[figlegend, anchor=north west] at (-2.0, -2.7) {
   \node[sw, fill=figkPolymul!15, draw=figkPolymul!70!black]{}; &
   \node{Πολυωνυμικός πολλαπλασιασμός}; \\
   \node[sw, fill=figkKeccak!15, draw=figkKeccak!70!black]{}; &

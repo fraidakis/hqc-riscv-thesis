@@ -1,16 +1,18 @@
-% VARIANT (_costfocus presentation, same layout) — not \input by main.tex; promote manually
-% RS decode pipeline: highlights the dominant-cost stage (FFT Roots, O(M*2^M)) as the optimization target (ch. 7)
+% VARIANT (_costfocus presentation v2, same linear layout) — not \input by main.tex; promote manually
+% Fixes vs v1: compact + centred (node distance 0.6cm, narrower boxes) and input/output labels
+% moved ABOVE the end boxes so the figure no longer extends past the left/right margins.
+% Still highlights the dominant-cost stage C (FFT Roots, O(M*2^M)) as the optimization target.
 \tikzsetnextfilename{ch2-background-rs-decode-pipeline_costfocus}
 \begin{tikzpicture}[
-  node distance=1.4cm,
-  stg/.style={figbox, draw=figprocess, fill=figprocessfill, figLW/base, align=center, minimum width=2.4cm, minimum height=0.9cm},
-  focal/.style={figbox/focal, align=center, minimum width=2.4cm, minimum height=0.9cm},
-  fin/.style={figbox, draw=figsolution, fill=figsolutionfill, figLW/base, align=center, minimum width=2.4cm, minimum height=0.9cm},
+  node distance=0.6cm,
+  stg/.style={figbox, draw=figprocess, fill=figprocessfill, figLW/base, align=center, minimum width=1.95cm, minimum height=1.0cm},
+  focal/.style={figbox/focal, align=center, minimum width=1.95cm, minimum height=1.0cm},
+  fin/.style={figbox, draw=figsolution, fill=figsolutionfill, figLW/base, align=center, minimum width=1.95cm, minimum height=1.0cm},
   arrow/.style={figedge},
   annot/.style={figT/annot, align=center}
 ]
 
-% Pipeline stages (horizontal); stage C is the dominant cost -> focal
+% Pipeline stages; stage C is the dominant cost -> focal
 \node[stg] (A) {Στάδιο A\\Syndromes};
 \node[stg, right=of A] (B) {Στάδιο B\\BM};
 \node[focal, right=of B] (C) {Στάδιο C\\FFT Roots};
@@ -24,20 +26,20 @@
 \draw[arrow] (D) -- (E);
 
 % Complexity annotations below (stage C emphasised)
-\node[annot, below=0.2cm of A] {$\mathcal{O}(\delta \cdot n_1)$};
-\node[annot, below=0.2cm of B] {$\mathcal{O}(\delta^2)$};
-\node[below=0.2cm of C, font=\sffamily\scriptsize\bfseries, text=figaccent!80!black] {$\mathcal{O}(M \cdot 2^M)$};
-\node[annot, below=0.2cm of D] {$\mathcal{O}(\delta^2)$};
-\node[annot, below=0.2cm of E] {$\mathcal{O}(n_1)$};
+\node[annot, below=0.18cm of A] {$\mathcal{O}(\delta \cdot n_1)$};
+\node[annot, below=0.18cm of B] {$\mathcal{O}(\delta^2)$};
+\node[below=0.18cm of C, font=\sffamily\scriptsize\bfseries, text=figaccent!80!black] {$\mathcal{O}(M \cdot 2^M)$};
+\node[annot, below=0.18cm of D] {$\mathcal{O}(\delta^2)$};
+\node[annot, below=0.18cm of E] {$\mathcal{O}(n_1)$};
 
-% Dominant-cost brace above stage C
+% Dominant-cost brace + callout above stage C
 \draw[figbrace/warn] ([yshift=2pt]C.north west) --
-  node[above=6pt, figT/callout, text width=3.4cm, align=center]
+  node[above=6pt, figT/callout, text width=3.2cm, align=center]
   {κυρίαρχος όρος κόστους — στόχος βελτιστοποίησης}
   ([yshift=2pt]C.north east);
 
-% Input/output labels
-\node[figT/micro, left=0.4cm of A] {cdw[$n_1$]};
-\node[figT/micro, right=0.4cm of E] {msg[$k$]};
+% Input/output labels ABOVE the end stages (no horizontal growth)
+\node[figT/micro, above=0.12cm of A] {cdw[$n_1$]};
+\node[figT/micro, above=0.12cm of E] {msg[$k$]};
 
 \end{tikzpicture}

@@ -1,13 +1,16 @@
-% HQC parameter table per security level
-% Usage: \input{figures/hqc-params-table}
-\begin{tabular}{l S[table-format=5.0] S[table-format=3.0] S[table-format=3.0]
-                S[table-format=5.0] S[table-format=3.0] S[table-format=3.0]
-                S[table-format=3.0] S[table-format=2.0]}
-\toprule
+% VARIANT — not \input by main.tex; promote manually
+% _v1 (FIX 2026-06-15): baseline refined (SAME layout). tabular -> thesistblr
+% for the shared sans-bold header wash + accent booktabs-weight rules.
+% FIX: the earlier Q[si={table-format=...}] columns rendered as solid BLACK
+% boxes that hid every number (the tabularray<->siunitx library is NOT enabled
+% in this build). Replaced the `si' column key with right-aligned `r' columns
+% and \num{} for thousands grouping on values >= 1000. These are all integers,
+% so right-align == siunitx S-align. Same data, same column order.
+\begin{thesistblr}{
+  colspec = {l r r r r r r r r},
+}
 {Security Level} & {$N$} & {$n_1$} & {$n_2$} & {$n_1 \cdot n_2$} & {$\omega$} & {$\omega_r = \omega_e$} & {$\delta$} & {$k_{\mathrm{RS}}$ (bytes)} \\
-\midrule
-HQC-128 & 17669 & 46  & 384 & 17664 & 66  & 75  & 15 & 16 \\
-HQC-192 & 35851 & 56  & 640 & 35840 & 100 & 114 & 16 & 24 \\
-HQC-256 & 57637 & 90  & 640 & 57600 & 131 & 149 & 29 & 32 \\
-\bottomrule
-\end{tabular}
+HQC-128 & \num{17669} & 46 & 384 & \num{17664} & 66  & 75  & 15 & 16 \\
+HQC-192 & \num{35851} & 56 & 640 & \num{35840} & 100 & 114 & 16 & 24 \\
+HQC-256 & \num{57637} & 90 & 640 & \num{57600} & 131 & 149 & 29 & 32 \\
+\end{thesistblr}

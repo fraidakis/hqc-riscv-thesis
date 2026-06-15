@@ -1,90 +1,80 @@
-% VARIANT (_phasebands presentation, same layout) — not \input by main.tex; promote manually
-% Keccak sponge with shaded Absorb/Squeeze regions + dashed phase boundary for grouping clarity
-\tikzsetnextfilename{ch2-background-keccak-sponge_phasebands}
+% VARIANT (_brace presentation v2, white background + per-phase grouping braces) — not \input by main.tex; promote manually
+% Fixes vs v1: the left cluster is de-congested — the state box gets its own column on the far
+% left, the rate/capacity braces and the "state = r+c" caption are spaced clear of it, and the
+% absorb chain (XOR/f) is shifted right so nothing overlaps. Compressed (scale=0.85) to fit \textwidth.
+\tikzsetnextfilename{ch2-background-keccak-sponge_brace}
 \begin{tikzpicture}[
+  scale=0.85,
   block/.style={figbox, draw=figprocess, fill=figprocessfill, figLW/base,
-                align=center, minimum width=1.8cm, minimum height=0.9cm},
+                align=center, minimum width=1.5cm, minimum height=0.85cm},
   xornode/.style={draw=figrule, circle, inner sep=1.5pt, figT/micro},
   arr/.style={figedge}
 ]
 
-\def\stateW{3.0}
-\def\rateH{1.2}
-\def\capH{0.6}
+% rows: m at y=1.4, xor at y=0.45, f at y=-0.5
 
-% Phase background bands (drawn first => behind all nodes/arrows)
-\fill[figprocess!5]  (-3.0, -1.05) rectangle (8.6, 2.1);
-\fill[figsolution!6] (8.8, -1.05) rectangle (15.3, 2.1);
-\draw[figLW/hair, draw=figrule, dashed] (8.7, -1.05) -- (8.7, 2.1);
+% --- phase grouping braces (the gap between them is the separator) ---
+\draw[figbrace] (-0.4, 1.95) -- node[above=6pt, figT/title] {Absorb} (7.0, 1.95);
+\draw[figbrace] (8.4, 1.95) -- node[above=6pt, figT/title] {Squeeze} (12.2, 1.95);
 
-% --- Absorb phase ---
-\node[figT/title] at (0, 2.5) {Absorb};
+% --- Initial state box (own column, far left) ---
+\draw[figLW/base, draw=figsolution, fill=figsolutionfill] (-2.6, 0.2) rectangle (-1.0, 1.05);
+\node[figT/micro] at (-1.8, 0.625) {$r$ bits};
+\draw[figLW/base, draw=figthreat, fill=figthreatfill] (-2.6, -0.25) rectangle (-1.0, 0.2);
+\node[figT/micro] at (-1.8, 0.025) {$c$ bits};
 
-% Input blocks
-\node[figT/label] (m0) at (-1.5, 1.5) {$m_0$};
-\node[figT/label] (m1) at (2.0, 1.5) {$m_1$};
-\node[figT/label] (m2) at (5.5, 1.5) {$m_2$};
-\node[figT/label] (dots) at (8.2, 1.5) {$\cdots$};
+% rate / capacity braces (clear above / below the state box)
+\draw[figbrace] (-2.6, 1.15) -- node[above=5pt, figT/micro] {rate $r$} (-1.0, 1.15);
+\draw[figbrace] (-1.0, -0.35) -- node[below=5pt, figT/micro] {capacity $c$} (-2.6, -0.35);
 
-% XOR nodes
-\node[xornode] (xor0) at (-1.5, 0.5) {$\oplus$};
-\node[xornode] (xor1) at (2.0, 0.5) {$\oplus$};
-\node[xornode] (xor2) at (5.5, 0.5) {$\oplus$};
+% state-size caption, well below the state box
+\node[figT/annot] at (-1.8, -1.45) {state $= r + c = \num{1600}$ bits};
 
-% Permutation blocks
-\node[block] (f0) at (0.2, -0.5) {$f$};
-\node[block] (f1) at (3.7, -0.5) {$f$};
-\node[block] (f2) at (7.2, -0.5) {$f$};
+% --- Absorb chain (shifted right, clear of the state box) ---
+\node[figT/label] (m0) at (0.3, 1.4) {$m_0$};
+\node[figT/label] (m1) at (2.9, 1.4) {$m_1$};
+\node[figT/label] (m2) at (5.5, 1.4) {$m_2$};
+\node[figT/label] (dots) at (7.7, 1.4) {$\cdots$};
 
-% State boxes (rate + capacity)
-\draw[figLW/base, draw=figsolution, fill=figsolutionfill] (-2.5, 0.0) rectangle (-2.5+\stateW, \rateH);
-\node[figT/micro] at (-2.5+\stateW/2, \rateH/2) {$r$ bits};
-\draw[figLW/base, draw=figthreat, fill=figthreatfill] (-2.5, -\capH) rectangle (-2.5+\stateW, 0.0);
-\node[figT/micro] at (-2.5+\stateW/2, -\capH/2) {$c$ bits};
+\node[xornode] (xor0) at (0.3, 0.45) {$\oplus$};
+\node[xornode] (xor1) at (2.9, 0.45) {$\oplus$};
+\node[xornode] (xor2) at (5.5, 0.45) {$\oplus$};
 
-% Arrows: input to XOR
+\node[block] (f0) at (1.5, -0.5) {$f$};
+\node[block] (f1) at (4.1, -0.5) {$f$};
+\node[block] (f2) at (6.7, -0.5) {$f$};
+
+% initial state -> first XOR
+\draw[arr] (-1.0, 0.4) -- (xor0);
+
+% input -> XOR
 \draw[arr] (m0) -- (xor0);
 \draw[arr] (m1) -- (xor1);
 \draw[arr] (m2) -- (xor2);
 
-% Arrows: XOR to f
+% XOR -> f
 \draw[arr] (xor0) -- (f0);
 \draw[arr] (xor1) -- (f1);
 \draw[arr] (xor2) -- (f2);
 
-% Arrows: f to next XOR
+% f -> next XOR
 \draw[arr] (f0) -| (xor1);
 \draw[arr] (f1) -| (xor2);
-\draw[arr] (f2) -- (8.2, -0.5);
+\draw[arr] (f2) -- (7.8, -0.5);
 
-% Initial state arrow
-\draw[arr] (-2.5+\stateW, 0.3) -- (xor0);
+% --- Squeeze chain ---
+\node[block] (fs0) at (9.0, -0.5) {$f$};
+\node[block] (fs1) at (11.0, -0.5) {$f$};
 
-% --- Squeeze phase ---
-\node[figT/title] at (9.5, 2.5) {Squeeze};
+\node[figT/label] (z0) at (9.0, 1.4) {$z_0$};
+\node[figT/label] (z1) at (11.0, 1.4) {$z_1$};
+\node[figT/label] (zdots) at (12.2, 1.4) {$\cdots$};
 
-\node[block] (fs0) at (10.0, -0.5) {$f$};
-\node[block] (fs1) at (13.0, -0.5) {$f$};
-
-% Output blocks
-\node[figT/label] (z0) at (10.0, 1.5) {$z_0$};
-\node[figT/label] (z1) at (13.0, 1.5) {$z_1$};
-\node[figT/label] (zdots) at (14.8, 1.5) {$\cdots$};
-
-% Arrows: f to output
 \draw[arr] (fs0) -- (z0);
 \draw[arr] (fs1) -- (z1);
 
-% Arrows: chain
-\draw[arr] (8.2, -0.5) -- (fs0);
+\draw[arr] (7.8, -0.5) -- (fs0);
 \draw[arr] (fs0) -- (fs1);
-\draw[arr] (fs1) -- (14.8, -0.5);
-
-% Rate/capacity annotation
-\draw[figbrace] (-2.5, \rateH+0.1) -- node[above=8pt, figT/micro] {rate $r$} (-2.5+\stateW, \rateH+0.1);
-\draw[figbrace] (-2.5+\stateW, -\capH-0.1) -- node[below=8pt, figT/micro] {capacity $c$} (-2.5, -\capH-0.1);
-
-% Annotation: state width
-\node[figT/annot] at (-1.0, -1.5) {state = $r + c = \num{1600}$ bits};
+\draw[arr] (fs1) -- (12.2, -0.5);
 
 \end{tikzpicture}
