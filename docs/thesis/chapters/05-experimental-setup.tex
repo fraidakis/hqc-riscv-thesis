@@ -323,7 +323,7 @@ intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse
 \label{ssec:cmake-build}
 
 Το σύστημα μεταγλώττισης βασίζεται στο CMake ($\geq$3.21) με δύο εξειδικευμένα
-toolchain files που ενθυλακώνουν τη ρύθμιση cross-compilation:
+toolchain files που ορίζουν τη ρύθμιση cross-compilation:
 
 \begin{itemize}
   \item \code{toolchain/riscv-clang.cmake} — ρυθμίζει τον Clang ως
@@ -918,7 +918,7 @@ $\mathbf{sk} = (\mathbf{x}, \mathbf{y})$ (αραιά δυαδικά διανύσ
     τελεστέων \cite{RISCV-crypto-spec}.
 \end{enumerate}
 
-Η extension Zkt ορίζει τυπικά αυτή την εγγύηση: για κάθε εντολή
+Η επέκταση Zkt ορίζει τυπικά αυτή την εγγύηση: για κάθε εντολή
 $i \in \mathcal{I}_{\mathrm{Zkt}}$ και οποιαδήποτε δύο ζεύγη τελεστέων
 $x, y$ ίσου εύρους, υπό σταθερό μικροαρχιτεκτονικό context $\mu$, ισχύει
 \begin{equation}
@@ -1023,8 +1023,8 @@ table walks — φαινόμενα που θα εισήγαγαν ασύμμετ
 batches.
 
 \paragraph{Percentile cropping (δεύτερος t-test).}
-Ο δεύτερος t-test εφαρμόζει percentile cropping: μετρήσεις πάνω από το
-95ο εκατοστημόριο κάθε batch απορρίπτονται πριν τροφοδοτηθούν στον
+Ο δεύτερος t-test εφαρμόζει percentile cropping: μετρήσεις άνω του
+95ου εκατοστημορίου κάθε batch απορρίπτονται πριν τροφοδοτηθούν στον
 t-test accumulator.  Η τεχνική αυτή αφαιρεί outliers από OS interrupts,
 context switches, και DVFS transients που θα μασκάριζαν λεπτά σήματα
 διαρροής.

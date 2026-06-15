@@ -72,7 +72,7 @@ ANSSI)~\cite{ras-nist2025}. Αντί Karatsuba, προτείνεται η χρή
 
 \paragraph{Αλγοριθμική προσέγγιση.}
 Η \gls{fafft} μετασχηματίζει τον πολλαπλασιασμό δυαδικών πολυωνύμων σε
-FFT-based αξιολόγηση πάνω σε πεδίο $\GF{2^{32}}$, αξιοποιώντας Cantor basis
+FFT-based αξιολόγηση επί του σώματος $\GF{2^{32}}$, αξιοποιώντας Cantor basis
 και Frobenius map για μείωση των σημείων αξιολόγησης από $n$ σε $n/m$. Η
 υλοποίηση σε C (χωρίς SIMD ή assembly βελτιστοποιήσεις) ενσωματώθηκε στον
 επίσημο κώδικα \gls{hqc} και εκτελέστηκε στον CV32E40P (RV32IMC) σε Xilinx Kintex-7
@@ -187,8 +187,8 @@ general-purpose επεξεργαστές Intel Core i7 (Kaby Lake). Η προσ�
 
 \paragraph{Adaptive sparse$\times$dense πολλαπλασιασμός.}
 Ένας threshold-aware scheduler επιλέγει δυναμικά μεταξύ sparse$\times$dense και
-dense$\times$dense μονοπατιού βάσει του βάρους Hamming του πρώτου τελεστή. Στο
-sparse μονοπάτι, το γινόμενο συντίθεται ως υπέρθεση κυκλικά μετατοπισμένων
+dense$\times$dense κλάδου βάσει του βάρους Hamming του πρώτου τελεστή. Στο
+sparse κλάδο, το γινόμενο συντίθεται ως υπέρθεση κυκλικά μετατοπισμένων
 αντιγράφων του πυκνού πολυωνύμου — η πολυπλοκότητα κλιμακώνει με τον αριθμό
 μη-μηδενικών συντελεστών αντί του βαθμού πολυωνύμου. Η μετατόπιση αποσυντίθεται
 σε coarse word rotation και fine intra-word bit rotation, με AVX2-aligned
@@ -201,7 +201,7 @@ cache-friendly batches. Η βελτιστοποίηση επιταχύνει τ�
 \speedup{2}.
 
 \paragraph{Table-driven Reed-Solomon.}
-Ο πολλαπλασιασμός στο $\GF{2^8}$ αντικαθίσταται από precomputed lookup table
+Ο πολλαπλασιασμός στο $\GF{2^8}$ αντικαθίσταται από precomputed lookup table (προϋπολογισμένο πίνακα αναζήτησης)
 ($\sim$8\,KB για encode, $\sim$14\,KB nibble-sliced για decode), μετατρέποντας
 τον εσωτερικό βρόχο σε constant-time XOR operations.
 
@@ -209,7 +209,7 @@ cache-friendly batches. Η βελτιστοποίηση επιταχύνει τ�
 Συνολικά επιτυγχάνεται \pct{55} μέσο speedup έναντι της reference υλοποίησης,
 με τη μεγαλύτερη βελτίωση στο \Decaps λόγω του βελτιστοποιημένου RS/RM decoding pipeline.
 Η κατανομή κόστους στη reference υλοποίηση αποκαλύπτει ότι ο πολυωνυμικός πολλαπλασιασμός και η αποκωδικοποίηση
-αποτελούν από κοινού πάνω από \pct{85} του συνολικού χρόνου.
+αποτελούν από κοινού άνω του \pct{85} του συνολικού χρόνου.
 
 \paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
 Δύο θεμελιώδεις διαφορές περιορίζουν τη συγκρισιμότητα:
@@ -445,7 +445,7 @@ registers.
 Ο Number Theoretic Transform βελτιστοποιείται μέσω δύο εναλλακτικών modular
 αριθμητικών: Montgomery και Plantard. Η Plantard αριθμητική εξοικονομεί έναν
 πολλαπλασιασμό ανά butterfly μέσω precomputation, ενώ η εκτεταμένη range
-analysis εξαλείφει τη reduction μετά τον NTT. Η flexible dual-issue scheduling
+analysis εξαλείφει την αναγωγή μετά τον NTT. Η flexible dual-issue scheduling
 εναλλάσσει εντολές μεταξύ ανεξάρτητων butterflies ώστε να αποφεύγονται RAW
 hazards. Τα αποτελέσματα: \pct{76.76}–\pct{85.57} speedup σε NTT/INTT για
 Kyber.
@@ -459,7 +459,7 @@ Kyber.
 Η ECO-CRYSTALS αποδεικνύει ότι η \gls{zbb} (\rori/\insn{andn}) ωφελεί σημαντικά
 τον Keccak σε RV64 — ίδια παρατήρηση με την παρούσα εργασία
 (βλ.~\cref{sec:keccak-optimization}). Η dual-issue scheduling μεθοδολογία είναι
-αναλογική, αλλά εφαρμόζεται σε NTT butterflies αντί GF(2)[$x$] Karatsuba
+αναλογική, αλλά εφαρμόζεται σε NTT butterflies αντί $\GFpoly$ Karatsuba
 leaves. Η θεμελιώδης διαφορά έγκειται στον αριθμητικό πυρήνα: ο NTT λειτουργεί
 σε $\mathbb{Z}_q$ (modular integer αριθμητική), ενώ ο πολυωνυμικός
 πολλαπλασιασμός του \gls{hqc} λειτουργεί σε $\GF{2}[x]$ (carry-less αριθμητική) —
@@ -634,7 +634,7 @@ dense$\times$dense Karatsuba της reference υλοποίησης που υιο
 \paragraph{Jang et al.\ 2025~\cite{Jang2025-CortexM4-HQC}.}
 Η εργασία στοχεύει ARM Cortex-M4, πλατφόρμα χωρίς hardware carry-less multiply.
 Η χρήση \gls{fafft} αποτελεί αναγκαστική επιλογή λόγω απουσίας \insn{clmul} —
-σε αντίθεση με τη RISC-V αρχιτεκτονική όπου η \gls{zbc} παρέχει νατιβή υποστήριξη.
+σε αντίθεση με τη RISC-V αρχιτεκτονική όπου η \gls{zbc} παρέχει εγγενή υποστήριξη.
 Η εργασία δεν αφορά RISC-V.
 
 \paragraph{Chen et al.\ TCHES 2026~\cite{Chen2026-TCHES-HQC-FFT}.}
