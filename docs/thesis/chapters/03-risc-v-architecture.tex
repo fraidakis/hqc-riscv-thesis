@@ -443,7 +443,7 @@ instruction scheduling, CSE), σε αντίθεση με inline assembly που 
 αξιοποιείται και στην αριθμητική $\GF{2^8}$ που απαιτεί ο αποκωδικοποιητής
 Reed-Solomon (βλ.~\cref{sec:ecc-theory}). Ο πολλαπλασιασμός δύο
 στοιχείων $a, b \in \GF{2^8}$ υπολογίζεται ως carry-less product ακολουθούμενο
-από modular reduction ως προς το αναγωγικό πολυώνυμο $x^8 + x^4 + x^3 + x^2 + 1$ (0x11D).
+από modular reduction ως προς το ανάγωγο πολυώνυμο $x^8 + x^4 + x^3 + x^2 + 1$ (0x11D).
 Η \clmul υπολογίζει το 16-bit γινόμενο σε μία εντολή (αντί περίπου
 \num{100} εντολών στον constant-time software βρόχο της reference
 υλοποίησης~\cite{Brent2008-gf2x}), ενώ η reduction εκτελείται σε
