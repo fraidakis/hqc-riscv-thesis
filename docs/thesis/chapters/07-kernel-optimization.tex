@@ -22,7 +22,7 @@ SHAKE-256 και SHA3 εντός του \gls{hqc}.  Μετά τη βελτιστ
 με το tier — αποτέλεσμα του νόμου Amdahl.  Η ενότητα αυτή
 παρουσιάζει τρεις εναλλακτικές υλοποιήσεις αυξανόμενης πολυπλοκότητας:
 scalar με \gls{zbb} auto-lowering, Base-\RVV (απορριφθείσα), και Vector-Crypto
-\gls{zvbb} με δικαναλική \gls{soa} αρχιτεκτονική.
+\gls{zvbb} με αρχιτεκτονική \gls{soa} δύο ροών.
 
 %% --------------------------------------------------------------------------
 \subsection{Scalar Path: Αξιοποίηση \Zbb}
@@ -255,7 +255,7 @@ security levels.
 Το υποσύστημα αποκωδικοποίησης εκτελείται αποκλειστικά κατά το \Decaps και
 αποτελείται από δύο διαδοχικά στάδια: τον εσωτερικό κώδικα \gls{rm}(1,7)
 (bit-level διόρθωση εντός κάθε symbol) και τον εξωτερικό κώδικα \gls{rs}
-πάνω από $\GF{2^8}$ (symbol-level διόρθωση μεταξύ symbols).  Μετά τη
+επί του $\GF{2^8}$ (symbol-level διόρθωση μεταξύ symbols).  Μετά τη
 βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (\cref{ch:polymul-optimization})
 και του Keccak (\cref{sec:keccak-optimization}), το decode pipeline αποτελεί
 τον τρίτο μεγαλύτερο πυρήνα — καταναλώνοντας \pct{18.4} (HQC-128),
@@ -355,7 +355,7 @@ LMUL=8 ($\text{vl}=128$) για σάρωση ολόκληρου του μετα�
 
 \paragraph{Reed-Solomon Axis A: Vectorized Syndrome Computation.}
 Κάθε ένα από τα $2\delta$ syndromes αποτελεί ανεξάρτητο εσωτερικό γινόμενο
-μήκους $N_1 - 1$ πάνω από $\GF{2^8}$.  Ο εξωτερικός βρόχος (ανά syndrome)
+μήκους $N_1 - 1$ επί του $\GF{2^8}$.  Ο εξωτερικός βρόχος (ανά syndrome)
 παραμένει scalar, ενώ ο εσωτερικός βρόχος (ανά στοιχείο) vectorized πλήρως.
 
 Η στρατηγική αξιοποιεί την ταυτότητα λογαρίθμου/αντιλογαρίθμου:
@@ -400,7 +400,7 @@ BPI-F3 δείχνουν ότι η \code{vector\_rvv} (Tier~2) υπολείπετ
 \subsection{Vector-Crypto Path: \Zvbc RS (Berlekamp-Massey, Forney)}
 \label{sec:decode-zvbc-bm-forney}
 
-Το Tier~3 επεκτείνει το Tier~2 vectorizing τους εναπομείναντες εσωτερικούς
+Το Tier~3 επεκτείνει το Tier~2 διανυσματοποιώντας τους εναπομείναντες εσωτερικούς
 βρόχους \gls{rs} (Axes B και D) μέσω \gls{zvbc} \insn{vclmul.vv} lane-packing.
 Η στρατηγική τοποθετεί ένα στοιχείο $\GF{2^8}$ ανά 64-bit lane, εκτελεί
 carry-less πολλαπλασιασμό μέσω \insn{vclmul.vv}, και εφαρμόζει inline
@@ -499,7 +499,7 @@ $2^M = 256$ σημεία του $\GF{2^8}$ μέσω αναδρομικής radix
 
 Ο μετασχηματισμός εξαλείφει $\BigO{2^M}$ κλήσεις συναρτήσεων (function
 call overhead: prologue/epilogue, stack frame allocation, argument passing)
-και αντικαθιστά τις με explicit level-loops πάνω σε compile-time-bounded
+και αντικαθιστά τις με explicit level-loops επί compile-time-bounded
 arrays.  Η μνήμη εργασίας εκχωρείται στη στοίβα με σταθερά μεγέθη
 καθοριζόμενα από \code{PARAM\_M} και \code{PARAM\_FFT} — χωρίς heap
 allocation.
@@ -574,10 +574,10 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
 \num{300}/\num{300} \gls{kat} vectors σε όλα τα security levels.
 
 %% --------------------------------------------------------------------------
-\subsection{Βελτιστοποίηση GF($2^8$) Reduction: Single-Pass Barrett via \insn{vclmul}}
+\subsection{Βελτιστοποίηση $\GF{2^8}$ Reduction: Single-Pass Barrett via \insn{vclmul}}
 \label{sec:decode-barrett}
 
-Η modular reduction $\bmod\; p(x) = x^8 + x^4 + x^3 + x^2 + 1$ (0x11D)
+Η αναγωγή $\bmod\; p(x) = x^8 + x^4 + x^3 + x^2 + 1$ (0x11D)
 εφαρμόζεται μετά κάθε \insn{vclmul.vv} στο Zvbc decode pipeline.  Η αρχική
 υλοποίηση χρησιμοποιούσε two-pass shift-and-XOR feedback (ταυτόσημη με τη
 scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction.  Η
@@ -603,7 +603,7 @@ scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction.  Η
 τη χρήση ενός μόνο constant vector και για τις δύο \insn{vclmul.vv} πράξεις.
 
 \paragraph{Υλοποίηση.}
-Η \code{gf\_reduce\_vec\_u64m4} (\cref{lst:barrett-single}) εκτελεί τη reduction σε \num{6} vector
+Η \code{gf\_reduce\_vec\_u64m4} (\cref{lst:barrett-single}) εκτελεί την αναγωγή σε \num{6} vector
 εντολές (πλέον \num{1} \insn{vmv.v.x} broadcast που ανυψώνεται εκτός
 βρόχου από τον μεταγλωττιστή):
 
@@ -1048,7 +1048,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
 \begin{itemize}
   \item \textbf{\ext{Zbkb}} (pack, packh, brev8, zip, unzip): μηδενικές
         εκπεμπόμενες εντολές.  Ο κώδικας \gls{hqc} δεν περιέχει half-register
-        packing ή bit-interleave patterns στα hot paths — η GF($2^8$)
+        packing ή bit-interleave patterns στα hot paths — η $\GF{2^8}$
         αριθμητική χρησιμοποιεί lookup tables αντί bitwise field πράξεων.
   \item \textbf{\ext{Zbkc}} (clmulr — carry-less multiply reversed):
         μηδενική εκπομπή.  Τα inline assembly blocks \code{clmul}/\code{clmulh}
