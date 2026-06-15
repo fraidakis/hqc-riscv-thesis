@@ -1,28 +1,40 @@
-% Concatenated decoding pipeline: RM (inner) → RS (outer)
+% Concatenated coding pipeline: encoding (Encaps) and decoding (Decaps)
 \tikzsetnextfilename{ch2-background-concatenated-pipeline}
 \begin{tikzpicture}[
-  node distance=2.0cm,
-  block/.style={rectangle, draw, fill=#1, minimum width=3.0cm,
-    minimum height=1cm, text width=2.8cm, align=center,
+  node distance=1.8cm,
+  block/.style={rectangle, draw, fill=#1, minimum width=2.6cm,
+    minimum height=0.9cm, text width=2.4cm, align=center,
     rounded corners=2pt, font=\small},
   block/.default={blue!8},
   arrow/.style={->, >=stealth, thick},
-  lbl/.style={font=\scriptsize, midway, above}
+  lbl/.style={font=\scriptsize, midway, above},
+  phase/.style={font=\small\bfseries, anchor=west}
 ]
 
-% Nodes
-\node[block=yellow!15] (input) {Ληφθείσα λέξη ($n_1 \times n_2$ bits)};
-\node[block=orange!15, right=of input] (rm) {RM(1,7) Αποκωδικοποιητής (εσωτερικός)};
-\node[block=green!12, right=of rm] (rs) {Reed-Solomon Αποκωδικοποιητής (εξωτερικός)};
-\node[block=blue!10, right=of rs] (output) {Διορθωμένο μήνυμα $m$ ($k$ bytes)};
+% === Encoding path (top row) ===
+\node[phase] at (-2.2, 0) {\Encaps:};
+\node[block=blue!10] (msg) at (0.5, 0) {Μήνυμα $m$ ($k$ bytes)};
+\node[block=green!12, right=of msg] (rs-enc) {RS Κωδικοποίηση};
+\node[block=orange!15, right=of rs-enc] (rm-enc) {RM(1,7) Κωδικοποίηση};
+\node[block=yellow!15, right=of rm-enc] (ctext) {Κωδική λέξη ($n_1 \!\times\! n_2$ bits)};
 
-% Arrows
-\draw[arrow] (input) -- (rm) node[lbl] {$n_1 \times n_2$ bits};
-\draw[arrow] (rm) -- (rs) node[lbl] {$n_1$ bytes};
-\draw[arrow] (rs) -- (output) node[lbl] {$k$ bytes};
+\draw[arrow] (msg) -- (rs-enc) node[lbl] {$k$ bytes};
+\draw[arrow] (rs-enc) -- (rm-enc) node[lbl] {$n_1$ bytes};
+\draw[arrow] (rm-enc) -- (ctext) node[lbl] {$n_1 \!\times\! n_2$ bits};
 
-% Annotations below
-\node[font=\scriptsize, below=0.3cm of rm, text=gray] {bit-level};
-\node[font=\scriptsize, below=0.3cm of rs, text=gray] {symbol-level};
+% === Decoding path (bottom row) ===
+\node[phase] at (-2.2, -2.2) {\Decaps:};
+\node[block=yellow!15] (recv) at (0.5, -2.2) {Ληφθείσα λέξη + θόρυβος};
+\node[block=orange!15, right=of recv] (rm-dec) {RM(1,7) Αποκωδ.};
+\node[block=green!12, right=of rm-dec] (rs-dec) {RS Αποκωδ.};
+\node[block=blue!10, right=of rs-dec] (recov) {Ανακτημένο $m'$ ($k$ bytes)};
+
+\draw[arrow] (recv) -- (rm-dec) node[lbl] {$n_1 \!\times\! n_2$ bits};
+\draw[arrow] (rm-dec) -- (rs-dec) node[lbl] {$n_1$ bytes};
+\draw[arrow] (rs-dec) -- (recov) node[lbl] {$k$ bytes};
+
+% Annotations
+\node[font=\scriptsize, below=0.15cm of rm-dec, text=gray] {bit-level};
+\node[font=\scriptsize, below=0.15cm of rs-dec, text=gray] {symbol-level};
 
 \end{tikzpicture}
