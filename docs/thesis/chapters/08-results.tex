@@ -63,7 +63,7 @@ variants και security levels. Η στήλη speedup υπολογίζεται 
 levels παραμένει κάτω από τη θεωρητική πολυπλοκότητα $\BigO{N^{\log_2 3}}$ του
 Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι $\num{271006}
 / \num{62530} = 4.33$ στο Tier~3 — χαμηλότερος από το pure-Karatsuba
-$(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκωση
+$(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκωση (πρακτικός εκθέτης $<\log_2 3$)
 οφείλεται στο σταθερό overhead και στη γραμμική \insn{vclmul} συνιστώσα
 που αμορτίζονται σε μικρά $N$. Δεύτερον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
 \SI{15.3}{\kilo\byte} στο Tier~1) αντικατοπτρίζει το κόστος του πλήρως
@@ -91,21 +91,19 @@ $(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκω
 \end{enumerate}
 Συνολικά εκτελούνται $\sim$6 XOF/hash αρχικοποιήσεις και
 62, 118 ή 181 Keccak-f[1600] permutations για HQC-128, HQC-192 και
-HQC-256 αντίστοιχα (μετρήθηκαν από το Spike \instret και τον
-per-permutation κόστος $\approx\num{2114}$ εντολών στο Tier~3). Η μέτρηση
+HQC-256 αντίστοιχα (μετρήθηκαν από το Spike \instret και το
+κόστος ανά permutation $\approx\num{2114}$ εντολών στο Tier~3). Η μέτρηση
 \emph{δεν} περιλαμβάνει \code{vect\_mul} ή \code{code\_decode} (μετρούνται
 ξεχωριστά), αλλά περιλαμβάνει το κόστος vector sampling (rejection loops,
 bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχώριστο από τη SHAKE squeeze.
 
 Ο~\cref{tab:microbench-keccak} παρουσιάζει τη σύγκριση μεταξύ reference
-(scalar \code{fips202.c}) και βελτιστοποιημένης υλοποίησης (δικαναλική
-\gls{soa} αρχιτεκτονική με \gls{zvbb}, βλ.\ \cref{ssec:keccak-zvbb-soa}).
+(scalar \code{fips202.c}) και βελτιστοποιημένης υλοποίησης (\gls{soa} αρχιτεκτονική δύο ροών με \gls{zvbb}, βλ.\ \cref{ssec:keccak-zvbb-soa}).
 
 \begin{table}[htbp]
   \centering
   \caption{Keccak micro-benchmark \instret: reference vs optimized
-    \code{zvbb\_x2\_soa} (Spike, VLEN $= \num{256}$). Η δικαναλική
-    \gls{soa} αρχιτεκτονική επιτυγχάνει σταθερή επιτάχυνση
+    \code{zvbb\_x2\_soa} (Spike, VLEN $= \num{256}$). Η \gls{soa} αρχιτεκτονική δύο ροών επιτυγχάνει σταθερή επιτάχυνση
     \speedup{3.5}–\speedup{3.7} ανεξαρτήτως security level.}
   \label{tab:microbench-keccak}
   \input{figures/ch8-results/microbench-keccak-table}
@@ -263,7 +261,7 @@ resources. Στο HQC-128:
     την αποκωδικοποίηση κατά \speedup{3.15}. Ο Keccak παραμένει scalar σε αυτό το tier.
   \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{715844}$ \instret, $+\pct{173}$): η αντικατάσταση των scalar
     \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
-    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{60.3}$, $\num{157473} \to \num{62530}$), ενώ η δικαναλική \gls{soa} Keccak
+    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{60.3}$, $\num{157473} \to \num{62530}$), ενώ η \gls{soa} δύο ροών Keccak
     με \gls{zvbb} (\cref{ssec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
     \speedup{3.5}. Η σύνθεση αυτών των βελτιώσεων παράγει τη
     μεγαλύτερη σχετική βελτίωση μεταξύ διαδοχικών tiers.
@@ -307,7 +305,7 @@ resources. Στο HQC-128:
     \code{fips202.c}). Ο polymul (\pct{43.6}) και ο Keccak ισορροπούν
     σχεδόν, ενώ το misc συρρικνώνεται στο \pct{2.4} — η vectorized
     αποκωδικοποίηση έχει απορροφήσει μέρος της σχετικής βαρύτητας.
-  \item Στο \textbf{Tier~3}, η δικαναλική \gls{soa} Keccak μειώνει
+  \item Στο \textbf{Tier~3}, η \gls{soa} δύο ροών Keccak μειώνει
     τη συνεισφορά Keccak σε \pct{32.9}, ενώ ο polymul φτάνει
     στο \pct{46.8} και το decode ανεβαίνει σχετικά σε \pct{14.1}
     χάρη στη μεγαλύτερη μείωση Keccak. Η \gls{zvbc} acceleration
@@ -412,23 +410,23 @@ extensions παρέχει σημαντική επιτάχυνση σε ολόκ�
 
 Τρεις βασικές παρατηρήσεις αναδεικνύονται από τα δεδομένα.
 
-\paragraph{Το reference κλιμακώνει σχεδόν τετραγωνικά.}
+\paragraph{Το reference παρουσιάζει σχεδόν τετραγωνική κλιμάκωση.}
 Ο λόγος \instret μεταξύ HQC-256 και HQC-128 στο \code{scalar\_ref} είναι
 $\num{431890526} / \num{59013743} = 7.32$, κάτω από τον θεωρητικό
 $(57637/17669)^2 = 10.6$. Ο πρακτικός εκθέτης ανέρχεται σε $\sim 1.7$
 (αντί $2.0$ ακριβώς) — η απόκλιση οφείλεται στο σταθερό κόστος Keccak
-και decode που δεν κλιμακώνει τετραγωνικά. Στο reference αυτά αποτελούν
+και decode που δεν παρουσιάζει τετραγωνική κλιμάκωση. Στο reference αυτά αποτελούν
 μόλις $\approx\pct{2}$ του συνόλου, αλλά αρκούν για να αμβλύνουν τον εκθέτη
 καθώς η τετραγωνική συνιστώσα (polymul) κυριαρχεί ολοένα περισσότερο
 σε υψηλότερα levels.
 
-\paragraph{Τα optimized tiers κλιμακώνουν υπο-Karatsuba.}
+\paragraph{Τα optimized tiers παρουσιάζουν υπο-Karatsuba κλιμάκωση.}
 Στο Tier~3, ο λόγος $256/128$ είναι μόλις $3.57$ — σημαντικά χαμηλότερος
 από τον θεωρητικό Karatsuba ($6.5$). Η εξήγηση είναι δομική: στα
 υψηλότερα security levels, ο Karatsuba tree αυξάνει βάθος κατά ένα
 επίπεδο (από $d=9$ στο HQC-128 σε $d=10$ στο HQC-192 και $d=11$ στο
 HQC-256), αλλά ο αριθμός \insn{vclmul} leaves αυξάνεται μόνο κατά
-$3^{\Delta d}$ ενώ το recomposition overhead (XOR operations) κλιμακώνει
+$3^{\Delta d}$ ενώ το recomposition overhead (XOR operations) αυξάνεται
 γραμμικά χάρη στη vectorization. Κατά συνέπεια, ο πρακτικός εκθέτης
 πολυπλοκότητας του Tier~3 polymul πέφτει σε $\sim 1.2$ (υπολογισμένος
 ως $\log(271006/62530) / \log(57637/17669) = 1.24$).
@@ -441,7 +439,7 @@ $3^{\Delta d}$ ενώ το recomposition overhead (XOR operations) κλιμακ�
 αντικατοπτρίζει τη μεγαλύτερη αναλογία polymul στο reference σε υψηλότερα
 levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασιασμός κυριαρχεί
 ακόμη περισσότερο ($>\pct{98}$ στο HQC-256), ενώ η βελτιστοποιημένη
-υλοποίηση κλιμακώνει ηπιότερα.  Συνεπώς το polymul speedup κορυφώνεται στο
+υλοποίηση παρουσιάζει ηπιότερη κλιμάκωση.  Συνεπώς το polymul speedup κορυφώνεται στο
 \speedup{526} στο HQC-256 ως άμεση συνέπεια της σχεδόν τετραγωνικής κλιμάκωσης
 της βάσης \code{scalar\_ref} έναντι της υπο-Karatsuba κλιμάκωσης του Tier~3
 (πρακτικός εκθέτης $\sim 1.24$), και όχι ως μεμονωμένο peak.  Ο γεωμετρικός μέσος
@@ -457,10 +455,10 @@ levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασ
 
 \paragraph{Polymul — κυρίαρχος παράγοντας.}
 Ο πολυωνυμικός πολλαπλασιασμός καθορίζει τη συνολική κλιμάκωση σε κάθε
-tier. Στο Tier~3, ο isolated polymul κλιμακώνει ως $\num{62530} \to
+tier. Στο Tier~3, ο isolated polymul αυξάνεται ως $\num{62530} \to
 \num{185120} \to \num{271006}$ (λόγοι $2.96\times$ και $4.33\times$) —
 ο εκθέτης $\log(4.33)/\log(3.26) = 1.24$ επιβεβαιώνει τη sub-Karatsuba
-συμπεριφορά. Στο Tier~1, ο isolated polymul κλιμακώνει ως $\num{221030} \to
+συμπεριφορά. Στο Tier~1, ο isolated polymul αυξάνεται ως $\num{221030} \to
 \num{670293} \to \num{1879602}$ (λόγοι $3.03\times$ και $8.50\times$) — ο
 εκθέτης εξαρτάται από το εύρος σύγκρισης: $\log(3.03)/\log(2.03) = 1.57$
 (192/128, κοντά στον θεωρητικό Karatsuba $1.585$) αλλά
@@ -472,12 +470,12 @@ recomposition overhead — που παραμένει scalar στο Tier~1 — α
 απότομα και ωθεί τον πρακτικό εκθέτη ψηλότερα από τον θεωρητικό Karatsuba.
 
 \paragraph{Keccak — γραμμική κλιμάκωση.}
-Ο Keccak κλιμακώνει σχεδόν γραμμικά: $\num{131944} \to \num{249581} \to
+Ο Keccak αυξάνεται σχεδόν γραμμικά: $\num{131944} \to \num{249581} \to
 \num{383277}$ (λόγοι $1.89\times$ και $2.91\times$). Η αύξηση
 αντικατοπτρίζει τον μεγαλύτερο αριθμό Keccak-f permutations που
 απαιτούνται για seed expansion και hashing μεγαλύτερων δημοσίων κλειδιών.
 Η σταθερότητα του per-permutation κόστους ($\approx \num{2114}$ \instret
-ανά Keccak-f στο Tier~3) επιβεβαιώνει ότι η δικαναλική \gls{soa}
+ανά Keccak-f στο Tier~3) επιβεβαιώνει ότι η \gls{soa} δύο ροών
 αρχιτεκτονική δεν εξαρτάται από το security level.
 
 \paragraph{Decode — μη γραμμική αύξηση.}
@@ -584,7 +582,7 @@ protocol.
     λειτουργεί σε σταθερή 25-lane κατάσταση με LMUL$=$m8 — ήδη
     $\text{VLMAX} = \num{32} \geq 25$.
   \item \textbf{Μη κλιμακούμενο / λοιπό κλάσμα ($\approx\pct{28}$):} Scalar
-    helpers (\code{rol1\_zbb}, \pct{2.4}), σειριακή GF($2^8$)
+    helpers (\code{rol1\_zbb}, \pct{2.4}), σειριακή $\GF{2^8}$
     αριθμητική (\code{gf\_reduce}, \pct{6.3}, \code{gf\_mul}, \pct{1.3}),
     δειγματοληψία, \code{memset}/\code{memcpy} και λοιπά (\pct{14.2}),
     καθώς και το μερικώς κλιμακούμενο \code{kmul\_N} scaffolding (\pct{4.8}).
@@ -702,7 +700,7 @@ elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη 
 διότι υπάρχουν μόνο 25. Κάθε κλήση Keccak-f εκτελεί σταθερό αριθμό
 εντολών ($\approx \num{2114}$ \instret) ανεξαρτήτως \VLEN.
 
-\paragraph{GF($2^8$) αριθμητική — δύο διακριτοί περιορισμοί.}
+\paragraph{$\GF{2^8}$ αριθμητική — δύο διακριτοί περιορισμοί.}
 Εδώ συνυπάρχουν δύο διαφορετικοί μηχανισμοί. Η \code{gf\_reduce}
 (\pct{6.3} του \gls{kem}) είναι ήδη πλήρως vectorized και ολοκληρώνεται σε
 μία διέλευση (1-pass) στο \VLEN$= \num{256}$· ευρύτερο \VLEN δεν προσφέρει
@@ -886,7 +884,7 @@ steps.
 microarchitectural υπεροχή του scalar path (IPC $= 1.49$ vs $0.74$)
 κυριαρχεί.
 
-\paragraph{Ο \code{vector\_rvv} ανακτά στη \Decaps.}
+\paragraph{Ο \code{vector\_rvv} υπερέχει στη \Decaps.}
 Στη \Decaps, ο \code{vector\_rvv} (\num{1147999} κύκλοι) υπερτερεί
 οριακά του \code{scalar\_zb} (\num{1286829} κύκλοι, $-\pct{11}$). Η
 αντιστροφή οφείλεται κυρίως στη vectorized αποκωδικοποίηση: ο \code{vector\_rvv}

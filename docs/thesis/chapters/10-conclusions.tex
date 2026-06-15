@@ -18,7 +18,7 @@
 \paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
 Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{19214277} σε
 \num{221030} \instret (HQC-128), επιτυγχάνοντας \speedup{87} μέσω
-Karatsuba AP-2 fixed-tree generation και νατιβής \clmul/\clmulh.  Το πλήρες
+Karatsuba AP-2 fixed-tree generation και εγγενούς \clmul/\clmulh.  Το πλήρες
 \gls{kem} (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{34} στο HQC-128 και
 \speedup{49} στο HQC-256.
 
@@ -42,7 +42,7 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
 (\speedup{3.5}–\speedup{3.7} μέσω 2-way \gls{soa} με \gls{zvbb}) και η
 αποκωδικοποίηση Reed-Muller/Reed-Solomon (\speedup{6.8}–\speedup{7.8} μέσω
-\RVV vectorization και \gls{zvbc} GF($2^8$) acceleration).
+\RVV vectorization και \gls{zvbc} $\GF{2^8}$ acceleration).
 
 \paragraph{Constant-time ασφάλεια}
 Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής:
@@ -58,12 +58,12 @@ variants (\cref{sec:ct-verification})· η εμπειρική dudect κάλυψ�
 SpacemiT K1 X60, VLEN $= \num{256}$), παρέχοντας μετρήσεις κύκλων με pipeline
 effects (\cref{sec:hw-evaluation}).  Ο scalar path επιτυγχάνει IPC $\approx 1.49$· συνεπώς ο \instret δεν αποτελεί
 απόλυτο cycle predictor (υπερεκτιμά τους κύκλους κατά περίπου \pct{50}), αλλά παρέχει
-συνεπή, αναλογικό προγνωστικό δείκτη κύκλων για in-order scalar κώδικα, όπου ο
+συνεπή, αναλογικό εκτιμητή κύκλων για in-order scalar κώδικα, όπου ο
 σταθερός IPC δίνει κύκλους $\approx \instret/\text{IPC}$.
 
 \paragraph{Σχεδιαστικές αρχές}
 Η εργασία ανέδειξε τέσσερις γενικεύσιμες αρχές (\cref{sec:general-principles}):
-(1)~η αποδοτικότητα του carry-less multiply ως θεμελιώδης μοχλός για GF($2$)[x]
+(1)~η αποδοτικότητα του carry-less multiply ως θεμελιώδης μοχλός για $\GFpoly$
 αριθμητική, (2)~η αξία του Vector-Length Agnosticism σε κρυπτογραφικά workloads,
 (3)~τα όρια auto-vectorization σε crypto kernels, και (4)~η υπεροχή
 metaprogramming (code generation) έναντι hand-tuning για βαθιά αναδρομικούς
@@ -148,7 +148,7 @@ vector pipeline) μπορεί να μεταβάλει τον IPC και άρα �
 \label{sec:future-ct}
 
 \paragraph{Formal CT verification για RVV/Zvbc binaries}
-Η formal verification constant-time ιδιοτήτων σε RVV/\gls{zvbc} binaries αποτελεί
+Η τυπική επαλήθευση ιδιοτήτων σταθερού χρόνου σε RVV/\gls{zvbc} binaries αποτελεί
 ανοιχτό ερευνητικό πρόβλημα.  Τα υπάρχοντα εργαλεία (Binsec/Rel, ct-verif,
 HolBA) δεν υποστηρίζουν τη RISC-V vector ISA
 (\cref{ssec:ct-formal-gap}).  Η ανάπτυξη formal verification
@@ -174,13 +174,13 @@ trial.  Η επέκταση σε \num{10000000} measurements ανά trial (publi
 
 \paragraph{Tier~3 performance validation σε πραγματικό silicon}
 Η κεντρική εκκρεμότητα είναι η μέτρηση πραγματικών κύκλων για το
-\code{vector\_zvk} σε hardware με νατιβή \gls{zvbc} υποστήριξη.  Η μέτρηση
+\code{vector\_zvk} σε hardware με εγγενή \gls{zvbc} υποστήριξη.  Η μέτρηση
 αυτή θα αποκαλύψει τον πραγματικό CPI του \insn{vclmul.vv} και θα
 επιβεβαιώσει (ή θα αναθεωρήσει) τα \instret-based speedup claims.
 
 \paragraph{Cycle-accurate RTL simulation (Marian/Ara soft-core)}
 Η χρήση του Marian ή Ara open-source RISC-V vector processor σε FPGA ή
-Verilator θα παρέχει cycle-accurate pipeline characterization για \gls{zvbc}
+Verilator θα παρέχει χαρακτηρισμό της pipeline με ακρίβεια κύκλου για \gls{zvbc}
 εντολές, γεφυρώνοντας το χάσμα μεταξύ Spike \instret και πραγματικών κύκλων
 πριν τη διαθεσιμότητα commercial silicon.
 
@@ -189,7 +189,7 @@ Verilator θα παρέχει cycle-accurate pipeline characterization για \g
 \label{sec:future-algorithmic}
 
 \paragraph{Vectorization εκκρεμών decode σταδίων}
-Η τρέχουσα υλοποίηση vectorizes τα στάδια syndromes, root-finding (FFT), και
+Η τρέχουσα υλοποίηση διανυσματοποιεί τα στάδια syndromes, root-finding (FFT), και
 error evaluation του Reed-Solomon decoder.  Το στάδιο Berlekamp-Massey
 παραμένει scalar λόγω loop-carried dependencies.  Η διερεύνηση εναλλακτικών
 αλγορίθμων (\eg Sugiyama, Patterson) με μεγαλύτερο inherent parallelism
@@ -211,7 +211,7 @@ amortization του Keccak overhead μέσω $N$-way batched SHAKE.  Η 2-way \g
 κωδικό RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}.  Το δημοσιευμένο πλάνο θέτει
 στόχο τελικής τυποποίησης (v1.0) έως τον Δεκέμβριο 2026, αν και η προδιαγραφή
 βρίσκεται ακόμη σε πρώιμο στάδιο ανάπτυξης και το χρονοδιάγραμμα παραμένει
-ενδεικτικό.  Η εντολή στοχεύει εφαρμογές σε Application-class επεξεργαστές με
+ενδεικτικό.  Η εντολή στοχεύει εφαρμογές σε επεξεργαστές κλάσης εφαρμογών (Application-class) με
 vector unit, αξιοποιώντας register group αρκετά μεγάλο ώστε να χωρά την 1600-bit
 κατάσταση Keccak ($25\times64$-bit words) — λ.χ. LMUL=8 σε \VLEN${}=256$ (group 2048 bits) —
 αποθηκευμένη σε ομαδοποιημένους διανυσματικούς καταχωρητές.  Εφόσον
@@ -230,11 +230,11 @@ silicon.
 
 \paragraph{Configurable-polynomial GF reduction extension}
 Η \gls{zvbc} \insn{vclmul.vv} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο
-$\GFpoly$, αλλά η modular reduction σε μικρά πεδία (\eg $\GF{2^8}$) απαιτεί
+$\GFpoly$, αλλά η αναγωγή σε μικρά σώματα (\eg $\GF{2^8}$) απαιτεί
 \num{6} vector εντολές ακόμη και μετά τη single-pass Barrett optimization
 (\cref{sec:decode-barrett}).  Μια μελλοντική extension με
 configurable reduction polynomial (\eg \code{Zvkgf} ή \code{Zvkpoly}) θα
-συμπίεζε τη reduction σε μία εντολή, ωφελώντας τόσο τον HQC Reed-Solomon
+συμπίεζε την αναγωγή σε μία εντολή, ωφελώντας τόσο τον HQC Reed-Solomon
 decoder όσο και γενικότερα AES-GCM/GHASH workloads.
 
 \paragraph{Ευρύτερη εφαρμογή σε code-based PQC}

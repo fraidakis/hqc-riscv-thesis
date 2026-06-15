@@ -313,7 +313,7 @@ register file, εξαλείφοντας τον scalar loop overhead και πα�
   \input{figures/ch9-discussion/waterfall-ablation}
   \caption{Σωρευτική μείωση \instret (\Decaps, HQC-128) κατά την
     προοδευτική ενεργοποίηση extensions.  Κάθε βήμα αντιπροσωπεύει
-    τη μεμονωμένη συνεισφορά μιας extension πάνω στο αμέσως
+    τη μεμονωμένη συνεισφορά μιας extension ως προς το αμέσως
     προηγούμενο configuration.  Η μετάβαση Baseline → +\Zbc
     ($-\pct{96}$) κυριαρχεί, ενώ οι μεταγενέστερες extensions
     βελτιστοποιούν τα εναπομένοντα bottlenecks.  Τα βήματα
@@ -335,7 +335,7 @@ register file, εξαλείφοντας τον scalar loop overhead και πα�
 % karatsuba_zbc:  polymul 211841→211833 (−0.004%)
 % Spike ISS, Clang 21, -O3, N_ITER=1, HQC-128, 2026-05-25
 
-Η extension \gls{zba} παρέχει εντολές address generation (\insn{sh1add},
+Η επέκταση \gls{zba} παρέχει εντολές address generation (\insn{sh1add},
 \insn{sh2add}, \insn{sh3add}) που συγχωνεύουν ένα shift-left με πρόσθεση
 σε μία μόνο εντολή.  Ο μηχανισμός βελτιστοποίησης περιγράφεται στο
 \cref{ssec:zba-address-gen} — η παρούσα ενότητα παρουσιάζει τα ποσοτικά
@@ -378,7 +378,7 @@ polymul, $-\pct{0.67}$ \gls{kem}) διότι χρησιμοποιεί scalar \cl
 ωφελούνται μερικώς.
 
 Η \gls{zba} ενεργοποιήθηκε στα \code{-march} strings των Tier~2 και
-Tier~3 variants.  Η extension ανήκει στο RVA22U64 profile — κάθε
+Tier~3 variants.  Η επέκταση ανήκει στο RVA22U64 profile — κάθε
 standards-conformant application processor που υλοποιεί \RVV παρέχει
 ήδη \gls{zba}, επομένως η ενεργοποίηση δεν εισάγει πρόσθετη hardware
 απαίτηση.
@@ -398,7 +398,7 @@ standards-conformant application processor που υλοποιεί \RVV παρέ
 % contribution and is within Spike startup noise (±300 insns). Decaps-only figure used
 % in prose to match the §9.2 focus on Decaps performance.
 
-Η extension \gls{zbs} παρέχει εντολές single-bit manipulation
+Η επέκταση \gls{zbs} παρέχει εντολές single-bit manipulation
 (\insn{bset}, \insn{bclr}, \insn{bext}, \insn{binv}).  Ο μηχανισμός
 βελτιστοποίησης περιγράφεται στην~\cref{ssec:zbs-single-bit} — η παρούσα
 ενότητα παρουσιάζει τα ποσοτικά αποτελέσματα.
@@ -532,7 +532,7 @@ shift-and-XOR loop υλοποιεί carry-less multiplication, διότι η
 
 \paragraph{Zbb: υποχρεωτική extension χωρίς manual intervention.}
 Η ανάλυση ablation στο Tier~1 champion (\code{scalar\_zb}) αποκαλύπτει
-ότι η αφαίρεση \gls{zbb} εισάγει $+\pct{10.31}$ overhead (επί συνολικού \gls{kem}) στο HQC-128 \gls{kem}
+ότι η αφαίρεση \gls{zbb} εισάγει $+\pct{10.31}$ επιβάρυνση (επί συνολικού \gls{kem}) στο HQC-128 \gls{kem}
 (βλ.\ \cref{tab:zbb-ablation-tier1}).  Η επιβάρυνση προέρχεται
 αποκλειστικά από τον Keccak πυρήνα: καθένα από τα \num{58} \emph{στατικά} \rori sites (ανά ELF) εκτείνεται από μία εντολή \rori σε τρεις εντολές
 (\code{slli + srli + or}), δηλαδή $+\num{116}$ στατικές εντολές· το δυναμικό κόστος ($+\num{355789}$ \instret στο HQC-128) προκύπτει από τις πολλές permutation κλήσεις κατά τη \Decaps.  Η φθίνουσα τάση ($\pct{10.31}$ στο L128 →
@@ -575,7 +575,7 @@ silicon με \gls{zbc} χωρίς \gls{zbb} δεν απαντάται στα γ�
 τελική ISA baseline του Tier~1 ορίζεται ως \code{rv64gc\_zbc\_zbb\_zbs}.
 
 \paragraph{Zbkb: λειτουργική ισοδυναμία με Zbb.}
-Η extension \ext{Zbkb} (Crypto Bit-Manipulation) ορίζει την εντολή \rori
+Η επέκταση \ext{Zbkb} (Crypto Bit-Manipulation) ορίζει την εντολή \rori
 με ταυτόσημη κωδικοποίηση και σημασιολογία με τη \gls{zbb}.  Πειραματική
 επαλήθευση επιβεβαίωσε ότι η μεταγλώττιση με \code{-march=rv64gc\_zbc\_zbb}
 και \code{-march=rv64gc\_zbc\_zbkb} παράγει ταυτόσημο αριθμό \rori
@@ -619,7 +619,7 @@ Spike).  Η \ext{Zbkb} απορρίφθηκε υπέρ της \gls{zbb} λόγω
 
 Η κρίσιμη παρατήρηση αφορά τη σύγκλιση μεγεθών μεταξύ tiers στο
 επίπεδο πλήρους \gls{kem}.  Ενώ στο απομονωμένο polymul το Tier~1 παρουσιάζει
-$6.66\times$ μεγαλύτερο αποτύπωμα από τη reference
+$6.66\times$ μεγαλύτερο μέγεθος κώδικα από τη reference
 (\cref{sec:polymul-codesize}), στο πλήρες binary η διαφορά συρρικνώνεται
 σε $1.49\times$ (HQC-128: \SI{47.8}{\kilo\byte} Tier~1 έναντι
 \SI{32.2}{\kilo\byte} Tier~0).  Η εξήγηση είναι δομική: η shared
@@ -642,7 +642,7 @@ $6.66\times$ μεγαλύτερο αποτύπωμα από τη reference
 \label{ssec:instret-per-kb}
 
 Ο λόγος $\text{instret} / \text{.text (KB)}$ αποτελεί ενιαία μετρική που
-συνδυάζει απόδοση και αποτύπωμα, αποτυπώνοντας πόσες δυναμικές εντολές
+συνδυάζει απόδοση και μέγεθος κώδικα, αποτυπώνοντας πόσες δυναμικές εντολές
 απαιτούνται ανά kilobyte στατικού κώδικα.  Χαμηλότερος λόγος σημαίνει
 αποδοτικότερη αξιοποίηση του code footprint.
 
@@ -706,7 +706,7 @@ permutation + combine loops) δεν υπερβαίνει τα \SI{12}{\kilo\byte
 Ο \cref{fig:code-size-dual-axis} αποτυπώνει γραφικά τη σχέση μεταξύ
 polymul \code{.text} και \instret ανά tier.  Η κρίσιμη παρατήρηση
 είναι η \emph{αρνητική} συσχέτιση μεταξύ Tier~1 και Tier~3: η
-μετάβαση σε vector-crypto leaf μειώνει ταυτόχρονα αποτύπωμα
+μετάβαση σε vector-crypto leaf μειώνει ταυτόχρονα μέγεθος κώδικα
 \emph{και} εντολές — αντίθετα από τον κλασικό συμβιβασμό
 \q{αύξηση κώδικα για μείωση εντολών} που ισχύει εντός του scalar
 path.  Η δομική αιτία αναλύθηκε στην \cref{sec:polymul-codesize}:
@@ -744,7 +744,7 @@ path.  Η δομική αιτία αναλύθηκε στην \cref{sec:polymul-
 Η βελτιστοποίηση του \gls{hqc} σε RISC-V ανέδειξε σχεδιαστικές αρχές που
 υπερβαίνουν τον συγκεκριμένο αλγόριθμο.  Οι αρχές αυτές αφορούν κάθε
 κρυπτογραφική υλοποίηση που στοχεύει πολυωνυμική αριθμητική σε δυαδικά
-πεδία, vector-length-agnostic εκτέλεση, ή αξιοποίηση εξειδικευμένων ISA
+σώματα, vector-length-agnostic εκτέλεση, ή αξιοποίηση εξειδικευμένων ISA
 extensions σε in-order pipelines.  Η ενότητα αυτή αποστάζει τέσσερις
 θεμελιώδεις αρχές από την εμπειρία τριών tiers υλοποίησης.
 
@@ -1125,7 +1125,7 @@ compiler για KAT validation και scalar baseline, ενώ ο Clang
 compilers παράγουν συμβατά RISC-V ELF objects υπό το ίδιο \code{lp64d}
 ABI.
 
-Πρέπει να τονιστεί ότι ο φραγμός δεν είναι η απουσία \gls{zvbb} στον GCC: ο GCC υποστηρίζει τα vector crypto extensions (\gls{zvbb}, \gls{zvbc}) ήδη από την έκδοση 14 (2023)~\cite{GCC14-changes}, ακολουθώντας τον LLVM~17.  Τα πραγματικά εμπόδια στη μεικτή μεταγλώττιση είναι δύο: (α)~το \code{riscv\_rvv\_vector\_bits} fixed-length-vector attribute, το οποίο είναι Clang-specific (βασισμένο στο AArch64 \code{arm\_sve\_vector\_bits}) και δεν γίνεται δεκτό από τον GCC~\cite{LLVM-D145088,GCC-PR112817}, και (β)~ένα ζήτημα robustness στο codegen του GCC σε \code{LMUL=8}.  Αμφότερα είναι στοχευμένα toolchain ζητήματα, όχι έλλειψη ISA υποστήριξης.  Η παρούσα εργασία τεκμηριώνει την κατάσταση κατά τον
+Πρέπει να τονιστεί ότι το εμπόδιο δεν είναι η απουσία \gls{zvbb} στον GCC: ο GCC υποστηρίζει τα vector crypto extensions (\gls{zvbb}, \gls{zvbc}) ήδη από την έκδοση 14 (2023)~\cite{GCC14-changes}, ακολουθώντας τον LLVM~17.  Τα πραγματικά εμπόδια στη μεικτή μεταγλώττιση είναι δύο: (α)~το \code{riscv\_rvv\_vector\_bits} fixed-length-vector attribute, το οποίο είναι Clang-specific (βασισμένο στο AArch64 \code{arm\_sve\_vector\_bits}) και δεν γίνεται δεκτό από τον GCC~\cite{LLVM-D145088,GCC-PR112817}, και (β)~ένα ζήτημα robustness στο codegen του GCC σε \code{LMUL=8}.  Αμφότερα είναι στοχευμένα toolchain ζητήματα, όχι έλλειψη ISA υποστήριξης.  Η παρούσα εργασία τεκμηριώνει την κατάσταση κατά τον
 χρόνο συγγραφής (Ιούνιος 2026) ως σημείο αναφοράς για μελλοντικές
 αξιολογήσεις.
 
