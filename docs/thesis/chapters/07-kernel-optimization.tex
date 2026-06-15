@@ -5,7 +5,7 @@
 πολυωνυμικού πολλαπλασιασμού, η οποία μείωσε τον κυρίαρχο πυρήνα από
 \pct{97} σε μικρό κλάσμα του συνολικού \instret.  Η μείωση αυτή αποκάλυψε
 δευτερεύοντα bottlenecks που προηγουμένως ήταν αμελητέα: τον Keccak-f[1600]
-(SHA-3/SHAKE), την αποκωδικοποίηση Reed-Solomon/Reed-Muller, και βοηθητικές
+(SHA-3/SHAKE), την αποκωδικοποίηση \gls{rs}/\gls{rm}, και βοηθητικές
 πράξεις bit-scatter.  Το παρόν κεφάλαιο παρουσιάζει τη συστηματική
 βελτιστοποίηση αυτών των πυρήνων — εφαρμόζοντας τον νόμο του Amdahl
 διαδοχικά, ώστε κανένας μεμονωμένος πυρήνας να μην κυριαρχεί στο τελικό
@@ -1105,7 +1105,7 @@ target pattern εντός του hot path — μια extension με εκατον
 
 Οι προηγούμενες ενότητες του παρόντος κεφαλαίου εφάρμοσαν διαδοχικά τον
 νόμο του Amdahl σε τρεις οικογένειες πυρήνων: Keccak/SHA-3
-(\cref{sec:keccak-optimization}), αποκωδικοποίηση Reed-Solomon/Reed-Muller
+(\cref{sec:keccak-optimization}), αποκωδικοποίηση \gls{rs}/\gls{rm}
 (\cref{sec:decode-optimization}), βοηθητικούς πυρήνες
 (\cref{sec:auxiliary-kernels}) και compiler auto-lowering
 (\cref{sec:auto-lowering-hqc}).  Η ενότητα αυτή παρουσιάζει τη

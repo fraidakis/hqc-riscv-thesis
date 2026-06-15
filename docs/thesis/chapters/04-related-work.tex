@@ -35,9 +35,9 @@ DMA controller, JTAG module, και τρεις loosely-coupled accelerators
 συνδεδεμένους μέσω AXI4-Lite interconnect: (α)~$R$-Unit για πολυωνυμικό
 πολλαπλασιασμό και πρόσθεση στον δακτύλιο
 $\GF{2}[x]/(x^n-1)$, (β)~Sampling-Unit που ενσωματώνει Keccak permutation
-και rejection sampling, και (γ)~RM-Decoder για αποκωδικοποίηση Reed-Muller
+και rejection sampling, και (γ)~RM-Decoder για αποκωδικοποίηση \gls{rm}
 μέσω Hadamard Transform. Επιπλέον, μία custom R-type εντολή (F$2^8$-Unit)
-επιταχύνει τον πολλαπλασιασμό στο $\GF{2^8}$ για τον Reed-Solomon
+επιταχύνει τον πολλαπλασιασμό στο $\GF{2^8}$ για τον \gls{rs}
 κωδικοποιητή/αποκωδικοποιητή.
 
 \paragraph{Μεθοδολογία πολλαπλασιασμού.}
@@ -754,7 +754,7 @@ specification. Τα leaf multiplications εκτελούνται μέσω
 — αντίστοιχα με τη χρήση \texttt{VPCLMULQDQ} στο x86, αλλά σε VLA
 αρχιτεκτονική. Η βελτιστοποίηση επεκτείνεται στον Keccak (2-way
 Structure-of-Arrays με \gls{zvbb}) και στην αποκωδικοποίηση (vectorized
-Reed-Muller/Reed-Solomon).
+\gls{rm}/\gls{rs}).
 
 \paragraph{Αρχιτεκτονική.}
 Η υλοποίηση στρωματοποιείται σε τρία tiers αντιστοιχούμενα στη

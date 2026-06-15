@@ -934,7 +934,7 @@ $x, y$ ίσου εύρους, υπό σταθερό μικροαρχιτεκτο
 για τη διασφάλιση IND-CCA2 ασφάλειας.  Ο πολυωνυμικός πολλαπλασιασμός
 (\code{vect\_mul}) επεξεργάζεται απευθείας το μυστικό κλειδί $\mathbf{y}$
 και απαιτεί constant-time εκτέλεση.  Αντίθετα, η αποκωδικοποίηση
-Reed-Muller/Reed-Solomon δύναται να είναι variable-time χωρίς να
+\gls{rm}/\gls{rs} δύναται να είναι variable-time χωρίς να
 παραβιάζεται η ασφάλεια — η FO transform μασκάρει τη χρονική πληροφορία
 μέσω του re-encryption ελέγχου.  Ο Keccak/SHAKE είναι εγγενώς
 constant-time λόγω αλγοριθμικής δομής: η permutation Keccak-f[1600]
@@ -1060,7 +1060,7 @@ context switches, και DVFS transients που θα μασκάριζαν λεπ
 $|t| \approx 5.0$ στο απομονωμένο polymul test.
 
 \paragraph{Γιατί δεν υπάρχει \code{dudect\_decode}.}
-Η αποκωδικοποίηση Reed-Muller/Reed-Solomon είναι πιθανώς variable-time
+Η αποκωδικοποίηση \gls{rm}/\gls{rs} είναι πιθανώς variable-time
 (data-dependent iteration counts στον Berlekamp-Massey).  Αυτό δεν
 αποτελεί ευπάθεια: η FO transform μασκάρει τη χρονική πληροφορία μέσω
 re-encryption.  Ο επιτιθέμενος παρατηρεί τον συνολικό χρόνο
@@ -1407,7 +1407,7 @@ register.  Πέραν αυτών των δύο σημείων, κανένας κ
     \code{\_\_riscv\_clmul\_64()} και \code{\_\_riscv\_clmulh\_64()} — carry-less
     πολλαπλασιασμός \num{64}-bit πολυωνύμων στα Karatsuba leaves
     (\cf \cref{sec:polymul-scalar}) και στην αριθμητική $\GF{2^8}$ του
-    Reed-Solomon decoder.
+    \gls{rs} decoder.
 
   \item \textbf{\RVV 1.0} (\code{<riscv\_vector.h>}):
     \code{\_\_riscv\_vsetvl\_e64m4()}, \code{\_\_riscv\_vle64\_v\_u64m4()},
@@ -1607,7 +1607,7 @@ scratch buffers πριν από κάθε πολλαπλασιασμό — ένα
 Ο Keccak (\code{KeccakF1600\_StatePermute} + \code{keccak\_inc\_absorb})
 αντιπροσωπεύει μόλις \pct{0.6} — αμελητέο στο αρχικό προφίλ, αλλά
 αναδεικνύεται σε σημαντικό bottleneck μετά τη βελτιστοποίηση του polymul
-(\cf \cref{ch:kernel-optimization}).  Η αποκωδικοποίηση \code{hadamard} αντιπροσωπεύει \pct{0.16} — ομοίως αμελητέα αρχικά· η Reed-Solomon περιλαμβάνεται στις λοιπές συναρτήσεις.
+(\cf \cref{ch:kernel-optimization}).  Η αποκωδικοποίηση \code{hadamard} αντιπροσωπεύει \pct{0.16} — ομοίως αμελητέα αρχικά· η \gls{rs} περιλαμβάνεται στις λοιπές συναρτήσεις.
 
 \Cref{fig:baseline-pie} απεικονίζει γραφικά την κατανομή κόστους σε τέσσερις
 κατηγορίες.
@@ -1688,7 +1688,7 @@ isolated polymul επιτάχυνση (\speedup{86.9}).
   \item \textbf{Keccak και αποκωδικοποίηση} (\cref{ch:kernel-optimization}):
     Μετά τη βελτιστοποίηση polymul, το Keccak και η αποκωδικοποίηση
     αναδεικνύονται σε νέα bottlenecks.  Βελτιστοποίηση μέσω \gls{zvbb}
-    (vectorized rotations) και vectorized Reed-Muller/Reed-Solomon.
+    (vectorized rotations) και vectorized \gls{rm}/\gls{rs}.
 
   \item \textbf{Βοηθητικοί πυρήνες} (\cref{ch:kernel-optimization}):
     Μικρότερες βελτιστοποιήσεις σε \code{memcpy}, sampling, και control
