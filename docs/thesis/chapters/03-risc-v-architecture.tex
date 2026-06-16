@@ -69,7 +69,7 @@ suites.
 \subsection{Βασικά Χαρακτηριστικά RV64I}
 \label{ssec:rv64i-features}
 
-Το RV64I αποτελεί το base integer \gls{isa} για εφαρμογές 64-bit και ορίζει
+Το RV64I αποτελεί το base integer \gls{isa} για επεξεργαστές 64-bit και ορίζει
 τη θεμελιώδη αρχιτεκτονική κατάσταση (architectural state) και το σύνολο
 εντολών πάνω στο οποίο δομούνται όλες οι επεκτάσεις~\cite{RISCV-unpriv2024}.
 Τα βασικά χαρακτηριστικά του περιγράφονται στις ακόλουθες παραγράφους.
@@ -129,7 +129,7 @@ M-mode. Η παρούσα εργασία εκτελεί αποκλειστικά
 τον προσδιορισμό του ακριβούς συνόλου επεκτάσεων που υποστηρίζει μια
 υλοποίηση. Η σύμβαση αυτή κωδικοποιείται στο \defterm{ISA string} — μια
 συμβολοσειρά που περιγράφει πλήρως τις δυνατότητες ενός
-επεξεργαστή~\cite{RISCV-unpriv2024}.
+επεξεργαστή.
 
 \paragraph{Δομή ISA string.}
 Ένα ISA string ακολουθεί τη μορφή \code{RV\{XLEN\}\{base\}\_\{extensions\}},
@@ -146,9 +146,7 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
 
 \paragraph{Επεκτάσεις σχετικές με την παρούσα εργασία.}
 Ο \cref{tab:extensions-used} συνοψίζει τις επεκτάσεις που αξιοποιεί η
-παρούσα εργασία. Κάθε επέκταση επικυρώθηκε ανεξάρτητα από τον
-οργανισμό RISC-V International, εγγυώντας σταθερότητα και διαλειτουργικότητα
-μεταξύ υλοποιήσεων. Τα ISA strings που χρησιμοποιούνται στη μεταγλώττιση
+παρούσα εργασία. Τα ISA strings που χρησιμοποιούνται στη μεταγλώττιση
 αντικατοπτρίζουν τα τρία tiers: \code{rv64gc\_zbc\_zbb\_zbs}
 (Tier~1, scalar), \code{rv64gcv\_zbc\_zbb\_zba} (Tier~2, Base-RVV) και
 \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} (Tier~3, Vector-Crypto).
@@ -197,10 +195,7 @@ Android RISC-V ABI και στοχεύεται από κάθε σημαντικ�
 
 \begin{table}[htbp]
   \centering
-  \caption{Κατάσταση των αξιοποιούμενων επεκτάσεων στο προφίλ RVA23.
-    Mandatory = υποχρεωτική σε κάθε συμβατή υλοποίηση. Development option =
-    προορίζεται για μελλοντική υποχρεωτικότητα. Expansion option =
-    προαιρετική, χωρίς δέσμευση χρονοδιαγράμματος.}
+  \caption{Κατάσταση των αξιοποιούμενων επεκτάσεων στο προφίλ RVA23.}
   \label{tab:rva23-extensions}
   \small
   \begin{tabular}{lll}
@@ -237,46 +232,7 @@ Vector-Crypto επεκτάσεις \gls{zvbc} και \gls{zvbb} — αυτές �
 
 Η κατανόηση των σχεδιαστικών επιλογών του RISC-V αποσαφηνίζεται μέσω
 σύγκρισης με τις δύο κυρίαρχες εμπορικές αρχιτεκτονικές: ARM (AArch64) και
-x86-64. Ο \cref{tab:arch-comparison} συνοψίζει τις θεμελιώδεις διαφορές σε
-πέντε άξονες σχετικούς με κρυπτογραφικές υλοποιήσεις.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Σύγκριση σχεδιαστικής φιλοσοφίας μεταξύ RISC-V, ARM (AArch64) και
-    x86-64 σε άξονες σχετικούς με κρυπτογραφικές υλοποιήσεις.}
-  \label{tab:arch-comparison}
-  \small
-  \begin{tabular}{p{3cm}p{3.5cm}p{3.5cm}p{3.5cm}}
-    \toprule
-    \textbf{Χαρακτηριστικό} & \textbf{RISC-V} & \textbf{ARM (AArch64)} & \textbf{x86-64} \\
-    \midrule
-    Κωδικοποίηση εντολών &
-      Σταθερή 32-bit (+ 16-bit C) &
-      Σταθερή 32-bit &
-      Μεταβλητή 1–15 bytes \\
-    \addlinespace
-    Licensing &
-      Ανοιχτό, χωρίς royalties &
-      Ιδιόκτητο, royalties &
-      Ιδιόκτητο, patents \\
-    \addlinespace
-    Crypto υποστήριξη &
-      Γενικού σκοπού extensions (\gls{zbc}, \gls{zvbc}) &
-      Dedicated macro-ops (\insn{pmull}, EOR3, RAX1) &
-      Wide SIMD (\insn{vpclmulqdq} σε 512-bit) \\
-    \addlinespace
-    Vector μοντέλο &
-      VLA (μεταβλητό VLEN) &
-      SVE: VLA (128–2048 bit); NEON: σταθερό 128-bit &
-      Σταθερό (128/256/512-bit) \\
-    \addlinespace
-    Register file &
-      32 GPR × 64-bit, 32 VR × VLEN &
-      31 GPR × 64-bit, 32 VR × 128-bit (NEON) &
-      16 GPR × 64-bit, 32 ZMM × 512-bit \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+x86-64. 
 
 \paragraph{Κωδικοποίηση και decode complexity.}
 Η σταθερή κωδικοποίηση 32-bit του RISC-V (και του ARM) απλοποιεί δραστικά
@@ -302,8 +258,9 @@ registers~\cite{intel-sdm}, επεξεργαζόμενη \num{4} ζεύγη 64-b
 απαιτεί σταθερό πλάτος register file και δεν κλιμακώνεται σε μικρότερες
 υλοποιήσεις.
 
-Το RISC-V ακολουθεί μια ενδιάμεση προσέγγιση: \defterm{γενικού σκοπού
-κρυπτογραφικές extensions}. Η εντολή \clmul εκτελεί carry-less
+Το RISC-V ακολουθεί μια ενδιάμεση προσέγγιση: παρέχει γενικές πράξεις με
+ισχυρή κρυπτογραφική χρησιμότητα αντί για αποκλειστικά algorithm-specific
+macro-ops. Η εντολή \clmul εκτελεί carry-less
 multiplication — χρήσιμη τόσο στον \gls{hqc} (πολυωνυμικός πολλαπλασιασμός σε
 $\GF{2}[x]$) όσο και σε GHASH/GCM, CRC και Barrett reduction. Η εντολή
 \vror εκτελεί vector rotation — χρήσιμη τόσο στον Keccak (βήμα ρ) όσο και
@@ -325,19 +282,7 @@ registers (128-bit XMM, 256-bit YMM, 512-bit ZMM) — ο κώδικας γράφ
 \insn{vsetvl} (βλ.~\cref{sec:rvv-architecture}) ρυθμίζει δυναμικά τον αριθμό
 στοιχείων ανά vector operation βάσει του hardware \VLEN. Αυτό σημαίνει ότι
 κώδικας γραμμένος σήμερα για \VLEN=256 θα αξιοποιήσει αυτόματα μελλοντικό
-υλικό με \VLEN=512 ή \VLEN=1024 — χωρίς τροποποίηση πηγαίου κώδικα. Η
-ανάλυση κλιμάκωσης ως προς \VLEN παρουσιάζεται στο \cref{ch:results}.
-
-\paragraph{Συνέπειες για την παρούσα εργασία.}
-Η σύγκριση αναδεικνύει τη θέση του RISC-V ως πλατφόρμας που συνδυάζει
-αρχιτεκτονική καθαρότητα (σταθερή κωδικοποίηση, load-store μοντέλο, VLA
-vectors) με πρακτική ευελιξία (ανοιχτό licensing, modular extensions,
-mainstream adoption path). Η απόδοση σε κρυπτογραφικές εφαρμογές εξαρτάται
-λιγότερο από peak single-instruction throughput και περισσότερο από την
-ικανότητα αξιοποίησης εξειδικευμένων εντολών (\clmul, \vclmul, \vror) σε
-αλγοριθμικά κρίσιμα σημεία — ακριβώς η προσέγγιση που ακολουθεί η παρούσα
-εργασία. Η αναλυτική παρουσίαση αυτών των εντολών ακολουθεί στις
-επόμενες ενότητες.
+υλικό με \VLEN=512 ή \VLEN=1024 — χωρίς τροποποίηση πηγαίου κώδικα.
 
 \section{Scalar Κρυπτογραφικές Επεκτάσεις (\Zbc, \Zbb, Zbkb)}
 \label{sec:scalar-extensions}
