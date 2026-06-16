@@ -743,7 +743,7 @@ $\chi$, $\iota$.
 \end{enumerate}
 %
 Ο τελεστής $\mathrm{ROL}(w,k)$ δηλώνει αριστερή κυκλική ολίσθηση
-(rotate-left) της λέξης~$w$ κατά $k$~bits.
+(rotate-left) της λέξης~$w$ κατά $k$~bits· σε αντίθεση με τον απλό shift, τα bits που \q{βγαίνουν} επανεισάγονται από την άλλη άκρη.
 Η ολίσθηση κατά $k=1$ υλοποιεί ακριβώς τον όρο $z{-}1$
 της~\cref{eq:keccak-theta-diffusion}, δηλαδή τη μετατόπιση κατά μία
 θέση κατά μήκος του άξονα~$z$.
@@ -751,9 +751,9 @@ $\chi$, $\iota$.
 \paragraph{Βήμα $\rho$: Lane rotation.}
 Κάθε lane περιστρέφεται (bitwise rotation) κατά σταθερό αριθμό θέσεων:
 \begin{equation}
-  A[x, y] \leftarrow A[x, y] \lll r[x, y],
+  A[x, y] \leftarrow \mathrm{ROL}(A[x, y],\, r[x, y]),
 \end{equation}
-όπου ο τελεστής $\lll$ δηλώνει αριστερή κυκλική ολίσθηση (rotate-left· σε αντίθεση με τον απλό shift, τα bits που \q{βγαίνουν} επανεισάγονται από την άλλη άκρη), και $r[x, y]$ είναι τα rotation offsets που ορίζει η προδιαγραφή του Keccak (σταθερές τιμές 0–63 bits ανά lane).
+όπου $r[x, y]$ είναι τα rotation offsets που ορίζει η προδιαγραφή του Keccak (σταθερές τιμές 0–63 bits ανά lane).
 Ο~\cref{tab:keccak-rho-offsets} παρουσιάζει τον πλήρη πίνακα offsets.
 Η πράξη αυτή εξασφαλίζει ότι bits σε διαφορετικές θέσεις $z$ αλληλεπιδρούν
 μετά από λίγους γύρους. Χωρίς αυτήν, η διάχυση κατά τον άξονα $z$ θα ήταν

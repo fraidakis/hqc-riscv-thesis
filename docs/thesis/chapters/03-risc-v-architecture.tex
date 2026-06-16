@@ -120,9 +120,12 @@ J-type (jump). Το~\cref{fig:rv64-formats} παρουσιάζει τη δομή
 Machine mode (M-mode), Supervisor mode (S-mode) και User mode (U-mode). Το
 M-mode αποτελεί το υψηλότερο επίπεδο προνομίων και είναι το μοναδικό
 υποχρεωτικό — μια ελάχιστη υλοποίηση RISC-V μπορεί να υποστηρίζει μόνο
-M-mode. Οι μετρήσεις βάσει εξομοίωσης (Spike, QEMU) εκτελούνται αποκλειστικά σε
-M-mode (bare-metal), χωρίς λειτουργικό σύστημα (βλ.~\cref{ssec:measurement-purity}). Αντίθετα, η επικύρωση σε
-πραγματικό silicon (Banana Pi BPI-F3) πραγματοποιείται υπό Bianbu Linux: ο
+M-mode. Η διάκριση αυτή είναι ουσιώδης για τη μεθοδολογία μέτρησης της παρούσας
+εργασίας. Στα πειράματά μας, οι μετρήσεις βάσει εξομοίωσης (instruction-set
+simulators Spike και QEMU) εκτελούνται αποκλειστικά σε M-mode (bare-metal),
+χωρίς λειτουργικό σύστημα, ώστε να απομονώνεται η αλγοριθμική συμπεριφορά
+(βλ.~\cref{ssec:measurement-purity}). Αντίθετα, η επικύρωση σε πραγματικό silicon —
+στην πλατφόρμα Banana Pi BPI-F3 — πραγματοποιείται υπό Bianbu Linux, όπου ο
 μετρούμενος κώδικας εκτελείται σε U-mode (userspace) (βλ.~\cref{ssec:hw-measurement}).
 
 \subsection{Σύμβαση Ονοματοδοσίας Επεκτάσεων και Standard Profiles}
@@ -150,9 +153,9 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
 \paragraph{Επεκτάσεις σχετικές με την παρούσα εργασία.}
 Ο \cref{tab:extensions-used} συνοψίζει τις επεκτάσεις που αξιοποιεί η
 παρούσα εργασία. Τα ISA strings που χρησιμοποιούνται στη μεταγλώττιση
-αντικατοπτρίζουν τα τρία tiers: \code{rv64gc\_zbc\_zbb\_zbs}
-(Tier~1, scalar), \code{rv64gcv\_zbc\_zbb\_zba} (Tier~2, Base-RVV) και
-\code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} (Tier~3, Vector-Crypto).
+αντικατοπτρίζουν τα τρία tiers: \code{rv64gc\_zbc\_zbb}
+(Tier~1, scalar), \code{rv64gcv\_zbc\_zbb} (Tier~2, Base-RVV) και
+\code{rv64gcv\_zbc\_zbb\_zvbc\_zvbb} (Tier~3, Vector-Crypto).
 
 \begin{table}[htbp]
   \centering
@@ -167,9 +170,7 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
     \midrule
     \gls{zbc}  & Carry-less multiplication (\clmul, \clmulh) & 11/2021 & 1 \\
     \gls{zbb}  & Basic bit-manipulation (\rori, \insn{andn}, \insn{rev8}) & 11/2021 & 1 \\
-    Zbs   & Single-bit operations (\insn{bset}, \insn{bext}) & 11/2021 & 1 \\
     V     & Vector extension 1.0 (RVV) & 11/2021 & 2 \\
-    Zba   & Address generation (\insn{sh1add}–\insn{sh3add}) & 11/2021 & 2 \\
     \gls{zvbc} & Vector carry-less multiplication (\vclmul, \vclmulh) & 09/2023 & 3 \\
     \gls{zvbb} & Vector bit-manipulation (\vror, \insn{vandn}, \insn{vbrev8}) & 09/2023 & 3 \\
     \bottomrule
@@ -178,20 +179,23 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
 
 \paragraph{Standard Profiles και mainstream adoption.}
 Η ύπαρξη πολλαπλών προαιρετικών επεκτάσεων δημιουργεί κίνδυνο
-κατακερματισμού του οικοσυστήματος: αν κάθε υλοποίηση επιλέγει διαφορετικό
-υποσύνολο, η φορητότητα λογισμικού υπονομεύεται. Τα \defterm{Standard
+κατακερματισμού του οικοσυστήματος: αν κάθε υλοποίηση επεξεργαστή επιλέγει διαφορετικό
+υποσύνολο επεκτάσεων, η φορητότητα λογισμικού υπονομεύεται. Τα \defterm{Standard
 Profiles} αντιμετωπίζουν αυτό το πρόβλημα ορίζοντας υποχρεωτικά σύνολα
 επεκτάσεων για συγκεκριμένες κατηγορίες εφαρμογών. Το προφίλ
-RVA23~\cite{RVA23-profile}, που επικυρώθηκε τον Οκτώβριο 2024, ορίζει τις
-απαιτήσεις για επεξεργαστές εφαρμογών 64-bit — αποτελεί προϋπόθεση για το
-Android RISC-V ABI και στοχεύεται από κάθε σημαντικό κατασκευαστή
-επεξεργαστών RISC-V.
+RVA23~\cite{RVA23-profile} (RVA: \emph{RISC-V Application profile}), που
+επικυρώθηκε τον Οκτώβριο 2024, ορίζει τις απαιτήσεις για επεξεργαστές
+εφαρμογών 64-bit και ανήκει σε μια εξελισσόμενη σειρά προφίλ που διαδοχικά
+ενσωματώνουν περισσότερες επεκτάσεις. Λειτουργεί ως κοινή προδιαγραφή
+συμβατότητας (compatibility baseline) για rich-OS πλατφόρμες — ενδεικτικά,
+αποτελεί προαπαιτούμενο για το Android RISC-V ABI — με την οποία οφείλει να
+συμμορφώνεται κάθε κατασκευαστής επεξεργαστών εφαρμογών RISC-V.
 
 Ο \cref{tab:rva23-extensions} παρουσιάζει τη σχέση μεταξύ των επεκτάσεων που
 αξιοποιεί η παρούσα εργασία και του προφίλ RVA23. Η διανυσματική επέκταση V,
 η \gls{zvbb} και η \gls{zbb} είναι υποχρεωτικές (mandatory) στο RVA23, ενώ η \gls{zvbc}
 αποτελεί development option — προορίζεται να καταστεί υποχρεωτική σε
-μελλοντικό προφίλ. Η scalar \gls{zbc} αποτελεί expansion option. Κατά συνέπεια,
+μελλοντική έκδοση του προφίλ. Η scalar \gls{zbc} αποτελεί expansion option. Κατά συνέπεια,
 κάθε μελλοντικός επεξεργαστής που πληροί το RVA23 θα υποστηρίζει εγγενώς τις
 περισσότερες επεκτάσεις της παρούσας εργασίας, επιβεβαιώνοντας ότι η
 προσέγγιση βρίσκεται στο mainstream adoption path.
@@ -208,15 +212,13 @@ Android RISC-V ABI και στοχεύεται από κάθε σημαντικ�
     V (RVV 1.0)  & Mandatory & Εγγυημένη παρουσία σε κάθε RVA23 chip \\
     \gls{zbb}         & Mandatory & Rotations, \insn{andn} διαθέσιμα παντού \\
     \gls{zvbb}        & Mandatory & Vector rotations/\insn{vandn} εγγυημένα \\
-    Zba          & Mandatory & Address generation βελτιστοποιήσεις \\
-    \gls{zvbc}        & Development option & Αναμένεται mandatory σε RVA24+ \\
+    \gls{zvbc}        & Development option & Αναμένεται υποχρεωτική σε μελλοντική έκδοση του προφίλ \\
     \gls{zbc}         & Expansion option & Scalar carry-less multiply \\
-    Zbs          & Mandatory & Single-bit operations \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\paragraph{Concrete hardware: SpacemiT K1 X60.}
+\paragraph{SpacemiT K1 X60.}
 Ως συγκεκριμένο παράδειγμα RVA22-compliant hardware, ο επεξεργαστής SpacemiT K1
 X60 (Banana Pi BPI-F3) υλοποιεί RV64GCVB με $\VLEN = \num{256}$~bits και
 dual-issue in-order pipeline. Η πλατφόρμα αυτή χρησιμοποιείται στην παρούσα
@@ -225,67 +227,15 @@ dual-issue in-order pipeline. Η πλατφόρμα αυτή χρησιμοπο�
 εγγενώς τις scalar επεκτάσεις (\gls{zbc}, \gls{zbb}) και τη διανυσματική μονάδα \gls{rvv},
 καλύπτοντας πλήρως τα Tier~1 και Tier~2 variants, αλλά δεν υλοποιεί τις
 Vector-Crypto επεκτάσεις \gls{zvbc} και \gls{zvbb} — αυτές απαιτούν συμμόρφωση με το
-προφίλ RVA23, το οποίο δεν είναι ακόμη διαθέσιμο σε silicon. Η ύπαρξη
+προφίλ RVA23. Τα πρώτα RVA23-compliant SoCs έγιναν διαθέσιμα σε εμπορικό
+silicon μόλις πρόσφατα (SpacemiT K3, με developer boards όπως τα Milk-V
+Jupiter~2 και Banana Pi BPI-SM10 να κυκλοφορούν τον Απρίλιο–Μάιο
+2026~\cite{SpacemiT-K3}), και επομένως δεν ήταν διαθέσιμα κατά τη διεξαγωγή
+της παρούσας εργασίας. Η ύπαρξη
 εμπορικού hardware που υποστηρίζει τις επεκτάσεις Tier~1 και Tier~2
 καταδεικνύει ότι η προσέγγιση της παρούσας εργασίας στοχεύει ήδη
 διαθέσιμες πλατφόρμες.
 
-\subsection{Σύγκριση Σχεδιαστικής Φιλοσοφίας με ARM και x86}
-\label{ssec:arch-comparison}
-
-Η κατανόηση των σχεδιαστικών επιλογών του RISC-V αποσαφηνίζεται μέσω
-σύγκρισης με τις δύο κυρίαρχες εμπορικές αρχιτεκτονικές: ARM (AArch64) και
-x86-64. 
-
-\paragraph{Κωδικοποίηση και decode complexity.}
-Η σταθερή κωδικοποίηση 32-bit του RISC-V (και του ARM) απλοποιεί δραστικά
-τη λογική αποκωδικοποίησης σε σχέση με τη μεταβλητού μήκους κωδικοποίηση του
-x86 (1–15 bytes ανά εντολή). Σε pipelined υλοποιήσεις, η σταθερή
-κωδικοποίηση εξαλείφει την ανάγκη pre-decode σταδίου για τον προσδιορισμό
-ορίων εντολών, μειώνοντας τόσο την κατανάλωση ενέργειας όσο και τον χρόνο
-κύκλου. Η επέκταση C (Compressed) του RISC-V προσθέτει 16-bit εντολές για
-βελτίωση code density χωρίς να επηρεάζει τη βασική decode λογική — οι
-compressed εντολές αποσυμπιέζονται σε πλήρεις 32-bit εντολές στο πρώτο
-στάδιο pipeline.
-
-\paragraph{Μοντέλο κρυπτογραφικής υποστήριξης.}
-Οι τρεις αρχιτεκτονικές ακολουθούν θεμελιωδώς διαφορετικές φιλοσοφίες στην
-υποστήριξη κρυπτογραφικών πράξεων. Η ARM παρέχει \defterm{dedicated
-macro-operations}: εντολές όπως η EOR3 (τριπλό XOR), η RAX1 (rotate-and-XOR)
-και η BCAX (bit-clear-and-XOR) σχεδιάστηκαν για την επιτάχυνση των βημάτων θ, ρ
-και χ του Keccak~\cite{arm-arm-aprofile}. Αυτές οι εντολές μεγιστοποιούν
-την απόδοση για τον συγκεκριμένο αλγόριθμο αλλά δεν εξυπηρετούν άλλες
-εφαρμογές. Η x86-64 παρέχει \defterm{wide SIMD}: η εντολή
-\insn{vpclmulqdq} εκτελεί carry-less multiplication σε 512-bit ZMM
-registers~\cite{intel-sdm}, επεξεργαζόμενη \num{4} ζεύγη 64-bit πολυωνύμων ταυτόχρονα — αλλά
-απαιτεί σταθερό πλάτος register file και δεν κλιμακώνεται σε μικρότερες
-υλοποιήσεις.
-
-Το RISC-V ακολουθεί μια ενδιάμεση προσέγγιση: παρέχει γενικές πράξεις με
-ισχυρή κρυπτογραφική χρησιμότητα αντί για αποκλειστικά algorithm-specific
-macro-ops. Η εντολή \clmul εκτελεί carry-less
-multiplication — χρήσιμη τόσο στον \gls{hqc} (πολυωνυμικός πολλαπλασιασμός σε
-$\GF{2}[x]$) όσο και σε GHASH/GCM, CRC και Barrett reduction. Η εντολή
-\vror εκτελεί vector rotation — χρήσιμη τόσο στον Keccak (βήμα ρ) όσο και
-σε ChaCha20, BLAKE3 και γενικό bit-manipulation. Αυτή η φιλοσοφία θυσιάζει
-μέρος της peak single-operation απόδοσης (μία \insn{EOR3} αντικαθιστά τρεις
-\insn{vxor}) αλλά παρέχει ευρύτερη αξιοποίηση του πυριτίου και πλήρη
-κρυπτογραφική ευελιξία.
-
-\paragraph{Vector μοντέλο: VLA έναντι σταθερού πλάτους.}
-Η πλέον σημαντική αρχιτεκτονική διαφορά για τη βελτιστοποίηση κρυπτογραφικών
-πυρήνων αφορά το vector μοντέλο. Η x86-64 χρησιμοποιεί σταθερού πλάτους SIMD
-registers (128-bit XMM, 256-bit YMM, 512-bit ZMM) — ο κώδικας γράφεται για
-συγκεκριμένο πλάτος και απαιτεί rewrite για αξιοποίηση ευρύτερων registers.
-Η ARM NEON χρησιμοποιεί επίσης σταθερό πλάτος (128-bit), ενώ η νεότερη SVE
-υιοθετεί VLA μοντέλο (128–2048 bit) παρόμοιο με το RVV.
-
-Το RISC-V \RVV ακολουθεί πλήρως \gls{vla} σχεδιασμό: ο ίδιος κώδικας
-εκτελείται σε οποιοδήποτε \VLEN χωρίς recompilation. Ο μηχανισμός
-\insn{vsetvl} (βλ.~\cref{sec:rvv-architecture}) ρυθμίζει δυναμικά τον αριθμό
-στοιχείων ανά vector operation βάσει του hardware \VLEN. Αυτό σημαίνει ότι
-κώδικας γραμμένος σήμερα για \VLEN=256 θα αξιοποιήσει αυτόματα μελλοντικό
-υλικό με \VLEN=512 ή \VLEN=1024 — χωρίς τροποποίηση πηγαίου κώδικα.
 
 \section{Scalar Κρυπτογραφικές Επεκτάσεις (\Zbc, \Zbb, Zbkb)}
 \label{sec:scalar-extensions}
@@ -392,10 +342,6 @@ instruction scheduling, CSE), σε αντίθεση με inline assembly που 
 \gls{rs} (βλ.~\cref{sec:ecc-theory}). Ο πολλαπλασιασμός δύο
 στοιχείων $a, b \in \GF{2^8}$ υπολογίζεται ως carry-less product ακολουθούμενο
 από modular reduction ως προς το ανάγωγο πολυώνυμο $x^8 + x^4 + x^3 + x^2 + 1$ (0x11D).
-Η \clmul υπολογίζει το 16-bit γινόμενο σε μία εντολή (αντί περίπου
-\num{100} εντολών στον constant-time software βρόχο της reference
-υλοποίησης~\cite{Brent2008-gf2x}), ενώ η reduction εκτελείται σε
-σταθερό αριθμό shift-and-XOR πράξεων.
 
 \subsection{Η Επέκταση \Zbb: Basic Bit-Manipulation}
 \label{ssec:zbb-extension}
