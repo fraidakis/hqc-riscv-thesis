@@ -353,7 +353,7 @@ LMUL=8 ($\text{vl}=128$) για σάρωση ολόκληρου του μετα�
 πίνακα σε ένα pass: \insn{vredmaxu} για εύρεση μεγίστου, \insn{vmseq} +
 \insn{vfirst\_m} για εντοπισμό θέσης.
 
-\paragraph{Reed-Solomon Axis A: Vectorized Syndrome Computation.}
+\paragraph{Reed-Solomon Στάδιο A: Vectorized Syndrome Computation.}
 Κάθε ένα από τα $2\delta$ syndromes αποτελεί ανεξάρτητο εσωτερικό γινόμενο
 μήκους $N_1 - 1$ επί του $\GF{2^8}$.  Ο εξωτερικός βρόχος (ανά syndrome)
 παραμένει scalar, ενώ ο εσωτερικός βρόχος (ανά στοιχείο) vectorized πλήρως.
@@ -383,7 +383,7 @@ pass για HQC-128/192 ($N_1 = 46, 56$) και \num{2} passes για HQC-256
 η RVV gather μέθοδος εμφανίζει υψηλότερο εντολικό κόστος ανά στοιχείο
 ($\approx\num{12}$ εντολές) αλλά επεξεργάζεται \num{4} φορές περισσότερα
 στοιχεία ανά pass.  Επιπλέον, δεν απαιτεί Vector-Crypto extensions —
-μόνο τη βασική V extension και scalar \gls{zbc} για τα fallback axes B/C/D.
+μόνο τη βασική V extension και scalar \gls{zbc} για τα fallback στάδια B/C/D.
 Σε επίπεδο \instret, ο ευρύτερος παραλληλισμός ανά pass αντισταθμίζει
 το υψηλότερο εντολικό κόστος ανά στοιχείο — ωστόσο σε
 πραγματικό υλικό (SpacemiT X60, VLEN=256) ο ισολογισμός εξαρτάται
@@ -401,13 +401,13 @@ BPI-F3 δείχνουν ότι η \code{vector\_rvv} (Tier~2) υπολείπετ
 \label{sec:decode-zvbc-bm-forney}
 
 Το Tier~3 επεκτείνει το Tier~2 διανυσματοποιώντας τους εναπομείναντες εσωτερικούς
-βρόχους \gls{rs} (Axes B και D) μέσω \gls{zvbc} \insn{vclmul.vv} lane-packing.
+βρόχους \gls{rs} (Στάδια B και D) μέσω \gls{zvbc} \insn{vclmul.vv} lane-packing.
 Η στρατηγική τοποθετεί ένα στοιχείο $\GF{2^8}$ ανά 64-bit lane, εκτελεί
 carry-less πολλαπλασιασμό μέσω \insn{vclmul.vv}, και εφαρμόζει inline
 Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{gf\_mul} κλήσεις
 στους εσωτερικούς βρόχους.
 
-\paragraph{Axis B: Berlekamp-Massey (\code{compute\_elp\_zvbc}).}
+\paragraph{Στάδιο B: Berlekamp-Massey (\code{compute\_elp\_zvbc}).}
 Ο αλγόριθμος \gls{bm}~\autocite{Berlekamp1978} εκτελεί $2\delta$ εξωτερικές επαναλήψεις, κάθε μία
 εξαρτώμενη διαδοχικά από την τιμή discrepancy $d$ και τις μεταβλητές
 ελέγχου βαθμού.  Ο εξωτερικός βρόχος δεν παραλληλοποιείται.  Ωστόσο, κάθε
@@ -432,7 +432,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
 χωράνε σε \num{1} vector pass για HQC-128 ($\delta=15$) και HQC-192
 ($\delta=16$), και σε \num{2} passes για HQC-256 ($\delta=29$).
 
-\paragraph{Axis D: Forney Error-Values (\code{compute\_error\_values\_zvbc}).}
+\paragraph{Στάδιο D: Forney Error-Values (\code{compute\_error\_values\_zvbc}).}
 Ο τύπος Forney~\autocite{Forney1966} υπολογίζει τιμές σφάλματος $e_j$ για κάθε θέση σφάλματος.
 Δύο δομές vectorized:
 
@@ -440,7 +440,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
   \item \textbf{Αριθμητής (dot-product)}: μετά τη scalar προ-υπολογισμό
         δυνάμεων \code{inv\_pow[1..$\delta$]}, το εσωτερικό γινόμενο με
         $z[1..\delta]$ vectorized μέσω \insn{vclmul.vv} + \insn{vredxor} —
-        δομικά ταυτόσημο με τον Axis~A syndrome dot-product.
+        δομικά ταυτόσημο με το Στάδιο~A syndrome dot-product.
   \item \textbf{Παρονομαστής (inner-k batch)}: ο modular δείκτης
         $\beta_j[(i+k) \bmod \delta]$ αποσυντίθεται σε δύο συνεχόμενα
         τμήματα μνήμης (αποφεύγοντας indexed gather), κάθε ένα
@@ -453,13 +453,13 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
 \end{itemize}
 
 Ο \cref{tab:decode-rs-zvbc} παρουσιάζει τα αποτελέσματα της vectorization
-Axes B+D σε απομόνωση (πριν την ενσωμάτωση του Axis~C).
+Στάδια B+D σε απομόνωση (πριν την ενσωμάτωση του Σταδίου~C).
 
 \begin{table}[htbp]
   \centering
-  \caption{Αποτελέσματα \Zvbc vectorization Axes B+D στο \Decaps \instret (variant
+  \caption{Αποτελέσματα \Zvbc vectorization Στάδια B+D στο \Decaps \instret (variant
            \texttt{vector\_zvk}, \VLEN{}=\num{256}, σε ενδιάμεσο build πριν την ενσωμάτωση
-           του Axis~C).  Η βελτίωση κλιμακώνεται με $\delta^2$ — μέγιστη στο HQC-256
+           του Σταδίου~C).  Η βελτίωση κλιμακώνεται με $\delta^2$ — μέγιστη στο HQC-256
            ($\delta=29$).}
   \label{tab:decode-rs-zvbc}
   \input{figures/ch7-kernels/decode-rs-zvbc-table}
@@ -473,10 +473,10 @@ throughput.  Τα \KeyGen και \Encaps παραμένουν αμετάβλητ
 την απομόνωση της βελτιστοποίησης στο \Decaps path.
 
 %% --------------------------------------------------------------------------
-\subsection{Vector-Crypto Path: \Zvbc FFT Root-Finding (Axis C)}
+\subsection{Vector-Crypto Path: \Zvbc FFT Root-Finding (Στάδιο C)}
 \label{sec:decode-zvbc-fft}
 
-Ο Axis~C αποτιμά το error-locator πολυώνυμο $\sigma(x)$ σε όλα τα
+Το Στάδιο~C αποτιμά το error-locator πολυώνυμο $\sigma(x)$ σε όλα τα
 $2^M = 256$ σημεία του $\GF{2^8}$ μέσω αναδρομικής radix αποσύνθεσης
 (additive Gao-Mateer \gls{fft}~\autocite{GaoMateer2010}).  Η reference υλοποίηση (\code{fft\_rec})
 εκτελεί depth-first αναδρομική διάσχιση ενός δυαδικού δέντρου βάθους
@@ -540,15 +540,15 @@ allocation.
 
 \paragraph{Αποτελέσματα.}
 Ο \cref{tab:decode-instret} παρουσιάζει τη συνολική επιτάχυνση του decode
-pipeline (πλήρες RM + RS, συμπεριλαμβανομένου του Axis~C) σε σχέση με
+pipeline (πλήρες RM + RS, συμπεριλαμβανομένου του Σταδίου~C) σε σχέση με
 το scalar reference.  Ο \cref{tab:decode-axisc} απομονώνει τη συνεισφορά
-του Axis~C μέσω διαφοράς με το προηγούμενο Zvbc baseline (ίδιοι Axes
-A/B/D, scalar \code{fft\_rec} για Axis~C).
+του Σταδίου~C μέσω διαφοράς με το προηγούμενο Zvbc baseline (ίδια Στάδια
+A/B/D, scalar \code{fft\_rec} για το Στάδιο~C).
 
 \begin{table}[htbp]
   \centering
   \caption{Συνολικό decode pipeline \instret: scalar reference έναντι
-           πλήρους \Zvbc υλοποίησης (Axes A+B+C+D).  Μέτρηση σε Spike,
+           πλήρους \Zvbc υλοποίησης (Στάδια A+B+C+D).  Μέτρηση σε Spike,
            \VLEN{}=\num{256}.}
   \label{tab:decode-instret}
   \input{figures/ch7-kernels/decode-instret-table}
@@ -556,19 +556,19 @@ A/B/D, scalar \code{fft\_rec} για Axis~C).
 
 \begin{table}[htbp]
   \centering
-  \caption{Απομονωμένη συνεισφορά Axis~C (FFT root-finding): σύγκριση
-           \Zvbc pipeline με scalar FFT έναντι vectorized FFT.  Scope: μόνο το Axis~C (όχι πλήρες decode).}
+  \caption{Απομονωμένη συνεισφορά του Σταδίου~C (FFT root-finding): σύγκριση
+           \Zvbc pipeline με scalar FFT έναντι vectorized FFT.  Scope: μόνο το Στάδιο~C (όχι πλήρες decode).}
   \label{tab:decode-axisc}
   \input{figures/ch7-kernels/decode-axisc-table}
 \end{table}
 
 Η vectorized FFT επιτυγχάνει $-\pct{35.8}$ (HQC-128) έως $-\pct{39.8}$
-(HQC-192) μείωση στο Axis~C component.  Η χαμηλότερη βελτίωση στο HQC-256
+(HQC-192) μείωση στο Στάδιο~C component.  Η χαμηλότερη βελτίωση στο HQC-256
 ($-\pct{28.0}$) οφείλεται στο μεγαλύτερο \code{PARAM\_FFT} (= 5 αντί 4),
 το οποίο αυξάνει τον αριθμό επιπέδων δέντρου και τα μεγέθη segments —
 μειώνοντας αναλογικά το ποσοστό function-call overhead που εξαλείφθηκε.
 
-Συνολικά, η πλήρης Tier~3 decode υλοποίηση (Axes A+B+C+D) επιτυγχάνει
+Συνολικά, η πλήρης Tier~3 decode υλοποίηση (Στάδια A+B+C+D) επιτυγχάνει
 \speedup{6.81} (HQC-128), \speedup{7.78} (HQC-192) και \speedup{7.20}
 (HQC-256) στο decode pipeline.  Η ορθότητα επιβεβαιώθηκε μέσω
 \num{300}/\num{300} \gls{kat} vectors σε όλα τα security levels.
