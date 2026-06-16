@@ -500,7 +500,7 @@ $n = \num{17669}$ bits) εκτελεί τα ακόλουθα βήματα:
 
 \paragraph{Toom-Cook-3 (TC3).}
 Ο TC3 διαιρεί κάθε πολυώνυμο σε τρία τμήματα μεγέθους
-$\lceil n/3 \rceil$, αξιολογεί σε \num{5} σημεία του $\GFpoly$
+$\lceil n/3 \rceil$, αποτιμά σε \num{5} σημεία του $\GFpoly$
 (π.χ.\ $\{0, 1, x, x{+}1, \infty\}$), εκτελεί \num{5}
 sub-multiplications, και παρεμβάλλει μέσω explicit XOR/shift formulas.
 Μία πλήρης υλοποίηση TC3 βάθους~2 κατασκευάστηκε, επαληθεύτηκε μέσω
@@ -512,7 +512,7 @@ Spike ISS.
 Συγκεκριμένα, για HQC-128 ο TC3 απαίτησε \num{344973} \instret
 έναντι \num{62530} του Karatsuba Zvbc — αύξηση \pct{452}.  Η
 αιτία εντοπίζεται στο overhead evaluation/interpolation: οι
-carry-propagating shifts για αξιολόγηση στα σημεία $x$ και $x{+}1$
+carry-propagating shifts για αποτίμηση στα σημεία $x$ και $x{+}1$
 είναι sequential (μη vectorizable), η interpolation απαιτεί \num{12}
 shifted terms, και η διαίρεση με $(x^2+1)$ εισάγει per-word carry
 dependency.  Σε βάθος~2, αυτό το overhead πολλαπλασιάζεται $5\times$.
