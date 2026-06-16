@@ -1,13 +1,4 @@
-% VARIANT — not \input by main.tex; promote manually
-% hqc-kem-sequence_v1 — baseline refined (SAME sequence-diagram layout)
-% Token migration: figbox/focal actors, figedge/accent messages, figedge/weak lifelines,
-% figT/* type, semantic palette (shared secret = figsolution). No structural change.
-%
-% v2 correction (per review): in the "κοινό μυστικό" band the vertical lifelines and the
-% horizontal dashed link were crossing through the ss / ss'=ss / caption text. The dashed
-% link is now drawn FIRST and every label is punched through it with a white fill, so no
-% dash crosses any glyph. The caption breaks the line cleanly at the centre.
-\tikzsetnextfilename{ch2-background-hqc-kem-sequence_v1}
+\tikzsetnextfilename{ch2-background-hqc-kem-sequence}
 \begin{tikzpicture}[
   entity/.style={figbox/focal, minimum width=2.3cm, minimum height=0.85cm,
                  align=center, font=\sffamily\footnotesize\bfseries},

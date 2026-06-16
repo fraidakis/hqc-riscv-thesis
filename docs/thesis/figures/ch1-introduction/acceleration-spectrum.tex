@@ -1,13 +1,5 @@
-% VARIANT — not \input by main.tex; promote manually.
-% _v1 — beautified original + TOKEN MIGRATION of acceleration-spectrum.tex.
-% Same 4-box flexibility<->performance layout; inline fonts/weights migrated to
-% thesis-tikz-styles.tex tokens, the "you are here" pill uses the figpill token,
-% and the focal box uses figbox/focal weights. FIX: the original used an
-% UNDEFINED `figaccentleader' style for the pill connector (no such token) —
-% replaced with `draw=figaccent, figLW/base'. Kept inside \resizebox so the wide
-% layout never overflows the text block.
 \resizebox{\textwidth}{!}{%
-\tikzsetnextfilename{ch1-introduction-acceleration-spectrum_v1}
+\tikzsetnextfilename{ch1-introduction-acceleration-spectrum}
 \begin{tikzpicture}[
   node distance=0.8cm,
   box/.style={

@@ -1,11 +1,4 @@
-% VARIANT — not \input by main.tex; promote manually (mv timeline-pqc_annotated.tex timeline-pqc.tex).
-% PRESENTATION variant of timeline-pqc.tex — SAME horizontal era-band layout & data.
-% Adds a self-contained shape legend (circle = γεγονός, diamond = πρότυπο), making
-% the glyph semantics explicit instead of implicit.
-% (A dashed "Σήμερα 2026" now-marker was tried but removed: the only collision-free
-% x-position sat next to 2035, misrepresenting 2026 — see git history.)
-% Tokens only; era hues stay categorical (per-era), as in the baseline.
-\tikzsetnextfilename{ch1-introduction-timeline-pqc_annotated}
+\tikzsetnextfilename{ch1-introduction-timeline-pqc}
 \begin{tikzpicture}[
   x=2.8cm,
   eraband/.style={fill=#1!15, draw=#1!55, rounded corners=2pt},
