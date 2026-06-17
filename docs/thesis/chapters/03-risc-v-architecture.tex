@@ -673,11 +673,6 @@ rotations ενός vector register σε μία εντολή, χρησιμοπο�
 βήμα) απαιτεί \num{5} AND-NOT πράξεις ανά row — η \insn{vandn.vv}
 εκτελεί κάθε μία σε μία εντολή αντί δύο (inversion + AND).
 
-Η παρούσα εργασία υλοποιεί δύο εναλλακτικά vector backends για τον Keccak
-(αναλυτικά στην~\cref{ssec:keccak-zvbb-soa}): (α) ένα μονό register group με
-$\LMUL = 8$ και \insn{vrgather} για τη μετάθεση, και (β) μια 2-way SoA
-διάταξη με \insn{vror.vi}.
-
 Στη vectorized υλοποίηση Keccak (LMUL=8, $\VLEN \geq 256$), ολόκληρο
 το 25-lane state φορτώνεται σε ένα vector register group. Τα βήματα
 $\rho$ και $\pi$ εκτελούνται μέσω ενός ζεύγους \insn{vrgather.vv}
@@ -705,7 +700,7 @@ $(0, 20, 21, 43, 50, 36, 44, 61, 19, 3, 63, 58, 39, 56, 46, 37, 28, 54,
 \label{ssec:zvbc-zvbb-comparison}
 
 Οι επεκτάσεις \gls{zvbc} και \gls{zvbb} μειώνουν δραστικά τον αριθμό vector
-εντολών ανά κρυπτογραφική πράξη· Ο \cref{tab:zvbc-zvbb-before-after}
+εντολών ανά κρυπτογραφική πράξη. Ο \cref{tab:zvbc-zvbb-before-after}
 συνοψίζει την ποσοτική επίπτωσή τους σε τυπικές πράξεις. Η σύγκριση
 αφορά τον αριθμό vector εντολών ανά πράξη — η πραγματική μείωση σε
 δυναμικές εντολές εξαρτάται από τον αριθμό επαναλήψεων κάθε πράξης
@@ -731,42 +726,12 @@ $\LMUL = 4$: $\VLMAX = 16$, δηλαδή \num{16} carry-less γινόμενα α
 περίπου \num{1200} εντολές ανά permutation call, όπως
 επιβεβαιώνεται εμπειρικά στο~\cref{ch:results}.
 
-\subsection{Αδυναμία Αυτόματης Εκπομπής από τον Compiler}
-\label{ssec:zvbc-no-autoemit}
-
-Σε αντίθεση με τις scalar εντολές \gls{zbb} (βλ.~\cref{ssec:zbb-extension}),
-οι εντολές \gls{zvbc} και \gls{zvbb} δεν εκπέμπονται αυτόματα από τον compiler
-μέσω pattern recognition. Η αιτία είναι δομική: ο compiler αναγνωρίζει
-scalar idioms (\eg \code{(x << k) | (x >> (64-k))} $\to$ \rori) επειδή
-αυτά αντιστοιχούν σε μεμονωμένες C εκφράσεις με σαφή σημασιολογία. Οι
-αντίστοιχες vector πράξεις, ωστόσο, δεν εκφράζονται ως απλά C idioms —
-ένας carry-less πολλαπλασιασμός σε $\GFpoly$ δεν αντιστοιχεί σε κανένα
-standard C operator, και η vector rotation πολλαπλών lanes με
-διαφορετικά offsets δεν αναγνωρίζεται από τα υπάρχοντα vectorization
-passes.
-
-\paragraph{Τεχνικοί λόγοι.}
-Τρεις παράγοντες εμποδίζουν το auto-vectorization:
-\begin{enumerate}
-  \item \textbf{Απουσία scalar αντιστοίχου σε standard C:} η πράξη
-    carry-less multiply δεν αντιστοιχεί σε κανέναν C operator (\code{*},
-    \code{\^{}}, \code{\&}) — ο compiler δεν μπορεί να αναγνωρίσει ένα
-    pattern που δεν υπάρχει στη γλώσσα.
-  \item \textbf{Μη τετριμμένη vectorization:} ακόμη και αν ο scalar
-    βρόχος χρησιμοποιεί \code{\_\_riscv\_clmul\_64()} intrinsics, ο
-    auto-vectorizer δεν γνωρίζει ότι η scalar \clmul αντιστοιχεί στη
-    vector \vclmul — δεν υπάρχει mapping στο compiler backend μεταξύ
-    scalar crypto intrinsics και vector crypto εντολών.
-  \item \textbf{Σύνθετα access patterns:} ο Karatsuba leaf δεν είναι
-    απλός element-wise βρόχος — κάθε $a[i]$ πολλαπλασιάζεται με
-    ολόκληρο τον vector $b[0 \ldots n-1]$ (splat-and-sweep), ένα
-    μοτίβο που δεν ταιριάζει στα standard vectorization templates
-    (unit-stride, strided, gather/scatter).
-\end{enumerate}
-
-Κατά συνέπεια, η αξιοποίηση \gls{zvbc} και \gls{zvbb} απαιτεί ρητή χρήση C
-intrinsics: \code{\_\_riscv\_vclmul\_vv\_u64m4()},
+\paragraph{Αξιοποίησή Zvbc και Zvbb μέσω intrinsics.}
+Η αξιοποίηση \gls{zvbc} και \gls{zvbb} απαιτεί ρητή χρήση C
+intrinsics:\\
+\code{\_\_riscv\_vclmul\_vv\_u64m4()},
 \code{\_\_riscv\_vclmulh\_vv\_u64m4()}, \code{\_\_riscv\_vror\_vv\_u64m8()},
+\\
 \code{\_\_riscv\_vandn\_vv\_u64m8()}. Τα intrinsics αυτά ορίζονται στο
 header \code{<riscv\_vector.h>} και συμμετέχουν πλήρως στο optimization
 pipeline (register allocation, scheduling), αλλά η επιλογή χρήσης τους

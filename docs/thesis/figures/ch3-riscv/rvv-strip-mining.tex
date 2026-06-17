@@ -1,54 +1,48 @@
 % VARIANT — not \input by main.tex; promote manually
-% rvv-strip-mining_v1.tex
-% Baseline refined (same two-row layout). Migrates the ad-hoc
-% blue/green/orange/red/purple iteration tints to a consistent, print-safe Tol
-% pale cycle; braces -> tokenised figLW/base brace; tokenised fonts; normalises
-% \VLEN/\VLMAX/\LMUL macro use in both subtitles.
-\tikzsetnextfilename{ch3-riscv-rvv-strip-mining_v1}
+% rvv-strip-mining_twotone.tex — alternative colour strategy: a clean two-hue
+%   alternation between consecutive iterations (emphasises iteration BOUNDARIES
+%   rather than per-iteration identity). Remainder still tail-tinted. Tokens only.
+\tikzsetnextfilename{ch3-riscv-rvv-strip-mining_twotone}
 \begin{tikzpicture}[
   cell/.style={draw=figrule, figLW/hair, minimum width=0.45cm, minimum height=0.5cm,
-               font=\ttfamily\tiny},
-  annot/.style={figT/label},
-  % local: mirrored annotation brace built on shared weights
-  mybrace/.style={decorate, decoration={brace, amplitude=3pt, mirror},
-                  draw=figrule, figLW/base},
-  itercolor1/.style={fill=tolPaleBlue},
-  itercolor2/.style={fill=tolPaleGreen},
-  itercolor3/.style={fill=tolPaleYellow},
-  itercolor4/.style={fill=tolPaleCyan},
-  itercolor5/.style={fill=tolPaleRed},
+               font=\ttfamily\tiny, inner sep=0pt},
+  lbl/.style={figT/label},
+  micro/.style={figT/annot},
+  count/.style={figT/annot, anchor=west},
+  mbrace/.style={decorate, figLW/base, draw=figrule,
+                 decoration={brace, amplitude=4pt, mirror, raise=1pt}},
+  even/.style={fill=figprocess!24}, odd/.style={fill=figaccent!24},
+  tail/.style={fill=figthreat!22},
 ]
-
 % === VLMAX = 4 (top) ===
-\node[annot, anchor=west] at (-1.5, 0.8) {\textbf{\VLMAX = 4} (\VLEN=256, SEW=64, \LMUL=1)};
+\node[lbl, anchor=west] at (-1.6, 0.8) {\textbf{VLMAX = 4}\ \ (\VLEN=256, SEW=64, LMUL=1)};
 \foreach \i in {0,...,19} {
-  \pgfmathsetmacro{\xpos}{\i*0.5}
-  \pgfmathtruncatemacro{\grp}{int(\i/4)+1}
-  \node[cell, itercolor\grp] at (\xpos,0) {\i};
+  \pgfmathsetmacro{\xpos}{\i * 0.5}
+  \pgfmathtruncatemacro{\grp}{int(\i/4)}
+  \ifodd\grp \node[cell, odd] at (\xpos, 0) {\i};
+  \else \node[cell, even] at (\xpos, 0) {\i};\fi
 }
-\foreach [count=\idx] \start in {0,2,4,6,8} {
-  \pgfmathsetmacro{\xstart}{\start*1.0-0.2}
-  \pgfmathsetmacro{\xend}{\start*1.0+1.6}
-  \draw[mybrace] (\xstart,-0.4) -- (\xend,-0.4)
-    node[midway, below=3pt, annot] {vl=4};
+\foreach \start in {0,2,4,6,8} {
+  \draw[mbrace] (\start-0.2, -0.4) -- (\start+1.6, -0.4)
+    node[midway, below=3pt, micro] {vl=4};
 }
-\node[annot] at (4.75,-1.1) {5 iterations};
+\node[count] at (10.0, 0) {5 iterations};
 
 % === VLMAX = 8 (bottom) ===
-\node[annot, anchor=west] at (-1.5,-2.0) {\textbf{\VLMAX = 8} (\VLEN=512, SEW=64, \LMUL=1)};
+\node[lbl, anchor=west] at (-1.6, -2.0) {\textbf{VLMAX = 8}\ \ (\VLEN=512, SEW=64, LMUL=1)};
 \foreach \i in {0,...,19} {
-  \pgfmathsetmacro{\xpos}{\i*0.5}
-  \pgfmathtruncatemacro{\grp}{int(\i/8)+1}
-  \node[cell, itercolor\grp] at (\xpos,-2.8) {\i};
+  \pgfmathsetmacro{\xpos}{\i * 0.5}
+  \ifnum\i>15
+    \node[cell, tail] at (\xpos, -2.8) {\i};
+  \else
+    \pgfmathtruncatemacro{\grp}{int(\i/8)}
+    \ifodd\grp \node[cell, odd] at (\xpos, -2.8) {\i};
+    \else \node[cell, even] at (\xpos, -2.8) {\i};\fi
+  \fi
 }
-\draw[mybrace] (-0.2,-3.2) -- (3.6,-3.2) node[midway, below=3pt, annot] {vl=8};
-\draw[mybrace] (3.8,-3.2) -- (7.6,-3.2) node[midway, below=3pt, annot] {vl=8};
-\draw[mybrace] (7.8,-3.2) -- (9.6,-3.2) node[midway, below=3pt, annot] {vl=4};
-\node[annot] at (4.75,-3.9) {3 iterations (τελευταία: vl=4)};
-
-% Caption-like annotation
-\node[figT/annot, anchor=west, text width=7cm] at (-1.5,-4.6) {%
-  Ίδιος κώδικας, διαφορετικό hardware — ο μηχανισμός \texttt{vsetvl}
-  προσαρμόζει αυτόματα τον αριθμό στοιχείων ανά iteration.};
-
+\draw[mbrace] (-0.2, -3.2) -- (3.6, -3.2) node[midway, below=3pt, micro] {vl=8};
+\draw[mbrace] (3.8, -3.2) -- (7.6, -3.2) node[midway, below=3pt, micro] {vl=8};
+\draw[mbrace, draw=figthreat, figLW/emph] (7.8, -3.2) -- (9.6, -3.2)
+  node[midway, below=3pt, micro, text=figthreat!80!black] {vl=4 (remainder)};
+\node[count] at (10.0, -2.8) {3 iterations};
 \end{tikzpicture}
