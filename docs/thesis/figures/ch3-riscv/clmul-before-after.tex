@@ -13,21 +13,24 @@
   li    t0, 64       # bit counter
   li    t1, 0        # result_lo = 0
   li    t2, 0        # result_hi = 0
+  li    t5, 0        # a_hi = 0 (128-bit shift)
 .loop:
   andi  t3, a1, 1    # extract LSB of b
   neg   t3, t3       # mask: 0 or -1
-  and   t4, a0, t3   # conditional a
+  and   t4, a0, t3   # conditional a_lo
   xor   t1, t1, t4   # accumulate lo
-  srli  t4, a0, 63   # carry bit
-  and   t4, t4, t3   # conditional carry
+  and   t4, t5, t3   # conditional a_hi
   xor   t2, t2, t4   # accumulate hi
-  slli  a0, a0, 1    # shift a left
+  slli  t5, t5, 1    # a_hi << 1
+  srli  t6, a0, 63   # carry out of a_lo
+  or    t5, t5, t6   # a_hi |= carry
+  slli  a0, a0, 1    # a_lo << 1
   srli  a1, a1, 1    # shift b right
   addi  t0, t0, -1   # decrement
   bnez  t0, .loop    # repeat 64x
 \end{lstlisting}
 \smallskip
-{\footnotesize $\approx$ \num{704} εντολές / γινόμενο}
+{\footnotesize $\approx$ \num{832} εντολές / γινόμενο}
 \end{minipage}%
 \hfill%
 \begin{minipage}[t]{0.48\textwidth}
@@ -47,6 +50,6 @@
 \begin{tcolorbox}[colback=green!5, colframe=green!50!black,
   boxrule=0.4pt, arc=2pt, left=4pt, right=4pt, top=2pt, bottom=2pt]
   \centering\small\sffamily
-  Μείωση: \speedup{352} σε instruction count
+  Μείωση: \insnreduction{416} σε στατικό instruction count
 \end{tcolorbox}
 \end{minipage}

@@ -242,7 +242,7 @@ Tier~1--3 variants: ως RVA23-compliant core εγγυάται τις \gls{zbb} 
 εργασίας βρίσκεται στο mainstream adoption path του οικοσυστήματος.
 
 
-\section{Scalar Κρυπτογραφικές Επεκτάσεις (\Zbc, \Zbb, Zbkb)}
+\section{Βαθμωτές Επεκτάσεις Bit-Manipulation για Κρυπτογραφία (\Zbb, \Zbc)}
 \label{sec:scalar-extensions}
 
 Η ενότητα αυτή παρουσιάζει τις scalar κρυπτογραφικές επεκτάσεις που αξιοποιεί
@@ -260,12 +260,12 @@ $\GFpoly$, rotations για Keccak, και byte-level μετασχηματισμ
 64-bit τελεστέων:
 
 \begin{itemize}
-  \item \clmul~\code{rd, rs1, rs2}: υπολογίζει τα κάτω 64~bit του
+  \item \clmul~\code{rd, rs1, rs2}: υπολογίζει τα \emph{κάτω} 64~bit του
     128-bit carry-less γινομένου $\text{rs1} \polymul \text{rs2}$.
-  \item \clmulh~\code{rd, rs1, rs2}: υπολογίζει τα άνω 64~bit του
+  \item \clmulh~\code{rd, rs1, rs2}: υπολογίζει τα \emph{άνω} 64~bit του
     ίδιου γινομένου.
   \item \insn{clmulr}~\code{rd, rs1, rs2}: υπολογίζει το reversed
-    carry-less product (χρήσιμο σε CRC αλλά μη αξιοποιούμενο στην
+    carry-less product (χρήσιμο σε CRC - Cyclic Redundancy Check - αλλά μη αξιοποιούμενο στην
     παρούσα εργασία).
 \end{itemize}
 
@@ -273,53 +273,28 @@ $\GFpoly$, rotations για Keccak, και byte-level μετασχηματισμ
 Η πράξη carry-less multiplication (ή polynomial multiplication)
 διαφέρει από τον ακέραιο πολλαπλασιασμό σε ένα κρίσιμο σημείο: η πρόσθεση
 μερικών γινομένων εκτελείται μέσω XOR αντί αριθμητικής πρόσθεσης, εξαλείφοντας
-τη διάδοση κρατουμένου. Μαθηματικά, αν $a(x) = \sum_{i=0}^{63} a_i x^i$ και
-$b(x) = \sum_{j=0}^{63} b_j x^j$ είναι πολυώνυμα σε $\GFpoly$ αναπαριστώμενα
-ως 64-bit λέξεις, τότε:
-\begin{equation}
-  c(x) = a(x) \cdot b(x) = \sum_{k=0}^{126} c_k x^k, \quad
-  c_k = \bigoplus_{\substack{i+j=k \\ 0 \leq i,j \leq 63}} a_i \cdot b_j.
-  \label{eq:clmul-definition}
-\end{equation}
-Το αποτέλεσμα είναι πολυώνυμο βαθμού $\leq 126$, αναπαριστώμενο σε 128~bit.
-Το~\cref{fig:clmul-semantics} απεικονίζει τη διαδικασία σε μικρό μέγεθος
-(4~bit), αναδεικνύοντας τη θεμελιώδη διαφορά από τον ακέραιο
-πολλαπλασιασμό: τα μερικά γινόμενα συνδυάζονται αποκλειστικά μέσω XOR.
-
-\begin{figure}[htbp]
-  \centering
-  \input{figures/ch3-riscv/clmul-semantics.tex}
-  \caption{Σημασιολογία carry-less multiplication σε $\GFpoly$. Τα μερικά
-    γινόμενα (shifted copies του $a(x)$, gated από τα bits του $b(x)$)
-    συνδυάζονται μέσω XOR χωρίς διάδοση κρατουμένου — σε αντίθεση με τον
-    ακέραιο πολλαπλασιασμό όπου η πρόσθεση παράγει carries.}
-  \label{fig:clmul-semantics}
-\end{figure}
+τη διάδοση κρατουμένου. Για δύο 64-bit πολυώνυμα σε $\GFpoly$, το γινόμενο
+είναι πολυώνυμο βαθμού $\leq 126$ αναπαριστώμενο σε 128~bit· ο τυπικός
+ορισμός και ένα πλήρες αριθμητικό παράδειγμα carry-less πολλαπλασιασμού
+δίνονται στην~\cref{sec:gf2x-arithmetic}.
 
 \paragraph{Αντιστοίχιση σε κρυπτογραφικά primitives.}
 Η carry-less multiplication αποτελεί τη θεμελιώδη πράξη σε πολλαπλά
 κρυπτογραφικά πρωτόκολλα. Στο \gls{hqc}, ο πολυωνυμικός πολλαπλασιασμός σε
 $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογιστικό πυρήνα
 (βλ.~\cref{sec:polymul-theory}). Πέραν του \gls{hqc}, η ίδια πράξη χρησιμοποιείται
-στο GCM (Galois/Counter Mode) για τον υπολογισμό GHASH, στον υπολογισμό CRC
-(Cyclic Redundancy Check), και στη Barrett reduction σε δυαδικά
-πεδία~\cite{RISCV-crypto-spec}. Η γενικότητα αυτή επιβεβαιώνει τη
-σχεδιαστική φιλοσοφία του RISC-V: μία εντολή εξυπηρετεί πολλαπλούς
-αλγορίθμους, σε αντίθεση με dedicated macro-operations που στοχεύουν
-αποκλειστικά έναν αλγόριθμο.
+στο GCM (Galois/Counter Mode) για τον υπολογισμό GHASH, στον υπολογισμό CRC, 
+και στη Barrett reduction σε δυαδικά
+πεδία. Οι εφαρμογές αυτές συνοψίζονται στην~\cref{ssec:principle-clmul} και
+καταδεικνύουν μια κεντρική σχεδιαστική επιλογή του RISC-V: η προτίμηση σε
+λίγες, θεμελιώδεις εντολές γενικού σκοπού που εξυπηρετούν πολλούς
+αλγορίθμους, αντί σε εξειδικευμένες εντολές.
 
 \paragraph{Ποσοτική επίπτωση: before/after σύγκριση.}
 Χωρίς hardware carry-less multiply, ο πολλαπλασιασμός δύο 64-bit πολυωνύμων
 απαιτεί έναν βρόχο \num{64} επαναλήψεων: σε κάθε επανάληψη εξάγεται ένα bit
 του δεύτερου τελεστέου, δημιουργείται μάσκα, εκτελείται conditional XOR του
-ολισθημένου πρώτου τελεστέου, και ενημερώνεται ο συσσωρευτής. Η διαδικασία
-απαιτεί περίπου \num{704} εντολές ανά 64-bit γινόμενο (11 εντολές ανά
-επανάληψη $\times$ 64 επαναλήψεις). Με τη \gls{zbc}, το ίδιο αποτέλεσμα
-παράγεται σε ακριβώς \num{2} εντολές: \clmul (κάτω 64~bit) και \clmulh
-(άνω 64~bit). Η μείωση αντιστοιχεί σε παράγοντα \speedup{352} στον αριθμό εντολών
-ανά στοιχειώδες γινόμενο — μια μετάβαση που μετασχηματίζει τον πολυωνυμικό
-πολλαπλασιασμό από compute-bound σε memory-bound πρόβλημα.
-
+ολισθημένου πρώτου τελεστέου, και ενημερώνεται ο συσσωρευτής.
 Το~\cref{fig:clmul-before-after} παρουσιάζει τη σύγκριση σε επίπεδο assembly:
 αριστερά ο naive shift-and-XOR βρόχος, δεξιά το ζεύγος \clmul/\clmulh.
 
@@ -331,15 +306,18 @@ $\GF{2}[x]/(x^N - 1)$ αποτελεί τον κυρίαρχο υπολογισ�
   \label{fig:clmul-before-after}
 \end{figure}
 
-\paragraph{Χρήση μέσω C intrinsics.}
-Η πρόσβαση στις εντολές \gls{zbc} γίνεται μέσω των compiler intrinsics
-\code{\_\_riscv\_clmul\_64(a, b)} και \code{\_\_riscv\_clmulh\_64(a, b)},
-ορισμένων στο header \code{<riscv\_bitmanip.h>}. Τα intrinsics συμμετέχουν
-πλήρως στο optimization pipeline του compiler (register allocation,
-instruction scheduling, CSE), σε αντίθεση με inline assembly που αποτελεί
-αδιαφανές block. Η παρούσα εργασία χρησιμοποιεί αποκλειστικά intrinsics για
-τις εντολές \gls{zbc} — η αρχική υλοποίηση μέσω inline assembly αντικαταστάθηκε
-κατά τη φάση βελτιστοποίησης (βλ.~\cref{sec:polymul-scalar}).
+Αναλύοντας τον naive βρόχο, κάθε επανάληψη απαιτεί \num{13} εντολές: δύο για
+την εξαγωγή και τη μάσκα του τρέχοντος bit (\insn{andi}, \insn{neg}), τέσσερις
+για τον conditional XOR των δύο μισών του 128-bit συσσωρευτή (δύο ζεύγη
+\insn{and}/\insn{xor}), πέντε για την ολίσθηση του συσσωρευτή και του
+τελεστέου (\insn{slli}, \insn{srli}, \insn{or}, \insn{slli}, \insn{srli}), και
+δύο για τον έλεγχο του βρόχου (\insn{addi}, \insn{bnez}) — δηλαδή περίπου
+\num{832} εντολές ανά 64-bit γινόμενο ($13 \times 64$). Με τη \gls{zbc}, το
+ίδιο αποτέλεσμα παράγεται σε ακριβώς \num{2} εντολές: \clmul (κάτω 64~bit) και
+\clmulh (άνω 64~bit). Η μείωση αντιστοιχεί σε παράγοντα \insnreduction{416}
+στον αριθμό στατικών εντολών ανά στοιχειώδες γινόμενο — μια μετάβαση που 
+μετατοπίζει το bottleneck του \emph{συνολικού} πολυωνυμικού πολλαπλασιασμού από compute-bound σε
+memory-bound.
 
 \paragraph{Δευτερεύουσα χρήση: αριθμητική $\GF{2^8}$.}
 Πέραν του πολυωνυμικού πολλαπλασιασμού μεγάλων πολυωνύμων, η \clmul
@@ -353,20 +331,20 @@ instruction scheduling, CSE), σε αντίθεση με inline assembly που 
 
 Η επέκταση \gls{zbb} (Basic bit-manipulation), επικυρωμένη τον Νοέμβριο
 2021~\cite{RISCV-bitmanip-spec}, παρέχει εντολές bit-level χειρισμού που
-εξαλείφουν σύνθετες ακολουθίες βασικών εντολών. Οι εντολές με κρυπτογραφική
-σημασία για την παρούσα εργασία είναι:
+εξαλείφουν σύνθετες ακολουθίες βασικών εντολών. Η \gls{zbb}
+συμπεριλήφθηκε ως υποχρεωτική (mandatory) στο application profile RVA22
+και, βάσει της πολιτικής Backward Compatibility των RISC-V profiles,
+παραμένει υποχρεωτική σε κάθε επόμενη έκδοση (όπως το RVA23). Συνεπώς
+μπορεί να θεωρηθεί καθολικά διαθέσιμη στο σύγχρονο application-class
+υλικό. Οι εντολές με κρυπτογραφική σημασία για την παρούσα εργασία είναι:
 
 \begin{itemize}
   \item \rori~\code{rd, rs1, shamt}: rotation δεξιά κατά σταθερό αριθμό
-    θέσεων (immediate). Ισοδύναμα, \code{rori rd, rs1, 64-k} εκτελεί
-    rotation αριστερά κατά $k$ θέσεις.
+    θέσεων. Ισοδύναμα, \code{rori rd, rs1, 64-k} εκτελεί rotation
+    αριστερά κατά $k$ θέσεις.
   \item \insn{andn}~\code{rd, rs1, rs2}: AND-NOT ($\text{rs1} \wedge
-    \overline{\text{rs2}}$). Υπολογίζει bit-clear σε μία εντολή.
-  \item \insn{rev8}~\code{rd, rs1}: byte-reverse — αντιστρέφει τη σειρά
-    των 8 bytes μιας 64-bit λέξης (endianness conversion).
-  \item \insn{orc.b}~\code{rd, rs1}: OR-combine bytes — κάθε byte του
-    αποτελέσματος γίνεται \code{0xFF} αν το αντίστοιχο byte εισόδου είναι
-    μη μηδενικό, αλλιώς \code{0x00}.
+    \overline{\text{rs2}}$) — μηδενίζει τα bits του \code{rs1} που είναι
+    ενεργά (set) στο \code{rs2}, δηλαδή bit-clear σε μία εντολή.
 \end{itemize}
 
 \paragraph{Αντιστοίχιση σε Keccak.}
@@ -376,71 +354,21 @@ instruction scheduling, CSE), σε αντίθεση με inline assembly που 
 εντολές shift και μία OR (\code{slli} + \code{srli} + \code{or} = 3 εντολές),
 ενώ κάθε AND-NOT απαιτεί μία αντιστροφή και μία AND (\code{not} + \code{and}
 = 2 εντολές). Με \gls{zbb}, η rotation εκτελείται σε μία \rori και η AND-NOT σε
-μία \insn{andn} — μείωση κατά παράγοντα \speedup{3} και \speedup{2} αντίστοιχα σε instruction
-count ανά πράξη.
+μία \insn{andn} — μείωση κατά παράγοντα \insnreduction{3} και \insnreduction{2} αντίστοιχα σε
+στατικό instruction count ανά πράξη.
 
-\paragraph{Μηχανισμός auto-lowering.}
-Σε αντίθεση με τη \gls{zbc}, οι εντολές \gls{zbb} εκπέμπονται αυτόματα από τον
-compiler χωρίς χρήση intrinsics. Ο μεταγλωττιστής αναγνωρίζει τα C idioms
-\code{(x << k) | (x >> (64-k))} και \code{\textasciitilde{}b \& a} και τα
-αντικαθιστά με \rori και \insn{andn} αντίστοιχα, αρκεί η επέκταση \gls{zbb} να
-είναι ενεργή στο \code{-march} flag. Αυτός ο μηχανισμός
-\defterm{auto-lowering} σημαίνει ότι ο πηγαίος κώδικας δεν χρειάζεται
-τροποποίηση — η βελτιστοποίηση προκύπτει αποκλειστικά από τις compilation
-flags. Τα ποσοτικά αποτελέσματα του auto-lowering αναλύονται
-στην~\cref{sec:isa-ablation}.
+\paragraph{Η σχετιζόμενη επέκταση Zbkb.}
 
-\subsection{Η Επέκταση Zbkb: Bitmanip for Cryptography}
-\label{ssec:zbkb-extension}
-
-Η επέκταση Zbkb (Bit-manipulation for cryptography) αποτελεί υποσύνολο
-εντολών σχεδιασμένων ειδικά για κρυπτογραφικές εφαρμογές. Στην πράξη, οι
-εντολές που αξιοποιεί η παρούσα εργασία (\rori, \insn{andn}, \insn{rev8})
-ανήκουν ταυτόχρονα στη \gls{zbb} και στη Zbkb — η Zbkb ορίστηκε ως ξεχωριστή
-επέκταση για να επιτρέψει σε μικροελεγκτές που δεν υλοποιούν πλήρη \gls{zbb} να
-παρέχουν τουλάχιστον τις κρυπτογραφικά κρίσιμες εντολές. Η εντολή
-\insn{brev8} (bit-reverse εντός κάθε byte) ανήκει αποκλειστικά στη Zbkb και
-χρησιμοποιείται σε αλγορίθμους που απαιτούν bit-reflection (π.χ.\ CRC,
-GHASH), αλλά δεν αξιοποιείται στην παρούσα υλοποίηση \gls{hqc}.
-
-\paragraph{Σχέση μεταξύ επεκτάσεων.}
-Ο \cref{tab:scalar-crypto-instructions} συνοψίζει τις εντολές ανά επέκταση
-και την αντιστοίχισή τους σε κρυπτογραφικά primitives της παρούσας εργασίας.
-Η αλληλοεπικάλυψη μεταξύ \gls{zbb} και Zbkb αντικατοπτρίζει τη σχεδιαστική
-φιλοσοφία του RISC-V: οι ίδιες εντολές εξυπηρετούν τόσο γενικό bit-manipulation
-όσο και κρυπτογραφικές ανάγκες, μεγιστοποιώντας την αξιοποίηση πυριτίου.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Scalar κρυπτογραφικές εντολές και η αντιστοίχισή τους σε
-    primitives της παρούσας εργασίας. Η στήλη \q{Χωρίς extension} δείχνει
-    τον ενδεικτικό αριθμό base-integer εντολών μιας τυπικής ακολουθίας για
-    ισοδύναμη λειτουργία (ο ακριβής αριθμός εξαρτάται από τον compiler).}
-  \label{tab:scalar-crypto-instructions}
-  \small
-  \begin{tabular}{lllcl}
-    \toprule
-    \textbf{Εντολή} & \textbf{Extension} & \textbf{Primitive} &
-      \textbf{Χωρίς ext.} & \textbf{Χρήση στο \gls{hqc}} \\
-    \midrule
-    \clmul   & \gls{zbc}  & $\GFpoly$ multiply (low)  & $\sim$640 & Karatsuba leaf, $\GF{2^8}$ mul \\
-    \clmulh  & \gls{zbc}  & $\GFpoly$ multiply (high) & (μαζί)    & Karatsuba leaf \\
-    \rori    & \gls{zbb}/Zbkb & 64-bit rotation       & 3         & Keccak $\rho$-step \\
-    \insn{andn} & \gls{zbb}/Zbkb & AND-NOT            & 2         & Keccak $\chi$-step \\
-    \insn{rev8} & \gls{zbb}/Zbkb & Byte-reverse       & 7         & Endianness conversion \\
-    \insn{brev8} & Zbkb & Bit-reverse per byte   & $\sim$12  & (μη αξιοποιούμενη) \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\paragraph{Σύνοψη αρχιτεκτονικής συνεισφοράς.}
-Οι scalar κρυπτογραφικές επεκτάσεις μετασχηματίζουν τους δύο κυρίαρχους
-υπολογιστικούς πυρήνες του \gls{hqc} σε επίπεδο μεμονωμένων πράξεων: η \gls{zbc}
-μειώνει το κόστος κάθε στοιχειώδους πολυωνυμικού γινομένου κατά \speedup{352},
-ενώ η \gls{zbb} μειώνει το κόστος κάθε Keccak rotation και AND-NOT κατά
-\speedup{3} και \speedup{2} αντίστοιχα. Η αξιοποίηση αυτών των εντολών στο
-πλαίσιο ολόκληρου του αλγορίθμου — μέσω Karatsuba recursion, software
-pipelining και compile-time code generation — παρουσιάζεται αναλυτικά στο~\cref{ch:polymul-optimization} και στο~\cref{ch:kernel-optimization}.
+Η επέκταση Zbkb (Bit-manipulation for cryptography) ομαδοποιεί εντολές
+χρήσιμες σε κρυπτογραφικές εφαρμογές. Ορίστηκε ως αυτοτελής, ελαφριά
+(lightweight) επέκταση ώστε resource-constrained επεξεργαστές (embedded/IoT-class
+cores) να παρέχουν τις κρυπτογραφικά κρίσιμες bit-manipulation εντολές χωρίς να
+υλοποιούν ολόκληρη τη \gls{zbb}. Οι δύο εντολές που αξιοποιεί η παρούσα εργασία
+(\insn{rori}, \insn{andn}) ανήκουν και στις δύο επεκτάσεις, οπότε για τις ανάγκες
+της υλοποίησης αρκεί \emph{οποιαδήποτε} από τις δύο. 
+Επιλέχθηκε η \gls{zbb}, καθώς επιβάλλεται ως baseline από τα
+profiles RVA22/RVA23 και είναι επομένως ευρύτερα διαθέσιμη στο υλικό, σε αντίθεση
+με τη Zbkb που ανήκει στη δέσμη scalar cryptography.
 
 \section{Αρχιτεκτονική Διανυσματικής Μονάδας (RVV 1.0)}
 \label{sec:rvv-architecture}
@@ -768,7 +696,7 @@ Keccak permutation, και στη vectorized \code{memcpy}. Η ομοιομορ�
 \end{itemize}
 
 Η σημασιολογία είναι ταυτόσημη με τις scalar \clmul/\clmulh
-(βλ.~\cref{eq:clmul-definition}), εφαρμοζόμενη παράλληλα σε \code{vl}
+(βλ.~\cref{eq:gf2x-product}), εφαρμοζόμενη παράλληλα σε \code{vl}
 ζεύγη στοιχείων. Σε $\SEW = 64$, $\LMUL = 4$, $\VLEN = 256$: κάθε
 εντολή \vclmul επεξεργάζεται $\VLMAX = 16$ ανεξάρτητα 64-bit carry-less
 γινόμενα ταυτόχρονα. Η πράξη αυτή αντιστοιχεί ακριβώς στα leaf products

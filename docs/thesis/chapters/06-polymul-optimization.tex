@@ -308,7 +308,7 @@ static inline void clmul64(uint64_t a, uint64_t b,
     \clmul{} leaf (δεξιά) για $n=8$ words.  Ο bit-serial βρόχος εκτελεί
     $64 \times 8 = 512$ conditional shift-XOR iterations ανά εξωτερική
     σειρά, ενώ ο word-level leaf εκτελεί \num{8} ζεύγη \clmul/\clmulh
-    — μείωση \speedup{64} στον αριθμό επαναλήψεων.}
+    — μείωση \insnreduction{64} στον αριθμό επαναλήψεων.}
   \label{fig:schoolbook-vs-clmul}
 \end{figure}
 
