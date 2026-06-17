@@ -375,7 +375,7 @@ profiles RVA22/RVA23 και είναι επομένως ευρύτερα δια�
 
 Η διανυσματική επέκταση \gls{rvv} αποτελεί τον θεμελιώδη μηχανισμό
 αξιοποίησης \gls{dlp} στην αρχιτεκτονική RISC-V. Επικυρώθηκε στην
-έκδοση~1.0 τον Νοέμβριο 2021~\cite{RISCV-vector-spec} και αποτελεί υποχρεωτική
+έκδοση~1.0 τον Νοέμβριο 2021~\cite{RISCV-vector-spec,RISCV-ratified-ext} και αποτελεί υποχρεωτική
 επέκταση στο προφίλ RVA23. Η ενότητα αυτή
 παρουσιάζει τη γενική αρχιτεκτονική, τους μηχανισμούς παραμετροποίησης, το
 μοντέλο προγραμματισμού strip-mining, και τις κατηγορίες εντολών που
@@ -386,34 +386,27 @@ profiles RVA22/RVA23 και είναι επομένως ευρύτερα δια�
 
 Η \gls{rvv} ορίζει \num{32} vector registers (\code{v0}–\code{v31}), κάθε
 ένας πλάτους \VLEN~bits. Η παράμετρος \VLEN αποτελεί
-\defterm{hardware parameter}: καθορίζεται κατά τον σχεδιασμό του
-επεξεργαστή και παραμένει σταθερή κατά την εκτέλεση. Τυπικές τιμές
+\defterm{hardware parameter} (καθορίζεται κατά τον σχεδιασμό του
+επεξεργαστή). Τυπικές τιμές
 κυμαίνονται από \num{128}~bits (ελάχιστη συμβατή υλοποίηση) έως
 \num{2048}~bits (υψηλής απόδοσης σχεδιασμοί), με τον περιορισμό ότι
-$\VLEN = 2^k$ για κάποιον ακέραιο $k \geq 7$. Το~\cref{fig:rvv-regfile}
-απεικονίζει τη δομή του vector register file.
+$\VLEN = 2^k$ για ακέραιο $7 \leq k \leq 16$ (αρχιτεκτονικό εύρος
+\num{128}–\num{65536}~bits). Ο καταχωρητής \code{v0} χρησιμοποιείται ως
+mask register σε masked operations.
 
-\begin{figure}[htbp]
-  \centering
-  \input{figures/ch3-riscv/rvv-register-file.tex}
-  \caption{Δομή του vector register file στο \RVV: \num{32} καταχωρητές
-    πλάτους \VLEN~bits. Η τιμή \VLEN είναι άγνωστη κατά τη μεταγλώττιση —
-    ο κώδικας ανακαλύπτει το πλάτος κατά την εκτέλεση μέσω του \gls{csr}
-    \code{vlenb}. Ο καταχωρητής \code{v0} χρησιμοποιείται ως mask register
-    σε masked operations.}
-  \label{fig:rvv-regfile}
-\end{figure}
-
-Η θεμελιώδης σχεδιαστική αρχή του \RVV είναι η \gls{vla} φιλοσοφία: ο
-πηγαίος κώδικας δεν κωδικοποιεί καμία υπόθεση για την τιμή \VLEN. Το ίδιο
-binary εκτελείται σε οποιοδήποτε hardware \VLEN χωρίς recompilation — ο
-μηχανισμός \insn{vsetvl} (βλ.~\cref{ssec:strip-mining}) ρυθμίζει δυναμικά
-τον αριθμό στοιχείων ανά vector operation. Αυτή η αρχή διαφοροποιεί το \RVV
-τόσο από τα σταθερού πλάτους SIMD μοντέλα (x86 SSE/AVX, ARM NEON) όσο και
-από τα packed-SIMD μοντέλα παλαιότερων αρχιτεκτονικών. Η πρακτική συνέπεια
-είναι ότι κώδικας γραμμένος σήμερα για \VLEN=256 θα αξιοποιήσει αυτόματα
-μελλοντικό υλικό με \VLEN=512 ή \VLEN=1024 — η ανάλυση κλιμάκωσης ως προς
-\VLEN παρουσιάζεται στο~\cref{ch:results}.
+Η θεμελιώδης σχεδιαστική αρχή του \RVV είναι η \gls{vla}: ο κώδικας
+γράφεται ανεξάρτητα από το συγκεκριμένο \VLEN του υλικού. Το ίδιο binary
+εκτελείται σε οποιοδήποτε hardware \VLEN χωρίς recompilation. Ο μηχανισμός
+\insn{vsetvl} (βλ.~\cref{ssec:strip-mining}) ρυθμίζει δυναμικά πόσα
+στοιχεία επεξεργάζεται κάθε vector operation. Αυτή η αρχή διαφοροποιεί το \RVV από
+τα μοντέλα σταθερού πλάτους (packed-SIMD) προηγούμενων αρχιτεκτονικών
+—όπως x86 SSE/AVX και ARM NEON— όπου το πλάτος του διανύσματος είναι
+παγιωμένο στο \gls{isa} και απαιτεί recompilation ή ξεχωριστά code paths
+ανά πλάτος. Η πρακτική συνέπεια είναι ότι κώδικας γραμμένος κατά τη VLA
+σύμβαση αξιοποιεί αυτόματα μελλοντικό υλικό με μεγαλύτερο \VLEN (π.χ.
+\num{512} ή \num{1024}~bits)· αντίθετα, μια υλοποίηση που υποθέτει σταθερό
+\VLEN για ειδικές βελτιστοποιήσεις θυσιάζει αυτή την αυτόματη κλιμάκωση. Η
+ανάλυση κλιμάκωσης ως προς \VLEN παρουσιάζεται στην~\cref{sec:vlen-scaling}.
 
 \subsection{Control/Status Registers και Παραμετροποίηση}
 \label{ssec:rvv-csrs}
@@ -422,14 +415,19 @@ binary εκτελείται σε οποιοδήποτε hardware \VLEN χωρί�
 ρυθμίζονται μέσω της εντολής \insn{vsetvli}/\insn{vsetvl}:
 
 \begin{itemize}
-  \item \code{vtype}: κωδικοποιεί τέσσερα πεδία — \gls{sew} (πλάτος
-    στοιχείου: 8, 16, 32 ή 64~bits), \gls{lmul} (ομαδοποίηση
-    καταχωρητών: $\frac{1}{8}$, $\frac{1}{4}$, $\frac{1}{2}$, 1, 2, 4, 8),
-    \code{vta} (tail agnostic/undisturbed) και \code{vma} (mask
-    agnostic/undisturbed). Το πεδίο \code{vill} σηματοδοτεί μη έγκυρο
-    συνδυασμό.
+  \item \code{vtype}: ορίζει τη διαμόρφωση της vector μονάδας μέσω
+    τεσσάρων πεδίων:
+    \begin{itemize}
+      \item \gls{sew}: πλάτος στοιχείου (8, 16, 32 ή 64~bits)·
+      \item \gls{lmul}: παράγοντας ομαδοποίησης καταχωρητών
+        ($\frac{1}{8}$, $\frac{1}{4}$, $\frac{1}{2}$, 1, 2, 4, 8)·
+      \item \code{vta}: πολιτική tail (agnostic/undisturbed)·
+      \item \code{vma}: πολιτική mask (agnostic/undisturbed).
+    \end{itemize}
+    Ξεχωριστά, το read-only πεδίο \code{vill} τίθεται από το υλικό όταν ο
+    ζητούμενος συνδυασμός είναι μη έγκυρος.
   \item \code{vl}: το ενεργό μήκος διανύσματος (vector length) — ο αριθμός
-    στοιχείων που επεξεργάζεται η τρέχουσα εντολή. Ρυθμίζεται αυτόματα
+    στοιχείων δεδομένων που επεξεργάζεται η τρέχουσα εντολή. Ρυθμίζεται αυτόματα
     από τη \insn{vsetvl} ως $\code{vl} = \min(\text{AVL}, \VLMAX)$, όπου
     AVL (Application Vector Length) είναι ο αριθμός στοιχείων που απομένουν
     προς επεξεργασία.
@@ -470,14 +468,13 @@ operation.
 
 Η \gls{vla} φιλοσοφία υλοποιείται μέσω ενός θεμελιώδους μοτίβου
 προγραμματισμού: του \defterm{strip-mining}. Ο μεταγλωττιστής δεν γνωρίζει
-την τιμή \VLEN κατά τη μεταγλώττιση — κατά συνέπεια, δεν μπορεί να
+την τιμή \VLEN κατά τη μεταγλώττιση και κατά συνέπεια, δεν μπορεί να
 υπολογίσει στατικά πόσα στοιχεία χωράνε σε ένα vector register. Ο βρόχος
 strip-mining λύνει αυτό το πρόβλημα αντλώντας δυναμικά τόσα στοιχεία όσα
-χωράνε ανά iteration (\cref{lst:strip-mining-pattern}):
+χωράνε ανά iteration:
 
 \begin{lstlisting}[language=C, caption={Θεμελιώδες μοτίβο strip-mining σε
-  \RVV. Η \code{vsetvl} επιστρέφει $\code{vl} = \min(n, \VLMAX)$ — ο
-  βρόχος τερματίζει αυτόματα ανεξαρτήτως \VLEN.},
+  \RVV. Η \code{vsetvl} επιστρέφει $\code{vl} = \min(n, \VLMAX)$.},
   label={lst:strip-mining-pattern}]
 for (size_t n = total; n > 0; n -= vl) {
     size_t vl = __riscv_vsetvl_e64m4(n);
@@ -504,24 +501,20 @@ iterations (η τελευταία με $\code{vl} = 4$). Ο κώδικας πα�
   \centering
   \input{figures/ch3-riscv/rvv-strip-mining.tex}
   \caption{Strip-mining ενός array \num{20} στοιχείων σε δύο hardware
-    configurations. Πάνω: $\VLMAX = 4$ (5 iterations). Κάτω: $\VLMAX = 8$
-    (3 iterations, τελευταία με $\code{vl} = 4$). Ο ίδιος κώδικας
-    εκτελείται σε αμφότερα — η \insn{vsetvl} προσαρμόζει αυτόματα τον
-    αριθμό στοιχείων ανά iteration.}
+    configurations.}
   \label{fig:strip-mining-vis}
 \end{figure}
 
 \paragraph{Πρακτικό παράδειγμα: VLA helper.}
 Η ακόλουθη συνάρτηση αποτελεί πραγματικό κώδικα από την παρούσα υλοποίηση
 — εκτελεί element-wise XOR δύο arrays 64-bit λέξεων χρησιμοποιώντας
-strip-mining με $\SEW = 64$, $\LMUL = 4$ (\cref{lst:rvv-xor-helper}) — η
+strip-mining με $\SEW = 64$, $\LMUL = 4$ — η
 επιλογή $\LMUL = 4$ (αντί του πιο επιθετικού $\LMUL = 8$ του γενικού XOR
 παραδείγματος) περιορίζει το register pressure των ενδιάμεσων Karatsuba
 αποτελεσμάτων:
 
 \begin{lstlisting}[language=C, caption={VLA helper \code{rvv\_xor\_u64} από
-  τον Karatsuba recomposition πυρήνα. Η παραμετροποίηση $\LMUL = 4$
-  παρέχει $\VLMAX = 16$ στοιχεία σε \VLEN=256.},
+  τον Karatsuba recomposition πυρήνα.},
   label={lst:rvv-xor-helper}]
 static inline void rvv_xor_u64(uint64_t *dst,
     const uint64_t *src1, const uint64_t *src2, size_t n_words)
@@ -537,9 +530,6 @@ static inline void rvv_xor_u64(uint64_t *dst,
     }
 }
 \end{lstlisting}
-
-Η συνάρτηση αυτή αντικαθιστά τον scalar 4$\times$-unrolled βρόχο στον
-generated Karatsuba header (ποσοτική ανάλυση στο~\cref{ch:results}).
 
 \subsection{Tail/Mask Policies και Κατηγορίες Εντολών}
 \label{ssec:rvv-policies-instructions}
@@ -584,11 +574,7 @@ pressure.
 \begin{figure}[htbp]
   \centering
   \input{figures/ch3-riscv/rvv-lmul-grouping.tex}
-  \caption{Ομαδοποίηση vector registers μέσω \LMUL. Αριστερά: $\LMUL = 1$
-    (\num{32} ανεξάρτητοι καταχωρητές, $\VLMAX = \VLEN/\SEW$). Δεξιά:
-    $\LMUL = 4$ (\num{8} ομάδες, $\VLMAX = 4 \times \VLEN/\SEW$).
-    Η αύξηση \LMUL αυξάνει τα στοιχεία ανά εντολή αλλά μειώνει τους
-    διαθέσιμους ανεξάρτητους τελεστέους.}
+  \caption{Ομαδοποίηση vector registers μέσω \LMUL.}
   \label{fig:lmul-grouping}
 \end{figure}
 
@@ -610,9 +596,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
 \begin{table}[htbp]
   \centering
   \caption{Κατηγορίες vector εντολών \RVV και η αξιοποίησή τους στην
-    παρούσα εργασία. Η κατηγορία Memory (unit-stride) κυριαρχεί σε αριθμό
-    δυναμικών εκτελέσεων λόγω των strip-mining βρόχων στον Karatsuba
-    recomposition.}
+    παρούσα εργασία.}
   \label{tab:rvv-instruction-categories}
   \small
   \input{figures/ch3-riscv/rvv-instruction-categories.tex}
@@ -624,7 +608,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
 Η πρακτική εφαρμογή των μηχανισμών strip-mining, \insn{vsetvl} και VLA
 αποσαφηνίζεται μέσω ενός πλήρους worked example: η συνάρτηση
 \code{vect\_add} εκτελεί element-wise XOR δύο πολυωνυμικών vectors —
-θεμελιώδης πράξη στο \gls{hqc} (πρόσθεση πολυωνύμων σε $\GFpoly$). Η
+θεμελιώδης πράξη στο \gls{hqc} (πρόσθεση πολυωνύμων σε $\GFpoly$). Το
 \cref{fig:rvv-xor-comparison} παρουσιάζει τη σύγκριση μεταξύ scalar C
 και \RVV intrinsics.
 
@@ -632,10 +616,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
   \centering
   \input{figures/ch3-riscv/rvv-xor-example.tex}
   \caption{Σύγκριση scalar C loop (αριστερά) και \RVV intrinsics (δεξιά)
-    για element-wise XOR δύο arrays. Ο \RVV κώδικας χρησιμοποιεί
-    strip-mining: η \code{vsetvl} ρυθμίζει δυναμικά τον αριθμό στοιχείων,
-    η \code{vle64} φορτώνει, η \code{vxor} υπολογίζει, και η \code{vse64}
-    αποθηκεύει — ο βρόχος τερματίζει αυτόματα ανεξαρτήτως \VLEN.}
+    για element-wise XOR.}
   \label{fig:rvv-xor-comparison}
 \end{figure}
 
@@ -650,14 +631,6 @@ $5 / 32 \approx 0.16$ εντολές ανά στοιχείο — λόγος inst
 εξαρτάται από microarchitecture και memory bandwidth). Η πραγματική μείωση
 εξαρτάται από τον αριθμό στοιχείων (overhead \insn{vsetvli} αμελητέο για
 μεγάλα arrays) και τη ρύθμιση \LMUL.
-
-Η συνάρτηση \code{vect\_add} αποτελεί χαρακτηριστικό παράδειγμα
-auto-vectorization candidate: ο scalar βρόχος είναι αρκετά απλός ώστε ο
-compiler να τον διανυσματοποιεί αυτόματα (βλ.~\cref{sec:isa-ablation}). Ωστόσο,
-η ρητή χρήση intrinsics εγγυάται τη σωστή παραμετροποίηση \LMUL και
-εξαλείφει την εξάρτηση από τις ευρετικές αποφάσεις του compiler — κρίσιμο
-σε performance-sensitive πυρήνες όπου η επιλογή \LMUL επηρεάζει άμεσα τον
-αριθμό iterations.
 
 \paragraph{Σύνδεση με τη βελτιστοποίηση.}
 Η ίδια δομή strip-mining εφαρμόζεται σε ολόκληρη τη vectorized υλοποίηση:
