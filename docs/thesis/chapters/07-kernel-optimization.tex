@@ -589,13 +589,13 @@ scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction.  Η
 Η Barrett reduction στο $\GF{2}[x]$~\cite{Barrett1986} υπολογίζει:
 \begin{align}
   \text{high} &= v \gg 8 \\
-  q &= (\text{high} \otimes \mu) \gg 8 \\
-  \text{corr} &= q \otimes p(x) \\
+  q &= (\text{high} \polymul \mu) \gg 8 \\
+  \text{corr} &= q \polymul p(x) \\
   r &= (v \oplus \text{corr}) \mathbin{\&} \text{0xFF}
 \end{align}
 %
 όπου $\mu = \lfloor x^{16} / p(x) \rfloor = \text{0x11C}$ στο $\GF{2}[x]$
-και $\otimes$ σημαίνει carry-less πολλαπλασιασμό.  Η κρίσιμη παρατήρηση
+και $\polymul$ σημαίνει carry-less πολλαπλασιασμό.  Η κρίσιμη παρατήρηση
 είναι ότι η χρήση $\text{0x11D}$ (αντί $\text{0x11C}$) ως $\mu$ παράγει
 ταυτόσημα αποτελέσματα για όλες τις 14-bit εισόδους: η διαφορά $+1$ (bit~0)
 δεν επηρεάζει το πηλίκο μετά τη δεξιά ολίσθηση κατά \num{8} θέσεις για

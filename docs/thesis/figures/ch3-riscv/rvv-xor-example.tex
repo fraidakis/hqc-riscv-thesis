@@ -22,14 +22,15 @@
 \node[title] at (8, 4.2) {RVV Intrinsics};
 \node[code] (rvv) at (8, 4.0) {%
 \begin{tabular}{@{}l@{}}
-size\_t i = 0;\\
-\textbf{while} (i < n) \{\\
-\quad size\_t vl = \_\_riscv\_vsetvl\_e64m8(n-i);\\
-\quad vuint64m8\_t a = \_\_riscv\_vle64(v1+i, vl);\\
-\quad vuint64m8\_t b = \_\_riscv\_vle64(v2+i, vl);\\
+size\_t rem = n;\\
+\textbf{while} (rem > 0) \{\\
+\quad size\_t vl = \_\_riscv\_vsetvl\_e64m8(rem);\\
+\quad vuint64m8\_t a = \_\_riscv\_vle64(v1, vl);\\
+\quad vuint64m8\_t b = \_\_riscv\_vle64(v2, vl);\\
 \quad vuint64m8\_t c = \_\_riscv\_vxor(a, b, vl);\\
-\quad \_\_riscv\_vse64(o+i, c, vl);\\
-\quad i += vl;\\
+\quad \_\_riscv\_vse64(o, c, vl);\\
+\quad v1 += vl; v2 += vl; o += vl;\\
+\quad rem -= vl;\\
 \}\\
 \end{tabular}};
 

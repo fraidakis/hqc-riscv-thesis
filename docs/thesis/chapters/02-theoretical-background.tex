@@ -1040,7 +1040,7 @@ symbols. Το υπολογιστικό βάρος του \gls{rs} εντοπίζ
   \item $e(x)$: το \defterm{πολυώνυμο σφάλματος} (error polynomial) βαθμού $< n_1$, με μη μηδενικούς συντελεστές μόνο στις θέσεις όπου συνέβη σφάλμα.
   \item $S_i$: τα \emph{syndromes}, $2\delta$ τιμές που ανιχνεύουν την παρουσία σφαλμάτων (Στάδιο A).
   \item $\sigma(x)$: το \defterm{πολυώνυμο εντοπισμού σφαλμάτων} (error locator polynomial) βαθμού $\leq \delta$, του οποίου οι ρίζες προσδιορίζουν τις θέσεις των σφαλμάτων (Στάδιο B).
-  \item $\otimes$: ο πολλαπλασιασμός στο $\GF{2^8}$ (carry-less πολλαπλασιασμός με αναγωγή modulo $p(x)$, που στην υλοποίηση αντιστοιχεί στη συνάρτηση \code{gf\_mul}).
+  \item $\polymul$: ο πολλαπλασιασμός στο $\GF{2^8}$ (carry-less πολλαπλασιασμός με αναγωγή modulo $p(x)$, που στην υλοποίηση αντιστοιχεί στη συνάρτηση \code{gf\_mul}).
 \end{itemize}
 
 \subparagraph{Στάδιο A — Υπολογισμός syndromes.}
@@ -1050,7 +1050,7 @@ symbols. Το υπολογιστικό βάρος του \gls{rs} εντοπίζ
 το σφάλμα. Υπολογίζονται $2\delta$ syndromes (όσα απαιτεί ο αλγόριθμος Berlekamp-Massey
 για $\sigma(x)$ βαθμού $\leq \delta$) ως:
 \begin{equation}
-  S_i = \bigoplus_{j=0}^{n_1 - 1} \text{cdw}[j] \otimes \alpha^{i \cdot j},
+  S_i = \bigoplus_{j=0}^{n_1 - 1} \text{cdw}[j] \polymul \alpha^{i \cdot j},
   \quad i = 1, \ldots, 2\delta.
 \end{equation}
 Κάθε syndrome αποτελεί ένα ανεξάρτητο εσωτερικό γινόμενο (dot product)
@@ -1062,14 +1062,14 @@ symbols. Το υπολογιστικό βάρος του \gls{rs} εντοπίζ
 Ο αλγόριθμος εκτελεί $2\delta$ εξωτερικές επαναλήψεις, κάθε μία
 σειριακά εξαρτώμενη από την προηγούμενη (η τιμή discrepancy $d_\mu$
 καθορίζει την ενημέρωση του $\sigma$).
-Εντός κάθε επανάληψης, τρεις εσωτερικοί βρόχοι εκτελούνται ανεξάρτητα. Στους ακόλουθους βρόχους, $\mu$ συμβολίζει τον δείκτη της εξωτερικής επανάληψης, $X_{\sigma_p}$ το βοηθητικό πολυώνυμο μετατόπισης (shift polynomial), $d$ την αρχική discrepancy και $dd = d \otimes d_p^{-1}$ την κανονικοποιημένη τιμή της ως προς την προηγούμενη μη μηδενική discrepancy $d_p$:
+Εντός κάθε επανάληψης, τρεις εσωτερικοί βρόχοι εκτελούνται ανεξάρτητα. Στους ακόλουθους βρόχους, $\mu$ συμβολίζει τον δείκτη της εξωτερικής επανάληψης, $X_{\sigma_p}$ το βοηθητικό πολυώνυμο μετατόπισης (shift polynomial), $d$ την αρχική discrepancy και $dd = d \polymul d_p^{-1}$ την κανονικοποιημένη τιμή της ως προς την προηγούμενη μη μηδενική discrepancy $d_p$:
 
 \begin{enumerate}
-  \item \textbf{SAXPY ενημέρωση:} $\sigma[i] \mathrel{\oplus}= dd \otimes X_{\sigma_p}[i]$ για $i = 1, \ldots, \min(\mu+1, \delta)$.
+  \item \textbf{SAXPY ενημέρωση:} $\sigma[i] \mathrel{\oplus}= dd \polymul X_{\sigma_p}[i]$ για $i = 1, \ldots, \min(\mu+1, \delta)$.
   \item \textbf{Conditional blend:} ενημέρωση του βοηθητικού πολυωνύμου
     $X_{\sigma_p}$ μέσω αριθμητικής μάσκας (constant-time select).
   \item \textbf{Discrepancy dot-product:} $d = S_{\mu+1} \oplus
-    \bigoplus_{i=1}^{\deg\sigma} \sigma[i] \otimes S_{\mu+1-i}$.
+    \bigoplus_{i=1}^{\deg\sigma} \sigma[i] \polymul S_{\mu+1-i}$.
 \end{enumerate}
 Η σειριακή εξάρτηση του εξωτερικού βρόχου αποτελεί εγγενή αλγοριθμικό
 περιορισμό. Ωστόσο, οι εσωτερικοί βρόχοι αποτελούν στόχο διανυσματοποίησης, 
@@ -1103,7 +1103,7 @@ $\sigma(\alpha^{-j})$ μέσω Horner και ελέγχει αν μηδενίζ�
   \item \textbf{Αναδρομή:} αποτίμηση $f_0$ και $f_1$ στα subset sums
     της βάσης $\{\gamma_0, \ldots, \gamma_{m-2}\}$, όπου
     $\gamma_i = \beta_i / \beta_{m-1}$ και $\delta_i = \gamma_i^2 + \gamma_i$.
-  \item \textbf{Συνδυασμός:} $w[k] = u[k] \oplus \text{gammas\_sums}[k] \otimes v[k]$
+  \item \textbf{Συνδυασμός:} $w[k] = u[k] \oplus \text{gammas\_sums}[k] \polymul v[k]$
     για κάθε evaluation point $k$.
 \end{enumerate}
 Το κλειδί της αποδοτικότητας είναι ότι η απεικόνιση $y = x^2 + x$ είναι 2-προς-1 στο $\GF{2^M}$ (τα $x$ και $x{+}1$ δίνουν την ίδια τιμή $y$): κάθε επίπεδο αναδρομής \q{διπλώνει} το σύνολο αποτίμησης στο μισό, $2^m \to 2^{m-1}$.
@@ -1129,7 +1129,7 @@ $\text{cdw}[j] \mathrel{\oplus}= e_j$ για κάθε θέση σφάλματο�
 Η πράξη αυτή είναι γραμμικής πολυπλοκότητας ($\BigO{n_1}$) και δεν
 αποτελεί υπολογιστικό bottleneck.
 
-Η πράξη \code{gf\_mul} (\otimes) αποτελεί τον θεμελιώδη υπολογιστικό πυρήνα του
+Η πράξη \code{gf\_mul} (\polymul) αποτελεί τον θεμελιώδη υπολογιστικό πυρήνα του
 αποκωδικοποιητή \gls{rs}: κάθε στάδιο αποκωδικοποίησης (A–D) εκτελεί πολλαπλές
 κλήσεις \code{gf\_mul}, καθιστώντας την αποδοτικότητα αυτής της πράξης κρίσιμη
 για τη συνολική απόδοση, όπως ποσοτικοποιεί η ανάλυση κόστους που ακολουθεί.

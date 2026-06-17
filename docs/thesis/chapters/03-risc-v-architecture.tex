@@ -377,12 +377,12 @@ profiles RVA22/RVA23 και είναι επομένως ευρύτερα δια�
 αξιοποίησης \gls{dlp} στην αρχιτεκτονική RISC-V. Επικυρώθηκε στην
 έκδοση~1.0 τον Νοέμβριο 2021~\cite{RISCV-vector-spec,RISCV-ratified-ext} και αποτελεί υποχρεωτική
 επέκταση στο προφίλ RVA23. Η αξιοποίηση του \gls{dlp} στους κρυπτογραφικούς πυρήνες της υλοποίησης
-οργανώνεται γύρω από δύο μοντέλα του \RVV. Το μοντέλο κατάστασης ορίζει το
-σύνολο των vector registers, τους \glspl{csr} παραμετροποίησης και την
-ομαδοποίηση \gls{lmul}· το μοντέλο προγραμματισμού καθορίζει πώς γράφεται
-ο vector-length-agnostic κώδικας μέσω strip-mining και πολιτικών tail/mask.
-Η ενότητα κλείνει συνθέτοντας τα δύο μοντέλα μέσα από τις κατηγορίες
-διανυσματικών εντολών και ένα ολοκληρωμένο worked example.
+παρουσιάζεται σε τρία στάδια: το μοντέλο κατάστασης ορίζει το σύνολο των
+vector registers, τους \glspl{csr} παραμετροποίησης και την ομαδοποίηση
+\gls{lmul}· το μοντέλο προγραμματισμού καθορίζει πώς γράφεται ο
+vector-length-agnostic κώδικας μέσω strip-mining και πολιτικών tail/mask·
+και η τελική σύνθεση συνδυάζει τα δύο μοντέλα μέσα από τις κατηγορίες
+διανυσματικών εντολών και ένα αναλυτικό παράδειγμα.
 
 \subsection{Το Διανυσματικό Μοντέλο Κατάστασης}
 \label{ssec:rvv-vla}
@@ -391,7 +391,7 @@ profiles RVA22/RVA23 και είναι επομένως ευρύτερα δια�
 Η \gls{rvv} ορίζει \num{32} vector registers (\code{v0}–\code{v31}), κάθε
 ένας πλάτους \VLEN~bits. Η παράμετρος \VLEN αποτελεί
 \defterm{hardware parameter}, καθοριζόμενη κατά τον σχεδιασμό του
-επεξεργαστή. Τυπικές τιμές κυμαίνονται από \num{128}~bits (ελάχιστη
+επεξεργαστή. Τυπικές τιμές του \VLEN κυμαίνονται από \num{128}~bits (ελάχιστη
 συμβατή υλοποίηση) έως \num{2048}~bits (υψηλής απόδοσης σχεδιασμοί), με
 τον περιορισμό ότι $\VLEN = 2^k$ για ακέραιο $7 \leq k \leq 16$
 (αρχιτεκτονικό εύρος \num{128}–\num{65536}~bits).
@@ -403,54 +403,42 @@ profiles RVA22/RVA23 και είναι επομένως ευρύτερα δια�
 
 \begin{itemize}
   \item \code{vtype}: \gls{csr} του οποίου τα bit-fields κωδικοποιούνται
-    από τη \insn{vsetvli} και ορίζουν τη διαμόρφωση της vector μονάδας
-    μέσω τεσσάρων πεδίων:
-    \begin{itemize}
-      \item \gls{sew}: πλάτος στοιχείου (8, 16, 32 ή 64~bits)
-      \item \gls{lmul}: παράγοντας ομαδοποίησης καταχωρητών
-        ($\frac{1}{8}$, $\frac{1}{4}$, $\frac{1}{2}$, 1, 2, 4, 8)
-      \item \code{vta}: πολιτική tail (agnostic/undisturbed) και
-      \item \code{vma}: πολιτική mask (agnostic/undisturbed) — η σημασία
-        των δύο πολιτικών αναλύεται στην~\cref{ssec:rvv-policies-instructions}
-    \end{itemize}
-  \item \code{vl}: το ενεργό μήκος διανύσματος (vector length) — ο αριθμός
+    από τη \insn{vsetvli} και ορίζουν τη διαμόρφωση της vector μονάδας μέσω
+    τεσσάρων πεδίων: το \gls{sew} (πλάτος στοιχείου: 8, 16, 32 ή 64~bits),
+    το \gls{lmul} (παράγοντας ομαδοποίησης καταχωρητών: $\frac{1}{8}$,
+    $\frac{1}{4}$, $\frac{1}{2}$, 1, 2, 4, 8), και οι πολιτικές \code{vta}
+    (tail) και \code{vma} (mask), των οποίων η σημασία αναλύεται
+    στην~\cref{ssec:rvv-policies-instructions}.
+  \item \code{vl}: το ενεργό μήκος διανύσματος (vector length): ο αριθμός
     στοιχείων δεδομένων που επεξεργάζεται η τρέχουσα εντολή. Ρυθμίζεται
     αυτόματα από τη \insn{vsetvl}, τυπικά ως
     $\code{vl} = \min(\text{AVL}, \VLMAX)$, όπου AVL (Application Vector
-    Length) είναι ο αριθμός στοιχείων που απομένουν
-    προς επεξεργασία.
+    Length) είναι ο αριθμός στοιχείων που απομένουν προς επεξεργασία.
   \item \code{vlenb}: read-only \gls{csr} που επιστρέφει $\VLEN / 8$ σε
-    bytes — ο μοναδικός τρόπος ανακάλυψης του hardware \VLEN κατά την
+    bytes: ο μοναδικός τρόπος ανακάλυψης του hardware \VLEN κατά την
     εκτέλεση.
 \end{itemize}
 
-Η μέγιστη χωρητικότητα μιας ομάδας καταχωρητών (register group)
-υπολογίζεται από τον τύπο:
+Ο μέγιστος αριθμός στοιχείων (πλάτους \SEW το καθένα) που χωρά μια ομάδα
+καταχωρητών (register group) υπολογίζεται από τον τύπο:
 \begin{equation}
   \VLMAX = \frac{\VLEN}{\SEW} \times \LMUL.
   \label{eq:vlmax}
 \end{equation}
 
-\paragraph{Παράδειγμα.}
-Σε hardware με $\VLEN = 256$, η ρύθμιση $\SEW = 64$ και $\LMUL = 1$ παρέχει
-$\VLMAX = 256 / 64 \times 1 = 4$ στοιχεία ανά vector register. 
-Αυξάνοντας σε $\LMUL = 4$, τέσσερις διαδοχικοί
-καταχωρητές ομαδοποιούνται σε ένα logical register group, παρέχοντας
-$\VLMAX = 16$ στοιχεία: αρκετά για να καλύψουν ολόκληρο τον Karatsuba
-leaf ($n = 16$ λέξεις) σε μία vector operation.
-
-\paragraph{LMUL register grouping.}
-Ο μηχανισμός \gls{lmul} επιτρέπει την ομαδοποίηση διαδοχικών vector
-registers σε ένα logical register group. Σε $\LMUL = 4$, οι καταχωρητές
-\code{v0}–\code{v3} αποτελούν μία ομάδα, οι \code{v4}–\code{v7} μία
-δεύτερη, κ.ο.κ. — συνολικά \num{8} ανεξάρτητες ομάδες αντί \num{32}
-μεμονωμένων καταχωρητών. Το~\cref{fig:lmul-grouping} απεικονίζει τη
-διαφορά. Η αύξηση \LMUL αυξάνει τον αριθμό στοιχείων ανά vector operation
-(μεγαλύτερο \VLMAX) αλλά μειώνει τον αριθμό διαθέσιμων ανεξάρτητων
-τελεστέων — ένα trade-off μεταξύ throughput ανά εντολή και register
-pressure. Στο άλλο άκρο, σε $\LMUL = 8$ οι \num{32} καταχωρητές
-σχηματίζουν μόλις τέσσερις έγκυρες ομάδες (με βάσεις \code{v0}, \code{v8},
-\code{v16}, \code{v24}).
+\paragraph{Παράδειγμα και ομαδοποίηση \LMUL.}
+Σε hardware με $\VLEN = 256$ και $\SEW = 64$, η ρύθμιση $\LMUL = 1$ παρέχει
+$\VLEN / \SEW = 4$ στοιχεία ανά vector register. Ο μηχανισμός \gls{lmul}
+ομαδοποιεί διαδοχικούς καταχωρητές σε ένα logical register group: σε
+$\LMUL = 4$ οι \code{v0}--\code{v3} αποτελούν μία ομάδα, οι \code{v4}--\code{v7}
+μία δεύτερη, κ.ο.κ. (συνολικά \num{8} ομάδες αντί \num{32} μεμονωμένων
+καταχωρητών), παρέχοντας $\VLMAX = 16$ στοιχεία ανά ομάδα --- αρκετά για
+ολόκληρο τον Karatsuba leaf ($n = 16$ λέξεις) σε μία vector operation.
+Το~\cref{fig:lmul-grouping} απεικονίζει τη διαφορά. Η αύξηση \LMUL μεγαλώνει
+το \VLMAX αλλά μειώνει τον αριθμό ανεξάρτητων τελεστέων --- ένα trade-off
+μεταξύ throughput ανά εντολή και register pressure. Στο άλλο άκρο, σε
+$\LMUL = 8$ οι \num{32} καταχωρητές σχηματίζουν μόλις τέσσερις έγκυρες ομάδες
+(βάσεις \code{v0}, \code{v8}, \code{v16}, \code{v24}).
 
 \begin{figure}[htbp]
   \centering
@@ -463,8 +451,9 @@ pressure. Στο άλλο άκρο, σε $\LMUL = 8$ οι \num{32} καταχω�
 πυρήνα: ο Karatsuba recomposition χρησιμοποιεί $\LMUL = 4$ (ισορροπία
 μεταξύ throughput και register availability για τα ενδιάμεσα αποτελέσματα),
 ενώ ο Keccak χρησιμοποιεί $\LMUL = 8$ (ολόκληρο το 25-lane state χωράει
-σε μία ομάδα σε $\VLEN \geq 256$). Η \code{memcpy} χρησιμοποιεί επίσης
-$\LMUL = 8$ για μεγιστοποίηση bandwidth.
+σε μία ομάδα σε $\VLEN \geq 256$). Στα RVV intrinsics ο παράγοντας \LMUL
+κωδικοποιείται στο suffix του τύπου (π.χ. \code{vsetvl\_e64m4} για
+$\LMUL = 4$ έναντι \code{vsetvl\_e64m8} για $\LMUL = 8$).
 
 \subsection{Το Μοντέλο Προγραμματισμού}
 \label{ssec:strip-mining}
@@ -474,9 +463,9 @@ $\LMUL = 8$ για μεγιστοποίηση bandwidth.
 γράφεται ανεξάρτητα από το συγκεκριμένο \VLEN του υλικού. Το ίδιο binary
 εκτελείται σε οποιοδήποτε hardware \VLEN χωρίς recompilation. Ο μηχανισμός
 \insn{vsetvl} ρυθμίζει δυναμικά πόσα
-στοιχεία (\SEW-bit το καθένα) επεξεργάζεται κάθε vector operation. Αυτή η
+στοιχεία πλάτους \SEW~bits επεξεργάζεται κάθε vector operation. Αυτή η
 αρχή διαφοροποιεί το \RVV από τα μοντέλα σταθερού πλάτους (packed-SIMD)
-άλλων αρχιτεκτονικών —όπως το x86 SSE/AVX και το ARM NEON— όπου το πλάτος
+άλλων αρχιτεκτονικών — όπως το x86 SSE/AVX και το ARM NEON — όπου το πλάτος
 του διανύσματος είναι παγιωμένο στο \gls{isa} και απαιτεί recompilation ή
 ξεχωριστά code paths ανά πλάτος. Η προσέγγιση VLA του \RVV είναι
 εννοιολογικά ανάλογη του vector-length-agnostic μοντέλου της ARM
@@ -496,9 +485,11 @@ strip-mining λύνει αυτό το πρόβλημα αντλώντας δυν
 \begin{lstlisting}[language=C, caption={Θεμελιώδες μοτίβο strip-mining σε
   \RVV. Η \code{vsetvl} επιστρέφει $\code{vl} = \min(n, \VLMAX)$.},
   label={lst:strip-mining-pattern}]
-for (size_t n = total; n > 0; n -= vl) {
+size_t n = total;
+while (n > 0) {
     size_t vl = __riscv_vsetvl_e64m4(n);
     /* vector operations on vl elements */
+    n -= vl;
 }
 \end{lstlisting}
 
@@ -525,29 +516,27 @@ iterations (η τελευταία με $\code{vl} = 4$). Ο κώδικας πα�
   \label{fig:strip-mining-vis}
 \end{figure}
 
+\paragraph{Ο καταχωρητής \code{v0} ως mask.}
+Πέρα από τον αριθμό ενεργών στοιχείων \code{vl}, το \RVV προσφέρει έναν
+δεύτερο μηχανισμό επιλεκτικής επεξεργασίας: το per-element masking. Σε
+masked operations, ο καταχωρητής \code{v0} λειτουργεί ως mask register:
+κάθε bit $i$ του \code{v0} καθορίζει αν το στοιχείο $i$ θα επεξεργαστεί
+(bit = 1) ή θα παραμείνει ανεπηρέαστο (bit = 0).
+
 \paragraph{Tail και Mask policies.}
 Κάθε vector operation επεξεργάζεται \code{vl} στοιχεία — τα στοιχεία
 πέραν της θέσης \code{vl} (tail elements) και τα στοιχεία με μηδενικό
 mask bit (inactive elements) υπόκεινται σε δύο πολιτικές:
 \begin{itemize}
   \item \defterm{Tail-agnostic} (\code{vta}): τα tail elements μπορούν να
-    λάβουν οποιαδήποτε τιμή — η υλοποίηση δεν εγγυάται διατήρηση. Αυτό
+    λάβουν οποιαδήποτε τιμή. Η υλοποίηση δεν εγγυάται διατήρηση. Αυτό
     επιτρέπει στο hardware να αποφύγει δαπανηρές read-modify-write
     λειτουργίες στο vector register file.
   \item \defterm{Mask-agnostic} (\code{vma}): τα inactive elements (mask
     bit = 0) μπορούν επίσης να λάβουν οποιαδήποτε τιμή.
 \end{itemize}
 
-\paragraph{Ο καταχωρητής \code{v0} ως mask.}
-Σε masked operations, ο καταχωρητής \code{v0} λειτουργεί ως mask register:
-κάθε bit $i$ του \code{v0} καθορίζει αν το στοιχείο $i$ θα επεξεργαστεί
-(bit = 1) ή θα παραμείνει ανεπηρέαστο (bit = 0). Η παρούσα εργασία
-αξιοποιεί masked operations στον constant-time sampling πυρήνα
-(βλ.~\cref{sec:decode-rvv}), όπου η εντολή \insn{vmseq} παράγει mask, η
-\insn{vcpop} μετράει τα ενεργά bits και η \insn{vfirst} εντοπίζει το πρώτο
-ενεργό στοιχείο.
-
-\subsection{Σύνθεση: Κατηγορίες Εντολών και Worked Example}
+\subsection{Σύνθεση: Κατηγορίες Εντολών και Αναλυτικό Παράδειγμα}
 \label{ssec:rvv-xor-example}
 
 \paragraph{Κατηγορίες εντολών.}
@@ -568,7 +557,7 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
 \end{table}
 
 Η πρακτική εφαρμογή των μηχανισμών strip-mining, \insn{vsetvl} και VLA
-αποσαφηνίζεται μέσω ενός πλήρους worked example: η συνάρτηση
+αποσαφηνίζεται μέσω ενός πλήρους αναλυτικού παραδείγματος: η συνάρτηση
 \code{vect\_add} εκτελεί element-wise XOR δύο πολυωνυμικών vectors —
 θεμελιώδης πράξη στο \gls{hqc} (πρόσθεση πολυωνύμων σε $\GFpoly$). Το
 \cref{fig:rvv-xor-comparison} παρουσιάζει τη σύγκριση μεταξύ scalar C
@@ -582,39 +571,35 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
   \label{fig:rvv-xor-comparison}
 \end{figure}
 
-Η scalar υλοποίηση εκτελεί \num{3} core εντολές ανά στοιχείο (load, XOR,
-store), εξαιρουμένου του loop overhead (increment, compare, branch), σε
+Η scalar υλοποίηση εκτελεί \num{4} core εντολές ανά στοιχείο (δύο load,
+XOR, store), εξαιρουμένου του loop overhead (increment, compare, branch), σε
 \code{size} iterations. Η \RVV υλοποίηση εκτελεί \num{5} εντολές ανά
 iteration (\insn{vsetvli} + \insn{vle64} $\times 2$ + \insn{vxor} +
 \insn{vse64}), αλλά κάθε iteration επεξεργάζεται \VLMAX στοιχεία. Σε
-$\VLEN = 256$, $\LMUL = 8$: $\VLMAX = 32$ στοιχεία ανά iteration, δηλαδή
-$5 / 32 \approx 0.16$ εντολές ανά στοιχείο — λόγος instruction count
-περίπου \num{19}:1 (όχι κατ' ανάγκη ισοδύναμος με runtime speedup, ο οποίος
-εξαρτάται από microarchitecture και memory bandwidth). Η πραγματική μείωση
-εξαρτάται από τον αριθμό στοιχείων (overhead \insn{vsetvli} αμελητέο για
-μεγάλα arrays) και τη ρύθμιση \LMUL.
+$\VLEN = 256$, $\LMUL = 8$: $\VLMAX = 32$ στοιχεία ανά iteration, δηλαδή 
+$5 / 32 \approx 0.16$ εντολές ανά στοιχείο. Με αυτό το \VLMAX,
+αντικαθιστάμε \num{32} scalar επαναλήψεις ($32 \times 4 = 128$ εντολές) με
+μόλις \num{5}, λόγος instruction count περίπου \num{26}:1 (όχι κατ' ανάγκη
+ισοδύναμος με runtime speedup, ο οποίος εξαρτάται από microarchitecture και
+memory bandwidth).
 
 \paragraph{Σύνδεση με τη βελτιστοποίηση.}
-Η ίδια δομή strip-mining εφαρμόζεται σε ολόκληρη τη vectorized υλοποίηση:
-στους Karatsuba recomposition helpers (\code{rvv\_xor\_u64}, \code{rvv\_copy\_u64},
-\code{rvv\_xor3\_u64}), στον Zvbc leaf kernel (\code{vclmul\_leaf}), στον
-Keccak permutation, και στη vectorized \code{memcpy}. Η ομοιομορφία του
-μοτίβου σημαίνει ότι η κλιμάκωση ως προς \VLEN επηρεάζει ομοιόμορφα
-όλους τους πυρήνες — με εξαίρεση εκείνους που λειτουργούν σε σταθερό
-μέγεθος δεδομένων (βλ.~\cref{ch:results} για ποσοτική ανάλυση).
+Η ίδια δομή strip-mining επανεμφανίζεται σε όλους τους vectorized πυρήνες,
+όπως για παράδειγμα στον Karatsuba recomposition και στην Keccak
+permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξηση του \VLEN ωφελεί εξίσου
+όλους τους πυρήνες, με εξαίρεση όσους λειτουργούν σε σταθερό μέγεθος
+δεδομένων (βλ.~\cref{ch:results} για ποσοτική ανάλυση).
 
 \section{Διανυσματικές Κρυπτογραφικές Επεκτάσεις (\Zvbc, \Zvbb)}
 \label{sec:vector-crypto-extensions}
 
 Οι διανυσματικές κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb} αποτελούν τη
-φυσική προέκταση των scalar επεκτάσεων \gls{zbc} και \gls{zbb}
-(βλ.~\cref{sec:scalar-extensions}) στο vector domain. Επικυρώθηκαν τον
-Σεπτέμβριο 2023 ως μέρος του Volume~II (Vector Cryptography) της
+φυσική προέκταση των scalar επεκτάσεων \gls{zbc} και \gls{zbb} στο vector domain. 
+Επικυρώθηκαν τον Σεπτέμβριο 2023 ως μέρος του Volume~II (Vector Cryptography) της
 προδιαγραφής RISC-V Cryptography Extensions~\cite{RISCV-crypto-spec,RISCV-crypto-vol2} και
 αποτελούν τη βάση του Tier~3 profile της παρούσας εργασίας.
-Η ενότητα αυτή παρουσιάζει τη σημασιολογία κάθε εντολής, την αντιστοίχισή
-της σε κρυπτογραφικά primitives, και τον λόγο που αυτές οι εντολές δεν
-εκπέμπονται αυτόματα από τον compiler.
+Η ενότητα αυτή παρουσιάζει τη σημασιολογία κάθε εντολής και την αντιστοίχισή
+της σε κρυπτογραφικά primitives.
 
 \subsection{Η Επέκταση \Zvbc: Vector Carry-Less Multiplication}
 \label{ssec:zvbc-extension}
