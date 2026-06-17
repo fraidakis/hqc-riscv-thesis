@@ -40,32 +40,14 @@ $b(x) = \sum_{j=0}^{n} b_j x^j$ με $a_i, b_j \in \{0, 1\}$, το γινόμε�
 από τον ακέραιο πολλαπλασιασμό: δεν υπάρχει αλυσιδωτή διάδοση κρατουμένου μεταξύ θέσεων.
 
 \paragraph{Παράδειγμα.}
-Για παράδειγμα, έστω $a(x) = x^2 + x$ και $b(x) = x + 1$, δηλαδή τα δυαδικά $110$ και $011$. Σε δυαδική \emph{κάθετη} μορφή (long multiplication) τα μερικά γινόμενα προστίθενται κατά bit \emph{χωρίς κρατούμενο}, με XOR αντί για πρόσθεση με κρατούμενο:
-\begin{equation*}
-  \begin{array}{r@{\;}cccc}
-         &   & 1 & 1 & 0 \\
-    \times &   & 0 & 1 & 1 \\
-    \hline
-         &   & 1 & 1 & 0 \\
-    \oplus & 1 & 1 & 0 &   \\
-    \hline
-         & 1 & 0 & 1 & 0
-  \end{array}
-\end{equation*}
-δηλαδή $a(x)\,b(x) = x^3 + x$ στον $\GFpoly$· το μεσαίο bit μηδενίζεται, αφού $1 \oplus 1 = 0$.
-Για σύγκριση, ο \emph{ακέραιος} πολλαπλασιασμός των ίδιων δυαδικών αριθμών διαδίδει κρατούμενα μεταξύ των θέσεων και δίνει διαφορετικό αποτέλεσμα:
-\begin{equation*}
-  \begin{array}{r@{\;}ccccc}
-         &   &   & 1 & 1 & 0 \\
-    \times &   &   & 0 & 1 & 1 \\
-    \hline
-         &   &   & 1 & 1 & 0 \\
-       +  &   & 1 & 1 & 0 &   \\
-    \hline
-         & 1 & 0 & 0 & 1 & 0
-  \end{array}
-\end{equation*}
+Για παράδειγμα, έστω $a(x) = x^2 + x$ και $b(x) = x + 1$, δηλαδή τα δυαδικά $110$ και $011$. Το~\cref{fig:gf2x-clmul-example} αναλύει βήμα προς βήμα τον carry-less πολλαπλασιασμό τους: τα μερικά γινόμενα (partial products) ως ολισθημένα αντίγραφα του $110$, επιλεγμένα από τα bits του $011$· τον συνδυασμό τους με XOR κατά στήλη, χωρίς κρατούμενο· και την αντιπαραβολή με τον ακέραιο πολλαπλασιασμό.
 
+\begin{figure}[htbp]
+  \centering
+  \input{figures/appendix-algebra/gf2x-clmul-example.tex}
+  \caption[Carry-less πολλαπλασιασμός στον $\GFpoly$: $110 \times 011$]{Carry-less πολλαπλασιασμός στον $\GFpoly$: $110 \times 011$.}
+  \label{fig:gf2x-clmul-example}
+\end{figure}
 
 \section{Το σώμα \texorpdfstring{$\GF{2^8}$}{GF(2^8)}}
 \label{sec:appendix-gf256}

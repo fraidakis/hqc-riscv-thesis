@@ -1,0 +1,46 @@
+% figures/appendix-algebra/gf2x-clmul-example.tex
+% Carry-less multiplication in GF(2)[x] (simplified): a=110 (x^2+x) x b=011 (x+1) -> 1010 (x^3+x).
+% Classic vertical long-multiplication layout (x / (+) / + with rules), three panels.
+% Partial products shown shifted WITHOUT padding zeros; no left row-labels; no b2*a row.
+% Panel 3 contrasts integer multiplication (carry propagation) -> 10010.
+% Style/tokens from figures/thesis-tikz-styles.tex.  LuaLaTeX-safe; no external assets.
+\tikzsetnextfilename{appendix-algebra-gf2x-clmul-example}
+\begin{tikzpicture}[
+  bit/.style   ={font=\ttfamily\small, minimum width=0.8em, minimum height=1.5em, inner sep=0pt, anchor=center},
+  hlbit/.style ={bit, draw=figaccent, figLW/base, fill=figaccent!12, rounded corners=1pt},
+  op/.style    ={font=\small, anchor=center},
+  note/.style  ={figT/annot, anchor=west},
+  head/.style  ={figT/title, anchor=west},
+  call/.style  ={figT/callout, anchor=north, align=center},
+]
+  % ===== Panel 1 -- partial products =====
+  \node[head] at (-1.9, 4.55) {1.~Μερικά γινόμενα (partial products)};
+  \node[bit] at (1.24, 4.05) {1}; \node[bit] at (1.86, 4.05) {1}; \node[bit] at (2.48, 4.05) {0};
+  \node[note] at (3.0, 4.05) {$= x^2 + x$};
+  \node[op] at (0.62, 3.55) {$\times$};
+  \node[bit] at (1.24, 3.55) {0}; \node[bit] at (1.86, 3.55) {1}; \node[bit] at (2.48, 3.55) {1};
+  \node[note] at (3.0, 3.55) {$= x + 1$};
+  \draw[figrule, figLW/base] (0.3, 3.27) -- (2.8, 3.27);
+  \node[bit] at (1.24, 2.95) {1}; \node[bit] at (1.86, 2.95) {1}; \node[bit] at (2.48, 2.95) {0};
+  \node[bit] at (0.62, 2.55) {1}; \node[bit] at (1.24, 2.55) {1}; \node[bit] at (1.86, 2.55) {0};
+  \draw[figrule, figLW/hair, dashed] (-1.9, 2.20) -- (6.4, 2.20);
+  % ===== Panel 2 -- XOR (no carry) =====
+  \node[head] at (-1.9, 1.85) {2.~Συνδυασμός με XOR (no carry)};
+  \node[bit] at (1.24, 1.35) {1}; \node[bit] at (1.86, 1.35) {1}; \node[bit] at (2.48, 1.35) {0};
+  \node[op] at (0.0, 0.95) {$\oplus$};
+  \node[bit] at (0.62, 0.95) {1}; \node[bit] at (1.24, 0.95) {1}; \node[bit] at (1.86, 0.95) {0};
+  \draw[figrule, figLW/base] (-0.1, 0.67) -- (2.8, 0.67);
+  \node[bit] at (0.62, 0.35) {1}; \node[hlbit] at (1.24, 0.35) {0}; \node[bit] at (1.86, 0.35) {1}; \node[bit] at (2.48, 0.35) {0};
+  \node[note] at (3.0, 0.35) {$= x^3 + x$};
+  \node[call, text=figaccent!75!black] at (1.24, 0.05) {$1 \oplus 1 = 0$};
+  \draw[figrule, figLW/hair, dashed] (-1.9, -0.45) -- (6.4, -0.45);
+  % ===== Panel 3 -- integer multiplication (carry) =====
+  \node[head] at (-1.9, -0.80) {3.~Σύγκριση: ακέραιος πολλαπλασιασμός (carry)};
+  \node[bit] at (1.24, -1.30) {1}; \node[bit] at (1.86, -1.30) {1}; \node[bit] at (2.48, -1.30) {0};
+  \node[op] at (0.0, -1.70) {$+$};
+  \node[bit] at (0.62, -1.70) {1}; \node[bit] at (1.24, -1.70) {1}; \node[bit] at (1.86, -1.70) {0};
+  \draw[figrule, figLW/base] (-0.1, -1.98) -- (2.8, -1.98);
+  \node[hlbit] at (0.0, -2.30) {1}; \node[bit] at (0.62, -2.30) {0}; \node[bit] at (1.24, -2.30) {0}; \node[bit] at (1.86, -2.30) {1}; \node[bit] at (2.48, -2.30) {0};
+  \node[note] at (3.0, -2.30) {$= 10010 \neq 1010$};
+  \node[call, text=figneutral] at (0.0, -2.60) {κρατούμενο};
+\end{tikzpicture}

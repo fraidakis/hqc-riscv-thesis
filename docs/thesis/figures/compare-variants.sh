@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# compare-variants.sh — Build all figure variants for a chapter and open them
-#                        in the default browser for visual comparison.
+# compare-variants.sh — Build all figure variants for a chapter/appendix and
+#                        open them in the default browser for visual comparison.
 #
 # Usage:
 #   ./compare-variants.sh -c ch1-introduction              # all figures + variants
 #   ./compare-variants.sh -c ch01                          # fuzzy match
 #   ./compare-variants.sh -c ch1-introduction -f timeline  # only figures matching "timeline"
 #   ./compare-variants.sh -c ch1-introduction -j 4         # 4 parallel build jobs
-#   ./compare-variants.sh --all                            # all chapters
+#   ./compare-variants.sh -c appendix-algebra              # appendix figures
+#   ./compare-variants.sh --all                            # all chapters + appendices
 #
 # The script:
 #   1. Discovers all base + variant .tex figure files in the chapter
@@ -31,21 +32,23 @@ usage() {
     cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Build all figure variants for a chapter and open them in Chrome for comparison.
+Build all figure variants for a chapter/appendix and open them in Chrome for comparison.
 Each base figure gets its own window with base + variants as tabs.
 
 OPTIONS:
-  -c, --chapter CHAPTER   Chapter folder name or prefix (e.g. ch1, ch01, ch2-background)
+  -c, --chapter CHAPTER   Chapter or appendix folder name or prefix
+                          (e.g. ch1, ch01, ch2-background, appendix-algebra)
   -f, --filter PATTERN    Only build figures whose name matches PATTERN (grep -i)
   -j, --jobs N            Number of parallel lualatex jobs (default: $JOBS)
-      --all               Build variants for ALL chapters
+      --all               Build variants for ALL chapters and appendices
   -h, --help              Show this help
 
 EXAMPLES:
   $(basename "$0") -c ch01                          # all ch1 figures
   $(basename "$0") -c ch1-introduction -f timeline  # only timeline figures
   $(basename "$0") -c ch6-polymul -j 8              # 8 parallel jobs
-  $(basename "$0") --all                            # every chapter
+  $(basename "$0") -c appendix-algebra              # appendix figures
+  $(basename "$0") --all                            # every chapter + appendix
 EOF
     exit "${1:-0}"
 }
@@ -62,13 +65,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# ─── Resolve chapter (reused fuzzy logic from promote-variants.sh) ────────────
+# ─── Resolve chapter/appendix (reused fuzzy logic from promote-variants.sh) ───
 resolve_chapter() {
     local input="$1"
+    # Exact match
     if [[ -d "${SCRIPT_DIR}/${input}" ]]; then
         echo "$input"
         return 0
     fi
+    # Chapter fuzzy match: ch1 -> ch1-introduction, ch01 -> ch1-introduction
     local num=""
     if [[ "$input" =~ ^ch0*([0-9]+)(.*)$ ]]; then
         num="${BASH_REMATCH[1]}"
@@ -92,20 +97,35 @@ resolve_chapter() {
             return 1
         fi
     fi
+    # Appendix fuzzy match: appendix-alg -> appendix-algebra
+    if [[ "$input" =~ ^appendix ]]; then
+        local matches=()
+        for d in "$SCRIPT_DIR"/${input}*/; do
+            [[ -d "$d" ]] && matches+=("$(basename "$d")")
+        done
+        if [[ ${#matches[@]} -eq 1 ]]; then
+            echo "${matches[0]}"
+            return 0
+        elif [[ ${#matches[@]} -gt 1 ]]; then
+            echo "Error: ambiguous appendix '$input'. Matches:" >&2
+            printf '  %s\n' "${matches[@]}" >&2
+            return 1
+        fi
+    fi
     return 1
 }
 
 # ─── Determine chapters to process ──────────────────────────────────────────
 CHAPTERS=()
 if [[ "$ALL_CHAPTERS" == true ]]; then
-    for d in "$SCRIPT_DIR"/ch*/; do
+    for d in "$SCRIPT_DIR"/ch*/ "$SCRIPT_DIR"/appendix-*/; do
         [[ -d "$d" ]] && CHAPTERS+=("$(basename "$d")")
     done
 elif [[ -n "$CHAPTER" ]]; then
     RESOLVED=$(resolve_chapter "$CHAPTER") || {
-        echo "Error: could not resolve chapter '$CHAPTER'."
-        echo "Available chapters:"
-        ls -1d "$SCRIPT_DIR"/ch*/ 2>/dev/null | xargs -I{} basename {} | sed 's/^/  /'
+        echo "Error: could not resolve chapter/appendix '$CHAPTER'."
+        echo "Available:"
+        ls -1d "$SCRIPT_DIR"/ch*/ "$SCRIPT_DIR"/appendix-*/ 2>/dev/null | xargs -I{} basename {} | sed 's/^/  /'
         exit 1
     }
     CHAPTERS+=("$RESOLVED")
