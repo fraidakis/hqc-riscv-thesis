@@ -1,43 +1,18 @@
-% figures/rvv-instruction-categories.tex
-% Table: RVV instruction categories with examples and usage in this work
-\begin{tabular}{p{3.2cm}p{4.5cm}p{5.5cm}}
-  \toprule
-  \textbf{Κατηγορία} & \textbf{Εντολές} & \textbf{Χρήση στην παρούσα εργασία} \\
-  \midrule
-  Memory (unit-stride) &
-    \texttt{vle8/16/32/64}, \texttt{vse8/16/32/64} &
-    Φόρτωση/αποθήκευση πολυωνυμικών συντελεστών, Keccak state \\
-  \addlinespace
-  Memory (strided) &
-    \texttt{vlse64}, \texttt{vsse64} &
-    (μη αξιοποιούμενη) \\
-  \addlinespace
-  Memory (indexed) &
-    \texttt{vluxei64} &
-    (μη αξιοποιούμενη) \\
-  \addlinespace
-  Arithmetic &
-    \texttt{vxor}, \texttt{vadd}, \texttt{vsub}, \texttt{vsll}, \texttt{vsrl} &
-    Karatsuba recomposition (XOR), Keccak $\theta$-step \\
-  \addlinespace
-  Reductions &
-    \texttt{vredxor}, \texttt{vredmaxu} &
-    Reed-Muller Hadamard peak-find \\
-  \addlinespace
-  Permutations &
-    \texttt{vrgather}, \texttt{vslidedown}, \texttt{vslide1up} &
-    Keccak $\pi$-step (lane permutation) \\
-  \addlinespace
-  Mask operations &
-    \texttt{vmseq}, \texttt{vcpop}, \texttt{vfirst} &
-    Constant-time sampling (support dedup) \\
-  \addlinespace
-  Type conversion &
-    \texttt{vzext}, \texttt{vncvt} &
-    Reed-Solomon GF($2^8$) widening \\
-  \addlinespace
-  Splat &
-    \texttt{vmv.v.x} &
-    Broadcast scalar $a[i]$ σε vector (Zvbc leaf) \\
-  \bottomrule
-\end{tabular}
+% VARIANT — not \input by main.tex; promote manually
+% rvv-instruction-categories_v1.tex
+% Baseline refined: migrates the plain tabular to the shared `thesistblr' table
+% system (accent header wash + accent booktabs-weight rules, consistent rowsep).
+% Unused categories are greyed (figneutral) so the eye lands on the categories
+% actually exercised. Drop-in for the table body (chapter keeps \caption/\label).
+\begin{thesistblr}{colspec={X[2,l] X[3,l] X[4,l]}}
+  Κατηγορία & Εντολές & Χρήση στην παρούσα εργασία \\
+  Memory (unit-stride) & \texttt{vle8/16/32/64}, \texttt{vse8/16/32/64} & Φόρτωση/αποθήκευση πολυωνυμικών συντελεστών, Keccak state \\
+  Memory (strided) & \texttt{vlse64}, \texttt{vsse64} & \textcolor{figneutral}{(μη αξιοποιούμενη)} \\
+  Memory (indexed) & \texttt{vluxei64} & \textcolor{figneutral}{(μη αξιοποιούμενη)} \\
+  Arithmetic & \texttt{vxor}, \texttt{vadd}, \texttt{vsub}, \texttt{vsll}, \texttt{vsrl} & Karatsuba recomposition (XOR), Keccak $\theta$-step \\
+  Reductions & \texttt{vredxor}, \texttt{vredmaxu} & Reed-Muller Hadamard peak-find \\
+  Permutations & \texttt{vrgather}, \texttt{vslidedown}, \texttt{vslide1up} & Keccak $\pi$-step (lane permutation) \\
+  Mask operations & \texttt{vmseq}, \texttt{vcpop}, \texttt{vfirst} & Constant-time sampling (support dedup) \\
+  Type conversion & \texttt{vzext}, \texttt{vncvt} & Reed-Solomon GF($2^8$) widening \\
+  Splat & \texttt{vmv.v.x} & Broadcast scalar $a[i]$ σε vector (Zvbc leaf) \\
+\end{thesistblr}

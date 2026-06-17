@@ -1,75 +1,105 @@
-% RV64I Instruction Formats — 6 basic formats (R/I/S/B/U/J)
-% Shows bit fields with fixed positions for rs1, rs2, rd
-\tikzsetnextfilename{ch3-riscv-rv64-instruction-formats}
+% VARIANT — not \input by main.tex; promote manually (mv rv64-instruction-formats_v1.tex rv64-instruction-formats.tex)
+% rv64-instruction-formats_v1.tex — baseline refined (token migration + cleanup)
+% Type A (conceptual). SAME layout as the original.
+% ROUND 2 fixes (per review):
+%  (1) Top bit-position numbers were sitting on the LEFT edge of each labelled
+%      bit (pos = 31-b), i.e. one bit-width LEFT of the true field divider, and
+%      were only 0.1cm above the R-type row (overlap). They are now placed on
+%      the actual field DIVIDERS (pos = 32-b; 31 stays at the far-left edge),
+%      raised to y=6.0 with a short tick mark per divider -> aligned + clear.
+%  (2) funct (tolPaleGreen) and immediate (tolPaleYellow) read too similarly.
+%      immediate is remapped to tolPaleRed (pale pink #FFCCCC): the four field
+%      categories are now well separated hues (blue / green / pink / grey) and
+%      immediate is never adjacent to a same-hue neighbour.
+\tikzsetnextfilename{ch3-riscv-rv64-instruction-formats_v1}
 \begin{tikzpicture}[
-  field/.style={draw, minimum height=0.7cm, inner sep=0pt, anchor=south west,
-    font=\ttfamily\scriptsize},
-  label/.style={font=\sffamily\footnotesize\bfseries, anchor=east},
-  bitlabel/.style={font=\tiny\ttfamily, text=gray!70!black},
+  fmtfield/.style={draw=figrule, minimum height=0.7cm, inner sep=0pt,
+    anchor=south west, font=\ttfamily\scriptsize},
+  fmtlabel/.style={figT/title, anchor=east},
+  fmtbit/.style={font=\ttfamily\scriptsize, text=figneutral},
 ]
+% --- local field-category palette (semantic; built on shared Tol washes) ---
+\colorlet{fmtReg}{tolPaleBlue}     % register operands: rs1, rs2, rd
+\colorlet{fmtFunct}{tolPaleGreen}  % function selects: funct7, funct3
+\colorlet{fmtImm}{tolPaleRed}      % immediate fields (was tolPaleYellow)
+\colorlet{fmtOp}{tolPaleGrey}      % opcode (common to every format)
 
 \pgfmathsetmacro{\totalwidth}{13}    % cm
 \pgfmathsetmacro{\bitwidth}{0.40625} % totalwidth / 32
 
-% Helper: draw a field from bit position 'start' to 'end' (inclusive, 0-indexed from right)
-% Arguments: y-offset, start-bit, end-bit, fill color, label text
+% Helper: field from bit 'start'..'end' (inclusive, 0-indexed from right)
 \newcommand{\bitfield}[5]{%
   \pgfmathsetmacro{\xstart}{(31-#3)*\bitwidth}%
   \pgfmathsetmacro{\w}{(#3-#2+1)*\bitwidth}%
-  \node[field, minimum width=\w cm, fill=#4] at (\xstart cm, #1) {\strut #5};%
+  \node[fmtfield, minimum width=\w cm, fill=#4] at (\xstart cm, #1) {\strut #5};%
 }
 
 % --- R-type (y=5.0) ---
-\node[label] at (-0.2, 5.35) {R-type};
-\bitfield{5.0}{25}{31}{blue!10}{funct7}
-\bitfield{5.0}{20}{24}{red!10}{rs2}
-\bitfield{5.0}{15}{19}{orange!10}{rs1}
-\bitfield{5.0}{12}{14}{green!10}{f3}
-\bitfield{5.0}{7}{11}{purple!10}{rd}
-\bitfield{5.0}{0}{6}{gray!15}{opcode}
+\node[fmtlabel] at (-0.2, 5.35) {R-type};
+\bitfield{5.0}{25}{31}{fmtFunct}{funct7}
+\bitfield{5.0}{20}{24}{fmtReg}{rs2}
+\bitfield{5.0}{15}{19}{fmtReg}{rs1}
+\bitfield{5.0}{12}{14}{fmtFunct}{f3}
+\bitfield{5.0}{7}{11}{fmtReg}{rd}
+\bitfield{5.0}{0}{6}{fmtOp}{opcode}
 
 % --- I-type (y=4.0) ---
-\node[label] at (-0.2, 4.35) {I-type};
-\bitfield{4.0}{20}{31}{cyan!10}{imm[11:0]}
-\bitfield{4.0}{15}{19}{orange!10}{rs1}
-\bitfield{4.0}{12}{14}{green!10}{f3}
-\bitfield{4.0}{7}{11}{purple!10}{rd}
-\bitfield{4.0}{0}{6}{gray!15}{opcode}
+\node[fmtlabel] at (-0.2, 4.35) {I-type};
+\bitfield{4.0}{20}{31}{fmtImm}{imm[11:0]}
+\bitfield{4.0}{15}{19}{fmtReg}{rs1}
+\bitfield{4.0}{12}{14}{fmtFunct}{f3}
+\bitfield{4.0}{7}{11}{fmtReg}{rd}
+\bitfield{4.0}{0}{6}{fmtOp}{opcode}
 
 % --- S-type (y=3.0) ---
-\node[label] at (-0.2, 3.35) {S-type};
-\bitfield{3.0}{25}{31}{cyan!10}{imm[11:5]}
-\bitfield{3.0}{20}{24}{red!10}{rs2}
-\bitfield{3.0}{15}{19}{orange!10}{rs1}
-\bitfield{3.0}{12}{14}{green!10}{f3}
-\bitfield{3.0}{7}{11}{cyan!10}{imm[4:0]}
-\bitfield{3.0}{0}{6}{gray!15}{opcode}
+\node[fmtlabel] at (-0.2, 3.35) {S-type};
+\bitfield{3.0}{25}{31}{fmtImm}{imm[11:5]}
+\bitfield{3.0}{20}{24}{fmtReg}{rs2}
+\bitfield{3.0}{15}{19}{fmtReg}{rs1}
+\bitfield{3.0}{12}{14}{fmtFunct}{f3}
+\bitfield{3.0}{7}{11}{fmtImm}{imm[4:0]}
+\bitfield{3.0}{0}{6}{fmtOp}{opcode}
 
 % --- B-type (y=2.0) ---
-\node[label] at (-0.2, 2.35) {B-type};
-\bitfield{2.0}{25}{31}{cyan!10}{imm[12|10:5]}
-\bitfield{2.0}{20}{24}{red!10}{rs2}
-\bitfield{2.0}{15}{19}{orange!10}{rs1}
-\bitfield{2.0}{12}{14}{green!10}{f3}
-\bitfield{2.0}{7}{11}{cyan!10}{imm[4:1|11]}
-\bitfield{2.0}{0}{6}{gray!15}{opcode}
+\node[fmtlabel] at (-0.2, 2.35) {B-type};
+\bitfield{2.0}{25}{31}{fmtImm}{imm[12|10:5]}
+\bitfield{2.0}{20}{24}{fmtReg}{rs2}
+\bitfield{2.0}{15}{19}{fmtReg}{rs1}
+\bitfield{2.0}{12}{14}{fmtFunct}{f3}
+\bitfield{2.0}{7}{11}{fmtImm}{imm[4:1|11]}
+\bitfield{2.0}{0}{6}{fmtOp}{opcode}
 
 % --- U-type (y=1.0) ---
-\node[label] at (-0.2, 1.35) {U-type};
-\bitfield{1.0}{12}{31}{cyan!10}{imm[31:12]}
-\bitfield{1.0}{7}{11}{purple!10}{rd}
-\bitfield{1.0}{0}{6}{gray!15}{opcode}
+\node[fmtlabel] at (-0.2, 1.35) {U-type};
+\bitfield{1.0}{12}{31}{fmtImm}{imm[31:12]}
+\bitfield{1.0}{7}{11}{fmtReg}{rd}
+\bitfield{1.0}{0}{6}{fmtOp}{opcode}
 
 % --- J-type (y=0.0) ---
-\node[label] at (-0.2, 0.35) {J-type};
-\bitfield{0.0}{12}{31}{cyan!10}{imm[20|10:1|11|19:12]}
-\bitfield{0.0}{7}{11}{purple!10}{rd}
-\bitfield{0.0}{0}{6}{gray!15}{opcode}
+\node[fmtlabel] at (-0.2, 0.35) {J-type};
+\bitfield{0.0}{12}{31}{fmtImm}{imm[20|10:1|11|19:12]}
+\bitfield{0.0}{7}{11}{fmtReg}{rd}
+\bitfield{0.0}{0}{6}{fmtOp}{opcode}
 
-% Bit position labels at top
-\foreach \b/\pos in {31/0, 25/6, 20/11, 15/16, 12/19, 7/24, 0/31} {
+% --- Bit-position labels on the field DIVIDERS, raised above R-type ---
+% pos = 32-b puts the number on the divider to the right of bit b
+% (the funct7/rs2, rs2/rs1, ... boundaries); b=31 stays at the far-left edge.
+\foreach \b/\pos in {31/0, 25/7, 20/12, 15/17, 12/20, 7/25, 0/32} {
   \pgfmathsetmacro{\xpos}{\pos*\bitwidth}
-  \node[bitlabel] at (\xpos cm, 5.8) {\b};
+  \draw[draw=figneutral, line width=0.3pt] (\xpos cm, 5.74) -- (\xpos cm, 5.96);
+  \node[fmtbit, anchor=south] at (\xpos cm, 6.0) {\b};
 }
+
+% --- Self-contained category legend (was missing in the original) ---
+\begin{scope}[shift={(0,-0.95)}]
+  \node[fmtfield, minimum width=0.45cm, minimum height=0.3cm, fill=fmtReg] at (0,0) {};
+  \node[anchor=west, font=\sffamily\scriptsize] at (0.55,0.15) {register (rs1/rs2/rd)};
+  \node[fmtfield, minimum width=0.45cm, minimum height=0.3cm, fill=fmtFunct] at (4.3,0) {};
+  \node[anchor=west, font=\sffamily\scriptsize] at (4.85,0.15) {funct7 / f3};
+  \node[fmtfield, minimum width=0.45cm, minimum height=0.3cm, fill=fmtImm] at (7.2,0) {};
+  \node[anchor=west, font=\sffamily\scriptsize] at (7.75,0.15) {immediate};
+  \node[fmtfield, minimum width=0.45cm, minimum height=0.3cm, fill=fmtOp] at (10.0,0) {};
+  \node[anchor=west, font=\sffamily\scriptsize] at (10.55,0.15) {opcode};
+\end{scope}
 
 \end{tikzpicture}

@@ -1,14 +1,19 @@
-% figures/clmul-before-after.tex
-% Before/after comparison: naive shift-XOR loop vs clmul+clmulh pair
-% for 64-bit polynomial multiplication in GF(2)[x].
-% Uses minipage layout for robustness (lstlisting inside TikZ nodes is fragile).
-
+% VARIANT — not \input by main.tex; promote manually (mv clmul-before-after_v1.tex clmul-before-after.tex)
+% clmul-before-after_v1.tex — KEPT finalist (semantic colour migration + cleanup)
+% Not a tikzpicture (minipage + lstlisting + tcolorbox), so no externalization.
+% This is the baseline you approved: "without" = cost/threat (figthreatfill),
+% "with" = solution (figsolutionfill / figsolution), line numbers via figneutral.
+% NOTE: the reduction call-out here is the in-column tcolorbox. If its position
+% bothers you, see the sibling alternatives that relocate/restyle it:
+%   _inline  (plain centred caption, no box, under both columns)
+%   _banner  (slim full-width ribbon at the very bottom)
+%   _arrow   (832 -> 2 arrow between two result chips)
 \begin{minipage}[t]{0.48\textwidth}
 \centering
 \textbf{\sffamily Χωρίς \Zbc (shift-and-XOR loop)}
 \begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\scriptsize,
-  numbers=left, numberstyle=\tiny\color{gray}, frame=single,
-  backgroundcolor=\color{red!3}, xleftmargin=1.5em]
+  numbers=left, numberstyle=\tiny\color{figneutral}, frame=single,
+  rulecolor=\color{figrule}, backgroundcolor=\color{figthreatfill}, xleftmargin=1.5em]
   # a in a0, b in a1
   li    t0, 64       # bit counter
   li    t1, 0        # result_lo = 0
@@ -37,19 +42,22 @@
 \centering
 \textbf{\sffamily Με \Zbc (\clmul{} + \clmulh)}
 \begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\scriptsize,
-  numbers=left, numberstyle=\tiny\color{gray}, frame=single,
-  backgroundcolor=\color{green!3}, xleftmargin=1.5em]
+  numbers=left, numberstyle=\tiny\color{figneutral}, frame=single,
+  rulecolor=\color{figrule}, backgroundcolor=\color{figsolutionfill}, xleftmargin=1.5em]
   # a in a0, b in a1
   clmul  t1, a0, a1  # result_lo
   clmulh t2, a0, a1  # result_hi
 \end{lstlisting}
-\vspace{2em}
+\smallskip
 {\footnotesize \textbf{\num{2}} εντολές / γινόμενο}
 
-\bigskip
-\begin{tcolorbox}[colback=green!5, colframe=green!50!black,
-  boxrule=0.4pt, arc=2pt, left=4pt, right=4pt, top=2pt, bottom=2pt]
+\vfill
+\vspace{8pt}
+\hspace*{28pt}%
+\begin{tcolorbox}[width=\dimexpr\linewidth-28pt\relax,
+  colback=figsolutionfill, colframe=figsolution,
+  boxrule=0.7pt, arc=2pt, left=4.2pt, right=4pt, top=2pt, bottom=2pt]
   \centering\small\sffamily
-  Μείωση: \insnreduction{416} σε στατικό instruction count
+  Μείωση: \insnreduction{416} σε instruction count
 \end{tcolorbox}
 \end{minipage}

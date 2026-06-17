@@ -628,7 +628,7 @@ permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξησ�
 Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf χρησιμοποιεί το μοτίβο
 \defterm{splat-and-sweep}: ένα scalar στοιχείο $a[i]$ αντιγράφεται σε
 όλα τα lanes ενός vector register μέσω \insn{vmv.v.x} (splat), και
-στη συνέχεια πολλαπλασιάζεται carry-less με ολόκληρο τον vector $b[j \ldots
+στη συνέχεια πολλαπλασιάζεται carry-less με ολόκληρο το vector $b[j \ldots
 j + \code{vl} - 1]$ μέσω ενός ζεύγους \vclmul/\vclmulh (sweep). Αυτό
 αντικαθιστά \code{vl} ζεύγη scalar \clmul/\clmulh με \num{3} vector
 εντολές (\insn{vmv.v.x} + \vclmul + \vclmulh), μειώνοντας τον αριθμό

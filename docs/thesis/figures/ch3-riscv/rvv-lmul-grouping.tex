@@ -1,51 +1,63 @@
-% figures/rvv-lmul-grouping.tex
-% Diagram: LMUL register grouping (LMUL=1 vs LMUL=4)
-\tikzsetnextfilename{ch3-riscv-rvv-lmul-grouping}
+% VARIANT — not \input by main.tex; promote manually (mv rvv-lmul-grouping_emphasis.tex rvv-lmul-grouping.tex)
+% rvv-lmul-grouping_emphasis.tex — KEPT finalist (group-emphasis), ROUND 2 fixes
+% Keeps the _v1 layout + correctness fix (uniform LMUL=1 fill). Fixes per review:
+%  (1) "1 logical operand = 4 registers" used to sit at (6.35,0.35) and collided
+%      with the "8 ομάδες ..." subtitle. It now sits on the SAME ROW as group 0,
+%      to the right of the "group 0" pill, reading left-to-right:
+%      [regs][brace][group 0][1 logical operand = 4 registers].
+%  (2) The trade-off line wrapped as "...ανεξάρ-τητοι". text width widened to 13cm
+%      and hyphenation disabled so it stays on a single, clean line.
+\tikzsetnextfilename{ch3-riscv-rvv-lmul-grouping_emphasis}
 \begin{tikzpicture}[
-  reg/.style={draw, minimum width=1.8cm, minimum height=0.32cm,
+  reg/.style={draw=figrule, minimum width=1.8cm, minimum height=0.32cm,
               font=\ttfamily\tiny},
-  annot/.style={font=\sffamily\scriptsize},
-  group/.style={draw, thick, rounded corners=2pt, inner sep=2pt}
+  annot/.style={figT/annot},
+  grouphdr/.style={figT/title},
+  group/.style={rounded corners=2pt, inner sep=2pt}
 ]
 
 % === LMUL = 1 (left) ===
-\node[annot, font=\sffamily\small\bfseries] at (0, 1.0) {LMUL = 1};
+\node[grouphdr] at (0, 1.0) {LMUL = 1};
 \node[annot] at (0, 0.6) {32 ανεξάρτητοι καταχωρητές};
-
 \foreach \i in {0,...,7} {
   \pgfmathsetmacro{\ypos}{-\i * 0.4}
-  \pgfmathtruncatemacro{\hue}{mod(\i,4)*25}
-  \node[reg, fill=blue!\hue!white] (l1v\i) at (0, \ypos) {v\i};
+  \node[reg, fill=figprocess!10] (l1v\i) at (0, \ypos) {v\i};
 }
 \node[annot] at (0, -3.5) {$\vdots$};
 \node[annot] at (0, -4.0) {VLMAX = VLEN/SEW};
 
-% === LMUL = 4 (right) ===
-\node[annot, font=\sffamily\small\bfseries] at (5, 1.0) {LMUL = 4};
+% === LMUL = 4 (right) — emphasised groups ===
+\node[grouphdr] at (5, 1.0) {LMUL = 4};
 \node[annot] at (5, 0.6) {8 ομάδες × 4 καταχωρητές};
 
-% Group 1: v0–v3
+% Group 0: v0-v3
 \foreach [count=\idx from 0] \i in {0,1,2,3} {
   \pgfmathsetmacro{\ypos}{-\idx * 0.4}
-  \node[reg, fill=blue!20] (l4v\i) at (5, \ypos) {v\i};
+  \node[reg, fill=figprocess!15] (l4v\i) at (5, \ypos) {v\i};
 }
-\node[group, draw=blue!60, fit=(l4v0)(l4v3)] {};
-\node[annot, anchor=west, text=blue!60!black] at (6.2, -0.6) {group 0};
+\node[group, draw=figprocess, figLW/emph, fit=(l4v0)(l4v3)] (grp0) {};
+\node[figpill, anchor=west] at (6.35, -0.6) {group 0};
 
-% Group 2: v4–v7
+% Group 1: v4-v7
 \foreach [count=\idx from 0] \i in {4,5,6,7} {
   \pgfmathsetmacro{\ypos}{-1.9 - \idx * 0.4}
-  \node[reg, fill=green!20] (l4v\i) at (5, \ypos) {v\i};
+  \node[reg, fill=figsolution!15] (l4v\i) at (5, \ypos) {v\i};
 }
-\node[group, draw=green!60!black, fit=(l4v4)(l4v7)] {};
-\node[annot, anchor=west, text=green!60!black] at (6.2, -2.5) {group 1};
+\node[group, draw=figsolution, figLW/emph, fit=(l4v4)(l4v7)] (grp1) {};
+\node[figpill, anchor=west] at (6.35, -2.5) {group 1};
+
+% Brace: one logical operand spans 4 registers
+\draw[figbrace] (grp0.north east) -- (grp0.south east);
+% (1) operand explainer moved onto group 0's row, right of the pill
+\node[annot, anchor=west, text width=3.0cm] at (7.95, -0.6)
+  {1 logical operand =\\4 registers};
 
 \node[annot] at (5, -3.5) {$\vdots$};
 \node[annot] at (5, -4.0) {VLMAX = (VLEN/SEW) $\times$ LMUL};
 
-% Trade-off annotation
-\node[annot, text=gray!60!black, text width=9cm, anchor=north west] at (-1.5, -4.8) {%
-  Αύξηση LMUL: περισσότερα στοιχεία ανά εντολή $\leftrightarrow$
-  λιγότεροι διαθέσιμοι ανεξάρτητοι τελεστέοι (register pressure).};
+% (2) Trade-off annotation — widened + no hyphenation -> single clean line
+\node[annot, text width=13cm, align=left, anchor=north west] at (-1.5, -4.8)
+  {\hyphenpenalty=10000\exhyphenpenalty=10000
+   Αύξηση LMUL: περισσότερα στοιχεία ανά εντολή $\leftrightarrow$ λιγότεροι διαθέσιμοι ανεξάρτητοι τελεστέοι (register pressure).};
 
 \end{tikzpicture}
