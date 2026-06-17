@@ -13,7 +13,7 @@
 
 Η αξιολόγηση απόδοσης σε RISC-V με κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb}
 αντιμετωπίζει ένα πρακτικό εμπόδιο: κατά τη στιγμή εκπόνησης της εργασίας δεν
-υπάρχει διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει ταυτόχρονα
+υπήρχε διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει ταυτόχρονα
 \RVV 1.0, \gls{zvbc} και \gls{zvbb} σε προσβάσιμη πλατφόρμα.  Κατά συνέπεια, η πειραματική
 υποδομή βασίζεται σε τρεις συμπληρωματικές πλατφόρμες: τον Spike \gls{iss} για
 ντετερμινιστική καταμέτρηση εντολών, τον QEMU για ταχεία λειτουργική
@@ -143,8 +143,9 @@ Cluster~1 (\num{4} cores, \SI{32}{\kilo\byte} L1, \SI{512}{\kilo\byte} L2).
 
 Ο K1 X60 υποστηρίζει RV64IMAFDCV + \ext{Zba} + \ext{Zbb} + \ext{Zbc} +
 \ext{Zbs}.  Από αυτές, οι \ext{Zba}/\ext{Zbb}/\ext{Zbs} ανήκουν στο RVA22 mandatory set, ενώ η \ext{Zbc} δεν περιλαμβάνεται στο υποχρεωτικό προφίλ.  Ωστόσο, \textbf{δεν υποστηρίζει}
-\gls{zvbc} και \gls{zvbb} — αυτές απαιτούν το RVA23 profile, το οποίο δεν υπάρχει
-ακόμη σε διαθέσιμο silicon.  Η πρακτική συνέπεια είναι ότι τα scalar και
+\gls{zvbc} και \gls{zvbb} — αυτές απαιτούν το RVA23 profile· κατά τη στιγμή εκπόνησης της εργασίας δεν
+υπήρχε προσβάσιμο silicon που να τις υλοποιεί (το πρώτο RVA23-compliant SoC,
+ο SpacemiT K3, κυκλοφόρησε μόλις πρόσφατα). Η πρακτική συνέπεια είναι ότι τα scalar και
 Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
 \code{vector\_rvv}) εκτελούνται natively στο hardware, ενώ τα
 Vector-Crypto variants (\code{vector\_zvk}) αξιολογούνται αποκλειστικά
@@ -195,8 +196,8 @@ speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγμ
 αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage.  Η κάλυψη
 περιορίζεται στα Tier~1 (scalar \gls{zbc}) και Tier~2 (Base-RVV) variants, καθώς
 ο K1 X60 δεν υποστηρίζει \gls{zvbc}/\gls{zvbb} — η CT επαλήθευση των Tier~3
-Vector-Crypto variants παραμένει ανοιχτή μέχρι τη διαθεσιμότητα RVA23
-silicon.
+Vector-Crypto variants παραμένει ανοιχτή, καθώς προσβάσιμο RVA23 silicon
+(π.χ. SpacemiT K3) δεν ήταν διαθέσιμο κατά την εκπόνηση της εργασίας.
 
 \Cref{fig:bananapi-f3} δείχνει την πλατφόρμα πραγματικού hardware (Banana Pi BPI-F3) που χρησιμοποιείται για επικύρωση σε silicon.
 
@@ -1098,8 +1099,9 @@ input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσ�
   \end{tabular}
 \end{table}
 
-Η κάλυψη του Tier~3 (\code{vector\_zvk}) παραμένει μελλοντική εργασία
-εκκρεμούσα RVA23-compliant hardware (βλ.\ \cref{sec:future-work}).
+Η κάλυψη του Tier~3 (\code{vector\_zvk}) παραμένει μελλοντική εργασία·
+προσβάσιμο RVA23-compliant hardware (π.χ. SpacemiT K3) δεν ήταν διαθέσιμο
+κατά την εκπόνηση (βλ.\ \cref{sec:future-work}).
 Η αρχιτεκτονική ανάλυση (\cref{ssec:ct-design-patterns}) τεκμηριώνει ότι
 οι \vclmul/\vclmulh εντολές είναι Zvkt-compliant (σταθερή καθυστέρηση
 ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση εν αναμονή εμπειρικής
