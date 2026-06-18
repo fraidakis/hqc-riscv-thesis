@@ -166,9 +166,9 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
         while (j < n) {
             size_t vl = __riscv_vsetvl_e64m4(n - j);
             vuint64m4_t vb   = __riscv_vle64_v_u64m4(b + j, vl);
-            vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
-            vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
-            vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+            /* .vx: scalar a0 multiplied directly, no vmv.v.x broadcast */
+            vuint64m4_t vlo0 = __riscv_vclmul_vx_u64m4(vb, a0, vl);
+            vuint64m4_t vhi0 = __riscv_vclmulh_vx_u64m4(vb, a0, vl);
             /* lo: ASSIGN — r[j..j+vl-1] have not been written yet */
             __riscv_vse64_v_u64m4(r + j, vlo0, vl);
             /* hi: load-XOR-store — r[j+1..j+vl-1] hold lo; r[j+vl] pre-zeroed */
@@ -194,25 +194,21 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
 
             vuint64m4_t vb = __riscv_vle64_v_u64m4(b + j, vl);
 
-            /* Strip 0: a[i] */
-            vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
-            vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
-            vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+            /* Strip 0: a[i] — .vx folds the scalar broadcast */
+            vuint64m4_t vlo0 = __riscv_vclmul_vx_u64m4(vb, a0, vl);
+            vuint64m4_t vhi0 = __riscv_vclmulh_vx_u64m4(vb, a0, vl);
 
             /* Strip 1: a[i+1] */
-            vuint64m4_t va1  = __riscv_vmv_v_x_u64m4(a1, vl);
-            vuint64m4_t vlo1 = __riscv_vclmul_vv_u64m4(va1, vb, vl);
-            vuint64m4_t vhi1 = __riscv_vclmulh_vv_u64m4(va1, vb, vl);
+            vuint64m4_t vlo1 = __riscv_vclmul_vx_u64m4(vb, a1, vl);
+            vuint64m4_t vhi1 = __riscv_vclmulh_vx_u64m4(vb, a1, vl);
 
             /* Strip 2: a[i+2] */
-            vuint64m4_t va2  = __riscv_vmv_v_x_u64m4(a2, vl);
-            vuint64m4_t vlo2 = __riscv_vclmul_vv_u64m4(va2, vb, vl);
-            vuint64m4_t vhi2 = __riscv_vclmulh_vv_u64m4(va2, vb, vl);
+            vuint64m4_t vlo2 = __riscv_vclmul_vx_u64m4(vb, a2, vl);
+            vuint64m4_t vhi2 = __riscv_vclmulh_vx_u64m4(vb, a2, vl);
 
             /* Strip 3: a[i+3] */
-            vuint64m4_t va3  = __riscv_vmv_v_x_u64m4(a3, vl);
-            vuint64m4_t vlo3 = __riscv_vclmul_vv_u64m4(va3, vb, vl);
-            vuint64m4_t vhi3 = __riscv_vclmulh_vv_u64m4(va3, vb, vl);
+            vuint64m4_t vlo3 = __riscv_vclmul_vx_u64m4(vb, a3, vl);
+            vuint64m4_t vhi3 = __riscv_vclmulh_vx_u64m4(vb, a3, vl);
 
             /* Accumulate strip 0 */
             vuint64m4_t vr;
@@ -258,11 +254,10 @@ static void vclmul_leaf(uint64_t * __restrict__ r,
         while (j < n) {
             size_t vl = __riscv_vsetvl_e64m4(n - j);
 
-            vuint64m4_t vai = __riscv_vmv_v_x_u64m4(ai, vl);
             vuint64m4_t vb  = __riscv_vle64_v_u64m4(b + j, vl);
 
-            vuint64m4_t vlo = __riscv_vclmul_vv_u64m4(vai, vb, vl);
-            vuint64m4_t vhi = __riscv_vclmulh_vv_u64m4(vai, vb, vl);
+            vuint64m4_t vlo = __riscv_vclmul_vx_u64m4(vb, ai, vl);
+            vuint64m4_t vhi = __riscv_vclmulh_vx_u64m4(vb, ai, vl);
 
             vuint64m4_t vr0 = __riscv_vle64_v_u64m4(r + i + j, vl);
             vr0 = __riscv_vxor_vv_u64m4(vr0, vlo, vl);

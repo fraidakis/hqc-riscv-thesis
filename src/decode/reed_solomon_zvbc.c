@@ -59,7 +59,7 @@
  *
  * Reduces a vector of 14-bit carry-less products (each in bits [13:0] of a
  * 64-bit lane) modulo PARAM_GF_POLY = 0x11D (x^8+x^4+x^3+x^2+1).
- * Single-pass Barrett via vclmul: 6 vector instructions.
+ * Single-pass Barrett via vclmul.vx: 5 vector instructions.
  * Constant-time: no data-dependent branches.
  */
 static inline vuint64m4_t gf_reduce_vec_u64m4(vuint64m4_t v, size_t vl)
@@ -81,25 +81,23 @@ static inline vuint64m4_t gf_reduce_vec_u64m4(vuint64m4_t v, size_t vl)
      * the quotient after the >> 8 shift for operands of degree ≤ 5.
      * This allows reusing a single constant vector for both clmul operations.
      *
-     * Instruction count: 6 vector instructions (+ 1 vmv_v_x broadcast that
-     * can be hoisted out of loops by the compiler).
+     * Instruction count: 5 vector instructions (.vx form folds the μ
+     * broadcast directly into the clmul, removing the prior vmv_v_x).
      *
      * Constant-time: no data-dependent branches; all operations are
      * fixed-latency regardless of input values.
      */
     const uint64_t BARRETT_POLY = 0x11Du;
 
-    vuint64m4_t mu_vec = __riscv_vmv_v_x_u64m4(BARRETT_POLY, vl);
-
     /* Step 1: Extract overflow bits [13:8] */
     vuint64m4_t high = __riscv_vsrl_vx_u64m4(v, 8, vl);
 
-    /* Step 2: Quotient estimate = (high × μ) >> 8 */
-    vuint64m4_t q = __riscv_vclmul_vv_u64m4(high, mu_vec, vl);
+    /* Step 2: Quotient estimate = (high × μ) >> 8 (.vx folds the μ broadcast) */
+    vuint64m4_t q = __riscv_vclmul_vx_u64m4(high, BARRETT_POLY, vl);
     q = __riscv_vsrl_vx_u64m4(q, 8, vl);
 
     /* Step 3: Correction = q × poly */
-    vuint64m4_t correction = __riscv_vclmul_vv_u64m4(q, mu_vec, vl);
+    vuint64m4_t correction = __riscv_vclmul_vx_u64m4(q, BARRETT_POLY, vl);
 
     /* Step 4–5: XOR correction and mask to 8 bits */
     v = __riscv_vxor_vv_u64m4(v, correction, vl);
@@ -234,11 +232,8 @@ static uint16_t compute_elp_zvbc(uint16_t *sigma, const uint16_t *syndromes)
                 vuint16m1_t xsp16 = __riscv_vle16_v_u16m1(pxsp, vl);
                 vuint64m4_t xsp64 = __riscv_vzext_vf4_u64m4(xsp16, vl);
 
-                /* broadcast scalar dd to all lanes */
-                vuint64m4_t dd64  = __riscv_vmv_v_x_u64m4((uint64_t)(dd & 0xFFu), vl);
-
-                /* carry-less multiply, inline GF(2^8) reduction */
-                vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(dd64, xsp64, vl);
+                /* carry-less multiply (.vx folds the dd broadcast), inline GF(2^8) reduction */
+                vuint64m4_t prod  = __riscv_vclmul_vx_u64m4(xsp64, (uint64_t)(dd & 0xFFu), vl);
                 prod = gf_reduce_vec_u64m4(prod, vl);
 
                 /* load sigma, XOR with product */
@@ -473,11 +468,11 @@ static void compute_error_values_zvbc(uint16_t *error_values,
                 size_t          rem = len_A;
                 while (rem > 0) {
                     size_t vl = __riscv_vsetvl_e64m4(rem);
-                    vuint64m4_t vinv  = __riscv_vmv_v_x_u64m4(
-                                           (uint64_t)(inverse & 0xFFu), vl);
                     vuint16m1_t b16   = __riscv_vle16_v_u16m1(pb, vl);
                     vuint64m4_t b64   = __riscv_vzext_vf4_u64m4(b16, vl);
-                    vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(vinv, b64, vl);
+                    /* .vx folds the inverse broadcast */
+                    vuint64m4_t prod  = __riscv_vclmul_vx_u64m4(
+                                           b64, (uint64_t)(inverse & 0xFFu), vl);
                     prod = gf_reduce_vec_u64m4(prod, vl);
                     /* XOR product with 1 → (1 ^ gf_mul(inv, beta)) */
                     vuint64m4_t one64 = __riscv_vmv_v_x_u64m4(1u, vl);
@@ -495,11 +490,11 @@ static void compute_error_values_zvbc(uint16_t *error_values,
                 size_t          rem = len_B;
                 while (rem > 0) {
                     size_t vl = __riscv_vsetvl_e64m4(rem);
-                    vuint64m4_t vinv  = __riscv_vmv_v_x_u64m4(
-                                           (uint64_t)(inverse & 0xFFu), vl);
                     vuint16m1_t b16   = __riscv_vle16_v_u16m1(pb, vl);
                     vuint64m4_t b64   = __riscv_vzext_vf4_u64m4(b16, vl);
-                    vuint64m4_t prod  = __riscv_vclmul_vv_u64m4(vinv, b64, vl);
+                    /* .vx folds the inverse broadcast */
+                    vuint64m4_t prod  = __riscv_vclmul_vx_u64m4(
+                                           b64, (uint64_t)(inverse & 0xFFu), vl);
                     prod = gf_reduce_vec_u64m4(prod, vl);
                     vuint64m4_t one64 = __riscv_vmv_v_x_u64m4(1u, vl);
                     vuint64m4_t res64 = __riscv_vxor_vv_u64m4(prod, one64, vl);
