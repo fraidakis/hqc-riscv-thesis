@@ -1,51 +1,51 @@
-# date: 2026-06-07 15:55
-# commit: 20def7e
+# date: 2026-06-18 18:31
+# commit: 4235723
 # variant: vector_zvk
 # level: 256
 function,instructions,percentage
-vclmul_leaf,1183398,44.37
-KeccakF1600_StatePermute,567734,21.29
-gf_reduce,140866,5.28
-rvv_xor3_u64,126234,4.73
-rvv_copy_u64,108066,4.05
-rvv_xor_u64,78480,2.94
-rol1_zbb,50520,1.89
-kmul_29,37488,1.41
-reed_solomon_encode,35698,1.34
-kmul_28,34938,1.31
-gf_mul,31724,1.19
-support_contains_value,24082,0.90
-kmul_57,19008,0.71
-expand_and_sum,17640,0.66
-?? ??:0,13089,0.49
-vect_write_support_to_vector,11598,0.43
-kmul_56,11544,0.43
-vect_generate_random_support2,11100,0.42
-memset,11073,0.42
-_start,10994,0.41
-memcpy,10520,0.39
-compute_error_values_zvbc,10321,0.39
-reduce,9978,0.37
-kmul_113,9900,0.37
-keccak_extract_bytes,9502,0.36
-compute_elp_zvbc,7705,0.29
-vect_generate_random_support1,6876,0.26
-encode,5940,0.22
-keccak_xor_bytes,5689,0.21
+vclmul_leaf,1121106,43.73
+KeccakF1600_StatePermute,527318,20.57
+gf_reduce,140866,5.49
+rvv_xor3_u64,126234,4.92
+rvv_copy_u64,108066,4.21
+rvv_xor_u64,78480,3.06
+rol1_zbb,50520,1.97
+kmul_29,37488,1.46
+reed_solomon_encode,35698,1.39
+kmul_28,34938,1.36
+gf_mul,31724,1.24
+support_contains_value,24082,0.94
+kmul_57,19008,0.74
+expand_and_sum,17640,0.69
+?? ??:0,13089,0.51
+vect_write_support_to_vector,11598,0.45
+kmul_56,11544,0.45
+vect_generate_random_support2,11100,0.43
+memset,11073,0.43
+_start,10994,0.43
+memcpy,10520,0.41
+compute_error_values_zvbc,10241,0.40
+reduce,9978,0.39
+kmul_113,9900,0.39
+keccak_extract_bytes,9502,0.37
+compute_elp_zvbc,7605,0.30
+vect_generate_random_support1,6876,0.27
+encode,5940,0.23
+keccak_xor_bytes,5689,0.22
 vect_compare,4724,0.18
-store64_le,4663,0.17
-compute_z_poly,4618,0.17
-reed_muller_encode,4570,0.17
+store64_le,4663,0.18
+compute_z_poly,4618,0.18
+reed_muller_encode,4570,0.18
 hadamard_rvv,3870,0.15
-compute_syndromes_rvv,3596,0.13
+compute_syndromes_rvv,3596,0.14
 fft_retrieve_error_poly,3450,0.13
 barrett_reduce,3152,0.12
 keccak_inc_squeeze,2907,0.11
-gf_reduce_vec_u64m4,2674,0.10
 vect_add,2584,0.10
 kmul_225,2430,0.09
-keccak_inc_absorb,2209,0.08
-fft_iterative,1970,0.07
+gf_reduce_vec_u64m4,2292,0.09
+keccak_inc_absorb,2209,0.09
+fft_iterative,1970,0.08
 gf_square,1397,0.05
 kmul_112,1350,0.05
 find_peaks_rvv,1260,0.05
@@ -53,14 +53,14 @@ radix,1091,0.04
 kmul_226,1080,0.04
 kmul_451,984,0.04
 x2_load64_le,748,0.03
-reed_muller_decode,649,0.02
-gammas_sums_combine_zvbc,642,0.02
+reed_muller_decode,649,0.03
+gammas_sums_combine_zvbc,642,0.03
 beta_scale_zvbc,632,0.02
 xor_broadcast_zvbc,596,0.02
 crypto_kem_dec,589,0.02
 xof_get_bytes,546,0.02
-shake256_x2_absorb,493,0.02
 kmul_901,486,0.02
+shake256_x2_absorb,476,0.02
 hqc_pke_encrypt,380,0.01
 keccak_inc_finalize,363,0.01
 kmul_450,282,0.01
@@ -78,7 +78,7 @@ crypto_kem_keypair,146,0.01
 vect_sample_fixed_weight2,144,0.01
 crypto_kem_enc,140,0.01
 reed_solomon_decode,136,0.01
-fft,131,0.00
+fft,131,0.01
 keccak_inc_init,117,0.00
 hash_g,100,0.00
 main,99,0.00
@@ -96,7 +96,7 @@ vect_set_random,57,0.00
 sha3_256_inc_absorb,50,0.00
 sha3_512_inc_absorb,50,0.00
 prng_init,43,0.00
-gammas_sums_combine_scalar_zvbc,38,0.00
+gammas_sums_combine_scalar_zvbc,36,0.00
 hqc_c_kem_from_string,36,0.00
 hash_i,35,0.00
 hqc_c_kem_to_string,33,0.00

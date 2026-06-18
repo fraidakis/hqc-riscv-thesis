@@ -69,26 +69,26 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 | Level | scalar_ref (instret) | vector_zvk (instret) | Speedup |
 |-------|----------------------|------------------------|--------|
-| HQC-128 | 19,214,277 | 62,530 | ×307.3 |
-| HQC-192 | 58,433,896 | 185,120 | ×315.7 |
-| HQC-256 | 142,641,043 | 271,006 | ×526.3 |
+| HQC-128 | 19,214,277 | 60,380 | ×318.2 |
+| HQC-192 | 58,433,896 | 178,624 | ×327.1 |
+| HQC-256 | 142,641,043 | 260,624 | ×547.3 |
 
 ### KEM operations
 
 | Level | Op | scalar_ref (instret) | vector_zvk (instret) | Speedup |
 |-------|-----|----------------------|------------------------|--------|
-| HQC-128 | keypair | 19,454,626 | 105,279 | ×184.8 |
-| HQC-128 | encaps | 38,875,925 | 217,479 | ×178.8 |
-| HQC-128 | decaps | 59,013,743 | 393,086 | ×150.1 |
-| HQC-128 | **Total KEM** | **117,344,294** | **715,844** | **×163.9** |
-| HQC-192 | keypair | 58,895,392 | 258,251 | ×228.1 |
-| HQC-192 | encaps | 117,744,966 | 534,634 | ×220.2 |
-| HQC-192 | decaps | 177,662,495 | 900,120 | ×197.4 |
-| HQC-192 | **Total KEM** | **354,302,853** | **1,693,005** | **×209.3** |
-| HQC-256 | keypair | 143,382,635 | 383,592 | ×373.8 |
-| HQC-256 | encaps | 286,701,285 | 816,033 | ×351.3 |
-| HQC-256 | decaps | 431,890,526 | 1,407,364 | ×306.9 |
-| HQC-256 | **Total KEM** | **861,974,446** | **2,606,989** | **×330.6** |
+| HQC-128 | keypair | 19,454,626 | 103,129 | ×188.6 |
+| HQC-128 | encaps | 38,875,925 | 213,179 | ×182.4 |
+| HQC-128 | decaps | 59,013,743 | 386,447 | ×152.7 |
+| HQC-128 | **Total KEM** | **117,344,294** | **702,755** | **×167.0** |
+| HQC-192 | keypair | 58,895,392 | 251,755 | ×233.9 |
+| HQC-192 | encaps | 117,744,966 | 521,642 | ×225.7 |
+| HQC-192 | decaps | 177,662,495 | 880,407 | ×201.8 |
+| HQC-192 | **Total KEM** | **354,302,853** | **1,653,804** | **×214.2** |
+| HQC-256 | keypair | 143,382,635 | 373,210 | ×384.2 |
+| HQC-256 | encaps | 286,701,285 | 795,269 | ×360.5 |
+| HQC-256 | decaps | 431,890,526 | 1,375,654 | ×314.0 |
+| HQC-256 | **Total KEM** | **861,974,446** | **2,544,133** | **×338.8** |
 
 ## Table 4 — Keccak Speedups
 
@@ -96,26 +96,17 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 | Level | reference (instret) | optimized (instret) | Speedup |
 |-------|----------------------|---------------------|--------|
-| HQC-128 | 463,069 | 131,944 | ×3.5 |
-| HQC-192 | 902,926 | 249,581 | ×3.6 |
-| HQC-256 | 1,405,641 | 383,277 | ×3.7 |
+| HQC-128 | 463,069 | 124,648 | ×3.7 |
+| HQC-192 | 902,926 | 235,181 | ×3.8 |
+| HQC-256 | 1,405,641 | 360,909 | ×3.9 |
 
 ## Table 5 — Decode Speedups
 
 ### `decode`
 
-<!-- Source: sim_decode_ref_latest.csv (commit ccbe5e7) + sim_decode_zvbc_latest.csv (commit b709a5f) -->
-<!-- Speedup = reference instret / zvbc instret -->
-
 | Level | reference (instret) | optimized (instret) | Speedup |
 |-------|----------------------|---------------------|--------|
-| HQC-128 | 384,986 | 56,515 | ×6.8 |
-| HQC-192 | 562,125 | 72,237 | ×7.8 |
-| HQC-256 | 1,059,605 | 147,077 | ×7.2 |
-
-> **Note**: Earlier runs with `isolated_decode_zvbc_2026-05-26_01-25.csv` (commit 95eaf30)
-> reported 60,353 / 77,114 / 159,206 — those were produced by a pre-refactor isolated harness
-> before the `bench_decode.c` rewrite in commit b709a5f (2026-05-31). The canonical values
-> above come from the unified `sim_decode_zvbc_latest.csv` harness. The decode-instret-table
-> in ch7 and all prose speedup ranges now reference these values.
+| HQC-128 | 384,986 | 56,326 | ×6.8 |
+| HQC-192 | 562,125 | 72,012 | ×7.8 |
+| HQC-256 | 1,059,605 | 146,513 | ×7.2 |
 

@@ -3,12 +3,6 @@
 Derived from compare_compilers CSVs under results/simulation/benchmarks/compiler_compare.
 Scanned CSV files: 5
 
-> **Note**: The `vector_zvk` rows reflect commit `445e0cb` (2026-06-09, HEAD).
-> The thesis uses values from the benchmark freeze at commit `20def7e` (2026-06-07):
-> 729,397 / 1,719,038 / 2,647,710. The difference (−1.9% to −1.5%) is due to
-> cosmetic source refactors (keccak asm→intrinsics, gf.c fix) made after the freeze.
-> The compiler winner and margin conclusions are unaffected.
-
 | Variant | Level | Best Clang | Best GCC | Winner | Margin |
 |---|---:|---|---|---|---:|
 | scalar_ref | 128 | -O3 (117,344,266) | -O3 (113,958,344) | GCC | 3.0% |
@@ -23,6 +17,6 @@ Scanned CSV files: 5
 | vector_rvv | 128 | -O2 (1,975,424) | -O2 (2,029,880) | Clang | 2.8% |
 | vector_rvv | 192 | -O2 (4,730,302) | -O2 (4,792,531) | Clang | 1.3% |
 | vector_rvv | 256 | -O2 (12,135,502) | -O2 (9,732,294) | GCC | 24.7% |
-| vector_zvk | 128 | -O2 (715,844) | N/A | Clang | N/A |
-| vector_zvk | 192 | -O2 (1,693,005) | N/A | Clang | N/A |
-| vector_zvk | 256 | -O2 (2,606,989) | N/A | Clang | N/A |
+| vector_zvk | 128 | -O2 (702,755) | N/A | Clang | N/A |
+| vector_zvk | 192 | -O2 (1,653,804) | N/A | Clang | N/A |
+| vector_zvk | 256 | -O2 (2,544,133) | N/A | Clang | N/A |
