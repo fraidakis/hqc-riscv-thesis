@@ -326,6 +326,15 @@ memory-bound.
 στοιχείων $a, b \in \GF{2^8}$ υπολογίζεται ως carry-less product ακολουθούμενο
 από modular reduction ως προς το ανάγωγο πολυώνυμο $x^8 + x^4 + x^3 + x^2 + 1$ (0x11D).
 
+\paragraph{Η σχετιζόμενη επέκταση Zbkc.}
+Οι δύο εντολές που αξιοποιεί η παρούσα εργασία (\clmul, \clmulh) ανήκουν
+τόσο στη \gls{zbc} όσο και στη Zbkc (Carry-less multiplication for
+cryptography). Η Zbkc είναι μια πιο ελαφριά (lightweight) επέκταση, καθώς
+ορίζει \emph{μόνο} τις \clmul/\clmulh (το crypto-oriented υποσύνολο της
+\gls{zbc}, χωρίς την \insn{clmulr}). Για τις ανάγκες της υλοποίησης αρκεί
+\emph{οποιαδήποτε} από τις δύο· επιλέχθηκε η \gls{zbc} ως η επέκταση
+carry-less multiplication γενικού σκοπού.
+
 \subsection{Η Επέκταση \Zbb: Basic Bit-Manipulation}
 \label{ssec:zbb-extension}
 
@@ -426,6 +435,17 @@ vector-length-agnostic κώδικας μέσω strip-mining και πολιτι�
   \label{eq:vlmax}
 \end{equation}
 
+Καθεμία από τις θέσεις στοιχείων ενός register group αποτελεί ένα
+\defterm{lane}: μια ανεξάρτητη λωρίδα επεξεργασίας πλάτους \SEW~bits, η
+οποία αντιστοιχεί εννοιολογικά σε μία ξεχωριστή αριθμητική μονάδα του
+υλικού. Το χαρακτηριστικό του \gls{simd} μοντέλου είναι ότι μία και μόνη
+vector εντολή κωδικοποιεί την \emph{ίδια} πράξη για όλα τα lanes, τα οποία
+την εκτελούν παράλληλα και ανεξάρτητα μεταξύ τους πάνω σε διαφορετικά
+δεδομένα (element-wise παραλληλισμός). Έτσι, το \VLMAX της~\eqref{eq:vlmax}
+δεν εκφράζει απλώς χωρητικότητα αποθήκευσης, αλλά τον \emph{βαθμό
+παραλληλισμού δεδομένων} που διαθέτει μία ομάδα
+καταχωρητών: \VLMAX\ ανεξάρτητα lanes ανά vector operation.
+
 \paragraph{Παράδειγμα και ομαδοποίηση \LMUL.}
 Σε hardware με $\VLEN = 256$ και $\SEW = 64$, η ρύθμιση $\LMUL = 1$ παρέχει
 $\VLEN / \SEW = 4$ στοιχεία ανά vector register. Ο μηχανισμός \gls{lmul}
@@ -524,19 +544,15 @@ masked operations, ο καταχωρητής \code{v0} λειτουργεί ως
 (bit = 1) ή θα παραμείνει ανεπηρέαστο (bit = 0).
 
 \paragraph{Tail και Mask policies.}
-Κάθε vector operation επεξεργάζεται \code{vl} στοιχεία — τα στοιχεία
-πέραν της θέσης \code{vl} (tail elements) και τα στοιχεία με μηδενικό
-mask bit (inactive elements) υπόκεινται σε δύο πολιτικές:
-\begin{itemize}
-  \item \defterm{Tail-agnostic} (\code{vta}): τα tail elements μπορούν να
-    λάβουν οποιαδήποτε τιμή. Η υλοποίηση δεν εγγυάται διατήρηση. Αυτό
-    επιτρέπει στο hardware να αποφύγει δαπανηρές read-modify-write
-    λειτουργίες στο vector register file.
-  \item \defterm{Mask-agnostic} (\code{vma}): τα inactive elements (mask
-    bit = 0) μπορούν επίσης να λάβουν οποιαδήποτε τιμή.
-\end{itemize}
+Κάθε vector operation επεξεργάζεται \code{vl} στοιχεία και αφήνει εκτός δύο
+κατηγορίες. Τα tail elements που βρίσκονται πέραν της θέσης \code{vl} και
+διέπονται από την πολιτική \defterm{tail-agnostic} (\code{vta}) και τα inactive
+elements που έχουν μηδενικό mask bit και διέπονται από την \defterm{mask-agnostic}
+(\code{vma}). Καμία από τις δύο πολιτικές δεν εγγυάται τη διατήρηση των τιμών σε αυτά 
+τα στοιχεία. Έτσι, το hardware αποφεύγει δαπανηρές read-modify-write
+λειτουργίες στο vector register file.
 
-\subsection{Σύνθεση: Κατηγορίες Εντολών και Αναλυτικό Παράδειγμα}
+\subsection{Κατηγορίες Εντολών και Αναλυτικό Παράδειγμα}
 \label{ssec:rvv-xor-example}
 
 \paragraph{Κατηγορίες εντολών.}
@@ -575,8 +591,8 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
 XOR, store), εξαιρουμένου του loop overhead (increment, compare, branch), σε
 \code{size} iterations. Η \RVV υλοποίηση εκτελεί \num{5} εντολές ανά
 iteration (\insn{vsetvli} + \insn{vle64} $\times 2$ + \insn{vxor} +
-\insn{vse64}), αλλά κάθε iteration επεξεργάζεται \VLMAX στοιχεία. Σε
-$\VLEN = 256$, $\LMUL = 8$: $\VLMAX = 32$ στοιχεία ανά iteration, δηλαδή 
+\insn{vse64}), αλλά κάθε iteration επεξεργάζεται \VLMAX στοιχεία. Για
+$\VLEN = 256$, $\LMUL = 8$ έχουμε $\VLMAX = 32$ στοιχεία ανά iteration, δηλαδή 
 $5 / 32 \approx 0.16$ εντολές ανά στοιχείο. Με αυτό το \VLMAX,
 αντικαθιστάμε \num{32} scalar επαναλήψεις ($32 \times 4 = 128$ εντολές) με
 μόλις \num{5}, λόγος instruction count περίπου \num{26}:1 (όχι κατ' ανάγκη
@@ -584,7 +600,7 @@ $5 / 32 \approx 0.16$ εντολές ανά στοιχείο. Με αυτό το
 memory bandwidth).
 
 \paragraph{Σύνδεση με τη βελτιστοποίηση.}
-Η ίδια δομή strip-mining επανεμφανίζεται σε όλους τους vectorized πυρήνες,
+Η ίδια δομή strip-mining επανεμφανίζεται και σε άλλους vectorized πυρήνες,
 όπως για παράδειγμα στον Karatsuba recomposition και στην Keccak
 permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξηση του \VLEN ωφελεί εξίσου
 όλους τους πυρήνες, με εξαίρεση όσους λειτουργούν σε σταθερό μέγεθος
@@ -595,10 +611,10 @@ permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξησ�
 
 Οι διανυσματικές κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb} αποτελούν τη
 φυσική προέκταση των scalar επεκτάσεων \gls{zbc} και \gls{zbb} στο vector domain. 
-Επικυρώθηκαν τον Σεπτέμβριο 2023 ως μέρος του Volume~II (Vector Cryptography) της
-προδιαγραφής RISC-V Cryptography Extensions~\cite{RISCV-crypto-spec,RISCV-crypto-vol2} και
+Επικυρώθηκαν τον Σεπτέμβριο 2023 ως μέρος της προδιαγραφής \emph{RISC-V
+Cryptography Extensions Volume~II: Vector Instructions}~\cite{RISCV-crypto-vol2} και
 αποτελούν τη βάση του Tier~3 profile της παρούσας εργασίας.
-Η ενότητα αυτή παρουσιάζει τη σημασιολογία κάθε εντολής και την αντιστοίχισή
+Στη συνέχεια αναλύεται η σημασιολογία κάθε εντολής και η αντιστοίχισή
 της σε κρυπτογραφικά primitives.
 
 \subsection{Η Επέκταση \Zvbc: Vector Carry-Less Multiplication}
@@ -617,7 +633,7 @@ permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξησ�
 
 Η σημασιολογία είναι ταυτόσημη με τις scalar \clmul/\clmulh
 (βλ.~\cref{eq:gf2x-product}), εφαρμοζόμενη παράλληλα σε \code{vl}
-ζεύγη στοιχείων. Σε $\SEW = 64$, $\LMUL = 4$, $\VLEN = 256$: κάθε
+ζεύγη στοιχείων. Για $\SEW = 64$, $\LMUL = 4$ και $\VLEN = 256$: κάθε
 εντολή \vclmul επεξεργάζεται $\VLMAX = 16$ ανεξάρτητα 64-bit carry-less
 γινόμενα ταυτόχρονα. Η πράξη αυτή αντιστοιχεί ακριβώς στα leaf products
 του Karatsuba πολυωνυμικού πολλαπλασιασμού — κάθε leaf υπολογίζει $n$
@@ -626,30 +642,35 @@ permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξησ�
 
 \paragraph{Μοτίβο χρήσης: splat-and-sweep.}
 Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf χρησιμοποιεί το μοτίβο
-\defterm{splat-and-sweep}: ένα scalar στοιχείο $a[i]$ αντιγράφεται σε
-όλα τα lanes ενός vector register μέσω \insn{vmv.v.x} (splat), και
-στη συνέχεια πολλαπλασιάζεται carry-less με ολόκληρο το vector $b[j \ldots
-j + \code{vl} - 1]$ μέσω ενός ζεύγους \vclmul/\vclmulh (sweep). Αυτό
-αντικαθιστά \code{vl} ζεύγη scalar \clmul/\clmulh με \num{3} vector
-εντολές (\insn{vmv.v.x} + \vclmul + \vclmulh), μειώνοντας τον αριθμό
-δυναμικών εντολών κατά παράγοντα $\sim\!2\,\VLMAX / 3$ (κάθε leaf
-αντικαθιστά $2\,\VLMAX$ scalar εντολές με \num{3} vector εντολές).
+\defterm{splat-and-sweep}. Σε κάθε βήμα, ένα μεμονωμένο scalar στοιχείο
+$a[i]$ \emph{αντιγράφεται} (splat) σε όλα τα lanes ενός vector register μέσω
+\insn{vmv.v.x}, και στη συνέχεια πολλαπλασιάζεται carry-less με ολόκληρο το
+vector $b[j \ldots j + \code{vl} - 1]$ (sweep) μέσω ενός ζεύγους
+\vclmul/\vclmulh. Έτσι, \emph{ένα} splat-and-sweep βήμα παράγει \code{vl}
+ανεξάρτητα γινόμενα $a[i] \polymul b[\cdot]$ με μόλις \num{3} vector εντολές
+(\insn{vmv.v.x} + \vclmul + \vclmulh), αντικαθιστώντας τα \emph{\code{vl}
+ζεύγη} scalar \clmul/\clmulh (δηλαδή $2\cdot\code{vl}$ scalar εντολές). Ο λόγος
+μείωσης δυναμικών εντολών είναι επομένως $\sim\!2\cdot\code{vl} / 3$· όταν το
+register group αξιοποιείται πλήρως ($\code{vl} = \VLMAX$), ο λόγος γίνεται
+$\sim\!2\cdot\VLMAX / 3$.
 
 \paragraph{Περιορισμός \SEW.}
-Η \gls{zvbc} υποστηρίζει αποκλειστικά $\SEW = 64$ — δεν ορίζονται εκδόσεις
-για μικρότερα πλάτη στοιχείων. Αυτός ο περιορισμός αντικατοπτρίζει τη
-σχεδιαστική απόφαση ότι carry-less multiplication σε μικρότερα πλάτη
-(8, 16, 32~bit) μπορεί να εξυπηρετηθεί μέσω widening ή narrowing
-operations επί των 64-bit αποτελεσμάτων. Στην παρούσα εργασία, ο
-περιορισμός δεν αποτελεί εμπόδιο: τόσο ο πολυωνυμικός πολλαπλασιασμός
-σε $\GF{2}[x]/(x^N - 1)$ όσο και η αριθμητική $\GF{2^8}$ λειτουργούν
-σε 64-bit λέξεις.
+Η επέκταση \gls{zvbc} ορίζεται αποκλειστικά για $\SEW = 64$· δεν υπάρχουν εκδόσεις
+των εντολών για μικρότερα πλάτη στοιχείων (8, 16 ή 32~bit). Ένας
+πολλαπλασιασμός μικρότερων τελεστέων εξυπηρετείται τοποθετώντας τους σε
+64-bit lanes και εκτελώντας την κανονική \vclmul: το αποτέλεσμα ενός
+$k$-bit carry-less γινομένου έχει το πολύ $2k-1$ bits, οπότε για $k \leq 32$
+χωρά άνετα στα 64~bit χωρίς απώλεια. Επομένως αρκεί η διεύρυνση (widening)
+των εισόδων στα 64~bit — δεν απαιτείται κανένα βήμα συρρίκνωσης (narrowing).
+Στην παρούσα εργασία όμως, ο περιορισμός δεν αποτελεί εμπόδιο καθώς τόσο ο
+πολυωνυμικός πολλαπλασιασμός σε $\GF{2}[x]/(x^N - 1)$ όσο και η αριθμητική
+$\GF{2^8}$ λειτουργούν εξ ορισμού σε 64-bit λέξεις.
 
 \subsection{Η Επέκταση \Zvbb: Vector Bit-Manipulation}
 \label{ssec:zvbb-extension}
 
-Η επέκταση \gls{zvbb} παρέχει vector εκδόσεις εντολών bit-manipulation
-σχεδιασμένων για κρυπτογραφικές εφαρμογές:
+Η επέκταση \gls{zvbb} (Vector Basic Bit-manipulation) παρέχει γενικού σκοπού 
+εντολές bit-manipulation που αξιοποιούνται και σε κρυπτογραφικές εφαρμογές:
 
 \begin{itemize}
   \item \insn{vror.vv}~\code{vd, vs2, vs1}: rotation δεξιά κάθε
@@ -658,20 +679,21 @@ operations επί των 64-bit αποτελεσμάτων. Στην παρού�
     στοιχείου κατά σταθερό αριθμό θέσεων (6-bit immediate).
   \item \insn{vandn.vv}~\code{vd, vs2, vs1}: AND-NOT ανά στοιχείο
     ($\text{vs2}[i] \wedge \overline{\text{vs1}[i]}$).
-  \item \insn{vbrev8.v}~\code{vd, vs2}: bit-reverse εντός κάθε byte
-    κάθε στοιχείου — χρήσιμη σε bit-reflection (\eg CRC, GHASH), αλλά εκτός
-    του hot path του \gls{hqc} στην παρούσα υλοποίηση.
 \end{itemize}
 
 \paragraph{Αντιστοίχιση σε Keccak.}
 Η εσωτερική μετάθεση Keccak-f[1600] (βλ.~\cref{sec:keccak-theory})
-αποτελεί τον κύριο beneficiary της \gls{zvbb} στην παρούσα εργασία. Το βήμα
+ωφελείται περισσότερο από τη \gls{zvbb} στην παρούσα εργασία. Το βήμα
 $\rho$ (lane rotation) απαιτεί \num{24} μη τετριμμένες rotations ανά γύρο
 (ένα lane παραμένει αμετάβλητο) με διαφορετικό offset ανά lane — η \insn{vror.vv} εκτελεί όλες τις
 rotations ενός vector register σε μία εντολή, χρησιμοποιώντας ένα
 δεύτερο vector register ως πίνακα offsets. Το βήμα $\chi$ (μη γραμμικό
-βήμα) απαιτεί \num{5} AND-NOT πράξεις ανά row — η \insn{vandn.vv}
-εκτελεί κάθε μία σε μία εντολή αντί δύο (inversion + AND).
+βήμα) εφαρμόζει την πράξη AND-NOT $A[x] \wedge \overline{A[x+1]}$ —
+αλγοριθμικά \num{5} τέτοιες πράξεις ανά row του state (\num{25} συνολικά).
+Στη vectorized υλοποίηση μία \insn{vandn.vv} εκτελεί την AND-NOT ταυτόχρονα
+σε όλα τα lanes (ένα lane ανά vector element)· χωρίς \gls{zvbb} η ίδια πράξη
+απαιτεί \emph{δύο} vector εντολές (\insn{vnot} + \insn{vand}) — μείωση
+$2 \to 1$ vector εντολών ανά AND-NOT.
 
 Στη vectorized υλοποίηση Keccak (LMUL=8, $\VLEN \geq 256$), ολόκληρο
 το 25-lane state φορτώνεται σε ένα vector register group. Τα βήματα
@@ -982,8 +1004,7 @@ flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος
 Ο μηχανισμός auto-lowering αποτυγχάνει σε σύνθετα κρυπτογραφικά patterns.
 Ο compiler δεν αναγνωρίζει ότι ένας βρόχος carry-less multiplication
 αντιστοιχεί στην εντολή \clmul — η πράξη δεν εκφράζεται ως standard C
-operator. Ομοίως, δεν συνθέτει \vclmul από generic C loops
-(βλ.~\cref{ssec:zvbc-no-autoemit}). Κατά συνέπεια, η μέθοδος
+operator. Ομοίως, δεν συνθέτει \vclmul από generic C loops. Κατά συνέπεια, η μέθοδος
 auto-lowering εφαρμόζεται αποκλειστικά σε απλά bit-manipulation patterns
 — για κρυπτογραφικούς πυρήνες απαιτούνται ρητά intrinsics.
 

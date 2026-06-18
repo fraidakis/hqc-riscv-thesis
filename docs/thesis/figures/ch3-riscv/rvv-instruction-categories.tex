@@ -9,10 +9,10 @@
   Memory (unit-stride) & \texttt{vle8/16/32/64}, \texttt{vse8/16/32/64} & Φόρτωση/αποθήκευση πολυωνυμικών συντελεστών, Keccak state \\
   Memory (strided) & \texttt{vlse64}, \texttt{vsse64} & \textcolor{figneutral}{(μη αξιοποιούμενη)} \\
   Memory (indexed) & \texttt{vluxei64} & \textcolor{figneutral}{(μη αξιοποιούμενη)} \\
-  Arithmetic & \texttt{vxor}, \texttt{vadd}, \texttt{vsub}, \texttt{vsll}, \texttt{vsrl} & Karatsuba recomposition (XOR), Keccak $\theta$-step \\
+  Arithmetic & \texttt{vxor}, \texttt{vadd}, \texttt{vsub}, \texttt{vsll}, \texttt{vsrl} & Karatsuba recomposition, Keccak $\theta$-step \\
   Reductions & \texttt{vredxor}, \texttt{vredmaxu} & Reed-Muller Hadamard peak-find \\
   Permutations & \texttt{vrgather}, \texttt{vslidedown}, \texttt{vslide1up} & Keccak $\pi$-step (lane permutation) \\
   Mask operations & \texttt{vmseq}, \texttt{vcpop}, \texttt{vfirst} & Constant-time sampling (support dedup) \\
   Type conversion & \texttt{vzext}, \texttt{vncvt} & Reed-Solomon GF($2^8$) widening \\
-  Splat & \texttt{vmv.v.x} & Broadcast scalar $a[i]$ σε vector (Zvbc leaf) \\
+  Splat & \texttt{vmv.v.x} & Broadcast scalar $a[i]$ σε vector \\
 \end{thesistblr}

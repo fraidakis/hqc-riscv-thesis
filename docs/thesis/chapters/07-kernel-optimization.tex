@@ -1050,10 +1050,11 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
         εκπεμπόμενες εντολές.  Ο κώδικας \gls{hqc} δεν περιέχει half-register
         packing ή bit-interleave patterns στα hot paths — η $\GF{2^8}$
         αριθμητική χρησιμοποιεί lookup tables αντί bitwise field πράξεων.
-  \item \textbf{\ext{Zbkc}} (clmulr — carry-less multiply reversed):
-        μηδενική εκπομπή.  Τα inline assembly blocks \code{clmul}/\code{clmulh}
-        αποκλείουν τη compiler substitution, και η modular reduction
-        χρησιμοποιεί shift-and-XOR αντί reversed-product patterns.
+  \item \textbf{\ext{Zbkc}} (\insn{clmul}, \insn{clmulh} — crypto-oriented
+        υποσύνολο carry-less multiply): μηδενική επιπλέον ωφέλεια.  Οι εντολές
+        \code{clmul}/\code{clmulh} παρέχονται ήδη από τη \ext{Zbc} (baseline),
+        οπότε η \ext{Zbkc} είναι πλεονάζουσα· επιπλέον τα inline assembly blocks
+        αποκλείουν τη compiler substitution.
   \item \textbf{\ext{Zicond}} (czero.eqz/czero.nez): μηδενικές δυναμικές
         εκτελέσεις στο \code{vector\_zvk}, $-\pct{0.38}$ στο
         \code{scalar\_zb}.  Ο compiler προτιμά εναλλακτικά branchless
@@ -1081,7 +1082,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
     \ext{Zbb} (\rori, \insn{andn}) & 9+ & Ήδη στο baseline & Included \\
     \ext{Zbs} (\insn{bset})     & 5       & $-\pct{0.43}$ KEM (zbc) & Scalar only \\
     \ext{Zbkb} (pack, brev8)    & 0       & \pct{0}        & Dropped \\
-    \ext{Zbkc} (clmulr)         & 0       & \pct{0}        & Dropped \\
+    \ext{Zbkc} (\insn{clmul}, \insn{clmulh}) & 0 & \pct{0} & Dropped \\
     \ext{Zicond} (czero)        & 0–73    & $-\pct{0.38}$  & Dropped \\
     \ext{Zcb} (compressed)      & N/A     & \pct{0} instret & Dropped \\
     \bottomrule
