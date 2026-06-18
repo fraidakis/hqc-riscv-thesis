@@ -10,8 +10,7 @@
   (\num{4} ζεύγη 64-bit, $\LMUL = 4$, $\VLEN = 256$) &
   $4 \times 2 = 8$ scalar \clmul/\clmulh \newline
   + 8 \insn{vmv.v.x} + 8 \insn{vse64} &
-  3 εντολές: \newline
-  \insn{vmv.v.x} + \vclmul + \vclmulh \\
+  2 εντολές: \newline \insn{vclmul.vx} + \insn{vclmulh.vx} \\
   \addlinespace
   64-bit rotation \newline
   (\num{4} lanes, $\LMUL = 4$, $\VLEN = 256$) &

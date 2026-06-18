@@ -484,7 +484,7 @@ generate_report() {
 
     # Compare new content against existing report, ignoring the two volatile
     # metadata lines (Generated / Commit).  Only overwrite when data has changed.
-    local meta_strip='/^\| \(Generated\|Commit\) /d'
+    local meta_strip='/^| \(Generated\|Commit\) /d'
     if [[ -f "$report_file" ]] && \
        diff <(sed "$meta_strip" "$report_file") <(sed "$meta_strip" "$tmp_report") >/dev/null 2>&1; then
         echo "[skip] Report unchanged (data): ${report_file}"

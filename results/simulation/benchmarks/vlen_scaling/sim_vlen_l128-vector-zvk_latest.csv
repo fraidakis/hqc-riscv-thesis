@@ -1,21 +1,21 @@
-# date: 2026-06-10 17:16
-# commit: 9121a2c
+# date: 2026-06-18 19:04
+# commit: c5f821b
 # variant: vector_zvk
 # level: 128
 op,vlen,instructions
-keypair,256,105279
-keypair,512,101730
-keypair,1024,102763
-keypair,2048,105324
-encaps,256,217479
-encaps,512,208546
-encaps,1024,208210
-encaps,2048,216391
-decaps,256,393086
-decaps,512,379893
-decaps,1024,381648
-decaps,2048,395227
-total,256,715844
-total,512,690169
-total,1024,692621
-total,2048,716942
+keypair,256,103129
+keypair,512,99580
+keypair,1024,100613
+keypair,2048,103174
+encaps,256,213179
+encaps,512,204246
+encaps,1024,203910
+encaps,2048,212091
+decaps,256,386447
+decaps,512,373266
+decaps,1024,375025
+decaps,2048,388605
+total,256,702755
+total,512,677092
+total,1024,679548
+total,2048,703870

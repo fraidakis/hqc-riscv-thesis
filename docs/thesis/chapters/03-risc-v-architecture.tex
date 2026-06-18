@@ -245,17 +245,19 @@ Tier~1--3 variants: ως RVA23-compliant core εγγυάται τις \gls{zbb} 
 \section{Βαθμωτές Επεκτάσεις Bit-Manipulation για Κρυπτογραφία (\Zbb, \Zbc)}
 \label{sec:scalar-extensions}
 
-Η ενότητα αυτή παρουσιάζει τις scalar κρυπτογραφικές επεκτάσεις που αξιοποιεί
-η παρούσα εργασία στο Tier~1 profile. Οι επεκτάσεις αυτές παρέχουν
+Η ενότητα αυτή παρουσιάζει τις scalar επεκτάσεις που αξιοποιεί η παρούσα
+εργασία στο Tier~1 profile: την \gls{zbc} για carry-less multiplication και
+την \gls{zbb} για βασικές πράξεις bit-manipulation. Οι επεκτάσεις αυτές
+παρέχουν
 εντολές bit-manipulation και carry-less multiplication που αντιστοιχούν άμεσα
 σε θεμελιώδεις κρυπτογραφικές πράξεις — πολυωνυμικό πολλαπλασιασμό σε
-$\GFpoly$, rotations για Keccak, και byte-level μετασχηματισμούς.
+$\GFpoly$, rotations για Keccak, και byte-level μετασχηματισμούς. Και
+οι δύο επεκτάσεις επικυρώθηκαν τον Νοέμβριο 2021~\cite{RISCV-bitmanip-spec,RISCV-ratified-ext}.
 
 \subsection{Η Επέκταση \Zbc: Carry-Less Multiplication}
 \label{ssec:zbc-extension}
 
-Η επέκταση \gls{zbc} (Carry-less multiplication), επικυρωμένη τον Νοέμβριο
-2021~\cite{RISCV-bitmanip-spec}, ορίζει τρεις εντολές που εκτελούν
+Η επέκταση \gls{zbc} (Carry-less multiplication) ορίζει τρεις εντολές που εκτελούν
 πολλαπλασιασμό χωρίς κρατούμενο (carry-less multiplication) μεταξύ δύο
 64-bit τελεστέων:
 
@@ -338,8 +340,7 @@ carry-less multiplication γενικού σκοπού.
 \subsection{Η Επέκταση \Zbb: Basic Bit-Manipulation}
 \label{ssec:zbb-extension}
 
-Η επέκταση \gls{zbb} (Basic bit-manipulation), επικυρωμένη τον Νοέμβριο
-2021~\cite{RISCV-bitmanip-spec}, παρέχει εντολές bit-level χειρισμού που
+Η επέκταση \gls{zbb} (Basic bit-manipulation) παρέχει εντολές bit-level χειρισμού που
 εξαλείφουν σύνθετες ακολουθίες βασικών εντολών. Η \gls{zbb}
 συμπεριλήφθηκε ως υποχρεωτική (mandatory) στο application profile RVA22
 και, βάσει της πολιτικής Backward Compatibility των RISC-V profiles,
@@ -348,8 +349,8 @@ carry-less multiplication γενικού σκοπού.
 υλικό. Οι εντολές με κρυπτογραφική σημασία για την παρούσα εργασία είναι:
 
 \begin{itemize}
-  \item \rori~\code{rd, rs1, shamt}: rotation δεξιά κατά σταθερό αριθμό
-    θέσεων. Ισοδύναμα, \code{rori rd, rs1, 64-k} εκτελεί rotation
+  \item \rori~\code{rd, rs1, shamt}: κυκλική ολίσθηση (rotation) δεξιά κατά
+    σταθερό αριθμό θέσεων. Ισοδύναμα, \code{rori rd, rs1, 64-k} εκτελεί rotation
     αριστερά κατά $k$ θέσεις.
   \item \insn{andn}~\code{rd, rs1, rs2}: AND-NOT ($\text{rs1} \wedge
     \overline{\text{rs2}}$) — μηδενίζει τα bits του \code{rs1} που είναι
@@ -543,39 +544,44 @@ masked operations, ο καταχωρητής \code{v0} λειτουργεί ως
 κάθε bit $i$ του \code{v0} καθορίζει αν το στοιχείο $i$ θα επεξεργαστεί
 (bit = 1) ή θα παραμείνει ανεπηρέαστο (bit = 0).
 
-\paragraph{Tail και Mask policies.}
-Κάθε vector operation επεξεργάζεται \code{vl} στοιχεία και αφήνει εκτός δύο
-κατηγορίες. Τα tail elements που βρίσκονται πέραν της θέσης \code{vl} και
-διέπονται από την πολιτική \defterm{tail-agnostic} (\code{vta}) και τα inactive
-elements που έχουν μηδενικό mask bit και διέπονται από την \defterm{mask-agnostic}
-(\code{vma}). Καμία από τις δύο πολιτικές δεν εγγυάται τη διατήρηση των τιμών σε αυτά 
-τα στοιχεία. Έτσι, το hardware αποφεύγει δαπανηρές read-modify-write
-λειτουργίες στο vector register file.
+\paragraph{Πολιτικές Tail και Mask.}
+Από τα στοιχεία ενός vector operation ενεργά είναι μόνο όσα βρίσκονται πριν
+τη θέση \code{vl} με μη μηδενικό mask bit. Τα υπόλοιπα διακρίνονται σε
+\emph{tail} (θέσεις $\ge \code{vl}$) και \emph{inactive} (μηδενικό mask), και
+διέπονται αντίστοιχα από τις πολιτικές \defterm{tail-agnostic} (\code{vta}) και
+\defterm{mask-agnostic} (\code{vma}). Οι πολιτικές αυτές δεν εγγυώνται διατήρηση των τιμών  
+των στοιχείων, επιτρέποντας στο hardware να αποφύγει δαπανηρές read-modify-write στο
+vector register file.
 
 \subsection{Κατηγορίες Εντολών και Αναλυτικό Παράδειγμα}
 \label{ssec:rvv-xor-example}
 
 \paragraph{Κατηγορίες εντολών.}
-Ο \cref{tab:rvv-instruction-categories} ταξινομεί τις κατηγορίες vector
-εντολών του \RVV μαζί με τη χρήση τους στην παρούσα εργασία. Η ταξινόμηση
-αναδεικνύει ότι η υλοποίηση αξιοποιεί ευρύ φάσμα κατηγοριών — από
-unit-stride memory access (κυρίαρχη κατηγορία σε αριθμό εκτελέσεων) έως
-permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
-(constant-time sampling).
+Παρουσιάζονται οι κατηγορίες vector εντολών του \RVV που αξιοποιεί η παρούσα
+εργασία, μαζί με τη χρήση τους:
 
-\begin{table}[htbp]
-  \centering
-  \caption{Κατηγορίες vector εντολών \RVV και η αξιοποίησή τους στην
-    παρούσα εργασία.}
-  \label{tab:rvv-instruction-categories}
-  \small
-  \input{figures/ch3-riscv/rvv-instruction-categories.tex}
-\end{table}
+\begin{description}
+  \item[Memory (unit-stride)] \insn{vle8/16/32/64}, \insn{vse8/16/32/64}:
+    φόρτωση/αποθήκευση πολυωνυμικών συντελεστών και του Keccak state
+    (κυρίαρχη κατηγορία σε αριθμό εκτελέσεων).
+  \item[Arithmetic] \insn{vxor}, \insn{vadd}, \insn{vsub}, \insn{vsll},
+    \insn{vsrl}: Karatsuba recomposition και Keccak $\theta$-step.
+  \item[Reductions] \insn{vredxor}, \insn{vredmaxu}, \insn{vfirst}:
+    Reed-Muller Hadamard peak-find.
+  \item[Permutations] \insn{vrgather}, \insn{vslidedown}, \insn{vslide1up}:
+    Keccak $\pi$-step (αναδιάταξη lanes).
+  \item[Mask operations] \insn{vmseq}, \insn{vcpop}: constant-time sampling
+    (έλεγχος διπλοτύπων στο support).
+  \item[Type conversion] \insn{vzext}, \insn{vncvt}: Reed-Solomon
+    $\GF{2^8}$ widening.
+  \item[Splat] \insn{vmv.v.x}: broadcast scalar τιμής σε όλα τα lanes ενός
+    vector register.
+\end{description}
 
 Η πρακτική εφαρμογή των μηχανισμών strip-mining, \insn{vsetvl} και VLA
 αποσαφηνίζεται μέσω ενός πλήρους αναλυτικού παραδείγματος: η συνάρτηση
-\code{vect\_add} εκτελεί element-wise XOR δύο πολυωνυμικών vectors —
-θεμελιώδης πράξη στο \gls{hqc} (πρόσθεση πολυωνύμων σε $\GFpoly$). Το
+\code{vect\_add} εκτελεί element-wise XOR δύο πολυωνυμικών vectors, μια
+θεμελιώδη πράξη στο \gls{hqc} (πρόσθεση πολυωνύμων σε $\GFpoly$). Το
 \cref{fig:rvv-xor-comparison} παρουσιάζει τη σύγκριση μεταξύ scalar C
 και \RVV intrinsics.
 
@@ -587,15 +593,16 @@ permutations (\insn{vrgather} στον Keccak $\pi$-step) και mask operations
   \label{fig:rvv-xor-comparison}
 \end{figure}
 
-Η scalar υλοποίηση εκτελεί \num{4} core εντολές ανά στοιχείο (δύο load,
-XOR, store), εξαιρουμένου του loop overhead (increment, compare, branch), σε
-\code{size} iterations. Η \RVV υλοποίηση εκτελεί \num{5} εντολές ανά
+Η scalar υλοποίηση εκτελεί \num{4} εντολές ανά στοιχείο (δύο
+load, XOR, store), εξαιρουμένου του loop overhead (increment, compare,
+branch), και ο βρόχος επαναλαμβάνεται \code{size} φορές. Η \RVV υλοποίηση εκτελεί \num{5} εντολές ανά
 iteration (\insn{vsetvli} + \insn{vle64} $\times 2$ + \insn{vxor} +
 \insn{vse64}), αλλά κάθε iteration επεξεργάζεται \VLMAX στοιχεία. Για
 $\VLEN = 256$, $\LMUL = 8$ έχουμε $\VLMAX = 32$ στοιχεία ανά iteration, δηλαδή 
 $5 / 32 \approx 0.16$ εντολές ανά στοιχείο. Με αυτό το \VLMAX,
-αντικαθιστάμε \num{32} scalar επαναλήψεις ($32 \times 4 = 128$ εντολές) με
-μόλις \num{5}, λόγος instruction count περίπου \num{26}:1 (όχι κατ' ανάγκη
+αντικαθιστάμε τις \num{128} scalar εντολές (\num{32} επαναλήψεις $\times$
+\num{4} εντολές) με μόλις \num{5} vector εντολές. Ο λόγος instruction count
+είναι περίπου \num{26}:1 (όχι κατ' ανάγκη
 ισοδύναμος με runtime speedup, ο οποίος εξαρτάται από microarchitecture και
 memory bandwidth).
 
@@ -611,8 +618,7 @@ permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξησ�
 
 Οι διανυσματικές κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb} αποτελούν τη
 φυσική προέκταση των scalar επεκτάσεων \gls{zbc} και \gls{zbb} στο vector domain. 
-Επικυρώθηκαν τον Σεπτέμβριο 2023 ως μέρος της προδιαγραφής \emph{RISC-V
-Cryptography Extensions Volume~II: Vector Instructions}~\cite{RISCV-crypto-vol2} και
+Επικυρώθηκαν τον Σεπτέμβριο 2023 ως μέρος της προδιαγραφής \emph{RISC-V Cryptography Extensions Volume~II: Vector Instructions}~\cite{RISCV-crypto-vol2,RISCV-ratified-ext} και
 αποτελούν τη βάση του Tier~3 profile της παρούσας εργασίας.
 Στη συνέχεια αναλύεται η σημασιολογία κάθε εντολής και η αντιστοίχισή
 της σε κρυπτογραφικά primitives.
@@ -633,38 +639,37 @@ Cryptography Extensions Volume~II: Vector Instructions}~\cite{RISCV-crypto-vol2}
 
 Η σημασιολογία είναι ταυτόσημη με τις scalar \clmul/\clmulh
 (βλ.~\cref{eq:gf2x-product}), εφαρμοζόμενη παράλληλα σε \code{vl}
-ζεύγη στοιχείων. Για $\SEW = 64$, $\LMUL = 4$ και $\VLEN = 256$: κάθε
-εντολή \vclmul επεξεργάζεται $\VLMAX = 16$ ανεξάρτητα 64-bit carry-less
-γινόμενα ταυτόχρονα. Η πράξη αυτή αντιστοιχεί ακριβώς στα leaf products
-του Karatsuba πολυωνυμικού πολλαπλασιασμού — κάθε leaf υπολογίζει $n$
-ζεύγη $a[i] \polymul b[j]$ τα οποία μπορούν να εκτελεστούν παράλληλα
-χωρίς εξαρτήσεις δεδομένων.
+ζεύγη στοιχείων. Για $\SEW = 64$, $\LMUL = 4$ και $\VLEN = 256$, κάθε \vclmul υπολογίζει
+$\VLMAX = 16$ ανεξάρτητα carry-less γινόμενα ταυτόχρονα. Στον πολυωνυμικό
+πολλαπλασιασμό Karatsuba, κάθε φύλλο (leaf) είναι ένας \emph{schoolbook}
+πολλαπλασιασμός δύο τμημάτων $n$ λέξεων, ο οποίος απαιτεί $n \times n$
+word-level carry-less γινόμενα $a[i] \polymul b[j]$ (π.χ. $16 \times 16 = 256$
+για threshold $n = 16$). Η διανυσματοποίηση εκμεταλλεύεται ότι, για
+\emph{σταθερό} $a[i]$, τα $n$ γινόμενα $a[i] \polymul b[0], \ldots,
+a[i] \polymul b[n-1]$ είναι ανεξάρτητα: μία \vclmul τα παράγει και τα $\VLMAX$
+ταυτόχρονα. Έτσι μία γραμμή του schoolbook (ένα $a[i]$ επί όλα τα $b[j]$)
+εκτελείται με μία εντολή, και ολόκληρο το φύλλο με $n$ τέτοιες γραμμές.
 
-\paragraph{Μοτίβο χρήσης: splat-and-sweep.}
-Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf χρησιμοποιεί το μοτίβο
-\defterm{splat-and-sweep}. Σε κάθε βήμα, ένα μεμονωμένο scalar στοιχείο
-$a[i]$ \emph{αντιγράφεται} (splat) σε όλα τα lanes ενός vector register μέσω
-\insn{vmv.v.x}, και στη συνέχεια πολλαπλασιάζεται carry-less με ολόκληρο το
-vector $b[j \ldots j + \code{vl} - 1]$ (sweep) μέσω ενός ζεύγους
-\vclmul/\vclmulh. Έτσι, \emph{ένα} splat-and-sweep βήμα παράγει \code{vl}
-ανεξάρτητα γινόμενα $a[i] \polymul b[\cdot]$ με μόλις \num{3} vector εντολές
-(\insn{vmv.v.x} + \vclmul + \vclmulh), αντικαθιστώντας τα \emph{\code{vl}
-ζεύγη} scalar \clmul/\clmulh (δηλαδή $2\cdot\code{vl}$ scalar εντολές). Ο λόγος
-μείωσης δυναμικών εντολών είναι επομένως $\sim\!2\cdot\code{vl} / 3$· όταν το
-register group αξιοποιείται πλήρως ($\code{vl} = \VLMAX$), ο λόγος γίνεται
-$\sim\!2\cdot\VLMAX / 3$.
+\paragraph{Μοτίβο χρήσης: scalar-vector sweep.}
+Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf αξιοποιεί τη μορφή
+scalar-vector της \gls{zvbc}: η \insn{vclmul.vx} δέχεται απευθείας ως scalar
+τελεστέο (από GPR) ένα μεμονωμένο στοιχείο $a[i]$ και το πολλαπλασιάζει
+carry-less με ολόκληρο το vector $b[j \ldots j + \code{vl} - 1]$ (sweep). Έτσι,
+\emph{ένα} βήμα παράγει \code{vl} ανεξάρτητα γινόμενα $a[i] \polymul b[\cdot]$
+με μόλις \num{2} vector εντολές (\insn{vclmul.vx} + \insn{vclmulh.vx}). Αυτό αντικαθιστά τα
+\emph{\code{vl} ζεύγη} scalar \clmul/\clmulh (δηλαδή $2\cdot\code{vl}$ scalar
+εντολές) που θα απαιτούσε η αντίστοιχη υλοποίηση με τη scalar \gls{zbc}. Ο
+λόγος μείωσης δυναμικών εντολών είναι επομένως $\sim\!\code{vl}$, και
+$\sim\!\VLMAX$ όταν το register group αξιοποιείται πλήρως
+($\code{vl} = \VLMAX$).
 
 \paragraph{Περιορισμός \SEW.}
-Η επέκταση \gls{zvbc} ορίζεται αποκλειστικά για $\SEW = 64$· δεν υπάρχουν εκδόσεις
-των εντολών για μικρότερα πλάτη στοιχείων (8, 16 ή 32~bit). Ένας
-πολλαπλασιασμός μικρότερων τελεστέων εξυπηρετείται τοποθετώντας τους σε
-64-bit lanes και εκτελώντας την κανονική \vclmul: το αποτέλεσμα ενός
-$k$-bit carry-less γινομένου έχει το πολύ $2k-1$ bits, οπότε για $k \leq 32$
-χωρά άνετα στα 64~bit χωρίς απώλεια. Επομένως αρκεί η διεύρυνση (widening)
-των εισόδων στα 64~bit — δεν απαιτείται κανένα βήμα συρρίκνωσης (narrowing).
-Στην παρούσα εργασία όμως, ο περιορισμός δεν αποτελεί εμπόδιο καθώς τόσο ο
-πολυωνυμικός πολλαπλασιασμός σε $\GF{2}[x]/(x^N - 1)$ όσο και η αριθμητική
-$\GF{2^8}$ λειτουργούν εξ ορισμού σε 64-bit λέξεις.
+Η επέκταση \gls{zvbc} ορίζεται αποκλειστικά για $\SEW = 64$. Δεν υπάρχουν
+μορφές των εντολών για 8/16/32-bit στοιχεία. Τελεστέοι μικρότερου πλάτους
+διευρύνονται (widening) στα 64~bit και η \vclmul εφαρμόζεται κανονικά. Στην
+παρούσα εργασία ο περιορισμός δεν αποτελεί εμπόδιο, καθώς τόσο ο πολυωνυμικός
+πολλαπλασιασμός σε $\GF{2}[x]/(x^N - 1)$ όσο και η αριθμητική $\GF{2^8}$
+λειτουργούν εξ ορισμού σε 64-bit λέξεις.
 
 \subsection{Η Επέκταση \Zvbb: Vector Bit-Manipulation}
 \label{ssec:zvbb-extension}
@@ -673,50 +678,26 @@ $\GF{2^8}$ λειτουργούν εξ ορισμού σε 64-bit λέξεις.
 εντολές bit-manipulation που αξιοποιούνται και σε κρυπτογραφικές εφαρμογές:
 
 \begin{itemize}
-  \item \insn{vror.vv}~\code{vd, vs2, vs1}: rotation δεξιά κάθε
-    στοιχείου κατά μεταβλητό αριθμό θέσεων (ανά lane, από τον \code{vs1}).
-  \item \insn{vror.vi}~\code{vd, vs2, imm}: rotation δεξιά κάθε
-    στοιχείου κατά σταθερό αριθμό θέσεων (6-bit immediate).
+  \item \insn{vror.vv}~\code{vd, vs2, vs1}: κυκλική ολίσθηση (rotation)
+    δεξιά κάθε στοιχείου κατά μεταβλητό αριθμό θέσεων, που ορίζεται ανά
+    στοιχείο από το \code{vs1}.
+  \item \insn{vror.vi}~\code{vd, vs2, imm}: κυκλική ολίσθηση (rotation)
+    δεξιά κάθε στοιχείου κατά σταθερό αριθμό θέσεων (6-bit immediate).
   \item \insn{vandn.vv}~\code{vd, vs2, vs1}: AND-NOT ανά στοιχείο
     ($\text{vs2}[i] \wedge \overline{\text{vs1}[i]}$).
 \end{itemize}
 
 \paragraph{Αντιστοίχιση σε Keccak.}
-Η εσωτερική μετάθεση Keccak-f[1600] (βλ.~\cref{sec:keccak-theory})
-ωφελείται περισσότερο από τη \gls{zvbb} στην παρούσα εργασία. Το βήμα
-$\rho$ (lane rotation) απαιτεί \num{24} μη τετριμμένες rotations ανά γύρο
-(ένα lane παραμένει αμετάβλητο) με διαφορετικό offset ανά lane — η \insn{vror.vv} εκτελεί όλες τις
-rotations ενός vector register σε μία εντολή, χρησιμοποιώντας ένα
-δεύτερο vector register ως πίνακα offsets. Το βήμα $\chi$ (μη γραμμικό
-βήμα) εφαρμόζει την πράξη AND-NOT $A[x] \wedge \overline{A[x+1]}$ —
-αλγοριθμικά \num{5} τέτοιες πράξεις ανά row του state (\num{25} συνολικά).
-Στη vectorized υλοποίηση μία \insn{vandn.vv} εκτελεί την AND-NOT ταυτόχρονα
-σε όλα τα lanes (ένα lane ανά vector element)· χωρίς \gls{zvbb} η ίδια πράξη
-απαιτεί \emph{δύο} vector εντολές (\insn{vnot} + \insn{vand}) — μείωση
-$2 \to 1$ vector εντολών ανά AND-NOT.
-
-Στη vectorized υλοποίηση Keccak (LMUL=8, $\VLEN \geq 256$), ολόκληρο
-το 25-lane state φορτώνεται σε ένα vector register group. Τα βήματα
-$\rho$ και $\pi$ εκτελούνται μέσω ενός ζεύγους \insn{vrgather.vv}
-(permutation) + \insn{vror.vv} (rotation), ενώ το βήμα $\chi$ εκτελείται
-μέσω δύο \insn{vrgather.vv} (ανάκτηση $A[x+1]$ και $A[x+2]$) +
-\insn{vandn.vv} + \insn{vxor.vv}. Χωρίς \gls{zvbb}, κάθε rotation θα
-απαιτούσε τρεις εντολές (\insn{vsll} + \insn{vsrl} + \insn{vor}) και
-κάθε AND-NOT δύο (\insn{vnot} + \insn{vand}) — αύξηση \pct{200} και
-\pct{100} αντίστοιχα στον αριθμό εντολών ανά πράξη.
-
-\paragraph{Η \insn{vror.vi} και compile-time immediates.}
-Η μορφή \insn{vror.vi} (immediate rotation) αποτελεί ιδιαίτερα σημαντική
-βελτιστοποίηση για τον Keccak: τα rotation amounts του βήματος $\rho$
-είναι σταθερές γνωστές κατά τη μεταγλώττιση — οι precomputed
-right-rotation immediates (που ενσωματώνουν και τη μετάθεση π) είναι
-$(0, 20, 21, 43, 50, 36, 44, 61, 19, 3, 63, 58, 39, 56, 46, 37, 28, 54,
-49, 8, 2, 9, 25, 23, 62)$. Στη 2-way SoA (Structure-of-Arrays) υλοποίηση,
-κάθε lane αποθηκεύεται σε ξεχωριστό vector register ($\LMUL = 1$,
-\code{vl} = 2 streams), και η rotation εκτελείται μέσω \insn{vror.vi} με
-6-bit immediate που καλύπτει ολόκληρο το εύρος offsets $0$–$63$ σε μία
-εντολή (η \insn{vror.vx} δέχεται το rotation amount από GPR). Αυτό
-εξαλείφει πλήρως τις memory loads για τον πίνακα rotation offsets.
+Οι εντολές της \gls{zvbb} αντιστοιχίζονται πλήρως στα βήματα της μετάθεσης
+Keccak-f[1600] (βλ.~\cref{sec:keccak-theory}): το βήμα $\rho$ (περιστροφή
+\num{25} lanes κατά σταθερό offset ανά lane) σε μία \insn{vror.vv} (ή
+\insn{vror.vi} όταν τα offsets είναι σταθερές γνωστές κατά τη μεταγλώττιση), το
+βήμα $\pi$ (αναδιάταξη lanes) σε \insn{vrgather.vv}, και το μη γραμμικό βήμα
+$\chi$, $A'[x] = A[x] \oplus (\overline{A[x+1]} \wedge A[x+2])$, σε
+\insn{vandn.vv}~+~\insn{vxor.vv}. Σε σχέση με τη βασική \gls{rvv}, κάθε rotation
+περνά από \num{3} εντολές (\insn{vsll} + \insn{vsrl} + \insn{vor}) σε \num{1}
+(\insn{vror.vv}), και κάθε AND-NOT από \num{2} (\insn{vnot} + \insn{vand}) σε
+\num{1} (\insn{vandn.vv}).
 
 \subsection{Ποσοτική Σύγκριση: Before/After}
 \label{ssec:zvbc-zvbb-comparison}
@@ -748,33 +729,6 @@ $\LMUL = 4$: $\VLMAX = 16$, δηλαδή \num{16} carry-less γινόμενα α
 περίπου \num{1200} εντολές ανά permutation call, όπως
 επιβεβαιώνεται εμπειρικά στο~\cref{ch:results}.
 
-\paragraph{Αξιοποίησή Zvbc και Zvbb μέσω intrinsics.}
-Η αξιοποίηση \gls{zvbc} και \gls{zvbb} απαιτεί ρητή χρήση C
-intrinsics:\\
-\code{\_\_riscv\_vclmul\_vv\_u64m4()},
-\code{\_\_riscv\_vclmulh\_vv\_u64m4()}, \code{\_\_riscv\_vror\_vv\_u64m8()},
-\\
-\code{\_\_riscv\_vandn\_vv\_u64m8()}. Τα intrinsics αυτά ορίζονται στο
-header \code{<riscv\_vector.h>} και συμμετέχουν πλήρως στο optimization
-pipeline (register allocation, scheduling), αλλά η επιλογή χρήσης τους
-παραμένει αποκλειστικά στον προγραμματιστή. Η ποσοτική επίπτωση αυτού
-του περιορισμού — δηλαδή η διαφορά μεταξύ compiler auto-vectorization
-(Tier~2 χωρίς Zvbc) και ρητής χρήσης intrinsics (Tier~3 με Zvbc) —
-αναλύεται στην~\cref{sec:isa-ablation}.
-
-\paragraph{Σύνοψη αρχιτεκτονικής συνεισφοράς.}
-Οι επεκτάσεις \gls{zvbc} και \gls{zvbb} μετασχηματίζουν τους δύο κυρίαρχους
-υπολογιστικούς πυρήνες του \gls{hqc} στο vector domain: η \gls{zvbc} παρέχει
-$\VLMAX$-fold παραλληλισμό στον carry-less πολλαπλασιασμό (Karatsuba
-leaf), ενώ η \gls{zvbb} μειώνει τις εντολές rotation κατά παράγοντα \num{3}
-($3 \to 1$) και τις εντολές AND-NOT κατά παράγοντα \num{2} ($2 \to 1$) στον
-Keccak. Σε συνδυασμό με τη
-\gls{vla} φιλοσοφία του \RVV, η απόδοση κλιμακώνεται αυτόματα με το
-hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα. Η αναλυτική
-παρουσίαση της αξιοποίησης αυτών των εντολών στους βελτιστοποιημένους
-πυρήνες ακολουθεί στο~\cref{ch:polymul-optimization} και στο~\cref{ch:kernel-optimization}.
-
-
 \section{Μέθοδοι Προγραμματισμού RISC-V: Φάσμα Αφαίρεσης}
 \label{sec:programming-methods}
 
@@ -782,11 +736,7 @@ hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα
 προηγούμενες ενότητες απαιτεί κατάλληλη μέθοδο παραγωγής κώδικα. Η
 αρχιτεκτονική RISC-V παρέχει τέσσερις διακριτές μεθόδους, ταξινομημένες
 κατά φθίνοντα βαθμό ελέγχου του προγραμματιστή επί του παραγόμενου κώδικα
-μηχανής. Κάθε μέθοδος παρουσιάζεται σε γενικό πλαίσιο· η αντιστοίχισή της
-στους πυρήνες της παρούσας εργασίας τεκμηριώνεται
-στην~\cref{sec:methods-application}.
-
-Το~\cref{fig:programming-spectrum} απεικονίζει το φάσμα αφαίρεσης: στο
+μηχανής. Το~\cref{fig:programming-spectrum} απεικονίζει το φάσμα αφαίρεσης: στο
 αριστερό άκρο ο προγραμματιστής ελέγχει πλήρως κάθε εντολή, ενώ στο δεξιό
 ο μεταγλωττιστής αναλαμβάνει αυτόνομα την εκπομπή εξειδικευμένων εντολών.
 Κάθε μετακίνηση προς τα δεξιά αυξάνει τη δυνατότητα βελτιστοποίησης από
@@ -796,10 +746,7 @@ hardware \VLEN — χωρίς τροποποίηση πηγαίου κώδικα
 \begin{figure}[htbp]
   \centering
   \input{figures/ch3-riscv/riscv-programming-spectrum.tex}
-  \caption{Φάσμα αφαίρεσης στον προγραμματισμό RISC-V. Η μετακίνηση προς
-    τα αριστερά αυξάνει τον βαθμό ελέγχου (register allocation, instruction
-    ordering), ενώ η μετακίνηση προς τα δεξιά αυξάνει τη δυνατότητα
-    βελτιστοποίησης από τον compiler (CSE, DCE, scheduling).}
+  \caption{Φάσμα αφαίρεσης στον προγραμματισμό RISC-V.}
   \label{fig:programming-spectrum}
 \end{figure}
 
@@ -819,7 +766,7 @@ layout, και ακριβή encoding κάθε εντολής. Ο μεταγλω�
 \code{a0}–\code{a7}) και callee-saved (\code{s0}–\code{s11}) καταχωρητών,
 ευθυγράμμιση stack pointer σε 16-byte boundary, και σωστή τοποθέτηση
 ορισμάτων/επιστρεφόμενων τιμών. Σφάλματα σε αυτά τα σημεία δεν ανιχνεύονται
-κατά τη μεταγλώττιση — εκδηλώνονται ως silent corruption κατά την εκτέλεση.
+κατά τη μεταγλώττιση — εκδηλώνονται ως silent corruption κατά την εκτέλεση του προγράμματος.
 
 \paragraph{Τυπικές χρήσεις.}
 Η καθαρή assembly χρησιμοποιείται αποκλειστικά σε περιπτώσεις όπου δεν
@@ -828,13 +775,11 @@ C runtime), interrupt handlers (ακριβής context save/restore), και ρ�
 που απαιτούν εντολές μη προσβάσιμες από C (\insn{ecall}, \insn{mret},
 χειρισμός \glspl{csr} πριν την ενεργοποίηση C environment). Ο ακόλουθος
 κώδικας αποτελεί χαρακτηριστικό παράδειγμα — ενεργοποίηση της διανυσματικής
-μονάδας μέσω χειρισμού του \code{mstatus} \gls{csr} (\cref{lst:vector-enable}):
+μονάδας μέσω χειρισμού του \code{mstatus} \gls{csr}:
 
 \begin{lstlisting}[language={[RISC-V]Assembler},
   caption={Ενεργοποίηση Vector Unit μέσω \code{mstatus.VS} σε bare-metal
-    boot sequence. Η εντολή \insn{csrs} θέτει τα bits 10:9 (VS field) σε
-    \q{Dirty} (11), σηματοδοτώντας στο hardware ότι η vector μονάδα είναι
-    ενεργή. Η \insn{vsetvli} αρχικοποιεί τον \code{vtype} \gls{csr}.},
+    boot sequence.},
   label={lst:vector-enable}]
     li   t0, 0x600          /* mstatus.VS = Dirty (bits 10:9 = 11) */
     csrs mstatus, t0        /* Set VS field */
@@ -842,8 +787,9 @@ C runtime), interrupt handlers (ακριβής context save/restore), και ρ�
 \end{lstlisting}
 
 Η εντολή \insn{csrs} (CSR Set) εκτελεί bitwise OR μεταξύ του τρέχοντος
-\code{mstatus} και της τιμής \code{0x600}, θέτοντας τα bits 10:9 χωρίς να
-επηρεάζει τα υπόλοιπα πεδία. Αυτή η λειτουργία δεν εκφράζεται σε C χωρίς
+\code{mstatus} και της τιμής \code{0x600}, θέτοντας τα bits 10:9 (VS field) 
+σε \q{Dirty} (11), σηματοδοτώντας στο hardware ότι η vector μονάδα είναι ενεργή 
+χωρίς να επηρεάζει τα υπόλοιπα πεδία. Αυτή η λειτουργία δεν εκφράζεται σε C χωρίς
 inline assembly — αποτελεί privileged operation που απαιτεί M-mode πρόσβαση.
 
 \subsection{Inline Assembly (\texttt{\_\_asm\_\_} / \texttt{\_\_asm\_\_ volatile})}
@@ -876,11 +822,10 @@ corruption: ο compiler μπορεί να τοποθετήσει είσοδο κ
 
 \paragraph{Χρήση: CSR reads.}
 Η κύρια χρήση inline assembly στην παρούσα εργασία αφορά την ανάγνωση
-\glspl{csr} μέτρησης απόδοσης, για τις οποίες δεν υπάρχει C intrinsic (\cref{lst:csr-read}):
+\glspl{csr} μέτρησης απόδοσης, για τις οποίες δεν υπάρχει C intrinsic:
 
 \begin{lstlisting}[language=C,
-  caption={Ανάγνωση \code{mcycle} (CSR 0xb00) μέσω inline assembly με
-    \code{volatile} για ακρίβεια μετρήσεων.},
+  caption={Ανάγνωση \code{mcycle} (CSR 0xb00) μέσω inline assembly.},
   label={lst:csr-read}]
 uint64_t hqc_rdcycle(void) {
     uint64_t cycles;
@@ -893,7 +838,7 @@ uint64_t hqc_rdcycle(void) {
 μπορούσε να εξαλείψει την ανάγνωση ως dead code (αν η τιμή δεν
 χρησιμοποιείται αμέσως) ή να τη μετακινήσει εκτός του μετρούμενου
 τμήματος κώδικα. Η εντολή \insn{csrr} (CSR Read) αποτελεί ψευδοεντολή
-για \code{csrrs rd, csr, x0} — αναγιγνώσκει τον \gls{csr} χωρίς να
+για \code{csrrs rd, csr, x0} — διαβάζει τον \gls{csr} χωρίς να
 τροποποιεί τα bits του.
 
 \paragraph{Περιορισμοί.}
@@ -919,8 +864,8 @@ instruction scheduling, common subexpression elimination, constant folding
 \paragraph{Διαθέσιμα headers.}
 Τα RISC-V intrinsics παρέχονται μέσω δύο standard headers:
 \begin{itemize}
-  \item \code{<riscv\_bitmanip.h>}~\autocite{RISCV-bitmanip-spec}: scalar intrinsics για \gls{zbc}, \gls{zbb} και
-    Zbs — \eg \code{\_\_riscv\_clmul\_64(a, b)},
+  \item \code{<riscv\_bitmanip.h>}~\autocite{RISCV-bitmanip-spec}: scalar intrinsics για \gls{zbc} και \gls{zbb}
+   — \eg \code{\_\_riscv\_clmul\_64(a, b)},
     \code{\_\_riscv\_clmulh\_64(a, b)}, \code{\_\_riscv\_ror\_64(x, k)}.
   \item \code{<riscv\_vector.h>}~\autocite{RISCV-vector-spec}: vector intrinsics για \RVV 1.0, \gls{zvbc}
     και \gls{zvbb} — \eg \code{\_\_riscv\_vclmul\_vv\_u64m4(vs2, vs1, vl)},

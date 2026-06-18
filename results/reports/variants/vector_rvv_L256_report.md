@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-07 15:55:19 |
-| Commit | `20def7e` |
+| Generated | 2026-06-18 18:58:13 |
+| Commit | `c5f821b` |
 
 ---
 
@@ -138,28 +138,28 @@
 
 | Operation | VLEN | Instructions |
 | --- | ---: | ---: |
-| total | 256 | 1,975,424 |
-| total | 512 | 1,936,810 |
-| total | 1024 | 1,923,629 |
-| total | 2048 | 1,933,704 |
+| total | 256 | 1,956,787 |
+| total | 512 | 1,926,763 |
+| total | 1024 | 1,922,144 |
+| total | 2048 | 1,935,483 |
 
 ### VLEN Sweep — HQC-192
 
 | Operation | VLEN | Instructions |
 | --- | ---: | ---: |
-| total | 256 | 4,730,302 |
-| total | 512 | 4,604,736 |
-| total | 1024 | 4,551,910 |
-| total | 2048 | 4,542,751 |
+| total | 256 | 4,675,287 |
+| total | 512 | 4,572,661 |
+| total | 1024 | 4,550,103 |
+| total | 2048 | 4,548,702 |
 
 ### VLEN Sweep — HQC-256
 
 | Operation | VLEN | Instructions |
 | --- | ---: | ---: |
-| total | 256 | 12,135,502 |
-| total | 512 | 11,933,953 |
-| total | 1024 | 11,847,600 |
-| total | 2048 | 11,819,885 |
+| total | 256 | 12,021,467 |
+| total | 512 | 11,882,530 |
+| total | 1024 | 11,838,941 |
+| total | 2048 | 11,827,200 |
 
 ## 5. Compiler Comparison
 
