@@ -14,7 +14,7 @@
 %   scalar_ref: total=59,013,743  polymul=57,642,831(97.6%)  keccak=463,069(0.8%)  decode=384,986(0.7%)  misc=522,857(0.9%)
 %   Tier 1 (Zbc): total=2,088,352  polymul=663,090(31.8%)  keccak=463,069(22.2%)  decode=384,986(18.4%)  misc=577,207(27.6%)
 %   Tier 2 (RVV): total=1,084,132  polymul=472,419(43.6%)  keccak=463,069(42.7%)  decode=121,217(11.2%)  misc=27,427(2.5%)
-%   Tier 3 (Zvbc): total=400,478  polymul=187,590(46.8%)  keccak=131,944(32.9%)  decode=56,515(14.1%)  misc=24,429(6.1%)
+%   Tier 3 (Zvbc): total=386,447  polymul=181,140(46.9%)  keccak=124,648(32.3%)  decode=56,326(14.6%)  misc=24,333(6.2%)
 \tikzsetnextfilename{ch8-results-kem-breakdown-stacked}
 \begin{tikzpicture}
 \begin{axis}[
@@ -42,13 +42,13 @@
 ]
 
 \addplot[fill=red!70!black, draw=red!70!black]
-  coordinates {(scalar\_ref,97.6) (Tier~1 (Zbc),31.8) (Tier~2 (RVV),43.6) (Tier~3 (Zvbc),46.8)};
+  coordinates {(scalar\_ref,97.6) (Tier~1 (Zbc),31.8) (Tier~2 (RVV),43.6) (Tier~3 (Zvbc),46.9)};
 \addplot[fill=orange!80, draw=orange!60!black]
-  coordinates {(scalar\_ref,0.8) (Tier~1 (Zbc),22.2) (Tier~2 (RVV),42.7) (Tier~3 (Zvbc),32.9)};
+  coordinates {(scalar\_ref,0.8) (Tier~1 (Zbc),22.2) (Tier~2 (RVV),42.7) (Tier~3 (Zvbc),32.3)};
 \addplot[fill=yellow!70!orange, draw=yellow!60!black]
-  coordinates {(scalar\_ref,0.7) (Tier~1 (Zbc),18.4) (Tier~2 (RVV),11.2) (Tier~3 (Zvbc),14.1)};
+  coordinates {(scalar\_ref,0.7) (Tier~1 (Zbc),18.4) (Tier~2 (RVV),11.2) (Tier~3 (Zvbc),14.6)};
 \addplot[fill=gray!40, draw=gray!60]
-  coordinates {(scalar\_ref,0.9) (Tier~1 (Zbc),27.6) (Tier~2 (RVV),2.5) (Tier~3 (Zvbc),6.1)};
+  coordinates {(scalar\_ref,0.9) (Tier~1 (Zbc),27.6) (Tier~2 (RVV),2.5) (Tier~3 (Zvbc),6.2)};
 
 \legend{Polymul, Keccak, Decode, Misc}
 \end{axis}

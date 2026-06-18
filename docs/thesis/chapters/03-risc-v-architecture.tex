@@ -895,10 +895,7 @@ list) και παράγει αδιαφανές block, ενώ το intrinsic απ
 \begin{figure}[htbp]
   \centering
   \input{figures/ch3-riscv/inline-asm-vs-intrinsic.tex}
-  \caption{Σύγκριση inline assembly (αριστερά) και C intrinsic (δεξιά) για
-    scalar carry-less multiplication. Αμφότερα παράγουν την ίδια εντολή
-    \clmul, αλλά το intrinsic παρέχει type safety, πλήρη ορατότητα στον
-    optimizer, και μονογραμμική σύνταξη.}
+  \caption{Σύγκριση inline assembly (αριστερά) και C intrinsic (δεξιά)}
   \label{fig:inline-vs-intrinsic}
 \end{figure}
 
@@ -928,11 +925,6 @@ flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος
     αντιστροφή και η σύζευξη συγχωνεύονται σε μία εντολή.
   \item \code{(x << n) | (x >> (64-n))} $\to$ \rori (\gls{zbb}): το
     rotation idiom αναγνωρίζεται ανεξαρτήτως σειράς shift/OR.
-  \item \code{base + idx*8} $\to$ \insn{sh3add} (Zba): η πράξη
-    address scaling (\code{slli 3} + \code{add}) συγχωνεύεται σε μία
-    εντολή address generation.
-  \item \code{x |= (1ULL << pos)} $\to$ \insn{bset} (Zbs): η πράξη
-    single-bit set αντικαθίσταται από μία εντολή.
 \end{itemize}
 
 \paragraph{Πλεονέκτημα: μηδενική αλλαγή πηγαίου κώδικα.}
@@ -958,8 +950,8 @@ auto-lowering εφαρμόζεται αποκλειστικά σε απλά bit-
 
 Ο \cref{tab:programming-methods} συνοψίζει τα χαρακτηριστικά κάθε μεθόδου
 σε πέντε άξονες. Η επιλογή μεθόδου καθορίζεται από τη φύση κάθε πυρήνα:
-boot code και CSR manipulation απαιτούν assembly, κρυπτογραφικοί πυρήνες
-αξιοποιούν intrinsics, και γενικός κώδικας επωφελείται αυτόματα από
+boot code και CSR manipulation απαιτούν assembly, οι κρυπτογραφικοί πυρήνες
+αξιοποιούν intrinsics, ενώ ο γενικός κώδικας επωφελείται αυτόματα από
 auto-lowering.
 
 \begin{table}[htbp]

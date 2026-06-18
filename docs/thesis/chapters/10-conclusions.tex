@@ -29,12 +29,12 @@ speedup σε \speedup{122} (HQC-128) και το πλήρες \gls{kem} σε \sp
 rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
 
 \paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
-Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vv} επιτυγχάνει \speedup{307} στο
-polymul (HQC-128) και \speedup{526} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
-\speedup{164} (HQC-128) και \speedup{331} (HQC-256), τοποθετώντας τον
-\instret σε \num{715844}.  Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
+Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vv} επιτυγχάνει \speedup{318} στο
+polymul (HQC-128) και \speedup{547} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
+\speedup{167} (HQC-128) και \speedup{339} (HQC-256), τοποθετώντας τον
+\instret σε \num{702755}.  Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
 της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion· σε εκτιμώμενους κύκλους
-ρολογιού το χάσμα είναι μεγαλύτερο ($\approx 2.8\times$, \cref{ssec:avx2-gap}), και
+ρολογιού το χάσμα είναι μεγαλύτερο ($\approx 2.7\times$, \cref{ssec:avx2-gap}), και
 τόσο η άμεση σύγκριση \instret-έναντι-κύκλων όσο και η επικύρωση σε πραγματικό
 silicon παραμένουν μελλοντική εργασία (\cref{sec:future-work}).
 
@@ -216,12 +216,12 @@ vector unit, αξιοποιώντας register group αρκετά μεγάλο �
 κατάσταση Keccak ($25\times64$-bit words) — λ.χ. LMUL=8 σε \VLEN${}=256$ (group 2048 bits) —
 αποθηκευμένη σε ομαδοποιημένους διανυσματικούς καταχωρητές.  Εφόσον
 τυποποιηθεί, θα εξαλείψει τον Keccak πυρήνα που αποτελεί τον επόμενο Amdahl's Law
-floor στην τρέχουσα υλοποίηση (\pct{24.5} του Tier~3 \gls{kem} \instret,
+floor στην τρέχουσα υλοποίηση (\pct{27.4} του Tier~3 \gls{kem} \instret,
 \cref{tab:kernel-redistribution}).  Βάσει
 προκαταρκτικών benchmarks σε SpacemiT X60~\cite{Saarinen2024-vkeccak}, η εντολή
 μειώνει το κόστος μίας Keccak permutation από $\sim$\num{2000} σε $\sim$\num{30}
 κύκλους, αποφέροντας βελτίωση \speedup{12.74} σε scheme-level Kyber-768
-(NTT + \code{vkeccak.vi}).  Δεδομένου του \pct{24.5} μεριδίου του Keccak στον
+(NTT + \code{vkeccak.vi}).  Δεδομένου του \pct{27.4} μεριδίου του Keccak στον
 Tier~3 \gls{hqc} \gls{kem} \instret, μια προκαταρκτική προβολή — βασισμένη σε
 Spike, χωρίς hardware proof-of-concept — υποδεικνύει αναλογική βελτίωση της τάξης
 $10$–$13\times$ σε επίπεδο σχήματος για τον \gls{hqc}.  Η ποσοτικοποίηση αυτή

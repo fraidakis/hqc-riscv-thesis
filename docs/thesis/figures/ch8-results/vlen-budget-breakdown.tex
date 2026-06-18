@@ -2,22 +2,22 @@
 % (VLEN-scalable, fixed-cost vectorized, non-vectorized)
 % HQC-128, vector_zvk, \VLEN=256
 %
-% Source: trace profile (commit 1df8302 / 2026-06-10), total KEM = 715,844 instret
-%   vclmul_leaf        250,554  35.0%  fixed-vectorized  (Polymul)
-%   KeccakF1600        177,860  24.8%  fixed-vectorized  (Keccak)
-%   rvv recomp helpers  80,202  11.2%  VLEN-scalable     (Polymul)
-%   kmul_N scaffolding  34,506   4.8%  VLEN-scalable     (Polymul, partial)
-%   gf_reduce           44,726   6.3%  scalar            (Decode)
+% Source: trace profile (commit c5f821b / 2026-06-18), total KEM = 702,755 instret
+%   vclmul_leaf        237,654  33.8%  fixed-vectorized  (Polymul)
+%   KeccakF1600        177,860  25.3%  fixed-vectorized  (Keccak)
+%   rvv recomp helpers  80,202  11.4%  VLEN-scalable     (Polymul)
+%   kmul_N scaffolding  34,506   4.9%  VLEN-scalable     (Polymul, partial)
+%   gf_reduce           44,726   6.4%  scalar            (Decode)
 %   rol1_zbb            17,040   2.4%  scalar            (Keccak)
 %   gf_mul               8,952   1.3%  scalar            (Decode)
-%   Other              102,004  14.2%  mixed             (Other)
+%   Other              101,815  14.5%  mixed             (Other)
 %
 % Per-bar assignments (sum = 100%):
-%   Polymul : scalable=16.0 (11.2+4.8), fixed=35.0, scalar=0     → 51.0%
-%   Keccak  : scalable= 0,   fixed=24.8, scalar=2.4              → 27.2%
-%   Decode  : scalable= 0,   fixed= 0,   scalar=7.5 (6.3+1.3)   →  7.5%
-%   Other   : scalable= 0,   fixed= 0,   scalar=0, +other=14.2  → 14.2%
-%   Total                                                          99.9% (rounding)
+%   Polymul : scalable=16.3 (11.4+4.9), fixed=33.8, scalar=0     → 50.1%
+%   Keccak  : scalable= 0,   fixed=25.3, scalar=2.4              → 27.7%
+%   Decode  : scalable= 0,   fixed= 0,   scalar=7.7 (6.4+1.3)   →  7.7%
+%   Other   : scalable= 0,   fixed= 0,   scalar=0, +other=14.5  → 14.5%
+%   Total                                                          100.0%
 \tikzsetnextfilename{ch8-results-vlen-budget-breakdown}
 \begin{tikzpicture}
 \begin{axis}[
@@ -38,10 +38,10 @@
 ]
 
 % VLEN-scalable portion
-% Polymul: recomposition helpers (11.2%) + kmul_N scaffolding (4.8%) = 16.0%
+% Polymul: recomposition helpers (11.4%) + kmul_N scaffolding (4.9%) = 16.3%
 % Keccak/Decode/Other: 0 (no scalable component in those groups)
 \addplot[fill=green!50!black, fill opacity=0.7] coordinates {
-  (Polymul, 16.0)
+  (Polymul, 16.3)
   (Keccak,   0)
   (Decode,   0)
   (Other,    0)
@@ -49,12 +49,12 @@
 \addlegendentry{Κλιμακώνει με \VLEN}
 
 % Fixed-cost vectorized (doesn't benefit from wider VLEN)
-% Polymul: vclmul_leaf = 35.0%
-% Keccak:  KeccakF1600 = 24.8%
+% Polymul: vclmul_leaf = 33.8%
+% Keccak:  KeccakF1600 = 25.3%
 % Decode/Other: 0
 \addplot[fill=blue!60, fill opacity=0.7] coordinates {
-  (Polymul, 35.0)
-  (Keccak,  24.8)
+  (Polymul, 33.8)
+  (Keccak,  25.3)
   (Decode,   0)
   (Other,    0)
 };
@@ -62,13 +62,13 @@
 
 % Non-vectorized / scalar or unclassified
 % Keccak: rol1_zbb = 2.4%
-% Decode: gf_reduce (6.3%) + gf_mul (1.3%) = 7.5%
-% Other:  sampling, memset, RS encode, etc. = 14.2%
+% Decode: gf_reduce (6.4%) + gf_mul (1.3%) = 7.7%
+% Other:  sampling, memset, RS encode, etc. = 14.5%
 \addplot[fill=gray!50, fill opacity=0.7] coordinates {
   (Polymul,  0)
   (Keccak,   2.4)
-  (Decode,   7.5)
-  (Other,   14.2)
+  (Decode,   7.7)
+  (Other,   14.5)
 };
 \addlegendentry{Scalar / μη κλιμακούμενο}
 

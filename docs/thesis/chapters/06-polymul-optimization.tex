@@ -512,7 +512,7 @@ Spike ISS.
 Τα αποτελέσματα ήταν αρνητικά: ο TC3 παρουσίασε regression
 \speedup{4}–\speedup{5} σε σχέση με τον Karatsuba champion.
 Συγκεκριμένα, για HQC-128 ο TC3 απαίτησε \num{344973} \instret
-έναντι \num{62530} του Karatsuba Zvbc — αύξηση \pct{452}.  Η
+έναντι \num{60380} του Karatsuba Zvbc — αύξηση \pct{471}.  Η
 αιτία εντοπίζεται στο overhead evaluation/interpolation: οι
 carry-propagating shifts για αποτίμηση στα σημεία $x$ και $x{+}1$
 είναι sequential (μη vectorizable), η interpolation απαιτεί \num{12}
@@ -536,7 +536,7 @@ FFT.  Η θεμελιώδης δυσκολία στο HQC είναι ότι οι
 \num{65536}$ — περίπου $4\times$ padding overhead.
 
 Η εκτίμηση κόστους για HQC-128 σε Zvbc ανέρχεται σε
-$\sim\num{68800000}$ \instret — έναντι \num{62530} του Karatsuba
+$\sim\num{68800000}$ \instret — έναντι \num{60380} του Karatsuba
 champion.  Η διαφορά αυτή ($\sim\speedup{1100}$ regression) καθιστά
 τον FAFFT μη βιώσιμο στα μεγέθη HQC.  Μία πειραματική υλοποίηση FAFFT
 με tower-field αριθμητική επιβεβαίωσε ασυμβατότητα με τη \vclmul{} (η
@@ -829,8 +829,8 @@ recomposition loops είναι $\BigO{n}$ ανά επίπεδο αναδρομή
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
 παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
 \clmul/\clmulh βρόχο με μία μόνο vector iteration ανά εξωτερικό index.
-Η συνδυασμένη επίδραση μειώνει το polymul \instret κατά \pct{60} σε σχέση
-με το Tier~2 — από \num{157473} σε \num{62530} εντολές για HQC-128.
+Η συνδυασμένη επίδραση μειώνει το polymul \instret κατά \pct{62} σε σχέση
+με το Tier~2 — από \num{157473} σε \num{60380} εντολές για HQC-128.
 
 \subsection{Splat-and-Sweep: Διανυσματοποίηση του Schoolbook Leaf}
 \label{ssec:vclmul-leaf}
@@ -998,8 +998,8 @@ thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτε
 \paragraph{Ποσοτική σύγκριση Tier~2 $\to$ Tier~3.}
 Ο \cref{tab:tier2-vs-tier3} συνοψίζει τη μείωση \instret στον πολυωνυμικό
 πολλαπλασιασμό κατά τη μετάβαση από scalar leaf (Tier~2) σε vector leaf
-(Tier~3).  Η επιτάχυνση κυμαίνεται από \speedup{2.52} (HQC-128) έως
-\speedup{5.54} (HQC-256) — η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
+(Tier~3).  Η επιτάχυνση κυμαίνεται από \speedup{2.61} (HQC-128) έως
+\speedup{5.76} (HQC-256) — η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
 στο βαθύτερο δέντρο αναδρομής, όπου περισσότεροι leaf calls ωφελούνται
 από τη διανυσματοποίηση.
 
@@ -1015,16 +1015,16 @@ thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτε
     \textbf{Level} & \textbf{Tier~2 (instret)}
       & \textbf{Tier~3 (instret)} & \textbf{Speedup} \\
     \midrule
-    HQC-128 & \num{157473} & \num{62530}   & \speedup{2.52} \\
-    HQC-192 & \num{473083} & \num{185120}  & \speedup{2.56} \\
-    HQC-256 & \num{1502171} & \num{271006} & \speedup{5.54} \\
+    HQC-128 & \num{157473} & \num{60380}   & \speedup{2.61} \\
+    HQC-192 & \num{473083} & \num{178624}  & \speedup{2.65} \\
+    HQC-256 & \num{1502171} & \num{260624} & \speedup{5.76} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 Σε σχέση με το reference scalar baseline, η συνολική επιτάχυνση του
-Tier~3 ανέρχεται σε \speedup{307} για HQC-128 ως προς \code{scalar\_ref}
-(\cref{conv:baseline}) — από \num{19214277} σε \num{62530} εντολές.  Η μείωση αυτή αντικατοπτρίζει τη
+Tier~3 ανέρχεται σε \speedup{318} για HQC-128 ως προς \code{scalar\_ref}
+(\cref{conv:baseline}) — από \num{19214277} σε \num{60380} εντολές.  Η μείωση αυτή αντικατοπτρίζει τη
 σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
 αναδιάρθρωση (Karatsuba + AP-2), εξάλειψη πλεονάζουσας μνήμης
 (assign-on-first-write), και διανυσματοποίηση του binding constraint
@@ -1055,9 +1055,9 @@ Tier~3 ανέρχεται σε \speedup{307} για HQC-128 ως προς \code{
 Ο συμβιβασμός αυτός δεν είναι μονότονος ως προς την απόδοση.  Το μέγεθος του κώδικα
 μεγιστοποιείται στο Tier~1 — το πλήρως ξεδιπλωμένο scalar Karatsuba δέντρο —
 και όχι στο ταχύτερο tier.  Η αντιπαραβολή Tier~1 και Tier~3 είναι
-αποκαλυπτική: το Tier~3 εκτελεί τον πολλαπλασιασμό σε \num{62530} έναντι
-\num{221030} εντολών (ταχύτερο κατά \speedup{3.53}) ενώ ταυτόχρονα καταλαμβάνει
-\SI{5.9}{\kilo\byte} έναντι \SI{15.3}{\kilo\byte} (μικρότερο κατά $2.57\times$).
+αποκαλυπτική: το Tier~3 εκτελεί τον πολλαπλασιασμό σε \num{60380} έναντι
+\num{221030} εντολών (ταχύτερο κατά \speedup{3.66}) ενώ ταυτόχρονα καταλαμβάνει
+\SI{5.8}{\kilo\byte} έναντι \SI{15.3}{\kilo\byte} (μικρότερο κατά $2.62\times$).
 Το Tier~3 κυριαρχεί επομένως κατά Pareto του Tier~1 και στους δύο άξονες.  Η
 αιτία είναι δομική: η διανυσματοποίηση του leaf αντικαθιστά το ογκώδες
 ξεδιπλωμένο scalar schoolbook product με συμπαγείς \vclmul{} βρόχους,
@@ -1073,8 +1073,8 @@ dead $n=4$ dispatch arm περιόρισε μέρος αυτού του κόστ
 threshold $T=16$.
 
 Το μέγεθος του κώδικα παραμένει εντός στενής ζώνης μεταξύ των security levels για ένα
-δεδομένο variant (\code{vector\_zvk}: \SI{5940}{\byte}, \SI{8158}{\byte} και
-\SI{7384}{\byte} για HQC-128, HQC-192 και HQC-256 αντίστοιχα), διότι το βάθος
+δεδομένο variant (\code{vector\_zvk}: \SI{5830}{\byte}, \SI{8034}{\byte} και
+\SI{7274}{\byte} για HQC-128, HQC-192 και HQC-256 αντίστοιχα), διότι το βάθος
 ξεδιπλώματος καθορίζεται από τη μορφή του δέντρου αναδρομής στο επιλεγμένο
 threshold και όχι από το bit-length της παραμέτρου.  Συνολικά, η μετάβαση στο
 Vector-Crypto leaf δεν συνιστά συμβιβασμό μεγέθους και απόδοσης αλλά ταυτόχρονη
@@ -1087,8 +1087,8 @@ Vector-Crypto leaf δεν συνιστά συμβιβασμό μεγέθους �
 
 Οι βελτιστοποιήσεις στις~\cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
 μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \num{19214277}
-(\code{scalar\_ref}, \cref{conv:baseline}) σε \num{62530} εντολές στο
-Tier~3 — μείωση \speedup{307}.  Η μείωση αυτή
+(\code{scalar\_ref}, \cref{conv:baseline}) σε \num{60380} εντολές στο
+Tier~3 — μείωση \speedup{318}.  Η μείωση αυτή
 μετασχηματίζει ριζικά την κατανομή υπολογιστικού κόστους ολόκληρου του
 \gls{kem}, αποκαλύπτοντας πυρήνες που στο baseline αποτελούσαν αμελητέο
 ποσοστό ως νέα, αναδυόμενα bottlenecks.
@@ -1096,10 +1096,10 @@ Tier~3 — μείωση \speedup{307}.  Η μείωση αυτή
 Στο reference scalar HQC-128, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
 $\approx$\pct{97} του συνολικού \instret (βλ.~\cref{sec:baseline-profiling}).
 Μετά τη βελτιστοποίηση Tier~3, το ποσοστό αυτό συρρικνώνεται σε
-$\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερος contributor, αλλά
+$\approx$\pct{51} — ο πυρήνας παραμένει ο μεγαλύτερος contributor, αλλά
 δεν κυριαρχεί πλέον μονοπωλιακά.  Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
-από $<$\pct{1} σε $\approx$\pct{25} του συνόλου, και η αποκωδικοποίηση
-(\gls{rm} + \gls{rs}) από $<$\pct{0.5} σε $\approx$\pct{9}.
+από $<$\pct{1} σε $\approx$\pct{27} του συνόλου, και η αποκωδικοποίηση
+(\gls{rm} + \gls{rs}) από $<$\pct{0.5} σε $\approx$\pct{5}.
 \Cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση, αντιπαραβάλλοντας το baseline (\cref{fig:pie-baseline}) με την κατανομή μετά το Tier~3 (\cref{fig:pie-post-polymul}).
 
 \begin{figure}[htbp]
@@ -1119,8 +1119,8 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
   \end{subfigure}
   \caption{Ανακατανομή \instret στο HQC-128 KEM πριν και μετά τη
     βελτιστοποίηση πολυωνυμικού πολλαπλασιασμού.  Ο νόμος του Amdahl σε
-    δράση: η \speedup{307} μείωση του polymul αποκαλύπτει τον Keccak
-    ($\approx$\pct{25}) και τη decode ($\approx$\pct{9}) ως νέα
+    δράση: η \speedup{318} μείωση του polymul αποκαλύπτει τον Keccak
+    ($\approx$\pct{27}) και τη decode ($\approx$\pct{5}) ως νέα
     bottlenecks.}
   \label{fig:pie-redistribution}
 \end{figure}
@@ -1136,14 +1136,14 @@ $\approx$\pct{53} — ο πυρήνας παραμένει ο μεγαλύτερ
   \approx 30.5.
 \end{equation}
 %
-Η πραγματική μέτρηση — \speedup{164} speedup πλήρους \gls{kem} στο Tier~3
+Η πραγματική μέτρηση — \speedup{167} speedup πλήρους \gls{kem} στο Tier~3
 (\cref{tab:polymul-tier-summary}) — υπερβαίνει αυτό το θεωρητικό όριο. Η
 φαινομενική αυτή \q{παραβίαση} του ορίου δεν οφείλεται μόνο στη
 βελτιστοποίηση polymul: το Tier~3 επιταχύνει ταυτόχρονα και το non-polymul
 τμήμα — κυρίως μέσω της διανυσματοποίησης του Keccak
 (\cref{ch:kernel-optimization}) και της εξάλειψης \code{memset} — οπότε η
 προϋπόθεση σταθερού non-polymul χρόνου, στην οποία στηρίζεται το όριο, δεν
-ισχύει. Η κεντρική παρατήρηση παραμένει: μετά την τοπική \speedup{307}
+ισχύει. Η κεντρική παρατήρηση παραμένει: μετά την τοπική \speedup{318}
 μείωση του polymul, τα μη-polymul components αποτελούν πλέον τον binding
 constraint.
 
@@ -1169,7 +1169,7 @@ constraint.
     2 & \code{vector\_rvv}
       & \num{157473} & $\times$122 & $\times$60 & Keccak (\pct{29}) \\
     3 & \code{vector\_zvk}
-      & \num{62530} & $\times$307 & $\times$164 & Keccak (\pct{25}) \\
+      & \num{60380} & $\times$318 & $\times$167 & Keccak (\pct{25}) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1180,7 +1180,7 @@ constraint.
 KEM \instret — ήδη ο μεγαλύτερος non-polymul contributor.  Στο Tier~2,
 η περαιτέρω μείωση του polymul ανεβάζει τον Keccak σε \pct{29}.  Στο
 Tier~3, η αναλογία σταθεροποιείται στο \pct{25}, ενώ ο polymul παραμένει σαφώς ο
-μεγαλύτερος πυρήνας ($\approx$\pct{53} έναντι $\approx$\pct{25}), περίπου
+μεγαλύτερος πυρήνας ($\approx$\pct{51} έναντι $\approx$\pct{25}), περίπου
 διπλάσιος σε μερίδιο.
 
 Η ανακατανομή αυτή τεκμηριώνει ποσοτικά τη στόχευση του
