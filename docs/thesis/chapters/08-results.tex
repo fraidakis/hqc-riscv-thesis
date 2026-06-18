@@ -667,7 +667,7 @@ HQC-128. Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
 παράγοντες: (α)~στο HQC-128, οι recomposition loops (μεγέθη 16–34 words)
 ολοκληρώνονται ήδη σε 1 iteration στο \VLEN$= \num{1024}$
 ($\text{VLMAX} = \num{64}$) — το \VLEN$= \num{2048}$ δεν προσφέρει
-πρόσθετη μείωση· (β)~ο compiler εκπέμπει περισσότερες εντολές
+πρόσθετη μείωση· (β)~ο μεταγλωττιστής εκπέμπει περισσότερες εντολές
 \insn{vsetvli} για εναλλαγή μεταξύ LMUL groups (m4 στο polymul, m8 στον
 Keccak, m2 σε βοηθητικές ρουτίνες), και αυτό το overhead εξουδετερώνει
 τα οριακά κέρδη recomposition στο μικρό working set του HQC-128.
@@ -829,12 +829,12 @@ working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλή�
 μακρές ακολουθίες \insn{xor}, \insn{rori} (\gls{zbb}) και \insn{andn} (\gls{zbb})
 χωρίς memory accesses (η κατάσταση 25$\times$64-bit χωράει σε registers),
 παρέχοντας ιδανικό instruction-level parallelism για dual-issue. Σημειώνεται
-ότι στο vector variant (\code{vector\_rvv}), ο compiler
+ότι στο vector variant (\code{vector\_rvv}), ο μεταγλωττιστής
 (GCC \code{-ftree-vectorize}) auto-vectorizes τα θ/χ steps του Keccak-f,
 μειώνοντας τους κύκλους κατά $\approx\pct{12}$ σε σύγκριση με τον
 \code{scalar\_zb} Keccak (\num{358710} κύκλοι). Αυτό δεν αντιφάσκει με το RVV Paradox
 (\cref{ssec:keccak-rvv-paradox}): εκεί αξιολογείται χειρόγραφη \RVV
-υλοποίηση (intrinsics), ενώ εδώ ο compiler εφαρμόζει συντηρητικότερες
+υλοποίηση (intrinsics), ενώ εδώ ο μεταγλωττιστής εφαρμόζει συντηρητικότερες
 (και αποδοτικότερες) auto-vectorization επιλογές μόνο στα trivially-parallel
 steps.
 

@@ -210,7 +210,7 @@ GFNI (Galois Field New Instructions) στον AMD EPYC 9754 (x86-64).
 κύκλο μέσω out-of-order scheduling, εκμεταλλευόμενοι τον παραλληλισμό
 μεταξύ ανεξάρτητων Karatsuba sub-problems.  Ο SpacemiT K1 X60 (dual-issue,
 in-order) δεν μπορεί να αξιοποιήσει αυτόν τον παραλληλισμό — κάθε εντολή
-εκτελείται σειριακά εκτός εάν ο compiler εκθέτει ρητά ILP μέσω instruction
+εκτελείται σειριακά εκτός εάν ο μεταγλωττιστής εκθέτει ρητά ILP μέσω instruction
 scheduling.
 
 \paragraph{Αλγοριθμική ωριμότητα: FFT+CRT έναντι Karatsuba.}
@@ -453,14 +453,14 @@ strings δεν δικαιολογείται: η σχετική βελτίωση 
 \label{ssec:ablation-auto-lowering}
 
 Η ανάλυση ablation αποκαλύπτει ένα θεμελιώδες όριο στη δυνατότητα του
-compiler να αξιοποιεί αυτόματα τις διαθέσιμες extensions.  Ο
+μεταγλωττιστή να αξιοποιεί αυτόματα τις διαθέσιμες extensions.  Ο
 \cref{tab:auto-lowering} κατηγοριοποιεί τις extensions σε δύο ομάδες:
 αυτές που εκπέμπονται αυτόματα μέσω pattern recognition (auto-lowering)
 και αυτές που απαιτούν ρητή χρήση intrinsics.
 
 \begin{table}[htbp]
   \centering
-  \caption{Όριο auto-lowering: ο compiler (Clang~21, \code{-O3})
+  \caption{Όριο auto-lowering: ο μεταγλωττιστής (Clang~21, \code{-O3})
     αναγνωρίζει αυτόματα scalar idioms αλλά δεν συνθέτει vector crypto
     primitives από generic C.  Η στήλη \q{Auto} δηλώνει εάν η εντολή
     εκπέμπεται χωρίς ρητή παρέμβαση του προγραμματιστή.}
@@ -489,7 +489,7 @@ Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
 εντός θορύβου μέτρησης.
 
 \paragraph{Vector crypto: αδυναμία αυτόματης σύνθεσης.}
-Σε αντίθεση με τα scalar patterns, ο compiler δεν συνθέτει αυτόματα
+Σε αντίθεση με τα scalar patterns, ο μεταγλωττιστής δεν συνθέτει αυτόματα
 \gls{zvbc}/\gls{zvbb} primitives από generic C.  Η πειραματική τεκμηρίωση
 προέρχεται από δύο ανεξάρτητες παρατηρήσεις:
 
@@ -500,7 +500,7 @@ Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
     και εκ νέου με \code{-march=rv64gcv\_zbc\_zbb\_zvbb\_zvbc}
     (\code{ref\_full\_crypto}) και auto-vectorization ενεργή παράγει
     \emph{ταυτόσημο} \instret: \code{vect\_mul} = \cycles{18527412} σε
-    αμφότερες τις περιπτώσεις.  Ο compiler δεν εκπέμπει ούτε μία εντολή
+    αμφότερες τις περιπτώσεις.  Ο μεταγλωττιστής δεν εκπέμπει ούτε μία εντολή
     \vclmul ή \insn{vror.vv} από generic C loops.
 
   \item \textbf{CI opcode verification:} Το script
@@ -511,22 +511,22 @@ Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
     υπήρχε στο binary.
 \end{enumerate}
 
-Η αδυναμία αυτή δεν αποτελεί σφάλμα του compiler — αντικατοπτρίζει τη
+Η αδυναμία αυτή δεν αποτελεί σφάλμα του μεταγλωττιστή — αντικατοπτρίζει τη
 σημασιολογική πολυπλοκότητα των vector crypto operations.  Η εντολή
 \vclmul εκτελεί carry-less πολλαπλασιασμό (XOR αντί ADD στα partial
 products) — μια σημασιολογία που δεν αντιστοιχεί σε κανένα standard C
-operator.  Ο compiler δεν μπορεί να αναγνωρίσει ότι ένας generic
+operator.  Ο μεταγλωττιστής δεν μπορεί να αναγνωρίσει ότι ένας generic
 shift-and-XOR loop υλοποιεί carry-less multiplication, διότι η
 αντιστοίχιση απαιτεί αλγοριθμική γνώση πέρα από pattern matching.
 
 \paragraph{Αρχιτεκτονική συνέπεια.}
 Η παρατήρηση αυτή τεκμηριώνει τη σχεδιαστική επιλογή των Κεφαλαίων~6–7:
-τα scalar paths χρησιμοποιούν plain C με auto-lowering (ο compiler
+τα scalar paths χρησιμοποιούν plain C με auto-lowering (ο μεταγλωττιστής
 αξιοποιεί αυτόματα \gls{zbb}/\gls{zba}/\gls{zbs}), ενώ τα vector paths
 απαιτούν ρητά intrinsics (\code{\_\_riscv\_vclmul\_vv\_u64m1()},
 \code{\_\_riscv\_vror\_vv\_u64m1()}).  Η διαφοροποίηση δεν είναι
 αυθαίρετη — αντικατοπτρίζει ένα θεμελιώδες όριο στη δυνατότητα
-αυτόματης βελτιστοποίησης: ο compiler μπορεί να αναγνωρίσει
+αυτόματης βελτιστοποίησης: ο μεταγλωττιστής μπορεί να αναγνωρίσει
 \emph{αριθμητικά} patterns (rotate, shift-add) αλλά όχι
 \emph{αλγεβρικά} patterns (carry-less multiplication σε $\GFpoly$).
 
@@ -821,11 +821,11 @@ fixed-width SIMD intrinsics — εισάγει maintenance burden ανάλογο
 \label{ssec:principle-auto-vec-limits}
 
 Η ανάλυση ablation (\cref{ssec:ablation-auto-lowering}) τεκμηρίωσε ένα
-θεμελιώδες όριο: ο compiler αναγνωρίζει αξιόπιστα \emph{αριθμητικά}
+θεμελιώδες όριο: ο μεταγλωττιστής αναγνωρίζει αξιόπιστα \emph{αριθμητικά}
 patterns (rotate → \rori, shift-add → \insn{sh3add}) αλλά αδυνατεί να
 συνθέσει \emph{αλγεβρικά} primitives (carry-less multiplication, vector
 rotations σε crypto context) από generic C.  Η παρατήρηση αυτή δεν
-αποτελεί σφάλμα compiler — αντικατοπτρίζει θεμελιώδη σημασιολογική
+αποτελεί σφάλμα μεταγλωττιστή — αντικατοπτρίζει θεμελιώδη σημασιολογική
 ασυμμετρία.
 
 Η πρακτική συνέπεια ορίζει ένα σαφές \defterm{όριο αυτοματοποίησης}
@@ -834,18 +834,18 @@ rotations σε crypto context) από generic C.  Η παρατήρηση αυτ
 
 \begin{itemize}
   \item \textbf{Κάτω από το όριο} (scalar bit-manipulation): plain C αρκεί.
-    Ο compiler εκπέμπει αυτόματα \rori, \insn{andn}, \insn{sh3add},
+    Ο μεταγλωττιστής εκπέμπει αυτόματα \rori, \insn{andn}, \insn{sh3add},
     \insn{bset} χωρίς manual intervention.  Η ρητή χρήση intrinsics δεν
     παρέχει πρόσθετο όφελος.
   \item \textbf{Πάνω από το όριο} (vector crypto operations): ρητά intrinsics
     είναι υποχρεωτικά.  Η εντολή \vclmul δεν εκπέμπεται ποτέ αυτόματα —
-    ο compiler δεν μπορεί να αναγνωρίσει ότι ένας shift-and-XOR loop
+    ο μεταγλωττιστής δεν μπορεί να αναγνωρίσει ότι ένας shift-and-XOR loop
     υλοποιεί carry-less multiplication.
 \end{itemize}
 
 Η αρχή γενικεύεται σε κάθε domain-specific ISA extension: οι εντολές AES
 (\insn{vaesz.vs}, \insn{vaesem.vs}), SM4 (\insn{vsm4r.vs}), και SHA-256
-(\insn{vsha2ms.vv}) αντιμετωπίζουν το ίδιο όριο — κανένας compiler δεν
+(\insn{vsha2ms.vv}) αντιμετωπίζουν το ίδιο όριο — κανένας μεταγλωττιστής δεν
 θα συνθέσει αυτόματα ένα AES round από generic C XOR/shift operations.
 Η σχεδιαστική συνέπεια είναι ότι κάθε κρυπτογραφική υλοποίηση που
 στοχεύει domain-specific extensions πρέπει να αποδεχθεί τη χρήση
@@ -884,7 +884,7 @@ configurations.
 \paragraph{Πλεονεκτήματα έναντι generic runtime code.}
 Ο παραγόμενος κώδικας εξαλείφει κάθε runtime overhead: threshold
 comparisons, dynamic pointer arithmetic, recursion stack frames.  Ο
-compiler λαμβάνει integer literals αντί μεταβλητών, ενεργοποιώντας
+μεταγλωττιστής λαμβάνει integer literals αντί μεταβλητών, ενεργοποιώντας
 constant propagation, dead-code elimination, και πλήρες loop unrolling
 σε μικρά μεγέθη.  Η εξάλειψη αυτών των runtime decisions συνεισφέρει
 μετρήσιμη μείωση \instret, αν και η ακριβής ποσοτικοποίηση δεν
@@ -955,11 +955,11 @@ Spike \gls{iss}.  Η σύγκριση αποκαλύπτει ότι κανένα
 \subsection{Μεθοδολογία Σύγκρισης}
 \label{ssec:compiler-methodology}
 
-Κάθε variant μεταγλωττίστηκε με αμφότερους τους compilers σε τρία
+Κάθε variant μεταγλωττίστηκε με αμφότερους τους μεταγλωττιστές σε τρία
 επίπεδα βελτιστοποίησης (\code{-O2}, \code{-O3}, \code{-Os}) και
 εκτελέστηκε στον Spike ISS.  Η μετρική σύγκρισης είναι ο ελάχιστος
 \instret μεταξύ των τριών optimization levels — δηλαδή ο βέλτιστος
-δυνατός κώδικας που παράγει κάθε compiler.  Η μεθοδολογία αυτή
+δυνατός κώδικας που παράγει κάθε μεταγλωττιστής.  Η μεθοδολογία αυτή
 εξαλείφει τον παράγοντα \q{λάθος flag} και εστιάζει στην εγγενή
 ποιότητα codegen.
 
@@ -967,7 +967,7 @@ Spike \gls{iss}.  Η σύγκριση αποκαλύπτει ότι κανένα
 \Decaps) και όχι σε μεμονωμένους πυρήνες, ώστε να αποτυπωθεί η
 αλληλεπίδραση μεταξύ inlining decisions, register allocation pressure,
 και interprocedural optimization.  Τα αποτελέσματα αφορούν ταυτόσημο
-πηγαίο κώδικα — η μόνη μεταβλητή είναι ο compiler.
+πηγαίο κώδικα — η μόνη μεταβλητή είναι ο μεταγλωττιστής.
 
 %% --------------------------------------------------------------------------
 \subsection{Ποσοτικά Αποτελέσματα}
@@ -1016,15 +1016,15 @@ tree — ο GCC ανακτά μέσω καλύτερου scalar scheduling.
 \paragraph{Εύρημα 3: Αμεταβλητότητα ως προς optimization level.}
 Μια αξιοσημείωτη παρατήρηση αφορά τη σταθερότητα του παραγόμενου κώδικα:
 στα optimized variants (Tier~1–3), ο \instret παραμένει ταυτόσημος μεταξύ
-\code{-O2}, \code{-O3}, και \code{-Os} εντός κάθε compiler.  Η εξήγηση
+\code{-O2}, \code{-O3}, και \code{-Os} εντός κάθε μεταγλωττιστή.  Η εξήγηση
 βρίσκεται στη δομή του πηγαίου κώδικα: ο code generator
 (\code{gen\_karatsuba\_specialized.py}) εκπέμπει πλήρως εξειδικευμένες
 συναρτήσεις με σταθερά loop bounds και compile-time-resolved offsets.
-Ο compiler δεν έχει αποφάσεις βελτιστοποίησης να λάβει — ο κώδικας
+Ο μεταγλωττιστής δεν έχει αποφάσεις βελτιστοποίησης να λάβει — ο κώδικας
 είναι ήδη \q{pre-optimized} σε source level.  Η παρατήρηση αυτή
 επιβεβαιώνει την αξία του metaprogramming
 (βλ.\ \cref{ssec:principle-metaprogramming}): η εξειδίκευση σε source
-level εξαλείφει την εξάρτηση από τον optimization level του compiler.
+level εξαλείφει την εξάρτηση από τον optimization level του μεταγλωττιστή.
 
 Η μόνη εξαίρεση εμφανίζεται στο Tier~0 (\code{scalar\_ref}, HQC-128), όπου ο
 GCC παρουσιάζει σημαντική διακύμανση: \code{-O3} παράγει \cycles{113958344}
@@ -1047,7 +1047,7 @@ Keccak backend (\code{fips202\_zvbb\_x2.c}), ο οποίος δεν μεταγλ
 επέκταση αποκλειστική του Clang.  Ο GCC ακολουθεί αυστηρά το RVV spec
 και αντιμετωπίζει όλους τους RVV τύπους ως \defterm{sizeless} (scalable),
 απορρίπτοντας τη δήλωση πινάκων σε compile-time.  Η ασυμβατότητα αυτή
-δεν αποτελεί σφάλμα αλλά σχεδιαστική διαφωνία μεταξύ των δύο compilers
+δεν αποτελεί σφάλμα αλλά σχεδιαστική διαφωνία μεταξύ των δύο μεταγλωττιστών
 ως προς την ερμηνεία του RVV type system.
 
 \paragraph{Ζήτημα 2: Codegen bug σε LMUL=8 \insn{vrgather.vv} + \insn{vror.vv}.}
@@ -1102,7 +1102,7 @@ codegen στον polymul πυρήνα.
 
 Η απόφαση σχεδιασμού ήταν σαφής: το Tier~3 benchmark αναφέρεται
 αποκλειστικά με Clang.  Η GCC σύγκριση περιορίζεται στα Tier~0–2 όπου
-αμφότεροι οι compilers παράγουν λειτουργικά ισοδύναμο κώδικα.
+αμφότεροι οι μεταγλωττιστές παράγουν λειτουργικά ισοδύναμο κώδικα.
 
 %% --------------------------------------------------------------------------
 \subsection{Ερμηνεία: Ωριμότητα Οικοσυστήματος}
@@ -1122,7 +1122,7 @@ extensions~\cite{GCC14-changes}.
 compiler για KAT validation και scalar baseline, ενώ ο Clang
 χρησιμοποιήθηκε για τα vector crypto kernels.  Η μεικτή μεταγλώττιση
 (GCC framework + Clang kernels) είναι ασφαλής διότι αμφότεροι οι
-compilers παράγουν συμβατά RISC-V ELF objects υπό το ίδιο \code{lp64d}
+μεταγλωττιστές παράγουν συμβατά RISC-V ELF objects υπό το ίδιο \code{lp64d}
 ABI.
 
 Πρέπει να τονιστεί ότι το εμπόδιο δεν είναι η απουσία \gls{zvbb} στον GCC: ο GCC υποστηρίζει τα vector crypto extensions (\gls{zvbb}, \gls{zvbc}) ήδη από την έκδοση 14 (2023)~\cite{GCC14-changes}, ακολουθώντας τον LLVM~17.  Τα πραγματικά εμπόδια στη μεικτή μεταγλώττιση είναι δύο: (α)~το \code{riscv\_rvv\_vector\_bits} fixed-length-vector attribute, το οποίο είναι Clang-specific (βασισμένο στο AArch64 \code{arm\_sve\_vector\_bits}) και δεν γίνεται δεκτό από τον GCC~\cite{LLVM-D145088,GCC-PR112817}, και (β)~ένα ζήτημα robustness στο codegen του GCC σε \code{LMUL=8}.  Αμφότερα είναι στοχευμένα toolchain ζητήματα, όχι έλλειψη ISA υποστήριξης.  Η παρούσα εργασία τεκμηριώνει την κατάσταση κατά τον
@@ -1149,10 +1149,10 @@ crypto extensions είναι τριπλή:
     η υπεροχή σε RVV codegen και η αποκλειστική υποστήριξη \gls{zvbb}
     καθιστούν τον LLVM μονόδρομο για Tier~3 υλοποιήσεις.
   \item Χρήση GCC ως cross-validation compiler για scalar paths —
-    η ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου compiler
+    η ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου μεταγλωττιστή
     αυξάνει την εμπιστοσύνη στα αποτελέσματα.
-  \item Αναφορά αποτελεσμάτων αμφότερων compilers όπου εφικτό —
-    η διαφορά \instret μεταξύ compilers αποτελεί δημοσιεύσιμο δεδομένο
+  \item Αναφορά αποτελεσμάτων αμφότερων μεταγλωττιστών όπου εφικτό —
+    η διαφορά \instret μεταξύ μεταγλωττιστών αποτελεί δημοσιεύσιμο δεδομένο
     που τεκμηριώνει την ωριμότητα του οικοσυστήματος.
 \end{enumerate}
 

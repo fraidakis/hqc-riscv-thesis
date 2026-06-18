@@ -1,19 +1,22 @@
-% VARIANT — not \input by main.tex; promote manually (mv clmul-before-after_v1.tex clmul-before-after.tex)
-% clmul-before-after_v1.tex — KEPT finalist (semantic colour migration + cleanup)
-% Not a tikzpicture (minipage + lstlisting + tcolorbox), so no externalization.
-% This is the baseline you approved: "without" = cost/threat (figthreatfill),
-% "with" = solution (figsolutionfill / figsolution), line numbers via figneutral.
-% NOTE: the reduction call-out here is the in-column tcolorbox. If its position
-% bothers you, see the sibling alternatives that relocate/restyle it:
-%   _inline  (plain centred caption, no box, under both columns)
-%   _banner  (slim full-width ribbon at the very bottom)
-%   _arrow   (832 -> 2 arrow between two result chips)
-\begin{minipage}[t]{0.48\textwidth}
+% figures/clmul-before-after_listing.tex
+% VARIANT (_listing, styled after inline-asm-vs-intrinsic_v1) — not \input by
+% main.tex; promote manually (mv clmul-before-after_listing.tex clmul-before-after.tex).
+% Adopts the _v1 panel language on top of REAL `listings` code:
+%   - semantic coloured TITLE above each panel (figT/title role: threat vs solution),
+%   - listings code box with semantic frame + tint (figthreat/figsolution),
+%   - italic CALLOUT below each panel naming the trade-off (figT/callout role),
+%   - the in-column reduction tcolorbox is REPLACED by a single centred callout
+%     under both columns, mirroring _v1's below-box annotation layout.
+% figT/* are TikZ style keys (not text macros), so titles/callouts use explicit
+% \sffamily/\bfseries/\itshape + semantic \color here. Listing bodies stay verbatim.
+\begingroup
 \centering
-\textbf{\sffamily Χωρίς \Zbc (shift-and-XOR loop)}
-\begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\scriptsize,
-  numbers=left, numberstyle=\tiny\color{figneutral}, frame=single,
-  rulecolor=\color{figrule}, backgroundcolor=\color{figthreatfill}, xleftmargin=1.5em]
+\begin{minipage}[t]{0.48\textwidth}
+  \centering
+  {\sffamily\bfseries\small\color{figthreat} Χωρίς \Zbc{} (shift-and-XOR loop)}\par\smallskip
+  \begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\scriptsize,
+    numbers=left, numberstyle=\tiny\color{figneutral}, frame=single,
+    rulecolor=\color{figthreat}, backgroundcolor=\color{figthreatfill}, xleftmargin=1.5em]
   # a in a0, b in a1
   li    t0, 64       # bit counter
   li    t1, 0        # result_lo = 0
@@ -33,31 +36,21 @@
   srli  a1, a1, 1    # shift b right
   addi  t0, t0, -1   # decrement
   bnez  t0, .loop    # repeat 64x
-\end{lstlisting}
-\smallskip
-{\footnotesize $\approx$ \num{832} εντολές / γινόμενο}
-\end{minipage}%
-\hfill%
+  \end{lstlisting}
+  \par\smallskip
+  {\sffamily\scriptsize\itshape\color{figthreat} $\approx$\,\num{832} εντολές / γινόμενο · χειρόγραφος βρόχος}
+\end{minipage}\hfill
 \begin{minipage}[t]{0.48\textwidth}
-\centering
-\textbf{\sffamily Με \Zbc (\clmul{} + \clmulh)}
-\begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\scriptsize,
-  numbers=left, numberstyle=\tiny\color{figneutral}, frame=single,
-  rulecolor=\color{figrule}, backgroundcolor=\color{figsolutionfill}, xleftmargin=1.5em]
+  \centering
+  {\sffamily\bfseries\small\color{figsolution!60!black} Με \Zbc{} (\clmul{} + \clmulh)}\par\smallskip
+  \begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\scriptsize,
+    numbers=left, numberstyle=\tiny\color{figneutral}, frame=single,
+    rulecolor=\color{figsolution}, backgroundcolor=\color{figsolutionfill}, xleftmargin=1.5em]
   # a in a0, b in a1
   clmul  t1, a0, a1  # result_lo
   clmulh t2, a0, a1  # result_hi
-\end{lstlisting}
-\smallskip
-{\footnotesize \textbf{\num{2}} εντολές / γινόμενο}
-
-\vfill
-\vspace{8pt}
-\hspace*{28pt}%
-\begin{tcolorbox}[width=\dimexpr\linewidth-28pt\relax,
-  colback=figsolutionfill, colframe=figsolution,
-  boxrule=0.7pt, arc=2pt, left=4.2pt, right=4pt, top=2pt, bottom=2pt]
-  \centering\small\sffamily
-  Μείωση: \insnreduction{416} σε instruction count
-\end{tcolorbox}
+  \end{lstlisting}
+  \par\smallskip
+  {\sffamily\scriptsize\itshape\color{figsolution!60!black} \textbf{\num{2}} εντολές / γινόμενο · hardware clmul/clmulh}
 \end{minipage}
+\endgroup

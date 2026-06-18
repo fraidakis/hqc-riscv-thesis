@@ -29,7 +29,7 @@ speedup σε \speedup{122} (HQC-128) και το πλήρες \gls{kem} σε \sp
 rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
 
 \paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
-Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vv} επιτυγχάνει \speedup{318} στο
+Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vx} επιτυγχάνει \speedup{318} στο
 polymul (HQC-128) και \speedup{547} στο HQC-256.  Το πλήρες \gls{kem} φτάνει
 \speedup{167} (HQC-128) και \speedup{339} (HQC-256), τοποθετώντας τον
 \instret σε \num{702755}.  Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
@@ -114,7 +114,7 @@ cache effects.
 \paragraph{Compiler ecosystem ωριμότητα}
 Ο \Zvbb-accelerated Keccak backend (\code{fips202\_zvbb\_x2.c}) μεταγλωττίζεται
 αποκλειστικά με Clang/LLVM λόγω ασυμβατότητας του GCC στο RVV/\gls{zvbb} codegen
-(\cref{ssec:gcc-zvbb-incompatibility}).  Η εξάρτηση από μονό compiler αποτελεί
+(\cref{ssec:gcc-zvbb-incompatibility}).  Η εξάρτηση από μονό μεταγλωττιστή αποτελεί
 πρακτικό περιορισμό για production deployment.
 
 \paragraph{Μονοπύρηνη αξιολόγηση}
@@ -175,7 +175,7 @@ trial.  Η επέκταση σε \num{10000000} measurements ανά trial (publi
 \paragraph{Tier~3 performance validation σε πραγματικό silicon}
 Η κεντρική εκκρεμότητα είναι η μέτρηση πραγματικών κύκλων για το
 \code{vector\_zvk} σε hardware με εγγενή \gls{zvbc} υποστήριξη.  Η μέτρηση
-αυτή θα αποκαλύψει τον πραγματικό CPI του \insn{vclmul.vv} και θα
+αυτή θα αποκαλύψει τον πραγματικό CPI του \insn{vclmul.vx} και θα
 επιβεβαιώσει (ή θα αναθεωρήσει) τα \instret-based speedup claims.
 
 \paragraph{Cycle-accurate RTL simulation (Marian/Ara soft-core)}
@@ -229,7 +229,7 @@ $10$–$13\times$ σε επίπεδο σχήματος για τον \gls{hqc}. 
 silicon.
 
 \paragraph{Configurable-polynomial GF reduction extension}
-Η \gls{zvbc} \insn{vclmul.vv} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο
+Η \gls{zvbc} \insn{vclmul.vx} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο
 $\GFpoly$, αλλά η αναγωγή σε μικρά σώματα (\eg $\GF{2^8}$) απαιτεί
 \num{6} vector εντολές ακόμη και μετά τη single-pass Barrett optimization
 (\cref{sec:decode-barrett}).  Μια μελλοντική extension με

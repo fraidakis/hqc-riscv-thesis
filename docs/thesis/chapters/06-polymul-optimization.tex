@@ -151,7 +151,7 @@ implementation.
 
 \noindent
 Η ISA string \code{rv64gc\_zbc\_zbb\_zbs} μεταγλωττίζεται με
-\code{-fno-tree-vectorize}, εξασφαλίζοντας ότι ο compiler δεν εκπέμπει
+\code{-fno-tree-vectorize}, εξασφαλίζοντας ότι ο μεταγλωττιστής δεν εκπέμπει
 RVV εντολές — η μέτρηση αντικατοπτρίζει αποκλειστικά scalar εκτέλεση.
 Η \gls{zbb} παρέχει \rori{} (native rotate) και \insn{andn} (AND-NOT) που
 αξιοποιούνται αυτόματα μέσω compiler auto-lowering χωρίς αλλαγή πηγαίου
@@ -226,7 +226,7 @@ instructions.  Σε \VLEN=\num{256} με \LMUL=m4, κάθε vector register grou
 
 Η σημασία του Tier~3 εκτείνεται πέραν της ποσοτικής επιτάχυνσης.
 Η \cref{sec:isa-ablation} τεκμηρίωσε
-ότι ο compiler δεν συνθέτει αυτόματα \vclmul{} από generic C loops —
+ότι ο μεταγλωττιστής δεν συνθέτει αυτόματα \vclmul{} από generic C loops —
 η διαφορά μεταξύ της αυτόματης μεταγλώττισης (compiler ceiling) και
 \code{vector\_zvk} (χειρόγραφα intrinsics) αποτελεί αποκλειστικά
 αποτέλεσμα ρητής αλγοριθμικής παρέμβασης.  Η παρατήρηση αυτή ενισχύει
@@ -413,7 +413,7 @@ $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$.  Η αναδρομή
   \item Compile-time constant buffer offsets για $z_0$, $z_2$,
     $z_\text{mid}$, $t_a$, $t_b$, και τον child scratch buffer.
   \item Στατικά dispatched child calls — χωρίς threshold comparison.
-  \item Loop bounds ως integer literals, επιτρέποντας στον compiler
+  \item Loop bounds ως integer literals, επιτρέποντας στον μεταγλωττιστή
     πλήρες unrolling μικρών βρόχων και constant-propagation
     optimizations.
 \end{itemize}
@@ -436,7 +436,7 @@ dispatch.  Σε βαθιά αναδρομικές δομές, η RISC-V calling 
 επιβάλλει αποθήκευση και επαναφορά callee-saved registers σε κάθε
 non-leaf frame.  Για δέντρα βάθους 8–10 (HQC-256), το αθροιστικό
 spill/restore overhead υπερβαίνει την πραγματική αριθμητική.  Η
-στατική παραγωγή κώδικα εξαλείφει αυτό το δομικό overhead: ο compiler
+στατική παραγωγή κώδικα εξαλείφει αυτό το δομικό overhead: ο μεταγλωττιστής
 βλέπει ένα μόνο μεγάλο function body ανά root size και εκτελεί global
 register allocation, inline leaf operations, και ελεύθερο scheduling
 loads/stores.
@@ -770,7 +770,7 @@ frame, (β)~την αποθήκευση/επαναφορά callee-saved register
 \code{kmul\_N} function bodies), αυτό αντιστοιχεί σε
 \num{121}$\times$\num{3} = \num{363} εξαλειφθείσες helper-function calls
 (τρεις helper calls ανά κόμβο) ανά \code{vect\_mul} invocation.
-Η inlining επιτρέπει επιπλέον στον compiler cross-operation register
+Η inlining επιτρέπει επιπλέον στον μεταγλωττιστή cross-operation register
 allocation εντός κάθε \code{kmul\_N} body — αξιοποιώντας registers που
 θα ήταν αλλιώς clobbered από τα helper calls.
 
@@ -905,11 +905,10 @@ zero-store μεγέθους $n$ words.  Δεδομένου ότι το δέντ�
 \paragraph{Four-way outer-loop unroll.}
 Ο εξωτερικός βρόχος ($i = 1, 2, \ldots, n{-}1$) εκτυλίσσεται κατά
 παράγοντα τέσσερα.  Κάθε iteration φορτώνει τέσσερις scalar τιμές
-$a[i], a[i{+}1], a[i{+}2], a[i{+}3]$, εκπέμπει καθεμία σε ξεχωριστό
-vector register, και εκδίδει $4 \times 2 = 8$ εντολές \vclmul/\vclmulh
+$a[i], a[i{+}1], a[i{+}2], a[i{+}3]$ και τα χρησιμοποιεί ως scalar τελεστέους (\code{rs1}), εκδίδοντας $4 \times 2 = 8$ εντολές \vclmul/\vclmulh
 εναντίον του ίδιου φορτωμένου $b$-vector.  Η τεχνική αυτή αμορτίζει
 το κόστος φόρτωσης $b$ σε τέσσερις εξωτερικές iterations και επιτρέπει
-στον compiler να interleave την accumulation κάθε strip αμέσως μετά τον
+στον μεταγλωττιστή να interleave την accumulation κάθε strip αμέσως μετά τον
 υπολογισμό του — τα lo/hi αποτελέσματα ενός strip καταναλώνονται μέσω
 XOR-accumulate και store πριν ξεκινήσει ο επόμενος \vclmul/\vclmulh
 κύκλος, διατηρώντας μικρή register pressure παρά τον υψηλό instruction
@@ -917,8 +916,8 @@ throughput.  Ένας scalar tail loop χειρίζεται τις εναπομ�
 $n \bmod 4$ iterations.
 
 Ο \cref{lst:vclmul-leaf-core} παρουσιάζει τον πυρήνα του 4$\times$
-unrolled βρόχου — τη φόρτωση $b$, τα τέσσερα splats, και τα οκτώ
-carry-less multiply ζεύγη:
+unrolled βρόχου — τη φόρτωση $b$ και τα οκτώ
+carry-less multiply ζεύγη με scalar τελεστέους:
 
 \begin{lstlisting}[language=C,
   caption={Πυρήνας 4$\times$ unrolled \code{vclmul\_leaf} — φόρτωση
@@ -926,21 +925,17 @@ carry-less multiply ζεύγη:
   label={lst:vclmul-leaf-core}]
 vuint64m4_t vb = __riscv_vle64_v_u64m4(b + j, vl);
 /* Strip 0: a[i] */
-vuint64m4_t va0  = __riscv_vmv_v_x_u64m4(a0, vl);
-vuint64m4_t vlo0 = __riscv_vclmul_vv_u64m4(va0, vb, vl);
-vuint64m4_t vhi0 = __riscv_vclmulh_vv_u64m4(va0, vb, vl);
+vuint64m4_t vlo0 = __riscv_vclmul_vx_u64m4(vb, a0, vl);
+vuint64m4_t vhi0 = __riscv_vclmulh_vx_u64m4(vb, a0, vl);
 /* Strip 1: a[i+1] */
-vuint64m4_t va1  = __riscv_vmv_v_x_u64m4(a1, vl);
-vuint64m4_t vlo1 = __riscv_vclmul_vv_u64m4(va1, vb, vl);
-vuint64m4_t vhi1 = __riscv_vclmulh_vv_u64m4(va1, vb, vl);
+vuint64m4_t vlo1 = __riscv_vclmul_vx_u64m4(vb, a1, vl);
+vuint64m4_t vhi1 = __riscv_vclmulh_vx_u64m4(vb, a1, vl);
 /* Strip 2: a[i+2] */
-vuint64m4_t va2  = __riscv_vmv_v_x_u64m4(a2, vl);
-vuint64m4_t vlo2 = __riscv_vclmul_vv_u64m4(va2, vb, vl);
-vuint64m4_t vhi2 = __riscv_vclmulh_vv_u64m4(va2, vb, vl);
+vuint64m4_t vlo2 = __riscv_vclmul_vx_u64m4(vb, a2, vl);
+vuint64m4_t vhi2 = __riscv_vclmulh_vx_u64m4(vb, a2, vl);
 /* Strip 3: a[i+3] */
-vuint64m4_t va3  = __riscv_vmv_v_x_u64m4(a3, vl);
-vuint64m4_t vlo3 = __riscv_vclmul_vv_u64m4(va3, vb, vl);
-vuint64m4_t vhi3 = __riscv_vclmulh_vv_u64m4(va3, vb, vl);
+vuint64m4_t vlo3 = __riscv_vclmul_vx_u64m4(vb, a3, vl);
+vuint64m4_t vhi3 = __riscv_vclmulh_vx_u64m4(vb, a3, vl);
 \end{lstlisting}
 
 \paragraph{LMUL selection.}
@@ -951,7 +946,7 @@ $b$-vector (\num{4} registers), splat (\num{4}), lo-result (\num{4}),
 hi-result (\num{4}) — δηλαδή \num{16} registers ανά strip.  Δεδομένου
 ότι η accumulation (XOR-load / XOR / store) κάθε strip εκτελείται
 αμέσως μετά τον υπολογισμό του (interleaved), τα lo/hi registers
-επαναχρησιμοποιούνται μεταξύ strips από τον compiler — η μέγιστη ταυτόχρονη
+επαναχρησιμοποιούνται μεταξύ strips από τον μεταγλωττιστή — η μέγιστη ταυτόχρονη
 πίεση στο register file δεν υπερβαίνει τα \num{20} registers
 (splat + $b$ + lo + hi + accumulator).  Η επιλογή m4 αφήνει επαρκές
 headroom για τον accumulator (\insn{vle64}/\insn{vxor}/\insn{vse64} sequence)

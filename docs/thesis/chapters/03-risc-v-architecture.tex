@@ -560,23 +560,23 @@ vector register file.
 Παρουσιάζονται οι κατηγορίες vector εντολών του \RVV που αξιοποιεί η παρούσα
 εργασία, μαζί με τη χρήση τους:
 
-\begin{description}
-  \item[Memory (unit-stride)] \insn{vle8/16/32/64}, \insn{vse8/16/32/64}:
-    φόρτωση/αποθήκευση πολυωνυμικών συντελεστών και του Keccak state
-    (κυρίαρχη κατηγορία σε αριθμό εκτελέσεων).
-  \item[Arithmetic] \insn{vxor}, \insn{vadd}, \insn{vsub}, \insn{vsll},
-    \insn{vsrl}: Karatsuba recomposition και Keccak $\theta$-step.
-  \item[Reductions] \insn{vredxor}, \insn{vredmaxu}, \insn{vfirst}:
-    Reed-Muller Hadamard peak-find.
-  \item[Permutations] \insn{vrgather}, \insn{vslidedown}, \insn{vslide1up}:
-    Keccak $\pi$-step (αναδιάταξη lanes).
-  \item[Mask operations] \insn{vmseq}, \insn{vcpop}: constant-time sampling
-    (έλεγχος διπλοτύπων στο support).
-  \item[Type conversion] \insn{vzext}, \insn{vncvt}: Reed-Solomon
-    $\GF{2^8}$ widening.
-  \item[Splat] \insn{vmv.v.x}: broadcast scalar τιμής σε όλα τα lanes ενός
-    vector register.
-\end{description}
+Οι εντολές \emph{μνήμης} (unit-stride) \insn{vle8/16/32/64} και
+\insn{vse8/16/32/64} φορτώνουν και αποθηκεύουν πολυωνυμικούς συντελεστές
+και το Keccak state, αποτελώντας την κυρίαρχη κατηγορία σε αριθμό
+εκτελέσεων. Οι \emph{αριθμητικές} εντολές \insn{vxor}, \insn{vadd},
+\insn{vsub}, \insn{vsll} και \insn{vsrl} υλοποιούν την recomposition του
+Karatsuba και το $\theta$-step του Keccak. Οι εντολές \emph{reduction}
+\insn{vredxor}, \insn{vredmaxu} και \insn{vfirst} χρησιμοποιούνται στο
+Hadamard peak-find του Reed-Muller αποκωδικοποιητή. Οι \emph{permutation}
+εντολές \insn{vrgather}, \insn{vslidedown} και \insn{vslide1up}
+αναδιατάσσουν lanes και υλοποιούν το $\pi$-step του Keccak. Οι εντολές
+\emph{μάσκας} \insn{vmseq} και \insn{vcpop} υποστηρίζουν constant-time
+sampling, ελέγχοντας τα διπλότυπα στο support. Στη \emph{μετατροπή τύπου},
+η \insn{vzext} επεκτείνει στοιχεία σε μεγαλύτερο πλάτος (zero-extension,
+widening), ενώ η \insn{vncvt} τα συρρικνώνει πίσω (narrowing)· το ζεύγος
+εξυπηρετεί το $\GF{2^8}$ widening της αριθμητικής Reed-Solomon. Τέλος, η
+εντολή \emph{splat} \insn{vmv.v.x} αναπαράγει (broadcast) μια scalar τιμή
+σε όλα τα lanes ενός vector register.
 
 Η πρακτική εφαρμογή των μηχανισμών strip-mining, \insn{vsetvl} και VLA
 αποσαφηνίζεται μέσω ενός πλήρους αναλυτικού παραδείγματος: η συνάρτηση
@@ -630,38 +630,37 @@ permutation. Χάρη σε αυτό το κοινό μοτίβο, η αύξησ�
 σε κάθε στοιχείο ενός vector register ανεξάρτητα:
 
 \begin{itemize}
-  \item \vclmul~\code{vd, vs2, vs1}: υπολογίζει τα κάτω 64~bit του
-    carry-less γινομένου κάθε ζεύγους στοιχείων
-    $\text{vs2}[i] \polymul \text{vs1}[i]$, για $i = 0, \ldots, \code{vl}-1$.
-  \item \vclmulh~\code{vd, vs2, vs1}: υπολογίζει τα άνω 64~bit του
+  \item \vclmul~\code{vd, vs2, rs1}: υπολογίζει τα κάτω 64~bit του
+    carry-less γινομένου του scalar τελεστέου \code{rs1}
+    με κάθε στοιχείο του vector, $\text{vs2}[i] \polymul \code{rs1}$, για
+    $i = 0, \ldots, \code{vl}-1$.
+  \item \vclmulh~\code{vd, vs2, rs1}: υπολογίζει τα άνω 64~bit του
     ίδιου γινομένου ανά στοιχείο.
 \end{itemize}
 
 Η σημασιολογία είναι ταυτόσημη με τις scalar \clmul/\clmulh
-(βλ.~\cref{eq:gf2x-product}), εφαρμοζόμενη παράλληλα σε \code{vl}
-ζεύγη στοιχείων. Για $\SEW = 64$, $\LMUL = 4$ και $\VLEN = 256$, κάθε \vclmul υπολογίζει
-$\VLMAX = 16$ ανεξάρτητα carry-less γινόμενα ταυτόχρονα. Στον πολυωνυμικό
-πολλαπλασιασμό Karatsuba, κάθε φύλλο (leaf) είναι ένας \emph{schoolbook}
-πολλαπλασιασμός δύο τμημάτων $n$ λέξεων, ο οποίος απαιτεί $n \times n$
-word-level carry-less γινόμενα $a[i] \polymul b[j]$ (π.χ. $16 \times 16 = 256$
-για threshold $n = 16$). Η διανυσματοποίηση εκμεταλλεύεται ότι, για
-\emph{σταθερό} $a[i]$, τα $n$ γινόμενα $a[i] \polymul b[0], \ldots,
-a[i] \polymul b[n-1]$ είναι ανεξάρτητα: μία \vclmul τα παράγει και τα $\VLMAX$
-ταυτόχρονα. Έτσι μία γραμμή του schoolbook (ένα $a[i]$ επί όλα τα $b[j]$)
-εκτελείται με μία εντολή, και ολόκληρο το φύλλο με $n$ τέτοιες γραμμές.
-
-\paragraph{Μοτίβο χρήσης: scalar-vector sweep.}
-Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf αξιοποιεί τη μορφή
-scalar-vector της \gls{zvbc}: η \insn{vclmul.vx} δέχεται απευθείας ως scalar
-τελεστέο (από GPR) ένα μεμονωμένο στοιχείο $a[i]$ και το πολλαπλασιάζει
-carry-less με ολόκληρο το vector $b[j \ldots j + \code{vl} - 1]$ (sweep). Έτσι,
-\emph{ένα} βήμα παράγει \code{vl} ανεξάρτητα γινόμενα $a[i] \polymul b[\cdot]$
-με μόλις \num{2} vector εντολές (\insn{vclmul.vx} + \insn{vclmulh.vx}). Αυτό αντικαθιστά τα
-\emph{\code{vl} ζεύγη} scalar \clmul/\clmulh (δηλαδή $2\cdot\code{vl}$ scalar
-εντολές) που θα απαιτούσε η αντίστοιχη υλοποίηση με τη scalar \gls{zbc}. Ο
-λόγος μείωσης δυναμικών εντολών είναι επομένως $\sim\!\code{vl}$, και
-$\sim\!\VLMAX$ όταν το register group αξιοποιείται πλήρως
-($\code{vl} = \VLMAX$).
+(βλ.~\cref{eq:gf2x-product}), εφαρμοζόμενη παράλληλα σε \code{vl} ζεύγη
+στοιχείων. Στον πολυωνυμικό πολλαπλασιασμό Karatsuba, κάθε φύλλο (leaf)
+είναι ένας \emph{schoolbook} πολλαπλασιασμός δύο τμημάτων $n$ λέξεων, ο
+οποίος απαιτεί $n \times n$ word-level carry-less γινόμενα
+$a[i] \polymul b[j]$ (π.χ. $16 \times 16 = 256$ για threshold $n = 16$). Η
+διανυσματοποίηση εκμεταλλεύεται ότι, για \emph{σταθερό} $a[i]$, τα $n$
+γινόμενα $a[i] \polymul b[0], \ldots, a[i] \polymul b[n-1]$ είναι
+ανεξάρτητα και υπολογίζονται ταυτόχρονα· έτσι ολόκληρη η γραμμή του
+schoolbook εκφυλίζεται από $n^2$ word-level γινόμενα σε $n$ vector βήματα.
+Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf εκμεταλλεύεται ακριβώς
+αυτή την ανεξαρτησία μέσω της scalar-vector μορφής της \gls{zvbc}: η
+\insn{vclmul.vx} δέχεται ως scalar τελεστέο (από \gls{gpr}) ένα μεμονωμένο
+στοιχείο $a[i]$ και το πολλαπλασιάζει carry-less με ολόκληρο το vector
+$b[j \ldots j + \code{vl} - 1]$ (sweep). Έτσι \emph{ένα} βήμα παράγει
+\code{vl} ανεξάρτητα γινόμενα $a[i] \polymul b[\cdot]$ με μόλις \num{2}
+vector εντολές (\insn{vclmul.vx} + \insn{vclmulh.vx}), αντικαθιστώντας τα
+\emph{\code{vl} ζεύγη} scalar \clmul/\clmulh (δηλαδή $2\cdot\code{vl}$
+scalar εντολές) που θα απαιτούσε η αντίστοιχη υλοποίηση με τη scalar
+\gls{zbc}. Για $\SEW = 64$, $\LMUL = 4$ και $\VLEN = 256$ κάθε βήμα
+υπολογίζει $\VLMAX = 16$ ανεξάρτητα carry-less γινόμενα ταυτόχρονα, οπότε ο
+λόγος μείωσης δυναμικών εντολών είναι $\sim\!\code{vl}$, και $\sim\!\VLMAX$
+όταν το register group αξιοποιείται πλήρως ($\code{vl} = \VLMAX$).
 
 \paragraph{Περιορισμός \SEW.}
 Η επέκταση \gls{zvbc} ορίζεται αποκλειστικά για $\SEW = 64$. Δεν υπάρχουν
@@ -694,54 +693,30 @@ Keccak-f[1600] (βλ.~\cref{sec:keccak-theory}): το βήμα $\rho$ (περι�
 \insn{vror.vi} όταν τα offsets είναι σταθερές γνωστές κατά τη μεταγλώττιση), το
 βήμα $\pi$ (αναδιάταξη lanes) σε \insn{vrgather.vv}, και το μη γραμμικό βήμα
 $\chi$, $A'[x] = A[x] \oplus (\overline{A[x+1]} \wedge A[x+2])$, σε
-\insn{vandn.vv}~+~\insn{vxor.vv}. Σε σχέση με τη βασική \gls{rvv}, κάθε rotation
-περνά από \num{3} εντολές (\insn{vsll} + \insn{vsrl} + \insn{vor}) σε \num{1}
-(\insn{vror.vv}), και κάθε AND-NOT από \num{2} (\insn{vnot} + \insn{vand}) σε
-\num{1} (\insn{vandn.vv}).
+\insn{vandn.vv}~+~\insn{vxor.vv}. Σε σχέση με τη βασική \gls{rvv}, η
+\gls{zvbb} συμπυκνώνει κάθε σύνθετη πράξη σε μία μόνο εντολή. Κάθε lane
+rotation, που χωρίς την επέκταση απαιτεί τρεις εντολές (\insn{vsll} +
+\insn{vsrl} + \insn{vor}), εκτελείται πλέον με μία \insn{vror.vv} (ή
+\insn{vror.vi} για offsets γνωστά κατά τη μεταγλώττιση), ενώ κάθε AND-NOT
+συμπτύσσεται από δύο εντολές (\insn{vnot} + \insn{vand}) σε μία
+\insn{vandn.vv}.
 
-\subsection{Ποσοτική Σύγκριση: Before/After}
-\label{ssec:zvbc-zvbb-comparison}
-
-Οι επεκτάσεις \gls{zvbc} και \gls{zvbb} μειώνουν δραστικά τον αριθμό vector
-εντολών ανά κρυπτογραφική πράξη. Ο \cref{tab:zvbc-zvbb-before-after}
-συνοψίζει την ποσοτική επίπτωσή τους σε τυπικές πράξεις. Η σύγκριση
-αφορά τον αριθμό vector εντολών ανά πράξη — η πραγματική μείωση σε
-δυναμικές εντολές εξαρτάται από τον αριθμό επαναλήψεων κάθε πράξης
-στον αλγόριθμο.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Σύγκριση αριθμού vector εντολών ανά κρυπτογραφική πράξη,
-    με και χωρίς τις επεκτάσεις \Zvbc/\Zvbb. Η στήλη \q{Χωρίς}
-    αναφέρεται σε υλοποίηση με base \RVV εντολές μόνο.}
-  \label{tab:zvbc-zvbb-before-after}
-  \small
-  \input{figures/ch3-riscv/zvbc-zvbb-before-after.tex}
-\end{table}
-
-Η κυρίαρχη βελτίωση προέρχεται από τη \gls{zvbc}: στον Karatsuba leaf, κάθε
-iteration του εσωτερικού βρόχου εκτελεί ένα ζεύγος \vclmul/\vclmulh που
-αντικαθιστά $\VLMAX$ ζεύγη scalar \clmul/\clmulh. Σε $\VLEN = 256$,
-$\LMUL = 4$: $\VLMAX = 16$, δηλαδή \num{16} carry-less γινόμενα ανά
-ζεύγος vector εντολών. Η \gls{zvbb} παρέχει μικρότερη αλλά σταθερή βελτίωση
-στον Keccak: η \insn{vror.vi} εκτελεί κάθε lane rotation σε \num{1} εντολή
-αντί \num{3} (\insn{vsll} + \insn{vsrl} + \insn{vor}), εξοικονομώντας
-περίπου \num{1200} εντολές ανά permutation call, όπως
-επιβεβαιώνεται εμπειρικά στο~\cref{ch:results}.
-
-\section{Μέθοδοι Προγραμματισμού RISC-V: Φάσμα Αφαίρεσης}
+\section{Μέθοδοι Προγραμματισμού RISC-V: Επίπεδα Αφαίρεσης}
 \label{sec:programming-methods}
 
-Η αξιοποίηση των κρυπτογραφικών επεκτάσεων που παρουσιάστηκαν στις
-προηγούμενες ενότητες απαιτεί κατάλληλη μέθοδο παραγωγής κώδικα. Η
-αρχιτεκτονική RISC-V παρέχει τέσσερις διακριτές μεθόδους, ταξινομημένες
-κατά φθίνοντα βαθμό ελέγχου του προγραμματιστή επί του παραγόμενου κώδικα
-μηχανής. Το~\cref{fig:programming-spectrum} απεικονίζει το φάσμα αφαίρεσης: στο
-αριστερό άκρο ο προγραμματιστής ελέγχει πλήρως κάθε εντολή, ενώ στο δεξιό
-ο μεταγλωττιστής αναλαμβάνει αυτόνομα την εκπομπή εξειδικευμένων εντολών.
-Κάθε μετακίνηση προς τα δεξιά αυξάνει τη δυνατότητα βελτιστοποίησης από
-τον compiler αλλά μειώνει τον άμεσο έλεγχο επί του instruction scheduling
-και register allocation.
+Οι κρυπτογραφικές επεκτάσεις που παρουσιάστηκαν στις προηγούμενες ενότητες
+μπορούν να αξιοποιηθούν με διαφορετικούς τρόπους κατά τη συγγραφή κώδικα.
+Για τον προγραμματισμό σε RISC-V υπάρχουν τέσσερις βασικοί τρόποι παραγωγής
+κώδικα, οι οποίοι παρουσιάζονται παρακάτω ταξινομημένοι κατά φθίνοντα βαθμό
+ελέγχου του προγραμματιστή επί του παραγόμενου machine code. Όπως
+απεικονίζει το~\cref{fig:programming-spectrum}, στο αριστερό άκρο ο
+προγραμματιστής έχει τον πλήρη έλεγχο του παραγόμενου κώδικα, ενώ στο δεξιό
+η εκπομπή των εξειδικευμένων εντολών ανατίθεται αποκλειστικά στον
+μεταγλωττιστή. Όσο μετακινούμαστε προς τα δεξιά, ο μεταγλωττιστής αποκτά
+μεγαλύτερη ευελιξία να βελτιστοποιεί τον κώδικα, με αντίστοιχο τίμημα τον
+περιορισμό του άμεσου ελέγχου του προγραμματιστή πάνω στη σειρά εκτέλεσης
+των εντολών (instruction scheduling) και στην ανάθεση καταχωρητών
+(register allocation).
 
 \begin{figure}[htbp]
   \centering
@@ -756,11 +731,11 @@ $\LMUL = 4$: $\VLMAX = 16$, δηλαδή \num{16} carry-less γινόμενα α
 Η καθαρή assembly παρέχει πλήρη χειροκίνητο έλεγχο σε κάθε πτυχή του
 παραγόμενου κώδικα: register allocation, instruction ordering, memory
 layout, και ακριβή encoding κάθε εντολής. Ο μεταγλωττιστής δεν παρεμβαίνει
-— ο κώδικας assembly μεταφράζεται απευθείας σε κώδικα μηχανής χωρίς
+— ο κώδικας assembly μεταφράζεται απευθείας σε machine code χωρίς
 βελτιστοποίηση, αναδιάταξη ή εξάλειψη εντολών.
 
 \paragraph{Ευθύνες του προγραμματιστή.}
-Η απουσία compiler intervention μεταφέρει ολόκληρο το βάρος ορθότητας στον
+Η απουσία παρέμβασης του μεταγλωττιστή μεταφέρει ολόκληρο το βάρος ορθότητας στον
 προγραμματιστή. Η συμμόρφωση με το RISC-V calling convention (ABI)~\autocite{RISCV-psABI}
 πρέπει να εξασφαλιστεί χειροκίνητα: σωστή χρήση caller-saved (\code{t0}–\code{t6},
 \code{a0}–\code{a7}) και callee-saved (\code{s0}–\code{s11}) καταχωρητών,
@@ -811,12 +786,12 @@ __asm__ volatile ("insn %0, %1, %2"
     : /* clobbers */
 );
 \end{lstlisting}
-Ο constraint \code{"=r"} δηλώνει ότι ο compiler πρέπει να εκχωρήσει έναν
+Το constraint \code{"=r"} δηλώνει ότι ο μεταγλωττιστής πρέπει να εκχωρήσει έναν
 \gls{gpr} για την έξοδο. Ο constraint \code{"=\&r"} (early-clobber)
-δηλώνει ότι η έξοδος γράφεται πριν διαβαστούν όλες οι είσοδοι — ο compiler
+δηλώνει ότι η έξοδος γράφεται πριν διαβαστούν όλες οι είσοδοι — ο μεταγλωττιστής
 πρέπει να εκχωρήσει διαφορετικό καταχωρητή από τις εισόδους. Η παράλειψη
 early-clobber σε περιπτώσεις που απαιτείται αποτελεί συχνή πηγή silent
-corruption: ο compiler μπορεί να τοποθετήσει είσοδο και έξοδο στον ίδιο
+corruption: ο μεταγλωττιστής μπορεί να τοποθετήσει είσοδο και έξοδο στον ίδιο
 καταχωρητή, με αποτέλεσμα η εγγραφή εξόδου να καταστρέψει μια είσοδο που
 δεν έχει ακόμη αναγνωστεί.
 
@@ -834,7 +809,7 @@ uint64_t hqc_rdcycle(void) {
 }
 \end{lstlisting}
 
-Η δήλωση \code{volatile} είναι κρίσιμη: χωρίς αυτήν, ο compiler θα
+Η δήλωση \code{volatile} είναι κρίσιμη: χωρίς αυτήν, ο μεταγλωττιστής θα
 μπορούσε να εξαλείψει την ανάγνωση ως dead code (αν η τιμή δεν
 χρησιμοποιείται αμέσως) ή να τη μετακινήσει εκτός του μετρούμενου
 τμήματος κώδικα. Η εντολή \insn{csrr} (CSR Read) αποτελεί ψευδοεντολή
@@ -843,10 +818,10 @@ uint64_t hqc_rdcycle(void) {
 
 \paragraph{Περιορισμοί.}
 Η inline assembly παρουσιάζει δύο θεμελιώδεις αδυναμίες. Η πρώτη αφορά
-την αδιαφάνεια: ο compiler δεν μπορεί να εφαρμόσει common subexpression
+την αδιαφάνεια: ο μεταγλωττιστής δεν μπορεί να εφαρμόσει common subexpression
 elimination (CSE), dead code elimination (DCE) ή instruction scheduling
 στον κώδικα εντός του block — ακόμη και αν δύο διαδοχικά blocks υπολογίζουν
-το ίδιο αποτέλεσμα, ο compiler δεν μπορεί να εξαλείψει τον πλεονασμό. Η
+το ίδιο αποτέλεσμα, ο μεταγλωττιστής δεν μπορεί να εξαλείψει τον πλεονασμό. Η
 δεύτερη αφορά τη φορητότητα: η σύνταξη constraints είναι compiler-specific
 (GCC/Clang) και η ορθότητα εξαρτάται από λεπτομέρειες υλοποίησης που
 μπορεί να αλλάξουν μεταξύ εκδόσεων.
@@ -857,7 +832,7 @@ elimination (CSE), dead code elimination (DCE) ή instruction scheduling
 Τα C intrinsics παρέχουν συναρτήσεις μεταγλωττιστή (compiler builtins) που
 αντιστοιχούν 1:1 σε εντολές μηχανής αλλά συμμετέχουν πλήρως στο
 optimization pipeline. Σε αντίθεση με την inline assembly, τα intrinsics
-είναι πλήρως ορατά στον compiler: υπόκεινται σε register allocation,
+είναι πλήρως ορατά στον μεταγλωττιστή: υπόκεινται σε register allocation,
 instruction scheduling, common subexpression elimination, constant folding
 και dead code elimination.
 
@@ -879,7 +854,7 @@ instruction scheduling, common subexpression elimination, constant folding
 σφάλματα τύπου (\eg πέρασμα \code{vuint64m4\_t} σε θέση
 \code{vuint64m8\_t}) ανιχνεύονται κατά τη μεταγλώττιση — αντί να
 εκδηλωθούν ως silent corruption κατά την εκτέλεση. Η \defterm{πλήρης
-ορατότητα στον optimizer} επιτρέπει στον compiler να εξαλείψει
+ορατότητα στον optimizer} επιτρέπει στον μεταγλωττιστή να εξαλείψει
 πλεονάζοντες υπολογισμούς, να αναδιατάξει εντολές για βέλτιστο pipeline
 utilization, και να εκχωρήσει καταχωρητές βάσει global register pressure
 analysis. Η \defterm{φορητότητα μεταξύ compiler versions} εξασφαλίζεται
@@ -918,7 +893,7 @@ flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος
 αποκλειστικά από τη ρύθμιση μεταγλώττισης.
 
 \paragraph{Αναγνωριζόμενα patterns.}
-Ο compiler αναγνωρίζει τα ακόλουθα C idioms και τα αντικαθιστά με
+Ο μεταγλωττιστής αναγνωρίζει τα ακόλουθα C idioms και τα αντικαθιστά με
 μονολεκτικές εντολές:
 \begin{itemize}
   \item \code{\textasciitilde{}a \& b} $\to$ \insn{andn} (\gls{zbb}): η
@@ -939,7 +914,7 @@ flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος
 
 \paragraph{Περιορισμός: μη αναγνώριση σύνθετων patterns.}
 Ο μηχανισμός auto-lowering αποτυγχάνει σε σύνθετα κρυπτογραφικά patterns.
-Ο compiler δεν αναγνωρίζει ότι ένας βρόχος carry-less multiplication
+Ο μεταγλωττιστής δεν αναγνωρίζει ότι ένας βρόχος carry-less multiplication
 αντιστοιχεί στην εντολή \clmul — η πράξη δεν εκφράζεται ως standard C
 operator. Ομοίως, δεν συνθέτει \vclmul από generic C loops. Κατά συνέπεια, η μέθοδος
 auto-lowering εφαρμόζεται αποκλειστικά σε απλά bit-manipulation patterns

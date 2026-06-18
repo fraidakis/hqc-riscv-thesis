@@ -1,5 +1,5 @@
 % figures/ch6-polymul/vclmul-leaf-dataflow.tex
-% Dataflow diagram: vclmul_leaf splat-and-sweep pattern
+% Dataflow diagram: vclmul_leaf scalar-sweep pattern (.vx)
 \tikzsetnextfilename{ch6-polymul-vclmul-leaf-dataflow}
 \begin{tikzpicture}[
     >=stealth,
@@ -20,12 +20,12 @@
   \node[data, right=3.5cm of a] (b) {$b[0 \ldots 15]$};
 
   % Load operations
-  \node[block, below=0.6cm of a] (splat) {vmv.v.x(a[i])};
+  \node[data, below=0.6cm of a] (splat) {$a[i]$ (rs1 scalar)};
   \node[block, below=0.6cm of b] (loadb) {vle64(b[0..15])};
 
   % Multiply operations
-  \node[op, below=1.0cm of $(splat)!0.5!(loadb)$, xshift=-1.5cm] (vclmul) {vclmul.vv};
-  \node[op, right=0.4cm of vclmul] (vclmulh) {vclmulh.vv};
+  \node[op, below=1.0cm of $(splat)!0.5!(loadb)$, xshift=-1.5cm] (vclmul) {vclmul.vx};
+  \node[op, right=0.4cm of vclmul] (vclmulh) {vclmulh.vx};
 
   % Results
   \node[data, below=0.8cm of vclmul] (lo) {lo$[0 \ldots 15]$};

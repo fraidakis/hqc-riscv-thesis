@@ -416,8 +416,8 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
 
 \begin{enumerate}
   \item \textbf{Sigma SAXPY}: $\sigma[i] \mathrel{\oplus}= dd \cdot X_{\sigma_p}[i]$
-        — broadcast του scalar $dd$ μέσω \insn{vmv.v.x}, \insn{vclmul.vv}
-        με τα zero-extended $X_{\sigma_p}$ στοιχεία, Barrett reduction, και
+        — \insn{vclmul.vx} με τον $dd$ ως άμεσο scalar τελεστέο
+        επί των zero-extended $X_{\sigma_p}$ στοιχείων, Barrett reduction, και
         XOR με τα τρέχοντα $\sigma$ values.
   \item \textbf{Blend}: constant-time conditional copy~(\cref{sec:ct-verification}) μέσω bitwise select
         pattern (\insn{vand} + \insn{vxor}) σε SEW=16, LMUL=4 — χωρίς
@@ -444,7 +444,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
   \item \textbf{Παρονομαστής (inner-k batch)}: ο modular δείκτης
         $\beta_j[(i+k) \bmod \delta]$ αποσυντίθεται σε δύο συνεχόμενα
         τμήματα μνήμης (αποφεύγοντας indexed gather), κάθε ένα
-        επεξεργαζόμενο μέσω broadcast \insn{vmv.v.x} + \insn{vclmul.vv} +
+        επεξεργαζόμενο μέσω \insn{vclmul.vx} (άμεσος scalar τελεστέος) +
         Barrett reduction + \insn{vxor.vx} (XOR με σταθερά \num{1}).  Το
         τελικό sequential γινόμενο $\text{tmp2} = \prod_{k} \text{inner\_k}[k]$
         παραμένει scalar — η $\BigO{\delta}$ αλυσίδα δεν παραλληλοποιείται
@@ -582,7 +582,7 @@ A/B/D, scalar \code{fft\_rec} για το Στάδιο~C).
 υλοποίηση χρησιμοποιούσε two-pass shift-and-XOR feedback (ταυτόσημη με τη
 scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction.  Η
 βελτιστοποίηση αντικαθιστά αυτή τη δομή με single-pass Barrett reduction
-χρησιμοποιώντας \insn{vclmul.vv} για εκτίμηση πηλίκου — μειώνοντας το
+χρησιμοποιώντας \insn{vclmul.vx} για εκτίμηση πηλίκου — μειώνοντας το
 κόστος σε \num{6} vector εντολές.
 
 \paragraph{Μαθηματική θεμελίωση.}
@@ -600,19 +600,19 @@ scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction.  Η
 ταυτόσημα αποτελέσματα για όλες τις 14-bit εισόδους: η διαφορά $+1$ (bit~0)
 δεν επηρεάζει το πηλίκο μετά τη δεξιά ολίσθηση κατά \num{8} θέσεις για
 τελεστέους βαθμού $\leq 5$.  Η ιδιότητα αυτή (self-reciprocal) επιτρέπει
-τη χρήση ενός μόνο constant vector και για τις δύο \insn{vclmul.vv} πράξεις.
+τη χρήση ενός μόνο σταθερού scalar τελεστέου $\mu$ και για τις δύο \insn{vclmul.vx} πράξεις.
 
 \paragraph{Υλοποίηση.}
 Η \code{gf\_reduce\_vec\_u64m4} (\cref{lst:barrett-single}) εκτελεί την αναγωγή σε \num{6} vector
-εντολές (πλέον \num{1} \insn{vmv.v.x} broadcast που ανυψώνεται εκτός
-βρόχου από τον μεταγλωττιστή):
+εντολές, με τον σταθερό τελεστέο $\mu$ να περνά απευθείας ως scalar
+(\code{rs1}) χωρίς ανάγκη broadcast:
 
-\begin{lstlisting}[language=C, caption={Single-pass Barrett reduction μέσω \insn{vclmul.vv}.},
+\begin{lstlisting}[language=C, caption={Single-pass Barrett reduction μέσω \insn{vclmul.vx}.},
   label={lst:barrett-single}]
 vuint64m4_t high = vsrl_vx(v, 8, vl);       // overflow [13:8]
-vuint64m4_t q    = vclmul_vv(high, mu, vl);  // quotient est.
+vuint64m4_t q    = vclmul_vx(high, mu, vl);  // quotient est.
 q                = vsrl_vx(q, 8, vl);        // shift quotient
-vuint64m4_t corr = vclmul_vv(q, mu, vl);     // correction
+vuint64m4_t corr = vclmul_vx(q, mu, vl);     // correction
 v                = vxor_vv(v, corr, vl);      // apply
 v                = vand_vx(v, 0xFF, vl);      // mask 8 bits
 \end{lstlisting}
@@ -743,7 +743,7 @@ for (uint32_t i = 0; i < VEC_N_SIZE_64; i++) {
 \insn{and}+\insn{or}~$\mathit{val}$ (2), με το branch/counter (+1)
 εφαρμοζόμενο κάθε $j$-iteration — σύνολο $\approx 8$ per inner
 iteration (εκτίμηση πρώτης τάξης· ο ακριβής αριθμός εξαρτάται από
-το unrolling του compiler στο \code{-O3}).  Profiling κατέταξε τη συνάρτηση ως \pct{20.99}
+το unrolling του μεταγλωττιστή στο \code{-O3}).  Profiling κατέταξε τη συνάρτηση ως \pct{20.99}
 του συνολικού \gls{kem} \instret στο post-Karatsuba scalar (\code{scalar\_zb}) προφίλ — δεύτερη μεμονωμένη
 συνάρτηση μετά το \code{memset} (\pct{23.13}) και ανώτερη του
 \code{KeccakF1600\_StatePermute} (\pct{6.65}), ή τρίτο hotspot εφόσον
@@ -877,7 +877,7 @@ I/O/μνήμη λειτουργίες).  Η μείωση του \Encaps \instret
 
 Οι προηγούμενες ενότητες αξιοποίησαν ρητά intrinsics για κρυπτογραφικούς
 πυρήνες.  Η παρούσα ενότητα αξιολογεί τον συμπληρωματικό μηχανισμό
-auto-lowering (\cf \cref{ssec:auto-lowering}): ο compiler
+auto-lowering (\cf \cref{ssec:auto-lowering}): ο μεταγλωττιστής
 αναγνωρίζει αυτόματα C idioms και εκπέμπει εξειδικευμένες εντολές χωρίς
 αλλαγή πηγαίου κώδικα — αρκεί η αντίστοιχη extension να είναι δηλωμένη
 στο \code{-march} flag.  Δύο extensions αξιολογήθηκαν συστηματικά μέσω
@@ -896,7 +896,7 @@ operations).  Παρουσιάζονται ο μηχανισμός εφαρμο�
 αριθμητική της C: η έκφραση \code{ptr + idx} σε δείκτη \code{uint64\_t*}
 μεταγλωττίζεται σε \code{slli reg, idx, 3} + \code{add reg, base, reg}
 (ολίσθηση κατά 3 θέσεις για 8-byte elements, ακολουθούμενη από πρόσθεση
-βάσης).  Με \ext{Zba} ενεργή, ο compiler εκπέμπει μία μόνο εντολή
+βάσης).  Με \ext{Zba} ενεργή, ο μεταγλωττιστής εκπέμπει μία μόνο εντολή
 \insn{sh3add} (\cref{fig:zba-disasm}).
 
 \begin{figure}[htbp]
@@ -941,7 +941,7 @@ reference baselines.  Η ερμηνεία βρίσκεται στη δομή τ�
         κλάσμα του loop body.
   \item Στο \code{scalar\_zb}, η scalar leaf \code{clmul\_leaf\_n8}
         είναι πλήρως unrolled με \emph{compile-time constant offsets}:
-        \code{r[0] = lo0; r[1] = hi0 \^{} lo1; \ldots}.  Ο compiler
+        \code{r[0] = lo0; r[1] = hi0 \^{} lo1; \ldots}.  Ο μεταγλωττιστής
         επιλύει τις διευθύνσεις κατά τη μεταγλώττιση — δεν υπάρχει
         κανένα dynamic \code{slli+add} ζεύγος στον hot loop.  Τα \num{128}
         \clmul/\clmulh{} instructions ανά leaf κυριαρχούν απόλυτα, και η
@@ -970,7 +970,7 @@ processor.
 
 Η \ext{Zbs} παρέχει εντολές μονού bit: \insn{bset} (set bit),
 \insn{bclr} (clear bit), \insn{bext} (extract bit), \insn{binv} (invert
-bit).  Ο compiler αναγνωρίζει αυτόματα το C pattern
+bit).  Ο μεταγλωττιστής αναγνωρίζει αυτόματα το C pattern
 \code{x |= (1ULL << pos)} και εκπέμπει μία μόνο εντολή \insn{bset}, αντί
 τριών (load immediate, shift, OR) — βλ.~\cref{fig:zbs-disasm}.
 
@@ -995,7 +995,7 @@ for (size_t i = 0; i < weight; i++) {
 }
 \end{lstlisting}
 %
-Ο compiler (Clang~21, \code{-O3}) εκπέμπει \num{5} στατικές εντολές
+Ο μεταγλωττιστής (Clang~21, \code{-O3}) εκπέμπει \num{5} στατικές εντολές
 \insn{bset} στο ELF — εντός της scatter function και της
 \code{barrett\_reduce}.  Δεν εκπέμπεται καμία \insn{bclr}, \insn{bext} ή
 \insn{binv} — ο κώδικας \gls{hqc} δεν περιέχει τα αντίστοιχα patterns στα
@@ -1057,7 +1057,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
         αποκλείουν τη compiler substitution.
   \item \textbf{\ext{Zicond}} (czero.eqz/czero.nez): μηδενικές δυναμικές
         εκτελέσεις στο \code{vector\_zvk}, $-\pct{0.38}$ στο
-        \code{scalar\_zb}.  Ο compiler προτιμά εναλλακτικά branchless
+        \code{scalar\_zb}.  Ο μεταγλωττιστής προτιμά εναλλακτικά branchless
         idioms (conditional moves μέσω \code{sub+sra} masking).
   \item \textbf{\ext{Zcb}} (compressed 16-bit encodings): μηδενική μεταβολή
         \instret (η extension αφορά αποκλειστικά code-size encoding).  Η
