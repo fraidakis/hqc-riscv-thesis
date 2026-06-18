@@ -1,19 +1,24 @@
-% figures/inline-asm-vs-intrinsic.tex
-% Side-by-side comparison: inline assembly vs C intrinsic for clmul
+% figures/inline-asm-vs-intrinsic_v1.tex
+% VARIANT (_v1, baseline refined) — not \input by main.tex; promote manually.
+% Token migration (figbox tint roles, figT/mono, figT/title, figT/callout).
+% The «5-γραμμο block» / «1 γραμμή» line-count framing is REMOVED per
+% request; annotations now name the real trade-off (opaque vs type-safe).
+% Hue is semantic: inline = threat (drawback), intrinsic = solution (preferred).
 
-\tikzsetnextfilename{ch3-riscv-inline-asm-vs-intrinsic}
+\tikzsetnextfilename{ch3-riscv-inline-asm-vs-intrinsic_v1}
 \begin{tikzpicture}[
     codebox/.style={
-      draw, rounded corners=2pt, minimum width=6.5cm, minimum height=3.2cm,
-      fill=#1, align=left, inner sep=8pt, font=\ttfamily\footnotesize
+      draw, rounded corners=3pt, minimum width=6.5cm, minimum height=3.2cm,
+      fill=#1, align=left, inner sep=8pt, figT/mono
     },
-    label/.style={font=\small\sffamily\bfseries, anchor=south}
+    boxtitle/.style={figT/title, anchor=south},
+    boxnote/.style={figT/callout, anchor=north, align=center}
   ]
 
-  % Left box: inline assembly
-  \node[codebox=orange!5, draw=orange!40!black, anchor=north west] (left) at (0,0) {%
+  % Left box: inline assembly (opaque -> threat hue)
+  \node[codebox=figthreatfill, draw=figthreat, anchor=north west] (left) at (0,0) {%
     \begin{minipage}{6cm}
-\textcolor{gray}{// Inline assembly (opaque)}\\
+\textcolor{figneutral}{// Inline assembly (opaque)}\\
 uint64\_t lo;\\
 \_\_asm\_\_ volatile(\\
 \quad "clmul \%0, \%1, \%2"\\
@@ -22,24 +27,24 @@ uint64\_t lo;\\
 );
     \end{minipage}
   };
-  \node[label, text=orange!50!black] at (left.north) {Inline Assembly};
+  \node[boxtitle, text=figthreat] at (left.north) {Inline Assembly};
 
-  % Right box: C intrinsic
-  \node[codebox=blue!5, draw=blue!40!black, anchor=north west] (right) at (7.5,0) {%
+  % Right box: C intrinsic (optimizable -> solution hue)
+  \node[codebox=figsolutionfill, draw=figsolution, anchor=north west] (right) at (7.5,0) {%
     \begin{minipage}{6cm}
-\textcolor{gray}{// C intrinsic (optimizable)}\\[4pt]
+\textcolor{figneutral}{// C intrinsic (optimizable)}\\[4pt]
 uint64\_t lo =\\
 \quad \_\_riscv\_clmul\_64(a, b);\\[12pt]
-\textcolor{gray}{// 1 γραμμή, typed, CSE/DCE}\\
-\textcolor{gray}{// register allocation ελεύθερη}
+\textcolor{figneutral}{// typed, CSE/DCE}\\
+\textcolor{figneutral}{// register allocation ελεύθερη}
     \end{minipage}
   };
-  \node[label, text=blue!50!black] at (right.north) {C Intrinsic};
+  \node[boxtitle, text=figsolution!60!black] at (right.north) {C Intrinsic};
 
-  % Annotations below
-  \node[font=\scriptsize, text=orange!60!black, anchor=north, align=center]
-    at ([yshift=-0.3cm]left.south) {5-γραμμο block, constraint syntax\\αδιαφανές στον optimizer};
-  \node[font=\scriptsize, text=blue!60!black, anchor=north, align=center]
-    at ([yshift=-0.3cm]right.south) {1 γραμμή, type-safe\\πλήρης ορατότητα στον compiler};
+  % Annotations below (line-count framing removed)
+  \node[boxnote, text=figthreat] at ([yshift=-0.3cm]left.south)
+    {Constraint syntax\\αδιαφανές στον optimizer};
+  \node[boxnote, text=figsolution!60!black] at ([yshift=-0.3cm]right.south)
+    {Type-safe\\πλήρης ορατότητα στον compiler};
 
 \end{tikzpicture}

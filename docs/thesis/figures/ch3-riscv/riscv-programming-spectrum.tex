@@ -1,36 +1,39 @@
-% figures/riscv-programming-spectrum.tex
-% Horizontal spectrum diagram: Pure Assembly ←→ Inline Asm ←→ Intrinsics ←→ Auto-Lowering
-% Shows control vs compiler optimization trade-off
-
-\tikzsetnextfilename{ch3-riscv-riscv-programming-spectrum}
+% figures/riscv-programming-spectrum_gradient.tex
+% VARIANT (_gradient, ch1 house style) — not \input by main.tex; promote manually.
+% Mirrors docs/thesis/figures/ch1-introduction/acceleration-spectrum.tex:
+% white boxes chained left->right, a single shaded gradient bar on top encoding
+% the control<->optimisation trade-off, and a «Παρούσα εργασία» figpill on the
+% method this thesis actually uses (C Intrinsics for the crypto kernels).
+% NOTE: move the pill to another box if the «current work» method differs.
+\resizebox{\textwidth}{!}{%
+\tikzsetnextfilename{ch3-riscv-riscv-programming-spectrum_gradient}
 \begin{tikzpicture}[
-    node distance=0.3cm,
-    method/.style={
-      draw, rounded corners=3pt, minimum height=1.4cm, minimum width=3.2cm,
-      font=\small\sffamily, align=center, thick
+    node distance=0.8cm,
+    box/.style={
+      draw=figrule, rounded corners=3pt, minimum width=3cm, minimum height=1.4cm,
+      align=center, figT/label, fill=white
     },
-    arrow label/.style={font=\footnotesize\itshape, text=black!70}
+    highlight/.style={box, draw=figaccent, figLW/emph, fill=figaccentfill},
+    endlabel/.style={figT/annot},
   ]
 
-  % Method boxes
-  \node[method, fill=red!8, draw=red!50!black] (asm) {Pure Assembly\\(\texttt{.S})};
-  \node[method, fill=orange!8, draw=orange!50!black, right=0.6cm of asm] (inline) {Inline Assembly\\(\texttt{\_\_asm\_\_})};
-  \node[method, fill=blue!8, draw=blue!50!black, right=0.6cm of inline] (intrinsics) {C Intrinsics\\(\texttt{\_\_riscv\_*})};
-  \node[method, fill=green!8, draw=green!50!black, right=0.6cm of intrinsics] (auto) {Auto-Lowering\\(Plain C)};
+  % Boxes (left = most control, right = most compiler optimisation)
+  \node[box]                              (asm)    {Pure Assembly\\[-2pt]\footnotesize (\texttt{.S})};
+  \node[box, right=0.8cm of asm]          (inline) {Inline Assembly\\[-2pt]\footnotesize (\texttt{\_\_asm\_\_})};
+  \node[highlight, right=0.8cm of inline] (intr)   {C Intrinsics\\[-2pt]\footnotesize (\texttt{\_\_riscv\_*})};
+  \node[box, right=0.8cm of intr]         (auto)   {Auto-Lowering\\[-2pt]\footnotesize (Plain C)};
 
-  % Connecting arrows between boxes
-  \draw[->, thick, gray!60] (asm) -- (inline);
-  \draw[->, thick, gray!60] (inline) -- (intrinsics);
-  \draw[->, thick, gray!60] (intrinsics) -- (auto);
+  % Gradient spectrum bar: control[vermillion] -> optimisation[green]
+  \shade[left color=figthreat!42, right color=figsolution!35, rounded corners=2pt]
+    ([yshift=0.70cm]asm.north west) rectangle ([yshift=1.18cm]auto.north east);
+  \node[endlabel, anchor=west] at ([xshift=2pt,yshift=0.94cm]asm.north west)
+    {$\leftarrow$ Μεγαλύτερος έλεγχος};
+  \node[endlabel, anchor=east] at ([xshift=-2pt,yshift=0.94cm]auto.north east)
+    {Βελτιστοποίηση compiler $\rightarrow$};
 
-  % Top arrow: Control increases ←
-  \draw[<-, very thick, red!60!black]
-    ([yshift=1.1cm]asm.north west) -- ([yshift=1.1cm]auto.north east)
-    node[midway, above, arrow label, text=red!60!black] {Βαθμός ελέγχου αυξάνεται};
+  % «You are here» pill on the C Intrinsics box
+  \node[figpill, below=0.55cm of intr] (here) {Παρούσα εργασία};
+  \draw[draw=figaccent, figLW/base] (intr.south) -- (here.north);
 
-  % Bottom arrow: Compiler optimization increases →
-  \draw[->, very thick, blue!60!black]
-    ([yshift=-1.1cm]asm.south west) -- ([yshift=-1.1cm]auto.south east)
-    node[midway, below, arrow label, text=blue!60!black] {Βελτιστοποίηση compiler αυξάνεται};
-
-\end{tikzpicture}
+\end{tikzpicture}%
+}% end resizebox
