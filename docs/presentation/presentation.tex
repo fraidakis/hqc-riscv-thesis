@@ -1,0 +1,347 @@
+% =============================================================================
+%  Diploma Thesis — 15-minute Defense Presentation
+%  Optimizing HQC Post-Quantum Cryptography on RISC-V via ISA extensions
+%  Engine: LuaLaTeX (latexmk -lualatex)  |  Build: make presentation
+% -----------------------------------------------------------------------------
+%  Conventions adopted from the beamer-skill (Noi1r/beamer-skill):
+%    * aspectratio=169, 10pt          * NO overlays (pause/onslide/only)
+%    * <=2 colored boxes per slide     * motivation-before-formalism
+%    * semantic colors (\pos/\con/\HL) * references + backup after \appendix
+%  Deliberate override: skill defaults to XeLaTeX; we keep LuaLaTeX for
+%  consistency with the thesis toolchain (polyglossia monotonic Greek).
+%  All numbers are sourced from results/reports/summaries (Spike ISS instret /
+%  BPI-F3 cycles) and verified against frontmatter/abstract-en.tex.
+% =============================================================================
+\documentclass[aspectratio=169,10pt]{beamer}
+\input{preamble/beamer-setup}
+
+% --- Title (real metadata from frontmatter/titlepage.tex) --------------------
+\title[HQC on RISC-V]{Βελτιστοποίηση του Μετα-Κβαντικού Κρυπτοσυστήματος \HQC σε RISC-V μέσω Επεκτάσεων ISA}
+\subtitle{Pure-software υλοποίηση με ratified extensions: \Zbc/\Zvbc, \Zbb/\Zvbb}
+\author[Φραϊδάκης]{Ιωάννης Φραϊδάκης \\ {\footnotesize Επιβλέπων: Καθ. Ιωάννης Παπαευσταθίου}}
+\institute[Α.Π.Θ.]{Πολυτεχνική Σχολή — Τμήμα Ηλεκτρολόγων Μηχανικών \& Μηχανικών Υπολογιστών \\ Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης}
+\date{Θεσσαλονίκη, Ιούνιος 2026}
+
+\begin{document}
+
+% ---------- 1. Title ---------------------------------------------------------
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+% ---------- 2. Outline -------------------------------------------------------
+\begin{frame}{Δομή της παρουσίασης}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{enumerate}
+        \item Το πρόβλημα: κβαντική απειλή \& PQC
+        \item \HQC σε μία διαφάνεια
+        \item Στόχος \& συνεισφορά
+        \item RISC-V ISA \& τρία tiers
+      \end{enumerate}
+    \column{0.5\textwidth}
+      \begin{enumerate}
+        \setcounter{enumi}{4}
+        \item Μεθοδολογία
+        \item Βελτιστοποιήσεις: polymul, Keccak, decode
+        \item Αποτελέσματα \& πραγματικό hardware
+        \item Συμπεράσματα
+      \end{enumerate}
+  \end{columns}
+\end{frame}
+
+% ===================== INTRO / MOTIVATION (slides 3-4) =======================
+
+% ---------- 3. The problem ---------------------------------------------------
+\begin{frame}{Η κβαντική απειλή και η απάντηση του NIST}
+  \begin{itemize}
+    \item \con{Αλγόριθμος Shor}: σπάει RSA/ECC — \HL{harvest-now, decrypt-later}.
+    \item Απάντηση: standardization μετα-κβαντικής κρυπτογραφίας (PQC).
+  \end{itemize}
+  \vspace{0.4em}
+  \begin{center}
+  \begin{tikzpicture}[font=\footnotesize]
+    \draw[-{Latex},line width=1pt,neutral] (0,0) -- (11.2,0);
+    \node[draw,rounded corners,fill=oiVermillion!15,align=center,anchor=south] at (1.0,0.25) {1994\\ \textbf{Shor}};
+    \node[draw,rounded corners,fill=oiVermillion!8,align=center,anchor=north]  at (3.6,-0.25) {σήμερα\\ harvest-now};
+    \node[draw,rounded corners,fill=oiBlue!12,align=center,anchor=south]       at (6.6,0.25) {2016\\ NIST PQC call};
+    \node[draw,rounded corners,fill=oiGreen!16,align=center,anchor=north]      at (9.8,-0.25) {2025\\ \textbf{\HQC selected}};
+  \end{tikzpicture}
+  \end{center}
+  \vspace{0.2em}
+  {\footnotesize \HQC: code-based \KEM, 5ος αλγόριθμος που επιλέχθηκε από το NIST.\par}
+  \cite{Shor1997,NIST-HQC-selection2025}
+\end{frame}
+
+% ---------- 4. Goal & contribution -------------------------------------------
+\begin{frame}{Στόχος \& συνεισφορά}
+  \begin{itemize}
+    \item \HL{Κενό}: δεν υπήρχε optimized pure-software \HQC σε RISC-V.
+    \item \HL{Συνεισφορά}: πρώτη ISA-driven υλοποίηση (\Zbc/\Zvbc, \Zbb/\Zvbb),
+          χωρίς εξειδικευμένο hardware.
+  \end{itemize}
+  \begin{block}{Headline (HQC-128, \instret\ vs reference~\cite{HQC-reference-impl})}
+    Πολυωνυμικός πολλαπλασιασμός \pos{\speedup{318}} \quad\textbar\quad πλήρες \KEM\ \pos{\speedup{167}}
+  \end{block}
+  \centering\footnotesize\textcolor{neutral}{Το όφελος διατηρείται σε όλα τα security levels (128/192/256).}
+\end{frame}
+
+% ===================== BACKGROUND / METHODS (slides 5-6) =====================
+
+% ---------- 5. RISC-V ISA & tiers --------------------------------------------
+\begin{frame}{RISC-V: επεκτάσεις ISA \& τρία hardware tiers}
+  \begin{table}
+    \centering\small
+    \begin{tabular}{@{}lll@{}}
+      \toprule
+      \textbf{Tier (κανονικό όνομα)} & \textbf{Επεκτάσεις} & \textbf{Θέση (deployment)} \\
+      \midrule
+      \textcolor{oiBlue}{Tier 1 — Scalar}       & \Zbc, \Zbb   & IoT-class \\
+      \textcolor{oiOrange}{Tier 2 — Vector}      & RVV 1.0      & Edge-class \\
+      \textcolor{oiGreen}{Tier 3 — Vector-Crypto} & \Zvbc, \Zvbb & High-end \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{0.3em}
+  \begin{itemize}
+    \item Κοινός δομικός λίθος: \HL{carry-less multiply} (\texttt{clmul}, \texttt{vclmul}).
+    \item \Zbb/\Zvbb: bit-manipulation για Keccak \& βοηθητικούς πυρήνες.
+  \end{itemize}
+  \cite{RISCV-vector-spec}
+\end{frame}
+
+% ---------- 6. Methodology ---------------------------------------------------
+\begin{frame}{Πειραματική μεθοδολογία}
+  \begin{center}
+  \begin{tikzpicture}[font=\footnotesize, node distance=6mm and 12mm,
+      box/.style={draw,rounded corners,align=center,minimum height=8mm,inner sep=4pt,fill=oiBlue!8}]
+    \node[box] (src) {C source\\ (\HQC kernels)};
+    \node[box,right=of src] (cc) {cross-compile\\ GCC / Clang};
+    \node[box,above right=of cc,fill=oiGreen!12] (iss) {Spike ISS\\ \instret};
+    \node[box,below right=of cc,fill=oiOrange!14] (hw) {BPI-F3 (K1)\\ cycles};
+    \node[box,right=34mm of cc,fill=oiVermillion!10] (ver) {KAT 100/100\\ + constant-time};
+    \draw[-{Latex}] (src) -- (cc);
+    \draw[-{Latex}] (cc) -- (iss);
+    \draw[-{Latex}] (cc) -- (hw);
+    \draw[-{Latex}] (iss) -- (ver);
+    \draw[-{Latex}] (hw) -- (ver);
+  \end{tikzpicture}
+  \end{center}
+  \begin{itemize}
+    \item Κύρια μετρική: \instret\ (deterministic) — αρχιτεκτονικά αμερόληπτη σύγκριση· επικύρωση σε πραγματικό silicon (cycles).
+  \end{itemize}
+  \cite{HQC-spec2024}
+\end{frame}
+
+% ===================== CORE CONTENT (slides 7-11) ============================
+
+% ---------- 7. Polymul I: Karatsuba + Zbc ------------------------------------
+\begin{frame}{Polynomial multiplication I — Karatsuba + \Zbc (scalar)}
+  \textbf{Γιατί}: ο πολλαπλασιασμός σε \GFpoly\ είναι το κυρίαρχο bottleneck.
+  \begin{center}
+  \begin{tikzpicture}[font=\footnotesize, node distance=5mm and 7mm,
+      lf/.style={draw,rounded corners,fill=oiBlue!10,align=center,inner sep=3pt}]
+    \node[lf] (split) {$A=A_1 x^{k}+A_0,\qquad B=B_1 x^{k}+B_0$};
+    \node[lf,fill=oiGreen!12,below left=of split]  (p0) {$P_0=A_0B_0$};
+    \node[lf,fill=oiGreen!12,below=of split]        (pm) {$P_1=(A_0{+}A_1)(B_0{+}B_1)$};
+    \node[lf,fill=oiGreen!12,below right=of split]  (p2) {$P_2=A_1B_1$};
+    \draw[-{Latex}] (split) -- (p0);
+    \draw[-{Latex}] (split) -- (pm);
+    \draw[-{Latex}] (split) -- (p2);
+    \node[below=5mm of pm,text=neutral,font=\footnotesize\itshape]
+      {3 πολ/μοί αντί 4· leaf multiply $=$ \texttt{clmul}/\texttt{clmulh} (\Zbc)};
+  \end{tikzpicture}
+  \end{center}
+  \centering Κέρδος polymul (HQC-128): \pos{\speedup{86.9}} έναντι reference.
+\end{frame}
+
+% ---------- 8. Polymul II: RVV recompose + Zvbc ------------------------------
+\begin{frame}{Polynomial multiplication II — RVV recompose + \Zvbc\ leaf}
+  \begin{itemize}
+    \item Base-RVV: διανυσματοποίηση της \HL{ανασύνθεσης} (recombination, reduction).
+    \item Vector-crypto: \Zvbc\ \HL{vectorized carry-less mul} στα leaf kernels.
+  \end{itemize}
+  \vspace{0.3em}
+  \begin{center}
+  \begin{tikzpicture}[font=\footnotesize]
+    \begin{axis}[
+        ybar, bar width=16pt, width=0.82\textwidth, height=4.6cm,
+        symbolic x coords={scalar Zbc, base-RVV, Zvbc}, xtick=data,
+        ymin=0, ymax=360, ylabel={polymul speedup ($\times$)}, ymajorgrids,
+        nodes near coords, every node near coord/.append style={font=\scriptsize},
+        enlarge x limits=0.35]
+      \addplot[fill=oiBlue!70]   coordinates {(scalar Zbc,86.9)};
+      \addplot[fill=oiOrange!75] coordinates {(base-RVV,122.0)};
+      \addplot[fill=oiGreen!75]  coordinates {(Zvbc,318.2)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \centering\footnotesize\textcolor{neutral}{HQC-128, \instret\ vs reference — πρόοδος ανά tier.}
+\end{frame}
+
+% ---------- 9. Keccak + Decode -----------------------------------------------
+\begin{frame}{Keccak \& Decode (Reed-Muller / Reed-Solomon)}
+  \begin{center}
+  \begin{tikzpicture}[font=\footnotesize]
+    \begin{axis}[
+        ybar, bar width=11pt, width=0.86\textwidth, height=4.8cm,
+        symbolic x coords={HQC-128,HQC-192,HQC-256}, xtick=data,
+        ymin=0, ymax=9, ylabel={speedup ($\times$)}, ymajorgrids,
+        legend style={at={(0.5,1.04)},anchor=south,legend columns=-1},
+        nodes near coords, every node near coord/.append style={font=\scriptsize},
+        enlarge x limits=0.3]
+      \addplot[fill=oiOrange!75] coordinates {(HQC-128,3.7)(HQC-192,3.8)(HQC-256,3.9)};
+      \addplot[fill=oiGreen!75]  coordinates {(HQC-128,6.8)(HQC-192,7.8)(HQC-256,7.2)};
+      \legend{Keccak / SHA-3, Decode (RM+RS)}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \centering\footnotesize\textcolor{neutral}{\instret\ vs reference. Keccak: \Zbb\ + vectorized permutation· Decode: vectorized RM/RS.} \cite{Bertoni2013-Keccak}
+\end{frame}
+
+% ---------- 10. Full-KEM results per security level --------------------------
+\begin{frame}{Αποτελέσματα — πλήρες \KEM\ ανά security level (Tier 3)}
+  \begin{center}
+  \begin{tikzpicture}[font=\footnotesize]
+    \begin{axis}[
+        ybar, bar width=12pt, width=0.88\textwidth, height=5.0cm,
+        symbolic x coords={HQC-128,HQC-192,HQC-256}, xtick=data,
+        ymin=0, ymax=600, ylabel={speedup ($\times$, \instret)}, ymajorgrids,
+        legend style={at={(0.5,1.04)},anchor=south,legend columns=-1},
+        nodes near coords, every node near coord/.append style={font=\scriptsize},
+        enlarge x limits=0.3]
+      \addplot[fill=oiBlue!70] coordinates {(HQC-128,318.2)(HQC-192,327.1)(HQC-256,547.3)};
+      \addplot[fill=oiGreen!75] coordinates {(HQC-128,167.0)(HQC-192,214.2)(HQC-256,338.8)};
+      \legend{polynomial multiply, full \KEM}
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \centering\footnotesize\textcolor{neutral}{vector\_zvk vs scalar reference. Το όφελος αυξάνει με το security level.}
+\end{frame}
+
+% ---------- 11. VLEN scaling + real hardware ---------------------------------
+\begin{frame}{\VLEN\ scaling \& επικύρωση σε πραγματικό hardware}
+  \begin{columns}[T]
+    \column{0.58\textwidth}
+      \begin{tikzpicture}[font=\footnotesize]
+        \begin{axis}[
+            width=\textwidth, height=4.6cm,
+            symbolic x coords={256,512,1024,2048}, xtick=data,
+            xlabel={\VLEN\ (bits)}, ylabel={total \instret\ ($\times 10^3$)},
+            ymin=650, ymax=720, ymajorgrids,
+            nodes near coords, every node near coord/.append style={font=\scriptsize}]
+          \addplot[mark=*,oiGreen,thick] coordinates {(256,702.8)(512,677.1)(1024,679.5)(2048,703.9)};
+        \end{axis}
+      \end{tikzpicture}
+      \par\footnotesize\textcolor{neutral}{HQC-128, vector\_zvk (Spike). Βέλτιστο ∼512· μικρό όφελος πέραν 256.}
+    \column{0.42\textwidth}
+      \begin{block}{Real silicon (BPI-F3, K1 X60)}
+        \VLEN $=256$, GCC native.\\[0.3em]
+        Scalar (\Zbc/\Zbb) full \KEM:\\ \pos{\speedup{34.3}} (HQC-128).
+      \end{block}
+      \footnotesize \con{HW με \Zvbc/\Zvbb μη διαθέσιμο} — στο silicon τρέχει η scalar έκδοση.
+  \end{columns}
+\end{frame}
+
+% ===================== SUMMARY / CONCLUSION (slides 12-13) ===================
+
+% ---------- 12. Design principles & limitations ------------------------------
+\begin{frame}{Γενικεύσιμες αρχές \& περιορισμοί}
+  \begin{columns}[T]
+    \column{0.54\textwidth}
+      \textbf{Αρχές που γενικεύονται}
+      \begin{itemize}
+        \item ISA-driven tiering: ένα codebase, τρεις στόχοι deployment.
+        \item carry-less multiply ως κεντρική primitive.
+        \item Σε in-order cores η scalar \Zbc\ πλησιάζει τη vector λόγω υψηλότερου IPC.
+      \end{itemize}
+    \column{0.46\textwidth}
+      \textbf{Περιορισμοί}
+      \begin{itemize}
+        \item \con{Δεν υπήρχε HW} με \Zvbc/\Zvbb.
+        \item Μετρήσεις silicon μόνο σε HQC-128.
+      \end{itemize}
+  \end{columns}
+\end{frame}
+
+% ---------- 13. Conclusion ---------------------------------------------------
+\begin{frame}{Συμπεράσματα}
+  \begin{itemize}
+    \item Πρώτη ISA-driven optimized \HQC\ σε RISC-V (pure software).
+    \item \pos{\speedup{167}}--\pos{\speedup{339}} στο πλήρες \KEM\ (\instret), έως \pos{\speedup{547}} στο polymul.
+    \item Επικύρωση σε πραγματικό silicon: \pos{\speedup{34.3}} (scalar, HQC-128).
+    \item Μελλοντικά: HW με vector-crypto, επέκταση HW σε 192/256.
+  \end{itemize}
+  \vfill
+  \centering\HL{Ευχαριστώ — Ερωτήσεις;}
+\end{frame}
+
+% ---------- References -------------------------------------------------------
+\begin{frame}[allowframebreaks]{Αναφορές}
+  % Faithfully transcribed from bibliography/references.bib (IEEE-style).
+  \begin{thebibliography}{9}
+    \footnotesize
+    \bibitem{Shor1997} P.~W. Shor, ``Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer,'' \textit{SIAM J. Comput.}, vol.~26, no.~5, pp.~1484--1509, 1997.
+    \bibitem{AguilarMelchor2018-QCSD} C.~Aguilar-Melchor \textit{et al.}, ``Efficient Encryption From Random Quasi-Cyclic Codes,'' \textit{IEEE Trans. Inf. Theory}, vol.~64, no.~5, pp.~3927--3943, 2018.
+    \bibitem{HQC-spec2024} C.~Aguilar-Melchor \textit{et al.}, ``Hamming Quasi-Cyclic (HQC): Specification,'' NIST PQC Round~4, 2024.
+    \bibitem{HQC-reference-impl} HQC team, ``HQC: Reference Implementation,'' 2024. [Online]. Available: \url{https://gitlab.com/pqc-hqc/hqc}
+    \bibitem{NIST-HQC-selection2025} NIST, ``NIST Selects HQC as Fifth Algorithm for Post-Quantum Encryption,'' press release, Mar.~2025.
+    \bibitem{RISCV-vector-spec} RISC-V International, ``RISC-V `V' Vector Extension, Version 1.0,'' ratified Nov.~2021.
+    \bibitem{Bertoni2013-Keccak} G.~Bertoni, J.~Daemen, M.~Peeters, and G.~Van Assche, ``Keccak,'' in \textit{EUROCRYPT 2013}, LNCS~7881, pp.~313--314, Springer, 2013.
+  \end{thebibliography}
+\end{frame}
+
+% ===================== BACKUP (after \appendix) ==============================
+\appendix
+
+% ---------- B1. ISA ablation -------------------------------------------------
+\begin{frame}{Backup — ISA ablation (polymul, HQC-128)}
+  \begin{center}
+  \begin{tikzpicture}[font=\footnotesize]
+    \begin{axis}[
+        ybar, bar width=18pt, width=0.8\textwidth, height=4.8cm,
+        symbolic x coords={reference,+Zbc,+RVV,+Zvbc}, xtick=data,
+        ymin=0, ymax=360, ylabel={polymul speedup ($\times$)}, ymajorgrids,
+        nodes near coords, every node near coord/.append style={font=\scriptsize},
+        enlarge x limits=0.22]
+      \addplot[fill=neutral!50]  coordinates {(reference,1)};
+      \addplot[fill=oiBlue!70]   coordinates {(+Zbc,86.9)};
+      \addplot[fill=oiOrange!75] coordinates {(+RVV,122.0)};
+      \addplot[fill=oiGreen!75]  coordinates {(+Zvbc,318.2)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{center}
+  \centering\footnotesize\textcolor{neutral}{Αθροιστική συνεισφορά κάθε επιπέδου ISA (\instret\ vs reference).}
+\end{frame}
+
+% ---------- B2. Clang vs GCC -------------------------------------------------
+\begin{frame}{Backup — Clang vs GCC (scalar \Zbc\ leaf)}
+  \begin{itemize}
+    \item Ο scalar optimizer του \HL{GCC} είναι αποδοτικότερος για τον \texttt{clmul} κώδικα.
+    \item \texttt{karatsuba\_zbc} (HQC-128): Clang \num{221026} → GCC \num{195399} εντολές (\pos{$-11.6\%$}).
+    \item Για την RVV έκδοση η διαφορά είναι μικρότερη.
+  \end{itemize}
+  \centering\footnotesize\textcolor{neutral}{Πηγή: results/reports/summaries/compiler\_analysis.}
+\end{frame}
+
+% ---------- B3. Constant-time ------------------------------------------------
+\begin{frame}{Backup — Constant-time επαλήθευση}
+  \begin{itemize}
+    \item Οι βελτιστοποιήσεις διατηρούν data-independent ροή: χωρίς secret-dependent branches/προσπελάσεις μνήμης.
+    \item \texttt{clmul}/\texttt{vclmul}: σταθερός χρόνος εκτέλεσης (κατά κατασκευή).
+    \item Ορθότητα: \pos{KAT 100/100} σε HQC-128/192/256.
+  \end{itemize}
+  \centering\footnotesize\textcolor{neutral}{Λεπτομέρειες: Κεφ. 5 (μεθοδολογία) \& Κεφ. 9 (αποτελέσματα).}
+\end{frame}
+
+% ---------- B4. Code size vs performance -------------------------------------
+\begin{frame}{Backup — Code size vs performance}
+  \begin{itemize}
+    \item Vector paths: υψηλότερη απόδοση με κόστος σε μέγεθος κώδικα.
+    \item Scalar \Zbc: \HL{καλύτερος συμβιβασμός} size/perf για constrained συσκευές.
+    \item Η επιλογή tier εξαρτάται από το deployment target.
+  \end{itemize}
+  \centering\footnotesize\textcolor{neutral}{Ανάλυση: Κεφ. 6 (§ Code Size vs Performance) \& Κεφ. 9.}
+\end{frame}
+
+\end{document}

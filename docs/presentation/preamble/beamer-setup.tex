@@ -1,0 +1,61 @@
+% =============================================================================
+% Beamer setup for the defense deck: theme, fonts/polyglossia, packages,
+% semantic colors and domain macros. Included from presentation.tex via
+%   \input{preamble/beamer-setup}
+% =============================================================================
+
+% --- Theme -------------------------------------------------------------------
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{caption}[numbered]
+
+% --- Fonts & language (match thesis: Libertinus + Fira Mono, monotonic Greek) -
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage[variant=monotonic]{greek}
+\setotherlanguage{english}
+\setmainfont{Libertinus Serif}
+\setsansfont{Libertinus Sans}
+\setmonofont{Fira Mono}[Scale=MatchLowercase]
+% Fira Mono lacks Greek glyphs; give polyglossia a Greek-capable mono
+% (same choice as the thesis preamble) to avoid the "Greek script" error.
+\newfontfamily\greekfonttt{DejaVu Sans Mono}[Scale=MatchLowercase]
+
+% --- Math, tables, plots -----------------------------------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{xspace}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\sisetup{detect-all,group-separator={.},group-minimum-digits=4}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% --- Semantic colors (colorblind-safe; tiers match thesis palette) -----------
+\definecolor{oiBlue}{HTML}{0072B2}      % Tier 1 — scalar bit-manip (Zb*)
+\definecolor{oiOrange}{HTML}{E69F00}    % Tier 2 — vector (RVV)
+\definecolor{oiGreen}{HTML}{009E73}     % Tier 3 — vector-crypto (Zvbc/Zvbb)
+\definecolor{oiVermillion}{HTML}{D55E00}% threat / warning
+\definecolor{neutral}{HTML}{7F7F7F}     % muted / previously-shown
+\newcommand{\pos}[1]{\textcolor{oiGreen}{#1}}      % positive / result
+\newcommand{\con}[1]{\textcolor{oiVermillion}{#1}} % caveat / cost
+\newcommand{\HL}[1]{\textcolor{oiBlue}{\textbf{#1}}} % key emphasis
+
+% --- Domain macros (local copies of the thesis macros used here) -------------
+\newcommand{\HQC}{\textsc{HQC}\xspace}
+\newcommand{\KEM}{\textsc{KEM}\xspace}
+\newcommand{\KeyGen}{\textsc{KeyGen}\xspace}
+\newcommand{\Encaps}{\textsc{Encaps}\xspace}
+\newcommand{\Decaps}{\textsc{Decaps}\xspace}
+\newcommand{\ext}[1]{\textsf{#1}}
+\newcommand{\Zbc}{\ext{Zbc}\xspace}
+\newcommand{\Zbb}{\ext{Zbb}\xspace}
+\newcommand{\Zvbc}{\ext{Zvbc}\xspace}
+\newcommand{\Zvbb}{\ext{Zvbb}\xspace}
+\newcommand{\instret}{\texttt{instret}\xspace}
+\newcommand{\speedup}[1]{$\times$#1}
+\newcommand{\GFpoly}{\ensuremath{\mathbb{F}_2[x]}}
+\newcommand{\VLEN}{\texttt{VLEN}\xspace}
