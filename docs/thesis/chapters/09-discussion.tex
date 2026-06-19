@@ -46,7 +46,7 @@ Tier~3 (\code{vector\_zvk}) επιτυγχάνει \instret της ίδιας τ
 μεγέθους με τον x86-64 champion — ο λόγος \Decaps ανέρχεται σε
 $\num{386447}$ \instret έναντι \num{245000} κύκλων ($1.58\times$ σε δυναμικές εντολές· σε εκτιμώμενους κύκλους ρολογιού, μετά από CPI adjustment, το ρεαλιστικό χάσμα ανέρχεται σε $\approx 2.7\times$, βλ.\ \cref{ssec:methodology-caveat}).  Δεύτερον, η απόσταση από τον Cortex-M4 champion
 ανέρχεται σε $\num{7502580} / \num{386447} = 19.4\times$ — αντικατοπτρίζοντας
-άμεσα την αξία του hardware carry-less multiply.  Τρίτον, η παρούσα
+άμεσα την αξία του hardware carry-less πολλαπλασιασμού.  Τρίτον, η παρούσα
 υλοποίηση υπερτερεί κατά $\num{38099269} / \num{386447} = 98.6\times$ έναντι
 της pure-software FAFFT σε scalar RISC-V — τεκμηριώνοντας ότι η αλγοριθμική
 ανωτερότητα $\BigO{n \log n}$ δεν εκδηλώνεται χωρίς κατάλληλη hardware
@@ -152,8 +152,8 @@ $\GFpoly$, θεωρητικά ανώτερη από τον Karatsuba ($\BigO{n^{
 
 \paragraph{Εντατική αναδιάταξη δεδομένων.}
 Κάθε στάδιο butterfly του FAFFT απαιτεί αναδιάταξη λωρίδων δεδομένων (lane
-permutations) που δεν αντιστοιχούν σε φυσικά cache-aligned μπλοκ.  Σε
-απουσία vector permutation εντολών (\insn{vrgather.vv}), κάθε ανακατανομή
+μεταθέσεις) που δεν αντιστοιχούν σε φυσικά cache-aligned μπλοκ.  Σε
+απουσία διανυσματικών εντολών μετάθεσης (\insn{vrgather.vv}), κάθε ανακατανομή
 επιβαρύνεται με πολλαπλές εντολές load/store, αυξάνοντας δραματικά τον
 αριθμό δυναμικών εντολών.
 
@@ -187,14 +187,14 @@ $\GF{2}[x]$ (πολυωνυμική αναπαράσταση) — δεν υπο�
 
 Ο x86-64 FFT+CRT champion \cite{Chen2026-TCHES-HQC-FFT} αποτελεί τη βέλτιστη
 δημοσιευμένη υλοποίηση \gls{hqc} σε οποιαδήποτε πλατφόρμα.  Η υλοποίηση
-αξιοποιεί AVX2 SIMD με \code{PCLMULQDQ} (128-bit carry-less multiply) και
+αξιοποιεί AVX2 SIMD με \code{PCLMULQDQ} (128-bit carry-less πολλαπλασιασμός) και
 GFNI (Galois Field New Instructions) στον AMD EPYC 9754 (x86-64).
 Η ανάλυση του εναπομένοντος χάσματος ($1.63\times$
 σε δυναμικές εντολές, $\approx 2.8\times$ σε εκτιμώμενους κύκλους) αποκαλύπτει τρεις
 δομικούς παράγοντες.
 
 \paragraph{Εύρος SIMD και register file.}
-Η εντολή \code{PCLMULQDQ} εκτελεί $1 \times 64$-bit carry-less product ανά
+Η εντολή \code{PCLMULQDQ} εκτελεί $1 \times 64$-bit carry-less γινόμενο ανά
 εντολή σε 128-bit XMM registers, ενώ ο AVX2 encoding επιτρέπει λειτουργία
 σε 256-bit YMM registers.  Η αντίστοιχη \vclmul στο
 \VLEN$= \num{256}$ επεξεργάζεται $4 \times 64$-bit products σε LMUL$=$m1 —
@@ -216,7 +216,7 @@ scheduling.
 \paragraph{Αλγοριθμική ωριμότητα: FFT+CRT έναντι Karatsuba.}
 Η υλοποίηση \cite{Chen2026-TCHES-HQC-FFT} αξιοποιεί additive FFT σε
 συνδυασμό με CRT decomposition — αλγοριθμική προσέγγιση που μειώνει τον
-αριθμό carry-less multiplications στο asymptotic regime.  Η παρούσα εργασία
+αριθμό carry-less πολλαπλασιασμών στο asymptotic regime.  Η παρούσα εργασία
 χρησιμοποιεί Karatsuba AP-2 ($\BigO{n^{1.585}}$), ο οποίος υπερτερεί σε
 πρακτικά μεγέθη χωρίς GFNI αλλά παράγει περισσότερες XOR operations στα
 combine stages.  Επιπλέον, η x86-64 υλοποίηση αξιοποιεί δεκαετίες
@@ -238,7 +238,7 @@ RISC-V vector crypto υποστήριξη στον LLVM βρίσκεται ακ�
 \label{ssec:cross-arch-summary}
 
 Η ετερογενής σύγκριση αποκαλύπτει τρία θεμελιώδη ευρήματα.  Πρώτον, η
-παρουσία hardware carry-less multiply αποτελεί τον κυρίαρχο παράγοντα
+παρουσία hardware carry-less πολλαπλασιασμού αποτελεί τον κυρίαρχο παράγοντα
 απόδοσης σε code-based \gls{pqc} — η διαφορά μεταξύ αρχιτεκτονικών με
 (\gls{zbc}, \code{PCLMULQDQ}, \code{PMULL}) και χωρίς (Cortex-M4) τέτοια
 υποστήριξη υπερβαίνει μία τάξη μεγέθους.  Δεύτερον, η ασυμπτωτική
@@ -291,7 +291,7 @@ hardware δυνατοτήτων και αλγοριθμικής απόδοσης
 Η ιεραρχία συνεισφοράς αποκαλύπτει σαφή δομή.  Η \gls{zbc} αποτελεί τη
 θεμελιώδη extension — η εντολή \clmul μετασχηματίζει τον πολυωνυμικό
 πολλαπλασιασμό από $\BigO{n^2}$ bit-serial πράξεις σε $\BigO{n}$
-word-level carry-less products, παρέχοντας μείωση \pct{99} στο \instret
+word-level carry-less γινόμενα, παρέχοντας μείωση \pct{99} στο \instret
 του \code{vect\_mul} (από \cycles{19214277} σε \cycles{221030}, HQC-128) και
 \pct{96} στο \instret \Decaps ολοκλήρου του \gls{kem} (βήμα Baseline→+\Zbc
 στο~\cref{fig:waterfall-ablation}).  Η \gls{zvbc} επεκτείνει αυτή τη δυνατότητα στο vector
@@ -515,7 +515,7 @@ Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
 \vclmul εκτελεί carry-less πολλαπλασιασμό (XOR αντί ADD στα partial
 products) — μια σημασιολογία που δεν αντιστοιχεί σε κανένα standard C
 operator.  Ο μεταγλωττιστής δεν μπορεί να αναγνωρίσει ότι ένας generic
-shift-and-XOR loop υλοποιεί carry-less multiplication, διότι η
+shift-and-XOR loop υλοποιεί carry-less πολλαπλασιασμό, διότι η
 αντιστοίχιση απαιτεί αλγοριθμική γνώση πέρα από pattern matching.
 
 \paragraph{Αρχιτεκτονική συνέπεια.}
@@ -526,24 +526,24 @@ shift-and-XOR loop υλοποιεί carry-less multiplication, διότι η
 \code{\_\_riscv\_vror\_vv\_u64m1()}).  Η διαφοροποίηση δεν είναι
 αυθαίρετη — αντικατοπτρίζει ένα θεμελιώδες όριο στη δυνατότητα
 αυτόματης βελτιστοποίησης: ο μεταγλωττιστής μπορεί να αναγνωρίσει
-\emph{αριθμητικά} patterns (rotate, shift-add) αλλά όχι
-\emph{αλγεβρικά} patterns (carry-less multiplication σε $\GFpoly$).
+\emph{αριθμητικά} patterns (περιστροφή, shift-add) αλλά όχι
+\emph{αλγεβρικά} patterns (carry-less πολλαπλασιασμός σε $\GFpoly$).
 
 \paragraph{Zbb: υποχρεωτική extension χωρίς manual intervention.}
 Η ανάλυση ablation στο Tier~1 champion (\code{scalar\_zb}) αποκαλύπτει
 ότι η αφαίρεση \gls{zbb} εισάγει $+\pct{10.31}$ επιβάρυνση (επί συνολικού \gls{kem}) στο HQC-128 \gls{kem}
 (βλ.\ \cref{tab:zbb-ablation-tier1}).  Η επιβάρυνση προέρχεται
 αποκλειστικά από τον Keccak πυρήνα: καθένα από τα \num{58} \emph{στατικά} \rori sites (ανά ELF) εκτείνεται από μία εντολή \rori σε τρεις εντολές
-(\code{slli + srli + or}), δηλαδή $+\num{116}$ στατικές εντολές· το δυναμικό κόστος ($+\num{355789}$ \instret στο HQC-128) προκύπτει από τις πολλές permutation κλήσεις κατά τη \Decaps.  Η φθίνουσα τάση ($\pct{10.31}$ στο L128 →
+(\code{slli + srli + or}), δηλαδή $+\num{116}$ στατικές εντολές· το δυναμικό κόστος ($+\num{355789}$ \instret στο HQC-128) προκύπτει από τις πολλές κλήσεις μετάθεσης κατά τη \Decaps.  Η φθίνουσα τάση ($\pct{10.31}$ στο L128 →
 $\pct{5.99}$ στο L256) επιβεβαιώνει φαινόμενο Amdahl: ο Karatsuba
 πολυωνυμικός πολλαπλασιασμός κλιμακώνεται υπεργραμμικά με το security
-level, ενώ ο αριθμός Keccak rotations παραμένει σταθερός.
+level, ενώ ο αριθμός περιστροφών Keccak παραμένει σταθερός.
 
 \begin{table}[htbp]
   \centering
   \caption{Ablation \Zbb στο Tier~1 champion (\code{scalar\_zb}).
     Η αφαίρεση \Zbb εκτείνει κάθε \rori σε τρεις εντολές, εισάγοντας
-    \num{116} πρόσθετες \emph{στατικές} εντολές (\num{58} sites $\times 2$)· το δυναμικό κόστος προκύπτει από τις πολλές permutation κλήσεις.
+    \num{116} πρόσθετες \emph{στατικές} εντολές (\num{58} sites $\times 2$)· το δυναμικό κόστος προκύπτει από τις πολλές κλήσεις μετάθεσης.
     Η στήλη \q{Με \gls{zbb}} προέρχεται από τα τρέχοντα variant reports
     (commit \code{20def7e}).  Η στήλη \q{Χωρίς \gls{zbb}} υπολογίζεται
     ως $\text{Με Zbb} + \Delta$, όπου $\Delta$ αντλείται από το
@@ -684,7 +684,7 @@ $6.66\times$ μεγαλύτερο μέγεθος κώδικα από τη refere
 \SI{56.1}{\kilo\byte} — υπερβαίνει την L1i αλλά χωρά πλήρως στην L2
 (\SI{512}{\kilo\byte} ανά cluster).  Η working-set ανάλυση
 αποκαλύπτει ότι ο hot path κατά τη \Decaps (polymul leaf + Keccak
-permutation + combine loops) δεν υπερβαίνει τα \SI{12}{\kilo\byte} —
+μετάθεση + combine loops) δεν υπερβαίνει τα \SI{12}{\kilo\byte} —
 πολύ εντός της L1i.  Η I-cache pressure αφορά μόνο cold-start transitions
 μεταξύ πυρήνων (polymul → Keccak → decode), οι οποίες συμβαίνουν
 σπάνια εντός μίας \Decaps κλήσης ($< 10$ transitions).
@@ -763,7 +763,7 @@ bit-serial schoolbook ($64n$ conditional shift-XOR ανά ζεύγος words) μ
 Η αρχή γενικεύεται σε κάθε αλγόριθμο που βασίζεται σε πολυωνυμικό
 πολλαπλασιασμό στο $\GFpoly$: BIKE (QC-MDPC decoding), AES-GCM (GHASH
 authentication), CRC-32 (Ethernet/storage checksums), και binary BCH codes.
-Σε κάθε περίπτωση, η παρουσία hardware carry-less multiply αποτελεί τον
+Σε κάθε περίπτωση, η παρουσία hardware carry-less πολλαπλασιασμού αποτελεί τον
 κυρίαρχο παράγοντα απόδοσης — η αλγοριθμική πολυπλοκότητα ($\BigO{n^2}$
 schoolbook, $\BigO{n^{1.585}}$ Karatsuba, $\BigO{n \log n}$ FFT) καθίσταται
 δευτερεύουσα όταν η σταθερά ανά leaf operation μειώνεται κατά $64\times$.
@@ -822,8 +822,8 @@ fixed-width SIMD intrinsics — εισάγει maintenance burden ανάλογο
 Η ανάλυση ablation (\cref{ssec:ablation-auto-lowering}) τεκμηρίωσε ένα
 θεμελιώδες όριο: ο μεταγλωττιστής αναγνωρίζει αξιόπιστα \emph{αριθμητικά}
 patterns (rotate → \rori, shift-add → \insn{sh3add}) αλλά αδυνατεί να
-συνθέσει \emph{αλγεβρικά} primitives (carry-less multiplication, vector
-rotations σε crypto context) από generic C.  Η παρατήρηση αυτή δεν
+συνθέσει \emph{αλγεβρικά} primitives (carry-less πολλαπλασιασμός, vector
+περιστροφές σε crypto context) από generic C.  Η παρατήρηση αυτή δεν
 αποτελεί σφάλμα μεταγλωττιστή — αντικατοπτρίζει θεμελιώδη σημασιολογική
 ασυμμετρία.
 
@@ -839,7 +839,7 @@ rotations σε crypto context) από generic C.  Η παρατήρηση αυτ
   \item \textbf{Πάνω από το όριο} (vector crypto operations): ρητά intrinsics
     είναι υποχρεωτικά.  Η εντολή \vclmul δεν εκπέμπεται ποτέ αυτόματα —
     ο μεταγλωττιστής δεν μπορεί να αναγνωρίσει ότι ένας shift-and-XOR loop
-    υλοποιεί carry-less multiplication.
+    υλοποιεί carry-less πολλαπλασιασμό.
 \end{itemize}
 
 Η αρχή γενικεύεται σε κάθε domain-specific ISA extension: οι εντολές AES
@@ -1231,7 +1231,7 @@ wall-clock κόστους ανά \Decaps κλήση.
 Τρεις παρατηρήσεις αναδεικνύονται.  Πρώτον, όλες οι βελτιστοποιημένες
 υλοποιήσεις περνούν με t-statistics πολύ κάτω από το threshold $4.5$ —
 τεκμηριώνοντας ότι οι βελτιστοποιήσεις (Karatsuba recursion, \gls{zbc}
-carry-less multiply, \RVV vectorization) δεν εισάγουν timing
+carry-less πολλαπλασιασμός, \RVV vectorization) δεν εισάγουν timing
 side-channels.  Δεύτερον, ο first-order test ($t_1$) αποτυπώνει raw
 timing distribution differences, ενώ ο second-order ($t_2$, percentile-cropped)
 αποτυπώνει λεπτότερη διαρροή μετά την αφαίρεση OS/interrupt θορύβου.

@@ -88,7 +88,7 @@ Schöffel, Feldmann και Wehn (RPTU/TU Kaiserslautern) το
 εφαρμογές, βασισμένο σε custom RV32IC πυρήνα και τρεις loosely-coupled
 accelerators συνδεδεμένους μέσω AXI4-Lite: (α)~$R$-Unit για πολυωνυμικό
 πολλαπλασιασμό/πρόσθεση στον δακτύλιο $\GF{2}[x]/(x^n-1)$, (β)~Sampling-Unit που
-ενσωματώνει Keccak permutation και rejection sampling, και (γ)~RM-Decoder μέσω
+ενσωματώνει μετάθεση Keccak και rejection sampling, και (γ)~RM-Decoder μέσω
 Hadamard Transform· επιπλέον, μία custom R-type εντολή (F$2^8$-Unit) επιταχύνει
 τον πολλαπλασιασμό στο $\GF{2^8}$ για τον \gls{rs} κωδικοποιητή/αποκωδικοποιητή.
 
@@ -122,7 +122,7 @@ Frobenius map για μείωση των σημείων αξιολόγησης �
 
 Η FAFFT-based υλοποίηση επιτυγχάνει \speedup{3.52}–\speedup{8.08} έναντι του
 reference 2-way Karatsuba (ανάλογα με το security level)· η ασυμμετρία οφείλεται
-στο ότι η FAFFT απαιτεί $\sim\BigO{n \log n}$ πράξεις έναντι
+στο ότι η FAFFT απαιτεί περίπου $\BigO{n \log n}$ πράξεις στο $\GF{2^m}$ (με επιπλέον λογαριθμικό κόστος πολλαπλασιασμού ανά layer) έναντι
 $\BigO{n^{\log_2 3}}$ του Karatsuba, με το πλεονέκτημα να αυξάνεται με το μέγεθος
 πολυωνύμου. Ο ANDROMEDA accelerator υλοποιεί τις FFT-based πράξεις (FFTLCH,
 IFFTLCH, PWM) μέσω configurable Carry-Free Butterfly unit με 2-cycle pipeline
@@ -240,8 +240,8 @@ multiplications μέσω \vclmul — μία ορθογώνια στρατηγι�
 επεξεργαστές Intel Core i7. Συνδυάζει τρεις βελτιστοποιήσεις: (α)~adaptive
 sparse$\times$dense πολλαπλασιασμό με threshold-aware scheduler που επιλέγει
 δυναμικά μεταξύ sparse και dense κλάδου βάσει του βάρους Hamming, με τη
-μετατόπιση να αποσυντίθεται σε coarse word rotation και fine intra-word bit
-rotation πάνω σε AVX2-aligned buffers· (β)~AVX-parallel SHAKE με
+μετατόπιση να αποσυντίθεται σε coarse word περιστροφή και fine intra-word bit
+περιστροφή πάνω σε AVX2-aligned buffers· (β)~AVX-parallel SHAKE με
 lane-interleaved 256-bit loads/stores (\speedup{2} στο SHAKE)· και
 (γ)~table-driven Reed-Solomon που αντικαθιστά τον πολλαπλασιασμό στο $\GF{2^8}$
 με precomputed lookup tables ($\sim$8\,KB για encode, $\sim$14\,KB nibble-sliced
@@ -267,7 +267,7 @@ x86/ARM· το ανοιχτό ερώτημα — που καλύπτει η πα
 \label{sec:rw-other}
 
 Οι υπόλοιπες εργασίες δεν αποτελούν άμεσα συγκρίσιμα σημεία —είτε εισάγουν
-μη-επικυρωμένο ISE, είτε αφορούν dedicated hardware ή lattice-based σχήματα— και
+μη-επικυρωμένο ISE, είτε αφορούν custom hardware ή lattice-based σχήματα— και
 συμπυκνώνονται σε σύντομες αναφορές· οι σημαντικότερες συνοδεύονται από
 αντίστοιχη γραμμή στον \cref{tab:rw-riscv-summary}.
 
@@ -299,7 +299,7 @@ ratified extensions· η σημασία της crypto-agility ως σχεδια�
 Πέρα από τα μεθοδολογικά ανάλογα της \cref{sec:rw-analogs}, αρκετές εργασίες
 συμπληρώνουν το τοπίο σε πλατφόρμες χωρίς ratified RISC-V επεκτάσεις. Οι Jang et
 al.~\cite{Jang2025-CortexM4-HQC} στοχεύουν τον ARM Cortex-M4 (χωρίς hardware
-carry-less multiply) με Hybrid FAFFT-CRT/Karatsuba, επιτυγχάνοντας \pct{33.4}
+carry-less πολλαπλασιασμός) με Hybrid FAFFT-CRT/Karatsuba, επιτυγχάνοντας \pct{33.4}
 (HQC-1) και \pct{27.2} (HQC-3) μείωση κύκλων πολυωνυμικού πολλαπλασιασμού (έως
 \pct{23.7}/\pct{24.2}/\pct{21.9} σε \KeyGen/\Encaps/\Decaps)· η απουσία \insn{clmul}
 καθιστά τη \gls{fafft} αναγκαστική επιλογή, σε αντίθεση με τη RISC-V
@@ -307,7 +307,7 @@ carry-less multiply) με Hybrid FAFFT-CRT/Karatsuba, επιτυγχάνοντα
 al.~\cite{Chen2021-BIKE-Haswell-M4} αποτελεί σημείο αναφοράς για code-based
 πολυωνυμικό πολλαπλασιασμό (5-way recursive Bernstein στο ανώτερο επίπεδο
 αναδρομής με Karatsuba στα κατώτερα στο Haswell, additive FFT στον M4), αν και
-στοχεύει τον BIKE. Σε επίπεδο dedicated hardware, οι Deshpande
+στοχεύει τον BIKE. Σε επίπεδο custom hardware, οι Deshpande
 et al.~\cite{Deshpande2023-HQC-HW} παρουσίασαν πλήρη FPGA υλοποίηση του \gls{hqc}
 με pipelined πολλαπλασιασμό, shared SHAKE module και dual-clock αρχιτεκτονική, ο LEAP
 accelerator~\cite{LEAP2024-sparse-polymul} βελτιστοποιεί τον sparse$\times$dense

@@ -63,7 +63,7 @@ effects (\cref{sec:hw-evaluation}).  Ο scalar path επιτυγχάνει IPC $
 
 \paragraph{Σχεδιαστικές αρχές}
 Η εργασία ανέδειξε τέσσερις γενικεύσιμες αρχές (\cref{sec:general-principles}):
-(1)~η αποδοτικότητα του carry-less multiply ως θεμελιώδης μοχλός για $\GFpoly$
+(1)~η αποδοτικότητα του carry-less πολλαπλασιασμού ως θεμελιώδης μοχλός για $\GFpoly$
 αριθμητική, (2)~η αξία του Vector-Length Agnosticism σε κρυπτογραφικά workloads,
 (3)~τα όρια auto-vectorization σε crypto kernels, και (4)~η υπεροχή
 metaprogramming (code generation) έναντι hand-tuning για βαθιά αναδρομικούς
@@ -207,7 +207,7 @@ amortization του Keccak overhead μέσω $N$-way batched SHAKE.  Η 2-way \g
 
 \paragraph{Εντολή \code{vkeccak.vi} (RISC-V PQC Task Group — υπό τυποποίηση)}
 Η ομάδα εργασίας PQC του RISC-V International έχει ξεκινήσει επίσημη διαδικασία
-τυποποίησης αφιερωμένης εντολής Keccak permutation (\code{vkeccak.vi}) υπό τον
+τυποποίησης αφιερωμένης εντολής μετάθεσης Keccak (\code{vkeccak.vi}) υπό τον
 κωδικό RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}.  Το δημοσιευμένο πλάνο θέτει
 στόχο τελικής τυποποίησης (v1.0) έως τον Δεκέμβριο 2026, αν και η προδιαγραφή
 βρίσκεται ακόμη σε πρώιμο στάδιο ανάπτυξης και το χρονοδιάγραμμα παραμένει
@@ -219,7 +219,7 @@ vector unit, αξιοποιώντας register group αρκετά μεγάλο �
 floor στην τρέχουσα υλοποίηση (\pct{27.4} του Tier~3 \gls{kem} \instret,
 \cref{tab:kernel-redistribution}).  Βάσει
 προκαταρκτικών benchmarks σε SpacemiT X60~\cite{Saarinen2024-vkeccak}, η εντολή
-μειώνει το κόστος μίας Keccak permutation από $\sim$\num{2000} σε $\sim$\num{30}
+μειώνει το κόστος μίας μετάθεσης Keccak από $\sim$\num{2000} σε $\sim$\num{30}
 κύκλους, αποφέροντας βελτίωση \speedup{12.74} σε scheme-level Kyber-768
 (NTT + \code{vkeccak.vi}).  Δεδομένου του \pct{27.4} μεριδίου του Keccak στον
 Tier~3 \gls{hqc} \gls{kem} \instret, μια προκαταρκτική προβολή — βασισμένη σε

@@ -81,14 +81,14 @@ $\text{vl}=25$ στο \VLEN{}=\num{256}), και τα βήματα $\rho$/$\pi$ 
 \insn{vrgather.vv}.
 
 Η κρίσιμη αδυναμία εντοπίζεται στο βήμα $\rho$: χωρίς την εντολή
-\insn{vror.vv} (η οποία απαιτεί \gls{zvbb}), κάθε lane rotation αναλύεται σε
+\insn{vror.vv} (η οποία απαιτεί \gls{zvbb}), κάθε lane περιστροφή αναλύεται σε
 τρεις εντολές — \insn{vsll.vv} + \insn{vsrl.vv} + \insn{vor.vv}.  Δεδομένου
 ότι κάθε γύρος εκτελεί \num{25} περιστροφές, η τριπλασιασμένη εντολική
 δαπάνη ($25 \times 2 \times 24 = \num{1200}$ επιπλέον εντολές ανά
-permutation) υπερκαλύπτει κάθε κέρδος παραλληλισμού.
+μετάθεση) υπερκαλύπτει κάθε κέρδος παραλληλισμού.
 
 Η μέτρηση σε Spike επιβεβαίωσε την υπόθεση: η Base-\RVV υλοποίηση απαιτεί
-\cycles{7100} \instret ανά απομονωμένη Keccak-f[1600] permutation, έναντι
+\cycles{7100} \instret ανά απομονωμένη μετάθεση Keccak-f[1600], έναντι
 \cycles{4680} του scalar reference — αύξηση \pct{52}.  Η
 \emph{διανυσματοποίηση επιδεινώνει} την απόδοση αντί να τη βελτιώνει.
 
@@ -114,9 +114,9 @@ $\rho$/$\pi$), και \insn{bcax} (bit-clear-and-XOR για $\chi$).  Κάθε �
 
 \begin{table}[htbp]
   \centering
-  \caption{Εντολικό κόστος Keccak rotation ανά ISA configuration.  Η στήλη
+  \caption{Εντολικό κόστος περιστροφής Keccak ανά ISA configuration.  Η στήλη
            \q{instret/perm} αναφέρεται σε απομονωμένη Keccak-f[1600]
-           permutation μετρημένη σε Spike (\VLEN{}=\num{256}).}
+           μετάθεση μετρημένη σε Spike (\VLEN{}=\num{256}).}
   \label{tab:keccak-rotation-cost}
   \input{figures/ch7-kernels/keccak-rotation-comparison}
 \end{table}
@@ -141,7 +141,7 @@ group και χρησιμοποίησε \insn{vrgather.vv} για το $\pi$ ste
 για το $\rho$, και \insn{vandn.vv} για το $\chi$.  Τέσσερις πίνακες
 σταθερών δεικτών (\code{pi\_src[25]}, \code{ror\_amounts[25]},
 \code{chi\_x1[25]}, \code{chi\_x2[25]}) επαναφορτώνονταν από μνήμη σε κάθε
-γύρο — $4 \times 24 = 96$ εντολές \insn{vle64.v} ανά permutation.  Η
+γύρο — $4 \times 24 = 96$ εντολές \insn{vle64.v} ανά μετάθεση.  Η
 προφόρτωση (hoisting) εκτός βρόχου μείωσε τις φορτώσεις, αλλά αποκάλυψε
 ένα δομικό αρχιτεκτονικό εμπόδιο.
 
@@ -176,7 +176,7 @@ $48 \times \insn{vse64.v} + 48 \times \insn{vle64.v}$ — κόστος που
         σταθερές \code{src}, \code{dst}, \code{amount}.
   \item Το βήμα $\chi$ λειτουργεί απευθείας σε γειτονικά στοιχεία πίνακα
         (\code{B[base+0]} έως \code{B[base+4]}) μέσω row-local macro —
-        χωρίς καμία εντολή permutation.
+        χωρίς καμία εντολή μετάθεσης.
   \item Η εφαρμογή $\theta$ (D-application) αναπτύσσεται πλήρως σε \num{25}
         ρητές \insn{vxor} προτάσεις, εξαλείφοντας τη φόρτωση δεικτών
         column ανά γύρο.
@@ -200,7 +200,7 @@ SHAKE contexts εντός μίας \gls{kem} κλήσης είναι $N=2$ (στ
 
 \paragraph{Ποσοτικά αποτελέσματα.}
 Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2}) επιτυγχάνει
-\cycles{2114} \instret ανά απομονωμένη Keccak-f[1600] permutation — μείωση
+\cycles{2114} \instret ανά απομονωμένη μετάθεση Keccak-f[1600] — μείωση
 \pct{55} έναντι του scalar reference (\cycles{4680}) και \pct{70} έναντι
 της Base-\RVV (\cycles{7100}).  Σε επίπεδο πλήρους \gls{kem} (Tier~3,
 \code{vector\_zvk}), η ενσωμάτωση του 2-way \gls{soa} στο \KeyGen
@@ -212,7 +212,7 @@ SHAKE contexts εντός μίας \gls{kem} κλήσης είναι $N=2$ (στ
 \subsection{Βελτιστοποιήσεις Absorb/Squeeze I/O}
 \label{ssec:keccak-io}
 
-Πέρα από τον permutation core, οι φάσεις absorb και squeeze αποτελούν
+Πέρα από τον πυρήνα μετάθεσης, οι φάσεις absorb και squeeze αποτελούν
 δευτερεύον hotspot.  Η reference υλοποίηση χρησιμοποιεί δύο
 instruction-heavy patterns: (α) byte-by-byte XOR βρόχο στη
 \code{keccak\_xor\_bytes} για την εισαγωγή δεδομένων στην κατάσταση, και
@@ -306,7 +306,7 @@ $\BigO{\delta^2}$ πολλαπλασιασμούς.
 Η \gls{zbb} δεν συνεισφέρει στο decode path: ο \gls{rm} hadamard χρησιμοποιεί
 πρόσθεση/αφαίρεση \code{int16}, ενώ η \code{gf\_reduce} χρησιμοποιεί
 ολισθήσεις και XOR — κανένα pattern δεν αντιστοιχεί σε \gls{zbb} εντολές
-(rotation, \insn{andn}, count-leading-zeros).
+(περιστροφή, \insn{andn}, count-leading-zeros).
 
 %% --------------------------------------------------------------------------
 \subsection{Base-RVV Path: Διανυσματοποίηση RM και RS Syndromes}
@@ -1051,7 +1051,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
         packing ή bit-interleave patterns στα hot paths — η $\GF{2^8}$
         αριθμητική χρησιμοποιεί lookup tables αντί bitwise field πράξεων.
   \item \textbf{\ext{Zbkc}} (\insn{clmul}, \insn{clmulh} — crypto-oriented
-        υποσύνολο carry-less multiply): μηδενική επιπλέον ωφέλεια.  Οι εντολές
+        υποσύνολο carry-less πολλαπλασιασμού): μηδενική επιπλέον ωφέλεια.  Οι εντολές
         \code{clmul}/\code{clmulh} παρέχονται ήδη από τη \ext{Zbc} (baseline),
         οπότε η \ext{Zbkc} είναι πλεονάζουσα· επιπλέον τα inline assembly blocks
         αποκλείουν τη compiler substitution.

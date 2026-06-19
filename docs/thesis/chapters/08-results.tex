@@ -90,9 +90,9 @@ $(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκω
     ($H(\mathit{ek})\ 32 + \sigma\ 16 + u\ 2209 + v\ 2208 + \text{salt}\ 16 + \text{domain}\ 1$).
 \end{enumerate}
 Συνολικά εκτελούνται $\sim$6 XOF/hash αρχικοποιήσεις και
-62, 118 ή 181 Keccak-f[1600] permutations για HQC-128, HQC-192 και
+62, 118 ή 181 μεταθέσεις Keccak-f[1600] για HQC-128, HQC-192 και
 HQC-256 αντίστοιχα (μετρήθηκαν από το Spike \instret και το
-κόστος ανά permutation $\approx\num{2114}$ εντολών στο Tier~3). Η μέτρηση
+κόστος ανά μετάθεση $\approx\num{2114}$ εντολών στο Tier~3). Η μέτρηση
 \emph{δεν} περιλαμβάνει \code{vect\_mul} ή \code{code\_decode} (μετρούνται
 ξεχωριστά), αλλά περιλαμβάνει το κόστος vector sampling (rejection loops,
 bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχώριστο από τη SHAKE squeeze.
@@ -110,7 +110,7 @@ bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχ�
 \end{table}
 
 Η σταθερότητα του speedup μεταξύ security levels ($\speedup{3.72}$–$\speedup{3.89}$)
-επιβεβαιώνει ότι η βελτίωση προέρχεται από τον permutation core (σταθερό
+επιβεβαιώνει ότι η βελτίωση προέρχεται από τον πυρήνα μετάθεσης (σταθερό
 κόστος ανά κλήση) και όχι από τις I/O φάσεις (γραμμικές ως προς το μέγεθος
 εισόδου). Η αύξηση code size κατά \SI{5}{\kilo\byte} αντικατοπτρίζει τον
 ξεδιπλωμένο 2-way SoA πυρήνα — αποδεκτό trade-off δεδομένου ότι ο Keccak
@@ -163,7 +163,7 @@ levels στο Tier~3 ($\num{56326} \to \num{72012} \to \num{146513}$)
 για το HQC-128. Η ασυμμετρία μεταξύ πυρήνων — \speedup{318} polymul
 έναντι \speedup{3.5} Keccak — αντικατοπτρίζει τη θεμελιώδη διαφορά στην
 αλγοριθμική δομή: ο πολυωνυμικός πολλαπλασιασμός μετασχηματίζεται πλήρως
-μέσω Karatsuba decomposition $+$ hardware carry-less multiply, ενώ ο Keccak
+μέσω Karatsuba decomposition $+$ hardware carry-less πολλαπλασιασμού, ενώ ο Keccak
 περιορίζεται από τη σταθερή 25-lane κατάσταση και τις σειριακές εξαρτήσεις
 μεταξύ γύρων.
 
@@ -368,7 +368,7 @@ extensions παρέχει σημαντική επιτάχυνση σε ολόκ�
     $(N_{256}/N_{128})^2 = 3.26^2 = 10.6$.
   \item \textbf{Polymul (Karatsuba~\cite{Karatsuba1962}):} $\BigO{N^{\log_2 3}} \approx
     \BigO{N^{1.585}}$ — αναμενόμενος λόγος $3.26^{1.585} = 6.5$.
-  \item \textbf{Keccak:} Γραμμική ως προς τον αριθμό Keccak-f permutations,
+  \item \textbf{Keccak:} Γραμμική ως προς τον αριθμό μεταθέσεων Keccak-f,
     ο οποίος αυξάνεται γραμμικά με το μέγεθος εισόδου (seed expansion,
     hashing μεγαλύτερων κλειδιών) — αναμενόμενος λόγος $\approx 3.0$.
   \item \textbf{Decode:} Εξαρτάται από τις παραμέτρους $n_1$ και $\delta$
@@ -471,9 +471,9 @@ overhead ανασύνθεσης — που παραμένει scalar στο Tier
 \paragraph{Keccak — γραμμική κλιμάκωση.}
 Ο Keccak αυξάνεται σχεδόν γραμμικά: $\num{124648} \to \num{235181} \to
 \num{360909}$ (λόγοι $1.89\times$ και $2.90\times$). Η αύξηση
-αντικατοπτρίζει τον μεγαλύτερο αριθμό Keccak-f permutations που
+αντικατοπτρίζει τον μεγαλύτερο αριθμό μεταθέσεων Keccak-f που
 απαιτούνται για seed expansion και hashing μεγαλύτερων δημοσίων κλειδιών.
-Η σταθερότητα του per-permutation κόστους ($\approx \num{2114}$ \instret
+Η σταθερότητα του κόστους ανά μετάθεση ($\approx \num{2114}$ \instret
 ανά Keccak-f στο Tier~3) επιβεβαιώνει ότι η \gls{soa} δύο ροών
 αρχιτεκτονική δεν εξαρτάται από το security level.
 
@@ -690,7 +690,7 @@ elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη 
 το κόστος $n^2$ κυριαρχεί έναντι της εξοικονόμησης αναδρομής.
 
 \paragraph{Keccak — σταθερή 25-lane κατάσταση.}
-Η Keccak-f[1600] permutation λειτουργεί σε $25 \times 64$-bit state
+Η μετάθεση Keccak-f[1600] λειτουργεί σε $25 \times 64$-bit state
 χρησιμοποιώντας LMUL$=$m8. Στο \VLEN$= \num{256}$, $\text{VLMAX} =
 \num{32} \geq 25$ — ολόκληρη η κατάσταση χωράει σε ένα vector group.
 Ευρύτερο \VLEN δεν μπορεί να επεξεργαστεί περισσότερα state elements
@@ -821,7 +821,7 @@ working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλή�
 αναλυτικά στην~\cref{ssec:hw-ipc}.
 
 \paragraph{Ο Keccak παρουσιάζει τον υψηλότερο IPC ($1.29$).}
-Ο scalar Keccak-f[1600] permutation επιτυγχάνει IPC $= 1.29$ — ο υψηλότερος
+Η scalar μετάθεση Keccak-f[1600] επιτυγχάνει IPC $= 1.29$ — ο υψηλότερος
 μεταξύ όλων των πυρήνων. Η εξήγηση είναι ότι ο Keccak αποτελείται από
 μακρές ακολουθίες \insn{xor}, \insn{rori} (\gls{zbb}) και \insn{andn} (\gls{zbb})
 χωρίς memory accesses (η κατάσταση 25$\times$64-bit χωράει σε registers),

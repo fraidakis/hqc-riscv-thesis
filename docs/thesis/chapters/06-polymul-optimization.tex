@@ -192,7 +192,7 @@ data-parallel πράξεων σε ευρείς vector registers (\VLEN bits αν
 
 \noindent
 Η δομική αυτή αρχιτεκτονική — scalar leaf + διανυσματική ανασύνθεση — αποτελεί
-\defterm{υβριδική scalar/vector προσέγγιση}: η αριθμητική πράξη (carry-less multiply)
+\defterm{υβριδική scalar/vector προσέγγιση}: η αριθμητική πράξη (carry-less πολλαπλασιασμός)
 εκτελείται scalar, ενώ η data-movement πράξη (XOR, copy, reduce)
 εκτελείται vector.  Η προσέγγιση αυτή αποδίδει μετρήσιμη βελτίωση
 (\cref{sec:polymul-base-rvv}), αλλά το κέρδος περιορίζεται δομικά από
@@ -316,7 +316,7 @@ micro-optimizations στον εσωτερικό βρόχο.  Πρώτον, έν�
 software pipeline}: δύο ανεξάρτητες κλήσεις \code{clmul64} εκδίδονται
 πριν καταναλωθεί οποιοδήποτε αποτέλεσμα, δημιουργώντας ένα παράθυρο
 instruction-level parallelism που κρύβει τη load-use latency της μονάδας
-carry-less multiply.  Δεύτερον, η \defterm{hi$\xorop$lo fusion}:
+carry-less πολλαπλασιασμού.  Δεύτερον, η \defterm{hi$\xorop$lo fusion}:
 γειτονικά γινόμενα μοιράζονται κοινή θέση εξόδου —
 $\text{hi}(a[i], b[j])$ και $\text{lo}(a[i], b[j{+}1])$ στοχεύουν
 αμφότερα τη θέση $r[i{+}j{+}1]$.  Η συγχώνευσή τους σε ένα μόνο
@@ -520,7 +520,7 @@ dependency.  Σε βάθος~2, αυτό το overhead πολλαπλασιάζ�
 
 Η θεμελιώδης αιτία είναι ότι στα μεγέθη HQC ($N = 277$–$901$ words,
 4–5 επίπεδα αναδρομής), η ασυμπτωτική βελτίωση του TC3 μόλις
-εκδηλώνεται.  Ο αριθμός carry-less multiplications μειώνεται μόνο κατά
+εκδηλώνεται.  Ο αριθμός carry-less πολλαπλασιασμών μειώνεται μόνο κατά
 \pct{1.3} ($5 \times \text{Karatsuba}(93) = \num{18865}$ ζεύγη έναντι
 $3 \times \text{Karatsuba}(139) = \num{19122}$ ζεύγη) — ανεπαρκής
 εξοικονόμηση για να αντισταθμίσει το evaluation/interpolation overhead.
@@ -915,8 +915,7 @@ throughput.  Ένας scalar tail loop χειρίζεται τις εναπομ�
 $n \bmod 4$ iterations.
 
 Ο \cref{lst:vclmul-leaf-core} παρουσιάζει τον πυρήνα του 4$\times$
-unrolled βρόχου — τη φόρτωση $b$ και τα οκτώ
-carry-less multiply ζεύγη με scalar τελεστέους:
+unrolled βρόχου — τη φόρτωση $b$ και τα οκτώ ζεύγη carry-less πολλαπλασιασμού με scalar τελεστέους:
 
 \begin{lstlisting}[language=C,
   caption={Πυρήνας 4$\times$ unrolled \code{vclmul\_leaf} — φόρτωση
@@ -938,7 +937,7 @@ vuint64m4_t vhi3 = __riscv_vclmulh_vx_u64m4(vb, a3, vl);
 \end{lstlisting}
 
 \paragraph{LMUL selection.}
-Ο leaf χρησιμοποιεί \LMUL=m4 για τις carry-less multiply πράξεις.  Σε
+Ο leaf χρησιμοποιεί \LMUL=m4 για τις πράξεις carry-less πολλαπλασιασμού.  Σε
 \VLEN=\num{256}, κάθε m4 group καταλαμβάνει \num{4} physical registers.
 Στο 4$\times$ unrolled loop, τα ταυτόχρονα ζωντανά groups ανά strip είναι:
 $b$-vector (\num{4} registers), splat (\num{4}), lo-result (\num{4}),

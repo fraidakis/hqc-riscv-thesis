@@ -474,7 +474,7 @@ version.  Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελ�
 πειραματικό περιορισμό (απουσία silicon με \gls{zvbc} κατά τη στιγμή εκπόνησης) αλλά
 είναι μεθοδολογικά αποδεκτή στη βιβλιογραφία \gls{pqc}: το pqm4
 framework~\cite{pqm4} και ο Spike \gls{iss} χρησιμοποιούνται ευρέως για
-αναφορά instruction counts σε εργασίες δημοσιευμένες σε TCHES και στα NIST PQC
+αναφορά πλήθους εντολών σε εργασίες δημοσιευμένες σε TCHES και στα NIST PQC
 Conferences~\cite{zhang-tches2025, ras-nist2025}.  Η μετρική αυτή
 συμπληρώνεται από πραγματικές μετρήσεις κύκλων στο BPI-F3
 (\cf \cref{ssec:hw-measurement}) για τα variants που υποστηρίζονται σε silicon.
@@ -760,7 +760,7 @@ real-world εφαρμογές.  Τα αναλυτικά αποτελέσματα
 τεκμηριώνει ότι η μετρική \instret αποτελεί αξιόπιστο δείκτη σχετικής απόδοσης
 για τη συγκεκριμένη κατηγορία workloads (compute-bound, compact working set).
 Η μεθοδολογία ακολουθεί το πρότυπο των Zhang et al.~\cite{zhang-tches2025}
-(instruction count + \gls{cpi} μοντέλο + throughput argument) και των Ras et
+(πλήθος εντολών + \gls{cpi} μοντέλο + throughput argument) και των Ras et
 al.~\cite{ras-nist2025} (\gls{iss}-based \instret ως πρωτεύουσα μετρική).
 Η ερμηνεία των αποτελεσμάτων υπό τους ανωτέρω περιορισμούς αναλύεται στο
 \cref{ch:discussion}.
@@ -938,7 +938,7 @@ $x, y$ ίσου εύρους, υπό σταθερό μικροαρχιτεκτο
 \gls{rm}/\gls{rs} δύναται να είναι variable-time χωρίς να
 παραβιάζεται η ασφάλεια — η FO transform μασκάρει τη χρονική πληροφορία
 μέσω του re-encryption ελέγχου.  Ο Keccak/SHAKE είναι εγγενώς
-constant-time λόγω αλγοριθμικής δομής: η permutation Keccak-f[1600]
+constant-time λόγω αλγοριθμικής δομής: η μετάθεση Keccak-f[1600]
 αποτελείται αποκλειστικά από bitwise πράξεις (XOR, AND, NOT, ROT) χωρίς
 data-dependent branches ή table lookups.
 
@@ -965,7 +965,7 @@ early-termination βελτιστοποίηση βασισμένη σε leading z
 \clmul/\clmulh με ντετερμινιστικό XOR assembly — μηδέν branches εντός
 του hot path.
 
-\paragraph{Vector carry-less multiply (\RVV + \Zvbc).}
+\paragraph{Vector carry-less πολλαπλασιασμός (\RVV + \Zvbc).}
 Η υλοποίηση \code{vector\_rvv} χρησιμοποιεί \vclmul/\vclmulh vector
 εντολές.  Υπό Zvkt, vector εντολές με ταυτόσημα \VLEN και \SEW
 configurations έχουν σταθερή latency~\cite{RISCV-crypto-vol2}.  Η \RVV υλοποίηση χρησιμοποιεί
@@ -1071,7 +1071,7 @@ re-encryption.  Ο επιτιθέμενος παρατηρεί τον συνολ
 constant-time.
 
 \paragraph{Γιατί δεν υπάρχει \code{dudect\_keccak}.}
-Ο Keccak είναι constant-time εκ κατασκευής: η permutation Keccak-f[1600]
+Ο Keccak είναι constant-time εκ κατασκευής: η μετάθεση Keccak-f[1600]
 αποτελείται αποκλειστικά από bitwise πράξεις σε σταθερό state χωρίς
 table lookups ή data-dependent branches.  Στο RISC-V, η scalar υλοποίηση
 μεταγλωττίζεται σε \code{xor}, \code{and}, \code{or}, \code{sll},
@@ -1419,12 +1419,12 @@ register.  Πέραν αυτών των δύο σημείων, κανένας κ
 
   \item \textbf{\gls{zvbc}} (\code{<riscv\_vector.h>}):
     \code{\_\_riscv\_vclmul\_vv\_u64m4()} και
-    \code{\_\_riscv\_vclmulh\_vv\_u64m4()} — vectorized carry-less multiply
+    \code{\_\_riscv\_vclmulh\_vv\_u64m4()} — vectorized carry-less πολλαπλασιασμός
     στα Tier~3 leaf kernels (\cf \cref{sec:polymul-zvbc}).
 
   \item \textbf{\gls{zvbb}} (\code{<riscv\_vector.h>}):
     \code{\_\_riscv\_vror\_vv\_u64m8()} και \code{\_\_riscv\_vandn\_vv\_u64m8()}
-    — vectorized rotation (ρ-step) και AND-NOT (χ-step) στον Keccak
+    — vectorized περιστροφή (ρ-step) και AND-NOT (χ-step) στον Keccak
     (\cf \cref{sec:keccak-optimization}).
 \end{itemize}
 
@@ -1690,7 +1690,7 @@ isolated polymul επιτάχυνση (\speedup{86.9}).
   \item \textbf{Keccak και αποκωδικοποίηση} (\cref{ch:kernel-optimization}):
     Μετά τη βελτιστοποίηση polymul, το Keccak και η αποκωδικοποίηση
     αναδεικνύονται σε νέα bottlenecks.  Βελτιστοποίηση μέσω \gls{zvbb}
-    (vectorized rotations) και vectorized \gls{rm}/\gls{rs}.
+    (vectorized περιστροφές) και vectorized \gls{rm}/\gls{rs}.
 
   \item \textbf{Βοηθητικοί πυρήνες} (\cref{ch:kernel-optimization}):
     Μικρότερες βελτιστοποιήσεις σε \code{memcpy}, sampling, και control
