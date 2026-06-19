@@ -398,7 +398,7 @@ variant:
 προστέθηκε στα vector variants μετά από ablation μέτρηση που έδειξε $-\pct{5.61}$
 polymul \instret στο \code{vector\_zvk} και $-\pct{1.0}$ στο
 \code{vector\_rvv} — η βελτίωση προέρχεται από αποδοτικότερη pointer
-αριθμητική στους recomposition βρόχους.  Η επέκταση \ext{Zbs} (bit-set/clear)
+αριθμητική στους βρόχους ανασύνθεσης.  Η επέκταση \ext{Zbs} (bit-set/clear)
 περιλαμβάνεται στα scalar variants για τη βελτιστοποίηση bit-scatter patterns
 στη \code{vect\_set\_random\_fixed\_weight()}.
 
@@ -1415,7 +1415,7 @@ register.  Πέραν αυτών των δύο σημείων, κανένας κ
     \code{\_\_riscv\_vsetvl\_e64m4()}, \code{\_\_riscv\_vle64\_v\_u64m4()},
     \code{\_\_riscv\_vxor\_vv\_u64m4()}, \code{\_\_riscv\_vse64\_v\_u64m4()} —
     strip-mining, vector load/store, και XOR σε ολόκληρη τη διανυσματική
-    υλοποίηση (recomposition βρόχοι, \code{vect\_add}, \code{memcpy}).
+    υλοποίηση (βρόχοι ανασύνθεσης, \code{vect\_add}, \code{memcpy}).
 
   \item \textbf{\gls{zvbc}} (\code{<riscv\_vector.h>}):
     \code{\_\_riscv\_vclmul\_vv\_u64m4()} και
@@ -1443,7 +1443,7 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
 
 \begin{itemize}
   \item \textbf{\ext{Zba}} (\insn{sh1add}/\insn{sh2add}/\insn{sh3add}):
-    Pointer αριθμητική στους recomposition βρόχους.  Η έκφραση
+    Pointer αριθμητική στους βρόχους ανασύνθεσης.  Η έκφραση
     \code{base + idx * 8} μεταγλωττίζεται αυτόματα σε \insn{sh3add} αντί
     \insn{slli} + \insn{add} — εξοικονόμηση μίας εντολής ανά πρόσβαση.
     Ablation μέτρηση: $-\pct{5.61}$ polymul \instret στο \code{vector\_zvk}.
@@ -1499,7 +1499,7 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
       \insn{vle64}, \insn{vse64}, \insn{vxor} &
       Type safety, optimizer visibility, portability \\
     \addlinespace
-    Auto-Lowering & \code{vector.c} (Zba/Zbs), recomposition loops &
+    Auto-Lowering & \code{vector.c} (Zba/Zbs), βρόχοι ανασύνθεσης &
       \insn{sh3add} (Zba), \insn{bset} (Zbs), \insn{andn} (Zbb) &
       Μηδενική αλλαγή κώδικα \\
     \bottomrule

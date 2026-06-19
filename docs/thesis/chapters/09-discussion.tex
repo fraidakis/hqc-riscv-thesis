@@ -373,8 +373,7 @@ register.  Η \gls{zba} δεν έχει τίποτα να συγχωνεύσει
 
 Η \code{vector\_rvv} παρουσιάζει ενδιάμεση βελτίωση ($-\pct{1.03}$
 polymul, $-\pct{0.67}$ \gls{kem}) διότι χρησιμοποιεί scalar \clmul leaves
-(σταθερές μετατοπίσεις, μη ωφελούμενα) αλλά \RVV recomposition helpers
-με strip-mining loops (\code{ptr += vl} → \insn{sh3add}), οι οποίοι
+(σταθερές μετατοπίσεις, μη ωφελούμενα) αλλά \RVV helpers ανασύνθεσης με strip-mining loops (\code{ptr += vl} → \insn{sh3add}), οι οποίοι
 ωφελούνται μερικώς.
 
 Η \gls{zba} ενεργοποιήθηκε στα \code{-march} strings των Tier~2 και

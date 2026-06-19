@@ -920,7 +920,7 @@ vclmul_leaf(result + offset, a + half, b + half);
 Για HQC-128, το Karatsuba tree εκτελεί $\approx\num{70}$ αναδρομικές
 κλήσεις — συνολικά \num{210}–\num{350} ζεύγη \code{slli+add} που
 μετατρέπονται σε ισάριθμα \insn{sh3add} (δυναμικές εκφράσεις ανά εκτέλεση)· οι αντίστοιχες στατικές εμφανίσεις στο ELF είναι \num{146}–\num{211}, όπως καταγράφει ο \cref{tab:extensions-summary}.  Πρόσθετη πηγή βελτίωσης
-αποτελούν οι \RVV strip-mining βρόχοι στις recomposition helpers
+αποτελούν οι \RVV strip-mining βρόχοι στις helpers ανασύνθεσης
 (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}), όπου η προώθηση
 δείκτη \code{ptr += vl} σε \code{uint64\_t*} context δημιουργεί ένα
 \code{slli+add} σε κάθε iteration.

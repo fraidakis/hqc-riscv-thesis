@@ -254,8 +254,7 @@ transform) αλλά επιπλέον φέρει το κόστος αποκωδι
 Η μετάβαση μεταξύ tiers αποκαλύπτει τη σταδιακή αξιοποίηση hardware
 resources. Στο HQC-128:
 \begin{itemize}
-  \item \textbf{Tier~1 $\to$ Tier~2} (Total \gls{kem}: $\num{3449795} \to \num{1956787}$ \instret, $+\pct{76}$): η vectorization του Karatsuba
-    recomposition (\cref{sec:polymul-base-rvv}) μειώνει τις εντολές
+  \item \textbf{Tier~1 $\to$ Tier~2} (Total \gls{kem}: $\num{3449795} \to \num{1956787}$ \instret, $+\pct{76}$): η vectorization της ανασύνθεσης του Karatsuba (\cref{sec:polymul-base-rvv}) μειώνει τις εντολές
     polymul κατά \pct{28.7} ($\num{221030} \to \num{157473}$), ενώ η
     vectorization του decode (\cref{sec:decode-optimization}) επιταχύνει
     την αποκωδικοποίηση κατά \speedup{3.15}. Ο Keccak παραμένει scalar σε αυτό το tier.
@@ -426,7 +425,7 @@ $(57637/17669)^2 = 10.6$. Ο πρακτικός εκθέτης ανέρχετα�
 υψηλότερα security levels, ο Karatsuba tree αυξάνει βάθος κατά ένα
 επίπεδο (από $d=9$ στο HQC-128 σε $d=10$ στο HQC-192 και $d=11$ στο
 HQC-256), αλλά ο αριθμός \insn{vclmul} leaves αυξάνεται μόνο κατά
-$3^{\Delta d}$ ενώ το recomposition overhead (XOR operations) αυξάνεται
+$3^{\Delta d}$ ενώ το overhead ανασύνθεσης (XOR operations) αυξάνεται
 γραμμικά χάρη στη vectorization. Κατά συνέπεια, ο πρακτικός εκθέτης
 πολυπλοκότητας του Tier~3 polymul πέφτει σε $\sim 1.2$ (υπολογισμένος
 ως $\log(260624/60380) / \log(57637/17669) = 1.24$).
@@ -464,9 +463,9 @@ tier. Στο Tier~3, ο isolated polymul αυξάνεται ως $\num{60380} \t
 (192/128, κοντά στον θεωρητικό Karatsuba $1.585$) αλλά
 $\log(8.50)/\log(3.26) = 1.81$ για το πλήρες εύρος 256/128.
 Η επιδείνωση στα υψηλότερα levels οφείλεται στο γεγονός ότι τα scalar
-\insn{clmul} leaves δεν ωφελούνται από τη vectorized recomposition: καθώς
+\insn{clmul} leaves δεν ωφελούνται από τη διανυσματοποιημένη ανασύνθεση: καθώς
 βαθαίνει το recursion tree (από $d=9$ σε $d=10$ και $d=11$), το
-recomposition overhead — που παραμένει scalar στο Tier~1 — αυξάνεται
+overhead ανασύνθεσης — που παραμένει scalar στο Tier~1 — αυξάνεται
 απότομα και ωθεί τον πρακτικό εκθέτη ψηλότερα από τον θεωρητικό Karatsuba.
 
 \paragraph{Keccak — γραμμική κλιμάκωση.}
@@ -531,7 +530,7 @@ protocol.
     θεωρητική πολυπλοκότητα.
   \item Ο πρακτικός εκθέτης κλιμάκωσης του Tier~3 ($\sim 1.1$ στο
     πλήρες \gls{kem}) είναι σημαντικά χαμηλότερος από τον θεωρητικό Karatsuba
-    ($1.585$), χάρη στη vectorized recomposition και τη σταθερή
+    ($1.585$), χάρη στη διανυσματοποιημένη ανασύνθεση και τη σταθερή
     συνεισφορά Keccak/decode.
   \item Η αύξηση speedup με το security level ($\speedup{167} \to
     \speedup{214} \to \speedup{339}$ στο Total \gls{kem} Tier~3) σημαίνει
@@ -552,7 +551,7 @@ protocol.
 αποκαλύπτοντας τα δομικά όρια κλιμάκωσης και το πρακτικό sweet spot
 για deployment. Οι μετρήσεις αφορούν αποκλειστικά το Tier~3
 (\code{vector\_zvk}) — το μοναδικό variant όπου η vectorization
-διεισδύει τόσο στα leaves όσο και στα recomposition loops.
+διεισδύει τόσο στα leaves όσο και στους βρόχους ανασύνθεσης.
 
 %% --------------------------------------------------------------------------
 \subsection{Μοντέλο Κλιμάκωσης και Θεωρητικό Όριο}
@@ -563,7 +562,7 @@ protocol.
 
 \begin{enumerate}
   \item \textbf{Πλήρως κλιμακούμενο κλάσμα ($\approx\pct{11}$ του
-    συνολικού \KEM):} Οι recomposition helpers
+    συνολικού \KEM):} Οι helpers ανασύνθεσης
     (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64})
     χρησιμοποιούν VLA strip-mining σε LMUL$=$m4 —
     $\num{80202}$ \instret ($\pct{11.2}$ του συνολικού \KEM).
@@ -572,8 +571,7 @@ protocol.
     iteration εξοικονομεί το πλήρες σώμα strip-mining (\insn{vsetvli}
     $+$ \insn{vle64} $+$ \insn{vse64} $+$ pointer arithmetic).
     Το \code{kmul\_N} scaffolding ($\num{34506}$ \instret, $\pct{4.8}$)
-    κλιμακώνει \emph{μερικώς} — περιέχει τόσο κλήσεις recomposition
-    helpers όσο και σταθερό bookkeeping overhead — και δεν
+    κλιμακώνει \emph{μερικώς} — περιέχει τόσο κλήσεις helpers ανασύνθεσης όσο και σταθερό bookkeeping overhead — και δεν
     προσμετράται στο θεωρητικό ανώτατο όριο.
   \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{59}$):} Ο
     \code{vclmul\_leaf} (\pct{33.8}) λειτουργεί σε σταθερό $n = \num{16}$
@@ -591,8 +589,7 @@ protocol.
 
 Το~\cref{fig:vlen-budget} απεικονίζει τη σύνθεση αυτή. Το θεωρητικό
 ανώτατο όριο βελτίωσης από αύξηση \VLEN περιορίζεται στο
-$\approx\pct{11}$ — ακόμη και με άπειρο \VLEN, μόνο οι recomposition
-helpers (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
+$\approx\pct{11}$ — ακόμη και με άπειρο \VLEN, μόνο οι helpers ανασύνθεσης (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
 \code{rvv\_xor\_u64}) θα εξαλειφθούν πλήρως.
 
 \begin{figure}[htbp]
@@ -601,11 +598,11 @@ helpers (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
   \caption{Κατανομή \instret σε τρεις κατηγορίες ευαισθησίας \VLEN
     (HQC-128, \code{vector\_zvk}, \VLEN$= \num{256}$, σύνολο
     $\num{702755}$ \instret). Μόνο $\approx\pct{11}$ του συνολικού
-    \KEM ωφελείται από ευρύτερο \VLEN (recomposition helpers
+    \KEM ωφελείται από ευρύτερο \VLEN (helpers ανασύνθεσης
     \code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64}).
     Το \code{kmul\_N} scaffolding ($\pct{4.8}$) κλιμακώνει μερικώς
     και δεν προσμετράται στο θεωρητικό ανώτατο όριο. Η πράσινη μπάρα του
-    polymul ($\pct{16.0}$) αναλύεται σε \pct{11.2} recomposition helpers
+    polymul ($\pct{16.0}$) αναλύεται σε \pct{11.2} helpers ανασύνθεσης
     (πλήρως κλιμακούμενα) συν \pct{4.8} scaffolding (μερικώς κλιμακούμενο).  Scope: τα ποσοστά εκφράζουν μερίδιο επί του συνολικού \KEM· το decode αφορά τα scalar \code{gf\_reduce}+\code{gf\_mul}.}
   \label{fig:vlen-budget}
 \end{figure}
@@ -654,7 +651,7 @@ $\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels. Το~\cre
 Η πρόσθετη βελτίωση από \VLEN$= \num{512}$ σε \VLEN$= \num{1024}$ είναι
 μόλις \pct{0.7} για τα HQC-192/256 και αρνητική ($+\pct{0.4}$) για το
 HQC-128. Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
-($\text{VLMAX} = \num{32}$), οι recomposition loops στα κατώτερα επίπεδα
+($\text{VLMAX} = \num{32}$), οι βρόχοι ανασύνθεσης στα κατώτερα επίπεδα
 αναδρομής (μεγέθη 16–34 words) ολοκληρώνονται ήδη σε 1 iteration. Μόνο
 τα ανώτερα επίπεδα (μεγέθη 70–451 words) ωφελούνται ακόμη από
 \VLEN$= \num{1024}$, αλλά αυτά εκτελούνται εκθετικά λιγότερες φορές
@@ -664,13 +661,13 @@ HQC-128. Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
 Στο \VLEN$= \num{2048}$, το HQC-128 επιστρέφει στη βάση αναφοράς
 ($+\pct{0.2}$), ενώ τα HQC-192/256 διατηρούν τα κέρδη τους
 ($-\pct{5.0}$ και $-\pct{5.4}$). Η παλινδρόμηση οφείλεται σε δύο
-παράγοντες: (α)~στο HQC-128, οι recomposition loops (μεγέθη 16–34 words)
+παράγοντες: (α)~στο HQC-128, οι βρόχοι ανασύνθεσης (μεγέθη 16–34 words)
 ολοκληρώνονται ήδη σε 1 iteration στο \VLEN$= \num{1024}$
 ($\text{VLMAX} = \num{64}$) — το \VLEN$= \num{2048}$ δεν προσφέρει
 πρόσθετη μείωση· (β)~ο μεταγλωττιστής εκπέμπει περισσότερες εντολές
 \insn{vsetvli} για εναλλαγή μεταξύ LMUL groups (m4 στο polymul, m8 στον
 Keccak, m2 σε βοηθητικές ρουτίνες), και αυτό το overhead εξουδετερώνει
-τα οριακά κέρδη recomposition στο μικρό working set του HQC-128.
+τα οριακά κέρδη ανασύνθεσης στο μικρό working set του HQC-128.
 
 %% --------------------------------------------------------------------------
 \subsection{Αρχιτεκτονικοί Περιορισμοί Κλιμάκωσης}
@@ -720,7 +717,7 @@ elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη 
       \pct{3.7}–\pct{5.5} μείωση \instret χωρίς αύξηση πολυπλοκότητας
       κώδικα.
     \item Το θεωρητικό ανώτατο όριο βελτίωσης είναι $\approx\pct{11}$
-      (μόνο οι recomposition helpers — \code{rvv\_xor3\_u64},
+      (μόνο οι helpers ανασύνθεσης — \code{rvv\_xor3\_u64},
       \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64} — κλιμακώνουν πλήρως·
       το \code{kmul\_N} scaffolding, $\pct{4.9}$, κλιμακώνει μερικώς
       και δεν προσμετράται στο ceiling).
