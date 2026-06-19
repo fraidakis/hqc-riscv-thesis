@@ -95,7 +95,8 @@ Hadamard Transform· επιπλέον, μία custom R-type εντολή (F$2^8$
 Αλγοριθμικά, η εργασία χρησιμοποιεί sparse$\times$dense πολλαπλασιασμό,
 αξιοποιώντας το χαμηλό βάρος Hamming ($w \leq 75$) ενός εκ των δύο πολυωνύμων: ο
 $R$-Unit υλοποιεί word-by-word shift του πυκνού πολυωνύμου κατά τις θέσεις των
-μη-μηδενικών συντελεστών του αραιού. Με όλα τα hardware modules ενεργά,
+μη-μηδενικών συντελεστών του αραιού (δύο κύκλοι ανά resulting word: address
+calculation και XOR/carry computation). Με όλα τα hardware modules ενεργά,
 επιτυγχάνεται \pct{98.9}/\pct{99}/\pct{97.2} speedup σε \KeyGen/\Encaps/\Decaps
 έναντι της reference υλοποίησης, με σχεδίαση σε ASIC \SI{22}{nm} FD-SOI
 (\SI{0.12}{mm^2}, \SI{700}{MHz}) και FPGA (Xilinx Artix-7).
@@ -125,7 +126,9 @@ reference 2-way Karatsuba (ανάλογα με το security level)· η ασυ�
 $\BigO{n^{\log_2 3}}$ του Karatsuba, με το πλεονέκτημα να αυξάνεται με το μέγεθος
 πολυωνύμου. Ο ANDROMEDA accelerator υλοποιεί τις FFT-based πράξεις (FFTLCH,
 IFFTLCH, PWM) μέσω configurable Carry-Free Butterfly unit με 2-cycle pipeline
-latency· με αυτόν ενεργό, το συνολικό speedup ανέρχεται σε \speedup{9.64}
+latency, εκτελώντας carry-less πολλαπλασιασμό στο $\GF{2^{32}}$ με 2-way
+Karatsuba decomposition σε επίπεδο 16-bit schoolbook multipliers· με αυτόν
+ενεργό, το συνολικό speedup ανέρχεται σε \speedup{9.64}
 (HQC-128) έως \speedup{19.22} (HQC-256).
 
 Σε αντίθεση με την παρούσα εργασία, οι Ras et al.\ στηρίζονται σε custom
@@ -236,11 +239,16 @@ multiplications μέσω \vclmul — μία ορθογώνια στρατηγι�
 ολόκληρου του \gls{hqc} \gls{kem} σε x86 με AVX2, στοχεύοντας general-purpose
 επεξεργαστές Intel Core i7. Συνδυάζει τρεις βελτιστοποιήσεις: (α)~adaptive
 sparse$\times$dense πολλαπλασιασμό με threshold-aware scheduler που επιλέγει
-δυναμικά μεταξύ sparse και dense κλάδου βάσει του βάρους Hamming· (β)~AVX-parallel
-SHAKE με lane-interleaved 256-bit loads/stores (\speedup{2} στο SHAKE)· και
+δυναμικά μεταξύ sparse και dense κλάδου βάσει του βάρους Hamming, με τη
+μετατόπιση να αποσυντίθεται σε coarse word rotation και fine intra-word bit
+rotation πάνω σε AVX2-aligned buffers· (β)~AVX-parallel SHAKE με
+lane-interleaved 256-bit loads/stores (\speedup{2} στο SHAKE)· και
 (γ)~table-driven Reed-Solomon που αντικαθιστά τον πολλαπλασιασμό στο $\GF{2^8}$
-με precomputed lookup tables. Συνολικά επιτυγχάνεται \pct{55} μέσο speedup έναντι
-της reference.
+με precomputed lookup tables ($\sim$8\,KB για encode, $\sim$14\,KB nibble-sliced
+για decode). Συνολικά επιτυγχάνεται \pct{55} μέσο speedup έναντι της reference,
+με τη μεγαλύτερη βελτίωση στο \Decaps· χαρακτηριστικά, στη reference υλοποίηση ο
+πολυωνυμικός πολλαπλασιασμός και η αποκωδικοποίηση αποτελούν από κοινού άνω του
+\pct{85} του συνολικού χρόνου.
 
 Δύο διαφορές περιορίζουν τη συγκρισιμότητα με την παρούσα εργασία. Πρώτον, η
 βελτιστοποίηση πολλαπλασιασμού εκμεταλλεύεται τη σπανιότητα των μυστικών
@@ -292,14 +300,16 @@ ratified extensions· η σημασία της crypto-agility ως σχεδια�
 συμπληρώνουν το τοπίο σε πλατφόρμες χωρίς ratified RISC-V επεκτάσεις. Οι Jang et
 al.~\cite{Jang2025-CortexM4-HQC} στοχεύουν τον ARM Cortex-M4 (χωρίς hardware
 carry-less multiply) με Hybrid FAFFT-CRT/Karatsuba, επιτυγχάνοντας \pct{33.4}
-(HQC-1) μείωση κύκλων πολυωνυμικού πολλαπλασιασμού· η απουσία \insn{clmul}
+(HQC-1) και \pct{27.2} (HQC-3) μείωση κύκλων πολυωνυμικού πολλαπλασιασμού (έως
+\pct{23.7}/\pct{24.2}/\pct{21.9} σε \KeyGen/\Encaps/\Decaps)· η απουσία \insn{clmul}
 καθιστά τη \gls{fafft} αναγκαστική επιλογή, σε αντίθεση με τη RISC-V
 αρχιτεκτονική όπου η \gls{zbc} παρέχει εγγενή υποστήριξη. Η εργασία των Chen et
 al.~\cite{Chen2021-BIKE-Haswell-M4} αποτελεί σημείο αναφοράς για code-based
-πολυωνυμικό πολλαπλασιασμό (5-way Bernstein + Karatsuba στο Haswell, additive FFT
-στον M4), αν και στοχεύει τον BIKE. Σε επίπεδο dedicated hardware, οι Deshpande
+πολυωνυμικό πολλαπλασιασμό (5-way recursive Bernstein στο ανώτερο επίπεδο
+αναδρομής με Karatsuba στα κατώτερα στο Haswell, additive FFT στον M4), αν και
+στοχεύει τον BIKE. Σε επίπεδο dedicated hardware, οι Deshpande
 et al.~\cite{Deshpande2023-HQC-HW} παρουσίασαν πλήρη FPGA υλοποίηση του \gls{hqc}
-με pipelined πολλαπλασιασμό και shared SHAKE module, ο LEAP
+με pipelined πολλαπλασιασμό, shared SHAKE module και dual-clock αρχιτεκτονική, ο LEAP
 accelerator~\cite{LEAP2024-sparse-polymul} βελτιστοποιεί τον sparse$\times$dense
 πολλαπλασιασμό (obsolete μετά την αλλαγή specification του 2024), και μία πρόταση
 constant-time sampling hardware~\cite{CTsampling-HQC2023} αφορά μελλοντικό
@@ -322,7 +332,8 @@ Zhang et al.~\cite{zhang-tches2025} (TCHES 2025) θέτουν performance record
 (\num{1770} κύκλοι σε RV64IB) και προτείνουν hybrid vector/scalar Keccak
 (2-way interleaving) σε πλατφόρμες με \RVV. Ο Saarinen~\cite{Saarinen2024-vkeccak}
 (πρόεδρος του RISC-V PQC Task Group) προτείνει τη νέα εντολή \code{vkeccak.vi}
-(υπό τυποποίηση ως RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}) με benchmarks
+(υπό τυποποίηση ως RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}, με στόχο
+ratification της v1.0 έως τις 31 Δεκεμβρίου 2026) με benchmarks
 Kyber-768 σε πραγματικό silicon SpacemiT X60 (\VLEN $= \num{256}$, η ίδια
 πλατφόρμα hardware validation της παρούσας εργασίας), τεκμηριώνοντας ότι ο Keccak
 αποτελεί \pct{60}–\pct{80} του χρόνου μετά τη vectorization του NTT. Καθώς ο
