@@ -1,15 +1,11 @@
-% figures/programming-methods-table_compactstars.tex
-% VARIANT (_compactstars, final) — not \input by main.tex; promote manually.
-% Compact layout (last column Τυπική Χρήση dropped, like _compact) BUT every
-% qualitative column is a star rating on a 1–3 scale (NOT 1–4):
-%   1 = ελάχιστο, 3 = μέγιστο. Per request, the first rating column (Έλεγχος)
-%   gives 3 to BOTH Pure and Inline Assembly.
-% Filled (\Rfull) vs empty (\Rempty) star out of 3 fixed positions.
-% Direction note: stars = magnitude of the literal attribute. In Error-Prone
-% more stars = MORE error-prone (worse) — see legend / report.
+% figures/ch3-riscv/programming-methods-table.tex
+% Compact comparison of the four programming methods. Every qualitative
+% column is a star rating on a 1-3 scale (1 = minimum, 3 = maximum); a
+% half-star marks a half step. In Error-Prone, more stars = more error-prone.
 \begingroup
 \providecommand{\Rfull}{$\bigstar$}
 \providecommand{\Rempty}{\textcolor{black!20}{$\bigstar$}}
+\providecommand{\Rhalf}{\mbox{\clipbox{0pt 0pt {.5\width} 0pt}{\Rfull}\clipbox{{.5\width} 0pt 0pt 0pt}{\Rempty}}}
 \newcommand{\Rate}[1]{\scalebox{0.9}{#1}}
 \begin{tabular}{@{}l c c c c@{}}
   \toprule
@@ -26,7 +22,7 @@
   \Rate{\Rfull\Rfull\Rfull} \\
   \addlinespace
   Inline Assembly &
-  \Rate{\Rfull\Rfull\Rfull} &
+  \Rate{\Rfull\Rfull\Rhalf} &
   \Rate{\Rfull\Rempty\Rempty} &
   \Rate{\Rfull\Rfull\Rempty} &
   \Rate{\Rfull\Rfull\Rfull} \\
@@ -34,8 +30,8 @@
   C Intrinsics &
   \Rate{\Rfull\Rfull\Rempty} &
   \Rate{\Rfull\Rfull\Rfull} &
-  \Rate{\Rfull\Rfull\Rfull} &
-  \Rate{\Rfull\Rempty\Rempty} \\
+  \Rate{\Rfull\Rfull\Rhalf} &
+  \Rate{\Rfull\Rfull\Rempty} \\
   \addlinespace
   Auto-Lowering &
   \Rate{\Rfull\Rempty\Rempty} &
@@ -44,6 +40,6 @@
   \Rate{\Rfull\Rempty\Rempty} \\
   \bottomrule
   \addlinespace[2pt]
-  \multicolumn{5}{@{}l@{}}{\footnotesize\itshape\color{figneutral}\Rate{\Rfull}\,1 = ελάχιστο \quad \Rate{\Rfull\Rfull\Rfull}\,3 = μέγιστο \quad (στο Error-Prone: περισσότερα \Rate{\Rfull} = πιο επιρρεπές)} \\
+  \multicolumn{5}{@{}l@{}}{\footnotesize\itshape\color{figneutral}\Rate{\Rfull}\, = ελάχιστο \quad \Rate{\Rfull\Rfull\Rfull}\, = μέγιστο \quad (στο Error-Prone: περισσότερα \Rate{\Rfull} = πιο επιρρεπές)} \\
 \end{tabular}
 \endgroup

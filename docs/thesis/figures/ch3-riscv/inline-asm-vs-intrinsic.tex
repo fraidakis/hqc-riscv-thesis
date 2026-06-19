@@ -1,10 +1,3 @@
-% figures/inline-asm-vs-intrinsic_v1.tex
-% VARIANT (_v1, baseline refined) — not \input by main.tex; promote manually.
-% Token migration (figbox tint roles, figT/mono, figT/title, figT/callout).
-% The «5-γραμμο block» / «1 γραμμή» line-count framing is REMOVED per
-% request; annotations now name the real trade-off (opaque vs type-safe).
-% Hue is semantic: inline = threat (drawback), intrinsic = solution (preferred).
-
 \tikzsetnextfilename{ch3-riscv-inline-asm-vs-intrinsic_v1}
 \begin{tikzpicture}[
     codebox/.style={
@@ -41,7 +34,7 @@ uint64\_t lo =\\
   };
   \node[boxtitle, text=figsolution!60!black] at (right.north) {C Intrinsic};
 
-  % Annotations below (line-count framing removed)
+  % Annotations below
   \node[boxnote, text=figthreat] at ([yshift=-0.3cm]left.south)
     {Constraint syntax\\αδιαφανές στον optimizer};
   \node[boxnote, text=figsolution!60!black] at ([yshift=-0.3cm]right.south)

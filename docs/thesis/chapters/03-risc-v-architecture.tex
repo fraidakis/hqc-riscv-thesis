@@ -557,26 +557,37 @@ vector register file.
 \label{ssec:rvv-xor-example}
 
 \paragraph{Κατηγορίες εντολών.}
-Παρουσιάζονται οι κατηγορίες vector εντολών του \RVV που αξιοποιεί η παρούσα
-εργασία, μαζί με τη χρήση τους:
-
-Οι εντολές \emph{μνήμης} (unit-stride) \insn{vle8/16/32/64} και
-\insn{vse8/16/32/64} φορτώνουν και αποθηκεύουν πολυωνυμικούς συντελεστές
-και το Keccak state, αποτελώντας την κυρίαρχη κατηγορία σε αριθμό
-εκτελέσεων. Οι \emph{αριθμητικές} εντολές \insn{vxor}, \insn{vadd},
-\insn{vsub}, \insn{vsll} και \insn{vsrl} υλοποιούν την recomposition του
-Karatsuba και το $\theta$-step του Keccak. Οι εντολές \emph{reduction}
-\insn{vredxor}, \insn{vredmaxu} και \insn{vfirst} χρησιμοποιούνται στο
-Hadamard peak-find του Reed-Muller αποκωδικοποιητή. Οι \emph{permutation}
-εντολές \insn{vrgather}, \insn{vslidedown} και \insn{vslide1up}
-αναδιατάσσουν lanes και υλοποιούν το $\pi$-step του Keccak. Οι εντολές
-\emph{μάσκας} \insn{vmseq} και \insn{vcpop} υποστηρίζουν constant-time
-sampling, ελέγχοντας τα διπλότυπα στο support. Στη \emph{μετατροπή τύπου},
-η \insn{vzext} επεκτείνει στοιχεία σε μεγαλύτερο πλάτος (zero-extension,
-widening), ενώ η \insn{vncvt} τα συρρικνώνει πίσω (narrowing)· το ζεύγος
-εξυπηρετεί το $\GF{2^8}$ widening της αριθμητικής Reed-Solomon. Τέλος, η
-εντολή \emph{splat} \insn{vmv.v.x} αναπαράγει (broadcast) μια scalar τιμή
-σε όλα τα lanes ενός vector register.
+Οι κατηγορίες vector εντολών του \RVV που αξιοποιεί η παρούσα εργασία, μαζί
+με τη λειτουργία και τη χρήση τους, είναι οι εξής:
+\begin{itemize}
+  \item \emph{Μνήμης} (unit-stride): οι \insn{vle8/16/32/64} φορτώνουν
+    διαδοχικά στοιχεία (8/16/32/64~bit) από τη μνήμη σε ένα vector register
+    ενώ αντίστροφα οι \insn{vse8/16/32/64} τα αποθηκεύουν. Μεταφέρουν
+    πολυωνυμικούς συντελεστές και το Keccak state, αποτελώντας την κυρίαρχη
+    κατηγορία σε αριθμό εκτελέσεων.
+  \item \emph{Αριθμητικές}: οι \insn{vxor}, \insn{vadd}, \insn{vsub},
+    \insn{vsll} (logical shift αριστερά) και \insn{vsrl} (logical shift
+    δεξιά) εκτελούν την αντίστοιχη πράξη ανά στοιχείο και υλοποιούν τη
+    recomposition του Karatsuba και το $\theta$-step του Keccak.
+  \item \emph{Reduction}: οι \insn{vredxor}, \insn{vredmaxu} και
+    \insn{vfirst} συμπτύσσουν ολόκληρο το vector σε ένα scalar αποτέλεσμα
+    (XOR όλων των στοιχείων, μέγιστο, και θέση του πρώτου ενεργού στοιχείου
+    αντίστοιχα) και χρησιμοποιούνται στο Hadamard peak-find του Reed-Muller
+    αποκωδικοποιητή.
+  \item \emph{Permutation}: οι \insn{vrgather}, \insn{vslidedown} και
+    \insn{vslide1up} αναδιατάσσουν στοιχεία μεταξύ lanes (gather βάσει
+    δεικτών, ολίσθηση προς τα κάτω/πάνω) και υλοποιούν το $\pi$-step του
+    Keccak.
+  \item \emph{Μάσκας}: οι \insn{vmseq} (έλεγχος ισότητας ανά στοιχείο) και
+    \insn{vcpop} (πλήθος ενεργών bit) υποστηρίζουν constant-time sampling,
+    ελέγχοντας τα διπλότυπα στο support.
+  \item \emph{Μετατροπή τύπου}: η \insn{vzext} επεκτείνει στοιχεία σε
+    μεγαλύτερο πλάτος (zero-extension, widening), ενώ η \insn{vncvt} τα
+    συρρικνώνει πίσω (narrowing)· το ζεύγος εξυπηρετεί το $\GF{2^8}$ widening
+    της αριθμητικής Reed-Solomon.
+  \item \emph{Splat}: η \insn{vmv.v.x} αναπαράγει (broadcast) μια scalar
+    τιμή σε όλα τα lanes ενός vector register.
+\end{itemize}
 
 Η πρακτική εφαρμογή των μηχανισμών strip-mining, \insn{vsetvl} και VLA
 αποσαφηνίζεται μέσω ενός πλήρους αναλυτικού παραδείγματος: η συνάρτηση
@@ -648,8 +659,8 @@ $a[i] \polymul b[j]$ (π.χ. $16 \times 16 = 256$ για threshold $n = 16$). Η
 γινόμενα $a[i] \polymul b[0], \ldots, a[i] \polymul b[n-1]$ είναι
 ανεξάρτητα και υπολογίζονται ταυτόχρονα· έτσι ολόκληρη η γραμμή του
 schoolbook εκφυλίζεται από $n^2$ word-level γινόμενα σε $n$ vector βήματα.
-Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf εκμεταλλεύεται ακριβώς
-αυτή την ανεξαρτησία μέσω της scalar-vector μορφής της \gls{zvbc}: η
+Στην παρούσα υλοποίηση, ο vectorized Karatsuba leaf υλοποιεί αυτή την
+παρατήρηση μέσω της scalar-vector μορφής της \gls{zvbc}: η
 \insn{vclmul.vx} δέχεται ως scalar τελεστέο (από \gls{gpr}) ένα μεμονωμένο
 στοιχείο $a[i]$ και το πολλαπλασιάζει carry-less με ολόκληρο το vector
 $b[j \ldots j + \code{vl} - 1]$ (sweep). Έτσι \emph{ένα} βήμα παράγει
@@ -657,10 +668,7 @@ $b[j \ldots j + \code{vl} - 1]$ (sweep). Έτσι \emph{ένα} βήμα παρ�
 vector εντολές (\insn{vclmul.vx} + \insn{vclmulh.vx}), αντικαθιστώντας τα
 \emph{\code{vl} ζεύγη} scalar \clmul/\clmulh (δηλαδή $2\cdot\code{vl}$
 scalar εντολές) που θα απαιτούσε η αντίστοιχη υλοποίηση με τη scalar
-\gls{zbc}. Για $\SEW = 64$, $\LMUL = 4$ και $\VLEN = 256$ κάθε βήμα
-υπολογίζει $\VLMAX = 16$ ανεξάρτητα carry-less γινόμενα ταυτόχρονα, οπότε ο
-λόγος μείωσης δυναμικών εντολών είναι $\sim\!\code{vl}$, και $\sim\!\VLMAX$
-όταν το register group αξιοποιείται πλήρως ($\code{vl} = \VLMAX$).
+\gls{zbc}.
 
 \paragraph{Περιορισμός \SEW.}
 Η επέκταση \gls{zvbc} ορίζεται αποκλειστικά για $\SEW = 64$. Δεν υπάρχουν
@@ -688,18 +696,16 @@ scalar εντολές) που θα απαιτούσε η αντίστοιχη υ
 
 \paragraph{Αντιστοίχιση σε Keccak.}
 Οι εντολές της \gls{zvbb} αντιστοιχίζονται πλήρως στα βήματα της μετάθεσης
-Keccak-f[1600] (βλ.~\cref{sec:keccak-theory}): το βήμα $\rho$ (περιστροφή
-\num{25} lanes κατά σταθερό offset ανά lane) σε μία \insn{vror.vv} (ή
-\insn{vror.vi} όταν τα offsets είναι σταθερές γνωστές κατά τη μεταγλώττιση), το
-βήμα $\pi$ (αναδιάταξη lanes) σε \insn{vrgather.vv}, και το μη γραμμικό βήμα
-$\chi$, $A'[x] = A[x] \oplus (\overline{A[x+1]} \wedge A[x+2])$, σε
-\insn{vandn.vv}~+~\insn{vxor.vv}. Σε σχέση με τη βασική \gls{rvv}, η
-\gls{zvbb} συμπυκνώνει κάθε σύνθετη πράξη σε μία μόνο εντολή. Κάθε lane
-rotation, που χωρίς την επέκταση απαιτεί τρεις εντολές (\insn{vsll} +
-\insn{vsrl} + \insn{vor}), εκτελείται πλέον με μία \insn{vror.vv} (ή
-\insn{vror.vi} για offsets γνωστά κατά τη μεταγλώττιση), ενώ κάθε AND-NOT
-συμπτύσσεται από δύο εντολές (\insn{vnot} + \insn{vand}) σε μία
-\insn{vandn.vv}.
+Keccak-f[1600] (βλ.~\cref{sec:keccak-theory}) και συμπυκνώνουν σε μία εντολή
+πράξεις που στη βασική επέκταση \gls{rvv} θα απαιτούσαν περισσότερες. Το βήμα $\rho$
+(περιστροφή \num{25} lanes κατά σταθερό offset ανά lane) εκτελείται με μία
+\insn{vror.vv} (ή \insn{vror.vi} όταν τα offsets είναι γνωστά κατά τη
+μεταγλώττιση), αντικαθιστώντας την τριάδα
+\insn{vsll}~+~\insn{vsrl}~+~\insn{vor}. Το βήμα $\pi$ (αναδιάταξη lanes)
+αντιστοιχεί σε \insn{vrgather.vv}. Τέλος, το μη γραμμικό βήμα $\chi$,
+$A'[x] = A[x] \oplus (\overline{A[x+1]} \wedge A[x+2])$, υλοποιείται με
+\insn{vandn.vv}~+~\insn{vxor.vv}, όπου η \insn{vandn.vv} συμπτύσσει το ζεύγος
+\insn{vnot}~+~\insn{vand} σε μία εντολή.
 
 \section{Μέθοδοι Προγραμματισμού RISC-V: Επίπεδα Αφαίρεσης}
 \label{sec:programming-methods}
@@ -725,13 +731,14 @@ rotation, που χωρίς την επέκταση απαιτεί τρεις ε
   \label{fig:programming-spectrum}
 \end{figure}
 
-\subsection{Καθαρή Assembly (\texttt{.S} αρχεία)}
+\subsection{Pure Assembly (\texttt{.S} αρχεία)}
 \label{ssec:pure-assembly}
 
-Η καθαρή assembly παρέχει πλήρη χειροκίνητο έλεγχο σε κάθε πτυχή του
-παραγόμενου κώδικα: register allocation, instruction ordering, memory
-layout, και ακριβή encoding κάθε εντολής. Ο μεταγλωττιστής δεν παρεμβαίνει
-— ο κώδικας assembly μεταφράζεται απευθείας σε machine code χωρίς
+Η pure assembly παρέχει πλήρη χειροκίνητο έλεγχο σε κάθε πτυχή του
+παραγόμενου κώδικα: εκχώρηση καταχωρητών (register allocation), διάταξη
+εντολών (instruction ordering), διάταξη μνήμης (memory layout) και ακριβή
+κωδικοποίηση (encoding) κάθε εντολής. Ο μεταγλωττιστής δεν παρεμβαίνει· ο
+κώδικας assembly μεταφράζεται απευθείας σε machine code χωρίς
 βελτιστοποίηση, αναδιάταξη ή εξάλειψη εντολών.
 
 \paragraph{Ευθύνες του προγραμματιστή.}
@@ -744,7 +751,7 @@ layout, και ακριβή encoding κάθε εντολής. Ο μεταγλω�
 κατά τη μεταγλώττιση — εκδηλώνονται ως silent corruption κατά την εκτέλεση του προγράμματος.
 
 \paragraph{Τυπικές χρήσεις.}
-Η καθαρή assembly χρησιμοποιείται αποκλειστικά σε περιπτώσεις όπου δεν
+Η pure assembly χρησιμοποιείται αποκλειστικά σε περιπτώσεις όπου δεν
 υπάρχει εναλλακτική: boot code (αρχικοποίηση stack pointer πριν τη δημιουργία
 C runtime), interrupt handlers (ακριβής context save/restore), και ρουτίνες
 που απαιτούν εντολές μη προσβάσιμες από C (\insn{ecall}, \insn{mret},
@@ -764,8 +771,10 @@ C runtime), interrupt handlers (ακριβής context save/restore), και ρ�
 Η εντολή \insn{csrs} (CSR Set) εκτελεί bitwise OR μεταξύ του τρέχοντος
 \code{mstatus} και της τιμής \code{0x600}, θέτοντας τα bits 10:9 (VS field) 
 σε \q{Dirty} (11), σηματοδοτώντας στο hardware ότι η vector μονάδα είναι ενεργή 
-χωρίς να επηρεάζει τα υπόλοιπα πεδία. Αυτή η λειτουργία δεν εκφράζεται σε C χωρίς
-inline assembly — αποτελεί privileged operation που απαιτεί M-mode πρόσβαση.
+χωρίς να επηρεάζει τα υπόλοιπα πεδία. Το βήμα αυτό είναι απαραίτητο: μετά από reset το πεδίο \code{VS} βρίσκεται
+σε κατάσταση \q{Off}, οπότε κάθε vector εντολή προκαλεί illegal-instruction
+trap έως ότου ενεργοποιηθεί η μονάδα. Πρόκειται για privileged λειτουργία
+(απαιτεί M-mode πρόσβαση) που δεν εκφράζεται σε C χωρίς inline assembly.
 
 \subsection{Inline Assembly (\texttt{\_\_asm\_\_} / \texttt{\_\_asm\_\_ volatile})}
 \label{ssec:inline-assembly}
@@ -786,14 +795,25 @@ __asm__ volatile ("insn %0, %1, %2"
     : /* clobbers */
 );
 \end{lstlisting}
-Το constraint \code{"=r"} δηλώνει ότι ο μεταγλωττιστής πρέπει να εκχωρήσει έναν
-\gls{gpr} για την έξοδο. Ο constraint \code{"=\&r"} (early-clobber)
-δηλώνει ότι η έξοδος γράφεται πριν διαβαστούν όλες οι είσοδοι — ο μεταγλωττιστής
-πρέπει να εκχωρήσει διαφορετικό καταχωρητή από τις εισόδους. Η παράλειψη
-early-clobber σε περιπτώσεις που απαιτείται αποτελεί συχνή πηγή silent
-corruption: ο μεταγλωττιστής μπορεί να τοποθετήσει είσοδο και έξοδο στον ίδιο
-καταχωρητή, με αποτέλεσμα η εγγραφή εξόδου να καταστρέψει μια είσοδο που
-δεν έχει ακόμη αναγνωστεί.
+Στο παραπάνω template, οι δείκτες \code{\%0}, \code{\%1} και \code{\%2}
+αναφέρονται στους τελεστέους με τη σειρά δήλωσής τους: το \code{\%0}
+αντιστοιχεί στην έξοδο και τα \code{\%1}, \code{\%2} στις δύο εισόδους. Το
+constraint \code{"=r"} της εξόδου ζητά από τον μεταγλωττιστή να εκχωρήσει
+έναν \gls{gpr}, με το \code{=} να δηλώνει ότι ο καταχωρητής γράφεται
+(write-only). Τα constraints \code{"r"} των εισόδων ζητούν επίσης
+\glspl{gpr}, στους οποίους ο μεταγλωττιστής τοποθετεί τις τιμές των C
+μεταβλητών \code{input1}, \code{input2} πριν την εκτέλεση του block, ενώ η
+τρίτη ομάδα (clobbers) δηλώνει καταχωρητές ή καταστάσεις που αλλοιώνει το
+block χωρίς να εμφανίζονται ως τελεστέοι.
+
+Το παραπάνω παράδειγμα χρησιμοποιεί απλό \code{"=r"}. Όταν όμως η έξοδος
+ενδέχεται να γραφτεί πριν αναγνωστούν όλες οι είσοδοι, χρησιμοποιείται αντ'
+αυτού το constraint \code{"=\&r"} (early-clobber): υποχρεώνει τον
+μεταγλωττιστή να εκχωρήσει στην έξοδο καταχωρητή διαφορετικό από κάθε
+είσοδο. Η παράλειψή του σε τέτοιες περιπτώσεις αποτελεί συχνή πηγή silent
+corruption, καθώς ο μεταγλωττιστής μπορεί να τοποθετήσει είσοδο και έξοδο
+στον ίδιο καταχωρητή, με αποτέλεσμα η εγγραφή της εξόδου να καταστρέψει μια
+είσοδο που δεν έχει ακόμη αναγνωστεί.
 
 \paragraph{Χρήση: CSR reads.}
 Η κύρια χρήση inline assembly στην παρούσα εργασία αφορά την ανάγνωση
@@ -812,9 +832,12 @@ uint64_t hqc_rdcycle(void) {
 Η δήλωση \code{volatile} είναι κρίσιμη: χωρίς αυτήν, ο μεταγλωττιστής θα
 μπορούσε να εξαλείψει την ανάγνωση ως dead code (αν η τιμή δεν
 χρησιμοποιείται αμέσως) ή να τη μετακινήσει εκτός του μετρούμενου
-τμήματος κώδικα. Η εντολή \insn{csrr} (CSR Read) αποτελεί ψευδοεντολή
-για \code{csrrs rd, csr, x0} — διαβάζει τον \gls{csr} χωρίς να
-τροποποιεί τα bits του.
+τμήματος κώδικα. Η εντολή \insn{csrr} (CSR Read) αποτελεί ψευδοεντολή για
+\code{csrrs rd, csr, x0}. Η \insn{csrrs} (CSR Read-and-Set) διαβάζει τον
+\gls{csr} στον \code{rd} και ταυτόχρονα θέτει σε αυτόν τα bits που ορίζει ο
+τελεστέος \code{rs1}· όταν ως \code{rs1} δοθεί ο \code{x0} (που είναι πάντα
+μηδέν), δεν τίθεται κανένα bit και η εντολή εκφυλίζεται σε καθαρή ανάγνωση
+χωρίς παρενέργειες.
 
 \paragraph{Περιορισμοί.}
 Η inline assembly παρουσιάζει δύο θεμελιώδεις αδυναμίες. Η πρώτη αφορά
@@ -850,22 +873,25 @@ instruction scheduling, common subexpression elimination, constant folding
 
 \paragraph{Πλεονεκτήματα έναντι inline assembly.}
 Τρία χαρακτηριστικά καθιστούν τα intrinsics ανώτερα της inline assembly
-για κρυπτογραφικούς πυρήνες. Η \defterm{type safety} εξασφαλίζει ότι
-σφάλματα τύπου (\eg πέρασμα \code{vuint64m4\_t} σε θέση
-\code{vuint64m8\_t}) ανιχνεύονται κατά τη μεταγλώττιση — αντί να
-εκδηλωθούν ως silent corruption κατά την εκτέλεση. Η \defterm{πλήρης
-ορατότητα στον optimizer} επιτρέπει στον μεταγλωττιστή να εξαλείψει
+για κρυπτογραφικούς πυρήνες. Πρώτον, τα intrinsics επιτρέπουν τον εντοπισμό
+αναντιστοιχιών στους τύπους δεδομένων (π.χ. πέρασμα \code{vuint64m4\_t} σε
+θέση \code{vuint64m8\_t}) κατά τη μεταγλώττιση, αντί να εκδηλωθούν ως
+silent corruption κατά την εκτέλεση· τα επιθέματα \code{m4}/\code{m8}
+δηλώνουν το \LMUL του διανυσματικού τύπου (ομαδοποίηση \num{4} έναντι
+\num{8} καταχωρητών), οπότε οι δύο τύποι δεν είναι εναλλάξιμοι. Δεύτερον, η
+πλήρης ορατότητα στον optimizer επιτρέπει στον μεταγλωττιστή να εξαλείψει
 πλεονάζοντες υπολογισμούς, να αναδιατάξει εντολές για βέλτιστο pipeline
-utilization, και να εκχωρήσει καταχωρητές βάσει global register pressure
-analysis. Η \defterm{φορητότητα μεταξύ compiler versions} εξασφαλίζεται
-από τον τυποποιημένο ορισμό κάθε intrinsic~\autocite{RISCV-c-api} — σε αντίθεση με τη σύνταξη
-constraints που μπορεί να διαφέρει μεταξύ GCC και Clang.
+utilization και να εκχωρήσει καταχωρητές βάσει global register pressure
+analysis. Τρίτον, η φορητότητα μεταξύ εκδόσεων μεταγλωττιστή εξασφαλίζεται
+από τον τυποποιημένο ορισμό κάθε intrinsic στην προδιαγραφή \emph{RISC-V C
+API}~\autocite{RISCV-c-api}, σε αντίθεση με τη σύνταξη constraints που μπορεί
+να διαφέρει μεταξύ GCC και Clang.
 
 Το~\cref{fig:inline-vs-intrinsic} παρουσιάζει τη σύγκριση για τον ίδιο
 υπολογισμό (scalar carry-less multiply): η inline assembly απαιτεί ένα
-πεντάγραμμο block (asm template, constraints εισόδου/εξόδου και clobber
-list) και παράγει αδιαφανές block, ενώ το intrinsic απαιτεί μία μόνο γραμμή
-και παραμένει πλήρως βελτιστοποιήσιμο.
+εκτενές block (asm template, constraints εισόδου/εξόδου και clobber list)
+που παραμένει αδιαφανές στον optimizer, ενώ το intrinsic απαιτεί μία μόνο
+γραμμή και παραμένει πλήρως βελτιστοποιήσιμο.
 
 \begin{figure}[htbp]
   \centering
@@ -883,18 +909,23 @@ flow (\insn{ecall}, \insn{wfi}) ή ειδικές λειτουργίες hardwar
 καλύπτεται πλήρως από intrinsics, καθιστώντας την inline assembly περιττή
 για τους υπολογιστικούς πυρήνες.
 
-\subsection{Απλός C με Compiler Auto-Lowering}
+\subsection{Standard C με Compiler Auto-Lowering}
 \label{ssec:auto-lowering}
 
-Ο απλός C με auto-lowering δεν απαιτεί καμία ρητή παρέμβαση του προγραμματιστή:
-ο μεταγλωττιστής αναγνωρίζει αυτόματα C idioms και εκπέμπει εξειδικευμένες
-εντολές, αρκεί η αντίστοιχη extension να είναι ενεργή στο \code{-march}
-flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος — η βελτιστοποίηση προκύπτει
-αποκλειστικά από τη ρύθμιση μεταγλώττισης.
+Η μέθοδος standard C με auto-lowering δεν απαιτεί καμία ρητή παρέμβαση του
+προγραμματιστή: ο ίδιος ο μεταγλωττιστής, κατά τη μετάφραση του κώδικα C σε machine
+code, αναγνωρίζει συγκεκριμένα C idioms και εκπέμπει εξειδικευμένες εντολές
+στη θέση τους, αρκεί η αντίστοιχη επέκταση να είναι ενεργή στο \code{-march}
+flag. Το \code{-march} είναι το όρισμα του μεταγλωττιστή που δηλώνει το ISA
+string του στόχου, δηλαδή τη βάση και τη λίστα ενεργών επεκτάσεων (π.χ.
+\code{-march=rv64gc\_zbb\_zvbc}), με τη σύμβαση ονοματοδοσίας που
+περιγράφηκε στην \cref{sec:extension-naming}. Ο πηγαίος κώδικας παραμένει
+αμετάβλητος· η βελτιστοποίηση προκύπτει αποκλειστικά από τη ρύθμιση
+μεταγλώττισης.
 
 \paragraph{Αναγνωριζόμενα patterns.}
-Ο μεταγλωττιστής αναγνωρίζει τα ακόλουθα C idioms και τα αντικαθιστά με
-μονολεκτικές εντολές:
+Ο μεταγλωττιστής αναγνωρίζει, μεταξύ άλλων, τα ακόλουθα αντιπροσωπευτικά C
+idioms και τα αντικαθιστά με μονολεκτικές εντολές:
 \begin{itemize}
   \item \code{\textasciitilde{}a \& b} $\to$ \insn{andn} (\gls{zbb}): η
     αντιστροφή και η σύζευξη συγχωνεύονται σε μία εντολή.
@@ -913,12 +944,18 @@ flag. Ο πηγαίος κώδικας παραμένει αμετάβλητος
 παραμένει ίδιος.
 
 \paragraph{Περιορισμός: μη αναγνώριση σύνθετων patterns.}
-Ο μηχανισμός auto-lowering αποτυγχάνει σε σύνθετα κρυπτογραφικά patterns.
-Ο μεταγλωττιστής δεν αναγνωρίζει ότι ένας βρόχος carry-less multiplication
-αντιστοιχεί στην εντολή \clmul — η πράξη δεν εκφράζεται ως standard C
-operator. Ομοίως, δεν συνθέτει \vclmul από generic C loops. Κατά συνέπεια, η μέθοδος
-auto-lowering εφαρμόζεται αποκλειστικά σε απλά bit-manipulation patterns
-— για κρυπτογραφικούς πυρήνες απαιτούνται ρητά intrinsics.
+Ο μηχανισμός auto-lowering αποτυγχάνει σε σύνθετα κρυπτογραφικά patterns. Η
+αυτόματη αντιστοίχιση λειτουργεί μόνο όταν μια πράξη εκφράζεται με τελεστή
+της standard C: ο μεταγλωττιστής αναγνωρίζει, π.χ., ότι το
+\code{(x << 3) | (x >> 61)} είναι rotation και το χαμηλώνει σε \rori. Η
+carry-less multiplication όμως δεν διαθέτει αντίστοιχο τελεστή στη C, οπότε
+ο προγραμματιστής αναγκάζεται να την υλοποιήσει ως βρόχο shift-and-XOR (bit
+προς bit). Ο μεταγλωττιστής βλέπει τότε απλώς έναν γενικό βρόχο από
+\insn{sll}/\insn{srl}/\insn{xor} και δεν διαθέτει τη σημασιολογική
+πληροφορία ώστε να συμπεράνει ότι ισοδυναμεί με μία \clmul· για τον ίδιο
+λόγο δεν συνθέτει \vclmul από generic C loops. Κατά συνέπεια, η auto-lowering
+περιορίζεται σε απλά bit-manipulation patterns, ενώ οι κρυπτογραφικοί
+πυρήνες απαιτούν ρητά intrinsics.
 
 \subsection{Συγκριτική Αξιολόγηση}
 \label{ssec:methods-comparison}
