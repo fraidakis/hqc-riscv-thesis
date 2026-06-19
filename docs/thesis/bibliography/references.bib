@@ -514,7 +514,7 @@
   month        = may,
   howpublished = {RISC-V International, Spec Jira RVS-2360, \url{https://lf-riscv.atlassian.net/wiki/spaces/PQC/pages/485425183/PQC+Keccak+Instructions+Ratification+Plan}},
   urldate         = {2026-06-11},
-  note         = {Task Group: RVG-84 Post-Quantum Cryptography TG. Specification under development; target ratification v1.0 by Dec 2026 (indicative)}
+  note         = {Task Group: RVG-84 Post-Quantum Cryptography TG. Specification under development; target ratification of v1.0 by 31 December 2026 (per Task Group plan)}
 }
 
 @inproceedings{Schoeffel2022-HQC-IoT,
@@ -523,7 +523,7 @@
   booktitle = {Proceedings of the 8th IEEE World Forum on the Internet of Things (WF-IoT)},
   year      = {2022},
   publisher = {IEEE},
-  doi       = {10.1109/WF-IoT54382.2022.10152225},
+  doi       = {10.1109/WF-IoT54382.2022.10152031},
   note      = {First HW/SW co-design of HQC for IoT. FPGA and ASIC implementations targeting sparse$\times$dense polynomial multiplication with custom ISA extensions}
 }
 
@@ -924,4 +924,44 @@
   howpublished = {\url{https://cdn-resource.spacemit.com/file/chip/K3/k3_datasheet_en.pdf}},
   urldate      = {2026-06-17},
   note         = {Official SpacemiT K3 datasheet; the X100 core implements the optional Zbc (scalar carry-less multiply) and Zvbc (vector carry-less multiply) extensions in addition to the RVA23 mandatory set}
+}
+
+
+% --- Added RISC-V works relevant to HQC (triage points 4-7) ---
+@inproceedings{Dolmeta2025-TYRCA,
+  author    = {Alessandra Dolmeta and Stefano Di Matteo and Emanuele Valea and Mika{\"e}l Carmona and Antoine Loiseau and Maurizio Martina and Guido Masera},
+  title     = {{TYRCA}: A {RISC-V} Tightly-Coupled Accelerator for Code-Based Cryptography},
+  booktitle = {2025 Design, Automation \& Test in Europe Conference (DATE)},
+  year      = {2025},
+  pages     = {1--7},
+  publisher = {IEEE},
+  note      = {First CV-X-IF tightly-coupled hardware implementation of round-4 HQC; up to 96\% execution-time reduction for HQC-128/192/256. DBLP: conf/date/DolmetaMVCLMM25}
+}
+
+@article{Seo2026-HQC-Ibex,
+  author    = {Seog Chung Seo and others},
+  title     = {A Hardware/Software Co-Optimization of {HQC} Using Tightly-Coupled Accelerators on a 32-bit {Ibex} Core},
+  journal   = {IEEE Transactions (early access)},
+  year      = {2026},
+  note      = {Tightly-coupled accelerators on a 32-bit Ibex RISC-V core. IEEE Xplore document 11414189; published 26 Feb 2026}
+}
+
+@misc{Dolmeta2025-HORCRUX,
+  author       = {Alessandra Dolmeta and Valeria Piscopo and Guido Masera and Maurizio Martina and Michael Hutter},
+  title        = {{HORCRUX}: A Lightweight {PQC-RISC-V} eXtension Architecture},
+  year         = {2025},
+  howpublished = {Cryptology {ePrint} Archive, Paper 2025/1934, \url{https://eprint.iacr.org/2025/1934}},
+  note         = {Unified RISC-V ISE supporting all NIST PQC families; over 30$\times$ speedup for code-based schemes; under 2900 LUTs and 400 FFs}
+}
+
+@article{Lee2023-RISCV-PQC-CryptoProc,
+  author    = {J. Lee and W. Kim and J.-H. Kim},
+  title     = {A Programmable Crypto-Processor for {National Institute of Standards and Technology} Post-Quantum Cryptography Standardization Based on the {RISC-V} Architecture},
+  journal   = {Sensors},
+  volume    = {23},
+  number    = {23},
+  pages     = {9408},
+  year      = {2023},
+  doi       = {10.3390/s23239408},
+  note      = {RISC-V ISE for NIST PQC incl. round-4 (BIKE, HQC, Classic McEliece). Up to 79\%/92\%/87\% reductions in code size / instructions / cycles vs RV64IM -O3}
 }

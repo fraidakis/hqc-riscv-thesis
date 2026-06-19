@@ -14,10 +14,11 @@ RISC-V αντίστοιχα. Το παρόν κεφάλαιο εξετάζει �
 \label{sec:rw-riscv}
 
 Οι υπάρχουσες υλοποιήσεις του \gls{hqc} σε αρχιτεκτονική RISC-V ακολουθούν
-αποκλειστικά την προσέγγιση HW/SW co-design: συνδυάζουν έναν ενσωματωμένο
-επεξεργαστή RISC-V με εξειδικευμένους hardware accelerators σχεδιασμένους ad hoc
-για τον αλγόριθμο. Καμία δεν αξιοποιεί επικυρωμένες κρυπτογραφικές επεκτάσεις
-(\gls{zbc}, \gls{zvbc}) ούτε στοχεύει pure-software βελτιστοποίηση σε RV64.
+αποκλειστικά την προσέγγιση HW/SW co-design: συνδυάζουν έναν RISC-V επεξεργαστή
+με custom hardware —loosely- ή tightly-coupled accelerators, ή custom ISA
+επεκτάσεις— σχεδιασμένο ειδικά για τον αλγόριθμο. Καμία δεν αξιοποιεί
+επικυρωμένες κρυπτογραφικές επεκτάσεις (\gls{zbc}, \gls{zvbc}) σε
+application-class RV64 πυρήνες χωρίς custom hardware.
 
 \subsection{Schöffel et al.\ 2022 — HW/SW Co-Design σε RV32IC}
 \label{ssec:rw-schoeffel}
@@ -102,6 +103,35 @@ Karatsuba), υλοποιημένο στον RV32IMC CV32E40P χωρίς αξιο
 της reference specification και επιταχύνει τα leaf multiplications μέσω
 \insn{clmul}/\vclmul σε ratified hardware.
 
+\subsection{Dolmeta et al.\ 2025 — TYRCA: Tightly-Coupled Accelerator μέσω CV-X-IF}
+\label{ssec:rw-tyrca}
+
+Οι Dolmeta et al.\ (Politecnico di Torino / CEA-Leti) παρουσίασαν το
+TYRCA~\cite{Dolmeta2025-TYRCA}, την πρώτη tightly-coupled hardware υλοποίηση του
+round-4 \gls{hqc} σε RISC-V. Αντί για loosely-coupled accelerator μέσω AXI, το
+TYRCA ενσωματώνεται στον επεξεργαστή μέσω του Core-V eXtension Interface
+(CV-X-IF), που τυποποιείται στην κοινότητα RISC-V και επιτρέπει custom εντολές
+χωρίς τροποποίηση του pipeline του πυρήνα.
+
+\paragraph{Αποτελέσματα και περιορισμοί.}
+Η σχεδίαση επιτυγχάνει μείωση χρόνου εκτέλεσης έως \pct{96} για HQC-128/192/256
+σε σχέση με τη software υλοποίηση. Παρότι το CV-X-IF αποτελεί standardization
+effort, το TYRCA παραμένει custom hardware accelerator: απαιτεί εξειδικευμένη
+μονάδα και επεκτάσεις toolchain, σε αντίθεση με την παρούσα εργασία που
+αξιοποιεί αποκλειστικά τις ήδη επικυρωμένες \gls{zbc}/\gls{zvbc} σε
+application-class RV64 πυρήνες.
+
+\subsection{Seo et al.\ 2026 — HW/SW Co-Optimization σε 32-bit Ibex}
+\label{ssec:rw-seo-ibex}
+
+Οι Seo et al.~\cite{Seo2026-HQC-Ibex} προτείνουν HW/SW co-optimization του
+\gls{hqc} με tightly-coupled accelerators υλοποιημένους πάνω σε έναν 32-bit Ibex
+RISC-V πυρήνα. Όπως και οι προηγούμενες RISC-V εργασίες, η προσέγγιση στηρίζεται
+σε custom hardware και όχι στις επικυρωμένες κρυπτογραφικές επεκτάσεις. Επιπλέον,
+η πλατφόρμα Ibex είναι embedded-class RV32 χωρίς 64-bit datapath ή vector unit,
+σε αντίθεση με τους RV64 application-class επεξεργαστές που στοχεύει η παρούσα
+εργασία.
+
 \subsection{PHOENIX — Crypto-Agile HW Coprocessor}
 \label{ssec:rw-phoenix}
 
@@ -136,16 +166,43 @@ extensions. Ωστόσο, η ύπαρξη του PHOENIX τεκμηριώνει 
 κρυπτογραφικής ευελιξίας (crypto-agility) ως σχεδιαστική απαίτηση — θέμα που
 αναλύεται στην \cref{sec:crypto-agility}.
 
+\subsection{RISC-V ISE με κάλυψη του \HQC: HORCRUX και προγραμματιζόμενος crypto-processor}
+\label{ssec:rw-riscv-ise-hqc}
+
+Πέραν των αμιγώς HQC-specific σχεδιάσεων, δύο πρόσφατες εργασίες προτείνουν
+RISC-V instruction-set extensions (ISE) που καλύπτουν πολλαπλές οικογένειες
+\gls{pqc}, συμπεριλαμβανομένου του code-based \gls{hqc}. Το
+HORCRUX~\cite{Dolmeta2025-HORCRUX} (Politecnico di Torino) παρέχει ενοποιημένο
+ISE για όλες τις οικογένειες NIST PQC, επιτυγχάνοντας speedup άνω του
+\speedup{30} για code-based σχήματα με κόστος μικρότερο από \num{2900} LUTs και
+\num{400} FFs, διατηρώντας backward compatibility με standard RISC-V πυρήνες. Ο
+προγραμματιζόμενος crypto-processor των Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}
+(\emph{Sensors} 2023) επεκτείνει το RISC-V ISA για τους NIST PQC standard και
+round-4 αλγορίθμους (BIKE, \gls{hqc}, Classic McEliece), με μειώσεις έως
+\pct{79}/\pct{92}/\pct{87} σε μέγεθος κώδικα, πλήθος εντολών και κύκλους
+αντίστοιχα έναντι RV64IM \texttt{-O3}.
+
+\paragraph{Περιορισμοί σε σχέση με την παρούσα εργασία.}
+Αμφότερες οι εργασίες εισάγουν \emph{custom} εντολές/ISE (μη επικυρωμένο) και δεν
+περιορίζονται στον \gls{hqc}· καμία δεν παρέχει ολοκληρωμένη, pure-software
+βελτιστοποίηση του \gls{hqc} \gls{kem} βασισμένη αποκλειστικά στις επικυρωμένες
+\gls{zbc}/\gls{zvbc}.
+
 \paragraph{Σύνοψη υπαρχουσών εργασιών RISC-V.}
-Ο \cref{tab:rw-riscv-summary} συνοψίζει τα χαρακτηριστικά των τριών υπαρχουσών
-υλοποιήσεων \gls{hqc} σε RISC-V: κοινός παρονομαστής είναι η εξάρτηση από custom
-hardware.
+Ο \cref{tab:rw-riscv-summary} συνοψίζει τα χαρακτηριστικά των υπαρχουσών εργασιών
+που σχετίζονται με τον \gls{hqc} σε RISC-V. Οι αμιγώς RISC-V υλοποιήσεις του
+\gls{hqc} (Schöffel, Ras, TYRCA, Seo et al.) συνοδεύονται από το PHOENIX —που
+αξιολογείται σε ARM Cortex-A9 host και περιλαμβάνεται ως σημείο σύγκρισης— και
+από τις HORCRUX/Lee et al., που αποτελούν RISC-V ISE με κάλυψη του \gls{hqc}.
+Κοινός παρονομαστής όλων είναι η εξάρτηση από custom hardware ή μη-επικυρωμένο
+ISE.
 
 \begin{table}[htbp]
   \centering
-  \caption{Σύνοψη υπαρχουσών υλοποιήσεων \HQC σε RISC-V. Καμία δεν αξιοποιεί
-    επικυρωμένες κρυπτογραφικές επεκτάσεις (\Zbc/\Zvbc) ούτε στοχεύει pure-software
-    βελτιστοποίηση σε RV64.}
+  \caption{Σύνοψη υπαρχουσών εργασιών που σχετίζονται με τον \HQC σε RISC-V.
+    Καμία δεν αξιοποιεί επικυρωμένες κρυπτογραφικές επεκτάσεις (\Zbc/\Zvbc) σε
+    application-class RV64 πυρήνες χωρίς custom hardware. Το PHOENIX ($\dagger$)
+    αξιολογείται σε ARM Cortex-A9 host, όχι σε RISC-V πυρήνα.}
   \label{tab:rw-riscv-summary}
   \small
   \begin{tabular}{@{}lcccc@{}}
@@ -156,8 +213,16 @@ hardware.
       & RV32IC & sparse$\times$dense & R-Unit, RM-Dec., F$2^8$-Unit & 2022 \\
     Ras et al.~\cite{ras-nist2025}
       & RV32IMC & FAFFT & ANDROMEDA & 2025 \\
+    TYRCA~\cite{Dolmeta2025-TYRCA}
+      & RV + CV-X-IF & — & TYRCA (tightly-coupled) & 2025 \\
+    Seo et al.~\cite{Seo2026-HQC-Ibex}
+      & RV32 (Ibex) & — & tightly-coupled accel. & 2026 \\
     PHOENIX~\cite{PHOENIX2025}
-      & ARM Cortex-A9 & FAFFT & SuperButterfly & 2025 \\
+      & ARM Cortex-A9$^{\dagger}$ & FAFFT & SuperButterfly & 2025 \\
+    HORCRUX~\cite{Dolmeta2025-HORCRUX}
+      & RISC-V + ISE & — & PQC ISE & 2025 \\
+    Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}
+      & RISC-V + ISE & — & PQC crypto-proc. & 2023 \\
     \midrule
     \textbf{Παρούσα εργασία}
       & RV64GCV & Karatsuba & \textbf{Καμία} & 2026 \\
@@ -536,14 +601,18 @@ $\sim$\pct{53} του συνόλου), ο Keccak αναδεικνύεται ως
 βελτιστοποίησης.
 
 \paragraph{Σχετικότητα με την παρούσα εργασία.}
-Η εντολή \code{vkeccak.vi} βρίσκεται σε επίσημη διαδικασία τυποποίησης
-(RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}), αν και η προδιαγραφή παραμένει
-σε πρώιμο στάδιο ανάπτυξης.  Εφόσον τυποποιηθεί, θα ωφελήσει τον \gls{hqc}
-εξίσου με τα lattice-based σχήματα, καθώς ο Keccak αποτελεί κοινό primitive.
-Τα benchmarks σε X60 (\VLEN $= \num{256}$) παρέχουν real-silicon σημείο αναφοράς
-για τη σύγκριση με τις μετρήσεις hardware της παρούσας εργασίας
-(βλ.~\cref{sec:emulators}).
-Για λεπτομέρειες εκτιμώμενης επίδρασης στον \gls{hqc}, βλ.~\cref{ch:conclusions}.
+Καθώς ο Keccak αναδεικνύεται σε κυρίαρχο bottleneck και για τις δύο οικογένειες
+\gls{pqc} μετά τη βελτιστοποίηση του αριθμητικού πυρήνα, η κοινότητα RISC-V
+κινείται προς την τυποποίηση εξειδικευμένης εντολής Keccak: η πρόταση
+\code{vkeccak.vi} βρίσκεται σε επίσημη διαδικασία τυποποίησης
+(RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}), με στόχο ratification της έκδοσης
+v1.0 έως τις 31 Δεκεμβρίου 2026 σύμφωνα με το πλάνο του Task Group, αν και η
+προδιαγραφή παραμένει σε στάδιο ανάπτυξης. Εφόσον τυποποιηθεί, θα ωφελήσει τον
+\gls{hqc} εξίσου με τα lattice-based σχήματα, καθώς ο Keccak αποτελεί κοινό
+primitive. Τα benchmarks σε X60 (\VLEN $= \num{256}$) παρέχουν real-silicon
+σημείο αναφοράς για τη σύγκριση με τις μετρήσεις hardware της παρούσας εργασίας
+(βλ.~\cref{sec:emulators}). Για λεπτομέρειες εκτιμώμενης επίδρασης στον
+\gls{hqc}, βλ.~\cref{ch:conclusions}.
 
 \subsection{Σύνοψη και τοποθέτηση}
 \label{ssec:rw-pqc-riscv-summary}
@@ -617,6 +686,23 @@ hardware accelerator ANDROMEDA. Ο CV32E40P (RV32IMC) δεν υποστηρίζ�
 \gls{zvbc} — ο carry-less πολλαπλασιασμός εκτελείται είτε σε software (shift-and-add)
 είτε στον custom CFB unit. Η εργασία δεν αποτελεί pure-software υλοποίηση και
 δεν αξιοποιεί ratified extensions.
+
+\paragraph{TYRCA~\cite{Dolmeta2025-TYRCA}.}
+Το TYRCA επιταχύνει τον round-4 \gls{hqc} μέσω tightly-coupled accelerator στο
+CV-X-IF interface. Παρότι RISC-V-based, αποτελεί custom hardware και όχι
+pure-software υλοποίηση· δεν αξιοποιεί τις επικυρωμένες \gls{zbc}/\gls{zvbc} αλλά
+εξειδικευμένη μονάδα προσβάσιμη μέσω custom εντολών.
+
+\paragraph{Seo et al.\ 2026~\cite{Seo2026-HQC-Ibex}.}
+Η co-optimization του \gls{hqc} σε 32-bit Ibex στηρίζεται σε tightly-coupled
+custom accelerators. Η πλατφόρμα είναι embedded-class RV32 χωρίς 64-bit datapath
+ή vector unit, και δεν αξιοποιεί ratified extensions.
+
+\paragraph{HORCRUX~\cite{Dolmeta2025-HORCRUX} και Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}.}
+Αμφότερες εισάγουν custom RISC-V ISE που καλύπτει πολλαπλές οικογένειες \gls{pqc}
+(συμπεριλαμβανομένου του \gls{hqc}). Πρόκειται για μη-επικυρωμένες επεκτάσεις, και
+καμία δεν παρέχει ολοκληρωμένη pure-software βελτιστοποίηση του \gls{hqc}
+\gls{kem} με αποκλειστική χρήση των ratified \gls{zbc}/\gls{zvbc}.
 
 \paragraph{PHOENIX~\cite{PHOENIX2025}.}
 Ο crypto-agile coprocessor SuperButterfly αποτελεί custom FPGA σχεδίαση — δεν
@@ -692,6 +778,14 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
       & \ding{51} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
     Ras et al.~\cite{ras-nist2025}
       & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
+    TYRCA~\cite{Dolmeta2025-TYRCA}
+      & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
+    Seo et al.~\cite{Seo2026-HQC-Ibex}
+      & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
+    HORCRUX~\cite{Dolmeta2025-HORCRUX}
+      & \ding{51} & \ding{55} & \ding{55} & — & — \\
+    Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}
+      & \ding{51} & \ding{55} & \ding{55} & — & — \\
     PHOENIX~\cite{PHOENIX2025}
       & \ding{51} & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
     OptHQC~\cite{OptHQC2025}
@@ -716,9 +810,11 @@ carry-less πολλαπλασιασμό σε $\GFpoly$.
 
   \vspace{4pt}
   \footnotesize
-  \textit{Σημείωση:} Το σύμβολο \q{—} στις τρεις τελευταίες εργασίες (lattice-based)
-  δηλώνει ότι τα κριτήρια \q{Dense$\times$dense} και \q{Πλήρες \gls{kem}} δεν
-  εφαρμόζονται — οι εργασίες αφορούν Kyber/Dilithium (NTT-based), όχι \gls{hqc}.
+  \textit{Σημείωση:} Το σύμβολο \q{—} στα κριτήρια \q{Dense$\times$dense} και
+  \q{Πλήρες \gls{kem}} δηλώνει μη εφαρμοσιμότητα: είτε πρόκειται για lattice-based
+  εργασίες (Kyber/Dilithium, NTT-based: ECO-CRYSTALS, Zhang, Saarinen) είτε για
+  RISC-V ISE πολλαπλών οικογενειών (HORCRUX, Lee et al.) που δεν εστιάζουν στον
+  \gls{hqc}.
 \end{table}
 
 Τα πέντε κριτήρια του πίνακα ορίζονται ως εξής:
