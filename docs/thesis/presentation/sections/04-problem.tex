@@ -1,0 +1,33 @@
+% --- 04 Problem: where the cost is -------------------------------------------
+\begin{frame}{Πού ξοδεύεται ο χρόνος;}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.52\textwidth}
+      \begin{itemize}
+        \item Η αναφορική υλοποίηση του \HQC είναι \HL{απαγορευτικά αργή} σε \en{embedded} RISC-V
+        \item Ο \HL{πολυωνυμικός πολ/σμός} κυριαρχεί: $\sim\!\pct{96}$ των \instret στη βαθμωτή αναφορά
+        \item Δεύτεροι στούχοι: \HL{\en{Keccak}/\en{SHA-3}} και \HL{αποκωδικοποίηση}
+      \end{itemize}
+      \vspace{0.5em}
+      \begin{block}{Στόχοι της εργασίας}
+        \begin{enumerate}
+          \item Επιτάχυνση μέσω επεκτάσεων \en{ISA}, χωρίς απώλεια ασφάλειας
+          \item Διατήρηση \en{constant-time} συμπεριφοράς
+          \item Επαλήθευση σε πραγματικό \en{silicon}
+        \end{enumerate}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+      % Simplified slide pie (source: figures/ch2-background/pie-scalar-ref.tex)
+      \tikzsetnextfilename{pres-problem-cost-pie}
+      \begin{tikzpicture}[scale=0.95]
+        \def\polymul{96}
+        \filldraw[fill=conc,draw=white,line width=1pt] (0,0) -- (90:2) arc (90:90-3.6*\polymul:2) -- cycle;
+        \filldraw[fill=hlc!40,draw=white,line width=1pt] (0,0) -- (90-3.6*\polymul:2) arc (90-3.6*\polymul:-270:2) -- cycle;
+        \node[white,font=\bfseries] at (-0.1,0.35) {\pct{96}};
+        \node[font=\footnotesize] at (0,-2.5) {\con{Πολ/σμός \GFpoly} \;·\; λοιπά};
+      \end{tikzpicture}\\
+      {\footnotesize Κατανομή \instret, βαθμωτή αναφορά \HQC-128}
+    \end{column}
+  \end{columns}
+\end{frame}

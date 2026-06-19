@@ -1,0 +1,24 @@
+% --- 07 Vector optimization (Zvbc) -------------------------------------------
+\begin{frame}{Βαθμίδες 2--3: διανυσματικός πολ/σμός με \Zvbc}
+  \begin{itemize}
+    \item \textbf{Βαθμίδα 2 (βασική \RVV):} διανυσματοποίηση XOR/μετατοπίσεων, αλλά ο πολ/σμός παραμένει σειριακός
+    \item \textbf{Βαθμίδα 3 (\en{vector-crypto}):} ο \HL{\vclmul} εκτελεί πολ/σμό \GFpoly διανυσματικά
+  \end{itemize}
+  \vspace{0.4em}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.55\textwidth}
+      \begin{block}{Διανυσματικό φύλλο (\en{leaf}) Karatsuba}
+        \begin{itemize}
+          \item Πολλαπλά ανεξάρτητα προϊόντα ανά διάνυσμα
+          \item Στρατηγικές \en{direct-write} και \en{overlap-save} για αποδοτική συνάθροιση
+          \item Κλιμάκωση με το \VLEN του υλικού
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \begin{exampleblock}{Επίδραση}
+        Ο πολ/σμός παύει να είναι το bottleneck: \HL{\speedup{318}} (\HQC-128) έως \HL{\speedup{547}} (\HQC-256) στον πυρήνα πολ/σμού.
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}

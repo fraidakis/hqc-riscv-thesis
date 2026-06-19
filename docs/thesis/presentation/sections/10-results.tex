@@ -1,0 +1,47 @@
+% --- 10 Results (HEADLINE) ---------------------------------------------------
+% Provenance: results/reports/summaries/speedups_simulation.md (Spike instret, VLEN=256, AP-2).
+% KEM end-to-end speedups vs HQC reference implementation.
+\begin{frame}{Αποτελέσματα: επιτάχυνση end-to-end \KEM}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.46\textwidth}
+      \renewcommand{\arraystretch}{1.25}
+      \begin{tabular}{@{}lcc@{}}
+        \toprule
+        Βαθμίδα & \HQC-128 & \HQC-256 \\
+        \midrule
+        1 · σειριακή (\Zbc) & \speedup{34.0} & \speedup{49.1} \\
+        2 · \RVV          & \speedup{60.0} & \speedup{71.7} \\
+        3 · \en{vec-crypto} & \HL{\speedup{167.0}} & \HL{\speedup{338.8}} \\
+        \bottomrule
+      \end{tabular}\\[0.6em]
+      {\footnotesize Πυρήνας πολ/σμού (Βαθμίδα 3): \HL{\speedup{318}} / \HL{\speedup{547}}}
+    \end{column}
+    \begin{column}{0.54\textwidth}
+      \centering
+      \tikzsetnextfilename{pres-results-kem-bars}
+      \begin{tikzpicture}
+        \begin{axis}[
+            ybar, width=\textwidth, height=4.6cm,
+            bar width=8pt, enlarge x limits=0.25,
+            ymin=0, ymax=360,
+            ylabel={\scriptsize επιτάχυνση ($\times$)},
+            symbolic x coords={Βαθμ.1,Βαθμ.2,Βαθμ.3},
+            xtick=data, x tick label style={font=\scriptsize},
+            ytick={0,100,200,300}, y tick label style={font=\scriptsize},
+            legend style={font=\scriptsize,at={(0.02,0.97)},anchor=north west,draw=none},
+            nodes near coords, every node near coord/.append style={font=\tiny,rotate=90,anchor=west},
+        ]
+          \addplot[fill=hlc!55] coordinates {(Βαθμ.1,34.0) (Βαθμ.2,60.0) (Βαθμ.3,167.0)};
+          \addplot[fill=conc!55] coordinates {(Βαθμ.1,49.1) (Βαθμ.2,71.7) (Βαθμ.3,338.8)};
+          \legend{\HQC-128,\HQC-256}
+        \end{axis}
+      \end{tikzpicture}\\
+      {\footnotesize Έναντι αναφορικής υλοποίησης \HQC · \en{Spike} \instret}
+    \end{column}
+  \end{columns}
+  \vspace{0.2em}
+  \pause
+  \begin{exampleblock}{}
+    \centering Κλιμάκωση με το επίπεδο ασφάλειας: όσο μεγαλύτερα τα πολυώνυμα, \HL{τόσο μεγαλύτερο το όφελος} του διανυσματικού πολ/σμού.
+  \end{exampleblock}
+\end{frame}

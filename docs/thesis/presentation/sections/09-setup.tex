@@ -1,0 +1,21 @@
+% --- 09 Experimental setup ---------------------------------------------------
+\begin{frame}{Πειραματική διάταξη: τριπλή επαλήθευση}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.62\textwidth}
+      \begin{itemize}
+        \item \HL{\en{Spike ISS}}: μέτρηση \instret (αρχιτεκτονικά ανεξάρτητη) — όλες οι βαθμίδες
+        \item \HL{\en{QEMU}}: επικύρωση ορθότητας μέσω \en{KAT} (\en{known-answer tests})
+        \item \HL{\en{Banana Pi BPI-F3}} (\en{SpacemiT K1}, πυρήνας X60, $\VLEN=256$): πραγματικοί κύκλοι ρολογιού
+      \end{itemize}
+      \vspace{0.4em}
+      \begin{block}{Γιατί \instret;}
+        Αποσυνδέει την αλγοριθμική βελτίωση από το μικροαρχιτεκτονικό θόρυβο — αναπαραγώσιμη, συγκρίσιμη μετρική.
+      \end{block}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \begin{exampleblock}{Συνέπεια}
+        Στις βαθμίδες που τρέχουν σε πραγματικό υλικό (1--2), η απόκλιση \instret ↔ κύκλοι είναι \HL{$\sim\!\pct{2}$}.
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}

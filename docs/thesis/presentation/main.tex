@@ -1,0 +1,53 @@
+% =============================================================================
+% main.tex — Thesis defense deck (15 min) | HQC on RISC-V via ISA extensions
+% Build: latexmk -lualatex main.tex   (handout: see Makefile target `handout`)
+% =============================================================================
+\documentclass[aspectratio=169,10pt]{beamer}
+\input{preamble}
+
+\title{Βελτιστοποίηση του Μετα-Κβαντικού Κρυπτοσυστήματος \HQC σε RISC-V}
+\subtitle{μέσω Επεκτάσεων \en{ISA}}
+\author{Φραϊδάκης Ιωάννης \\ {\footnotesize ΑΕΜ 10736}}
+\institute{%
+  Πολυτεχνική Σχολή · Τμήμα ΗΜΜΥ · Α.Π.Θ.\\[0.6em]
+  {\footnotesize Επίβλεψη: Ι. Παπαευσταθίου, Καθηγητής}\\
+  {\footnotesize Εξεταστική επιτροπή: Ι. Παπαευσταθίου, Β. Παυλίδης, Α. Χατζόπουλος}%
+}
+\date{Θεσσαλονίκη, Ιούνιος 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}{Δομή της παρουσίασης}
+  \tableofcontents
+\end{frame}
+
+\section{Κίνητρο \& Υπόβαθρο}
+\input{sections/01-motivation}
+\input{sections/02-hqc}
+\input{sections/03-riscv}
+
+\section{Πρόβλημα \& Προσέγγιση}
+\input{sections/04-problem}
+\input{sections/05-approach}
+\input{sections/06-scalar}
+\input{sections/07-vector}
+\input{sections/08-keccak}
+
+\section{Πειραματικά Αποτελέσματα}
+\input{sections/09-setup}
+\input{sections/10-results}
+\input{sections/11-hardware}
+\input{sections/12-comparison}
+
+\section{Συμπεράσματα}
+\input{sections/13-conclusions}
+\input{sections/14-limitations}
+\input{sections/15-thanks}
+
+% --- Backup (after the closing frame; not counted in the 15') ----------------
+\appendix
+\input{backup}
+
+\end{document}

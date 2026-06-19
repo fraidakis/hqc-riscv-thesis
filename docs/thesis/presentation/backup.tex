@@ -1,0 +1,50 @@
+% =============================================================================
+% backup.tex — appendix frames (answers to anticipated committee questions)
+% Not counted in the 15'. All numbers traceable to results/reports/ & figures/.
+% =============================================================================
+\begin{frame}{Παράρτημα: παράμετροι \HQC}
+  \centering
+  \renewcommand{\arraystretch}{1.2}
+  {\small
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    Επίπεδο & $N$ & $n_1$ & $n_2$ & $\omega$ \\
+    \midrule
+    \HQC-128 & \num{17669} & 46 & 384 & 66 \\
+    \HQC-192 & \num{35851} & 56 & 640 & 100 \\
+    \HQC-256 & \num{57637} & 90 & 640 & 131 \\
+    \bottomrule
+  \end{tabular}}
+  \\[0.4em]{\footnotesize Πηγή: figures/ch2-background/hqc-params-table.tex}
+\end{frame}
+
+\begin{frame}{Παράρτημα: αποκωδικοποίηση μέσω \en{FFT} (\Zvbc)}
+  \begin{itemize}
+    \item Εύρεση ριζών (\en{root-finding}) \en{Reed--Solomon}: \HL{$-\pct{84}$ έως $-\pct{86}$} \instret
+    \item \HQC-128: \num{384986} $\rightarrow$ \num{60353} \instret (\speedup{6.38})
+    \item \HQC-192: \num{562125} $\rightarrow$ \num{77114} \instret (\speedup{7.29})
+    \item \HQC-256: \num{1059605} $\rightarrow$ \num{159206} \instret (\speedup{6.66})
+  \end{itemize}
+  {\footnotesize Πηγή: results/reports/summaries/speedups_simulation.md · §7.2.4}
+\end{frame}
+
+\begin{frame}{Παράρτημα: ανάλυση συνεισφοράς επεκτάσεων (\en{ablation})}
+  \begin{itemize}
+    \item \Zbc (\clmul): κυρίαρχη συνεισφορά — ενεργοποιεί όλες τις βαθμίδες
+    \item \ext{Zba} (διευθυνσιοδότηση): $-\pct{5.6}$ \instret
+    \item \ext{Zbs} (πράξεις bit): $-\pct{0.71}$ \instret
+  \end{itemize}
+  {\footnotesize Πηγή: figures/ch9-discussion/{waterfall-ablation,zba-ablation-bar,zbs-ablation-bar}.tex}
+\end{frame}
+
+\begin{frame}{Παράρτημα: \en{constant-time} επαλήθευση}
+  \begin{itemize}
+    \item \en{dudect} (στατιστικό τεστ χρονισμού) στο πραγματικό υλικό~\cite{Reparaz2017-dudect}
+    \item \en{ctgrind}/\en{Valgrind} για έλεγχο πρόσβασης μνήμης/διακλαδώσεων
+    \item Εφαρμόστηκε στις βαθμίδες 1--2 (διαθέσιμο υλικό)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[allowframebreaks]{Παράρτημα: Βιβλιογραφία}
+  \printbibliography
+\end{frame}

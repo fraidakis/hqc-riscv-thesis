@@ -1,0 +1,22 @@
+% --- 01 Motivation: quantum threat -------------------------------------------
+\begin{frame}{Η κβαντική απειλή}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.56\textwidth}
+      \begin{itemize}
+        \item Ο αλγόριθμος του \en{Shor} σπάει \en{RSA} / \en{ECC} σε πολυωνυμικό χρόνο~\cite{Shor1997}
+        \item \HL{“\en{Harvest now, decrypt later}”}: τα δεδομένα κλέβονται σήμερα, αποκρυπτογραφούνται αύριο
+        \item Εντολή \en{NSA CNSA 2.0}: μετάβαση σε \en{PQC} έως το \HL{2035}~\cite{NSA-CNSA2}
+      \end{itemize}
+      \vspace{0.6em}
+      \pause
+      \begin{block}{Γιατί \HQC;}
+        Τον Μάρτιο 2025 το \en{NIST} επέλεξε το \HQC ως πρότυπο \en{KEM} — εναλλακτικό στο \en{ML-KEM}, βασισμένο σε κωδικοθεωρία~\cite{NIST-HQC-selection2025}.
+      \end{block}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{exampleblock}{Διαφοροποίηση κινδύνου}
+        Το \HQC στηρίζεται σε \emph{διαφορετική} υπόθεση σκληρότητας (αποκωδικοποίηση συγκλινούσας) απ' ό,τι τα πλεγματικά — αντιστάθμιση σε μια μελλοντική κρυπτανάλυση.
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}

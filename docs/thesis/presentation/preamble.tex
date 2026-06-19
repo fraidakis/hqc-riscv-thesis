@@ -1,0 +1,118 @@
+% =============================================================================
+% preamble.tex — HQC-on-RISC-V defense deck (LuaLaTeX + moloch)
+% Authored by @Skill — Beamer Presentation Builder.
+% Engine: LuaLaTeX (build via latexmk). No TeX engine in sandbox -> static only.
+% =============================================================================
+
+\usetheme{moloch}                    % maintained fork of metropolis (pgfplots/TikZ-safe)
+% Fraction-style frame numbering (current/total). moloch removed metropolis'
+% \metroset/numbering option in favour of beamer's native template, so set it
+% directly (the legacy `numbering=fraction` option is deprecated in moloch).
+\setbeamertemplate{page number in head/foot}[totalframenumber]
+
+% --- Fonts & language -----------------------------------------------------
+% moloch does NOT auto-handle Fira -> set an explicit Greek-capable font.
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{greek}
+\setotherlanguage{english}
+\setmainfont{Noto Sans}
+\setsansfont{Noto Sans}
+\setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+\newcommand{\en}[1]{\textenglish{#1}}      % english spans (= \textenglish)
+
+% --- Math -----------------------------------------------------------------
+\usepackage{unicode-math}
+\setmathfont{Latin Modern Math}             % full Greek + math coverage
+
+% --- Numbers / units ------------------------------------------------------
+\usepackage{siunitx}
+\sisetup{group-separator={.},group-minimum-digits=4,detect-all}
+
+% --- Tables / lists / code ------------------------------------------------
+\usepackage{booktabs}
+\usepackage{tabularray}
+\usepackage{listings}
+\usepackage{pifont}
+
+% --- TikZ / plots ---------------------------------------------------------
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,shapes.geometric,calc}
+\usepgfplotslibrary{groupplots}
+% Externalization: stable, deterministic figure names (same convention as thesis)
+\usetikzlibrary{external}
+\tikzexternalize[prefix=build/ext/]
+
+% --- Bibliography ---------------------------------------------------------
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+\addbibresource{../bibliography/references.bib}
+
+% --- Semantic, colorblind-safe colors (WCAG AA >= 4.5:1) ------------------
+\definecolor{posc}{HTML}{1B7837}\newcommand{\pos}[1]{\textcolor{posc}{#1}}
+\definecolor{conc}{HTML}{B2182B}\newcommand{\con}[1]{\textcolor{conc}{#1}}
+\definecolor{hlc}{HTML}{2166AC}\newcommand{\HL}[1]{\textcolor{hlc}{\textbf{#1}}}
+\definecolor{accent}{HTML}{2166AC}
+
+% =============================================================================
+% Macros — class-agnostic subset replicated from preamble/macros.tex
+% (NEVER blanket-\input the thesis preamble: scrbook != beamer class coupling)
+% Names kept identical to thesis (D-TERM).
+% =============================================================================
+\usepackage{xspace}
+% Mathematical notation
+\newcommand{\GF}[1]{\mathrm{GF}(#1)}
+\newcommand{\GFpoly}{\GF{2}[x]}
+\newcommand{\GFquot}[1]{\GF{2}[x]/(x^{#1}-1)}
+\newcommand{\xorop}{\oplus}
+% HQC-specific
+\newcommand{\HQC}{\textsc{HQC}\xspace}
+\newcommand{\KEM}{\textsc{KEM}\xspace}
+\newcommand{\KeyGen}{\textsc{KeyGen}\xspace}
+\newcommand{\Encaps}{\textsc{Encaps}\xspace}
+\newcommand{\Decaps}{\textsc{Decaps}\xspace}
+% RISC-V instructions
+\newcommand{\insn}[1]{\texttt{#1}\xspace}
+\newcommand{\clmul}{\insn{clmul}}
+\newcommand{\clmulh}{\insn{clmulh}}
+\newcommand{\vclmul}{\insn{vclmul.vv}}
+\newcommand{\vclmulh}{\insn{vclmulh.vv}}
+\newcommand{\vror}{\insn{vror}}
+\newcommand{\rori}{\insn{rori}}
+% RISC-V extensions
+\newcommand{\ext}[1]{\textsf{\textbf{#1}}}
+\newcommand{\Zbc}{\ext{Zbc}\xspace}
+\newcommand{\Zbb}{\ext{Zbb}\xspace}
+\newcommand{\Zvbc}{\ext{Zvbc}\xspace}
+\newcommand{\Zvbb}{\ext{Zvbb}\xspace}
+\newcommand{\RVV}{\ext{RVV}\xspace}
+% Performance metrics
+\newcommand{\instret}{\texttt{instret}\xspace}
+\newcommand{\VLEN}{\texttt{VLEN}\xspace}
+\newcommand{\VLMAX}{\texttt{VLMAX}\xspace}
+\newcommand{\SEW}{\texttt{SEW}\xspace}
+\newcommand{\LMUL}{\texttt{LMUL}\xspace}
+% Abbreviations
+\newcommand{\ie}{i.e.\@,\xspace}
+\newcommand{\eg}{e.g.\@,\xspace}
+% Emphasis / code
+\newcommand{\defterm}[1]{\textbf{\textit{#1}}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\BigO}[1]{\mathcal{O}(#1)}
+% Results & measurements
+\newcommand{\speedup}[1]{$\times$#1}
+\newcommand{\pct}[1]{\SI{#1}{\percent}}
+\providecommand{\checkmark}{\ding{51}}
+
+% --- listings style (RISC-V-ish, ASCII only) ------------------------------
+\lstdefinestyle{riscv}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{accent}\bfseries,
+  commentstyle=\color{gray},
+  morekeywords={clmul,clmulh,vclmul,vclmulh,vror,vsll,vsrl,vor,vxor,rori,andn,sh3add,bset,slli,add,xor},
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+}
+\lstset{style=riscv}
