@@ -1,0 +1,8 @@
+\begin{frame}{Σύγκριση με state-of-the-art}
+  \begin{itemize}
+    \item Tier 3 \instret (HQC-128 \en{KEM}) $=$ \num{702755} — ίδια τάξη μεγέθους με τον \en{x86-64 FFT+CRT} champion.
+    \item Σε εκτιμώμενους κύκλους, χάσμα $\approx 2.7\times$ (ωριμότητα \en{AVX2}).
+    \item \con{Προσοχή:} \instret (εξομοίωση) έναντι κύκλων (hardware) — όχι άμεσα ισοδύναμα.
+    \item \en{Hardware} (BPI-F3, Tier 1): \pos{\speedup{34}} πλήρες \en{KEM} — επιβεβαιώνει την εξομοίωση.
+  \end{itemize}
+\end{frame}

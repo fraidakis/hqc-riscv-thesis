@@ -1,0 +1,15 @@
+\begin{frame}{\HQC: ένα \en{code-based KEM}}
+  \begin{columns}[T]
+    \begin{column}{0.40\textwidth}
+      \begin{itemize}
+        \item Τρεις πράξεις: \KeyGen, \Encaps, \Decaps.
+        \item Πυρήνας: πολυωνυμικός πολλαπλασιασμός στο $\mathbb{F}_2[x]/(x^n-1)$.
+        \item \en{Keccak/SHAKE} για δειγματοληψία \& \en{FO} μετασχηματισμό.
+        \item Αποκωδικοποίηση συνένωσης \en{RM}+\en{RS}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.60\textwidth}
+      \resizebox{\linewidth}{!}{\input{../figures/ch2-background/hqc-dataflow}}
+    \end{column}
+  \end{columns}
+\end{frame}

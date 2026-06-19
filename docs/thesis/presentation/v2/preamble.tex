@@ -1,0 +1,110 @@
+% =============================================================================
+% preamble.tex — shared preamble for the HQC-on-RISC-V defense deck
+% Engine: LuaLaTeX (see .latexmkrc / Makefile). Theme: metropolis, 16:9, 10pt.
+% -----------------------------------------------------------------------------
+% CLASS-COUPLING GUARD: this deck is `beamer`, NOT the thesis `scrbook`.
+% We deliberately DO NOT \input the thesis preamble (packages/settings/macros).
+% We replicate ONLY the macros the reused figures + slides need, and \input the
+% thesis figure DESIGN SYSTEM (../figures/thesis-tikz-styles.tex) which is
+% class-agnostic (colour + \tikzset + \pgfplotsset + tabularray specs only).
+%
+% NOTE: this deck does NOT load biblatex (it cites nothing). If you previously
+% built a biblatex-enabled version, delete build/ first (`make distclean`):
+% a stale build/main.aux with \abx@aux@refcontext is a fatal undefined-cs error.
+% =============================================================================
+
+\usetheme[progressbar=frametitle,numbering=fraction,sectionpage=progressbar]{metropolis}
+
+% --- Fonts & language (match thesis: Libertinus + Greek/English) -------------
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{Libertinus Serif}
+\setsansfont{Libertinus Sans}
+\setmonofont{Fira Mono}[Scale=MatchLowercase]
+\setmathfont{Libertinus Math}
+\usepackage{polyglossia}
+\setdefaultlanguage[variant=monotonic]{greek}
+\setotherlanguage{english}
+% Greek monospace fallback (Fira Mono lacks Greek glyphs)
+\newfontfamily\greekfonttt{DejaVu Sans Mono}[Scale=MatchLowercase]
+\newcommand{\en}[1]{\textenglish{#1}}
+
+% --- siunitx + tables/graphics required by the reused thesis figures ---------
+\usepackage{xspace}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\sisetup{detect-all, group-separator={\,}, group-minimum-digits=4}
+\usepackage{tabularray}
+\UseTblrLibrary{booktabs}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta, calc, decorations.pathreplacing, external,
+  fit, matrix, positioning, shapes.geometric, shapes.misc}
+% NOTE: `external` is loaded only so reused figures' \tikzsetnextfilename{...}
+% is defined. We do NOT call \tikzexternalize, so it is a harmless no-op here.
+
+% --- Accent colour shared with the reused figures (must precede the \input) --
+\definecolor{thesisblue}{RGB}{10,40,80}
+
+% --- Semantic slide colours (skill spec) -------------------------------------
+\definecolor{posgreen}{HTML}{1B7837}
+\definecolor{conred}{HTML}{B2182B}
+\definecolor{hlblue}{HTML}{2166AC}
+\newcommand{\pos}[1]{\textcolor{posgreen}{#1}}
+\newcommand{\con}[1]{\textcolor{conred}{#1}}
+\newcommand{\HL}[1]{\textcolor{hlblue}{#1}}
+
+% --- metropolis accents -> thesis navy ---------------------------------------
+\setbeamercolor{frametitle}{bg=thesisblue}
+\setbeamercolor{progress bar}{fg=hlblue}
+\setbeamercolor{title separator}{fg=hlblue}
+
+% --- Thesis figure DESIGN SYSTEM (colour + tikz styles; class-agnostic) ------
+% Single source of truth: lets reused \input figures resolve figT/*, figedge,
+% fignode/*, figkPolymul, oi* colours, figlegend, etc. Requires \thesisblue +
+% pgfplots + tabularray + the tikz libs above (all loaded). The file is
+% documented as redefinition-safe and only defines colours/styles.
+\input{../figures/thesis-tikz-styles}
+
+% --- Macro subset replicated from thesis preamble/macros.tex -----------------
+% (Deck is beamer, not scrbook: never \input the thesis preamble wholesale.)
+\newcommand{\HQC}{\textsc{HQC}\xspace}
+\newcommand{\KeyGen}{\textsc{KeyGen}\xspace}
+\newcommand{\Encaps}{\textsc{Encaps}\xspace}
+\newcommand{\Decaps}{\textsc{Decaps}\xspace}
+\newcommand{\ext}[1]{\textsf{#1}}
+\newcommand{\insn}[1]{\texttt{#1}\xspace}
+\newcommand{\clmul}{\insn{clmul}}
+\newcommand{\clmulh}{\insn{clmulh}}
+\newcommand{\vclmul}{\insn{vclmul.vx}}
+\newcommand{\vclmulh}{\insn{vclmulh.vx}}
+\newcommand{\vror}{\insn{vror}}
+\newcommand{\rori}{\insn{rori}}
+\newcommand{\Zbc}{\ext{Zbc}\xspace}
+\newcommand{\Zbb}{\ext{Zbb}\xspace}
+\newcommand{\Zba}{\ext{Zba}\xspace}
+\newcommand{\Zvbc}{\ext{Zvbc}\xspace}
+\newcommand{\Zvbb}{\ext{Zvbb}\xspace}
+\newcommand{\RVV}{\textsc{RVV}\xspace}
+\newcommand{\instret}{\texttt{instret}\xspace}
+\newcommand{\VLEN}{\texttt{VLEN}\xspace}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\speedup}[1]{$\times$#1}
+\newcommand{\insnreduction}[1]{$\times$#1}
+\newcommand{\cycles}[1]{\num{#1}}
+\newcommand{\pct}[1]{\SI{#1}{\percent}}
+
+% --- Title metadata ----------------------------------------------------------
+% (Title/subtitle use only zero-arg macros; plain-text author avoids the
+%  hyperref "token not allowed in PDF string" warning from a thin space.)
+\title{Βελτιστοποίηση του Μετα-Κβαντικού Κρυπτοσυστήματος \HQC σε RISC-V}
+\subtitle{Επιτάχυνση μέσω Επεκτάσεων ISA — \Zbc/\Zbb, \Zvbc/\Zvbb}
+\author{Φραϊδάκης Ιωάννης (ΑΕΜ 10736)}
+\institute{%
+  Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης\\
+  Τμήμα Ηλεκτρολόγων Μηχανικών \& Μηχανικών Υπολογιστών\\[0.5em]
+  {\footnotesize Επιβλέπων: Καθ. Ιωάννης Παπαευσταθίου\\
+   Τριμελής επιτροπή: Β. Παυλίδης, Α. Χατζόπουλος}%
+}
+\date{Θεσσαλονίκη, Ιούνιος 2026}

@@ -1,0 +1,39 @@
+\begin{frame}{Αποτελέσματα: επιτάχυνση πλήρους \en{KEM}}
+  \begin{columns}[T]
+    \begin{column}{0.58\textwidth}
+      \tikzsetnextfilename{pres-results-kem-speedups}
+      % src: results/reports/summaries/speedups_simulation.md
+      %      Total KEM, Speedup = scalar_ref instret / champion instret (HQC-128)
+      \begin{tikzpicture}
+        \begin{axis}[
+          width=\linewidth, height=5.0cm,
+          ybar, bar width=20pt,
+          ymin=0, ymax=195,
+          ylabel={Επιτάχυνση ($\times$)},
+          symbolic x coords={Tier 1, Tier 2, Tier 3},
+          xtick=data,
+          nodes near coords,
+          every node near coord/.append style={font=\footnotesize,
+            /pgf/number format/fixed, /pgf/number format/precision=0},
+          enlarge x limits=0.32,
+          tick label style={font=\small},
+          ymajorgrids=true,
+        ]
+          \addplot+[draw=hlblue, fill=hlblue!28]
+            coordinates {(Tier 1,34.0) (Tier 2,60.0) (Tier 3,167.0)};
+        \end{axis}
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \footnotesize HQC-128, \instret (\en{Spike}).
+      \begin{itemize}
+        \item Tier 1 (scalar): \pos{\speedup{34}}
+        \item Tier 2 (\RVV): \pos{\speedup{60}}
+        \item Tier 3 (\Zvbc): \pos{\speedup{167}}
+      \end{itemize}
+      \pause
+      \vspace{0.3em}
+      \textbf{Κορυφή HQC-256:} \pos{\speedup{339}} \en{KEM}, \pos{\speedup{547}} \en{polymul}.
+    \end{column}
+  \end{columns}
+\end{frame}

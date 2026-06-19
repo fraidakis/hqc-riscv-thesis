@@ -1,0 +1,21 @@
+\begin{frame}{Βοηθητικοί πυρήνες: \en{Keccak} \& αποκωδικοποίηση}
+  % src: results/reports/summaries/speedups_simulation.md (Tables 4-5)
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{\en{Keccak}/SHA-3}
+      \begin{itemize}
+        \item 2-way \en{SoA} με \Zvbb (\vror).
+        \item \pos{\speedup{3.7}}–\pos{\speedup{3.9}}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{Αποκωδικοποίηση \en{RM}+\en{RS}}
+      \begin{itemize}
+        \item \RVV + \Zvbc $\mathrm{GF}(2^8)$.
+        \item \pos{\speedup{6.8}}–\pos{\speedup{7.8}}.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \vspace{0.4em}
+  \begin{center}\footnotesize Μετά τον \en{polymul}, οι πυρήνες αυτοί κυριαρχούν στο εναπομείναν κόστος.\end{center}
+\end{frame}

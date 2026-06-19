@@ -1,0 +1,46 @@
+% =============================================================================
+% HQC-on-RISC-V — Παρουσίαση Διπλωματικής (15' defense deck)
+% Engine: LuaLaTeX · Theme: metropolis 16:9 · Build: `make` (see README.md)
+% =============================================================================
+\documentclass[aspectratio=169,10pt]{beamer}
+
+\input{preamble}
+
+\begin{document}
+
+% --- Title slide -------------------------------------------------------------
+\begin{frame}[plain]
+  \maketitle
+\end{frame}
+
+% --- Outline -----------------------------------------------------------------
+\begin{frame}{Διάρθρωση}
+  \tableofcontents[hideallsubsections]
+\end{frame}
+
+\section{Κίνητρο \& Υπόβαθρο}
+\input{sections/01-motivation}
+\input{sections/02-hqc}
+\input{sections/03-platform}
+
+\section{Πρόβλημα \& Προσέγγιση}
+\input{sections/04-problem}
+\input{sections/05-approach}
+\input{sections/06-scalar}
+\input{sections/07-vector}
+\input{sections/08-keccak-decode}
+
+\section{Πειράματα \& Αποτελέσματα}
+\input{sections/09-setup}
+\input{sections/10-results}
+\input{sections/11-comparison}
+
+\section{Συμπεράσματα}
+\input{sections/12-conclusions}
+\input{sections/13-limitations}
+
+% --- Backup (after \appendix: excluded from the main progress count) ---------
+\appendix
+\input{backup}
+
+\end{document}

@@ -1,0 +1,60 @@
+% =============================================================================
+% Backup slides — μετά το \appendix (εκτός κύριας ροής και progress count)
+% Όλα τα νούμερα: results/reports/summaries/speedups_simulation.md & speedups_hardware.md
+% =============================================================================
+
+\begin{frame}{Backup — Πλήρης πίνακας επιταχύνσεων \en{KEM} (\instret)}
+  \small
+  \begin{center}
+  \begin{tabular}{lccc}
+    \toprule
+    & Tier 1 & Tier 2 & Tier 3 \\
+    \midrule
+    HQC-128 & \speedup{34.0} & \speedup{60.0} & \speedup{167.0} \\
+    HQC-192 & \speedup{45.4} & \speedup{75.8} & \speedup{214.2} \\
+    HQC-256 & \speedup{49.1} & \speedup{71.7} & \speedup{338.8} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.4em}
+  \footnotesize \en{polymul} (HQC-128): \speedup{86.9}/\speedup{122.0}/\speedup{318.2}·
+  HQC-256: \speedup{75.9}/\speedup{95.0}/\speedup{547.3}.
+\end{frame}
+
+\begin{frame}{Backup — \en{Keccak} \& αποκωδικοποίηση}
+  \small
+  \begin{center}
+  \begin{tabular}{lccc}
+    \toprule
+    Επιτάχυνση & HQC-128 & HQC-192 & HQC-256 \\
+    \midrule
+    \en{Keccak} & \speedup{3.7} & \speedup{3.8} & \speedup{3.9} \\
+    \en{Decode} & \speedup{6.8} & \speedup{7.8} & \speedup{7.2} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Backup — \en{Constant-time} ασφάλεια}
+  \begin{itemize}
+    \item Αρχιτεκτονική ανάλυση \en{Zkt}: κάθε εντολή στο data-independent timing subset.
+    \item Εμπειρικό \en{dudect} σε BPI-F3: \code{scalar\_ref}, \code{scalar\_zb}, \code{vector\_rvv}.
+    \item Tier 3 (\code{vector\_zvk}): θεωρητική \en{CT} — εκκρεμεί silicon.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Backup — \en{Hardware} (BPI-F3, HQC-128)}
+  \small
+  \begin{center}
+  \begin{tabular}{lcc}
+    \toprule
+    & scalar (\Zbc) & vector (\RVV) \\
+    \midrule
+    \en{polymul} & \speedup{78.6} & \speedup{55.1} \\
+    Πλήρες \en{KEM} & \speedup{34.3} & \speedup{34.6} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \par\vspace{0.3em}
+  \footnotesize \en{IPC}$\approx 1.49$· ο \instret υπερεκτιμά τους κύκλους κατά ${\approx}$\pct{50}.
+\end{frame}
