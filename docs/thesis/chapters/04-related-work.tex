@@ -7,23 +7,17 @@ RISC-V. Το παρόν κεφάλαιο εξετάζει τις υπάρχου�
 \gls{hqc} σε διάφορες αρχιτεκτονικές (RISC-V, x86, ARM), 
 καθώς και τις γενικότερες εργασίες βελτιστοποίησης μετα-κβαντικών
 αλγορίθμων σε RISC-V. Η ανασκόπηση ομαδοποιεί τις εργασίες ανάλογα με τον βαθμό
-συνάφειάς τους με την παρούσα εργασία. Πρώτα ορίζονται τα κριτήρια σύγκρισης
+συνάφειάς τους με την παρούσα εργασία, αφού πρώτα οριστούν τα κριτήρια σύγκρισης
 (\cref{sec:rw-axes}). Στη συνέχεια αναλύονται σε βάθος δύο ομάδες άμεσα σχετιζόμενων εργασιών. Η
 πρώτη περιλαμβάνει τις υλοποιήσεις του \gls{hqc} σε RISC-V
-(\cref{sec:rw-riscv}), δηλαδή στην ίδια αρχιτεκτονική με την παρούσα εργασία, αλλά όλες
+(\cref{sec:rw-riscv}), δηλαδή στην ίδια αρχιτεκτονική με την παρούσα εργασία, αλλά
 βασισμένες σε custom hardware, οριοθετώντας έτσι το ερευνητικό κενό.
 
-Η δεύτερη ομάδα αφορά υλοποιήσεις σε καθαρό λογισμικό σε x86/ARM
+Η δεύτερη ομάδα αφορά υλοποιήσεις του ίδιου αλγορίθμου σε καθαρό λογισμικό άλλων αρχιτεκτονικών (x86/ARM)
 (\cref{sec:rw-analogs}), οι οποίες δεν χρησιμοποιούν custom hardware αλλά
-αξιοποιούν μόνο τις διαθέσιμες SIMD εντολές του επεξεργαστή, δηλαδή μοιράζονται την
-αλγοριθμική μέθοδο της παρούσας εργασίας και προσφέρουν έτσι την πλησιέστερη βάση
-μεθοδολογικής σύγκρισης. Οι λοιπές σχετικές εργασίες παρουσιάζονται συνοπτικά
+αξιοποιούν αποκλειστικά τις διαθέσιμες SIMD carry-less εντολές (\texttt{VPCLMULQDQ}/\texttt{PMULL}), δηλαδή μοιράζονται την αλγοριθμική μέθοδο της παρούσας εργασίας και προσφέρουν έτσι την πλησιέστερη βάση μεθοδολογικής σύγκρισης. Σε αντίθεση με τη RISC-V, οι αρχιτεκτονικές αυτές δεν διαθέτουν scalar carry-less αντίστοιχο της \insn{clmul}. Οι λοιπές σχετικές εργασίες παρουσιάζονται συνοπτικά
 (\cref{sec:rw-other}), ενώ ο \cref{tab:rw-riscv-summary} επιτρέπει τη συνολική
-σύγκριση και αναδεικνύει το ερευνητικό κενό. Μέσα από αυτή την ανασκόπηση
-τεκμηριώνεται το κενό που καλύπτει η παρούσα εργασία: την απουσία
-ολοκληρωμένης βελτιστοποίησης του \gls{hqc} σε RISC-V χωρίς custom hardware, με
-αποκλειστική αξιοποίηση των επικυρωμένων επεκτάσεων (\gls{zbc}, \gls{zbb},
-\gls{zvbc}, \gls{zvbb}).
+σύγκριση και αναδεικνύει το ερευνητικό κενό. Η αναλυτική τεκμηρίωση και η τοποθέτηση της παρούσας εργασίας ακολουθούν στην \cref{sec:rw-gap}.
 
 \section{Άξονες σύγκρισης}
 \label{sec:rw-axes}
@@ -43,7 +37,7 @@ Hamming, μέθοδος πριν από το τελικό specification του 2
 βλ.~\cref{sec:hqc-standardization}), dense$\times$dense 2-way Karatsuba (τελικό
 specification 2024), και μεθόδους βασισμένες στον \gls{fft}: τη \gls{fafft} ή την additive FFT σε
 συνδυασμό με το Chinese Remainder Theorem (FFT-CRT). Η επιλογή μεθόδου είναι 
-καθοριστική για τη συγκρισιμότητα, καθώς ο sparse$\times$dense αποσύρθηκε για λόγους side-channel
+καθοριστική για τη σύγκριση, καθώς ο sparse$\times$dense αποσύρθηκε για λόγους side-channel
 (βλ.~\cref{sec:hqc-standardization}).
 
 \paragraph{(γ) Στρατηγική επιτάχυνσης.}
@@ -51,17 +45,17 @@ specification 2024), και μεθόδους βασισμένες στον \gls{
 discrete (loosely-coupled) accelerators συνδεδεμένους μέσω bus interconnect
 (π.χ.\ AXI)· (ii)~tightly-coupled accelerators ενσωματωμένους στο pipeline μέσω
 standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυρωμένες ISA
-επεκτάσεις/ISE και (iv)~ratified-only software που αξιοποιεί αποκλειστικά
-επικυρωμένες επεκτάσεις χωρίς custom hardware. Η παρούσα εργασία ανήκει
+επεκτάσεις/ISE και (iv)~καθαρό λογισμικό που αξιοποιεί αποκλειστικά επικυρωμένες επεκτάσεις, χωρίς custom hardware. Η παρούσα εργασία ανήκει
 αποκλειστικά στην τελευταία κατηγορία.
 
 \paragraph{(δ) Κάλυψη \gls{kem}.}
 Ορισμένες εργασίες βελτιστοποιούν ολόκληρο το \gls{hqc} \gls{kem} (πολυωνυμικός
 πολλαπλασιασμός, Keccak και αποκωδικοποίηση), ενώ άλλες περιορίζονται σε
-μεμονωμένο πυρήνα (kernel-only, τυπικά τον πολυωνυμικό πολλαπλασιασμό). Η
+μεμονωμένο πυρήνα (kernel-only) — τυπικά τον πολυωνυμικό πολλαπλασιασμό, το βασικό bottleneck του \gls{hqc}. Η
 διάκριση καθορίζει αν μια εργασία αποτελεί ολοκληρωμένο σημείο σύγκρισης ή
 εστιασμένη βελτιστοποίηση επιμέρους πυρήνα.
 
+\bigskip
 Ο \cref{tab:rw-riscv-summary} συνοψίζει τις σχετικές εργασίες κατά τους παραπάνω
 άξονες: μία γραμμή ανά εργασία, με τις στήλες πλατφόρμας και μεθόδου/στρατηγικής,
 καθώς και τρία δυαδικά κριτήρια (RISC-V, καθαρό λογισμικό, πλήρες \gls{kem}).
@@ -112,7 +106,7 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
       & x86 AVX2 & sparse$\times$dense / SIMD
       & \ding{55} & \ding{51} & \ding{51} \\
     \midrule
-    \multicolumn{6}{@{}l}{\textit{RISC-V ISE / crypto-agile coprocessors}} \\
+    \multicolumn{6}{@{}l}{\textit{Crypto-agile υλικό: ISE \& coprocessors}} \\
     HORCRUX~\cite{Dolmeta2025-HORCRUX}
       & RISC-V + ISE & — / custom PQC ISE
       & \ding{51} & \ding{55} & — \\
@@ -158,22 +152,22 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
 
 Και οι τέσσερις δημοσιευμένες RISC-V υλοποιήσεις του \gls{hqc} μοιράζονται ένα κοινό
 χαρακτηριστικό: όλες στηρίζονται σε custom hardware και όχι στις ήδη επικυρωμένες
-επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό, δηλαδή τη βελτιστοποίηση σε καθαρό λογισμικό με
-επικυρωμένες επεκτάσεις, καλύπτει η παρούσα εργασία. Οι τέσσερις εργασίες
+επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό καλύπτει η παρούσα εργασία (\cref{sec:rw-gap}). Οι τέσσερις εργασίες
 παρουσιάζονται με χρονολογική σειρά δημοσίευσης και αναλύονται σε βάθος παρακάτω.
 
 \subsection{Schöffel et al.\ 2022 — HW/SW Co-Design σε RV32IC}
 \label{ssec:rw-schoeffel}
 
 Η πρώτη υλοποίηση του \gls{hqc} ειδικά σχεδιασμένη για RISC-V παρουσιάστηκε από τους
-Schöffel, Feldmann και Wehn (RPTU/TU Kaiserslautern) το
-2022~\cite{Schoeffel2022-HQC-IoT}. Πρόκειται για HW/SW co-design με στόχο IoT
-εφαρμογές, βασισμένο σε custom RV32IC πυρήνα και τρεις loosely-coupled
-accelerators συνδεδεμένους μέσω AXI4-Lite: (α)~$R$-Unit για πολυωνυμικό
-πολλαπλασιασμό/πρόσθεση στον δακτύλιο $\GF{2}[x]/(x^n-1)$, (β)~Sampling-Unit που
-ενσωματώνει μετάθεση Keccak και rejection sampling, και (γ)~RM-Decoder μέσω
-Hadamard Transform· επιπλέον, μία custom R-type εντολή (F$2^8$-Unit) επιταχύνει
-τον πολλαπλασιασμό στο $\GF{2^8}$ για τον \gls{rs} κωδικοποιητή/αποκωδικοποιητή.
+Schöffel et al.\ (RPTU) το
+2022~\cite{Schoeffel2022-HQC-IoT}. Πρόκειται για HW/SW co-design με στόχο IoT εφαρμογές, βασισμένο σε
+custom RV32IC πυρήνα με τρεις loosely-coupled accelerators (συνδεδεμένους
+μέσω AXI4-Lite) και μία custom R-type εντολή. Οι τρεις accelerators είναι:
+(α)~$R$-Unit για πολυωνυμικό πολλαπλασιασμό/πρόσθεση στον δακτύλιο
+$\GF{2}[x]/(x^n-1)$· (β)~Sampling-Unit που ενσωματώνει μετάθεση Keccak και
+rejection sampling· και (γ)~RM-Decoder μέσω Hadamard Transform. Η custom
+R-type εντολή ($\mathrm{F}_{2^8}$-Unit) επιταχύνει τον πολλαπλασιασμό στο
+$\GF{2^8}$ για τον \gls{rs} κωδικοποιητή/αποκωδικοποιητή.
 
 Αλγοριθμικά, η εργασία χρησιμοποιεί sparse$\times$dense πολλαπλασιασμό,
 αξιοποιώντας το χαμηλό βάρος Hamming ($w \leq 75$) ενός εκ των δύο πολυωνύμων: ο
@@ -184,12 +178,14 @@ calculation και XOR/carry computation). Με όλα τα hardware modules ε�
 έναντι της reference υλοποίησης, με σχεδίαση σε ASIC \SI{22}{nm} FD-SOI
 (\SI{0.12}{mm^2}, \SI{700}{MHz}) και FPGA (Xilinx Artix-7).
 
-Η κρίσιμη διαφορά από την παρούσα εργασία είναι αλγοριθμική: ο
-sparse$\times$dense πολλαπλασιασμός ανήκει στην προ-2024 specification και
-αποσύρθηκε για λόγους side-channel, καθώς η τελική specification (2024) τον
-αντικατέστησε με dense$\times$dense 2-way Karatsuba~\cite{HQC-spec2024}.
-Δευτερευόντως, η πλατφόρμα (RV32IC με custom F$2^8$ εντολή) στερείται 64-bit
-datapath και ratified \gls{zbc}/\gls{zvbc}.
+Η διαφοροποίηση των δύο προσεγγίσεων εντοπίζεται κυρίως στο 
+υπολογιστικό τους προφίλ. Το profiling της reference υλοποίησης
+(\cite{Schoeffel2022-HQC-IoT}, Πίν.~I) κατανέμει το κόστος σχεδόν ισομερώς
+μεταξύ memory operations ($\sim$\pct{37}), SHAKE ($\sim$\pct{33}) και
+αριθμητικής στον δακτύλιο ($\sim$\pct{25}). Αντίθετα, στο δικό μας
+dense$\times$dense προφίλ ο πολυωνυμικός πολλαπλασιασμός κυριαρχεί
+($\sim$\pct{96}, \cref{ch:results}), οπότε οι δύο υλοποιήσεις στοχεύουν
+ουσιαστικά διαφορετικά bottlenecks.
 
 \subsection{Ras et al.\ 2025 — FAFFT \& ANDROMEDA σε CV32E40P}
 \label{ssec:rw-ras-fafft}
@@ -313,7 +309,7 @@ Toom-Karatsuba στις φάσεις \Encaps/\Decaps χάρη στο caching, ε
 όλες τις φάσεις. Η εργασία τεκμηριώνει ότι για μεγάλους βαθμούς (HQC-5) η
 FFT-based προσέγγιση μπορεί να υπερτερεί του Karatsuba. Η παρούσα εργασία
 διατηρεί τον 2-way Karatsuba της reference specification και επιταχύνει τα leaf
-multiplications μέσω \vclmul — μία ορθογώνια στρατηγική που δεν απαιτεί αλλαγή
+multiplications μέσω \vclmul: μία ορθογώνια στρατηγική που δεν απαιτεί αλλαγή
 αλγοριθμικής δομής.
 
 \subsection{OptHQC — \texorpdfstring{Sparse$\times$dense}{Sparse×dense} AVX2 (Dong et al.\ 2025)}
@@ -355,7 +351,7 @@ lane-interleaved 256-bit loads/stores (\speedup{2} στο SHAKE)· και
 συμπυκνώνονται σε σύντομες αναφορές· οι σημαντικότερες συνοδεύονται από
 αντίστοιχη γραμμή στον \cref{tab:rw-riscv-summary}.
 
-\subsection{RISC-V ISE με κάλυψη του \HQC και crypto-agile coprocessors}
+\subsection{Crypto-agile υλικό (ISE \& coprocessors) με κάλυψη του \HQC}
 \label{ssec:rw-riscv-ise-hqc}
 
 Δύο εργασίες προτείνουν RISC-V instruction-set extensions (ISE) που καλύπτουν
