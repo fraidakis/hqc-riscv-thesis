@@ -63,12 +63,21 @@
   note         = {Federal Register Notice, December 2016}
 }
 
+@techreport{NIST-IR8105,
+  author      = {Lily Chen and Stephen Jordan and Yi-Kai Liu and Dustin Moody and Rene Peralta and Ray Perlner and Daniel Smith-Tone},
+  title       = {Report on Post-Quantum Cryptography},
+  institution = {National Institute of Standards and Technology},
+  year        = {2016},
+  number      = {NIST IR 8105},
+  doi         = {10.6028/NIST.IR.8105}
+}
+
 @techreport{NIST-IR8240,
   author      = {Gorjan Alagic and Jacob Alperin-Sheriff and Daniel Apon and David Cooper and Quynh Dang and Carl Miller and Dustin Moody and Rene Peralta and Ray Perlner and Angela Robinson and Daniel Smith-Tone and Yi-Kai Liu},
   title       = {Status Report on the First Round of the {NIST} Post-Quantum Cryptography Standardization Process},
   institution = {National Institute of Standards and Technology},
   year        = {2019},
-  number      = {NISTIR 8240},
+  number      = {NIST IR 8240},
   doi         = {10.6028/NIST.IR.8240}
 }
 
@@ -77,7 +86,7 @@
   title       = {Status Report on the Second Round of the {NIST} Post-Quantum Cryptography Standardization Process},
   institution = {National Institute of Standards and Technology},
   year        = {2020},
-  number      = {NISTIR 8309},
+  number      = {NIST IR 8309},
   doi         = {10.6028/NIST.IR.8309}
 }
 
@@ -86,7 +95,7 @@
   title       = {Status Report on the Third Round of the {NIST} Post-Quantum Cryptography Standardization Process},
   institution = {National Institute of Standards and Technology},
   year        = {2022},
-  number      = {NISTIR 8413},
+  number      = {NIST IR 8413},
   doi         = {10.6028/NIST.IR.8413}
 }
 
@@ -473,7 +482,7 @@
   pages     = {608--615},
   address   = {Salerno, Italy},
   publisher = {IEEE},
-  doi       = {10.1109/DSD64264.2025.00088},
+  doi       = {10.1109/DSD67783.2025.00089},
   note      = {Platform: CV32E40P (RV32IMC), Xilinx Kintex-7 FPGA (ANDROMEDA). CSR cycle counter. Also presented at the 6th NIST PQC Standardization Conference (HAL cea-05318642)}
 }
 
@@ -551,6 +560,14 @@
   note         = {Hybrid FAFFT-CRT reduces polymul cycles by 33.4\% (HQC-1) and 27.2\% (HQC-3) on Cortex-M4 without carry-less multiply hardware}
 }
 
+@misc{Chen2018-Frobenius-AFFT,
+  author       = {Ming-Shing Chen and Chen-Mou Cheng and Po-Chun Kuo and Wen-Ding Li and Bo-Yin Yang},
+  title        = {Multiplying Boolean Polynomials with {Frobenius} Partitions in Additive {Fast Fourier Transform}},
+  howpublished = {arXiv preprint arXiv:1803.11301},
+  year         = {2018},
+  doi          = {10.48550/arXiv.1803.11301}
+}
+
 @article{Chen2026-TCHES-HQC-FFT,
   author    = {Ming-Shing Chen and Chun-Ming Chiu and Chun-Tao Peng and Bo-Yin Yang},
   title     = {Accelerating {HQC} with Additive {FFT}},
@@ -573,10 +590,10 @@
   note      = {Systematic Toom-Cook/Karatsuba decomposition tree search for AVX2 VPCLMULQDQ and Neon PMULL. 17--32\% polymul reduction for HQC-1/HQC-3}
 }
 
-@inproceedings{Chen2021-BIKE-Haswell-M4,
+@article{Chen2021-BIKE-Haswell-M4,
   author    = {Ming-Shing Chen and Tung Chou and Markus Krausz},
   title     = {Optimizing {BIKE} for the {Intel Haswell} and {ARM Cortex-M4}},
-  booktitle = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
+  journal   = {IACR Transactions on Cryptographic Hardware and Embedded Systems},
   year      = {2021},
   volume    = {2021},
   number    = {3},

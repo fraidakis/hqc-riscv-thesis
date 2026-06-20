@@ -86,10 +86,10 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
       & RV32IC & sparse$\times$dense / loosely-coupled + custom ISA
       & \ding{51} & \ding{55} & \ding{51} \\
     Ras et al.~\cite{ras-nist2025}
-      & RV32IMC & FAFFT / discrete accel.\ (ANDROMEDA)
+      & RV32IMC & FAFFT / loosely-coupled accel.\ (ANDROMEDA)
       & \ding{51} & \ding{55} & \ding{51} \\
     TYRCA~\cite{Dolmeta2025-TYRCA}
-      & RV + CV-X-IF & dense$\times$dense / tightly-coupled
+      & CV32E40PX + CV-X-IF & dense$\times$dense / tightly-coupled
       & \ding{51} & \ding{55} & \ding{51} \\
     Seo et al.~\cite{Seo2026-HQC-Ibex}
       & RV32 (Ibex) & — / tightly-coupled accel.
@@ -190,48 +190,71 @@ dense$\times$dense προφίλ ο πολυωνυμικός πολλαπλασι
 \subsection{Ras et al.\ 2025 — FAFFT \& ANDROMEDA σε CV32E40P}
 \label{ssec:rw-ras-fafft}
 
-Οι Ras, Loiseau, Carmona, Pontié, Renault, Smith και Valea (CEA-Leti / INRIA /
-ANSSI)~\cite{ras-nist2025} προτείνουν τη χρήση \gls{fafft} ως εναλλακτική μέθοδο
-πολυωνυμικού πολλαπλασιασμού, σε συνδυασμό με τον hardware accelerator
-ANDROMEDA. Ο \gls{fafft} μετασχηματίζει τον πολλαπλασιασμό δυαδικών πολυωνύμων
-σε FFT-based αξιολόγηση επί του $\GF{2^{32}}$, αξιοποιώντας Cantor basis και
-Frobenius map για μείωση των σημείων αξιολόγησης από $n$ σε $n/m$. Η υλοποίηση
-σε C (χωρίς SIMD/assembly) ενσωματώθηκε στον επίσημο κώδικα \gls{hqc} και
-εκτελέστηκε στον CV32E40P (RV32IMC) σε Xilinx Kintex-7 FPGA.
+Οι Ras et al.\ (CEA-Leti / INRIA / ANSSI)~\cite{ras-nist2025} προτείνουν τη
+χρήση \gls{fafft} ως εναλλακτική μέθοδο πολυωνυμικού πολλαπλασιασμού, σε
+συνδυασμό με τον hardware accelerator ANDROMEDA. Ο \gls{fafft} μετασχηματίζει
+τον πολλαπλασιασμό δυαδικών πολυωνύμων σε FFT-based αξιολόγηση επί του
+$\GF{2^{32}}$, αξιοποιώντας Cantor basis και Frobenius map για μείωση των
+σημείων αξιολόγησης από $n$ σε $n/m$. Πρόκειται για φορητή, καθαρά λογισμική
+υλοποίηση σε C, ενσωματωμένη στον επίσημο κώδικα \gls{hqc} και αξιολογημένη
+στον CV32E40P (RV32IMC) σε Xilinx Kintex-7 FPGA· η επιτάχυνση προέρχεται
+αποκλειστικά από την αλλαγή αλγορίθμου (\gls{fafft}) και όχι από SIMD/assembly
+ή εντολές επεκτάσεων RISC-V. Η FAFFT-based υλοποίηση επιτυγχάνει
+\speedup{3.52}–\speedup{8.08} έναντι του reference 2-way Karatsuba (κλιμακούμενη
+με το security level)· η ασυμμετρία οφείλεται στο ότι η FAFFT απαιτεί περίπου
+$\BigO{n \log n}$ πράξεις στο $\GF{2^m}$ (με επιπλέον λογαριθμικό κόστος
+πολλαπλασιασμού ανά layer) έναντι $\BigO{n^{\log_2 3}}$ του Karatsuba.
 
-Η FAFFT-based υλοποίηση επιτυγχάνει \speedup{3.52}–\speedup{8.08} έναντι του
-reference 2-way Karatsuba (ανάλογα με το security level)· η ασυμμετρία οφείλεται
-στο ότι η FAFFT απαιτεί περίπου $\BigO{n \log n}$ πράξεις στο $\GF{2^m}$ (με επιπλέον λογαριθμικό κόστος πολλαπλασιασμού ανά layer) έναντι
-$\BigO{n^{\log_2 3}}$ του Karatsuba, με το πλεονέκτημα να αυξάνεται με το μέγεθος
-πολυωνύμου. Ο ANDROMEDA accelerator υλοποιεί τις FFT-based πράξεις (FFTLCH,
-IFFTLCH, PWM) μέσω configurable Carry-Free Butterfly unit με 2-cycle pipeline
-latency, εκτελώντας carry-less πολλαπλασιασμό στο $\GF{2^{32}}$ με 2-way
-Karatsuba decomposition σε επίπεδο 16-bit schoolbook multipliers· με αυτόν
-ενεργό, το συνολικό speedup ανέρχεται σε \speedup{9.64}
-(HQC-128) έως \speedup{19.22} (HQC-256).
+Ο ANDROMEDA accelerator υλοποιεί τις FFT-based πράξεις μέσω configurable
+Carry-Free Butterfly unit με 2-cycle pipeline latency, εκτελώντας carry-less
+πολλαπλασιασμό στο $\GF{2^{32}}$ με 2-way Karatsuba decomposition σε επίπεδο
+16-bit schoolbook multipliers. Με τον accelerator, το συνολικό speedup
+αυξάνεται σε \speedup{9.64} (HQC-128) έως \speedup{19.22} (HQC-256).
 
-Σε αντίθεση με την παρούσα εργασία, οι Ras et al.\ στηρίζονται σε custom
-coprocessor (ANDROMEDA) και σε θεμελιωδώς διαφορετικό αλγόριθμο (\gls{fafft},
-όχι Karatsuba), στον RV32IMC CV32E40P χωρίς αξιοποίηση των ratified
-\gls{zbc}/\gls{zvbc}. Η παρούσα εργασία διατηρεί τον 2-way Karatsuba της
-reference specification και επιταχύνει τα leaf multiplications μέσω
-\insn{clmul}/\vclmul σε ratified hardware.
+Η εργασία των Ras et al.\ διαφοροποιείται από την παρούσα στον αλγόριθμο (\gls{fafft}) και στη
+χρήση εξειδικευμένου επιταχυντή υλικού, υλοποιημένη σε πυρήνα CV32E40P
+(RV32IMC). Η παρούσα εργασία επιταχύνει τα leaf multiplications του 2-way
+Karatsuba μέσω \insn{clmul}/\vclmul σε ratified hardware.
 
-\subsection{Dolmeta et al.\ 2025 — TYRCA: Tightly-Coupled Accelerator (CV-X-IF)}
+\subsection{Dolmeta et al.\ 2025 — TYRCA: Tightly-Coupled Accelerator}
 \label{ssec:rw-tyrca}
 
 Οι Dolmeta et al.\ (Politecnico di Torino / CEA-Leti) παρουσίασαν το
-TYRCA~\cite{Dolmeta2025-TYRCA}, την πρώτη tightly-coupled hardware υλοποίηση του
-round-4 \gls{hqc} σε RISC-V. Αντί για loosely-coupled accelerator μέσω AXI, το
-TYRCA ενσωματώνεται στον επεξεργαστή μέσω του Core-V eXtension Interface
-(CV-X-IF), που τυποποιείται στην κοινότητα RISC-V και επιτρέπει custom εντολές
-χωρίς τροποποίηση του pipeline του πυρήνα. Η σχεδίαση επιτυγχάνει μείωση χρόνου
-εκτέλεσης έως \pct{96} για HQC-128/192/256 σε σχέση με τη software υλοποίηση.
+TYRCA~\cite{Dolmeta2025-TYRCA}, την πρώτη πλήρως tightly-coupled hardware
+υλοποίηση του round-4 \gls{hqc} σε RISC-V. Αντί για loosely-coupled accelerator
+συνδεδεμένο στον δίαυλο (όπως ο ANDROMEDA), το TYRCA
+ενσωματώνεται στον πυρήνα CV32E40PX μέσω του Core-V eXtension Interface
+(CV-X-IF), το οποίο βρίσκεται σε διαδικασία τυποποίησης στην κοινότητα RISC-V: ένας
+dispatcher δρομολογεί τις custom εντολές σε εξωτερικό controller χωρίς
+τροποποίηση του decode unit, ενώ τα ορίσματα διαβάζονται απευθείας από το
+register file και το αποτέλεσμα γράφεται πίσω μέσω του result interface.
 
-Παρότι το CV-X-IF αποτελεί standardization effort, το TYRCA παραμένει custom
-hardware accelerator: απαιτεί εξειδικευμένη μονάδα και επεκτάσεις toolchain, σε
-αντίθεση με την παρούσα εργασία που αξιοποιεί αποκλειστικά τις ήδη επικυρωμένες
-\gls{zbc}/\gls{zvbc} σε application-class RV64 επεξεργαστές.
+Βάσει profiling του HQC-128, υλοποιούνται τρεις accelerators. Το \emph{R-Unit}
+εκτελεί τον bitwise Karatsuba carry-less πολλαπλασιασμό, το κυρίαρχο bottleneck, 
+προσαρμοσμένο από datapath 64-bit σε
+32-bit: κάθε 64-bit ακέραιος σπάζει σε δύο 32-bit τμήματα και το 128-bit
+γινόμενο ανασυντίθεται μέσω τεσσάρων custom εντολών. Ο \emph{RS-decoder}
+επιταχύνει atomic functions της Reed-Solomon αποκωδικοποίησης: GF-reduce (με
+custom εντολή trailing-zero count 16-bit) και carry-less GF πολλαπλασιασμό δύο
+8-bit πολυωνύμων σε 16-bit (τέσσερις custom εντολές). Ο \emph{Keccak}
+accelerator, ο μόνος με dedicated 1600-bit register, εκτελεί τους 24 γύρους της
+permutation μέσω τριών custom εντολών (φόρτωση 64-bit, start, αποθήκευση
+32-bit). Οι εντολές ορίζονται ως R-/R4-type μέσω inline assembly (\code{.insn})
+σε ελεύθερα opcodes, χωρίς τροποποίηση του toolchain. Οι επιταχύνσεις ανά
+συνάρτηση είναι \pct{99.14} (Karatsuba), \pct{91.27} (GF-reduce), \pct{90.54}
+(Keccak-f) και \pct{81.33} (GF-carryless) ως μείωση κύκλων ρολογιού, για
+συνολική μείωση χρόνου \pct{94}–\pct{96} σε KeyGen/Encaps/Decaps. Όλα τα
+στοιχεία επικοινωνούν μέσω διαύλου OBI, ενός ανοιχτού προτύπου διασύνδεσης για
+συστήματα RISC-V. Σε Xilinx Kintex-7 (μέγιστη συχνότητα \SI{150}{\mega\hertz}),
+το TYRCA καταλαμβάνει κάτω από \pct{30} της επιφάνειας του SoC, με το R-Unit
+(κάτω από \pct{10} της επιφάνειας) να αποδίδει το μεγαλύτερο κέρδος.
+
+Σε αντίθεση με τους loosely-coupled, memory-mapped επιταχυντές που
+επικοινωνούν μέσω διαύλου, το TYRCA ενσωματώνει τον επιταχυντή απευθείας στο
+pipeline του πυρήνα μέσω του CV-X-IF, καθιστώντας τη χρήση του διαφανή για τον
+προγραμματιστή και εξαλείφοντας το κόστος επικοινωνίας διαύλου και, σε αντίθεση
+με τις κλασικές tightly-coupled προσεγγίσεις, χωρίς αλλαγές στη μονάδα
+αποκωδικοποίησης ή το toolchain.
 
 \subsection{Seo et al.\ 2026 — HW/SW Co-Optimization σε 32-bit Ibex}
 \label{ssec:rw-seo-ibex}
@@ -244,7 +267,7 @@ RISC-V πυρήνα. Όπως και οι προηγούμενες RISC-V εργ
 σε αντίθεση με τους application-class RV64 επεξεργαστές που στοχεύει η παρούσα
 εργασία.
 
-\section{Υλοποιήσεις καθαρού λογισμικού σε x86/ARM: το πλησιέστερο μεθοδολογικό ανάλογο}
+\section{Υλοποιήσεις καθαρού λογισμικού σε x86/ARM}
 \label{sec:rw-analogs}
 
 Σε αντίθεση με τις RISC-V υλοποιήσεις της \cref{sec:rw-riscv}, που υλοποιούνται στην
@@ -261,7 +284,7 @@ RISC-V πυρήνα. Όπως και οι προηγούμενες RISC-V εργ
 \subsection{Jang et al.\ 2026 — Συστηματικός SIMD πολλαπλασιασμός στο \texorpdfstring{$\GF{2}[x]$}{GF(2)[x]}}
 \label{ssec:rw-jang-simd}
 
-Η εργασία των Jang, Lee, Kim, Seo και Hong~\cite{Jang2026-gf2x-SIMD} αποτελεί το
+Η εργασία των Jang et al.~\cite{Jang2026-gf2x-SIMD} αποτελεί το
 πλησιέστερο μεθοδολογικό ανάλογο της παρούσας εργασίας. Προτείνει μεθοδολογία
 συστηματικής εξερεύνησης Toom-Cook/Karatsuba decomposition trees για πολυωνυμικό
 πολλαπλασιασμό στο $\GF{2}[x]$, παράγοντας branch-free υλοποιήσεις εξειδικευμένες
@@ -291,7 +314,7 @@ grouping — αποτελεί τη βασική αλγοριθμική συνε�
 \subsection{Chen et al.\ TCHES 2026 — Additive FFT με CRT}
 \label{ssec:rw-chen-fft}
 
-Η εργασία των Chen, Chiu, Peng και Yang~\cite{Chen2026-TCHES-HQC-FFT} αποτελεί
+Η εργασία των Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} αποτελεί
 την πληρέστερη αξιολόγηση FFT-based πολυωνυμικού πολλαπλασιασμού για τον
 \gls{hqc} σε high-performance πλατφόρμες (x86-64 AVX2+GFNI, ARM NEON σε Apple M1
 και Cortex-A72). Καθώς οι βαθμοί πολυωνύμων του \gls{hqc} ($n = 2^d + r$ με μικρό

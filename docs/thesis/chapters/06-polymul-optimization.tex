@@ -528,7 +528,7 @@ $3 \times \text{Karatsuba}(139) = \num{19122}$ ζεύγη) — ανεπαρκή�
 \paragraph{Fast Additive FFT (FAFFT).}
 Ο αλγόριθμος FAFFT μετασχηματίζει τον πολυωνυμικό πολλαπλασιασμό σε
 pointwise multiplications σε extension field $\GF{2^m}$ μέσω additive
-FFT.  Η θεμελιώδης δυσκολία στο HQC είναι ότι οι βαθμοί πολυωνύμων
+FFT~\cite{Chen2018-Frobenius-AFFT}.  Η θεμελιώδης δυσκολία στο HQC είναι ότι οι βαθμοί πολυωνύμων
 ($n = \num{17669}$, $\num{35851}$, $\num{57637}$ bits) βρίσκονται
 ελαφρώς πάνω από δυνάμεις του~2.  Για HQC-128, $n \approx 2^{14} +
 \num{1285}$, επομένως το απαιτούμενο μέγεθος FFT είναι $2^{16} =
