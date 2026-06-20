@@ -3,53 +3,55 @@
 
 Στο \cref{ch:theoretical-background} και στο \cref{ch:risc-v-architecture}
 παρουσιάστηκε το θεωρητικό υπόβαθρο του αλγορίθμου \gls{hqc} και της αρχιτεκτονικής
-RISC-V αντίστοιχα. Το παρόν κεφάλαιο εξετάζει τις υπάρχουσες υλοποιήσεις του
-\gls{hqc} σε διάφορες αρχιτεκτονικές (RISC-V, x86, ARM) και πλατφόρμες υλικού, 
+RISC-V. Το παρόν κεφάλαιο εξετάζει τις υπάρχουσες υλοποιήσεις του
+\gls{hqc} σε διάφορες αρχιτεκτονικές (RISC-V, x86, ARM), 
 καθώς και τις γενικότερες εργασίες βελτιστοποίησης μετα-κβαντικών
 αλγορίθμων σε RISC-V. Η ανασκόπηση ομαδοποιεί τις εργασίες ανάλογα με τον βαθμό
 συνάφειάς τους με την παρούσα εργασία. Πρώτα ορίζονται τα κριτήρια σύγκρισης
-(\cref{sec:rw-axes}). Στη συνέχεια αναλύονται σε βάθος δύο ομάδες εργασιών: οι
-υλοποιήσεις του \gls{hqc} σε RISC-V (\cref{sec:rw-riscv}), δηλαδή στην ίδια 
-αρχιτεκτονική με την παρούσα εργασία, αλλά βασίζονται όλες σε custom hardware
-και ορίζουν έτσι το ερευνητικό κενό.
+(\cref{sec:rw-axes}). Στη συνέχεια αναλύονται σε βάθος δύο ομάδες άμεσα σχετιζόμενων εργασιών. Η
+πρώτη περιλαμβάνει τις υλοποιήσεις του \gls{hqc} σε RISC-V
+(\cref{sec:rw-riscv}), δηλαδή στην ίδια αρχιτεκτονική με την παρούσα εργασία, αλλά όλες
+βασισμένες σε custom hardware, οριοθετώντας έτσι το ερευνητικό κενό.
 
-Οι υλοποιήσεις σε καθαρό λογισμικό (χωρίς custom hardware, αξιοποιώντας
-αποκλειστικά επικυρωμένες επεκτάσεις) σε x86/ARM (\cref{sec:rw-analogs})
-μοιράζονται την αλγοριθμική μέθοδο της παρούσας εργασίας και προσφέρουν έτσι την
-πλησιέστερη βάση μεθοδολογικής σύγκρισης. Οι λιγότερο άμεσα σχετιζόμενες εργασίες
-παρουσιάζονται συνοπτικά (\cref{sec:rw-other}), ενώ ένας συγκεντρωτικός πίνακας
-(\cref{tab:rw-riscv-summary}) επιτρέπει τη συνολική σύγκριση και αναδεικνύει το
-ερευνητικό κενό. Η ανασκόπηση τεκμηριώνει το ερευνητικό κενό που καλύπτει η
-παρούσα εργασία: την απουσία ολοκληρωμένης βελτιστοποίησης του \gls{hqc} σε RISC-V
-χωρίς custom hardware, με αποκλειστική αξιοποίηση των επικυρωμένων κρυπτογραφικών
-επεκτάσεων (\gls{zbc}, \gls{zvbc}, \gls{zvbb}).
+Η δεύτερη ομάδα αφορά υλοποιήσεις σε καθαρό λογισμικό σε x86/ARM
+(\cref{sec:rw-analogs}), οι οποίες δεν χρησιμοποιούν custom hardware αλλά
+αξιοποιούν μόνο τις διαθέσιμες SIMD εντολές του επεξεργαστή, δηλαδή μοιράζονται την
+αλγοριθμική μέθοδο της παρούσας εργασίας και προσφέρουν έτσι την πλησιέστερη βάση
+μεθοδολογικής σύγκρισης. Οι λοιπές σχετικές εργασίες παρουσιάζονται συνοπτικά
+(\cref{sec:rw-other}), ενώ ο \cref{tab:rw-riscv-summary} επιτρέπει τη συνολική
+σύγκριση και αναδεικνύει το ερευνητικό κενό. Μέσα από αυτή την ανασκόπηση
+τεκμηριώνεται το κενό που καλύπτει η παρούσα εργασία: την απουσία
+ολοκληρωμένης βελτιστοποίησης του \gls{hqc} σε RISC-V χωρίς custom hardware, με
+αποκλειστική αξιοποίηση των επικυρωμένων επεκτάσεων (\gls{zbc}, \gls{zbb},
+\gls{zvbc}, \gls{zvbb}).
 
 \section{Άξονες σύγκρισης}
 \label{sec:rw-axes}
 
-Η αξιολόγηση της σχετικής βιβλιογραφίας οργανώνεται σε τέσσερις διαστάσεις, οι
-οποίες οριοθετούν τον σχεδιαστικό χώρο και αναδεικνύουν τη θέση της παρούσας
+Η αξιολόγηση της σχετικής βιβλιογραφίας οργανώνεται σε τέσσερις άξονες, οι
+οποίοι οριοθετούν τον σχεδιαστικό χώρο και αναδεικνύουν τη θέση της παρούσας
 εργασίας:
 
 \paragraph{(α) Πλατφόρμα.}
 Διακρίνουμε embedded-class RV32 πυρήνες επεξεργαστή (π.χ.\ CV32E40P, Ibex),
-application-class RV64 επεξεργαστές με vector unit (στόχος της παρούσας εργασίας),
-καθώς και μη-RISC-V πλατφόρμες (x86 με AVX2, ARM Cortex-A/M, FPGA).
+application-class RV64 επεξεργαστές (στόχος της παρούσας εργασίας),
+καθώς και πλατφόρμες άλλων αρχιτεκτονικών (x86 με AVX2, ARM Cortex-A/M).
 
 \paragraph{(β) Μέθοδος πολυωνυμικού πολλαπλασιασμού.}
 Οι υλοποιήσεις διαφοροποιούνται σε sparse$\times$dense (αξιοποίηση χαμηλού βάρους
-Hamming, προ-2024 specification), dense$\times$dense 2-way Karatsuba (τελική
-specification 2024~\cite{HQC-spec2024}), και FFT-based μεθόδους: \gls{fafft} ή
-additive FFT με Chinese Remainder Theorem (FFT-CRT). Η επιλογή μεθόδου είναι
-αλγοριθμικά καθοριστική για τη συγκρισιμότητα, καθώς ο sparse$\times$dense
-αποσύρθηκε για λόγους side-channel.
+Hamming, μέθοδος πριν από το τελικό specification του 2024,
+βλ.~\cref{sec:hqc-standardization}), dense$\times$dense 2-way Karatsuba (τελικό
+specification 2024), και μεθόδους βασισμένες στον \gls{fft}: τη \gls{fafft} ή την additive FFT σε
+συνδυασμό με το Chinese Remainder Theorem (FFT-CRT). Η επιλογή μεθόδου είναι 
+καθοριστική για τη συγκρισιμότητα, καθώς ο sparse$\times$dense αποσύρθηκε για λόγους side-channel
+(βλ.~\cref{sec:hqc-standardization}).
 
 \paragraph{(γ) Στρατηγική επιτάχυνσης.}
 Τέσσερις προσεγγίσεις εμφανίζονται στη βιβλιογραφία: (i)~HW/SW co-design με
 discrete (loosely-coupled) accelerators συνδεδεμένους μέσω bus interconnect
 (π.χ.\ AXI)· (ii)~tightly-coupled accelerators ενσωματωμένους στο pipeline μέσω
 standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυρωμένες ISA
-επεκτάσεις/ISE· και (iv)~ratified-only software που αξιοποιεί αποκλειστικά
+επεκτάσεις/ISE και (iv)~ratified-only software που αξιοποιεί αποκλειστικά
 επικυρωμένες επεκτάσεις χωρίς custom hardware. Η παρούσα εργασία ανήκει
 αποκλειστικά στην τελευταία κατηγορία.
 
@@ -60,30 +62,110 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
 διάκριση καθορίζει αν μια εργασία αποτελεί ολοκληρωμένο σημείο σύγκρισης ή
 εστιασμένη βελτιστοποίηση επιμέρους πυρήνα.
 
-Ο \cref{tab:rw-riscv-summary} κωδικοποιεί αυτούς τους άξονες σε μορφή πίνακα: μία
-γραμμή ανά εργασία, με τις στήλες πλατφόρμας και μεθόδου/στρατηγικής, καθώς και
-τέσσερα δυαδικά κριτήρια (pure-SW, ratified, dense$\times$dense, πλήρες
-\gls{kem}). Οι δύο επόμενες ενότητες αναπτύσσουν σε βάθος τις δύο ομάδες άμεσα
-σχετιζόμενων εργασιών: τις RISC-V υλοποιήσεις του \gls{hqc} (\cref{sec:rw-riscv})
-και τα μεθοδολογικά ανάλογα σε x86/ARM (\cref{sec:rw-analogs})· οι υπόλοιπες
-εργασίες συμπυκνώνονται στην \cref{sec:rw-other}.
+Ο \cref{tab:rw-riscv-summary} συνοψίζει τις σχετικές εργασίες κατά τους παραπάνω
+άξονες: μία γραμμή ανά εργασία, με τις στήλες πλατφόρμας και μεθόδου/στρατηγικής,
+καθώς και τρία δυαδικά κριτήρια (RISC-V, καθαρό λογισμικό, πλήρες \gls{kem}).
 
-\section{Το ερευνητικό κενό: \HQC σε RISC-V με custom hardware}
+\begin{table}[htbp]
+  \centering
+  \caption{Ενοποιημένη σύγκριση σχετικών εργασιών κατά τους άξονες της
+    \cref{sec:rw-axes}. Στήλες: πλατφόρμα, μέθοδος πολυωνυμικού πολλαπλασιασμού /
+    στρατηγική επιτάχυνσης, και τρία δυαδικά κριτήρια: \q{RISC-V} (αρχιτεκτονική
+    στόχευσης), \q{Καθαρό λογισμικό} (χωρίς custom hardware, μόνο επικυρωμένες
+    επεκτάσεις) και \q{πλήρες \gls{kem}}. \ding{51}/\ding{55} δηλώνουν
+    ικανοποίηση/μη ικανοποίηση· \q{—} δηλώνει μη εφαρμοσιμότητα. Σημείωση:
+    $\dagger$ το PHOENIX αξιολογείται σε ARM Cortex-A9 host, όχι σε RISC-V
+    πυρήνα.}
+  \label{tab:rw-riscv-summary}
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{@{}lll ccc@{}}
+    \toprule
+    \textbf{Εργασία} & \textbf{Platform} & \textbf{Polymul / Strategy} &
+    \rotatebox{70}{\textbf{RISC-V}} &
+    \rotatebox{70}{\textbf{Καθαρό λογισμικό}} &
+    \rotatebox{70}{\textbf{Πλήρες \gls{kem}}} \\
+    \midrule
+    \multicolumn{6}{@{}l}{\textit{\HQC σε RISC-V (custom hardware) — το ερευνητικό κενό}} \\
+    Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
+      & RV32IC & sparse$\times$dense / loosely-coupled + custom ISA
+      & \ding{51} & \ding{55} & \ding{51} \\
+    Ras et al.~\cite{ras-nist2025}
+      & RV32IMC & FAFFT / discrete accel.\ (ANDROMEDA)
+      & \ding{51} & \ding{55} & \ding{51} \\
+    TYRCA~\cite{Dolmeta2025-TYRCA}
+      & RV + CV-X-IF & dense$\times$dense / tightly-coupled
+      & \ding{51} & \ding{55} & \ding{51} \\
+    Seo et al.~\cite{Seo2026-HQC-Ibex}
+      & RV32 (Ibex) & — / tightly-coupled accel.
+      & \ding{51} & \ding{55} & \ding{51} \\
+    \midrule
+    \multicolumn{6}{@{}l}{\textit{Μεθοδολογικά ανάλογα: καθαρό λογισμικό x86 / ARM}} \\
+    Jang et al.~\cite{Jang2026-gf2x-SIMD}
+      & x86 / ARM & Toom/Karatsuba / SIMD (\texttt{VPCLMULQDQ}/\texttt{PMULL})
+      & \ding{55} & \ding{51} & \ding{55} \\
+    Chen et al.~\cite{Chen2026-TCHES-HQC-FFT}
+      & x86 / ARM & FFT-CRT / SIMD
+      & \ding{55} & \ding{51} & \ding{51} \\
+    OptHQC~\cite{OptHQC2025}
+      & x86 AVX2 & sparse$\times$dense / SIMD
+      & \ding{55} & \ding{51} & \ding{51} \\
+    \midrule
+    \multicolumn{6}{@{}l}{\textit{RISC-V ISE / crypto-agile coprocessors}} \\
+    HORCRUX~\cite{Dolmeta2025-HORCRUX}
+      & RISC-V + ISE & — / custom PQC ISE
+      & \ding{51} & \ding{55} & — \\
+    Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}
+      & RISC-V + ISE & — / custom PQC crypto-proc.
+      & \ding{51} & \ding{55} & — \\
+    PHOENIX~\cite{PHOENIX2025}
+      & ARM Cortex-A9$^{\dagger}$ & FAFFT / HW coprocessor
+      & \ding{55} & \ding{55} & \ding{51} \\
+    \midrule
+    \multicolumn{6}{@{}l}{\textit{Λοιπές: ARM / Cortex-M / dedicated hardware}} \\
+    Jang et al.~\cite{Jang2025-CortexM4-HQC}
+      & ARM Cortex-M4 & FAFFT-CRT / SW
+      & \ding{55} & \ding{51} & \ding{55} \\
+    Chen et al.~\cite{Chen2021-BIKE-Haswell-M4}
+      & x86 / Cortex-M4 & Karatsuba / FFT (BIKE)
+      & \ding{55} & \ding{51} & \ding{55} \\
+    Deshpande et al.~\cite{Deshpande2023-HQC-HW}
+      & FPGA & — / dedicated HW
+      & \ding{55} & \ding{55} & \ding{51} \\
+    \midrule
+    \multicolumn{6}{@{}l}{\textit{Γενικότερες PQC εργασίες σε RISC-V (lattice, Keccak-centric)}} \\
+    ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}
+      & RV64IMB & NTT / ratified-only SW (\gls{zbb})
+      & \ding{51} & \ding{51} & — \\
+    Zhang et al.~\cite{zhang-tches2025}
+      & RV\{32,64\}IMBV & NTT / ratified-only SW (\RVV/\gls{zbb})
+      & \ding{51} & \ding{51} & — \\
+    Saarinen~\cite{Saarinen2024-vkeccak}
+      & RV64GCV & NTT / SW + προτεινόμενη \code{vkeccak.vi}
+      & \ding{51} & \ding{51} & — \\
+    \midrule
+    \textbf{Παρούσα εργασία}
+      & \textbf{RV64GCV} & \textbf{Karatsuba / ratified-only SW (\gls{zbc}/\gls{zvbc})}
+      & \ding{51} & \ding{51} & \ding{51} \\
+    \bottomrule
+  \end{tabular}%
+  }
+\end{table}
+
+\section{\HQC σε RISC-V: η κυριαρχία των HW/SW co-designs}
 \label{sec:rw-riscv}
 
-Οι υπάρχουσες υλοποιήσεις του \gls{hqc} σε αρχιτεκτονική RISC-V ακολουθούν
-αποκλειστικά την προσέγγιση HW/SW co-design: συνδυάζουν έναν RISC-V επεξεργαστή
-με custom hardware σχεδιασμένο ειδικά για τον αλγόριθμο. Καμία δεν αξιοποιεί
-επικυρωμένες κρυπτογραφικές επεκτάσεις (\gls{zbc}, \gls{zvbc}) σε
-application-class RV64 επεξεργαστές χωρίς custom hardware. Οι τέσσερις εργασίες που
-ακολουθούν υλοποιούνται στην ίδια αρχιτεκτονική (RISC-V) με την παρούσα εργασία, αλλά
-καμία δεν αποτελεί υλοποίηση σε καθαρό λογισμικό με επικυρωμένες επεκτάσεις· ορίζουν
-συνεπώς το ερευνητικό κενό και αναλύονται σε βάθος.
+Και οι τέσσερις δημοσιευμένες RISC-V υλοποιήσεις του \gls{hqc} μοιράζονται ένα κοινό
+χαρακτηριστικό: όλες στηρίζονται σε custom hardware και όχι στις ήδη επικυρωμένες
+επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό, δηλαδή τη βελτιστοποίηση σε καθαρό λογισμικό με
+επικυρωμένες επεκτάσεις, καλύπτει η παρούσα εργασία. Οι τέσσερις εργασίες
+παρουσιάζονται με χρονολογική σειρά δημοσίευσης και αναλύονται σε βάθος παρακάτω.
 
 \subsection{Schöffel et al.\ 2022 — HW/SW Co-Design σε RV32IC}
 \label{ssec:rw-schoeffel}
 
-Η πρώτη δημοσιευμένη υλοποίηση του \gls{hqc} σε RISC-V παρουσιάστηκε από τους
+Η πρώτη υλοποίηση του \gls{hqc} ειδικά σχεδιασμένη για RISC-V παρουσιάστηκε από τους
 Schöffel, Feldmann και Wehn (RPTU/TU Kaiserslautern) το
 2022~\cite{Schoeffel2022-HQC-IoT}. Πρόκειται για HW/SW co-design με στόχο IoT
 εφαρμογές, βασισμένο σε custom RV32IC πυρήνα και τρεις loosely-coupled
@@ -115,7 +197,7 @@ datapath και ratified \gls{zbc}/\gls{zvbc}.
 Οι Ras, Loiseau, Carmona, Pontié, Renault, Smith και Valea (CEA-Leti / INRIA /
 ANSSI)~\cite{ras-nist2025} προτείνουν τη χρήση \gls{fafft} ως εναλλακτική μέθοδο
 πολυωνυμικού πολλαπλασιασμού, σε συνδυασμό με τον hardware accelerator
-ANDROMEDA. Η \gls{fafft} μετασχηματίζει τον πολλαπλασιασμό δυαδικών πολυωνύμων
+ANDROMEDA. Ο \gls{fafft} μετασχηματίζει τον πολλαπλασιασμό δυαδικών πολυωνύμων
 σε FFT-based αξιολόγηση επί του $\GF{2^{32}}$, αξιοποιώντας Cantor basis και
 Frobenius map για μείωση των σημείων αξιολόγησης από $n$ σε $n/m$. Η υλοποίηση
 σε C (χωρίς SIMD/assembly) ενσωματώθηκε στον επίσημο κώδικα \gls{hqc} και
@@ -166,7 +248,7 @@ RISC-V πυρήνα. Όπως και οι προηγούμενες RISC-V εργ
 σε αντίθεση με τους application-class RV64 επεξεργαστές που στοχεύει η παρούσα
 εργασία.
 
-\section{Μεθοδολογικά ανάλογα: πολλαπλασιασμός σε καθαρό λογισμικό σε x86 και ARM}
+\section{Υλοποιήσεις καθαρού λογισμικού σε x86/ARM: το πλησιέστερο μεθοδολογικό ανάλογο}
 \label{sec:rw-analogs}
 
 Σε αντίθεση με τις RISC-V υλοποιήσεις της \cref{sec:rw-riscv}, που υλοποιούνται στην
@@ -176,8 +258,9 @@ RISC-V πυρήνα. Όπως και οι προηγούμενες RISC-V εργ
 μέσω ενσωματωμένων SIMD carry-less εντολών (\texttt{VPCLMULQDQ} στο x86,
 \texttt{PMULL} στο ARM). Αποτελούν συνεπώς τα πλησιέστερα μεθοδολογικά ανάλογα
 και το βασικό σημείο σύγκρισης ως προς τη στρατηγική επιτάχυνσης, διαφέροντας από
-την παρούσα εργασία κυρίως ως προς την ISA: fixed-width SIMD αντί του VLA vector
-model του RISC-V.
+την παρούσα εργασία ως προς την αρχιτεκτονική (RISC-V έναντι x86/ARM). Οι εργασίες
+που ακολουθούν παρουσιάζονται με σειρά φθίνουσας μεθοδολογικής εγγύτητας προς την
+παρούσα εργασία.
 
 \subsection{Jang et al.\ 2026 — Συστηματικός SIMD πολλαπλασιασμός στο \texorpdfstring{$\GF{2}[x]$}{GF(2)[x]}}
 \label{ssec:rw-jang-simd}
@@ -315,7 +398,7 @@ accelerator~\cite{LEAP2024-sparse-polymul} βελτιστοποιεί τον spa
 πολλαπλασιασμό (obsolete μετά την αλλαγή specification του 2024), και μία πρόταση
 constant-time sampling hardware~\cite{CTsampling-HQC2023} αφορά μελλοντικό
 side-channel hardening (βλ.~\cref{ch:conclusions}). Καμία από αυτές τις
-σχεδιάσεις δεν αποτελούν υλοποιήσεις σε καθαρό λογισμικό ούτε είναι portable σε εμπορικούς RISC-V
+σχεδιάσεις δεν αποτελεί υλοποίηση σε καθαρό λογισμικό ούτε είναι portable σε εμπορικούς RISC-V
 επεξεργαστές.
 
 \subsection{Γενικότερες PQC εργασίες σε RISC-V (Keccak-centric)}
@@ -343,97 +426,6 @@ Keccak είναι κοινό primitive, η εξέλιξη αυτή θα ωφελ
 code-based κρυπτογραφία ούτε αξιοποιεί \gls{zbc}/\gls{zvbc} για carry-less
 πολλαπλασιασμό σε $\GF{2}[x]$.
 
-\begin{table}[htbp]
-  \centering
-  \caption{Ενοποιημένη σύγκριση σχετικών εργασιών κατά τους άξονες της
-    \cref{sec:rw-axes}. Στήλες: πλατφόρμα, μέθοδος πολυωνυμικού πολλαπλασιασμού /
-    στρατηγική επιτάχυνσης, και τέσσερα δυαδικά κριτήρια — \q{pure-SW} (χωρίς
-    custom hardware), \q{ratified} (μόνο επικυρωμένες επεκτάσεις),
-    \q{dense$\times$dense} (μη-sparse, συμβατό με τη specification
-    2024~\cite{HQC-spec2024}) και \q{πλήρες \gls{kem}}. \ding{51}/\ding{55}
-    δηλώνουν ικανοποίηση/μη ικανοποίηση· \q{—} δηλώνει μη εφαρμοσιμότητα. Το
-    κριτήριο \q{RISC-V} της \cref{sec:rw-gap} αναγιγνώσκεται απευθείας από τη
-    στήλη πλατφόρμας. Σημειώσεις: $\dagger$ το PHOENIX αξιολογείται σε ARM
-    Cortex-A9 host, όχι σε RISC-V πυρήνα· $\ddagger$ οι FFT-based μέθοδοι (FAFFT,
-    FFT-CRT) θεωρούνται dense (μη-sparse) και spec-συμβατές.}
-  \label{tab:rw-riscv-summary}
-  \footnotesize
-  \setlength{\tabcolsep}{4pt}
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{@{}lll cccc@{}}
-    \toprule
-    \textbf{Εργασία} & \textbf{Platform} & \textbf{Polymul / Strategy} &
-    \rotatebox{70}{\textbf{Pure-SW}} &
-    \rotatebox{70}{\textbf{Ratified}} &
-    \rotatebox{70}{\textbf{Dense$\times$dense}$^{\ddagger}$} &
-    \rotatebox{70}{\textbf{Πλήρες \gls{kem}}} \\
-    \midrule
-    \multicolumn{7}{@{}l}{\textit{\HQC σε RISC-V (custom hardware) — το ερευνητικό κενό}} \\
-    Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
-      & RV32IC & sparse$\times$dense / loosely-coupled + custom ISA
-      & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
-    Ras et al.~\cite{ras-nist2025}
-      & RV32IMC & FAFFT / discrete accel.\ (ANDROMEDA)
-      & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
-    TYRCA~\cite{Dolmeta2025-TYRCA}
-      & RV + CV-X-IF & dense$\times$dense / tightly-coupled
-      & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
-    Seo et al.~\cite{Seo2026-HQC-Ibex}
-      & RV32 (Ibex) & — / tightly-coupled accel.
-      & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
-    \midrule
-    \multicolumn{7}{@{}l}{\textit{Μεθοδολογικά ανάλογα: καθαρό λογισμικό x86 / ARM}} \\
-    Jang et al.~\cite{Jang2026-gf2x-SIMD}
-      & x86 / ARM & Toom/Karatsuba / SIMD (\texttt{VPCLMULQDQ}/\texttt{PMULL})
-      & \ding{51} & — & \ding{51} & \ding{55} \\
-    Chen et al.~\cite{Chen2026-TCHES-HQC-FFT}
-      & x86 / ARM & FFT-CRT / SIMD
-      & \ding{51} & — & \ding{51} & \ding{51} \\
-    OptHQC~\cite{OptHQC2025}
-      & x86 AVX2 & sparse$\times$dense / SIMD
-      & \ding{51} & — & \ding{55} & \ding{51} \\
-    \midrule
-    \multicolumn{7}{@{}l}{\textit{RISC-V ISE / crypto-agile coprocessors}} \\
-    HORCRUX~\cite{Dolmeta2025-HORCRUX}
-      & RISC-V + ISE & — / custom PQC ISE
-      & \ding{55} & \ding{55} & — & — \\
-    Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}
-      & RISC-V + ISE & — / custom PQC crypto-proc.
-      & \ding{55} & \ding{55} & — & — \\
-    PHOENIX~\cite{PHOENIX2025}
-      & ARM Cortex-A9$^{\dagger}$ & FAFFT / HW coprocessor
-      & \ding{55} & \ding{55} & \ding{51} & \ding{51} \\
-    \midrule
-    \multicolumn{7}{@{}l}{\textit{Λοιπές: ARM / Cortex-M / dedicated hardware}} \\
-    Jang et al.~\cite{Jang2025-CortexM4-HQC}
-      & ARM Cortex-M4 & FAFFT-CRT / SW
-      & \ding{51} & — & \ding{51} & \ding{55} \\
-    Chen et al.~\cite{Chen2021-BIKE-Haswell-M4}
-      & x86 / Cortex-M4 & Karatsuba / FFT (BIKE)
-      & \ding{51} & — & \ding{51} & \ding{55} \\
-    Deshpande et al.~\cite{Deshpande2023-HQC-HW}
-      & FPGA & — / dedicated HW
-      & \ding{55} & — & — & \ding{51} \\
-    \midrule
-    \multicolumn{7}{@{}l}{\textit{Γενικότερες PQC εργασίες σε RISC-V (lattice, Keccak-centric)}} \\
-    ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}
-      & RV64IMB & NTT / ratified-only SW (\gls{zbb})
-      & \ding{51} & \ding{51} & — & — \\
-    Zhang et al.~\cite{zhang-tches2025}
-      & RV\{32,64\}IMBV & NTT / ratified-only SW (\RVV/\gls{zbb})
-      & \ding{51} & \ding{51} & — & — \\
-    Saarinen~\cite{Saarinen2024-vkeccak}
-      & RV64GCV & NTT / SW + προτεινόμενη \code{vkeccak.vi}
-      & \ding{51} & \ding{51} & — & — \\
-    \midrule
-    \textbf{Παρούσα εργασία}
-      & \textbf{RV64GCV} & \textbf{Karatsuba / ratified-only SW (\gls{zbc}/\gls{zvbc})}
-      & \ding{51} & \ding{51} & \ding{51} & \ding{51} \\
-    \bottomrule
-  \end{tabular}%
-  }
-\end{table}
-
 \section{Αποτίμηση Κενού και Τοποθέτηση Παρούσας Εργασίας}
 \label{sec:rw-gap}
 
@@ -448,22 +440,17 @@ TYRCA, Seo) εξαρτώνται από custom hardware ή μη-επικυρωμ
 σε αποσυρμένο sparse$\times$dense· και οι γενικότερες RISC-V \gls{pqc} εργασίες,
 παρότι υλοποιούνται σε καθαρό λογισμικό και είναι ratified, αφορούν αποκλειστικά lattice-based σχήματα.
 Ο \cref{tab:rw-riscv-summary} κωδικοποιεί αυτή τη διασταύρωση: καμία γραμμή πλην
-της τελευταίας δεν ικανοποιεί ταυτόχρονα και τα πέντε κριτήρια που ορίζουν τη
+της τελευταίας δεν ικανοποιεί ταυτόχρονα και τα τρία κριτήρια που ορίζουν τη
 μοναδικότητα της παρούσας εργασίας.
 
-Τα πέντε κριτήρια αξιολόγησης (το κριτήριο \q{RISC-V} αναγιγνώσκεται από τη στήλη
-πλατφόρμας του \cref{tab:rw-riscv-summary}) ορίζονται ως εξής:
+Τα τρία κριτήρια αξιολόγησης ορίζονται ως εξής:
 \begin{enumerate}
   \item \textbf{RISC-V:} Η πλατφόρμα στόχευσης είναι αρχιτεκτονική RISC-V
     (οποιοδήποτε profile).
-  \item \textbf{Pure SW:} Η υλοποίηση δεν απαιτεί custom hardware accelerators
-    — εκτελείται αποκλειστικά σε general-purpose πυρήνα.
-  \item \textbf{Ratified ext.:} Αξιοποιούνται μόνο επικυρωμένες RISC-V
-    extensions (Zbc, Zbb, Zvbc, Zvbb) — όχι custom ISA εντολές.
-  \item \textbf{Dense$\times$dense:} Ο πολυωνυμικός πολλαπλασιασμός είναι
-    dense (μη-sparse) και συμβατός με την τελική specification
-    (2024)~\cite{HQC-spec2024}· η παρούσα εργασία υλοποιεί ειδικότερα τη μέθοδο
-    2-way Karatsuba.
+  \item \textbf{Καθαρό λογισμικό:} Η υλοποίηση δεν απαιτεί custom hardware
+    accelerators, αλλά εκτελείται αποκλειστικά σε general-purpose πυρήνα
+    αξιοποιώντας μόνο επικυρωμένες RISC-V extensions (Zbc, Zbb, Zvbc, Zvbb), όχι
+    custom ISA εντολές.
   \item \textbf{Πλήρες \gls{kem}:} Η βελτιστοποίηση καλύπτει ολόκληρο τον \gls{hqc} \gls{kem}
     (πολυωνυμικός πολλαπλασιασμός + Keccak + αποκωδικοποίηση), όχι μόνο
     μεμονωμένο πυρήνα.
