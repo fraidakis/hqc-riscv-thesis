@@ -425,9 +425,11 @@ carry-less πολλαπλασιασμό μόνο σε \GF{2}[x] (\vclmul), χω�
 \subsection{OptHQC — \texorpdfstring{Sparse$\times$dense}{Sparse×dense} AVX2 (Dong et al.\ 2025)}
 \label{ssec:rw-opthqc}
 
-Το OptHQC~\cite{OptHQC2025} αποτελεί τη μοναδική δημοσιευμένη βελτιστοποίηση
-ολόκληρου του \gls{hqc} \gls{kem} σε x86 με AVX2, στοχεύοντας general-purpose
-επεξεργαστές Intel Core i7. Συνδυάζει τρεις βελτιστοποιήσεις: (α)~adaptive
+Το OptHQC~\cite{OptHQC2025} είναι μια high-performance υλοποίηση ολόκληρου του
+\gls{hqc} \gls{kem} σε x86 με AVX2, στοχεύοντας general-purpose επεξεργαστές
+(η αξιολόγηση έγινε σε Intel Core i7-7700). Βάσει profiling που αναδεικνύει ως
+κυρίαρχα bottlenecks τον πολυωνυμικό πολλαπλασιασμό και τη συνενωμένη
+αποκωδικοποίηση, συνδυάζει τρεις βελτιστοποιήσεις: (α)~adaptive
 sparse$\times$dense πολλαπλασιασμό με threshold-aware scheduler που επιλέγει
 δυναμικά μεταξύ sparse και dense κλάδου βάσει του βάρους Hamming, με τη
 μετατόπιση να αποσυντίθεται σε coarse word περιστροφή και fine intra-word bit
@@ -435,14 +437,21 @@ sparse$\times$dense πολλαπλασιασμό με threshold-aware scheduler 
 lane-interleaved 256-bit loads/stores (\speedup{2} στο SHAKE)· και
 (γ)~table-driven Reed-Solomon που αντικαθιστά τον πολλαπλασιασμό στο $\GF{2^8}$
 με precomputed lookup tables ($\sim$8\,KB για encode, $\sim$14\,KB nibble-sliced
-για decode). Συνολικά επιτυγχάνεται \pct{55} μέσο speedup έναντι της reference,
-με τη μεγαλύτερη βελτίωση στο \Decaps.
+για decode). Σε επίπεδο επιμέρους kernels, ο sparse$\times$dense πολλαπλασιασμός αποδίδει
+\pct{20}–\pct{40} ταχύτερο polymul, το AVX-parallel
+SHAKE \speedup{2} και ο table-driven \gls{rs} αποκωδικοποιητής \pct{20}–\pct{25}
+μείωση στον χρόνο GF-mul. Συνολικά οι συγγραφείς αναφέρουν \pct{50}–\pct{60}
+μείωση χρόνου εκτέλεσης, με τη μεγαλύτερη βελτίωση στο
+\Decaps.
 
-Η διαφορά που περιορίζει τη συγκρισιμότητα με την παρούσα εργασία είναι ότι 
-βελτιστοποίηση πολλαπλασιασμού εκμεταλλεύεται τη σπανιότητα των μυστικών
-διανυσμάτων (sparse$\times$dense) — τεχνική που η τελική specification (2024)
-απαγορεύει λόγω side-channel ευπαθειών~\cite{HQC-spec2024}, ενώ η παρούσα εργασία
-χρησιμοποιεί αποκλειστικά dense$\times$dense Karatsuba. 
+Η συγκρισιμότητα περιορίζεται από επιλογή στρατηγικής: το OptHQC βασίζεται σε
+sparse$\times$dense πολλαπλασιασμό αξιοποιώντας το χαμηλό βάρος Hamming των
+μυστικών, ενώ το specification (2024) στράφηκε στον dense$\times$dense Karatsuba
+για constant-time εκτέλεση, βάση που υιοθετεί και η παρούσα
+εργασία. Σημειώνεται ότι το OptHQC ισχυρίζεται constant-time εκτέλεση για τον
+sparse$\times$dense πυρήνα του (branchless rotation πάνω σε fixed-weight
+operands), επανεισάγοντας μια προσέγγιση που η reference είχε αποφύγει
+συντηρητικά.
 
 Τα τρία αυτά ανάλογα τεκμηριώνουν ότι η αξιοποίηση SIMD carry-less
 πολλαπλασιασμού εντός Karatsuba/FFT δομών σε καθαρό λογισμικό είναι αποδεδειγμένα
@@ -455,14 +464,13 @@ lane-interleaved 256-bit loads/stores (\speedup{2} στο SHAKE)· και
 
 Οι υπόλοιπες εργασίες δεν αποτελούν άμεσα συγκρίσιμα σημεία —είτε εισάγουν
 μη-επικυρωμένο ISE, είτε αφορούν custom hardware ή lattice-based σχήματα— και
-συμπυκνώνονται σε σύντομες αναφορές· οι σημαντικότερες συνοδεύονται από
-αντίστοιχη γραμμή στον \cref{tab:rw-riscv-summary}.
+συμπυκνώνονται σε σύντομες αναφορές.
 
 \subsection{Crypto-agile υλικό (ISE \& coprocessors) με κάλυψη του \HQC}
 \label{ssec:rw-riscv-ise-hqc}
 
 Δύο εργασίες προτείνουν RISC-V instruction-set extensions (ISE) που καλύπτουν
-πολλαπλές οικογένειες \gls{pqc}, συμπεριλαμβανομένου του code-based \gls{hqc}: το
+πολλαπλές οικογένειες \gls{pqc}, συμπεριλαμβανομένου και του code-based \gls{hqc}: το
 HORCRUX~\cite{Dolmeta2025-HORCRUX} (Politecnico di Torino) παρέχει ενοποιημένο
 ISE με speedup άνω του \speedup{30} για code-based σχήματα και κόστος μικρότερο
 από \num{2900} LUTs/\num{400} FFs, ενώ ο προγραμματιζόμενος crypto-processor των
@@ -470,7 +478,7 @@ Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc} (\emph{Sensors} 2023) επεκτ�
 το RISC-V ISA για NIST PQC standard και round-4 αλγορίθμους με μειώσεις έως
 \pct{79}/\pct{92}/\pct{87} σε μέγεθος κώδικα/εντολές/κύκλους έναντι RV64IM
 \texttt{-O3}. Αμφότερες εισάγουν \emph{custom} (μη-επικυρωμένες) εντολές και δεν
-εστιάζουν στον \gls{hqc}. Συναφώς, το PHOENIX~\cite{PHOENIX2025} (CEA-Leti)
+εστιάζουν αποκλειστικά στον \gls{hqc}. Συναφώς, το PHOENIX~\cite{PHOENIX2025} (CEA-Leti)
 είναι crypto-agile coprocessor που μοιράζεται hardware (μονάδα SuperButterfly)
 μεταξύ NTT (\gls{mlkem}) και \gls{fafft} (\gls{hqc})· αξιολογήθηκε όμως ως
 loosely-coupled coprocessor σε Zynq-7020 FPGA με \emph{ARM Cortex-A9 host} (το
