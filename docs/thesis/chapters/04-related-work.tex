@@ -321,13 +321,12 @@ hardware και όχι στις επικυρωμένες κρυπτογραφι�
 ασφαλείας.} και \texttt{Toom3Mult(Karat5)} 
 για HQC-256: Toom-Cook 3-way στο ανώτερο επίπεδο, με ενσωματωμένο 3-way 
 (ή 5-way) Karatsuba και αναδρομικό 2-way Karatsuba στα φύλλα, όπου το 
-base multiplication εκτελείται με την εντολή \texttt{PCLMULQDQ} 
-(\texttt{\_mm\_clmulepi64\_si128}). Η βελτιστοποίηση 
+base multiplication εκτελείται με την εντολή \texttt. Η βελτιστοποίηση 
 \texttt{Toom3Mult(Karat3)} για HQC-128/192 αποτελεί συνεισφορά αυτής 
 της εργασίας: αντικατέστησε τον προηγούμενο 2-αναδρομικό 3-split 
 Karatsuba (\texttt{Karat3(Karat3)}) της υποβολής του Γύρου~3, 
 ενώ η δομή \texttt{Toom3Mult(Karat5)} του HQC-256 προϋπήρχε στον ίδιο 
-AVX2 κώδικα. Η βελτίωση εισήχθη στην ενημέρωση του Γύρου~3 . Στον επίσημο κώδικα υιοθετήθηκε η AVX2 
+AVX2 κώδικα. Στον επίσημο κώδικα υιοθετήθηκε η AVX2 
 εκδοχή, και όχι η AVX-512 εκδοχή του ίδιου paper. Έκτοτε παραμένει 
 η baseline του \gls{hqc} έως την τρέχουσα \texttt{v5.0.0}. 
 
@@ -337,15 +336,14 @@ AVX2 κώδικα. Η βελτίωση εισήχθη στην ενημέρωσ�
 δύο στον 256-bit ymm του AVX2), οι συγγραφείς 
 επανεξετάζουν τον Karatsuba, αξιοποιώντας τους ευρύτερους 512-bit 
 registers, με Karatsuba στο 512-bit επίπεδο και schoolbook base 
-multiplication στα 128/256-bit (\texttt{karat\_mult\_1\_512\_SB}). 
-Μεθοδολογικά, αξιολογούν 
+multiplication στα 128/256-bit. Μεθοδολογικά, αξιολογούν 
 διάφορες κατασκευές Karatsuba (recursive, καθώς και fixed-split 3-way 
 και 5-way) και τις συνδυάζουν με Toom-Cook 3-, 4- και 5-way, 
 εντοπίζοντας τον αποδοτικότερο συνδυασμό ανά εύρος βαθμού πολυωνύμου. 
 Σε επίπεδο μεμονωμένου kernel, η AVX-512 εκδοχή των R\&V μειώνει το 
 πλήθος των retired εντολών κατά $\sim$\speedup{3} και πετυχαίνει 
 επιτάχυνση \SIrange{29.5}{39.1}{\percent} σε κύκλους έναντι του AVX2, με 
-όφελος έως \pct{11.8} σε επίπεδο \gls{kem} (π.χ.\ \KeyGen του HQC-256).
+όφελος έως \pct{11.8} σε επίπεδο \gls{kem}.
 
 Η συνάφεια με την παρούσα εργασία είναι η εξής. Ορίζει τον 
 \emph{baseline} αλγόριθμο που βελτιστοποιεί και συγκρίνει η διατριβή: 
@@ -377,8 +375,10 @@ overhead των cross-όρων του Karatsuba υπερκαλύπτει το ό
 πολυωνυμικού πολλαπλασιασμού κατά \pct{17}–\pct{32} έναντι της επίσημης
 υλοποίησης \gls{hqc} για τα HQC-128 και HQC-192, με βελτίωση \pct{4}–\pct{18} σε
 επίπεδο \gls{kem} (\KeyGen/\Encaps/\Decaps). Για το HQC-256, η FFT-based υλοποίηση
-των Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} υπερτερεί, επιβεβαιώνοντας ότι το
-ασυμπτωτικό πλεονέκτημα της FFT γίνεται κυρίαρχο σε μεγάλους βαθμούς.
+των Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} υπερτερεί \emph{όταν αξιοποιείται
+GFNI} (σχεδόν $2\times$ έναντι της PCLMULQDQ-only FAFFT)· χωρίς GFNI ο
+Toom-Karatsuba διατηρεί προβάδισμα $\sim$\pct{6} ακόμη και στο HQC-256, με την
+FFT να υπερτερεί κυρίως μέσω caching στο επίπεδο \gls{kem}.
 
 Η στρατηγική αυτή — clmul-based base multiplication εντός Karatsuba
 decomposition — ακολουθεί την ίδια βασική προσέγγιση με την παρούσα εργασία. Η
@@ -398,18 +398,29 @@ $r$) δεν ευθυγραμμίζονται με δυνάμεις του 2, η 
 είναι αναποτελεσματική λόγω excessive padding· η εργασία προτείνει συνδυασμό
 additive FFT με το Chinese Remainder Theorem (CRT), αντιστοιχίζοντας το
 πολυωνυμικό δακτύλιο σε γινόμενο ενός FFT-friendly δακτυλίου μεγέθους $2^{d+1}$
-και ενός μικρού υπολοιπόμενου. Επιπλέον, η μετατροπή FFT του δημόσιου πολυωνύμου
-$h$ αποθηκεύεται (cached) κατά το \KeyGen και επαναχρησιμοποιείται στο \Encaps,
-εξοικονομώντας $\sim$1/8 του χρόνου σε x86 AVX2 και $\sim$1/6 σε ARM NEON.
+και ενός μικρού υπολοιπόμενου. Επιπλέον, οι μετασχηματισμοί FFT επαναχρησιμοποιούνται
+μεταξύ \KeyGen/\Encaps/\Decaps (cache-key strategy), εξαλείφοντας πλεονάζοντες
+υπολογισμούς — η κύρια πηγή της επιτάχυνσης στο επίπεδο \gls{kem}.
 
-Σε πλατφόρμες με \texttt{PCLMULQDQ}, η FFT-CRT προσέγγιση υπερτερεί του
-Toom-Karatsuba στις φάσεις \Encaps/\Decaps χάρη στο caching, ενώ σε πλατφόρμες
-χωρίς carry-less multiply hardware (π.χ.\ Cortex-A72) η additive FFT υπερτερεί σε
-όλες τις φάσεις. Η εργασία τεκμηριώνει ότι για μεγάλους βαθμούς (HQC-256) η
-FFT-based προσέγγιση μπορεί να υπερτερεί του Karatsuba. Η παρούσα εργασία
-διατηρεί τον 2-way Karatsuba της reference specification και επιταχύνει τα leaf
-multiplications μέσω \vclmul: μία ορθογώνια στρατηγική που δεν απαιτεί αλλαγή
-αλγοριθμικής δομής.
+Σε πλατφόρμες με \texttt{PCLMULQDQ}, η FFT-based προσέγγιση —σε συνδυασμό με το
+cache-key strategy— υπερτερεί του Toom-Karatsuba στις φάσεις \Encaps/\Decaps σε
+όλα τα security levels, παρά την οριακά βραδύτερη raw multiplication στο HQC-1.
+Σε επίπεδο raw polymul χωρίς GFNI, ο Toom-Karatsuba διατηρεί προβάδισμα
+$\sim$\pct{6} ακόμη και στο HQC-256, ενώ με GFNI η FAFFT υπερδιπλασιάζει την
+ταχύτητα. Σε πλατφόρμες χωρίς long carry-less πολλαπλασιασμό (π.χ.\ Cortex-A72,
+που διαθέτει μόνο \texttt{PMULL.P8} και όχι \texttt{PMULL.P64}), η additive FFT
+(KS+CRT) υπερτερεί στις \Encaps/\Decaps, αν και το \KeyGen επιβαρύνεται από το
+caching.
+
+Ωστόσο, η προσέγγιση αυτή προϋποθέτει αποδοτική αριθμητική σε extension fields
+(tower-field αναπαράσταση), που στις πλατφόρμες του paper στηρίζεται σε GFNI
+(x86) ή σε αποδοτικό \texttt{PMULL} (ARM NEON). Το RISC-V vector model παρέχει
+carry-less πολλαπλασιασμό μόνο σε \GF{2}[x] (\vclmul), χωρίς GFNI-class εντολές
+για \GF{2^8}: η απαιτούμενη change-of-basis εξουδετερώνει το ασυμπτωτικό
+πλεονέκτημα (βλ.~\cref{ssec:fafft-paradox}). Για τον λόγο αυτό, η παρούσα
+εργασία διατηρεί τον 2-way Karatsuba της reference specification και επιταχύνει
+τα leaf multiplications μέσω \vclmul — μια ορθογώνια στρατηγική που δεν απαιτεί
+αλλαγή αλγοριθμικής δομής.
 
 \subsection{OptHQC — \texorpdfstring{Sparse$\times$dense}{Sparse×dense} AVX2 (Dong et al.\ 2025)}
 \label{ssec:rw-opthqc}
