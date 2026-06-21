@@ -224,7 +224,7 @@ TYRCA~\cite{Dolmeta2025-TYRCA}, την πρώτη πλήρως tightly-coupled h
 υλοποίηση του round-4 \gls{hqc} σε RISC-V. Αντί για loosely-coupled accelerator
 συνδεδεμένο στον δίαυλο (όπως ο ANDROMEDA), το TYRCA
 ενσωματώνεται στον πυρήνα CV32E40PX μέσω του Core-V eXtension Interface
-(CV-X-IF), το οποίο βρίσκεται σε διαδικασία τυποποίησης στην κοινότητα RISC-V: ένας
+(CV-X-IF), το οποίο βρίσκεται σε διαδικασία τυποποίησης στην κοινότητα RISC-V. Ένας
 dispatcher δρομολογεί τις custom εντολές σε εξωτερικό controller χωρίς
 τροποποίηση του decode unit, ενώ τα ορίσματα διαβάζονται απευθείας από το
 register file και το αποτέλεσμα γράφεται πίσω μέσω του result interface.
@@ -237,7 +237,7 @@ register file και το αποτέλεσμα γράφεται πίσω μέσ�
 επιταχύνει atomic functions της Reed-Solomon αποκωδικοποίησης: GF-reduce (με
 custom εντολή trailing-zero count 16-bit) και carry-less GF πολλαπλασιασμό δύο
 8-bit πολυωνύμων σε 16-bit (τέσσερις custom εντολές). Ο \emph{Keccak}
-accelerator, ο μόνος με dedicated 1600-bit register, εκτελεί τους 24 γύρους της
+accelerator, με dedicated 1600-bit register κατάστασης, εκτελεί τους 24 γύρους της
 permutation μέσω τριών custom εντολών (φόρτωση 64-bit, start, αποθήκευση
 32-bit). Οι εντολές ορίζονται ως R-/R4-type μέσω inline assembly (\code{.insn})
 σε ελεύθερα opcodes, χωρίς τροποποίηση του toolchain. Οι επιταχύνσεις ανά
@@ -252,8 +252,8 @@ permutation μέσω τριών custom εντολών (φόρτωση 64-bit, st
 Σε αντίθεση με τους loosely-coupled, memory-mapped επιταχυντές που
 επικοινωνούν μέσω διαύλου, το TYRCA ενσωματώνει τον επιταχυντή απευθείας στο
 pipeline του πυρήνα μέσω του CV-X-IF, καθιστώντας τη χρήση του διαφανή για τον
-προγραμματιστή και εξαλείφοντας το κόστος επικοινωνίας διαύλου και, σε αντίθεση
-με τις κλασικές tightly-coupled προσεγγίσεις, χωρίς αλλαγές στη μονάδα
+προγραμματιστή και εξαλείφοντας το κόστος επικοινωνίας διαύλου. Σε αντίθεση
+με τις κλασικές tightly-coupled προσεγγίσεις, αυτό επιτυγχάνεται χωρίς αλλαγές στη μονάδα
 αποκωδικοποίησης ή το toolchain.
 
 \subsection{Seo et al.\ 2026 — HW/SW Co-Optimization σε 32-bit Ibex}
@@ -299,35 +299,83 @@ hardware και όχι στις επικυρωμένες κρυπτογραφι�
 εργασία μόνο στην αρχιτεκτονική (RISC-V έναντι x86/ARM). Παρουσιάζονται με σειρά
 φθίνουσας συνάφειας προς την παρούσα εργασία.
 
-\subsection{Jang et al.\ 2026 — Συστηματικός SIMD πολλαπλασιασμός στο \texorpdfstring{$\GF{2}[x]$}{GF(2)[x]}}
+\subsection{Robert \& Véron 2023 — η AVX-512 βάση της επίσημης AVX2 υλοποίησης HQC}
+\label{ssec:rw-robert-veron}
+
+Η εργασία των Robert \& Véron~\cite{RobertVeron2023-avx512-gf2x} αποτελεί τη 
+βάση της \emph{επίσημης} AVX2 υλοποίησης πολυωνυμικού πολλαπλασιασμού 
+του \gls{hqc}: ο κώδικας που εισήγαγαν έχει ενσωματωθεί αυτούσιος στην 
+επίσημη reference implementation~\cite{HQC-NIST-round4,Jang2026-gf2x-SIMD}. 
+Συγκεκριμένα, ο πολλαπλασιασμός στον δακτύλιο $\GF{2}[x]/(x^n-1)$ 
+υλοποιείται ως \emph{constant-time} dense$\times$dense πράξη, με 
+\texttt{Toom3Mult(Karat3)} για HQC-128/192 και \texttt{Toom3Mult(Karat5)} 
+για HQC-256: Toom-Cook 3-way στο ανώτερο επίπεδο, με ενσωματωμένο 3-way 
+(ή 5-way) Karatsuba και αναδρομικό 2-way Karatsuba στα φύλλα, όπου το 
+base multiplication εκτελείται με την εντολή \texttt{PCLMULQDQ} 
+(\texttt{\_mm\_clmulepi64\_si128}). Η βελτιστοποίηση 
+\texttt{Toom3Mult(Karat3)} για HQC-128/192 αποτελεί συνεισφορά αυτής 
+της εργασίας --- αντικατέστησε την προηγούμενη \texttt{Karat9} ---, 
+ενώ η δομή \texttt{Toom3Mult(Karat5)} του HQC-256 προϋπήρχε στον ίδιο 
+επίσημο AVX2 κώδικα. Ο πολλαπλασιασμός αυτός αποτελεί το κύριο 
+υπολογιστικό bottleneck του σχήματος (\pct{20}--\pct{32} των συνολικών 
+κύκλων στο HQC-128 ανά πράξη \KeyGen/\Encaps/\Decaps~\cite{Jang2026-gf2x-SIMD}).
+
+Σε επίπεδο αλγορίθμου, με την εμφάνιση του AVX-512 και της 
+\texttt{VPCLMULQDQ} --- που εκτελεί τέσσερις 64-bit carry-less 
+πολλαπλασιασμούς παράλληλα σε zmm register --- οι συγγραφείς 
+επανεξετάζουν τον Karatsuba, αξιοποιώντας τους ευρύτερους 512-bit 
+registers για 512-bit base multiplication. Μεθοδολογικά, αξιολογούν 
+διάφορες κατασκευές Karatsuba (recursive, καθώς και fixed-split 3-way 
+και 5-way) και τις συνδυάζουν με Toom-Cook 3-, 4- και 5-way, 
+εντοπίζοντας τον αποδοτικότερο συνδυασμό ανά εύρος βαθμού πολυωνύμου. 
+Σε αντίθεση όμως με τους Jang et al.~\cite{Jang2026-gf2x-SIMD} 
+(\cref{ssec:rw-jang-simd}), εξετάζουν μόνο ένα περιορισμένο υποσύνολο 
+των δυνατών συνδυασμών, χωρίς συστηματική μεθοδολογία επιλογής.
+
+Η συνάφεια με την παρούσα εργασία είναι διττή. Πρώτον, ορίζει τον 
+\emph{baseline} αλγόριθμο που βελτιστοποιεί και συγκρίνει η διατριβή: 
+η επιτάχυνση μέσω \vclmul εφαρμόζεται στα leaf (base) multiplications 
+του ίδιου Toom/Karatsuba σκελετού. Δεύτερον, αναδεικνύει την αρχιτεκτονική 
+διάκριση που διατρέχει όλη την ενότητα: η προσέγγιση των R&V είναι θεμελιωμένη 
+σε fixed-width SIMD (512-bit zmm), ενώ η παρούσα εργασία στοχεύει το VLA 
+vector model του RISC-V (\vclmul, VLEN-dependent παραλληλισμός).
+
+\subsection{Jang et al.\ 2026 — Συστηματικός Toom-Karatsuba σε AVX2/Neon}
 \label{ssec:rw-jang-simd}
 
 Η εργασία των Jang et al.~\cite{Jang2026-gf2x-SIMD} αποτελεί την
 πλησιέστερη αντίστοιχη υλοποίηση της παρούσας εργασίας. Προτείνει μεθοδολογία
-συστηματικής εξερεύνησης Toom-Cook/Karatsuba decomposition trees για πολυωνυμικό
-πολλαπλασιασμό στο $\GF{2}[x]$, παράγοντας branch-free υλοποιήσεις εξειδικευμένες
-ανά βαθμό πολυωνύμου — σε αντίθεση με τη βιβλιοθήκη \texttt{gf2x}, που
-χρησιμοποιεί conditional branches και table lookups για δυναμική επιλογή
-αλγορίθμου. Η εξερεύνηση καλύπτει 2-, 3- και 5-way Karatsuba καθώς και Toom-Cook
+που εξερευνά εξαντλητικά τα δέντρα αποσύνθεσης Toom-Cook/Karatsuba και επιλέγει
+τον βέλτιστο συνδυασμό για κάθε βαθμό πολυωνύμου στο $\GF{2}[x]$, παράγοντας
+εξειδικευμένο κώδικα χωρίς διακλαδώσεις εκτέλεσης (branch-free). Αντίθετα, η
+βιβλιοθήκη \texttt{gf2x} χρησιμοποιεί conditional branches και table lookups για
+δυναμική επιλογή αλγορίθμου. Η εξερεύνηση καλύπτει 2-, 3- και 5-way Karatsuba καθώς και Toom-Cook
 3-, 4- και 5-way, με βελτιστοποιημένο 256-bit base multiplication για AVX2
-(χωρίς AVX-512) και ARM Neon \texttt{PMULL}.
+(χωρίς AVX-512) και ARM Neon \texttt{PMULL}. Η εξερεύνηση καλύπτει 
+βαθμούς πολυωνύμων έως $\sim$100.000 με offline παραγωγή κώδικα, ώστε 
+ο τελικός κώδικας να ταυτίζεται με την επιλογή της φάσης εξερεύνησης. 
+Το 256-bit base multiplication σε AVX2+\texttt{VPCLMULQDQ} είναι, κατά 
+τους συγγραφείς, η πρώτη υλοποίηση base multiplication που συνδυάζει 
+AVX2 με \texttt{VPCLMULQDQ}, ενώ αξιοσημείωτα στο επίπεδο αυτό ο 
+schoolbook μπορεί να υπερτερεί του Karatsuba, καθώς το XOR/permute 
+overhead των cross-όρων του Karatsuba υπερκαλύπτει το όφελος από τους 
+λιγότερους πολλαπλασιασμούς.
 
 Σε περιβάλλον AVX2-\texttt{PCLMULQDQ}, η μέθοδος μειώνει τους κύκλους
 πολυωνυμικού πολλαπλασιασμού κατά \pct{17}–\pct{32} έναντι της επίσημης
-υλοποίησης \gls{hqc} για τα HQC-1 και HQC-3, με βελτίωση \pct{4}–\pct{18} σε
-επίπεδο \gls{kem} (\KeyGen/\Encaps/\Decaps). Για το HQC-5, η FFT-based υλοποίηση
+υλοποίησης \gls{hqc} για τα HQC-128\footnote{Το paper χρησιμοποιεί την 
+ονοματαδοσία κατά NIST HQC-1/3/5· εδώ αντιστοιχίζονται στα HQC-128/192/256 
+για συνέπεια με την υπόλοιπη διατριβή.} και HQC-192, με βελτίωση \pct{4}–\pct{18} σε
+επίπεδο \gls{kem} (\KeyGen/\Encaps/\Decaps). Για το HQC-256, η FFT-based υλοποίηση
 των Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} υπερτερεί, επιβεβαιώνοντας ότι το
 ασυμπτωτικό πλεονέκτημα της FFT γίνεται κυρίαρχο σε μεγάλους βαθμούς.
 
 Η στρατηγική αυτή — clmul-based base multiplication εντός Karatsuba
-decomposition — είναι ουσιαστικά ταυτόσημη με εκείνη της παρούσας εργασίας. Η
-κρίσιμη διαφορά είναι η ISA: η εργασία στοχεύει fixed-width SIMD
+decomposition — ακολουθεί την ίδια βασική προσέγγιση με την παρούσα εργασία. Η
+κρίσιμη διαφορά βρίσκεται στο ISA: η εργασία στοχεύει fixed-width SIMD
 (\texttt{VPCLMULQDQ}, 256-bit, 2 παράλληλοι 64-bit πολλαπλασιασμοί), ενώ η
 παρούσα εργασία αξιοποιεί \vclmul (VLEN-dependent, $\text{VLEN}/64$ παράλληλοι
-πολλαπλασιασμοί). Η μεταφορά της στρατηγικής στο VLA vector model του RISC-V —
-με VLEN-agnostic κώδικα, μεταβλητό \VLMAX και register pressure λόγω LMUL
-grouping — αποτελεί τη βασική αλγοριθμική συνεισφορά της παρούσας εργασίας
-(βλ.~\cref{ch:polymul-optimization}).
+πολλαπλασιασμοί).
 
 \subsection{Chen et al.\ TCHES 2026 — Additive FFT με CRT}
 \label{ssec:rw-chen-fft}
@@ -347,7 +395,7 @@ $h$ αποθηκεύεται (cached) κατά το \KeyGen και επαναχ�
 Σε πλατφόρμες με \texttt{PCLMULQDQ}, η FFT-CRT προσέγγιση υπερτερεί του
 Toom-Karatsuba στις φάσεις \Encaps/\Decaps χάρη στο caching, ενώ σε πλατφόρμες
 χωρίς carry-less multiply hardware (π.χ.\ Cortex-A72) η additive FFT υπερτερεί σε
-όλες τις φάσεις. Η εργασία τεκμηριώνει ότι για μεγάλους βαθμούς (HQC-5) η
+όλες τις φάσεις. Η εργασία τεκμηριώνει ότι για μεγάλους βαθμούς (HQC-256) η
 FFT-based προσέγγιση μπορεί να υπερτερεί του Karatsuba. Η παρούσα εργασία
 διατηρεί τον 2-way Karatsuba της reference specification και επιταχύνει τα leaf
 multiplications μέσω \vclmul: μία ορθογώνια στρατηγική που δεν απαιτεί αλλαγή
@@ -421,7 +469,7 @@ ratified extensions· η σημασία της crypto-agility ως σχεδια�
 συμπληρώνουν το τοπίο σε πλατφόρμες χωρίς ratified RISC-V επεκτάσεις. Οι Jang et
 al.~\cite{Jang2025-CortexM4-HQC} στοχεύουν τον ARM Cortex-M4 (χωρίς hardware
 carry-less πολλαπλασιασμός) με Hybrid FAFFT-CRT/Karatsuba, επιτυγχάνοντας \pct{33.4}
-(HQC-1) και \pct{27.2} (HQC-3) μείωση κύκλων πολυωνυμικού πολλαπλασιασμού (έως
+(HQC-128) και \pct{27.2} (HQC-192) μείωση κύκλων πολυωνυμικού πολλαπλασιασμού (έως
 \pct{23.7}/\pct{24.2}/\pct{21.9} σε \KeyGen/\Encaps/\Decaps)· η απουσία \insn{clmul}
 καθιστά τη \gls{fafft} αναγκαστική επιλογή, σε αντίθεση με τη RISC-V
 αρχιτεκτονική όπου η \gls{zbc} παρέχει εγγενή υποστήριξη. Η εργασία των Chen et
