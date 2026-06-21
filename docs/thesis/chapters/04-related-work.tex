@@ -17,7 +17,7 @@ RISC-V. Το παρόν κεφάλαιο εξετάζει τις υπάρχου�
 (\cref{sec:rw-analogs}), οι οποίες δεν χρησιμοποιούν custom hardware αλλά
 αξιοποιούν αποκλειστικά τις διαθέσιμες SIMD carry-less εντολές (\texttt{VPCLMULQDQ}/\texttt{PMULL}), δηλαδή μοιράζονται την αλγοριθμική μέθοδο της παρούσας εργασίας και προσφέρουν έτσι την πλησιέστερη βάση μεθοδολογικής σύγκρισης. Σε αντίθεση με τη RISC-V, οι αρχιτεκτονικές αυτές δεν διαθέτουν scalar carry-less αντίστοιχο της \insn{clmul}. Οι λοιπές σχετικές εργασίες παρουσιάζονται συνοπτικά
 (\cref{sec:rw-other}), ενώ ο \cref{tab:rw-riscv-summary} επιτρέπει τη συνολική
-σύγκριση και αναδεικνύει το ερευνητικό κενό. Η αναλυτική τεκμηρίωση και η τοποθέτηση της παρούσας εργασίας ακολουθούν στην \cref{sec:rw-gap}.
+σύγκριση και αναδεικνύει το ερευνητικό κενό.
 
 \section{Άξονες σύγκρισης}
 \label{sec:rw-axes}
@@ -58,7 +58,18 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
 \bigskip
 Ο \cref{tab:rw-riscv-summary} συνοψίζει τις σχετικές εργασίες κατά τους παραπάνω
 άξονες: μία γραμμή ανά εργασία, με τις στήλες πλατφόρμας και μεθόδου/στρατηγικής,
-καθώς και τρία δυαδικά κριτήρια (RISC-V, καθαρό λογισμικό, πλήρες \gls{kem}).
+καθώς και τρία δυαδικά κριτήρια που ορίζονται ως εξής:
+\begin{enumerate}
+  \item \textbf{RISC-V:} Η πλατφόρμα στόχευσης είναι αρχιτεκτονική RISC-V
+    (οποιοδήποτε profile).
+  \item \textbf{Καθαρό λογισμικό:} Η υλοποίηση δεν απαιτεί custom hardware
+    accelerators, αλλά εκτελείται αποκλειστικά σε general-purpose πυρήνα
+    αξιοποιώντας μόνο επικυρωμένες RISC-V extensions (Zbc, Zbb, Zvbc, Zvbb), όχι
+    custom ISA εντολές.
+  \item \textbf{Πλήρες \gls{kem}:} Η βελτιστοποίηση καλύπτει ολόκληρο τον 
+    \gls{hqc} \gls{kem} (πολυωνυμικός πολλαπλασιασμός + Keccak + 
+    αποκωδικοποίηση), όχι μόνο μεμονωμένο πυρήνα.
+\end{enumerate}
 
 \begin{table}[htbp]
   \centering
@@ -67,9 +78,7 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
     στρατηγική επιτάχυνσης, και τρία δυαδικά κριτήρια: \q{RISC-V} (αρχιτεκτονική
     στόχευσης), \q{Καθαρό λογισμικό} (χωρίς custom hardware, μόνο επικυρωμένες
     επεκτάσεις) και \q{πλήρες \gls{kem}}. \ding{51}/\ding{55} δηλώνουν
-    ικανοποίηση/μη ικανοποίηση· \q{—} δηλώνει μη εφαρμοσιμότητα. Σημείωση:
-    $\dagger$ το PHOENIX αξιολογείται σε ARM Cortex-A9 host, όχι σε RISC-V
-    πυρήνα.}
+    ικανοποίηση/μη ικανοποίηση· \q{—} δηλώνει μη εφαρμοσιμότητα.}
   \label{tab:rw-riscv-summary}
   \footnotesize
   \setlength{\tabcolsep}{4pt}
@@ -78,7 +87,7 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
     \toprule
     \textbf{Εργασία} & \textbf{Platform} & \textbf{Polymul / Strategy} &
     \rotatebox{70}{\textbf{RISC-V}} &
-    \rotatebox{70}{\textbf{Καθαρό λογισμικό}} &
+    \rotatebox{70}{\textbf{Καθαρό λογισμ.}} &
     \rotatebox{70}{\textbf{Πλήρες \gls{kem}}} \\
     \midrule
     \multicolumn{6}{@{}l}{\textit{\HQC σε RISC-V (custom hardware) — το ερευνητικό κενό}} \\
@@ -92,7 +101,7 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
       & CV32E40PX + CV-X-IF & dense$\times$dense / tightly-coupled
       & \ding{51} & \ding{55} & \ding{51} \\
     Seo et al.~\cite{Seo2026-HQC-Ibex}
-      & RV32 (Ibex) & — / tightly-coupled accel.
+      & RV32 (Ibex) & — / tightly-coupled accelerator
       & \ding{51} & \ding{55} & \ding{51} \\
     \midrule
     \multicolumn{6}{@{}l}{\textit{Μεθοδολογικά ανάλογα: καθαρό λογισμικό x86 / ARM}} \\
@@ -114,10 +123,10 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
       & RISC-V + ISE & — / custom PQC ISE
       & \ding{51} & \ding{55} & — \\
     Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}
-      & RISC-V + ISE & — / custom PQC crypto-proc.
+      & RISC-V + ISE & — / custom PQC crypto-processor
       & \ding{51} & \ding{55} & — \\
     PHOENIX~\cite{PHOENIX2025}
-      & ARM Cortex-A9$^{\dagger}$ & FAFFT / HW coprocessor
+      & ARM Cortex-A9 & FAFFT / HW coprocessor
       & \ding{55} & \ding{55} & \ding{51} \\
     \midrule
     \multicolumn{6}{@{}l}{\textit{Λοιπές: ARM / Cortex-M / dedicated hardware}} \\
@@ -133,17 +142,17 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
     \midrule
     \multicolumn{6}{@{}l}{\textit{Γενικότερες PQC εργασίες σε RISC-V (lattice, Keccak-centric)}} \\
     ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}
-      & RV64IMB & NTT / ratified-only SW (\gls{zbb})
+      & RV64IMB & NTT / επικυρωμένο SW (\gls{zbb})
       & \ding{51} & \ding{51} & — \\
     Zhang et al.~\cite{zhang-tches2025}
-      & RV\{32,64\}IMBV & NTT / ratified-only SW (\RVV/\gls{zbb})
+      & RV\{32,64\}IMBV & NTT / επικυρωμένο SW (\RVV/\gls{zbb})
       & \ding{51} & \ding{51} & — \\
     Saarinen~\cite{Saarinen2024-vkeccak}
       & RV64GCV & NTT / SW + προτεινόμενη \code{vkeccak.vi}
       & \ding{51} & \ding{51} & — \\
     \midrule
     \textbf{Παρούσα εργασία}
-      & \textbf{RV64GCV} & \textbf{Karatsuba / ratified-only SW (\gls{zbc}/\gls{zvbc})}
+      & \textbf{RV64GCV} & \textbf{Karatsuba / επικυρωμένο SW (\gls{zbc}/\gls{zvbc})}
       & \ding{51} & \ding{51} & \ding{51} \\
     \bottomrule
   \end{tabular}%
@@ -155,7 +164,7 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
 
 Και οι τέσσερις δημοσιευμένες RISC-V υλοποιήσεις του \gls{hqc} μοιράζονται ένα κοινό
 χαρακτηριστικό: όλες στηρίζονται σε custom hardware και όχι στις ήδη επικυρωμένες
-επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό καλύπτει η παρούσα εργασία (\cref{sec:rw-gap}). Οι τέσσερις εργασίες
+επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό καλύπτει η παρούσα εργασία (\cref{sec:rw-axes}). Οι τέσσερις εργασίες
 παρουσιάζονται με χρονολογική σειρά δημοσίευσης και αναλύονται σε βάθος παρακάτω.
 
 \subsection{Schöffel et al.\ 2022: HW/SW co-design σε RV32IC}
@@ -217,7 +226,7 @@ Carry-Free Butterfly unit με 2-cycle pipeline latency, εκτελώντας ca
 Η εργασία των Ras et al.\ διαφοροποιείται από την παρούσα στον αλγόριθμο (\gls{fafft}) και στη
 χρήση εξειδικευμένου επιταχυντή υλικού, υλοποιημένη σε πυρήνα CV32E40P
 (RV32IMC). Η παρούσα εργασία επιταχύνει τα leaf multiplications του 2-way
-Karatsuba μέσω \insn{clmul}/\vclmul σε ratified hardware.
+Karatsuba μέσω \insn{clmul}/\vclmul σε επικυρωμένο hardware.
 
 \subsection{Dolmeta et al.\ 2025: TYRCA, tightly-coupled επιταχυντής}
 \label{ssec:rw-tyrca}
@@ -515,11 +524,11 @@ registers για το Keccak ISE, υπερβαίνοντας το όριο τω�
 \speedup{3.8}/\speedup{5.2}/\speedup{8.2} και το HW-SW co-design κατά
 \speedup{9.0}/\speedup{12.6}/\speedup{16.7} (HQC-128/192/256). 
 
-\paragraph{Λοιπές υλοποιήσεις σε ARM, Cortex-M και dedicated hardware.}
+\paragraph{Συμπληρωματικές υλοποιήσεις σε ARM και custom hardware.}
 \label{ssec:rw-other-hw}
 
-Πέρα από τις αντίστοιχες υλοποιήσεις της \cref{sec:rw-analogs}, αρκετές εργασίες
-συμπληρώνουν το τοπίο σε πλατφόρμες χωρίς ratified RISC-V επεκτάσεις. Οι Jang et
+Πέρα από τις άμεσα συγκρίσιμες υλοποιήσεις λογισμικού της \cref{sec:rw-analogs}, αρκετές εργασίες
+υλοποιούν τον \gls{hqc} σε πλατφόρμες εκτός RISC-V (ARM, Cortex-M, custom hardware). Οι Jang et
 al.~\cite{Jang2025-CortexM4-HQC} στοχεύουν τον ARM Cortex-M4 (χωρίς hardware
 carry-less πολλαπλασιασμός) με Hybrid FAFFT-CRT/Karatsuba, επιτυγχάνοντας \pct{33.4}
 (HQC-128) και \pct{27.2} (HQC-192) μείωση κύκλων πολυωνυμικού πολλαπλασιασμού (έως
@@ -540,85 +549,19 @@ accelerator~\cite{LEAP2024-sparse-polymul} βελτιστοποιεί τον spa
 
 Η ευρύτερη κοινότητα βελτιστοποίησης \gls{pqc} σε RISC-V εστιάζει σχεδόν
 αποκλειστικά σε lattice-based σχήματα (\gls{mlkem}, \gls{mldsa}) με κεντρικό
-αριθμητικό πυρήνα τον NTT — όχι σε code-based κρυπτογραφία. Οι εργασίες αυτές
-είναι σημαντικές για την παρούσα εργασία κυρίως ως προς τον \emph{Keccak}, που
-αναδεικνύεται κοινό bottleneck και για τις δύο οικογένειες μετά τη
-βελτιστοποίηση του αριθμητικού πυρήνα. Η ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}
+αριθμητικό πυρήνα τον NTT, όχι σε code-based κρυπτογραφία. Οι εργασίες αυτές
+είναι σημαντικές για την παρούσα εργασία κυρίως ως προς τον 
+\emph{Keccak}, που αναδεικνύεται κοινό bottleneck τόσο για τα 
+lattice-based σχήματα όσο και για τον code-based \gls{hqc}, μόλις 
+βελτιστοποιηθεί ο πυρήνας πολυωνυμικής αριθμητικής (NTT και Karatsuba 
+αντίστοιχα). Η ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}
 (Kyber1024/Dilithium5 σε RV64IMB, VisionFive~2) αποδεικνύει ότι η \gls{zbb}
 (\rori/\insn{andn}) ωφελεί σημαντικά τον Keccak (\pct{59.18} speedup), ενώ οι
 Zhang et al.~\cite{zhang-tches2025} (TCHES 2025) θέτουν performance records
 (\num{1770} κύκλοι σε RV64IB) και προτείνουν hybrid vector/scalar Keccak
 (2-way interleaving) σε πλατφόρμες με \RVV. Ο Saarinen~\cite{Saarinen2024-vkeccak}
-(πρόεδρος του RISC-V PQC Task Group) προτείνει τη νέα εντολή \code{vkeccak.vi}
-(υπό τυποποίηση ως RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}, με στόχο
-ratification της v1.0 έως τις 31 Δεκεμβρίου 2026) με benchmarks
-Kyber-768 σε πραγματικό silicon SpacemiT X60 (\VLEN $= \num{256}$, η ίδια
-πλατφόρμα hardware validation της παρούσας εργασίας), τεκμηριώνοντας ότι ο Keccak
-αποτελεί \pct{60}–\pct{80} του χρόνου μετά τη vectorization του NTT. Καθώς ο
-Keccak είναι κοινό primitive, η εξέλιξη αυτή θα ωφελήσει εξίσου τον \gls{hqc}.
-
-\section{Αποτίμηση Κενού και Τοποθέτηση Παρούσας Εργασίας}
-\label{sec:rw-gap}
-
-Η σύνθεση των προηγούμενων ενοτήτων αποκαλύπτει ένα σαφές ερευνητικό κενό: δεν
-υπάρχει δημοσιευμένη εργασία που να παρέχει ολοκληρωμένη βελτιστοποίηση του
-\gls{hqc} \gls{kem} σε αρχιτεκτονική RISC-V αξιοποιώντας αποκλειστικά
-επικυρωμένες κρυπτογραφικές επεκτάσεις. Διασχίζοντας τους άξονες της
-\cref{sec:rw-axes}, προκύπτει ότι κάθε υπάρχουσα εργασία αποτυγχάνει σε
-τουλάχιστον ένα κριτήριο: οι RISC-V υλοποιήσεις του \gls{hqc} (Schöffel, Ras,
-TYRCA, Seo) εξαρτώνται από custom hardware, οι x86/ARM
-εργασίες δεν είναι portable σε RISC-V, και οι γενικότερες RISC-V \gls{pqc} εργασίες,
-παρότι υλοποιούνται σε καθαρό λογισμικό και είναι ratified, αφορούν αποκλειστικά lattice-based σχήματα.
-Ο \cref{tab:rw-riscv-summary} κωδικοποιεί αυτή τη διασταύρωση: καμία γραμμή πλην
-της τελευταίας δεν ικανοποιεί ταυτόχρονα και τα τρία κριτήρια που ορίζουν τη
-μοναδικότητα της παρούσας εργασίας.
-
-Τα τρία κριτήρια αξιολόγησης ορίζονται ως εξής:
-\begin{enumerate}
-  \item \textbf{RISC-V:} Η πλατφόρμα στόχευσης είναι αρχιτεκτονική RISC-V
-    (οποιοδήποτε profile).
-  \item \textbf{Καθαρό λογισμικό:} Η υλοποίηση δεν απαιτεί custom hardware
-    accelerators, αλλά εκτελείται αποκλειστικά σε general-purpose πυρήνα
-    αξιοποιώντας μόνο επικυρωμένες RISC-V extensions (Zbc, Zbb, Zvbc, Zvbb), όχι
-    custom ISA εντολές.
-  \item \textbf{Πλήρες \gls{kem}:} Η βελτιστοποίηση καλύπτει ολόκληρο τον \gls{hqc} \gls{kem}
-    (πολυωνυμικός πολλαπλασιασμός + Keccak + αποκωδικοποίηση), όχι μόνο
-    μεμονωμένο πυρήνα.
-\end{enumerate}
-
-\subsection{Τοποθέτηση παρούσας εργασίας}
-\label{ssec:rw-positioning}
-
-Η παρούσα εργασία καλύπτει το τεκμηριωμένο κενό παρέχοντας την πρώτη
-ολοκληρωμένη βελτιστοποίηση του \gls{hqc} \gls{kem} σε RISC-V σε καθαρό λογισμικό με
-αποκλειστική αξιοποίηση επικυρωμένων κρυπτογραφικών επεκτάσεων. Η συνεισφορά
-διαρθρώνεται σε τρεις διαστάσεις:
-
-\paragraph{Αλγοριθμική.}
-Ο πολυωνυμικός πολλαπλασιασμός υλοποιείται ως 2-way Karatsuba με στατικά
-παραγόμενο δέντρο αναδρομής (AP-2 fixed-tree), σύμφωνα με τη reference
-specification. Τα leaf multiplications εκτελούνται μέσω
-\insn{clmul}/\insn{clmulh} (scalar, \gls{zbc}) ή \vclmul/\vclmulh (vector, \gls{zvbc})
-— αντίστοιχα με τη χρήση \texttt{VPCLMULQDQ} στο x86, αλλά σε VLA
-αρχιτεκτονική. Η βελτιστοποίηση επεκτείνεται στον Keccak (2-way
-Structure-of-Arrays με \gls{zvbb}) και στην αποκωδικοποίηση (vectorized
-\gls{rm}/\gls{rs}).
-
-\paragraph{Αρχιτεκτονική.}
-Η υλοποίηση στρωματοποιείται σε τρία tiers αντιστοιχούμενα στη
-modular ISA φιλοσοφία του RISC-V: Tier~1 — Scalar Deployment (RV64GC + \gls{zbc}/\gls{zbb}),
-Tier~2 — Base-RVV Deployment (RV64GCV χωρίς \gls{zvbc}/\gls{zvbb}), Tier~3 — Full
-Vector-Crypto Deployment (RV64GCV + \gls{zvbc}/\gls{zvbb}). Κάθε tier αξιοποιεί αποκλειστικά ratified extensions, εξασφαλίζοντας
-portability σε οποιονδήποτε συμβατό επεξεργαστή χωρίς custom hardware.
-
-\paragraph{Μεθοδολογική.}
-Η αξιολόγηση πραγματοποιείται τόσο σε instruction-accurate εξομοίωση (Spike
-ISS, ντετερμινιστικό \instret) όσο και σε πραγματικό RISC-V hardware (SpacemiT
-K1 X60, \VLEN=256), παρέχοντας αλγοριθμική σύγκριση και πραγματικές μετρήσεις
-κύκλων με pipeline effects. Η μεθοδολογία αναλύεται στο~\cref{ch:experimental-setup}.
-
-Η ανασκόπηση του παρόντος κεφαλαίου τεκμηριώνει ότι η παρούσα εργασία δεν
-αποτελεί incremental βελτίωση υπάρχουσας υλοποίησης, αλλά πρώτη εξερεύνηση
-ενός ανοιχτού σχεδιαστικού χώρου: τη συνδυαστική αξιοποίηση ratified RISC-V
-crypto extensions για code-based μετα-κβαντική κρυπτογραφία. Τα αποτελέσματα
-αυτής της εξερεύνησης παρουσιάζονται στα~\cref{ch:polymul-optimization} και~\cref{ch:kernel-optimization}, με ποσοτική αξιολόγηση στο~\cref{ch:results}.
+(πρόεδρος του RISC-V PQC Task Group) προτείνει τη νέα εντολή 
+\code{vkeccak.vi}, υπό τυποποίηση ως 
+RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026} με στόχο ratification της 
+v1.0 έως τις 31~Δεκεμβρίου 2026. Καθώς ο Keccak χρησιμοποιείται από 
+αμφότερες τις οικογένειες, η εξέλιξη αυτή θα ωφελήσει εξίσου τον \gls{hqc}.
