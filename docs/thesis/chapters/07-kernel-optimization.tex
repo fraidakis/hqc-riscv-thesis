@@ -29,7 +29,7 @@ scalar με \gls{zbb} auto-lowering, Base-\RVV (απορριφθείσα), κα�
 \label{ssec:keccak-scalar-zbb}
 
 Ο scalar πυρήνας Keccak αποτελεί τη βάση αναφοράς για τα Tier~1 και Tier~2
-profiles.  Η reference υλοποίηση (προερχόμενη από το PQClean~\cite{pqclean2022})
+profiles. Η υλοποίηση αναφοράς (προερχόμενη από το PQClean~\cite{pqclean2022})
 εφαρμόζει \num{24} γύρους της πεντάβηθμης απεικόνισης
 $\theta \to \rho \to \pi \to \chi \to \iota$ σε μία κατάσταση \num{25}
 lanes $\times$ \num{64} bits.  Κάθε γύρος χρησιμοποιεί τρία κρίσιμα
@@ -213,7 +213,7 @@ SHAKE contexts εντός μίας \gls{kem} κλήσης είναι $N=2$ (στ
 \label{ssec:keccak-io}
 
 Πέρα από τον πυρήνα μετάθεσης, οι φάσεις absorb και squeeze αποτελούν
-δευτερεύον hotspot.  Η reference υλοποίηση χρησιμοποιεί δύο
+δευτερεύον hotspot.  Η υλοποίηση αναφοράς χρησιμοποιεί δύο
 instruction-heavy patterns: (α) byte-by-byte XOR βρόχο στη
 \code{keccak\_xor\_bytes} για την εισαγωγή δεδομένων στην κατάσταση, και
 (β) \num{8}-iteration shift-OR βρόχους στις \code{load64\_le}/\code{store64\_le}
@@ -278,7 +278,7 @@ $\BigO{\delta^2}$ με σταθερό $\delta$ ανά tier.
 \label{sec:decode-scalar}
 
 Η μοναδική βελτιστοποίηση στο scalar path αφορά τον πυρήνα αριθμητικής
-$\GF{2^8}$.  Η reference υλοποίηση (\code{gf\_carryless\_mul}) χρησιμοποιεί
+$\GF{2^8}$.  Η υλοποίηση αναφοράς (\code{gf\_carryless\_mul}) χρησιμοποιεί
 έναν constant-time schoolbook αλγόριθμο που απαιτεί $\approx\num{15}$
 εντολές ανά $8 \times 8$-bit carry-less γινόμενο.  Στο Tier~1, η
 αντικατάσταση με μία μόνο εντολή \clmul (μέσω \gls{zbc} intrinsic) μειώνει
@@ -478,7 +478,7 @@ throughput.  Τα \KeyGen και \Encaps παραμένουν αμετάβλητ
 
 Το Στάδιο~C αποτιμά το error-locator πολυώνυμο $\sigma(x)$ σε όλα τα
 $2^M = 256$ σημεία του $\GF{2^8}$ μέσω αναδρομικής radix αποσύνθεσης
-(additive Gao-Mateer \gls{fft}~\autocite{GaoMateer2010}).  Η reference υλοποίηση (\code{fft\_rec})
+(additive Gao-Mateer \gls{fft}~\autocite{GaoMateer2010}).  Η υλοποίηση αναφοράς (\code{fft\_rec})
 εκτελεί depth-first αναδρομική διάσχιση ενός δυαδικού δέντρου βάθους
 \code{PARAM\_M} (= 8), με $\BigO{2^M}$ κλήσεις συναρτήσεων.
 
@@ -662,7 +662,7 @@ $\GF{2^8}$ irreducible $\text{0x11D}$.  Πειραματική επαλήθευ�
 αλγορίθμου.
 
 \paragraph{Baseline συμπεριφορά.}
-Η reference υλοποίηση χρησιμοποιεί ένα scalar βρόχο:
+Η υλοποίηση αναφοράς χρησιμοποιεί ένα scalar βρόχο:
 
 \begin{lstlisting}[language=C, basicstyle=\small\ttfamily]
 for (uint32_t i = 0; i < size; ++i)
@@ -718,7 +718,7 @@ compile-time υποθέσεις.
 ανά \Encaps, \num{2} ανά \KeyGen.
 
 \paragraph{Baseline: $\BigO{N \times weight}$ mask-and-accumulate.}
-Η reference υλοποίηση εγγυάται σταθερό χρόνο εκτέλεσης μέσω ενός
+Η υλοποίηση αναφοράς εγγυάται σταθερό χρόνο εκτέλεσης μέσω ενός
 εμφωλευμένου βρόχου: για κάθε μία από τις \code{VEC\_N\_SIZE\_64} λέξεις
 εξόδου, ελέγχονται όλες οι \code{weight} θέσεις support μέσω constant-time
 equality mask:

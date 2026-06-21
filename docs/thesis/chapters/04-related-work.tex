@@ -151,7 +151,6 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
 χαρακτηριστικό: όλες στηρίζονται σε custom hardware και όχι στις ήδη επικυρωμένες
 επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό καλύπτει η παρούσα εργασία (\cref{sec:rw-axes}). Οι τέσσερις εργασίες
 παρουσιάζονται με χρονολογική σειρά δημοσίευσης και αναλύονται σε βάθος παρακάτω.
-\nopagebreak[4]
 
 \subsection{Schöffel et al.\ 2022: HW/SW co-design σε RV32IC}
 \label{ssec:rw-schoeffel}
@@ -173,11 +172,11 @@ $R$-Unit υλοποιεί word-by-word shift του πυκνού πολυωνύ�
 μη-μηδενικών συντελεστών του αραιού (δύο κύκλοι ανά resulting word: address
 calculation και XOR/carry computation). Με όλα τα hardware modules ενεργά,
 επιτυγχάνεται \pct{98.9}/\pct{99}/\pct{97.2} speedup σε \KeyGen/\Encaps/\Decaps
-έναντι της reference υλοποίησης, με σχεδίαση σε ASIC \SI{22}{nm} FD-SOI
+έναντι της υλοποίησης αναφοράς, με σχεδίαση σε ASIC \SI{22}{nm} FD-SOI
 (\SI{0.12}{mm^2}, \SI{700}{MHz}) και FPGA (Xilinx Artix-7).
 
 Η διαφοροποίηση των δύο προσεγγίσεων εντοπίζεται κυρίως στο 
-υπολογιστικό τους προφίλ. Το profiling της reference υλοποίησης
+υπολογιστικό τους προφίλ. Το profiling της υλοποίησης αναφοράς
 (\cite{Schoeffel2022-HQC-IoT}, Πίν.~I) κατανέμει το κόστος σχεδόν ισομερώς
 μεταξύ memory operations ($\sim$\pct{37}), SHAKE ($\sim$\pct{33}) και
 αριθμητικής στον δακτύλιο ($\sim$\pct{25}). Αντίθετα, στο δικό μας

@@ -1,12 +1,12 @@
 \chapter{Πειραματική Υποδομή και Μεθοδολογία Αξιολόγησης}
 \label{ch:experimental-setup}
 
-Στο \cref{ch:risc-v-architecture} παρουσιάστηκε η αρχιτεκτονική RISC-V και οι
-κρυπτογραφικές επεκτάσεις που αξιοποιεί η παρούσα εργασία.  Το παρόν κεφάλαιο
-περιγράφει την πειραματική υποδομή στην οποία εκτελούνται, μετρούνται και
-επαληθεύονται οι βελτιστοποιημένες υλοποιήσεις: τους εξομοιωτές, τις αλυσίδες
-μεταγλώττισης, τη μεθοδολογία benchmarking, το bare-metal πλαίσιο εκτέλεσης και
-τη βάση αναφοράς (baseline) έναντι της οποίας υπολογίζονται όλα τα speedups.
+Τα προηγούμενα κεφάλαια έθεσαν τα θεμέλια της παρούσας εργασίας: το
+\cref{ch:theoretical-background} ανέλυσε τον αλγόριθμο \gls{hqc}, το
+\cref{ch:risc-v-architecture} την αρχιτεκτονική RISC-V και τις κρυπτογραφικές
+της επεκτάσεις, και το \cref{ch:related-work} τις υπάρχουσες προσεγγίσεις
+βελτιστοποίησης.  Το παρόν κεφάλαιο περιγράφει την πειραματική υποδομή πάνω στην
+οποία εκτελούνται, μετρούνται και επαληθεύονται οι βελτιστοποιημένες υλοποιήσεις μας.
 
 \section{Πλατφόρμες Εκτέλεσης και Μέτρησης}
 \label{sec:emulators}
@@ -15,10 +15,9 @@
 αντιμετωπίζει ένα πρακτικό εμπόδιο: κατά τη στιγμή εκπόνησης της εργασίας δεν
 υπήρχε διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει ταυτόχρονα
 \RVV 1.0, \gls{zvbc} και \gls{zvbb} σε προσβάσιμη πλατφόρμα.  Κατά συνέπεια, η πειραματική
-υποδομή βασίζεται σε τρεις συμπληρωματικές πλατφόρμες: τον Spike \gls{iss} για
-ντετερμινιστική καταμέτρηση εντολών, τον QEMU για ταχεία λειτουργική
-επαλήθευση, και το Banana Pi BPI-F3 (SpacemiT K1 X60) για μετρήσεις κύκλων
-σε πραγματικό hardware.
+υποδομή βασίζεται σε δύο συμπληρωματικές πλατφόρμες: τον Spike \gls{iss} για
+ντετερμινιστική καταμέτρηση εντολών και λειτουργική επαλήθευση, και το Banana
+Pi BPI-F3 (SpacemiT K1 X60) για μετρήσεις κύκλων σε πραγματικό hardware.
 
 \paragraph{Spike — Ο Αναφορικός ISA Simulator}
 
@@ -31,7 +30,7 @@ pipeline, cache ή branch predictor.  Η εκτέλεση είναι πλήρω�
 δεδομένου ίδιου ELF binary και ίδιας αρχικής κατάστασης, ο αριθμός εκτελεσθεισών
 εντολών είναι πάντα ίδιος.
 
-Η κρίσιμη ιδιότητα του Spike για τη μεθοδολογία benchmarking είναι η σημασιολογία
+Η κρίσιμη ιδιότητα του Spike για τη μεθοδολογία benchmarking (συγκριτικής αξιολόγησης απόδοσης) είναι η σημασιολογία
 του \gls{csr} \code{mcycle}: στον Spike, \code{rdcycle} $\equiv$ \code{rdinstret},
 δηλαδή ο μετρητής κύκλων ταυτίζεται με τον μετρητής αποσυρθεισών εντολών.  Αυτό
 σημαίνει ότι ο Spike επιβάλλει \gls{cpi} $= 1$ για κάθε εντολή, ανεξαρτήτως
@@ -63,35 +62,6 @@ spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
     παρέχοντας ντετερμινιστική και αναπαραγώγιμη μετρική.}
   \label{fig:spike-arch}
 \end{figure}
-
-\paragraph{QEMU — Ταχεία Λειτουργική Επαλήθευση}
-
-Ο QEMU~\cite{qemu-riscv} λειτουργεί ως συμπληρωματικό εργαλείο αποκλειστικά για
-λειτουργική επαλήθευση (correctness), χωρίς ρόλο στη μέτρηση απόδοσης.  Σε
-αντίθεση με τον Spike, ο QEMU χρησιμοποιεί \defterm{δυναμική δυαδική μετάφραση}
-(Dynamic Binary Translation — DBT) μέσω του Tiny Code Generator (TCG): τα blocks
-εντολών RISC-V μεταφράζονται σε εγγενή κώδικα του host και εκτελούνται με ταχύτητα
-JIT.  Αυτό παρέχει ταχύτητα εκτέλεσης \num{2}–\num{3} τάξεις μεγέθους μεγαλύτερη
-από τον Spike, επιτρέποντας την εκτέλεση \num{100} \gls{kat} vectors σε
-\num{3}–\SI{10}{\second} ανά variant.
-
-Η κλήση εκτέλεσης στον QEMU χρησιμοποιεί τη μηχανή \code{virt}:
-
-\begin{lstlisting}[language=bash, basicstyle=\ttfamily\small, breaklines=true]
-qemu-system-riscv64 -machine virt \
-    -cpu rv64,v=true,vlen=256,elen=64,zbc=true,zvbc=true,zvbb=true \
-    -m 128M -nographic -bios none -kernel <elf>
-\end{lstlisting}
-
-\noindent
-Η παράμετρος \code{-bios none} εξαλείφει τον OpenSBI firmware loader, φορτώνοντας
-απευθείας το bare-metal ELF στη διεύθυνση \code{0x80000000} — ταυτόσημη με τη
-διεύθυνση εκκίνησης στον Spike.
-
-Η τιμή \code{rdcycle} στον QEMU δεν έχει φυσική σημασία: αντικατοπτρίζει έναν
-εσωτερικό μετρητή του DBT engine, όχι αποσυρθείσες εντολές ούτε πραγματικούς
-κύκλους.  Για τον λόγο αυτό, \textbf{καμία τιμή \code{rdcycle} από τον QEMU δεν
-χρησιμοποιείται στα αποτελέσματα της εργασίας}.
 
 \paragraph{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60)}
 \label{ssec:bpi-f3}
@@ -192,7 +162,7 @@ speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγμ
 Πέραν της αξιολόγησης απόδοσης, το BPI-F3 αποτελεί την πλατφόρμα εμπειρικής
 επαλήθευσης constant-time εκτέλεσης μέσω dudect-based στατιστικής ανάλυσης
 χρονισμού (βλ.\ \cref{ssec:ct-dudect}).  Η μεθοδολογία dudect απαιτεί
-πραγματικούς κύκλους hardware — οι εξομοιωτές (Spike, QEMU) δεν παρέχουν
+πραγματικούς κύκλους hardware — ο εξομοιωτής Spike δεν παρέχει
 αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage.  Η κάλυψη
 περιορίζεται στα Tier~1 (scalar \gls{zbc}) και Tier~2 (Base-RVV) variants, καθώς
 ο K1 X60 δεν υποστηρίζει \gls{zvbc}/\gls{zvbb} — η CT επαλήθευση των Tier~3
@@ -211,20 +181,17 @@ Vector-Crypto variants παραμένει ανοιχτή, καθώς προσβ�
   \label{fig:bananapi-f3}
 \end{figure}
 
-\paragraph{Στρατηγική Τριπλής Πλατφόρμας}
+\paragraph{Στρατηγική Δύο Πλατφορμών}
 
-Η συνδυαστική χρήση των τριών πλατφορμών ακολουθεί αυστηρό διαχωρισμό ρόλων:
+Η συνδυαστική χρήση των δύο πλατφορμών ακολουθεί αυστηρό διαχωρισμό ρόλων:
 
 \begin{itemize}
   \item \textbf{Spike:} ντετερμινιστική καταμέτρηση εντολών (\instret), profiling
     μέσω PC histograms, VLEN sweep (\num{256}–\num{2048}), και πλήρης κάλυψη
     όλων των variants (συμπεριλαμβανομένων \gls{zvbc}/\gls{zvbb}).  Αποτελεί την αυθεντική
     πηγή για κάθε αριθμητικό αποτέλεσμα που αναφέρεται στα
-    \cref{ch:polymul-optimization} και \cref{ch:results}.
-  \item \textbf{QEMU:} λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από
-    κάθε αλλαγή κώδικα.  Η ταχύτητα JIT επιτρέπει εκτέλεση \num{300} vectors
-    (3 security levels $\times$ \num{100}) σε λιγότερο από \SI{30}{\second},
-    παρέχοντας ταχεία ανατροφοδότηση ορθότητας κατά την ανάπτυξη.
+    \cref{ch:polymul-optimization} και \cref{ch:results}, ενώ ταυτόχρονα εκτελεί
+    τη λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από κάθε αλλαγή κώδικα.
   \item \textbf{BPI-F3:} hardware validation μέσω πραγματικών κύκλων (cycles),
     υπολογισμός \gls{ipc}, cross-check Spike predictions, και παραγωγή
     wall-clock time ($\text{cycles} / \SI{1.6}{\giga\hertz}$).  Καλύπτει
@@ -236,30 +203,30 @@ Vector-Crypto variants παραμένει ανοιχτή, καθώς προσβ�
 
 \begin{table}[htbp]
   \centering
-  \caption{Σύγκριση τριών πλατφορμών εκτέλεσης.  Ο Spike παρέχει ντετερμινιστική
-    μετρική για όλα τα variants, ο QEMU ταχεία επαλήθευση, και το BPI-F3
+  \caption{Σύγκριση των δύο πλατφορμών εκτέλεσης.  Ο Spike παρέχει ντετερμινιστική
+    μετρική και λειτουργική επαλήθευση για όλα τα variants, και το BPI-F3
     πραγματικούς κύκλους με pipeline effects.}
   \label{tab:platform-comparison}
-  \begin{tabular}{l l l l}
+  \begin{tabular}{l l l}
     \toprule
-    & \textbf{Spike ISS} & \textbf{QEMU} & \textbf{BPI-F3 (K1 X60)} \\
+    & \textbf{Spike ISS} & \textbf{BPI-F3 (K1 X60)} \\
     \midrule
-    Μετρική          & \instret (ντετερμ.) & — (χωρίς σημασία) & cycles (στατιστ.) \\
-    Pipeline model   & Κανένα (CPI=1)      & Κανένα             & Real 8-stage dual-issue \\
-    Cache model      & Κανένα              & Κανένα             & Real 32KB L1 + 512KB L2 \\
-    Variant coverage & Όλα (incl.\ Zvbc)   & Όλα                & Scalar + RVV μόνο \\
-    Ταχύτητα         & Αργός               & Ταχύς (JIT)        & Real-time \\
-    Χρήση            & Benchmarking         & KAT validation     & HW validation \\
+    Μετρική          & \instret (ντετερμ.) & cycles (στατιστ.) \\
+    Pipeline model   & Κανένα (CPI=1)      & Real 8-stage dual-issue \\
+    Cache model      & Κανένα              & Real 32KB L1 + 512KB L2 \\
+    Variant coverage & Όλα (incl.\ Zvbc)   & Scalar + RVV μόνο \\
+    Ταχύτητα         & Αργός               & Real-time \\
+    Χρήση            & Benchmarking + KAT         & HW validation \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \noindent
-Ο διαχωρισμός αυτός αποτρέπει τη μόλυνση μετρήσεων απόδοσης από τα artifacts
-του JIT engine (μεταβλητός χρόνος μετάφρασης, code cache effects), διατηρώντας
-παράλληλα σύντομο κύκλο ανάπτυξης–επαλήθευσης.  Η τριπλή πλατφόρμα παρέχει
-τρία επίπεδα εμπιστοσύνης: αλγοριθμική σύγκριση (Spike \instret), λειτουργική
-ορθότητα (QEMU KAT), και πρακτική απόδοση σε silicon (BPI-F3 cycles).
+Ο διαχωρισμός αυτός διατηρεί καθαρό διαχωρισμό μεταξύ ντετερμινιστικής μέτρησης
+και πρακτικής επικύρωσης, με σύντομο κύκλο ανάπτυξης–επαλήθευσης.  Οι δύο
+πλατφόρμες παρέχουν συμπληρωματικά επίπεδα εμπιστοσύνης: αλγοριθμική σύγκριση
+και λειτουργική ορθότητα (Spike \instret + \gls{kat}), και πρακτική απόδοση
+σε silicon (BPI-F3 cycles).
 
 \section{Cross-Compilation Toolchains και Ρυθμίσεις Μεταγλώττισης}
 \label{sec:toolchains}
@@ -431,7 +398,7 @@ compile-time generated και δεν αφήνει περιθώριο στον op
     footprint.
 \end{itemize}
 
-\subsection{LTO και PGO στα Reference Baselines}
+\paragraph{LTO και PGO στα Reference Baselines}
 \label{ssec:lto-pgo}
 
 Το reference baseline (\code{scalar\_ref}) μεταγλωττίζεται
@@ -458,9 +425,225 @@ compile-time generated και δεν αφήνει περιθώριο στον op
 ρύθμιση \code{-mno-relax} εγγυάται ταυτόσημο binary output ανεξαρτήτως linker
 version.  Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελεί
 αυτοματοποιημένα KAT tests σε κάθε commit, επιβεβαιώνοντας bit-exact
-ορθότητα σε ελεγχόμενο περιβάλλον (Ubuntu, Clang~21.1.1, QEMU).
+ορθότητα σε ελεγχόμενο περιβάλλον (Ubuntu, Clang~21.1.1, Spike).
 
 Συνοπτικές οδηγίες αναπαραγωγής (διάταξη αποθετηρίου, εντολές build και εκτέλεσης, και αντιστοίχιση αποτελεσμάτων ανά κεφάλαιο) συγκεντρώνονται στην \cref{app:reproducibility}.
+
+\section{Bare-Metal Πλαίσιο Εκτέλεσης}
+\label{sec:bare-metal}
+
+Η εκτέλεση κρυπτογραφικού κώδικα σε περιβάλλον λειτουργικού συστήματος εισάγει
+μη ντετερμινιστικό θόρυβο: context switches, interrupt handlers, TLB flushes και
+scheduler preemption αλλοιώνουν τις μετρήσεις \instret κατά τρόπο μη
+αναπαραγώγιμο.  Η παρούσα υποδομή εξαλείφει πλήρως αυτές τις πηγές θορύβου
+μέσω bare-metal εκτέλεσης: ο κρυπτογραφικός κώδικας εκτελείται απευθείας σε
+Machine mode χωρίς λειτουργικό σύστημα, runtime βιβλιοθήκες ή δυναμική
+διαχείριση μνήμης.  Η ενότητα αυτή περιγράφει τα τρία δομικά στοιχεία του
+πλαισίου: την ακολουθία εκκίνησης, τη διαχείριση μνήμης, και τις εγγυήσεις
+καθαρότητας μέτρησης.
+
+\subsection{Boot Sequence}
+\label{ssec:boot-sequence}
+
+Η μεταγλώττιση πραγματοποιείται με τις σημαίες \code{-nostartfiles} και
+\code{-nostdlib}, εξαλείφοντας κάθε εξάρτηση από C runtime initialization
+(\code{crt0.o}) και standard library.  Η αρχικοποίηση του επεξεργαστή
+υλοποιείται σε εξειδικευμένο αρχείο assembly (\code{startup.S}) που εκτελεί
+έξι βήματα σε αυστηρή σειρά, όπως απεικονίζεται στο \cref{fig:boot-sequence}.
+
+\paragraph{Βήμα 1: Αρχικοποίηση Stack Pointer}
+
+Ο stack pointer (\code{sp}) φορτώνεται με τη διεύθυνση \code{\_stack\_top},
+η οποία ορίζεται στο linker script (\cf \cref{ssec:memory-management}).  Η
+στοίβα αναπτύσσεται προς τα κάτω (descending) και διαθέτει \SI{512}{\kilo\byte}
+— μέγεθος που καλύπτει τις ανάγκες της πλήρους αλυσίδας κλήσεων \KeyGen +
+\Encaps + \Decaps (μέγιστη μετρημένη χρήση $\approx \SI{70}{\kilo\byte}$,
+συμπεριλαμβανομένων των $\approx \SI{40}{\kilo\byte}$ temporary buffers του
+πολυωνυμικού πολλαπλασιασμού).
+
+\paragraph{Βήμα 2–3: Ενεργοποίηση Διανυσματικής Μονάδας}
+
+Σε targets που μεταγλωττίζονται με \RVV (conditional compilation μέσω
+\code{\_\_riscv\_vector}), η διανυσματική μονάδα ενεργοποιείται ρητά μέσω
+εγγραφής στο πεδίο \code{mstatus.VS}:
+
+\begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\small]
+li   t0, 0x600          # mstatus.VS = Dirty (bits [10:9] = 11)
+csrs mstatus, t0        # set VS field
+vsetvli t0, zero, e64, m1, ta, ma  # configure vtype
+\end{lstlisting}
+
+\noindent
+Η τιμή \code{0x600} θέτει τα bits $[10{:}9]$ του \code{mstatus} σε
+\code{11} (Dirty), σηματοδοτώντας στο hardware ότι η διανυσματική κατάσταση
+είναι ενεργή και τροποποιημένη.  Χωρίς αυτό το βήμα, κάθε διανυσματική εντολή
+προκαλεί illegal instruction exception.  Η εντολή \code{vsetvli} αρχικοποιεί
+τον \code{vtype} \gls{csr} με \SEW $= 64$, \LMUL $= 1$, tail-agnostic και
+mask-agnostic — η τυπική ρύθμιση για τους κρυπτογραφικούς πυρήνες.
+
+\paragraph{Βήμα 4: Μηδενισμός BSS}
+
+Το τμήμα \code{.bss} (μη αρχικοποιημένα global δεδομένα) μηδενίζεται μέσω
+βρόχου \code{sd zero} ανά \num{8} bytes.  Η ορθή μηδένιση είναι κρίσιμη:
+η κατάσταση Keccak (\num{200} bytes), οι scratch buffers του πολυωνυμικού
+πολλαπλασιασμού, και οι ενδιάμεσοι πίνακες αποκωδικοποίησης βρίσκονται στο
+\code{.bss} και προϋποθέτουν μηδενική αρχική τιμή.
+
+\paragraph{Βήμα 5–6: Κλήση \code{main()} και Τερματισμός}
+
+Μετά την αρχικοποίηση, η εκτέλεση μεταβιβάζεται στη \code{main()} με
+\code{argc = 0} και \code{argv = NULL}.  Κατά τον τερματισμό, η τιμή
+επιστροφής κωδικοποιείται ως \code{(code << 1) | 1} και εγγράφεται στο
+σύμβολο \code{tohost} — ο μηχανισμός \gls{htif} που σηματοδοτεί στον Spike
+τον τερματισμό της εξομοίωσης με τον αντίστοιχο exit code.
+
+\begin{figure}[htbp]
+  \centering
+  \resizebox{0.65\textwidth}{!}{\input{figures/ch5-setup/boot-sequence}}
+  \caption{Ακολουθία εκκίνησης bare-metal: από το reset vector έως τον
+    τερματισμό μέσω \gls{htif}.  Η ενεργοποίηση της διανυσματικής μονάδας
+    εκτελείται υπό συνθήκη (conditional assembly) μόνο σε vector targets.}
+  \label{fig:boot-sequence}
+\end{figure}
+
+\subsection{Διαχείριση Μνήμης και Runtime Υποστήριξη}
+\label{ssec:memory-management}
+
+Η απουσία standard library (\code{-nostdlib}) απαιτεί χειροκίνητη υλοποίηση
+τριών κατηγοριών υποδομής: memory layout (linker script), memory operations
+(\code{memcpy}/\code{memset}/\code{memmove}), και console I/O.
+
+\paragraph{Linker Script και Memory Layout}
+
+Το linker script (\code{link.ld}) ορίζει μία ενιαία περιοχή RAM \SI{128}{\mebi\byte}
+με βάση τη διεύθυνση \code{0x80000000} — τη διεύθυνση βάσης RAM του Spike.  Η διάταξη τμημάτων ακολουθεί τη σειρά που απεικονίζεται στο
+\cref{fig:memory-map}: ο κώδικας εκκίνησης τοποθετείται πρώτος
+(\code{.text.startup}) ώστε το entry point να βρίσκεται στη βάση της RAM,
+ακολουθούμενος από τον υπόλοιπο κώδικα, τα read-only δεδομένα (KAT seeds,
+σταθερές), τα \gls{htif} σύμβολα (ευθυγραμμισμένα σε \num{64} bytes), τα
+αρχικοποιημένα δεδομένα, το \code{.bss}, και τέλος η στοίβα.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch5-setup/memory-map}
+  \caption{Διάταξη μνήμης (memory map) του bare-metal ELF.  Η στοίβα
+    (\SI{512}{\kilo\byte}) καλύπτει τις ανάγκες ολόκληρης της αλυσίδας
+    κλήσεων \KEM, συμπεριλαμβανομένων των temporary buffers του πολυωνυμικού
+    πολλαπλασιασμού ($\approx \SI{40}{\kilo\byte}$).}
+  \label{fig:memory-map}
+\end{figure}
+
+\noindent
+Ένας \code{ASSERT} στο τέλος του linker script ελέγχει κατά τη σύνδεση ότι
+το σύνολο \code{.bss} + \code{.stack} δεν υπερβαίνει τα \SI{128}{\mebi\byte},
+αποτρέποντας σιωπηλή υπερχείλιση σε μεγαλύτερα security levels (HQC-256
+απαιτεί μεγαλύτερους πολυωνυμικούς buffers).
+
+\paragraph{Εξειδικευμένες Ρουτίνες Μνήμης}
+
+Οι ρουτίνες \code{memcpy}, \code{memset} και \code{memmove} υλοποιούνται
+χειροκίνητα στο αρχείο \code{mem.c} με δύο μονοπάτια εκτέλεσης:
+
+\begin{itemize}
+  \item \textbf{Scalar fallback:} Byte-by-byte αντιγραφή/μηδενισμός — χρησιμοποιείται
+    σε scalar targets (Tier~1) και ως fallback για μη ευθυγραμμισμένα δεδομένα.
+  \item \textbf{RVV fast-path:} Διανυσματοποιημένη υλοποίηση με \LMUL $= 8$
+    (μέγιστο throughput), ενεργή σε vector targets.  Η \code{memcpy} χρησιμοποιεί
+    strip-mining με \code{vle8}/\code{vse8} σε \SEW $= 8$, επεξεργαζόμενη
+    $\VLEN \times 8 / 8 = \VLEN$ bytes ανά iteration.  Για \VLEN $= \num{256}$
+    bits, κάθε iteration μεταφέρει \num{256} bytes — θεωρητικό ανώτατο
+    όριο \insnreduction{256} σε εντολές/iteration έναντι του byte-by-byte scalar
+    fallback (1~byte/εντολή).
+\end{itemize}
+
+\noindent
+Η \code{memset} διαθέτει επιπλέον fast-path για τη συχνή περίπτωση μηδενισμού
+(\code{c == 0}) ευθυγραμμισμένων buffers: χρησιμοποιεί \SEW $= 64$ και
+\LMUL $= 8$ με \code{vmv.v.x} (splat zero) + \code{vse64}, μηδενίζοντας
+$\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration.  Η βελτιστοποίηση
+αυτή στοχεύει τους μεγάλους μηδενισμούς scratch buffers κατά τον πολυωνυμικό
+πολλαπλασιασμό.
+
+\paragraph{Σταθερός Χρόνος Εκτέλεσης (Constant-Time Intent)}
+
+Οι ρουτίνες μνήμης σχεδιάστηκαν με πρόθεση σταθερού χρόνου: η ροή ελέγχου
+εξαρτάται αποκλειστικά από δημόσιες παραμέτρους (μέγεθος \code{n}, ευθυγράμμιση
+δεικτών) και ποτέ από το περιεχόμενο των δεδομένων.  Η ιδιότητα αυτή δεν
+αποτελεί εγγύηση side-channel resistance (βλ.\ \cref{sec:ct-methodology} και \cref{sec:future-ct} για
+μελλοντική εργασία), αλλά εξασφαλίζει ότι η μετρική \instret δεν εξαρτάται
+από τις τιμές εισόδου — προϋπόθεση για ντετερμινιστικές μετρήσεις.
+
+\paragraph{Console I/O και Simulator Backend}
+
+Η εκτύπωση αποτελεσμάτων (shared secrets σε hexadecimal, \instret τιμές)
+πραγματοποιείται μέσω του μηχανισμού \gls{htif} του Spike: κάθε χαρακτήρας
+εγγράφεται στο σύμβολο \code{tohost} με κωδικοποίηση
+\code{(1 << 56) | (1 << 48) | char}.  Ο Spike επεξεργάζεται τον χαρακτήρα και
+μηδενίζει το \code{tohost}, σηματοδοτώντας ετοιμότητα για τον επόμενο.  Ο
+μηχανισμός αυτός δεν απαιτεί UART hardware ή device tree.
+
+\noindent
+Η αριθμητική εκτύπωση (\code{hqc\_htif\_putu64}) υλοποιείται χωρίς \code{printf}
+ή heap allocation: ένας στατικός buffer \num{21} bytes μετατρέπει τον ακέραιο
+σε δεκαδική αναπαράσταση μέσω επαναλαμβανόμενης διαίρεσης.
+
+\subsection{Καθαρότητα Μέτρησης (Measurement Purity)}
+\label{ssec:measurement-purity}
+
+Η bare-metal εκτέλεση σε Machine mode παρέχει τρεις θεμελιώδεις εγγυήσεις
+που καθιστούν τις μετρήσεις \instret αξιόπιστες και αναπαραγώγιμες.
+
+\paragraph{Απουσία OS Jitter}
+
+Δεν υπάρχει λειτουργικό σύστημα, scheduler, ή interrupt handler.  Ο
+επεξεργαστής εκτελεί αποκλειστικά τον κρυπτογραφικό κώδικα από τη στιγμή
+εισόδου στη \code{main()} έως τον τερματισμό.  Κανένα interrupt δεν είναι
+ενεργοποιημένο (\code{mie = 0} by default στον Spike), εξαλείφοντας κάθε
+πιθανότητα ασύγχρονης διακοπής.  Κατά συνέπεια, κάθε εντολή που καταγράφεται
+στον μετρητή \code{minstret} αποδίδεται αποκλειστικά στον κρυπτογραφικό
+πυρήνα — δεν υπάρχει \q{κλεμμένος χρόνος} από system services.
+
+\paragraph{Απουσία Syscall Overhead}
+
+Η εκτέλεση σε Machine mode (privilege level~3) εξαλείφει κάθε ανάγκη για
+system calls.  Η ανάγνωση \code{minstret} πραγματοποιείται απευθείας μέσω
+\code{csrr} χωρίς trap σε supervisor ή hypervisor.  Η εκτύπωση αποτελεσμάτων
+χρησιμοποιεί memory-mapped I/O (HTIF ή UART) χωρίς \code{ecall}.  Ο
+τερματισμός πραγματοποιείται μέσω εγγραφής στο \code{tohost} — ένας μηχανισμός
+simulator-specific που δεν εισάγει εντολές στη μέτρηση.
+
+\paragraph{Ντετερμινιστική Αναπαραγωγιμότητα}
+
+Η συνδυαστική απουσία OS, interrupts, cache non-determinism (στον Spike), και
+δυναμικής μνήμης εγγυάται ότι δεδομένου ίδιου ELF binary, η τιμή
+$\Delta\text{instret}$ είναι πάντα ταυτόσημη μεταξύ εκτελέσεων.  Η ιδιότητα
+αυτή επιτρέπει τη χρήση μίας μόνο μέτρησης ανά configuration (χωρίς
+στατιστική επεξεργασία πολλαπλών δειγμάτων) και καθιστά κάθε regression
+αμέσως ανιχνεύσιμο: μία αλλαγή κώδικα που αυξάνει το \instret κατά έστω
+μία εντολή είναι ορατή στην επόμενη εκτέλεση.
+
+\paragraph{Μετρητικό Παράθυρο}
+
+Η μέτρηση \instret περικλείει αποκλειστικά τον κρυπτογραφικό πυρήνα.  Ο
+benchmark harness (\code{bench\_kem.c}) εκτελεί πρώτα ένα warmup pass
+(πλήρης κύκλος \KeyGen $\to$ \Encaps $\to$ \Decaps χωρίς μέτρηση) για
+αρχικοποίηση της κατάστασης \gls{prng}, και στη συνέχεια μετρά κάθε
+λειτουργία ξεχωριστά:
+
+\begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
+uint64_t t0 = hqc_rdinstret();  // minstret (CSR 0xb02)
+crypto_kem_keypair(pk, sk);
+uint64_t t1 = hqc_rdinstret();
+// keypair_instret = t1 - t0
+\end{lstlisting}
+
+\noindent
+Η διαφορά $t_1 - t_0$ περιλαμβάνει αποκλειστικά τις εντολές του
+κρυπτογραφικού πυρήνα: δεν συμπεριλαμβάνονται οι εντολές εκκίνησης
+(\code{startup.S}), μηδενισμού BSS, ή εκτύπωσης αποτελεσμάτων.  Οι δύο
+εντολές \code{csrr} (ανάγνωση \code{minstret}) αποτελούν σταθερό overhead
+\num{2} εντολών ανά μέτρηση — αμελητέο σε σχέση με τα εκατομμύρια εντολών
+του \gls{kem} κύκλου.
 
 \section{Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής}
 \label{sec:benchmarking}
@@ -836,7 +1019,7 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
 του \code{.rsp} αρχείου.  Η δομή δύο σταδίων (εσωτερικός consistency check +
 εξωτερική σύγκριση με reference) παρέχει διπλή κάλυψη: ο εσωτερικός έλεγχος
 ανιχνεύει ασυνέπειες μεταξύ \Encaps και \Decaps, ενώ ο εξωτερικός ανιχνεύει
-αποκλίσεις από τη reference υλοποίηση του \gls{nist}.
+αποκλίσεις από τη υλοποίηση αναφοράς του \gls{nist}.
 
 \Cref{fig:kat-pipeline} απεικονίζει τη ροή επαλήθευσης από τα αρχεία αναφοράς
 έως την τελική ετυμηγορία.
@@ -860,17 +1043,16 @@ levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500
 \begin{itemize}
   \item \textbf{Τοπικά:} Το script \code{run\_kat.sh} δέχεται ως παράμετρο
     το polymul variant (\code{-{}-mul vector\_zvk}), μεταγλωττίζει αυτόματα
-    το αντίστοιχο ELF, εκτελεί στον κατάλληλο simulator (Spike για Zvbc
-    variants, QEMU για τα υπόλοιπα), και καλεί τον \code{kat\_check.py} για
-    επαλήθευση.  Η εκτέλεση ολοκληρώνεται σε \num{3}–\SI{10}{\second} ανά
-    variant στον QEMU και \num{5}–\SI{20}{\minute} ανά variant στον Spike.
+    το αντίστοιχο ELF, εκτελεί στον Spike, και καλεί τον \code{kat\_check.py} για
+    επαλήθευση.  Η εκτέλεση ολοκληρώνεται σε \num{5}–\SI{20}{\minute} ανά
+    variant στον Spike.
   \item \textbf{CI Pipeline:} Το GitHub Actions workflow
     (\code{.github/workflows/kat.yml}) εκτελεί αυτόματα \gls{kat} tests σε
     κάθε push στους branches \code{main} και \code{dev}.  Η λίστα variants
     ανιχνεύεται δυναμικά από το αρχείο
     \code{scripts/implemented\_variants.txt}, εξαλείφοντας χειροκίνητη
-    συντήρηση.  Variants που απαιτούν \gls{zvbc} δρομολογούνται αυτόματα στον Spike,
-    ενώ τα υπόλοιπα εκτελούνται στον QEMU για ταχύτερη ανατροφοδότηση.
+    συντήρηση.  Όλα τα variants εκτελούνται στον Spike, ο οποίος υποστηρίζει
+    πλήρως τις επεκτάσεις \gls{zvbc}/\gls{zvbb}.
 \end{itemize}
 
 \paragraph{Ρόλος στη Μεθοδολογία Βελτιστοποίησης}
@@ -1107,232 +1289,6 @@ input-dependent latency.  Ένα passing \code{dudect\_keccak} αποτέλεσ�
 ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση εν αναμονή εμπειρικής
 επιβεβαίωσης.
 
-\section{Bare-Metal Πλαίσιο Εκτέλεσης}
-\label{sec:bare-metal}
-
-Η εκτέλεση κρυπτογραφικού κώδικα σε περιβάλλον λειτουργικού συστήματος εισάγει
-μη ντετερμινιστικό θόρυβο: context switches, interrupt handlers, TLB flushes και
-scheduler preemption αλλοιώνουν τις μετρήσεις \instret κατά τρόπο μη
-αναπαραγώγιμο.  Η παρούσα υποδομή εξαλείφει πλήρως αυτές τις πηγές θορύβου
-μέσω bare-metal εκτέλεσης: ο κρυπτογραφικός κώδικας εκτελείται απευθείας σε
-Machine mode χωρίς λειτουργικό σύστημα, runtime βιβλιοθήκες ή δυναμική
-διαχείριση μνήμης.  Η ενότητα αυτή περιγράφει τα τρία δομικά στοιχεία του
-πλαισίου: την ακολουθία εκκίνησης, τη διαχείριση μνήμης, και τις εγγυήσεις
-καθαρότητας μέτρησης.
-
-\subsection{Boot Sequence}
-\label{ssec:boot-sequence}
-
-Η μεταγλώττιση πραγματοποιείται με τις σημαίες \code{-nostartfiles} και
-\code{-nostdlib}, εξαλείφοντας κάθε εξάρτηση από C runtime initialization
-(\code{crt0.o}) και standard library.  Η αρχικοποίηση του επεξεργαστή
-υλοποιείται σε εξειδικευμένο αρχείο assembly (\code{startup.S}) που εκτελεί
-έξι βήματα σε αυστηρή σειρά, όπως απεικονίζεται στο \cref{fig:boot-sequence}.
-
-\paragraph{Βήμα 1: Αρχικοποίηση Stack Pointer}
-
-Ο stack pointer (\code{sp}) φορτώνεται με τη διεύθυνση \code{\_stack\_top},
-η οποία ορίζεται στο linker script (\cf \cref{ssec:memory-management}).  Η
-στοίβα αναπτύσσεται προς τα κάτω (descending) και διαθέτει \SI{512}{\kilo\byte}
-— μέγεθος που καλύπτει τις ανάγκες της πλήρους αλυσίδας κλήσεων \KeyGen +
-\Encaps + \Decaps (μέγιστη μετρημένη χρήση $\approx \SI{70}{\kilo\byte}$,
-συμπεριλαμβανομένων των $\approx \SI{40}{\kilo\byte}$ temporary buffers του
-πολυωνυμικού πολλαπλασιασμού).
-
-\paragraph{Βήμα 2–3: Ενεργοποίηση Διανυσματικής Μονάδας}
-
-Σε targets που μεταγλωττίζονται με \RVV (conditional compilation μέσω
-\code{\_\_riscv\_vector}), η διανυσματική μονάδα ενεργοποιείται ρητά μέσω
-εγγραφής στο πεδίο \code{mstatus.VS}:
-
-\begin{lstlisting}[language={[RISC-V]Assembler}, basicstyle=\ttfamily\small]
-li   t0, 0x600          # mstatus.VS = Dirty (bits [10:9] = 11)
-csrs mstatus, t0        # set VS field
-vsetvli t0, zero, e64, m1, ta, ma  # configure vtype
-\end{lstlisting}
-
-\noindent
-Η τιμή \code{0x600} θέτει τα bits $[10{:}9]$ του \code{mstatus} σε
-\code{11} (Dirty), σηματοδοτώντας στο hardware ότι η διανυσματική κατάσταση
-είναι ενεργή και τροποποιημένη.  Χωρίς αυτό το βήμα, κάθε διανυσματική εντολή
-προκαλεί illegal instruction exception.  Η εντολή \code{vsetvli} αρχικοποιεί
-τον \code{vtype} \gls{csr} με \SEW $= 64$, \LMUL $= 1$, tail-agnostic και
-mask-agnostic — η τυπική ρύθμιση για τους κρυπτογραφικούς πυρήνες.
-
-\paragraph{Βήμα 4: Μηδενισμός BSS}
-
-Το τμήμα \code{.bss} (μη αρχικοποιημένα global δεδομένα) μηδενίζεται μέσω
-βρόχου \code{sd zero} ανά \num{8} bytes.  Η ορθή μηδένιση είναι κρίσιμη:
-η κατάσταση Keccak (\num{200} bytes), οι scratch buffers του πολυωνυμικού
-πολλαπλασιασμού, και οι ενδιάμεσοι πίνακες αποκωδικοποίησης βρίσκονται στο
-\code{.bss} και προϋποθέτουν μηδενική αρχική τιμή.
-
-\paragraph{Βήμα 5–6: Κλήση \code{main()} και Τερματισμός}
-
-Μετά την αρχικοποίηση, η εκτέλεση μεταβιβάζεται στη \code{main()} με
-\code{argc = 0} και \code{argv = NULL}.  Κατά τον τερματισμό, η τιμή
-επιστροφής κωδικοποιείται ως \code{(code << 1) | 1} και εγγράφεται στο
-σύμβολο \code{tohost} — ο μηχανισμός \gls{htif} που σηματοδοτεί στον Spike
-(ή στον QEMU) τον τερματισμό της εξομοίωσης με τον αντίστοιχο exit code.
-
-\begin{figure}[htbp]
-  \centering
-  \resizebox{0.65\textwidth}{!}{\input{figures/ch5-setup/boot-sequence}}
-  \caption{Ακολουθία εκκίνησης bare-metal: από το reset vector έως τον
-    τερματισμό μέσω \gls{htif}.  Η ενεργοποίηση της διανυσματικής μονάδας
-    εκτελείται υπό συνθήκη (conditional assembly) μόνο σε vector targets.}
-  \label{fig:boot-sequence}
-\end{figure}
-
-\subsection{Διαχείριση Μνήμης και Runtime Υποστήριξη}
-\label{ssec:memory-management}
-
-Η απουσία standard library (\code{-nostdlib}) απαιτεί χειροκίνητη υλοποίηση
-τριών κατηγοριών υποδομής: memory layout (linker script), memory operations
-(\code{memcpy}/\code{memset}/\code{memmove}), και console I/O.
-
-\paragraph{Linker Script και Memory Layout}
-
-Το linker script (\code{link.ld}) ορίζει μία ενιαία περιοχή RAM \SI{128}{\mebi\byte}
-με βάση τη διεύθυνση \code{0x80000000} — κοινή μεταξύ Spike και QEMU virt
-machine.  Η διάταξη τμημάτων ακολουθεί τη σειρά που απεικονίζεται στο
-\cref{fig:memory-map}: ο κώδικας εκκίνησης τοποθετείται πρώτος
-(\code{.text.startup}) ώστε το entry point να βρίσκεται στη βάση της RAM,
-ακολουθούμενος από τον υπόλοιπο κώδικα, τα read-only δεδομένα (KAT seeds,
-σταθερές), τα \gls{htif} σύμβολα (ευθυγραμμισμένα σε \num{64} bytes), τα
-αρχικοποιημένα δεδομένα, το \code{.bss}, και τέλος η στοίβα.
-
-\begin{figure}[htbp]
-  \centering
-  \input{figures/ch5-setup/memory-map}
-  \caption{Διάταξη μνήμης (memory map) του bare-metal ELF.  Η στοίβα
-    (\SI{512}{\kilo\byte}) καλύπτει τις ανάγκες ολόκληρης της αλυσίδας
-    κλήσεων \KEM, συμπεριλαμβανομένων των temporary buffers του πολυωνυμικού
-    πολλαπλασιασμού ($\approx \SI{40}{\kilo\byte}$).}
-  \label{fig:memory-map}
-\end{figure}
-
-\noindent
-Ένας \code{ASSERT} στο τέλος του linker script ελέγχει κατά τη σύνδεση ότι
-το σύνολο \code{.bss} + \code{.stack} δεν υπερβαίνει τα \SI{128}{\mebi\byte},
-αποτρέποντας σιωπηλή υπερχείλιση σε μεγαλύτερα security levels (HQC-256
-απαιτεί μεγαλύτερους πολυωνυμικούς buffers).
-
-\paragraph{Εξειδικευμένες Ρουτίνες Μνήμης}
-
-Οι ρουτίνες \code{memcpy}, \code{memset} και \code{memmove} υλοποιούνται
-χειροκίνητα στο αρχείο \code{mem.c} με δύο μονοπάτια εκτέλεσης:
-
-\begin{itemize}
-  \item \textbf{Scalar fallback:} Byte-by-byte αντιγραφή/μηδενισμός — χρησιμοποιείται
-    σε scalar targets (Tier~1) και ως fallback για μη ευθυγραμμισμένα δεδομένα.
-  \item \textbf{RVV fast-path:} Διανυσματοποιημένη υλοποίηση με \LMUL $= 8$
-    (μέγιστο throughput), ενεργή σε vector targets.  Η \code{memcpy} χρησιμοποιεί
-    strip-mining με \code{vle8}/\code{vse8} σε \SEW $= 8$, επεξεργαζόμενη
-    $\VLEN \times 8 / 8 = \VLEN$ bytes ανά iteration.  Για \VLEN $= \num{256}$
-    bits, κάθε iteration μεταφέρει \num{256} bytes — θεωρητικό ανώτατο
-    όριο \insnreduction{256} σε εντολές/iteration έναντι του byte-by-byte scalar
-    fallback (1~byte/εντολή).
-\end{itemize}
-
-\noindent
-Η \code{memset} διαθέτει επιπλέον fast-path για τη συχνή περίπτωση μηδενισμού
-(\code{c == 0}) ευθυγραμμισμένων buffers: χρησιμοποιεί \SEW $= 64$ και
-\LMUL $= 8$ με \code{vmv.v.x} (splat zero) + \code{vse64}, μηδενίζοντας
-$\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration.  Η βελτιστοποίηση
-αυτή στοχεύει τους μεγάλους μηδενισμούς scratch buffers κατά τον πολυωνυμικό
-πολλαπλασιασμό.
-
-\paragraph{Σταθερός Χρόνος Εκτέλεσης (Constant-Time Intent)}
-
-Οι ρουτίνες μνήμης σχεδιάστηκαν με πρόθεση σταθερού χρόνου: η ροή ελέγχου
-εξαρτάται αποκλειστικά από δημόσιες παραμέτρους (μέγεθος \code{n}, ευθυγράμμιση
-δεικτών) και ποτέ από το περιεχόμενο των δεδομένων.  Η ιδιότητα αυτή δεν
-αποτελεί εγγύηση side-channel resistance (βλ.\ \cref{sec:ct-methodology} και \cref{sec:future-ct} για
-μελλοντική εργασία), αλλά εξασφαλίζει ότι η μετρική \instret δεν εξαρτάται
-από τις τιμές εισόδου — προϋπόθεση για ντετερμινιστικές μετρήσεις.
-
-\paragraph{Console I/O και Simulator Backend}
-
-Η εκτύπωση αποτελεσμάτων (shared secrets σε hexadecimal, \instret τιμές)
-πραγματοποιείται μέσω δύο εναλλακτικών backends, επιλεγόμενων κατά τη
-μεταγλώττιση:
-
-\begin{itemize}
-  \item \textbf{Spike (\gls{htif}):} Κάθε χαρακτήρας εγγράφεται στο σύμβολο
-    \code{tohost} με κωδικοποίηση \code{(1 << 56) | (1 << 48) | char}.  Ο
-    Spike επεξεργάζεται τον χαρακτήρα και μηδενίζει το \code{tohost}, σηματοδοτώντας
-    ετοιμότητα για τον επόμενο.  Ο μηχανισμός αυτός δεν απαιτεί UART hardware
-    ή device tree.
-  \item \textbf{QEMU (ns16550a UART):} Ο χαρακτήρας εγγράφεται στο Transmit
-    Holding Register (THR) στη διεύθυνση \code{0x10000000}, μετά από αναμονή
-    ετοιμότητας μέσω του Line Status Register (LSR bit~5).  Ο τερματισμός
-    πραγματοποιείται μέσω του QEMU test-finisher (\code{0x100000}).
-\end{itemize}
-
-\noindent
-Η αριθμητική εκτύπωση (\code{hqc\_htif\_putu64}) υλοποιείται χωρίς \code{printf}
-ή heap allocation: ένας στατικός buffer \num{21} bytes μετατρέπει τον ακέραιο
-σε δεκαδική αναπαράσταση μέσω επαναλαμβανόμενης διαίρεσης.
-
-\subsection{Καθαρότητα Μέτρησης (Measurement Purity)}
-\label{ssec:measurement-purity}
-
-Η bare-metal εκτέλεση σε Machine mode παρέχει τρεις θεμελιώδεις εγγυήσεις
-που καθιστούν τις μετρήσεις \instret αξιόπιστες και αναπαραγώγιμες.
-
-\paragraph{Απουσία OS Jitter}
-
-Δεν υπάρχει λειτουργικό σύστημα, scheduler, ή interrupt handler.  Ο
-επεξεργαστής εκτελεί αποκλειστικά τον κρυπτογραφικό κώδικα από τη στιγμή
-εισόδου στη \code{main()} έως τον τερματισμό.  Κανένα interrupt δεν είναι
-ενεργοποιημένο (\code{mie = 0} by default στον Spike), εξαλείφοντας κάθε
-πιθανότητα ασύγχρονης διακοπής.  Κατά συνέπεια, κάθε εντολή που καταγράφεται
-στον μετρητή \code{minstret} αποδίδεται αποκλειστικά στον κρυπτογραφικό
-πυρήνα — δεν υπάρχει \q{κλεμμένος χρόνος} από system services.
-
-\paragraph{Απουσία Syscall Overhead}
-
-Η εκτέλεση σε Machine mode (privilege level~3) εξαλείφει κάθε ανάγκη για
-system calls.  Η ανάγνωση \code{minstret} πραγματοποιείται απευθείας μέσω
-\code{csrr} χωρίς trap σε supervisor ή hypervisor.  Η εκτύπωση αποτελεσμάτων
-χρησιμοποιεί memory-mapped I/O (HTIF ή UART) χωρίς \code{ecall}.  Ο
-τερματισμός πραγματοποιείται μέσω εγγραφής στο \code{tohost} — ένας μηχανισμός
-simulator-specific που δεν εισάγει εντολές στη μέτρηση.
-
-\paragraph{Ντετερμινιστική Αναπαραγωγιμότητα}
-
-Η συνδυαστική απουσία OS, interrupts, cache non-determinism (στον Spike), και
-δυναμικής μνήμης εγγυάται ότι δεδομένου ίδιου ELF binary, η τιμή
-$\Delta\text{instret}$ είναι πάντα ταυτόσημη μεταξύ εκτελέσεων.  Η ιδιότητα
-αυτή επιτρέπει τη χρήση μίας μόνο μέτρησης ανά configuration (χωρίς
-στατιστική επεξεργασία πολλαπλών δειγμάτων) και καθιστά κάθε regression
-αμέσως ανιχνεύσιμο: μία αλλαγή κώδικα που αυξάνει το \instret κατά έστω
-μία εντολή είναι ορατή στην επόμενη εκτέλεση.
-
-\paragraph{Μετρητικό Παράθυρο}
-
-Η μέτρηση \instret περικλείει αποκλειστικά τον κρυπτογραφικό πυρήνα.  Ο
-benchmark harness (\code{bench\_kem.c}) εκτελεί πρώτα ένα warmup pass
-(πλήρης κύκλος \KeyGen $\to$ \Encaps $\to$ \Decaps χωρίς μέτρηση) για
-αρχικοποίηση της κατάστασης \gls{prng}, και στη συνέχεια μετρά κάθε
-λειτουργία ξεχωριστά:
-
-\begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
-uint64_t t0 = hqc_rdinstret();  // minstret (CSR 0xb02)
-crypto_kem_keypair(pk, sk);
-uint64_t t1 = hqc_rdinstret();
-// keypair_instret = t1 - t0
-\end{lstlisting}
-
-\noindent
-Η διαφορά $t_1 - t_0$ περιλαμβάνει αποκλειστικά τις εντολές του
-κρυπτογραφικού πυρήνα: δεν συμπεριλαμβάνονται οι εντολές εκκίνησης
-(\code{startup.S}), μηδενισμού BSS, ή εκτύπωσης αποτελεσμάτων.  Οι δύο
-εντολές \code{csrr} (ανάγνωση \code{minstret}) αποτελούν σταθερό overhead
-\num{2} εντολών ανά μέτρηση — αμελητέο σε σχέση με τα εκατομμύρια εντολών
-του \gls{kem} κύκλου.
-
 \section{Εφαρμογή Μεθόδων Προγραμματισμού στην Παρούσα Εργασία}
 \label{sec:methods-application}
 
@@ -1538,7 +1494,7 @@ Clang~21.1.1, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}).  Η υλοποί
 \begin{table}[htbp]
   \centering
   \caption{Reference \instret (scalar baseline) ανά λειτουργία \KEM και
-    security level.  Οι τιμές αυτές αποτελούν τη βάση αναφοράς (denominator)
+    security level.  Οι τιμές αυτές αποτελούν τη βάση αναφοράς (denominator, \cref{conv:baseline})
     για όλα τα speedups που αναφέρονται στα \cref{ch:polymul-optimization}
     και \cref{ch:results}.}
   \label{tab:baseline-kem}
@@ -1599,7 +1555,7 @@ HQC-128 \Decaps:
 Η κατανομή αυτή αποκαλύπτει μία εξαιρετικά ασύμμετρη δομή κόστους: ο
 πολυωνυμικός πολλαπλασιασμός (\code{schoolbook\_mul} + \code{karatsuba\_mul})
 καταναλώνει \pct{96.8} του συνολικού \instret.  Η κυριαρχία αυτή οφείλεται
-στη bit-serial φύση του reference implementation: κάθε πολλαπλασιασμός
+στη bit-serial φύση της υλοποίησης αναφοράς: κάθε πολλαπλασιασμός
 \num{64}-bit πολυωνύμων απαιτεί \num{64} conditional shift-XOR iterations,
 ενώ η αναδρομική δομή Karatsuba πολλαπλασιάζει τον αριθμό κλήσεων εκθετικά
 με το βάθος.  Η \code{memset} (\pct{1.7}) αντικατοπτρίζει τον μηδενισμό
@@ -1705,9 +1661,9 @@ system-level κέρδος.  Η ανακατανομή του προφίλ μετ
 
 \bigskip
 \noindent
-Στο παρόν κεφάλαιο παρουσιάστηκε η πλήρης πειραματική υποδομή: εξομοιωτές,
-αλυσίδες μεταγλώττισης, μεθοδολογία benchmarking, bare-metal πλαίσιο, και
-baseline profiling.  Η υποδομή αυτή παρέχει ντετερμινιστικές, αναπαραγώγιμες
+Στο παρόν κεφάλαιο παρουσιάστηκε η πλήρης πειραματική υποδομή: οι πλατφόρμες
+εκτέλεσης (Spike, BPI-F3), τα toolchains μεταγλώττισης, η μεθοδολογία
+benchmarking, το bare-metal πλαίσιο, και το baseline profiling.  Η υποδομή αυτή παρέχει ντετερμινιστικές, αναπαραγώγιμες
 μετρήσεις \instret που αποτελούν τη βάση αξιολόγησης κάθε βελτιστοποίησης.
 Στο επόμενο κεφάλαιο, η βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού —
 του κυρίαρχου bottleneck με \pct{97} του κόστους — αποτελεί τον πρώτο και

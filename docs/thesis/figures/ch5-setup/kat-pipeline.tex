@@ -25,7 +25,7 @@
 % Row 2: Build and execution
 \node[process, below=1.8cm of rsp] (build) {CMake build\\(\texttt{HQC\_KAT\_MODE})};
 \node[process, right=of build] (elf) {Bare-metal ELF\\(\texttt{kat\_gen.c})};
-\node[tool, right=of elf] (sim) {Spike / QEMU\\execution};
+\node[tool, right=of elf] (sim) {Spike\\execution};
 
 \draw[arr] (header) -- ++(0,-1.0) -| (build);
 \draw[arr] (build) -- (elf);
