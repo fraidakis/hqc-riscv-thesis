@@ -481,44 +481,42 @@ $a_L \cdot b_L$, $a_L \cdot b_H$, $a_H \cdot b_L$, $a_H \cdot b_H$.
 
 }% τέλος τοπικού display spacing (§2.3.3)
 
-\subsection{Αριθμητικό Παράδειγμα Karatsuba σε 4-bit Πολυώνυμα}
-\label{sec:karatsuba-example-4bit}
-
+\paragraph{Αριθμητικό παράδειγμα (4-bit).}
 Για να γίνει concrete η μηχανική του Karatsuba, παρουσιάζεται ένα πλήρες
 παράδειγμα με πολυώνυμα 4 bits (2 λέξεις των 2 bits).
 Έστω $a(x) = x^3 + x + 1$ (δυαδικά: \code{1011}) και
 $b(x) = x^3 + x^2 + 1$ (δυαδικά: \code{1101}).
+\begin{enumerate}
+  \item \textit{Διαίρεση.} Με $m = 2$:
+  \begin{align*}
+    a_L &= x + 1 \quad (\code{11}), &\quad a_H &= x + 0 \quad (\code{10}), \\
+    b_L &= 0 \cdot x + 1 \quad (\code{01}), &\quad b_H &= x + 1 \quad (\code{11}).
+  \end{align*}
 
-\paragraph{Βήμα 1: Διαίρεση.}
-Με $m = 2$:
-\begin{align*}
-  a_L &= x + 1 \quad (\code{11}), &\quad a_H &= x + 0 \quad (\code{10}), \\
-  b_L &= 0 \cdot x + 1 \quad (\code{01}), &\quad b_H &= x + 1 \quad (\code{11}).
-\end{align*}
+  \item \textit{Τρεις υπο-πολλαπλασιασμοί.}
+  \begin{align*}
+    z_0 &= a_L \cdot b_L = (x+1) \cdot 1 = x + 1 \quad (\code{011}), \\
+    z_2 &= a_H \cdot b_H = x \cdot (x+1) = x^2 + x \quad (\code{110}), \\
+    z_{\text{mid}} &= (a_L \oplus a_H) \cdot (b_L \oplus b_H)
+      = (x+1 \oplus x) \cdot (1 \oplus x+1) = 1 \cdot x = x \quad (\code{010}).
+  \end{align*}
 
-\paragraph{Βήμα 2: Τρεις υπο-πολλαπλασιασμοί.}
-\begin{align*}
-  z_0 &= a_L \cdot b_L = (x+1) \cdot 1 = x + 1 \quad (\code{011}), \\
-  z_2 &= a_H \cdot b_H = x \cdot (x+1) = x^2 + x \quad (\code{110}), \\
-  z_{\text{mid}} &= (a_L \oplus a_H) \cdot (b_L \oplus b_H)
-    = (x+1 \oplus x) \cdot (1 \oplus x+1) = 1 \cdot x = x \quad (\code{010}).
-\end{align*}
+  \item \textit{Υπολογισμός $z_1$.}
+  \begin{equation*}
+    z_1 = z_{\text{mid}} \oplus z_0 \oplus z_2 = x \oplus (x+1) \oplus (x^2+x)
+      = x^2 + x + 1 \quad (\code{111}).
+  \end{equation*}
 
-\paragraph{Βήμα 3: Υπολογισμός $z_1$.}
-\begin{equation*}
-  z_1 = z_{\text{mid}} \oplus z_0 \oplus z_2 = x \oplus (x+1) \oplus (x^2+x)
-    = x^2 + x + 1 \quad (\code{111}).
-\end{equation*}
+  \item \textit{Ανασύνθεση.}
+  \begin{align*}
+    c(x) &= z_0 + x^2 \cdot z_1 + x^4 \cdot z_2 \\
+         &= (x+1) + x^2(x^2+x+1) + x^4(x^2+x) \\
+         &= (x+1) + (x^4+x^3+x^2) + (x^6+x^5) \\
+         &= x^6 + x^5 + x^4 + x^3 + x^2 + x + 1.
+  \end{align*}
+\end{enumerate}
 
-\paragraph{Βήμα 4: Ανασύνθεση.}
-\begin{align*}
-  c(x) &= z_0 + x^2 \cdot z_1 + x^4 \cdot z_2 \\
-       &= (x+1) + x^2(x^2+x+1) + x^4(x^2+x) \\
-       &= (x+1) + (x^4+x^3+x^2) + (x^6+x^5) \\
-       &= x^6 + x^5 + x^4 + x^3 + x^2 + x + 1.
-\end{align*}
-
-\paragraph{Επαλήθευση.}
+\textit{Επαλήθευση.}
 Ο απευθείας (schoolbook) πολλαπλασιασμός $(x^3+x+1)(x^3+x^2+1)$ δίνει
 $x^6 + x^5 + x^4 + x^3 + x^2 + x + 1$, αποτέλεσμα ταυτόσημο με εκείνο του
 Karatsuba. Η μέθοδος Karatsuba χρειάστηκε μόλις 3 πολλαπλασιασμούς 2-bit (αντί
@@ -822,9 +820,6 @@ $A[0, 0]$:
 slide attacks.
 Η πράξη αφορά ένα μόνο lane και αποτελεί αμελητέο υπολογιστικό κόστος.
 
-
-\subsection{Υπολογιστικό Κόστος και Σημασία για τη Βελτιστοποίηση}
-\label{sec:keccak-computational-profile}
 
 \paragraph{Κόστος ανά μετάθεση.}
 Κάθε κλήση της Keccak-f[1600] εκτελεί 24 γύρους με σταθερό κόστος ανά γύρο, ανεξαρτήτως μεγέθους εισόδου. Στο βήμα $\theta$ εκτελούνται περίπου 50 XOR (20 για το column parity, 5 για τον υπολογισμό των $D[x]$ και 25 για την εφαρμογή τους στα 25 lanes) μαζί με 5 ROL (μία ανά $D[x]$). Στο βήμα $\rho$ γίνονται 25 lane περιστροφές (μία ανά lane), στο βήμα $\pi$ 25 αντιγραφές lanes, και στο βήμα $\chi$ 25 πράξεις AND-NOT-XOR.

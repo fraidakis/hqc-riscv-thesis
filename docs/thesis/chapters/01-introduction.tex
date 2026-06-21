@@ -310,31 +310,24 @@ Check) και GHASH· ένα εξειδικευμένο κύκλωμα \gls{hqc}
 RISC-V που αξιοποιεί αποκλειστικά επικυρωμένες επεκτάσεις.
 
 \paragraph{Ερευνητικό κενό.}
-Παρά τη σημασία του \gls{hqc} ως μοναδικού code-based \gls{kem} υπό τυποποίηση από το
-\gls{nist}, δεν υπάρχει στη βιβλιογραφία καμία βελτιστοποιημένη υλοποίηση του \gls{hqc} σε RISC-V με αξιοποίηση μονάχα των
-επικυρωμένων κρυπτογραφικών επεκτάσεων. Οι υπάρχουσες υλοποιήσεις του σε RISC-V επιταχύνουν τον αλγόριθμο αποκλειστικά μέσω εξειδικευμένου, μη τυποποιημένου υλικού (HW/SW co-design), ενώ οι αμιγώς λογισμικές βελτιστοποιήσεις του στοχεύουν άλλες αρχιτεκτονικές. Συγκεκριμένα, οι Ras et
-al.~\cite{ras-nist2025} προτείνουν FAFFT σε RV32 SoC με τον
-εξειδικευμένο επιταχυντή ANDROMEDA. Οι Schöffel et
-al.~\cite{Schoeffel2022-HQC-IoT} παρουσιάζουν το πρώτο HW/SW co-design, αλλά
-στοχεύουν την πλέον ξεπερασμένη sparse$\times$dense spec με custom ISA
-extensions. Το PHOENIX~\cite{PHOENIX2025} επιτυγχάνει crypto-agile
-\gls{mlkem}+HQC μέσω εξειδικευμένου SuperButterfly coprocessor. Στο x86, το
-OptHQC~\cite{OptHQC2025} βελτιστοποιεί με AVX2 και sparse$\times$dense
-scheduling, ενώ οι Jang et al.~\cite{Jang2025-CortexM4-HQC}
-βελτιστοποιούν για Cortex-M4 μέσω FAFFT-CRT χωρίς carry-less πολλαπλασιασμό
-υλικό.
-
-Παράλληλα, η ερευνητική κοινότητα RISC-V PQC εστιάζει αποκλειστικά σε
-lattice-based αλγορίθμους. Οι Ji et al.~\cite{Ji2024-ECO-CRYSTALS}
-παρουσιάζουν την πρώτη βελτιστοποιημένη υλοποίηση Kyber/Dilithium σε RV64IMB, ενώ οι Zhang et al.~\cite{zhang-tches2025} καλύπτουν
-ολόκληρο το φάσμα RV\{32,64\}IM\{B\}\{V\} με νέα performance records σε
-Keccak και NTT. Η πρόταση Saarinen~\cite{Saarinen2024-vkeccak} για εντολή
-\texttt{vkeccak.vi} στοχεύει επίσης lattice-based PQC. Καμία από αυτές τις
-εργασίες δεν αντιμετωπίζει τον πολυωνυμικό πολλαπλασιασμό σε $\GFpoly$ —
-τη θεμελιώδη πράξη του \gls{hqc} — ούτε αξιοποιεί τις εντολές \gls{zbc}/\gls{zvbc}
-(carry-less πολλαπλασιασμός) για code-based κρυπτογραφία. Η αναλυτική
-τεκμηρίωση αυτού του κενού, με αναφορά στις επιμέρους εργασίες,
-παρουσιάζεται στην~\cref{sec:rw-axes}.
+Παρά τη σημασία του \gls{hqc} ως μοναδικού code-based \gls{kem} υπό τυποποίηση
+από το \gls{nist}, δεν υπάρχει στη βιβλιογραφία καμία βελτιστοποιημένη
+υλοποίησή του σε RISC-V που να αξιοποιεί μονάχα τις επικυρωμένες κρυπτογραφικές
+επεκτάσεις. Οι υπάρχουσες RISC-V υλοποιήσεις επιταχύνουν τον αλγόριθμο
+αποκλειστικά μέσω custom hardware: οι
+Schöffel et al.~\cite{Schoeffel2022-HQC-IoT} και οι Ras
+et al.~\cite{ras-nist2025} με loosely-coupled accelerators, το
+TYRCA~\cite{Dolmeta2025-TYRCA} και οι Seo et al.~\cite{Seo2026-HQC-Ibex} με
+tightly-coupled accelerators. Αντίστροφα, οι καθαρά λογισμικές βελτιστοποιήσεις
+που αξιοποιούν carry-less εντολές ISA για πολυωνυμικό πολλαπλασιασμό στοχεύουν
+άλλες αρχιτεκτονικές (x86/ARM): οι Robert \&
+Véron~\cite{RobertVeron2023-avx512-gf2x} και οι Jang
+et al.~\cite{Jang2026-gf2x-SIMD} με Toom-Cook/Karatsuba πάνω σε SIMD carry-less
+εντολές, οι Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} με additive FFT και το
+OptHQC~\cite{OptHQC2025} με sparse$\times$dense. Καμία εργασία δεν μεταφέρει
+αυτή τη στρατηγική καθαρά λογισμικής βελτιστοποίησης πάνω στις τυποποιημένες
+επεκτάσεις του RISC-V. Η αναλυτική τεκμηρίωση του κενού, με
+αναφορά στις επιμέρους εργασίες, παρουσιάζεται στην~\cref{sec:rw-axes}.
 
 \paragraph{Συνεισφορά.}
 Η παρούσα εργασία παρέχει βελτιστοποίηση ολόκληρου του \gls{hqc} \gls{kem}

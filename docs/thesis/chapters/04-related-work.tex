@@ -15,7 +15,11 @@ RISC-V. Το παρόν κεφάλαιο εξετάζει τις υπάρχου�
 
 Η δεύτερη ομάδα αφορά υλοποιήσεις του ίδιου αλγορίθμου σε καθαρό λογισμικό άλλων αρχιτεκτονικών (x86/ARM)
 (\cref{sec:rw-analogs}), οι οποίες δεν χρησιμοποιούν custom hardware αλλά
-αξιοποιούν αποκλειστικά τις διαθέσιμες SIMD carry-less εντολές (\texttt{VPCLMULQDQ}/\texttt{PMULL}), δηλαδή μοιράζονται την αλγοριθμική μέθοδο της παρούσας εργασίας και προσφέρουν έτσι την πλησιέστερη βάση μεθοδολογικής σύγκρισης. Σε αντίθεση με τη RISC-V, οι αρχιτεκτονικές αυτές δεν διαθέτουν scalar carry-less αντίστοιχο της \insn{clmul}. Οι λοιπές σχετικές εργασίες παρουσιάζονται συνοπτικά
+αξιοποιούν αποκλειστικά τις διαθέσιμες SIMD εντολές (π.χ.\ 
+\texttt{VPCLMULQDQ}, \texttt{PMULL}), δηλαδή μοιράζονται την αλγοριθμική μέθοδο 
+της παρούσας εργασίας και προσφέρουν έτσι την πλησιέστερη βάση μεθοδολογικής 
+σύγκρισης. Σε αντίθεση με τη RISC-V, οι αρχιτεκτονικές αυτές δεν διαθέτουν scalar 
+carry-less αντίστοιχο της \insn{clmul}. Οι λοιπές σχετικές εργασίες παρουσιάζονται συνοπτικά
 (\cref{sec:rw-other}), ενώ ο \cref{tab:rw-riscv-summary} επιτρέπει τη συνολική
 σύγκριση και αναδεικνύει το ερευνητικό κενό.
 
@@ -60,12 +64,13 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
 άξονες: μία γραμμή ανά εργασία, με τις στήλες πλατφόρμας και μεθόδου/στρατηγικής,
 καθώς και τρία δυαδικά κριτήρια που ορίζονται ως εξής:
 \begin{enumerate}
-  \item \textbf{RISC-V:} Η πλατφόρμα στόχευσης είναι αρχιτεκτονική RISC-V
-    (οποιοδήποτε profile).
+\item \textbf{RISC-V:} Ως πλατφόρμα εκτέλεσης χρησιμοποιείται η
+  αρχιτεκτονική RISC-V (οποιοδήποτε profile).
   \item \textbf{Καθαρό λογισμικό:} Η υλοποίηση δεν απαιτεί custom hardware
-    accelerators, αλλά εκτελείται αποκλειστικά σε general-purpose πυρήνα
-    αξιοποιώντας μόνο επικυρωμένες RISC-V extensions (Zbc, Zbb, Zvbc, Zvbb), όχι
-    custom ISA εντολές.
+    accelerators ούτε μη-επικυρωμένες (custom) ISA εντολές, αλλά εκτελείται
+    αποκλειστικά σε general-purpose πυρήνα αξιοποιώντας μόνο τυποποιημένες
+    εντολές της εκάστοτε αρχιτεκτονικής (π.χ.\ επικυρωμένες επεκτάσεις
+    για RISC-V ή τις διαθέσιμες SIMD εντολές σε x86/ARM).
   \item \textbf{Πλήρες \gls{kem}:} Η βελτιστοποίηση καλύπτει ολόκληρο τον 
     \gls{hqc} \gls{kem} (πολυωνυμικός πολλαπλασιασμός + Keccak + 
     αποκωδικοποίηση), όχι μόνο μεμονωμένο πυρήνα.
@@ -74,98 +79,79 @@ standardization interface όπως το CV-X-IF· (iii)~custom, μη-επικυ�
 \begin{table}[htbp]
   \centering
   \caption{Ενοποιημένη σύγκριση σχετικών εργασιών κατά τους άξονες της
-    \cref{sec:rw-axes}. Στήλες: πλατφόρμα, μέθοδος πολυωνυμικού πολλαπλασιασμού /
+    \cref{sec:rw-axes}. Στήλες: πλατφόρμα, μέθοδος πολυωνυμικού πολλαπλασιασμού,
     στρατηγική επιτάχυνσης, και τρία δυαδικά κριτήρια: \q{RISC-V} (αρχιτεκτονική
-    στόχευσης), \q{Καθαρό λογισμικό} (χωρίς custom hardware, μόνο επικυρωμένες
-    επεκτάσεις) και \q{πλήρες \gls{kem}}. \ding{51}/\ding{55} δηλώνουν
+    στόχευσης), \q{Καθαρό λογισμικό} (χωρίς custom hardware ) και 
+    \q{πλήρες \gls{kem}}. \ding{51}/\ding{55} δηλώνουν
     ικανοποίηση/μη ικανοποίηση· \q{—} δηλώνει μη εφαρμοσιμότητα.}
   \label{tab:rw-riscv-summary}
   \footnotesize
-  \setlength{\tabcolsep}{4pt}
+  \setlength{\tabcolsep}{3pt}
   \resizebox{\textwidth}{!}{%
-  \begin{tabular}{@{}lll ccc@{}}
+  \begin{tabular}{@{}llll ccc@{}}
     \toprule
-    \textbf{Εργασία} & \textbf{Platform} & \textbf{Polymul / Strategy} &
+    \textbf{Εργασία} & \textbf{Platform} & \textbf{Μέθοδος polymul} &
+    \textbf{Στρατηγική επιτάχυνσης} &
     \rotatebox{70}{\textbf{RISC-V}} &
     \rotatebox{70}{\textbf{Καθαρό λογισμ.}} &
     \rotatebox{70}{\textbf{Πλήρες \gls{kem}}} \\
     \midrule
-    \multicolumn{6}{@{}l}{\textit{\HQC σε RISC-V (custom hardware) — το ερευνητικό κενό}} \\
+    \multicolumn{7}{@{}l}{\textit{\HQC σε RISC-V (custom hardware) — το ερευνητικό κενό}} \\
     Schöffel et al.~\cite{Schoeffel2022-HQC-IoT}
-      & RV32IC & sparse$\times$dense / loosely-coupled + custom ISA
+      & RV32IC & sparse$\times$dense & loosely-coupled + custom ISA
       & \ding{51} & \ding{55} & \ding{51} \\
     Ras et al.~\cite{ras-nist2025}
-      & RV32IMC & FAFFT / loosely-coupled accel.\ (ANDROMEDA)
+      & RV32IMC & FAFFT & loosely-coupled (ANDROMEDA)
       & \ding{51} & \ding{55} & \ding{51} \\
     TYRCA~\cite{Dolmeta2025-TYRCA}
-      & CV32E40PX + CV-X-IF & dense$\times$dense / tightly-coupled
+      & CV32E40PX & Karatsuba & tightly-coupled (CV-X-IF)
       & \ding{51} & \ding{55} & \ding{51} \\
     Seo et al.~\cite{Seo2026-HQC-Ibex}
-      & RV32 (Ibex) & — / tightly-coupled accelerator
+      & RV32 (Ibex) & Toom-Cook + Karatsuba & tightly-coupled
       & \ding{51} & \ding{55} & \ding{51} \\
     \midrule
-    \multicolumn{6}{@{}l}{\textit{Μεθοδολογικά ανάλογα: καθαρό λογισμικό x86 / ARM}} \\
+    \multicolumn{7}{@{}l}{\textit{Υλοποιήσεις καθαρού λογισμικού σε x86 / ARM}} \\
     Robert \& Véron~\cite{RobertVeron2023-avx512-gf2x}
-      & x86 (AVX-512/AVX2) & Toom/Karatsuba / SIMD (\texttt{VPCLMULQDQ})
+      & x86 (AVX-512/AVX2) & Toom-Cook + Karatsuba & SIMD
       & \ding{55} & \ding{51} & \ding{55} \\
     Jang et al.~\cite{Jang2026-gf2x-SIMD}
-      & x86 / ARM & Toom/Karatsuba / SIMD (\texttt{VPCLMULQDQ}/\texttt{PMULL})
+      & x86 / ARM & Toom-Cook + Karatsuba & SIMD
       & \ding{55} & \ding{51} & \ding{55} \\
     Chen et al.~\cite{Chen2026-TCHES-HQC-FFT}
-      & x86 / ARM & FFT-CRT / SIMD
+      & x86 / ARM & additive FFT (CRT) & SIMD
       & \ding{55} & \ding{51} & \ding{51} \\
     OptHQC~\cite{OptHQC2025}
-      & x86 AVX2 & sparse$\times$dense / SIMD
+      & x86 AVX2 & sparse$\times$dense & SIMD
       & \ding{55} & \ding{51} & \ding{51} \\
     \midrule
-    \multicolumn{6}{@{}l}{\textit{Crypto-agile υλικό: ISE \& coprocessors}} \\
+    \multicolumn{7}{@{}l}{\textit{Λοιπές εργασίες (ISE / lattice)}} \\
     HORCRUX~\cite{Dolmeta2025-HORCRUX}
-      & RISC-V + ISE & — / custom PQC ISE
+      & RISC-V + ISE & — & custom PQC ISE
       & \ding{51} & \ding{55} & — \\
-    Lee et al.~\cite{Lee2023-RISCV-PQC-CryptoProc}
-      & RISC-V + ISE & — / custom PQC crypto-processor
-      & \ding{51} & \ding{55} & — \\
-    PHOENIX~\cite{PHOENIX2025}
-      & ARM Cortex-A9 & FAFFT / HW coprocessor
-      & \ding{55} & \ding{55} & \ding{51} \\
-    \midrule
-    \multicolumn{6}{@{}l}{\textit{Λοιπές: ARM / Cortex-M / dedicated hardware}} \\
-    Jang et al.~\cite{Jang2025-CortexM4-HQC}
-      & ARM Cortex-M4 & FAFFT-CRT / SW
-      & \ding{55} & \ding{51} & \ding{55} \\
-    Chen et al.~\cite{Chen2021-BIKE-Haswell-M4}
-      & x86 / Cortex-M4 & Karatsuba / FFT (BIKE)
-      & \ding{55} & \ding{51} & \ding{55} \\
-    Deshpande et al.~\cite{Deshpande2023-HQC-HW}
-      & FPGA & — / dedicated HW
-      & \ding{55} & \ding{55} & \ding{51} \\
-    \midrule
-    \multicolumn{6}{@{}l}{\textit{Γενικότερες PQC εργασίες σε RISC-V (lattice, Keccak-centric)}} \\
     ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS}
-      & RV64IMB & NTT / επικυρωμένο SW (\gls{zbb})
+      & RV64IMB & NTT & επικυρωμένο SW (\gls{zbb})
       & \ding{51} & \ding{51} & — \\
     Zhang et al.~\cite{zhang-tches2025}
-      & RV\{32,64\}IMBV & NTT / επικυρωμένο SW (\RVV/\gls{zbb})
-      & \ding{51} & \ding{51} & — \\
-    Saarinen~\cite{Saarinen2024-vkeccak}
-      & RV64GCV & NTT / SW + προτεινόμενη \code{vkeccak.vi}
+      & RV\{32,64\}IM\{B\}\{V\} & NTT & επικυρωμένο SW (\RVV/\gls{zbb})
       & \ding{51} & \ding{51} & — \\
     \midrule
     \textbf{Παρούσα εργασία}
-      & \textbf{RV64GCV} & \textbf{Karatsuba / επικυρωμένο SW (\gls{zbc}/\gls{zvbc})}
+      & \textbf{RV64GC\{V\}} & \textbf{Karatsuba}
+      & \textbf{επικυρωμένο SW (\gls{zbc}/\gls{zvbc})}
       & \ding{51} & \ding{51} & \ding{51} \\
     \bottomrule
   \end{tabular}%
   }
 \end{table}
 
-\section{\HQC σε RISC-V: η κυριαρχία των HW/SW co-designs}
+\section{\HQC σε RISC-V: υλοποιήσεις βασισμένες σε custom hardware}
 \label{sec:rw-riscv}
 
 Και οι τέσσερις δημοσιευμένες RISC-V υλοποιήσεις του \gls{hqc} μοιράζονται ένα κοινό
 χαρακτηριστικό: όλες στηρίζονται σε custom hardware και όχι στις ήδη επικυρωμένες
 επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό καλύπτει η παρούσα εργασία (\cref{sec:rw-axes}). Οι τέσσερις εργασίες
 παρουσιάζονται με χρονολογική σειρά δημοσίευσης και αναλύονται σε βάθος παρακάτω.
+\nopagebreak[4]
 
 \subsection{Schöffel et al.\ 2022: HW/SW co-design σε RV32IC}
 \label{ssec:rw-schoeffel}
@@ -305,8 +291,8 @@ hardware και όχι στις επικυρωμένες κρυπτογραφι�
 εργασίες που ακολουθούν μοιράζονται τη \emph{στρατηγική επιτάχυνσης} της παρούσας
 εργασίας: επιτάχυνση σε καθαρό λογισμικό για επεξεργαστές γενικού σκοπού, η οποία
 δεν στηρίζεται σε custom hardware αλλά αξιοποιεί τις ήδη υπάρχουσες carry-less SIMD
-εντολές της εκάστοτε αρχιτεκτονικής (\texttt{VPCLMULQDQ} στο x86, \texttt{PMULL}
-στο ARM). Αποτελούν συνεπώς τις πλησιέστερες αντίστοιχες υλοποιήσεις και το βασικό
+εντολές της εκάστοτε αρχιτεκτονικής (π.χ.\ \texttt{VPCLMULQDQ} στο x86, 
+\texttt{PMULL} στο ARM). Αποτελούν συνεπώς τις πλησιέστερες αντίστοιχες υλοποιήσεις και το βασικό
 σημείο σύγκρισης ως προς τη στρατηγική επιτάχυνσης· διαφέρουν από την παρούσα
 εργασία μόνο στην αρχιτεκτονική (RISC-V έναντι x86/ARM). Παρουσιάζονται 
 ξεκινώντας από την εργασία που θεμελιώνει το αλγοριθμικό υπόβαθρο και 
