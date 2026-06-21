@@ -306,41 +306,35 @@ hardware και όχι στις επικυρωμένες κρυπτογραφι�
 ανάλογο, οι Chen et al.\ την FFT-based εναλλακτική και το OptHQC 
 την sparse$\times$dense προσέγγιση σε AVX2.
 
-\subsection{Robert \& Véron 2023 — η AVX-512 βάση της επίσημης AVX2 υλοποίησης HQC}
+\subsection{Robert \& Véron 2023: η επίσημη AVX2 βάση του \HQC}
 \label{ssec:rw-robert-veron}
 
 Η εργασία των Robert \& Véron~\cite{RobertVeron2023-avx512-gf2x} αποτελεί τη 
 βάση της \emph{επίσημης} AVX2 υλοποίησης πολυωνυμικού πολλαπλασιασμού 
 του \gls{hqc}: ο κώδικας που εισήγαγαν έχει ενσωματωθεί αυτούσιος στην 
-επίσημη reference implementation~\cite{HQC-reference-impl,Jang2026-gf2x-SIMD}. 
+επίσημη reference implementation~\cite{HQC-reference-impl}. 
 Συγκεκριμένα, ο πολλαπλασιασμός στον δακτύλιο $\GF{2}[x]/(x^n-1)$ 
 υλοποιείται ως \emph{constant-time} dense$\times$dense πράξη, με 
-\texttt{Toom3Mult(Karat3)} για HQC-128/192\footnote{Οι σχετικές 
-εργασίες χρησιμοποιούν την ονοματοδοσία κατά NIST (HQC-1/3/5)· εδώ 
-αντιστοιχίζονται στα HQC-128/192/256 για συνέπεια με την 
-υπόλοιπη διατριβή.} και \texttt{Toom3Mult(Karat5)} 
+\texttt{Toom3Mult(Karat3)} για HQC-128/192\footnote{Η βιβλιογραφία 
+χρησιμοποιεί την ονοματοδοσία κατά NIST (HQC-1/3/5)· σε όλη τη 
+διατριβή τα αναφέρουμε ως HQC-128/192/256 ανάλογα με το επίπεδο 
+ασφαλείας.} και \texttt{Toom3Mult(Karat5)} 
 για HQC-256: Toom-Cook 3-way στο ανώτερο επίπεδο, με ενσωματωμένο 3-way 
 (ή 5-way) Karatsuba και αναδρομικό 2-way Karatsuba στα φύλλα, όπου το 
 base multiplication εκτελείται με την εντολή \texttt{PCLMULQDQ} 
 (\texttt{\_mm\_clmulepi64\_si128}). Η βελτιστοποίηση 
 \texttt{Toom3Mult(Karat3)} για HQC-128/192 αποτελεί συνεισφορά αυτής 
-της εργασίας --- αντικατέστησε την προηγούμενη \texttt{Karat9} (όπως 
-ονομάζεται στον Πίνακα~10 του~\cite{RobertVeron2023-avx512-gf2x}: 
-2-αναδρομικός 3-split Karatsuba, δηλαδή \texttt{Karat3(Karat3)}) 
-της επίσημης υποβολής του Γύρου~3 (\texttt{2020/10/01}) ---, 
+της εργασίας: αντικατέστησε τον προηγούμενο 2-αναδρομικό 3-split 
+Karatsuba (\texttt{Karat3(Karat3)}) της υποβολής του Γύρου~3, 
 ενώ η δομή \texttt{Toom3Mult(Karat5)} του HQC-256 προϋπήρχε στον ίδιο 
-επίσημο AVX2 κώδικα. Η βελτίωση ενσωματώθηκε στην τελευταία επίσημη 
-έκδοση του \gls{hqc} (\texttt{2021/06/06})· η συγκεκριμένη AVX2 
-υλοποίηση --- και όχι το AVX-512 variant του ίδιου paper --- παραμένει 
-η baseline του επίσημου HQC \texttt{v5.0.0} μέχρι σήμερα. 
-Ο πολλαπλασιασμός αυτός αποτελεί το κύριο 
-υπολογιστικό bottleneck του σχήματος (\pct{20}--\pct{32} των συνολικών 
-κύκλων στο HQC-128 ανά πράξη \KeyGen/\Encaps/\Decaps~\cite{Jang2026-gf2x-SIMD}).
+AVX2 κώδικα. Η βελτίωση εισήχθη στην ενημέρωση του Γύρου~3 . Στον επίσημο κώδικα υιοθετήθηκε η AVX2 
+εκδοχή, και όχι η AVX-512 εκδοχή του ίδιου paper. Έκτοτε παραμένει 
+η baseline του \gls{hqc} έως την τρέχουσα \texttt{v5.0.0}. 
 
 Σε επίπεδο αλγορίθμου, με την εμφάνιση του AVX-512 και της 
-\texttt{VPCLMULQDQ} --- που εκτελεί τέσσερις 64-bit carry-less 
-πολλαπλασιασμούς παράλληλα στον 512-bit zmm register (έναντι δύο 
-στον 256-bit ymm του AVX2) --- οι συγγραφείς 
+\texttt{VPCLMULQDQ} (που εκτελεί τέσσερις 64-bit carry-less 
+πολλαπλασιασμούς παράλληλα στον 512-bit zmm register, έναντι 
+δύο στον 256-bit ymm του AVX2), οι συγγραφείς 
 επανεξετάζουν τον Karatsuba, αξιοποιώντας τους ευρύτερους 512-bit 
 registers, με Karatsuba στο 512-bit επίπεδο και schoolbook base 
 multiplication στα 128/256-bit (\texttt{karat\_mult\_1\_512\_SB}). 
@@ -348,23 +342,15 @@ multiplication στα 128/256-bit (\texttt{karat\_mult\_1\_512\_SB}).
 διάφορες κατασκευές Karatsuba (recursive, καθώς και fixed-split 3-way 
 και 5-way) και τις συνδυάζουν με Toom-Cook 3-, 4- και 5-way, 
 εντοπίζοντας τον αποδοτικότερο συνδυασμό ανά εύρος βαθμού πολυωνύμου. 
-Σε αντίθεση όμως με τους Jang et al.~\cite{Jang2026-gf2x-SIMD} 
-(\cref{ssec:rw-jang-simd}), εξετάζουν μόνο ένα περιορισμένο υποσύνολο 
-των δυνατών συνδυασμών, χωρίς συστηματική μεθοδολογία επιλογής. Σε 
-επίπεδο μεμονωμένου kernel, το AVX-512 variant των R\&V μειώνει το 
-πλήθος των retired εντολών κατά $\sim$3$\times$ και πετυχαίνει 
-επιτάχυνση \pct{29.5}--\pct{39.1} σε κύκλους έναντι του AVX2, με 
-όφελος έως \pct{11.8} σε επίπεδο \gls{kem} (π.χ.\ \KeyGen του HQC-256)· 
-στον επίσημο κώδικα, ωστόσο, ενσωματώθηκε το AVX2 (\texttt{PCLMULQDQ}) 
-variant, που αποτελεί τον baseline της παρούσας διατριβής.
+Σε επίπεδο μεμονωμένου kernel, η AVX-512 εκδοχή των R\&V μειώνει το 
+πλήθος των retired εντολών κατά $\sim$\speedup{3} και πετυχαίνει 
+επιτάχυνση \SIrange{29.5}{39.1}{\percent} σε κύκλους έναντι του AVX2, με 
+όφελος έως \pct{11.8} σε επίπεδο \gls{kem} (π.χ.\ \KeyGen του HQC-256).
 
-Η συνάφεια με την παρούσα εργασία είναι διττή. Πρώτον, ορίζει τον 
+Η συνάφεια με την παρούσα εργασία είναι η εξής. Ορίζει τον 
 \emph{baseline} αλγόριθμο που βελτιστοποιεί και συγκρίνει η διατριβή: 
 η επιτάχυνση μέσω \vclmul εφαρμόζεται στα leaf (base) multiplications 
-του ίδιου Toom/Karatsuba σκελετού. Δεύτερον, αναδεικνύει την αρχιτεκτονική 
-διάκριση που διατρέχει όλη την ενότητα: η προσέγγιση των R\&V είναι θεμελιωμένη 
-σε fixed-width SIMD (512-bit zmm), ενώ η παρούσα εργασία στοχεύει το VLA 
-vector model του RISC-V (\vclmul, VLEN-dependent παραλληλισμός).
+του ίδιου Toom/Karatsuba σκελετού. 
 
 \subsection{Jang et al.\ 2026 — Συστηματικός Toom-Karatsuba σε AVX2/Neon}
 \label{ssec:rw-jang-simd}
@@ -439,16 +425,13 @@ lane-interleaved 256-bit loads/stores (\speedup{2} στο SHAKE)· και
 (γ)~table-driven Reed-Solomon που αντικαθιστά τον πολλαπλασιασμό στο $\GF{2^8}$
 με precomputed lookup tables ($\sim$8\,KB για encode, $\sim$14\,KB nibble-sliced
 για decode). Συνολικά επιτυγχάνεται \pct{55} μέσο speedup έναντι της reference,
-με τη μεγαλύτερη βελτίωση στο \Decaps· χαρακτηριστικά, στη reference υλοποίηση ο
-πολυωνυμικός πολλαπλασιασμός και η αποκωδικοποίηση αποτελούν από κοινού άνω του
-\pct{85} του συνολικού χρόνου.
+με τη μεγαλύτερη βελτίωση στο \Decaps.
 
-Δύο διαφορές περιορίζουν τη συγκρισιμότητα με την παρούσα εργασία. Πρώτον, η
+Η διαφορά που περιορίζει τη συγκρισιμότητα με την παρούσα εργασία είναι ότι 
 βελτιστοποίηση πολλαπλασιασμού εκμεταλλεύεται τη σπανιότητα των μυστικών
 διανυσμάτων (sparse$\times$dense) — τεχνική που η τελική specification (2024)
 απαγορεύει λόγω side-channel ευπαθειών~\cite{HQC-spec2024}, ενώ η παρούσα εργασία
-χρησιμοποιεί αποκλειστικά dense$\times$dense Karatsuba. Δεύτερον, η υλοποίηση
-βασίζεται σε x86 \texttt{VPCLMULQDQ} και δεν είναι portable σε RISC-V.
+χρησιμοποιεί αποκλειστικά dense$\times$dense Karatsuba. 
 
 Τα τρία αυτά ανάλογα τεκμηριώνουν ότι η αξιοποίηση SIMD carry-less
 πολλαπλασιασμού εντός Karatsuba/FFT δομών σε καθαρό λογισμικό είναι αποδεδειγμένα
