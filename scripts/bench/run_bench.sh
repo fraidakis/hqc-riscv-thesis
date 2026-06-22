@@ -34,6 +34,7 @@ Options:
   --local                 Run directly on this machine (hw only)
   --keccak IMPL           Keccak implementation override (e.g., ref, opt)
   --decode IMPL           Decode implementation override (e.g., ref, rvv, zvbc)
+  --pgo                   Enable PGO (profile-guided optimization) for hw builds (kem/mul only)
   -h, --help              Show this help and exit
 
 Platform-specific notes:
@@ -63,6 +64,7 @@ REMOTE_EXPLICIT=0
 LOCAL_MODE=0
 KECCAK_IMPL=""
 DECODE_IMPL=""
+PGO=0
 
 # ── Argument Parsing ─────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -144,6 +146,10 @@ while [[ $# -gt 0 ]]; do
             fi
             DECODE_IMPL="$2"
             shift 2
+            ;;
+        --pgo)
+            PGO=1
+            shift
             ;;
         -h|--help)
             usage
@@ -612,6 +618,11 @@ case "$PLATFORM" in
                 keccak)  target="keccak" ;;
                 decode)  target="decode" ;;
             esac
+
+            # Use PGO target if requested (only for kem/mul — keccak/decode not PGO-worthy)
+            if [[ "$PGO" -eq 1 && ("$target" == "kem" || "$target" == "mul") ]]; then
+                target="pgo_${target}"
+            fi
 
             # Clean then build — show build output on failure for debugging
             local build_log extra_args=""
