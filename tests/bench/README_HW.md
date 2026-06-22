@@ -68,6 +68,42 @@ make -f Makefile.hw LEVEL=128 run_decode
 | `MODE` | `dev` | `dev` (100 iter, fast) or `publish` (10000 iter, thesis-quality) |
 | `N_ITER` | 100 (dev) / 10000 (publish) | Measured iterations |
 | `N_WARMUP` | 10 (dev) / 100 (publish) | Warm-up iterations (discarded) |
+| `PGO` | _(empty)_ | PGO mode: `generate` or `use` (see below) |
+| `PGO_PROFILE_DIR` | `pgo_profiles/<POLYMUL>` | Directory for .gcda profile data |
+
+## Profile-Guided Optimization (PGO)
+
+PGO provides ~4.8% cycle reduction on the BPI-F3 for `ref_scalar` by
+improving branch prediction and code layout. LTO was evaluated and found
+to provide no benefit (+0.3% regression) on this in-order core.
+
+### PGO Workflow
+
+```bash
+# 1. Build with PGO instrumentation
+make -f Makefile.hw LEVEL=128 POLYMUL=ref_scalar PGO=generate kem
+
+# 2. Run training (generates .gcda profile data)
+sudo nice -n -20 taskset -c 7 ./bench_hw_kem_hqc128_ref_scalar
+
+# 3. Rebuild with profile data
+make -f Makefile.hw LEVEL=128 POLYMUL=ref_scalar PGO=use kem
+
+# 4. Run the PGO-optimized benchmark
+sudo nice -n -20 taskset -c 7 ./bench_hw_kem_hqc128_ref_scalar
+```
+
+### Automated LTO/PGO Comparison
+
+```bash
+# Full automated comparison (baseline vs LTO vs PGO)
+make -f Makefile.hw LEVEL=128 MODE=dev lto_pgo_compare
+
+# Or directly:
+bash ../../scripts/bench/run_hw_lto_pgo_compare.sh --level 128 --mode publish
+```
+
+Results saved to `results/hardware/benchmarks/lto_pgo/`.
 
 ## Output Format
 

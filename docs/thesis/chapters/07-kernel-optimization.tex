@@ -994,7 +994,7 @@ for (size_t i = 0; i < weight; i++) {
 }
 \end{lstlisting}
 %
-Ο μεταγλωττιστής (Clang~21, \code{-O3}) εκπέμπει \num{5} στατικές εντολές
+Ο μεταγλωττιστής (Clang~21.1.1, \code{-O3}) εκπέμπει \num{5} στατικές εντολές
 \insn{bset} στο ELF — εντός της scatter function και της
 \code{barrett\_reduce}. Δεν εκπέμπεται καμία \insn{bclr}, \insn{bext} ή
 \insn{binv} — ο κώδικας \gls{hqc} δεν περιέχει τα αντίστοιχα patterns στα

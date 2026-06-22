@@ -42,12 +42,10 @@
 Στην αρχιτεκτονική RISC-V υπάρχουν δύο βασικοί μετρητές επίδοσης: ο \code{mcycle}
 (μετρητής κύκλων) και ο \code{minstret} (μετρητής retired instructions). Και οι δύο είναι
 M-mode \glspl{csr} (διευθύνσεις \code{0xb00} και \code{0xb02} αντίστοιχα) και διαβάζονται
-απευθείας με την εντολή \code{csrr}, χωρίς να απαιτείται κάποια επέκταση ISA. Στο Spike,
+απευθείας με την εντολή \code{csrr}. Στο Spike,
 ως καθαρό functional model, ισχύει \code{mcycle} $\equiv$ \code{minstret}: κάθε αποσυρόμενη
 εντολή προάγει τον \code{mcycle} κατά έναν κύκλο ανεξαρτήτως τύπου, ώστε μία εντολή
-\vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}. Αυτό δεν σημαίνει ότι το Spike
-\emph{επιβάλλει} \gls{cpi} $= 1$· απλώς δεν μοντελοποιεί καθόλου το latency, οπότε η μετρική
-του εξαρτάται αποκλειστικά από το instruction count του αλγορίθμου. Η εμπειρική σχέση
+\vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}. Η εμπειρική σχέση
 μεταξύ \instret\ και πραγματικών κύκλων εξετάζεται στην \cref{ssec:spike-vs-hw}, ενώ οι
 συνέπειες αυτής της απλοποίησης αναλύονται στην \cref{ssec:benchmarking-limitations}.
 
@@ -60,9 +58,7 @@ spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b <elf>
 
 \noindent
 όπου η παράμετρος \code{zvl256b} ορίζει \VLEN $= \num{256}$~bits, αντιστοιχώντας
-στο hardware profile που στοχεύει η υλοποίηση (βλ.~\cref{ssec:bpi-f3}). Η καταμέτρηση εδώ
-διαβάζει απευθείας τους M-mode μετρητές \code{mcycle}/\code{minstret}, οι οποίοι δεν
-απαιτούν κάποια επέκταση ISA.
+στο hardware profile που στοχεύει η υλοποίηση (βλ.~\cref{ssec:bpi-f3}).
 
 To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης ενός ELF binary στο Spike:
 ο host (ο φυσικός επεξεργαστής που εκτελεί το Spike) ερμηνεύει σειριακά κάθε εντολή
@@ -153,29 +149,34 @@ natively στο hardware, ενώ το Vector-Crypto variant (Tier~3) αξιολ�
     τα scalar και Base-RVV variants (Tier~1, Tier~2).
 \end{itemize}
 
-\section{Cross-Compilation Toolchains και Ρυθμίσεις Μεταγλώττισης}
+\section{Toolchains και Ρυθμίσεις Cross-Compilation}
 \label{sec:toolchains}
 
-Η μεταγλώττιση κρυπτογραφικού κώδικα RISC-V με πέντε ταυτόχρονες επεκτάσεις
-(\gls{zbc}, \gls{zbb}, \RVV, \gls{zvbc}, \gls{zvbb}) θέτει αυστηρές απαιτήσεις στην αλυσίδα
-εργαλείων: πλήρης υποστήριξη intrinsics για Vector-Crypto εντολές, σωστή
-κωδικοποίηση opcodes, και συμβατότητα με bare-metal εκτέλεση χωρίς λειτουργικό
-σύστημα. Η παρούσα ενότητα περιγράφει τη στρατηγική cross-compilation, τη
-συγκριτική αξιολόγηση μεταγλωττιστών, και τις ρυθμίσεις που εξασφαλίζουν
-αναπαραγώγιμα αποτελέσματα.
+Η μεταγλώττιση γίνεται σε καθεστώς \emph{cross-compilation}: ο κώδικας
+παράγεται σε host x86-64 αλλά στοχεύει την αρχιτεκτονική RISC-V. Αυτό
+επιβάλλεται από τον κύριο στόχο εκτέλεσης, τον \gls{iss} Spike, ο οποίος
+εκτελεί bare-metal ELF χωρίς λειτουργικό σύστημα και αποτελεί την κύρια πηγή
+μετρήσεων \instret. Το ίδιο host-based toolchain χρησιμοποιείται και για τα
+binaries του Banana Pi BPI-F3 (SpacemiT K1 X60) που επικυρώνουν την υλοποίηση
+σε πραγματικό υλικό, ώστε η διαδικασία build να παραμένει ενιαία.
 
 \subsection{Στρατηγική Μεταγλώττισης και Επιλογή Compiler}
 \label{ssec:compiler-strategy}
 
-Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{Clang/LLVM 21.1.1} σε
+Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{Clang/LLVM~21.1.1} σε
 bare-metal cross-compilation mode με target triple \code{riscv64-unknown-elf}.
-Η επιλογή αυτή τεκμηριώνεται από τρεις παράγοντες.
+Το \emph{target triple} προσδιορίζει τον στόχο μεταγλώττισης στη μορφή
+\code{<αρχιτεκτονική>-<vendor>-<σύστημα/abi>}: εδώ \code{riscv64} (64-bit
+RISC-V), \code{unknown} ως vendor, και \code{elf} που δηλώνει bare-metal στόχο
+χωρίς λειτουργικό σύστημα (αντικείμενα μορφής ELF).
 
-Πρώτον, ο Clang παρέχει πλήρη και type-checked υποστήριξη του RVV 1.0 intrinsic
-API μέσω του header \code{<riscv\_vector.h>}, συμπεριλαμβανομένων των
-\code{\_\_riscv\_vclmul\_vv\_u64m1()} και \code{\_\_riscv\_vror\_vv\_u64m1()} που
-αποτελούν τη βάση των Tier~2 και Tier~3 πυρήνων. Ο GCC~15.2, αν και υποστηρίζει
-τις ίδιες εντολές σε επίπεδο opcode, παρουσιάζει δύο project-specific ζητήματα
+Η επιλογή του Clang ως κύριου μεταγλωττιστή τεκμηριώνεται από δύο παράγοντες.
+
+Πρώτον, η ενεργή ανάπτυξη του RVV vector backend είναι σήμερα συγκεντρωμένη
+στο LLVM, καθιστώντας τον Clang τον de facto μεταγλωττιστή αναφοράς για
+RVV 1.0 codegen~\cite{Bradbury-LLVM-RVV2025}. Δεύτερον, και κρισιμότερο για την παρούσα εργασία, ο
+GCC~15.2 — αν και υποστηρίζει τις ίδιες εντολές σε επίπεδο opcode και τα ίδια
+intrinsics μέσω του \code{<riscv\_vector.h>} — παρουσιάζει δύο project-specific ζητήματα
 κατά τη μεταγλώττιση πυρήνων \Zvbb: πρώτον, απουσία υποστήριξης για πίνακες
 sizeless vector types (\code{vint64m8\_t[]}) λόγω strict τήρησης του RVV spec
 (language extension gap, σε αντίθεση με την επέκταση \code{riscv\_rvv\_vector\_bits}
@@ -185,22 +186,10 @@ infinite loop στον παραγόμενο κώδικα. Τα δύο αυτά �
 ακατάλληλο για τα \Zvbb targets (\code{gcc\_zvbb\_incompatible} στο benchmark
 pipeline), χωρίς να αναιρούν τη γενική υποστήριξή του για Vector-Crypto opcodes.
 
-Δεύτερον, ο Clang παρέχει διαγνωστικά vectorization
-(\code{-Rpass=loop-vectorize}) που επιτρέπουν τον εντοπισμό βρόχων που δεν
-διανυσματοποιήθηκαν αυτόματα — κρίσιμο εργαλείο κατά την ανάπτυξη. Τρίτον, ο
-instruction scheduler του Clang παράγει σταθερά πιο compact κώδικα για δομημένους
-intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse64}).
-
 Ο \textbf{GCC~15.2} διατηρεί συμπληρωματικό ρόλο: χρησιμοποιείται ως εναλλακτικός
 μεταγλωττιστής για τα scalar-only variants (\code{scalar\_ref},
-\code{scalar\_zb}) και ως cross-validation εργαλείο. Η σύγκριση GCC–Clang
-στο reference scalar baseline αποκαλύπτει ότι ο GCC~15.2 με \code{-O3} παράγει
-\pct{2.9} λιγότερες εντολές από τον Clang (\num{113958344} έναντι
-\num{117344266} στο HQC-128), ενώ στα υψηλότερα security levels η διαφορά
-μειώνεται ελαφρά (από \pct{2.9} σε \pct{1.9}). Η διαφορά αυτή οφείλεται στην
-επιθετικότερη loop unrolling πολιτική του GCC στον bit-serial πολλαπλασιασμό —
-ένα πλεονέκτημα που εξαφανίζεται στους βελτιστοποιημένους Karatsuba πυρήνες
-όπου η δομή κώδικα είναι πλήρως compile-time generated.
+\code{scalar\_zb}) και ως cross-validation εργαλείο. Η αναλυτική συγκριτική αξιολόγηση
+Clang–GCC παρουσιάζεται στο \cref{sec:compiler-comparison}.
 
 \subsection{CMake Build System και Toolchain Files}
 \label{ssec:cmake-build}
@@ -335,20 +324,6 @@ profile-guided διάταξη κώδικα μειώνει τα branch mispredict
 
 Τα αποτελέσματα παρουσιάζονται αναλυτικά στο \cref{ssec:hw-pgo-results}.
 
-\subsection{Αναπαραγωγιμότητα Builds}
-\label{ssec:build-reproducibility}
-
-Η αναπαραγωγιμότητα εξασφαλίζεται μέσω τριών μηχανισμών. Πρώτον, το αρχείο
-\code{toolchain/toolchain.env} ορίζει τις μεταβλητές περιβάλλοντος
-(\code{RISCV}, \code{CC}, \code{SPIKE}) με αυτόματη ανίχνευση εγκατεστημένων
-εργαλείων, εξαλείφοντας εξαρτήσεις από τοπικές ρυθμίσεις. Δεύτερον, η
-ρύθμιση \code{-mno-relax} εγγυάται ταυτόσημο binary output ανεξαρτήτως linker
-version. Τρίτον, το CI pipeline (\code{.github/workflows/}) εκτελεί
-αυτοματοποιημένα KAT tests σε κάθε commit, επιβεβαιώνοντας bit-exact
-ορθότητα σε ελεγχόμενο περιβάλλον (Ubuntu, Clang~21.1.1, Spike).
-
-Συνοπτικές οδηγίες αναπαραγωγής (διάταξη αποθετηρίου, εντολές build και εκτέλεσης, και αντιστοίχιση αποτελεσμάτων ανά κεφάλαιο) συγκεντρώνονται στην \cref{app:reproducibility}.
-
 \section{Bare-Metal Πλαίσιο Εκτέλεσης}
 \label{sec:bare-metal}
 
@@ -421,8 +396,7 @@ mask-agnostic — η τυπική ρύθμιση για τους κρυπτογ�
   \centering
   \resizebox{0.65\textwidth}{!}{\input{figures/ch5-setup/boot-sequence}}
   \caption{Ακολουθία εκκίνησης bare-metal: από το reset vector έως τον
-    τερματισμό μέσω \gls{htif}. Η ενεργοποίηση της διανυσματικής μονάδας
-    εκτελείται υπό συνθήκη (conditional assembly) μόνο σε vector targets.}
+    τερματισμό μέσω \gls{htif}.}
   \label{fig:boot-sequence}
 \end{figure}
 
