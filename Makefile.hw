@@ -19,7 +19,7 @@
 #
 # Common parameters:
 #   LEVEL   = 128 | 192 | 256       (security level)
-#   POLYMUL = scalar_ref | scalar_zb | vector_ref | vector_rvv | vector_zvk
+#   POLYMUL = scalar_ref | scalar_zb | vector_rvv | vector_zvk
 #   MODE    = dev | publish          (iteration count preset)
 #   KECCAK  = ref | zvbb_x2_soa     (keccak implementation for KEM chain)
 #   DECODE  = ref | rvv | zvbc       (decode implementation for decode bench)
@@ -41,6 +41,7 @@ CC       ?= gcc
 LEVEL    ?= 128
 POLYMUL  ?= scalar_zb
 MODE     ?= dev
+OPT      ?= O3
 
 # KECCAK: keccak implementation for KEM chain
 #   ref          — vendor scalar fips202 (default)
@@ -80,6 +81,7 @@ else ifeq ($(POLYMUL),scalar_zb)
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul.c
   EXTRA_CFLAGS := -fno-tree-vectorize
 else ifeq ($(POLYMUL),vector_ref)
+  # DEPRECATED — retained for manual one-off comparisons only.
   MARCH := rv64gcv_zbc_zbb_zbs
   POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
   EXTRA_CFLAGS := -ftree-vectorize
@@ -90,7 +92,7 @@ else ifeq ($(POLYMUL),vector_rvv)
 else ifeq ($(POLYMUL),vector_zvk)
   MARCH := rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zvbc/gf2x_vclmul.c
-  EXTRA_CFLAGS :=
+  EXTRA_CFLAGS := -DHQC_POLYMUL_ZVBC=1
 else
   $(error Unsupported POLYMUL=$(POLYMUL). Use scalar_ref, scalar_zb, vector_ref, vector_rvv, or vector_zvk)
 endif
@@ -105,19 +107,42 @@ INCLUDES := -I$(VENDOR)/src/common/$(VARIANT_DIR) \
             -Iinclude
 
 # ── Common base CFLAGS ───────────────────────────────────────────────────────
-CFLAGS_BASE := -O3 -static -march=$(MARCH) -mabi=lp64d \
+CFLAGS_BASE := -$(OPT) -static -march=$(MARCH) -mabi=lp64d \
                -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
                -DHQC_PLATFORM_HW=1 \
                -DHQC_BENCH_MODE=1 \
                -DPOLYMUL_NAME=\"$(POLYMUL)\" \
                $(EXTRA_CFLAGS)
 
-# ── LTO support (enabled by default for bench, disabled for dudect) ──────────
-# LTO provides 1–3% improvement from cross-TU inlining.
-# Override with LTO=0 to disable.
-LTO ?= 1
+# ── LTO support ──────────────────────────────────────────────────────────────
+# LTO provides 1–3% improvement from cross-TU inlining on scalar code.
+# However, GCC 14's RISC-V backend ICEs when combining -flto with RVV
+# intrinsics (emit_move_insn crash / "target specific builtin not available").
+# Therefore: LTO is auto-enabled only for scalar variants (where GCC wins)
+# and force-disabled for vector variants.  Override with LTO=0 to disable
+# entirely, or LTO=1 to force-enable (may ICE on vector code with GCC).
+#
+# Clang requires -fuse-ld=lld for LTO (GNU ld lacks LLVMgold.so on this board).
+
+# Detect vector variants (those whose MARCH includes the V extension)
+_IS_VECTOR := $(findstring gcv,$(MARCH))
+
+# Default: LTO=1 for scalar, LTO=0 for vector
+ifdef LTO
+  # User explicitly set LTO — honour it
+else
+  ifeq ($(_IS_VECTOR),)
+    LTO := 1
+  else
+    LTO := 0
+  endif
+endif
+
 ifeq ($(LTO),1)
   CFLAGS_BASE += -flto
+  ifeq ($(CC),clang)
+    CFLAGS_BASE += -fuse-ld=lld
+  endif
 endif
 
 # ── Core sources (invariant across polymul variants) ─────────────────────────
@@ -262,7 +287,7 @@ $(KECCAK_BIN): $(KECCAK_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_h
 
 $(DECODE_BIN): $(DECODE_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
 ifneq ($(DECODE_MARCH),)
-	$(CC) -O3 -static -march=$(DECODE_MARCH) -mabi=lp64d \
+	$(CC) -$(OPT) -static -march=$(DECODE_MARCH) -mabi=lp64d \
 	    -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
 	    -DHQC_PLATFORM_HW=1 -DHQC_BENCH_MODE=1 \
 	    -DN_ITER=$(N_ITER) -DN_WARMUP=$(N_WARMUP) \
@@ -287,7 +312,6 @@ run_decode: $(DECODE_BIN)
 all_variants:
 	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=scalar_ref
 	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=scalar_zb
-	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=vector_ref
 	$(MAKE) -f Makefile.hw SUITE=bench LEVEL=$(LEVEL) POLYMUL=vector_rvv
 
 run_all_mul:

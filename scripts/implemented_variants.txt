@@ -1,5 +1,4 @@
 scalar_ref
 scalar_zb
-vector_ref  # DEPRECATED: retained for CSV compatibility; no longer used as baseline
 vector_rvv
 vector_zvk

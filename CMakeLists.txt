@@ -86,13 +86,11 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 # HQC_KECCAK_IMPL / HQC_DECODE_IMPL (set in cmake/options.cmake).
 #
 #   scalar_ref  : vendor scalar baseline, no RVV
-#   vector_ref  : vendor reference sources, compiled for base RVV auto-vectorization
 #   scalar_zb   : scalar optimized champion (Zbc carry-less multiply)
 #   vector_rvv  : RVV hybrid champion
 #   vector_zvk  : full vector-crypto champion (Zvbc)
 set(POLYMUL_VARIANTS
     scalar_ref
-    vector_ref
     scalar_zb
     vector_rvv
     vector_zvk
