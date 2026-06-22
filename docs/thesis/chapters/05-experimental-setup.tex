@@ -13,45 +13,56 @@
 
 Η αξιολόγηση απόδοσης σε RISC-V με κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb}
 αντιμετωπίζει ένα πρακτικό εμπόδιο: κατά τη στιγμή εκπόνησης της εργασίας δεν
-υπήρχε διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει ταυτόχρονα
-\RVV 1.0, \gls{zvbc} και \gls{zvbb} σε προσβάσιμη πλατφόρμα. Κατά συνέπεια, η πειραματική
-υποδομή βασίζεται σε δύο συμπληρωματικές πλατφόρμες: τον Spike \gls{iss} για
-ντετερμινιστική καταμέτρηση εντολών και λειτουργική επαλήθευση, και το Banana
-Pi BPI-F3 (SpacemiT K1 X60) για μετρήσεις κύκλων σε πραγματικό hardware.
+υπήρχε διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει τις διανυσματικές
+επεκτάσεις \gls{zvbc} και \gls{zvbb} σε προσβάσιμη πλατφόρμα. Κατά συνέπεια, η πειραματική
+υποδομή συνδυάζει δύο συμπληρωματικές πλατφόρμες: το \gls{iss} Spike, που
+υποστηρίζει το σύνολο των επεκτάσεων που χρησιμοποιεί η υλοποίηση και παρέχει
+ντετερμινιστική καταμέτρηση εντολών, και το Banana Pi BPI-F3 (SpacemiT K1 X60),
+που προσφέρει μετρήσεις κύκλων σε πραγματικό hardware για τα tiers που υποστηρίζει.
 
-\paragraph{Spike — Ο Αναφορικός ISA Simulator}
+\paragraph{Spike — Ο Προσομοιωτής Αναφοράς (Reference ISS)}
 
-Ο Spike αποτελεί τον επίσημο αναφορικό εξομοιωτή της αρχιτεκτονικής RISC-V,
-αναπτυγμένο από το RISC-V Software Foundation~\cite{spike-github}. Υλοποιεί ένα
-\defterm{λειτουργικό μοντέλο} (functional model) ενός ή περισσότερων RISC-V harts:
+Ο Spike αποτελεί τον επίσημο προσομοιωτή αναφοράς (reference model) της
+αρχιτεκτονικής RISC-V, αναπτυγμένο από το RISC-V Software Foundation~\cite{spike-github}:
+λειτουργεί ως αυθεντική υλοποίηση που ορίζει τη σωστή συμπεριφορά της αρχιτεκτονικής
+και, ως εκ τούτου, χρησιμοποιείται ως σημείο αναφοράς για τη λειτουργική επαλήθευση
+και την καταμέτρηση εντολών. Υλοποιεί ένα
+\defterm{λειτουργικό μοντέλο} (functional model — αναπαράσταση μόνο του λειτουργικού
+αποτελέσματος κάθε εντολής, χωρίς μοντελοποίηση του χρονισμού ή της
+μικροαρχιτεκτονικής) ενός ή περισσότερων RISC-V harts (hardware threads — τα λογικά
+νήματα εκτέλεσης που εκθέτει ο επεξεργαστής):
 κάθε εντολή αποκωδικοποιείται και εκτελείται σειριακά, ενημερώνοντας την
-αρχιτεκτονική κατάσταση (registers, μνήμη, \glspl{csr}) χωρίς κανένα μοντέλο
-pipeline, cache ή branch predictor. Η εκτέλεση είναι πλήρως ντετερμινιστική:
-δεδομένου ίδιου ELF binary και ίδιας αρχικής κατάστασης, ο αριθμός εκτελεσθεισών
-εντολών είναι πάντα ίδιος.
+αρχιτεκτονική κατάσταση (architectural state: registers, μνήμη, \glspl{csr}) χωρίς κανένα μοντέλο
+pipeline, cache ή branch predictor. Η εκτέλεση είναι πλήρως ντετερμινιστική, καθώς το ίδιο ELF binary (Executable and
+Linkable Format — το compiled εκτελέσιμο αρχείο, το πρότυπο των Linux/RISC-V, σε
+αντιστοιχία με το \code{.exe} των Windows) με την ίδια αρχική κατάσταση παράγει
+πάντοτε τον ίδιο αριθμό εκτελεσθεισών εντολών.
 
-Η κρίσιμη ιδιότητα του Spike για τη μεθοδολογία benchmarking (συγκριτικής αξιολόγησης απόδοσης) είναι η σημασιολογία
-του \gls{csr} \code{mcycle}: στον Spike, \code{rdcycle} $\equiv$ \code{rdinstret},
-δηλαδή ο μετρητής κύκλων ταυτίζεται με τον μετρητή αποσυρθεισών εντολών. Αυτό
-σημαίνει ότι ο Spike επιβάλλει \gls{cpi} $= 1$ για κάθε εντολή, ανεξαρτήτως
-τύπου, δηλαδή μία εντολή \vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}.
-Οι συνέπειες αυτής της απλοποίησης αναλύονται στην \cref{sec:benchmarking}.
+Η κρίσιμη ιδιότητα του Spike για τη μεθοδολογία benchmarking (συγκριτικής αξιολόγησης απόδοσης) είναι ο τρόπος
+  με τον οποίο υλοποιεί τον μετρητή κύκλων \code{mcycle}. Η RISC-V εκθέτει δύο βασικούς
+  μετρητές επίδοσης: τον \code{mcycle} (μετρητής κύκλων, αναγνώσιμος μέσω της εντολής
+\code{rdcycle}) και τον \code{minstret} (μετρητής retired instructions — αποσυρθεισών
+εντολών — αναγνώσιμος μέσω της \code{rdinstret}). Στον Spike ισχύει \code{rdcycle} $\equiv$ \code{rdinstret},
+δηλαδή ο μετρητής κύκλων ταυτίζεται με τον μετρητή retired instructions. Αυτό σημαίνει
+ότι ο Spike επιβάλλει \gls{cpi} $= 1$ για κάθε εντολή, ανεξαρτήτως τύπου, δηλαδή μία
+εντολή \vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}. Οι συνέπειες αυτής
+της απλοποίησης αναλύονται στην \cref{ssec:benchmarking-limitations}.
 
 Ο Spike υποστηρίζει πλήρως τις επεκτάσεις που απαιτεί η παρούσα εργασία. Η
-κλήση εκτέλεσης χρησιμοποιεί τη συμβολοσειρά \gls{isa}:
+κλήση εκτέλεσης χρησιμοποιεί το \gls{isa} string:
 
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\small, breaklines=true]
-spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
+spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
 \end{lstlisting}
 
 \noindent
 όπου η παράμετρος \code{zvl256b} ορίζει \VLEN $= \num{256}$~bits, αντιστοιχώντας
-στο hardware profile που στοχεύει η υλοποίηση (βλ.\ \cref{sec:toolchains}).
+στο hardware profile που στοχεύει η υλοποίηση (βλ.\ \cref{ssec:bpi-f3}).
 
-To \cref{fig:spike-arch} απεικονίζει τη δομή εκτέλεσης: ο host επεξεργαστής
-ερμηνεύει σειριακά κάθε εντολή του guest ELF, ενημερώνει τον μετρητή
-\code{minstret}, και στο τέλος της εκτέλεσης η τιμή αυτή αποτελεί την πρωτεύουσα
-μετρική απόδοσης.
+To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης ενός ELF binary στον Spike:
+ο host (ο φυσικός επεξεργαστής που εκτελεί τον Spike) ερμηνεύει σειριακά κάθε εντολή
+του guest ELF, ενημερώνει τον μετρητή \code{minstret}, και στο τέλος της εκτέλεσης η
+τιμή αυτή αποτελεί τη βασική μετρική απόδοσης.
 
 \begin{figure}[htbp]
   \centering
@@ -63,22 +74,21 @@ To \cref{fig:spike-arch} απεικονίζει τη δομή εκτέλεσης
 \paragraph{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60)}
 \label{ssec:bpi-f3}
 
-Η τρίτη πλατφόρμα της πειραματικής υποδομής είναι το Banana Pi BPI-F3, μία
-πλακέτα ανάπτυξης βασισμένη στο SpacemiT K1 SoC. Σε αντίθεση με το Spike, 
-η πλατφόρμα αυτή παρέχει πραγματικές μετρήσεις κύκλων (cycles)
-με pipeline effects, cache behavior, και dual-issue scheduling —
-συμπληρωματικά με τα ντετερμινιστικά \instret του Spike.
+Το Banana Pi BPI-F3 (SpacemiT K1 X60) αποτελεί την πλατφόρμα πραγματικού 
+hardware της πειραματικής υποδομής, ένα development board βασισμένο στο 
+SpacemiT K1 SoC(System-on-Chip — ολοκληρωμένο που ενσωματώνει CPU, 
+μνήμη και περιφερειακά σε ένατσιπ). Σε αντίθεση με το Spike, η 
+πλατφόρμα αυτή παρέχει πραγματικές μετρήσεις κύκλων (cycles) με 
+pipeline effects, cache behavior, και dual-issue scheduling, 
+συμπληρωματικά προς τα ντετερμινιστικά \instret του Spike.
 
 \subparagraph{Προδιαγραφές Hardware.}
-Ο SpacemiT K1 ενσωματώνει \num{8} πυρήνες X60 (RV64GCVB, RVA22 profile) σε
-dual-issue in-order 8-stage pipeline στα \SI{1.6}{\giga\hertz} με
-\VLEN $= \num{256}$~bits. Η τοπολογία ακολουθεί dual-cluster σχεδίαση:
-Cluster~0 (\num{4} cores, \SI{32}{\kilo\byte} L1i + \SI{32}{\kilo\byte} L1d
-ανά core, \SI{512}{\kilo\byte} shared L2, \SI{512}{\kilo\byte} TCM) και
-Cluster~1 (\num{4} cores, \SI{32}{\kilo\byte} L1, \SI{512}{\kilo\byte} L2).
-Η μνήμη αποτελείται από \SI{16}{\giga\byte} LPDDR4X @ \SI{2666}{Mbps} και
-\SI{128}{\giga\byte} eMMC αποθηκευτικό χώρο. Το σύστημα εκτελεί Bianbu Linux
-(kernel 6.6.x). Ο \cref{tab:bpif3-specs} συνοψίζει τις βασικές προδιαγραφές.
+Ο SpacemiT K1 είναι octa-core σε \emph{ασύμμετρη} dual-cluster τοπολογία: το
+Cluster~0 (\num{4} cores) διαθέτει επιπλέον \SI{512}{\kilo\byte} TCM αποκλειστικά
+για την επέκταση AI, ενώ το Cluster~1 (\num{4} cores) όχι· κατά τα άλλα τα δύο
+clusters είναι ισοδύναμα (\SI{32}{\kilo\byte} L1i + \SI{32}{\kilo\byte} L1d ανά
+core, \SI{512}{\kilo\byte} L2 ανά cluster). Οι
+πλήρεις προδιαγραφές συνοψίζονται στο \cref{tab:bpif3-specs}.
 
 \begin{table}[htbp]
   \centering
@@ -105,9 +115,10 @@ Cluster~1 (\num{4} cores, \SI{32}{\kilo\byte} L1, \SI{512}{\kilo\byte} L2).
 
 \subparagraph{Υποστηριζόμενες Επεκτάσεις.}
 
-Ο K1 X60 υποστηρίζει RV64IMAFDCV + \ext{Zba} + \ext{Zbb} + \ext{Zbc} +
-\ext{Zbs}. Από αυτές, οι \ext{Zba}/\ext{Zbb}/\ext{Zbs} ανήκουν στο RVA22 mandatory set, ενώ η \ext{Zbc} δεν περιλαμβάνεται στο υποχρεωτικό προφίλ. Ωστόσο, \textbf{δεν υποστηρίζει}
-\gls{zvbc} και \gls{zvbb} — αυτές απαιτούν το RVA23 profile. Η πρακτική συνέπεια είναι ότι τα scalar και
+Ο K1 X60 (RVA22 profile) υποστηρίζει το πλήρες σύνολο scalar bit-manipulation
+extensions, με την παρούσα εργασία να αξιοποιεί τις \ext{Zbb} και \ext{Zbc}.
+Ωστόσο, \textbf{δεν υποστηρίζει} \gls{zvbc} και \gls{zvbb} (βλ.\ \cref{ch:risc-v-architecture}). 
+Η πρακτική συνέπεια είναι ότι τα scalar και
 Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
 \code{vector\_rvv}) εκτελούνται natively στο hardware, ενώ το
 Vector-Crypto variant (\code{vector\_zvk}) αξιολογείται αποκλειστικά
@@ -115,11 +126,13 @@ Vector-Crypto variant (\code{vector\_zvk}) αξιολογείται αποκλε
 
 \subparagraph{Μεθοδολογία Μέτρησης.}
 
-Η μέτρηση κύκλων πραγματοποιείται μέσω του \code{perf\_event\_open} syscall
-με \code{exclude\_kernel=1} (userspace-only cycles). Η εντολή \code{rdcycle}
-δεν είναι προσβάσιμη από userspace στο default Linux configuration
-(\code{scounteren.CY=0}), καθιστώντας αναγκαία τη χρήση του perf subsystem.
-Το πρωτόκολλο μέτρησης ακολουθεί αυστηρή διαδικασία:
+Στο default Linux configuration το bit \code{scounteren.CY} είναι 0, οπότε η
+εντολή \code{rdcycle} (απευθείας ανάγνωση του μετρητή κύκλων από userspace) δεν
+επιτρέπεται. Η μέτρηση κύκλων πραγματοποιείται επομένως μέσω του
+\code{perf\_event\_open} syscall (η διεπαφή του Linux perf subsystem για μετρητές
+απόδοσης) με \code{exclude\_kernel=1}, που περιορίζει τη μέτρηση αποκλειστικά στους
+κύκλους userspace, εξαιρώντας τον χρόνο εντός του kernel.
+Το πρωτόκολλο μέτρησης ακολουθεί την εξής διαδικασία:
 
 \begin{itemize}
   \item \textbf{CPU isolation:} Η εκτέλεση γίνεται σε isolated core μέσω
@@ -129,7 +142,7 @@ Vector-Crypto variant (\code{vector\_zvk}) αξιολογείται αποκλε
   \item \textbf{Warm-up:} \num{100} iterations (discarded) για αρχικοποίηση
     i-cache, branch predictor, και \gls{prng} state.
   \item \textbf{Μετρήσεις:} \num{10000} measured iterations ανά λειτουργία.
-  \item \textbf{Στατιστική:} Αναφέρεται η \textbf{median} (primary metric),
+  \item \textbf{Στατιστική:} Αναφέρεται η \textbf{median} (βασική μετρική),
     μαζί με mean, stddev, min, max.
   \item \textbf{Static binary:} Μεταγλώττιση με \code{-static} για εξάλειψη
     PLT/GOT overhead.
@@ -154,21 +167,22 @@ speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγμ
 Πέραν της αξιολόγησης απόδοσης, το BPI-F3 αποτελεί την πλατφόρμα εμπειρικής
 επαλήθευσης constant-time εκτέλεσης μέσω dudect-based στατιστικής ανάλυσης
 χρονισμού (βλ.\ \cref{ssec:ct-dudect}). Η μεθοδολογία dudect απαιτεί
-πραγματικούς κύκλους hardware — ο εξομοιωτής Spike δεν παρέχει
+πραγματικούς κύκλους hardware — ο προσομοιωτής Spike δεν παρέχει
 αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage. Η κάλυψη
 περιορίζεται στα Tier~1 (scalar \gls{zbc}) και Tier~2 (Base-RVV) variants, καθώς
 ο K1 X60 δεν υποστηρίζει \gls{zvbc}/\gls{zvbb} — η CT επαλήθευση των Tier~3
-Vector-Crypto variants παραμένει ανοιχτή, καθώς προσβάσιμο RVA23 silicon
-(π.χ. SpacemiT K3) δεν ήταν διαθέσιμο κατά την εκπόνηση της εργασίας.
+Vector-Crypto variants παραμένει ανοιχτή: κατά την εκπόνηση της εργασίας δεν υπήρχε
+εμπορικά προσβάσιμο RISC-V silicon με υποστήριξη RVA23· το SpacemiT K3 ανακοινώθηκε
+προς το τέλος της συγγραφής, αλλά δεν ήταν διαθέσιμο εγκαίρως ώστε να ενταχθεί στην
+πειραματική αξιολόγηση.
 
-\Cref{fig:bananapi-f3} δείχνει την πλατφόρμα πραγματικού hardware (Banana Pi BPI-F3) που χρησιμοποιείται για επικύρωση σε silicon.
+Το \cref{fig:bananapi-f3} δείχνει την πλατφόρμα πραγματικού hardware 
+(Banana Pi BPI-F3) που χρησιμοποιείται για επικύρωση σε silicon.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.7\textwidth]{figures/common/BPIF3MAIN11.png}
-  % SOURCE: https://wiki.banana-pi.org/Banana_Pi_BPI-F3 — official product photo
-  \caption{Banana Pi BPI-F3: η πλατφόρμα πραγματικού hardware που χρησιμοποιείται
-    για επικύρωση αποτελεσμάτων σε silicon (SpacemiT K1, octa-core X60,
+  \caption{Banana Pi BPI-F3 (SpacemiT K1, octa-core X60,
     \RVV 1.0, \VLEN $= \num{256}$~bits).}
   \label{fig:bananapi-f3}
 \end{figure}
@@ -344,22 +358,13 @@ variant:
     \toprule
     \textbf{Variant} & \textbf{Tier} & \textbf{\code{-march}} \\
     \midrule
-    \code{scalar\_ref}     & Baseline & \code{rv64gc\_zbc\_zbb\_zbs} \\
-    \code{scalar\_zb}  & Tier~1   & \code{rv64gc\_zbc\_zbb\_zbs} \\
-    \code{vector\_rvv}  & Tier~2   & \code{rv64gcv\_zbc\_zbb\_zba} \\
-    \code{vector\_zvk} & Tier~3   & \code{rv64gcv\_zbc\_zbb\_zba\_zvbc\_zvbb} \\
+    \code{scalar\_ref}     & Baseline & \code{rv64gc\_zbc\_zbb} \\
+    \code{scalar\_zb}  & Tier~1   & \code{rv64gc\_zbc\_zbb} \\
+    \code{vector\_rvv}  & Tier~2   & \code{rv64gcv\_zbc\_zbb} \\
+    \code{vector\_zvk} & Tier~3   & \code{rv64gcv\_zbc\_zbb\_zvbc\_zvbb} \\
     \bottomrule
   \end{tabular}
 \end{table}
-
-\noindent
-Η επέκταση \ext{Zba} (address generation: \insn{sh1add}/\insn{sh2add}/\insn{sh3add})
-προστέθηκε στα vector variants μετά από ablation μέτρηση που έδειξε $-\pct{5.61}$
-polymul \instret στο \code{vector\_zvk} και $-\pct{1.0}$ στο
-\code{vector\_rvv} — η βελτίωση προέρχεται από αποδοτικότερη pointer
-αριθμητική στους βρόχους ανασύνθεσης. Η επέκταση \ext{Zbs} (bit-set/clear)
-περιλαμβάνεται στα scalar variants για τη βελτιστοποίηση bit-scatter patterns
-στη \code{vect\_set\_random\_fixed\_weight()}.
 
 \subsection{Επίπεδα Βελτιστοποίησης και Ειδικές Ρυθμίσεις}
 \label{ssec:opt-levels}
@@ -643,8 +648,8 @@ uint64_t t1 = hqc_rdinstret();
 
 \noindent\textbf{Σύμβαση baseline.} Όλες οι επιταχύνσεις αναφέρονται ως προς το \code{scalar\_ref} — τον μη βελτιστοποιημένο κώδικα αναφοράς~\cite{HQC-reference-impl} (schoolbook πολλαπλασιασμός, scalar Keccak, scalar decode) χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις. Αυτή η ενιαία βάση αναφοράς καθιστά τα speedups μεταξύ διαφορετικών tiers άμεσα συγκρίσιμα.
 
-Η πρωτεύουσα μετρική απόδοσης της παρούσας εργασίας είναι ο αριθμός
-\defterm{δυναμικών αποσυρθεισών εντολών} (retired instruction count, \instret) —
+Η βασική μετρική απόδοσης της παρούσας εργασίας είναι ο αριθμός
+\defterm{retired instructions} (δυναμικές αποσυρθείσες εντολές, retired instruction count, \instret) —
 όχι κύκλοι ρολογιού, όχι wall-clock χρόνος. Η επιλογή αυτή υπαγορεύεται από τον
 πειραματικό περιορισμό (απουσία silicon με \gls{zvbc} κατά τη στιγμή εκπόνησης) αλλά
 είναι μεθοδολογικά αποδεκτή στη βιβλιογραφία \gls{pqc}: το pqm4
@@ -741,8 +746,8 @@ iterations.
 \paragraph{Στατιστική Επεξεργασία}
 
 Μετά τη συλλογή \num{10000} δειγμάτων, τα αποτελέσματα ταξινομούνται και
-υπολογίζονται: median (πρωτεύουσα μετρική), mean, standard deviation, min,
-max. Η \textbf{median} επιλέγεται ως πρωτεύουσα μετρική αντί του mean
+υπολογίζονται: median (βασική μετρική), mean, standard deviation, min,
+max. Η \textbf{median} επιλέγεται ως βασική μετρική αντί του mean
 διότι είναι ανθεκτική σε outliers — σποραδικά timer interrupts
 ($\approx$ κάθε \SI{4}{\milli\second}) εισάγουν μεμονωμένα δείγματα με
 αυξημένους κύκλους, τα οποία αλλοιώνουν τον μέσο αλλά δεν επηρεάζουν τη
@@ -764,7 +769,7 @@ max. Η \textbf{median} επιλέγεται ως πρωτεύουσα μετρ�
 
 \paragraph{Η Σχέση \instret–Κύκλων: Γιατί \instret $\neq$ Cycles}
 
-Η κρίσιμη μεθοδολογική επισήμανση αφορά τη σχέση μεταξύ αποσυρθεισών εντολών
+Η κρίσιμη μεθοδολογική επισήμανση αφορά τη σχέση μεταξύ retired instructions (αποσυρθεισών εντολών)
 και πραγματικών κύκλων ρολογιού. Η σχέση αυτή εξαρτάται από τον \gls{cpi} του
 εκάστοτε μικροαρχιτεκτονικού μοντέλου, όπως απεικονίζεται στο
 \cref{fig:instret-vs-cycles}:
@@ -828,8 +833,8 @@ counters):
 σχετικής απόδοσης. Στο HQC-256, το πραγματικό hardware παρέχει \pct{20}
 μεγαλύτερο speedup από ό,τι προβλέπει η \instret. Η απόκλιση αυτή εξηγείται
 από τη μικροαρχιτεκτονική: η αναφορική υλοποίηση (\code{scalar\_ref}) στο
-HQC-256 διαθέτει working set $\approx \SI{57}{\kilo\byte}$ που πλησιάζει το
-μέγεθος L1 data cache (\SI{64}{\kilo\byte}), υφιστάμενη capacity misses που
+HQC-256 διαθέτει working set $\approx \SI{57}{\kilo\byte}$ που υπερβαίνει το
+μέγεθος του L1 data cache (\SI{32}{\kilo\byte} ανά core), υφιστάμενη capacity misses που
 αυξάνουν τον \gls{cpi}. Η βελτιστοποιημένη υλοποίηση (\code{scalar\_zb})
 διατηρεί compact working set ($\approx \SI{17}{\kilo\byte}$), αποφεύγοντας τα
 cache misses — ένα πλεονέκτημα αόρατο στη μετρική \instret αλλά μετρήσιμο σε
@@ -1386,21 +1391,10 @@ instruction scheduling, και constant propagation εφαρμόζονται ο�
 
 Η τέταρτη μέθοδος δεν απαιτεί ρητή παρέμβαση: ο μεταγλωττιστής αναγνωρίζει αυτόματα
 C idioms και εκπέμπει εξειδικευμένες εντολές, αρκεί η αντίστοιχη extension να
-είναι δηλωμένη στο \code{-march} flag. Στην παρούσα υλοποίηση αξιοποιούνται
-τρεις extensions μέσω auto-lowering:
+είναι δηλωμένη στο \code{-march} flag. Στην παρούσα υλοποίηση αξιοποιείται
+η επέκταση \ext{Zbb} μέσω auto-lowering:
 
 \begin{itemize}
-  \item \textbf{\ext{Zba}} (\insn{sh1add}/\insn{sh2add}/\insn{sh3add}):
-    Pointer αριθμητική στους βρόχους ανασύνθεσης. Η έκφραση
-    \code{base + idx * 8} μεταγλωττίζεται αυτόματα σε \insn{sh3add} αντί
-    \insn{slli} + \insn{add} — εξοικονόμηση μίας εντολής ανά πρόσβαση.
-    Ablation μέτρηση: $-\pct{5.61}$ polymul \instret στο \code{vector\_zvk}.
-
-  \item \textbf{\ext{Zbs}} (\insn{bset}/\insn{bclr}/\insn{bext}):
-    Bit-scatter patterns στη \code{vect\_write\_support\_to\_vector()}. Η
-    έκφραση \code{v[i] |= (1ULL << pos)} μεταγλωττίζεται σε μονή εντολή
-    \insn{bset} αντί \insn{sll} + \insn{or}.
-
   \item \textbf{\ext{Zbb}} (\insn{andn}/\rori):
     Bitwise patterns σε βοηθητικές ρουτίνες. Η έκφραση \code{\textasciitilde a \& b}
     μεταγλωττίζεται σε \insn{andn}, ενώ rotation idioms
@@ -1447,8 +1441,8 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
       \insn{vle64}, \insn{vse64}, \insn{vxor} &
       Type safety, optimizer visibility, portability \\
     \addlinespace
-    Auto-Lowering & \code{vector.c} (Zba/Zbs), βρόχοι ανασύνθεσης &
-      \insn{sh3add} (Zba), \insn{bset} (Zbs), \insn{andn} (Zbb) &
+    Auto-Lowering & βοηθητικές ρουτίνες (Keccak θ-step) &
+      \insn{andn}, \rori (Zbb) &
       Μηδενική αλλαγή κώδικα \\
     \bottomrule
   \end{tabular}
@@ -1478,7 +1472,7 @@ calculation στα \cref{ch:polymul-optimization} και \cref{ch:results}.
 
 Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για κάθε
 λειτουργία \gls{kem} στο scalar baseline (\code{scalar\_ref}, μεταγλωττισμένο με
-Clang~21.1.1, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb\_zbs}). Η υλοποίηση
+Clang~21.1.1, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb}). Η υλοποίηση
 αντιστοιχεί στον αρχικό κώδικα αναφοράς του \gls{nist} χωρίς αλγοριθμικές
 βελτιστοποιήσεις — μόνο η αυτόματη αξιοποίηση \gls{zbc}/\gls{zbb} μέσω auto-lowering
 (\cf \cref{sec:methods-application}).

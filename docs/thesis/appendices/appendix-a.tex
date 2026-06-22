@@ -46,11 +46,11 @@ cmake --build build
 
 \section{Εκτέλεση και Μέτρηση}
 
-Η πρωτεύουσα μετρική (\instret) εξάγεται εκτελώντας το παραγόμενο bare-metal ELF
-στον Spike \gls{iss} με την ακόλουθη συμβολοσειρά ISA:
+Η βασική μετρική (\instret) εξάγεται εκτελώντας το παραγόμενο bare-metal ELF
+στον Spike \gls{iss} με το ακόλουθο ISA string:
 
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\small, breaklines=true]
-spike --isa=rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
+spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
 \end{lstlisting}
 
 \noindent

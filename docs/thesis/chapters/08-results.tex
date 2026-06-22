@@ -210,7 +210,7 @@ decode) — η χειρότερη δυνατή υλοποίηση χωρίς α�
 
 \paragraph{Σταθεροποίηση μετρήσεων (benchmark freeze).}
 Όλα τα \instret μεγέθη του κεφαλαίου αντιστοιχούν στο commit \code{20def7e}
-(2026-06-07· HQC-128 \gls{kem} σύνολο \num{729397}).  Μεταγενέστερες cosmetic
+(2026-06-07· HQC-128 \gls{kem} σύνολο \num{729397}). Μεταγενέστερες cosmetic
 αλλαγές (Keccak asm$\to$intrinsics, διόρθωση \code{gf.c}) στο \code{445e0cb}
 (2026-06-09) μειώνουν το σύνολο κατά \pct{3.7} (\num{702755}), χωρίς να
 μεταβάλλουν τα συμπεράσματα ή τις τάξεις μεγέθους των speedups.
@@ -336,8 +336,8 @@ resources. Στο HQC-128:
   \end{tabular}
 
   {\footnotesize Βάση αναφοράς (\cref{conv:baseline}): όλα τα speedups
-  υπολογίζονται ως προς \code{scalar\_ref} — οι λόγοι μεταξύ
-  διαφορετικών tiers είναι άμεσα συγκρίσιμοι.}
+ υπολογίζονται ως προς \code{scalar\_ref} — οι λόγοι μεταξύ
+ διαφορετικών tiers είναι άμεσα συγκρίσιμοι.}
 \end{keyresultbox}
 
 Τα αποτελέσματα επιβεβαιώνουν ότι η αξιοποίηση ratified RISC-V
@@ -438,10 +438,10 @@ $3^{\Delta d}$ ενώ το overhead ανασύνθεσης (XOR operations) αυ
 αντικατοπτρίζει τη μεγαλύτερη αναλογία polymul στο reference σε υψηλότερα
 levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασιασμός κυριαρχεί
 ακόμη περισσότερο ($>\pct{98}$ στο HQC-256), ενώ η βελτιστοποιημένη
-υλοποίηση παρουσιάζει ηπιότερη κλιμάκωση.  Συνεπώς το polymul speedup κορυφώνεται στο
+υλοποίηση παρουσιάζει ηπιότερη κλιμάκωση. Συνεπώς το polymul speedup κορυφώνεται στο
 \speedup{547} στο HQC-256 ως άμεση συνέπεια της σχεδόν τετραγωνικής κλιμάκωσης
 της βάσης \code{scalar\_ref} έναντι της υπο-Karatsuba κλιμάκωσης του Tier~3
-(πρακτικός εκθέτης $\sim 1.24$), και όχι ως μεμονωμένο peak.  Ο γεωμετρικός μέσος
+(πρακτικός εκθέτης $\sim 1.24$), και όχι ως μεμονωμένο peak. Ο γεωμετρικός μέσος
 των Tier~3 polymul speedups στα τρία security levels (\speedup{318}, \speedup{327},
 \speedup{547}) ανέρχεται σε $\approx 385\times$, παρέχοντας αντιπροσωπευτικό αδρό
 μέγεθος έναντι των μεμονωμένων peak τιμών.
@@ -752,7 +752,7 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 Κάθε benchmark εκτελείται \num{10000} iterations μετά από \num{100} warmup iterations,
 σε single-core pinning (\code{taskset}) υπό Linux. Η μετρική είναι η διάμεσος
 κύκλων (\code{rdcycle}) — ανθεκτική σε outliers από interrupts ή scheduling jitter.
-Η μεθοδολογία μέτρησης τεκμηριώνεται στην~\cref{ssec:hw-measurement}.  Οι hardware μετρήσεις εμφανίζουν χαμηλή διασπορά (coefficient of variation $\approx \pct{2}$ μεταξύ επαναλήψεων)· αναφέρεται η διάμεσος ως ανθεκτικό στατιστικό έναντι outliers από interrupts ή scheduling jitter.
+Η μεθοδολογία μέτρησης τεκμηριώνεται στην~\cref{ssec:hw-measurement}. Οι hardware μετρήσεις εμφανίζουν χαμηλή διασπορά (coefficient of variation $\approx \pct{2}$ μεταξύ επαναλήψεων)· αναφέρεται η διάμεσος ως ανθεκτικό στατιστικό έναντι outliers από interrupts ή scheduling jitter.
 
 %% --------------------------------------------------------------------------
 \subsection{Μικρο-αξιολογήσεις σε Hardware (Cycles)}
