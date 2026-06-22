@@ -419,19 +419,19 @@ across module boundaries.
 
 #### Optimized Build Behaviour
 
-The CMake infrastructure applies `-flto` (Link-Time Optimization) to all
-reference baseline targets (`ref_scalar`, `ref_vector`) via the
-`hqc_apply_ref_lto_pgo()` function. LTO enables the linker to perform
-whole-program optimization across all translation units, including:
+The CMake infrastructure applies Profile-Guided Optimization (PGO) to all
+reference baseline targets (`scalar_ref`, `vector_ref`) via the
+`hqc_apply_ref_pgo()` function. PGO enables the compiler to make informed
+decisions about branch prediction, code layout, and selective inlining based
+on actual execution profiles.
 
-- Cross-module inlining of small functions (e.g., `gf_mul` into RS loops).
-- Interprocedural constant propagation of security-level parameters.
-- Dead-code elimination of unreachable branches across module boundaries.
+Note: LTO (`-flto`) was evaluated and found to provide no benefit on real
+hardware (BPI-F3, SpacemiT K1 X60): +0.3% cycle regression due to I-cache
+layout disruption on the in-order pipeline. On Spike ISS, the instret
+difference is <0.001%. LTO is therefore not applied.
 
-LTO is applied exclusively to the reference baselines to ensure that
-performance comparisons against the hand-optimized variants reflect the
-strongest possible compiler-optimized reference, rather than an artificially
-weakened baseline.
+PGO alone provides ~4.8% cycle reduction on hardware by improving IPC
+through better branch prediction and spatial locality in the I-cache.
 
 ### 5.2 Profile-Guided Optimization Infrastructure
 

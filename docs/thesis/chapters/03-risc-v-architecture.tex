@@ -222,7 +222,7 @@ RVA23~\cite{RVA23-profile} (RVA: \emph{RISC-V Application profile}), που
 Η πειραματική επικύρωση της παρούσας εργασίας στηρίχθηκε στο υλικό που ήταν
 εμπορικά διαθέσιμο, δηλαδή σε πλατφόρμες RVA22. Ως τέτοια
 πλατφόρμα επικύρωσης (hardware validation platform) χρησιμοποιήθηκε ο επεξεργαστής
-SpacemiT K1 X60 (Banana Pi BPI-F3), ο οποίος υλοποιεί RV64GCVB με $\VLEN = \num{256}$~bits, επιτρέποντας τον έλεγχο
+SpacemiT K1 X60 (Banana Pi BPI-F3)~\cite{SpacemiT-K1-datasheet}, ο οποίος υλοποιεί RV64GCVB με $\VLEN = \num{256}$~bits, επιτρέποντας τον έλεγχο
 των αποτελεσμάτων σε πραγματικό silicon (λεπτομέρειες στην~\cref{ssec:bpi-f3}). Ο K1 X60 υποστηρίζει
 εγγενώς τις scalar επεκτάσεις (\gls{zbc}, \gls{zbb}) και τη διανυσματική μονάδα \gls{rvv},
 καλύπτοντας πλήρως τα Tier~1 και Tier~2 variants, αλλά δεν υλοποιεί τις
@@ -827,7 +827,7 @@ block χωρίς να εμφανίζονται ως τελεστέοι. Έτσι
 \begin{lstlisting}[language=C,
   caption={Ανάγνωση \code{mcycle} (CSR 0xb00) μέσω inline assembly.},
   label={lst:csr-read}]
-uint64_t hqc_rdcycle(void) {
+uint64_t hqc_read_mcycle(void) {
     uint64_t cycles;
     __asm__ volatile ("csrr %0, 0xb00" : "=r"(cycles));
     return cycles;

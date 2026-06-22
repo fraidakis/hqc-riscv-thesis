@@ -59,7 +59,7 @@ $\num{386447}$ \instret έναντι \num{245000} κύκλων ($1.58\times$ σ�
 Η άμεση αριθμητική σύγκριση μεταξύ \instret και κύκλων ρολογιού δεν
 επιτρέπεται χωρίς ρητές επιφυλάξεις. Οι μετρήσεις αναφοράς ενσωματώνουν
 παραλληλισμό επιπέδου εντολών (ILP), out-of-order εκτέλεση, ιεραρχία cache
-και branch prediction — παράγοντες που ο Spike ISS δεν μοντελοποιεί.
+και branch prediction — παράγοντες που το Spike ISS δεν μοντελοποιεί.
 Αντίστροφα, ο \instret αποτελεί \defterm{κάτω φράγμα κύκλων} σε κάθε
 ρεαλιστικό pipeline: ένας αλγόριθμος δεν μπορεί να εκτελεστεί σε λιγότερους
 κύκλους από τις δυναμικές εντολές του, εκτός εάν ο επεξεργαστής εκμεταλλεύεται
@@ -696,7 +696,7 @@ $6.66\times$ μεγαλύτερο μέγεθος κώδικα από τη refere
 \begin{itemize}
   \item RVA22 cores (SpacemiT K1, SiFive U74): Tier~1 (\gls{zbc}) ή Tier~2
     (\RVV) ανάλογα με παρουσία vector unit.
-  \item Μελλοντικά RVA23 cores: Tier~3 (\gls{zvbc} + \gls{zvbb}) — το
+  \item RVA23 cores (SpacemiT K3): Tier~3 (\gls{zvbc} + \gls{zvbb}) — το
     profile καθιστά υποχρεωτικές τις \gls{zvbb} (mandatory) και προαιρετικές
     τις \gls{zvbc} (optional).
 \end{itemize}
@@ -788,7 +788,7 @@ schoolbook, $\BigO{n^{1.585}}$ Karatsuba, $\BigO{n \log n}$ FFT) καθίστα�
 Ο strip-mining βρόχος (\code{vl = vsetvl(n); /* vector ops */; n -= vl})
 εκμεταλλεύεται αυτόματα ευρύτερα vector registers χωρίς αλλαγή πηγαίου
 κώδικα. Στην παρούσα εργασία, η μετάβαση από $\VLEN = \num{256}$ σε
-$\VLEN = \num{1024}$ (sweep στον Spike) μείωσε τον αριθμό loop iterations
+$\VLEN = \num{1024}$ (sweep στο Spike) μείωσε τον αριθμό loop iterations
 κατά $4\times$ στα combine loops — χωρίς καμία τροποποίηση στον κώδικα. Η μείωση αφορά \emph{αριθμό iterations}, όχι ισόποση αύξηση throughput: το πραγματικό όφελος στο πλήρες \gls{kem} κυμαίνεται από $-\pct{3.5}$ έως $-\pct{5.4}$ ανά security level (\cref{tab:vlen-sweep}), καθώς ο \vclmul leaf και ο Keccak πυρήνας δεν κλιμακώνονται με το \VLEN.
 Η ίδια binary θα αξιοποιήσει αυτόματα μελλοντικό hardware με μεγαλύτερο \VLEN, αν και με φθίνουσες αποδόσεις: πέρα από τα \num{512} bit το όφελος ουσιαστικά εξανεμίζεται ($\approx +\pct{0.2}$ στο HQC-128 @ $\VLEN = \num{2048}$), καθώς μόνο τα combine loops είναι VLEN-scalable ενώ ο \vclmul leaf και ο Keccak πυρήνας δεν είναι (\cref{tab:vlen-sweep}).
 
@@ -956,7 +956,7 @@ Spike \gls{iss}. Η σύγκριση αποκαλύπτει ότι κανένα�
 
 Κάθε variant μεταγλωττίστηκε με αμφότερους τους μεταγλωττιστές σε τρία
 επίπεδα βελτιστοποίησης (\code{-O2}, \code{-O3}, \code{-Os}) και
-εκτελέστηκε στον Spike ISS. Η μετρική σύγκρισης είναι ο ελάχιστος
+εκτελέστηκε στο Spike ISS. Η μετρική σύγκρισης είναι ο ελάχιστος
 \instret μεταξύ των τριών optimization levels — δηλαδή ο βέλτιστος
 δυνατός κώδικας που παράγει κάθε μεταγλωττιστής. Η μεθοδολογία αυτή
 εξαλείφει τον παράγοντα \q{λάθος flag} και εστιάζει στην εγγενή
@@ -1055,7 +1055,7 @@ buffer με named \code{vuint64m1\_t} locals), η single-stream
 \code{KeccakF1600\_StatePermute} — η οποία χρησιμοποιεί LMUL=8
 \insn{vrgather.vv} για τον $\pi$ step και \insn{vror.vv} (\gls{zvbb}) για
 τον $\rho$ step — παράγει κώδικα που εισέρχεται σε ατέρμονο βρόχο κατά
-την εκτέλεση στον Spike. Η ανάλυση του παραγόμενου assembly αποκάλυψε
+την εκτέλεση στο Spike. Η ανάλυση του παραγόμενου assembly αποκάλυψε
 ότι ο GCC~15.2 εκπέμπει μόλις \num{4} εντολές \insn{vrgather} (έναντι
 \num{52} του Clang) και \num{1} εντολή \insn{vror.vv} (έναντι \num{42}),
 υποδεικνύοντας σοβαρά ελαττωματική παραγωγή κώδικα για αυτό το pattern.

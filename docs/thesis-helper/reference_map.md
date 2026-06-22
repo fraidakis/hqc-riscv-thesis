@@ -207,7 +207,7 @@
 ### §3.5 Μέθοδοι Προγραμματισμού RISC-V — Φάσμα Αφαίρεσης
 
 * `sim/common/startup.S` - **Source Code** - Pure assembly example: bare-metal boot, CSR manipulation, vector unit enable
-* `src/common/bench.c` (`hqc_rdcycle`, `hqc_rdinstret`) - **Source Code** - Inline assembly example: `__asm__ volatile("csrr %0, 0xb00")` for CSR reads
+* `src/common/bench.c` (`hqc_read_mcycle`, `hqc_read_minstret`) - **Source Code** - Inline assembly example: `__asm__ volatile("csrr %0, 0xb00")` for CSR reads
 * `src/mult/karatsuba_zvbc/gf2x_vclmul.c` - **Source Code** - C intrinsics example: `__riscv_vclmul_vv_u64m1()`, `__riscv_vsetvl_e64m1()`
 * `src/common/gf.c` (`gf_mul`) - **Source Code** - C intrinsics example: `__riscv_clmul_64()` scalar Zbc intrinsic
 * `src/vector.c` (`vect_add`) - **Source Code** - Auto-Lowering example: plain C with Zba/Zbs auto-lowered by compiler

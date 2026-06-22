@@ -41,13 +41,13 @@ cmake --build build
 \noindent
 Κάθε variant μεταγλωττίζεται με τη δική του συμβολοσειρά \code{-march}
 (βλ.\ \cref{tab:march-per-variant})· το reference baseline
-(\code{scalar\_ref}) χτίζεται με ενεργοποιημένο \gls{lto}
+(\code{scalar\_ref}) χτίζεται με \gls{pgo} κατά τις hardware μετρήσεις
 (\cref{ssec:lto-pgo}).
 
 \section{Εκτέλεση και Μέτρηση}
 
 Η βασική μετρική (\instret) εξάγεται εκτελώντας το παραγόμενο bare-metal ELF
-στον Spike \gls{iss} με το ακόλουθο ISA string:
+στο Spike \gls{iss} με το ακόλουθο ISA string:
 
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\small, breaklines=true]
 spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b <elf>

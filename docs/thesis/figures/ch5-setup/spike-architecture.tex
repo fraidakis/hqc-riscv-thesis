@@ -38,7 +38,7 @@
 \draw[arr] (host) -- node[above, note] {interprets} (spike_box.west);
 \draw[arr] (elf) -- (spike_box.north);
 \draw[arr] (decode) -- (csr);
-\draw[arr] (spike_box.east) -- node[above, note] {\texttt{rdcycle} $\equiv$ \texttt{rdinstret}} (output);
+\draw[arr] (spike_box.east) -- node[above, note] {\texttt{mcycle} $\equiv$ \texttt{minstret}} (output);
 
 % Annotations
 \node[note, below=0.3cm of spike_box] {No pipeline model, no cache, no branch predictor};

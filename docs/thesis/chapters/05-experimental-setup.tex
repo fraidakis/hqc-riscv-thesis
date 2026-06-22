@@ -20,60 +20,59 @@
 ντετερμινιστική καταμέτρηση εντολών, και το Banana Pi BPI-F3 (SpacemiT K1 X60),
 που προσφέρει μετρήσεις κύκλων σε πραγματικό hardware για τα tiers που υποστηρίζει.
 
-\subsection{Spike — Ο Προσομοιωτής Αναφοράς (Reference ISS)}
+\subsection{Spike — Golden Reference ISS}
 \label{ssec:spike}
 
-Ο Spike αποτελεί τον επίσημο προσομοιωτή αναφοράς (golden reference) της
+Το Spike αποτελεί τον επίσημο προσομοιωτή (golden reference) της
 αρχιτεκτονικής RISC-V, αναπτυγμένο από το RISC-V International~\cite{spike-github}:
 λειτουργεί ως η υλοποίηση που ορίζει τη σωστή συμπεριφορά της αρχιτεκτονικής
-και, ως εκ τούτου, χρησιμοποιείται ως σημείο αναφοράς για την επαλήθευση ορθότητας
-και την καταμέτρηση εντολών. Υλοποιεί ένα
-\defterm{λειτουργικό μοντέλο} (functional model, δηλαδή αναπαράσταση μόνο του αρχιτεκτονικού
-αποτελέσματος κάθε εντολής, της τελικής τιμής σε registers και μνήμη, χωρίς μοντελοποίηση της
-μικροαρχιτεκτονικής) ενός ή περισσότερων RISC-V harts (hardware threads: τα λογικά
-νήματα εκτέλεσης που εκθέτει ο επεξεργαστής):
-κάθε εντολή αποκωδικοποιείται και εκτελείται σειριακά, ενημερώνοντας την
-αρχιτεκτονική κατάσταση (architectural state: registers, μνήμη, 
-\glspl{csr}) χωρίς κανένα μοντέλο pipeline, cache ή branch predictor. 
+και, ως εκ τούτου, χρησιμεύει ως βάση επαλήθευσης ορθότητας
+και καταμέτρησης εντολών. Υλοποιεί ένα
+\defterm{λειτουργικό μοντέλο} (functional model: αναπαράσταση μόνο του αρχιτεκτονικού
+αποτελέσματος κάθε εντολής — η τελική τιμή σε registers, μνήμη και \glspl{csr})
+ενός ή περισσότερων RISC-V harts (hardware threads: τα λογικά
+νήματα εκτέλεσης που εκθέτει ο επεξεργαστής). Κάθε εντολή αποκωδικοποιείται και
+εκτελείται σειριακά, ενημερώνοντας την αρχιτεκτονική κατάσταση χωρίς κανένα
+μοντέλο pipeline, cache ή branch predictor. 
 Η εκτέλεση είναι πλήρως ντετερμινιστική, καθώς το ίδιο ELF binary 
 (Executable and Linkable Format: το compiled εκτελέσιμο αρχείο, το 
 πρότυπο των Linux/RISC-V) με την ίδια αρχική κατάσταση παράγει
 πάντοτε τον ίδιο αριθμό εκτελεσθεισών εντολών.
 
-Η RISC-V εκθέτει δύο βασικές μετρητές επίδοσης: τον \code{mcycle} (μετρητής κύκλων, αναγνώσιμος μέσω της εντολής
-\code{rdcycle}) και τον \code{minstret} (μετρητής retired instructions, αναγνώσιμος μέσω της \code{rdinstret}). Στον Spike ισχύει \code{rdcycle} $\equiv$ \code{rdinstret},
-δηλαδή ο μετρητής κύκλων ταυτίζεται με τον μετρητή retired instructions. Αυτό δεν σημαίνει
-ότι ο Spike \emph{επιβάλλει} \gls{cpi} $= 1$· ως καθαρό functional model, ο Spike δεν μοντελοποιεί
-καθόλου το latency, οπότε κάθε αποσυρόμενη εντολή προάγει τον \code{mcycle} κατά έναν κύκλο,
-ανεξαρτήτως τύπου, ώστε μία εντολή \vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}.
-Έτσι η μετρική του Spike εξαρτάται αποκλειστικά από το instruction count του αλγορίθμου, όχι από
-μικροαρχιτεκτονικά φαινόμενα. Οι συνέπειες αυτής
-της απλοποίησης αναλύονται στην \cref{ssec:benchmarking-limitations}.
+Στην αρχιτεκτονική RISC-V υπάρχουν δύο βασικοί μετρητές επίδοσης: ο \code{mcycle}
+(μετρητής κύκλων) και ο \code{minstret} (μετρητής retired instructions). Και οι δύο είναι
+M-mode \glspl{csr} (διευθύνσεις \code{0xb00} και \code{0xb02} αντίστοιχα) και διαβάζονται
+απευθείας με την εντολή \code{csrr}, χωρίς να απαιτείται κάποια επέκταση ISA. Στο Spike,
+ως καθαρό functional model, ισχύει \code{mcycle} $\equiv$ \code{minstret}: κάθε αποσυρόμενη
+εντολή προάγει τον \code{mcycle} κατά έναν κύκλο ανεξαρτήτως τύπου, ώστε μία εντολή
+\vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}. Αυτό δεν σημαίνει ότι το Spike
+\emph{επιβάλλει} \gls{cpi} $= 1$· απλώς δεν μοντελοποιεί καθόλου το latency, οπότε η μετρική
+του εξαρτάται αποκλειστικά από το instruction count του αλγορίθμου. Η εμπειρική σχέση
+μεταξύ \instret\ και πραγματικών κύκλων εξετάζεται στην \cref{ssec:spike-vs-hw}, ενώ οι
+συνέπειες αυτής της απλοποίησης αναλύονται στην \cref{ssec:benchmarking-limitations}.
 
-Ο Spike υποστηρίζει πλήρως τις επεκτάσεις που απαιτεί η παρούσα εργασία. Η
+Το Spike υποστηρίζει πλήρως τις επεκτάσεις που απαιτεί η παρούσα εργασία. Η
 κλήση εκτέλεσης χρησιμοποιεί το \gls{isa} string:
 
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\small, breaklines=true]
-spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b_zicntr <elf>
+spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b <elf>
 \end{lstlisting}
 
 \noindent
 όπου η παράμετρος \code{zvl256b} ορίζει \VLEN $= \num{256}$~bits, αντιστοιχώντας
-στο hardware profile που στοχεύει η υλοποίηση (βλ.~\cref{ssec:bpi-f3}). Η επέκταση
-\ext{Zicntr} ενεργοποιεί τους βασικούς μετρητές (\code{cycle}, \code{time}, \code{instret})·
-περιλαμβάνεται ως προληπτικό μέτρο, ώστε τυχόν ELF που χρησιμοποιεί τις pseudo-instructions
-\code{rdcycle}/\code{rdinstret} να μην προκαλεί trap, αν και η καταμέτρηση εδώ διαβάζει
-απευθείας τους M-mode μετρητές \code{mcycle}/\code{minstret}, οι οποίοι δεν απαιτούν κάποια επέκταση.
+στο hardware profile που στοχεύει η υλοποίηση (βλ.~\cref{ssec:bpi-f3}). Η καταμέτρηση εδώ
+διαβάζει απευθείας τους M-mode μετρητές \code{mcycle}/\code{minstret}, οι οποίοι δεν
+απαιτούν κάποια επέκταση ISA.
 
-To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης ενός ELF binary στον Spike:
-ο host (ο φυσικός επεξεργαστής που εκτελεί τον Spike) ερμηνεύει σειριακά κάθε εντολή
+To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης ενός ELF binary στο Spike:
+ο host (ο φυσικός επεξεργαστής που εκτελεί το Spike) ερμηνεύει σειριακά κάθε εντολή
 του guest ELF, ενημερώνει τον μετρητή \code{minstret}, και στο τέλος της εκτέλεσης η
 τιμή αυτή αποτελεί τη βασική μετρική απόδοσης.
 
 \begin{figure}[htbp]
   \centering
   \resizebox{0.92\textwidth}{!}{\input{figures/ch5-setup/spike-architecture}}
-  \caption[Αρχιτεκτονική εκτέλεσης στον Spike ISS]{Αρχιτεκτονική εκτέλεσης στον Spike \glsfmtshort{iss}.}
+  \caption[Αρχιτεκτονική εκτέλεσης στο Spike ISS]{Αρχιτεκτονική εκτέλεσης στο Spike \glsfmtshort{iss}.}
   \label{fig:spike-arch}
 \end{figure}
 
@@ -89,11 +88,8 @@ pipeline effects, cache behavior, και dual-issue scheduling,
 συμπληρωματικά προς τα ντετερμινιστικά \instret του Spike.
 
 \paragraph{Προδιαγραφές Hardware.}
-Ο SpacemiT K1 είναι octa-core σε \emph{ασύμμετρη} dual-cluster τοπολογία: το
-Cluster~0 (\num{4} cores) διαθέτει επιπλέον \SI{512}{\kilo\byte} TCM αποκλειστικά
-για την επέκταση AI, ενώ το Cluster~1 (\num{4} cores) όχι· κατά τα άλλα τα δύο
-clusters είναι ισοδύναμα (\SI{32}{\kilo\byte} L1i + \SI{32}{\kilo\byte} L1d ανά
-core, \SI{512}{\kilo\byte} L2 ανά cluster). Οι
+Ο SpacemiT K1 είναι octa-core σε δύο clusters των \num{4} cores, με \SI{32}{\kilo\byte}
+L1i + \SI{32}{\kilo\byte} L1d ανά core και \SI{512}{\kilo\byte} L2 ανά cluster. Οι
 πλήρεις προδιαγραφές συνοψίζονται στο \cref{tab:bpif3-specs}.
 
 \begin{table}[htbp]
@@ -109,7 +105,7 @@ core, \SI{512}{\kilo\byte} L2 ανά cluster). Οι
     Pipeline         & Dual-issue, in-order, 8-stage \\
     Ρολόι            & \SI{1.6}{\giga\hertz} \\
     \VLEN            & \num{256}~bits \\
-    ISA Profile      & RVA22 \\
+    ISA Profile      & RVA22 compliant \\
     L1 Cache         & \SI{32}{\kilo\byte} I + \SI{32}{\kilo\byte} D ανά core \\
     L2 Cache         & \SI{512}{\kilo\byte} ανά cluster \\
     RAM              & \SI{16}{\giga\byte} LPDDR4X @ \SI{2666}{Mbps} \\
@@ -133,14 +129,14 @@ core, \SI{512}{\kilo\byte} L2 ανά cluster). Οι
 
 \paragraph{Υποστηριζόμενες Επεκτάσεις.}
 
-Ο K1 X60 (RVA22 profile) υποστηρίζει το πλήρες σύνολο scalar bit-manipulation
+Ο K1 X60 υποστηρίζει το πλήρες σύνολο scalar bit-manipulation
 extensions, με την παρούσα εργασία να αξιοποιεί τις \ext{Zbb} και \ext{Zbc}.
+Σύμφωνα με το επίσημο datasheet~\cite{SpacemiT-K1-datasheet}, ο επεξεργαστής παρέχει
+\q{Support of RVA22 Profile and 256-bit RVV 1.0}.
 Ωστόσο, \textbf{δεν υποστηρίζει} \gls{zvbc} και \gls{zvbb} (βλ.~\cref{ch:risc-v-architecture}). 
-Η πρακτική συνέπεια είναι ότι τα scalar και
-Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
-\code{vector\_rvv}) εκτελούνται natively στο hardware, ενώ το
-Vector-Crypto variant (\code{vector\_zvk}) αξιολογείται αποκλειστικά
-μέσω Spike.
+Η πρακτική συνέπεια είναι ότι τα scalar (Tier~1) και Base-RVV (Tier~2) variants εκτελούνται
+natively στο hardware, ενώ το Vector-Crypto variant (Tier~3) αξιολογείται
+αποκλειστικά μέσω Spike.
 
 \paragraph{Στρατηγική Δύο Πλατφορμών}
 
@@ -148,13 +144,12 @@ Vector-Crypto variant (\code{vector\_zvk}) αξιολογείται αποκλε
 
 \begin{itemize}
   \item \textbf{Spike:} ντετερμινιστική καταμέτρηση εντολών (\instret), profiling
-    μέσω PC histograms, VLEN sweep (\num{256}–\num{2048}), και πλήρης κάλυψη
-    όλων των variants (συμπεριλαμβανομένων \gls{zvbc}/\gls{zvbb}). Αποτελεί την αυθεντική
-    πηγή για κάθε αριθμητικό αποτέλεσμα που αναφέρεται στο \cref{ch:results}, ενώ ταυτόχρονα 
+    μέσω PC histograms (βλ.\ \cref{ssec:spike-measurement}), VLEN sweep (\num{256}–\num{2048}), και πλήρης κάλυψη
+    όλων των variants (συμπεριλαμβανομένων \gls{zvbc}/\gls{zvbb}). Αποτελεί τη βάση
+    κάθε αριθμητικού αποτελέσματος που παρατίθεται στο \cref{ch:results}, ενώ ταυτόχρονα 
     εκτελεί τη λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από κάθε αλλαγή κώδικα.
-  \item \textbf{BPI-F3:} hardware validation μέσω πραγματικών κύκλων (cycles),
-    υπολογισμός \gls{ipc}, cross-check Spike predictions, και παραγωγή
-    wall-clock time ($\text{cycles} / \SI{1.6}{\giga\hertz}$). Καλύπτει
+  \item \textbf{BPI-F3:} hardware validation μέσω πραγματικών κύκλων και cross-check
+    των προβλέψεων του Spike. Καλύπτει
     τα scalar και Base-RVV variants (Tier~1, Tier~2).
 \end{itemize}
 
@@ -207,16 +202,6 @@ intrinsic βρόχους (pattern \code{vle64} $\to$ \code{vxor} $\to$ \code{vse
 ένα πλεονέκτημα που εξαφανίζεται στους βελτιστοποιημένους Karatsuba πυρήνες
 όπου η δομή κώδικα είναι πλήρως compile-time generated.
 
-\Cref{tab:toolchain-versions} συνοψίζει τις εκδόσεις λογισμικού που
-χρησιμοποιούνται στην πειραματική υποδομή.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Εκδόσεις λογισμικού της αλυσίδας μεταγλώττισης και εκτέλεσης.}
-  \label{tab:toolchain-versions}
-  \input{figures/ch5-setup/toolchain-versions-table}
-\end{table}
-
 \subsection{CMake Build System και Toolchain Files}
 \label{ssec:cmake-build}
 
@@ -253,7 +238,7 @@ cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
   \centering
   \resizebox{\textwidth}{!}{\input{figures/ch5-setup/build-pipeline}}
   \caption{Ροή μεταγλώττισης και εκτέλεσης: ο πηγαίος κώδικας μεταγλωττίζεται
-    μέσω CMake και Clang~21.1.1 σε bare-metal ELF, το οποίο εκτελείται στον Spike
+    μέσω CMake και Clang~21.1.1 σε bare-metal ELF, το οποίο εκτελείται στο Spike
     για εξαγωγή \instret. Η συμβολοσειρά \code{-march} καθορίζει τις
     διαθέσιμες επεκτάσεις ανά variant.}
   \label{fig:build-pipeline}
@@ -319,22 +304,36 @@ compile-time generated και δεν αφήνει περιθώριο στον op
     footprint.
 \end{itemize}
 
-\paragraph{LTO και PGO στα Reference Baselines}
+\paragraph{Profile-Guided Optimization (PGO) στα Reference Baselines}
 \label{ssec:lto-pgo}
 
 Το reference baseline (\code{scalar\_ref}) μεταγλωττίζεται
-με \gls{lto} ενεργοποιημένο (\code{-flto}), παρέχοντας στον linker πλήρη
-ορατότητα για cross-module inlining και dead code elimination. Η \gls{lto}
-εφαρμόζεται αποκλειστικά στο baseline ώστε αυτό να αντιπροσωπεύει τη
-\emph{βέλτιστη δυνατή} απόδοση του μη-βελτιστοποιημένου κώδικα — κάθε speedup
-που αναφέρεται στα \cref{ch:polymul-optimization} και \cref{ch:results}
-υπολογίζεται έναντι αυτού του ισχυρού baseline.
+με \gls{pgo} (\code{-fprofile-use}) κατά τη μέτρηση σε πραγματικό hardware,
+παρέχοντας στον μεταγλωττιστή πληροφορίες εκτέλεσης (branch frequencies,
+hot/cold paths) που βελτιώνουν τη διάταξη κώδικα και τις αποφάσεις inlining.
+Η μεθοδολογία ακολουθεί δύο φάσεις: μεταγλώττιση με \code{-fprofile-generate}
+και εκτέλεση εκπαίδευσης (20 iterations) που παράγει profile data (\code{.gcda}
+αρχεία), ακολουθούμενη από τελική μεταγλώττιση με \code{-fprofile-use} που
+αξιοποιεί τα συλλεγμένα δεδομένα.
 
-Η υποδομή υποστηρίζει επίσης \gls{pgo} σε δύο φάσεις
-(\code{-fprofile-instr-generate} $\to$ εκτέλεση $\to$
-\code{-fprofile-instr-use}), αν και στην πράξη η επίδρασή του στα
-βελτιστοποιημένα variants είναι αμελητέα λόγω της πλήρως ντετερμινιστικής
-δομής του generated κώδικα.
+Η εμπειρική αξιολόγηση σε πραγματικό hardware (BPI-F3, SpacemiT K1 X60)
+αποκαλύπτει ότι η \gls{pgo} μειώνει τους κύκλους ρολογιού κατά \pct{4.8}
+σε όλες τις λειτουργίες \KEM (KeyGen, Encaps, Decaps) — ενώ ο αριθμός
+εκτελούμενων εντολών αυξάνεται οριακά κατά $\approx\pct{1.1}$. Η ασυμμετρία
+αυτή τεκμηριώνει ότι η βελτίωση προέρχεται από καλύτερο IPC: η
+profile-guided διάταξη κώδικα μειώνει τα branch mispredictions
+και βελτιώνει τη χωρική τοπικότητα στην I-cache.
+
+Αντιθέτως, η \gls{lto} (\code{-flto}) αξιολογήθηκε και απορρίφθηκε: σε
+εξομοίωση (Spike ISS) η διαφορά στο σύνολο εντολών είναι αμελητέα
+(${<}\pct{0.001}$, $<\num{30}$ εντολές επί \num{117344294}), ενώ σε
+πραγματικό hardware η \gls{lto} εισάγει μικρή αύξηση $+\pct{0.4}$ στους
+κύκλους — πιθανώς λόγω διαφορετικής διάταξης κώδικα που δυσχεραίνει τη
+χρήση I-cache στον in-order pipeline του X60. Κατά συνέπεια, η \gls{lto}
+δεν εφαρμόζεται στα baselines· η \gls{pgo} αρκεί ως μοναδική
+βελτιστοποίηση μεταγλωττιστή.
+
+Τα αποτελέσματα παρουσιάζονται αναλυτικά στο \cref{ssec:hw-pgo-results}.
 
 \subsection{Αναπαραγωγιμότητα Builds}
 \label{ssec:build-reproducibility}
@@ -415,7 +414,7 @@ mask-agnostic — η τυπική ρύθμιση για τους κρυπτογ�
 Μετά την αρχικοποίηση, η εκτέλεση μεταβιβάζεται στη \code{main()} με
 \code{argc = 0} και \code{argv = NULL}. Κατά τον τερματισμό, η τιμή
 επιστροφής κωδικοποιείται ως \code{(code << 1) | 1} και εγγράφεται στο
-σύμβολο \code{tohost} — ο μηχανισμός \gls{htif} που σηματοδοτεί στον Spike
+σύμβολο \code{tohost} — ο μηχανισμός \gls{htif} που σηματοδοτεί στο Spike
 τον τερματισμό της εξομοίωσης με τον αντίστοιχο exit code.
 
 \begin{figure}[htbp]
@@ -499,7 +498,7 @@ $\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration. Η βελτιστο
 Η εκτύπωση αποτελεσμάτων (shared secrets σε hexadecimal, \instret τιμές)
 πραγματοποιείται μέσω του μηχανισμού \gls{htif} του Spike: κάθε χαρακτήρας
 εγγράφεται στο σύμβολο \code{tohost} με κωδικοποίηση
-\code{(1 << 56) | (1 << 48) | char}. Ο Spike επεξεργάζεται τον χαρακτήρα και
+\code{(1 << 56) | (1 << 48) | char}. Το Spike επεξεργάζεται τον χαρακτήρα και
 μηδενίζει το \code{tohost}, σηματοδοτώντας ετοιμότητα για τον επόμενο. Ο
 μηχανισμός αυτός δεν απαιτεί UART hardware ή device tree.
 
@@ -519,7 +518,7 @@ $\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration. Η βελτιστο
 Δεν υπάρχει λειτουργικό σύστημα, scheduler, ή interrupt handler. Ο
 επεξεργαστής εκτελεί αποκλειστικά τον κρυπτογραφικό κώδικα από τη στιγμή
 εισόδου στη \code{main()} έως τον τερματισμό. Κανένα interrupt δεν είναι
-ενεργοποιημένο (\code{mie = 0} by default στον Spike), εξαλείφοντας κάθε
+ενεργοποιημένο (\code{mie = 0} by default στο Spike), εξαλείφοντας κάθε
 πιθανότητα ασύγχρονης διακοπής. Κατά συνέπεια, κάθε εντολή που καταγράφεται
 στον μετρητή \code{minstret} αποδίδεται αποκλειστικά στον κρυπτογραφικό
 πυρήνα — δεν υπάρχει \q{κλεμμένος χρόνος} από system services.
@@ -535,7 +534,7 @@ simulator-specific που δεν εισάγει εντολές στη μέτρη
 
 \paragraph{Ντετερμινιστική Αναπαραγωγιμότητα}
 
-Η συνδυαστική απουσία OS, interrupts, cache non-determinism (στον Spike), και
+Η συνδυαστική απουσία OS, interrupts, cache non-determinism (στο Spike), και
 δυναμικής μνήμης εγγυάται ότι δεδομένου ίδιου ELF binary, η τιμή
 $\Delta\text{instret}$ είναι πάντα ταυτόσημη μεταξύ εκτελέσεων. Η ιδιότητα
 αυτή επιτρέπει τη χρήση μίας μόνο μέτρησης ανά configuration (χωρίς
@@ -552,9 +551,9 @@ benchmark harness (\code{bench\_kem.c}) εκτελεί πρώτα ένα warmup 
 λειτουργία ξεχωριστά:
 
 \begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
-uint64_t t0 = hqc_rdinstret();  // minstret (CSR 0xb02)
+uint64_t t0 = hqc_read_minstret();  // minstret (CSR 0xb02)
 crypto_kem_keypair(pk, sk);
-uint64_t t1 = hqc_rdinstret();
+uint64_t t1 = hqc_read_minstret();
 // keypair_instret = t1 - t0
 \end{lstlisting}
 
@@ -577,7 +576,7 @@ uint64_t t1 = hqc_rdinstret();
 όχι κύκλοι ρολογιού, όχι wall-clock χρόνος. Η επιλογή αυτή υπαγορεύεται από τον
 πειραματικό περιορισμό (απουσία silicon με \gls{zvbc} κατά τη στιγμή εκπόνησης) αλλά
 είναι μεθοδολογικά αποδεκτή στη βιβλιογραφία \gls{pqc}: το pqm4
-framework~\cite{pqm4} και ο Spike \gls{iss} χρησιμοποιούνται ευρέως για
+framework~\cite{pqm4} και το Spike \gls{iss} χρησιμοποιούνται ευρέως για
 αναφορά πλήθους εντολών σε εργασίες δημοσιευμένες σε TCHES και στα NIST PQC
 Conferences~\cite{zhang-tches2025, ras-nist2025}. Η μετρική αυτή
 συμπληρώνεται από πραγματικές μετρήσεις κύκλων στο BPI-F3
@@ -599,7 +598,7 @@ csrr a0, 0xb02    # read minstret (retired instruction count)
 \noindent
 Η ανάγνωση εκτελείται αμέσως πριν και μετά από κάθε κρυπτογραφική λειτουργία
 (\KeyGen, \Encaps, \Decaps), και η διαφορά $\Delta\text{instret} = t_1 - t_0$
-αποτελεί τη μέτρηση. Στον Spike, η τιμή αυτή είναι πλήρως ντετερμινιστική:
+αποτελεί τη μέτρηση. Στο Spike, η τιμή αυτή είναι πλήρως ντετερμινιστική:
 επαναλαμβανόμενες εκτελέσεις με ίδιο ELF binary παράγουν πάντα ίδιο αποτέλεσμα,
 καθιστώντας περιττή τη στατιστική επεξεργασία πολλαπλών δειγμάτων. Το benchmark
 harness εκτελεί μία μόνο μέτρηση ανά λειτουργία, προηγουμένως ενός warmup pass
@@ -612,7 +611,7 @@ harness εκτελεί μία μόνο μέτρηση ανά λειτουργί�
 λεπτομερούς profiling για τον εντοπισμό hotspots:
 
 \begin{enumerate}
-  \item \textbf{PC Histogram:} Ο Spike εκτελείται με τη σημαία \code{-g}, η οποία
+  \item \textbf{PC Histogram:} Το Spike εκτελείται με τη σημαία \code{-g}, η οποία
     καταγράφει τον αριθμό εκτελέσεων ανά διεύθυνση program counter. Το αρχείο
     εξόδου (μορφή \code{<hex\_pc> <count>}) αντιστοιχίζεται σε mnemonics μέσω
     \code{llvm-objdump -d}, παράγοντας πίνακα instruction mix (μνημονικό, πλήθος,
@@ -640,7 +639,7 @@ harness εκτελεί μία μόνο μέτρηση ανά λειτουργί�
 
 Η μέτρηση κύκλων σε πραγματικό hardware πραγματοποιείται μέσω του Linux perf
 subsystem, χρησιμοποιώντας τον \code{perf\_event\_open} syscall. Σε αντίθεση
-με τη bare-metal μέτρηση στον Spike (μία μόνο ντετερμινιστική τιμή), η μέτρηση
+με τη bare-metal μέτρηση στο Spike (μία μόνο ντετερμινιστική τιμή), η μέτρηση
 σε Linux userspace υπόκειται σε στατιστική μεταβλητότητα λόγω timer interrupts,
 cache state variations, και residual OS activity. Η μεθοδολογία αντιμετωπίζει
 αυτή τη μεταβλητότητα μέσω μεγάλου αριθμού δειγμάτων και robust στατιστικής.
@@ -739,7 +738,7 @@ max. Η \textbf{median} επιλέγεται ως βασική μετρική α
   \centering
   \resizebox{\textwidth}{!}{\input{figures/ch5-setup/instret-vs-cycles}}
   \caption{Σχέση \instret και κύκλων ρολογιού υπό τρία μικροαρχιτεκτονικά
-    μοντέλα. Ο Spike \gls{iss} υλοποιεί το ιδανικό μοντέλο (αριστερά).
+    μοντέλα. Το Spike \gls{iss} υλοποιεί το ιδανικό μοντέλο (αριστερά).
     Σε πραγματικό hardware, η σχέση εξαρτάται από τον \gls{cpi} του
     συγκεκριμένου πυρήνα.}
   \label{fig:instret-vs-cycles}
@@ -750,7 +749,7 @@ max. Η \textbf{median} επιλέγεται ως βασική μετρική α
 Η εγκυρότητα της μετρικής \instret ως δείκτη πραγματικής απόδοσης επικυρώνεται
 εμπειρικά μέσω μετρήσεων στο Banana Pi BPI-F3 (SpacemiT K1, πυρήνας X60,
 dual-issue in-order, \VLEN $= \num{256}$~bits). Ο \cref{tab:spike-vs-hw}
-συγκρίνει τα speedups που προβλέπει ο Spike (βάσει \instret) με τα μετρημένα
+συγκρίνει τα speedups που προβλέπει το Spike (βάσει \instret) με τα μετρημένα
 speedups σε πραγματικούς κύκλους (μέσω \code{perf\_event\_open}, userspace-only
 counters):
 
@@ -857,7 +856,7 @@ real-world εφαρμογές. Τα αναλυτικά αποτελέσματα 
 αναγνωρίζονται ρητά:
 
 \begin{enumerate}
-  \item \textbf{Απουσία pipeline μοντέλου:} Ο Spike δεν μοντελοποιεί pipeline
+  \item \textbf{Απουσία pipeline μοντέλου:} Το Spike δεν μοντελοποιεί pipeline
     stalls, data forwarding, ή structural hazards. Εντολές με υψηλή latency
     (\eg \vclmul σε πραγματικό hardware) εμφανίζονται ισοδύναμες με απλές ALU
     εντολές.
@@ -986,15 +985,15 @@ levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500
 \begin{itemize}
   \item \textbf{Τοπικά:} Το script \code{run\_kat.sh} δέχεται ως παράμετρο
     το polymul variant (\code{-{}-mul vector\_zvk}), μεταγλωττίζει αυτόματα
-    το αντίστοιχο ELF, εκτελεί στον Spike, και καλεί τον \code{kat\_check.py} για
+    το αντίστοιχο ELF, εκτελεί στο Spike, και καλεί τον \code{kat\_check.py} για
     επαλήθευση. Η εκτέλεση ολοκληρώνεται σε \num{5}–\SI{20}{\minute} ανά
-    variant στον Spike.
+    variant στο Spike.
   \item \textbf{CI Pipeline:} Το GitHub Actions workflow
     (\code{.github/workflows/kat.yml}) εκτελεί αυτόματα \gls{kat} tests σε
     κάθε push στους branches \code{main} και \code{dev}. Η λίστα variants
     ανιχνεύεται δυναμικά από το αρχείο
     \code{scripts/implemented\_variants.txt}, εξαλείφοντας χειροκίνητη
-    συντήρηση. Όλα τα variants εκτελούνται στον Spike, ο οποίος υποστηρίζει
+    συντήρηση. Όλα τα variants εκτελούνται στο Spike, ο οποίος υποστηρίζει
     πλήρως τις επεκτάσεις \gls{zvbc}/\gls{zvbb}.
 \end{itemize}
 
@@ -1284,7 +1283,7 @@ assembly δεν χρησιμοποιείται στους κρυπτογραφι
 απαιτεί ρητή κωδικοποίηση της διεύθυνσης CSR:
 
 \begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
-uint64_t hqc_rdinstret(void) {
+uint64_t hqc_read_minstret(void) {
     uint64_t instret;
     __asm__ volatile ("csrr %0, 0xb02" : "=r"(instret));
     return instret;
