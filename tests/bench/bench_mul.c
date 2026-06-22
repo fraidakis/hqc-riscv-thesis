@@ -8,7 +8,7 @@
  *
  * Platform selection:
  *   - Without HQC_PLATFORM_HW: bare-metal Spike ISS (sim)
- *     Uses hqc_rdcycle/hqc_rdinstret, single iteration, deterministic.
+ *     Uses hqc_read_mcycle/hqc_read_minstret, single iteration, deterministic.
  *   - With -DHQC_PLATFORM_HW=1: Linux userspace on real hardware (BPI-F3)
  *     Uses perf_event_open for cycle/instret counting, many iterations.
  *
@@ -352,13 +352,13 @@ int main(void)
     }
 #endif
 
-    /* ── Timed passes ────────────────────────────────────────────────────── */
+    /* ── Timed passes ────────────────────────────────────────────────��───── */
     for (int i = 0; i < N_ITER; i++) {
         uint64_t t0_cyc = BENCH_RDCYCLE();
-        uint64_t t0_ins = hqc_rdinstret();
+        uint64_t t0_ins = hqc_read_minstret();
         vect_mul(poly_out, poly_a, poly_b);
         uint64_t t1_cyc = BENCH_RDCYCLE();
-        uint64_t t1_ins = hqc_rdinstret();
+        uint64_t t1_ins = hqc_read_minstret();
         samples_cyc[i] = t1_cyc - t0_cyc;
         samples_ins[i] = t1_ins - t0_ins;
     }

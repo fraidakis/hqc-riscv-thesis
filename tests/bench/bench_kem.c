@@ -487,10 +487,10 @@ int main(void)
     /* ── KeyGen ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
         uint64_t t0_cyc = BENCH_RDCYCLE();
-        uint64_t t0_ins = hqc_rdinstret();
+        uint64_t t0_ins = hqc_read_minstret();
         crypto_kem_keypair(pk, sk);
         uint64_t t1_cyc = BENCH_RDCYCLE();
-        uint64_t t1_ins = hqc_rdinstret();
+        uint64_t t1_ins = hqc_read_minstret();
         samples_cyc[i] = t1_cyc - t0_cyc;
         samples_ins[i] = t1_ins - t0_ins;
     }
@@ -499,10 +499,10 @@ int main(void)
     /* ── Encaps ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
         uint64_t t0_cyc = BENCH_RDCYCLE();
-        uint64_t t0_ins = hqc_rdinstret();
+        uint64_t t0_ins = hqc_read_minstret();
         crypto_kem_enc(ct, ss_enc, pk);
         uint64_t t1_cyc = BENCH_RDCYCLE();
-        uint64_t t1_ins = hqc_rdinstret();
+        uint64_t t1_ins = hqc_read_minstret();
         samples_cyc[i] = t1_cyc - t0_cyc;
         samples_ins[i] = t1_ins - t0_ins;
     }
@@ -511,10 +511,10 @@ int main(void)
     /* ── Decaps ───────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
         uint64_t t0_cyc = BENCH_RDCYCLE();
-        uint64_t t0_ins = hqc_rdinstret();
+        uint64_t t0_ins = hqc_read_minstret();
         crypto_kem_dec(ss_dec, ct, sk);
         uint64_t t1_cyc = BENCH_RDCYCLE();
-        uint64_t t1_ins = hqc_rdinstret();
+        uint64_t t1_ins = hqc_read_minstret();
         samples_cyc[i] = t1_cyc - t0_cyc;
         samples_ins[i] = t1_ins - t0_ins;
     }

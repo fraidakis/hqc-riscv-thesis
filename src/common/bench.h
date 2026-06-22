@@ -9,10 +9,10 @@
 #include <stdint.h>
 
 /* Read the current machine-cycle counter. */
-uint64_t hqc_rdcycle(void);
+uint64_t hqc_read_mcycle(void);
 
 /* Read the machine instruction-retire counter. */
-uint64_t hqc_rdinstret(void);
+uint64_t hqc_read_minstret(void);
 
 /* Halt the simulator with the given exit code (0 = success). */
 void hqc_htif_exit(int code);

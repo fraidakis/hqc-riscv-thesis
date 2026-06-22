@@ -8,7 +8,7 @@
  *   (default)        — Spike:    HTIF tohost/fromhost for output and exit.
  *
  * Public API (declared in bench.h):
- *   hqc_rdcycle()          — read mcycle CSR
+ *   hqc_read_mcycle()          — read mcycle CSR
  *   hqc_htif_puts(s)       — print NUL-terminated string
  *   hqc_htif_putu64(v)     — print uint64_t as decimal
  *   hqc_htif_exit(code)    — halt the simulator with an exit code
@@ -26,7 +26,7 @@
  * required.  Using the rdcycle pseudoinstruction (CSR 0xc00) would require
  * the Zicntr extension and traps on Spike when _zicntr is absent.
  */
-uint64_t hqc_rdcycle(void)
+uint64_t hqc_read_mcycle(void)
 {
     uint64_t cycles;
     __asm__ volatile ("csrr %0, 0xb00" : "=r"(cycles));   /* mcycle */
@@ -38,7 +38,7 @@ uint64_t hqc_rdcycle(void)
  * in M-mode.  On default Spike (no pipeline/cache modelling) this is nearly
  * identical to mcycle; the two together cross-validate measurements.
  */
-uint64_t hqc_rdinstret(void)
+uint64_t hqc_read_minstret(void)
 {
     uint64_t instret;
     __asm__ volatile ("csrr %0, 0xb02" : "=r"(instret));  /* minstret */

@@ -263,12 +263,12 @@ int main(void)
 
     /* ── Timed passes ────────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {
-        uint64_t t0_cyc = hqc_rdcycle();
-        uint64_t t0_ins = hqc_rdinstret();
+        uint64_t t0_cyc = hqc_read_mcycle();
+        uint64_t t0_ins = hqc_read_minstret();
         reed_muller_decode(rm_msg, rm_cdw);
         reed_solomon_decode(rs_msg, rm_msg);
-        uint64_t t1_cyc = hqc_rdcycle();
-        uint64_t t1_ins = hqc_rdinstret();
+        uint64_t t1_cyc = hqc_read_mcycle();
+        uint64_t t1_ins = hqc_read_minstret();
         samples_cyc[i] = t1_cyc - t0_cyc;
         samples_ins[i] = t1_ins - t0_ins;
     }

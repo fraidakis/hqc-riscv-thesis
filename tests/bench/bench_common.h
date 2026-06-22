@@ -71,7 +71,7 @@
    */
   #define BENCH_PRINTF hqc_htif_puts
 
-  #define BENCH_RDCYCLE() hqc_rdcycle()
+  #define BENCH_RDCYCLE() hqc_read_mcycle()
 
 #endif /* HQC_PLATFORM_HW */
 
