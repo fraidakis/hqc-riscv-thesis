@@ -33,6 +33,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${SCRIPT_DIR}/lib_bench.sh"
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 LEVEL="${LEVEL:-128}"
@@ -303,7 +304,7 @@ CSV_LATEST="${OUT_DIR}/hw_lto_pgo_compare_hqc${LEVEL}_${POLYMUL}_latest.csv"
     done
 } > "$CSV_OUT"
 
-cp -f "$CSV_OUT" "$CSV_LATEST"
+bench_refresh_tracked_csv "$CSV_OUT" "$CSV_LATEST" || true
 
 echo ""
 echo "━━━ Results ━━━"
@@ -339,7 +340,6 @@ for config in baseline lto pgo_use; do
 done
 
 echo ""
-echo "✔ Written: ${CSV_LATEST}"
 echo "  Archive: ${CSV_OUT}"
 echo ""
 echo "Text sizes:"

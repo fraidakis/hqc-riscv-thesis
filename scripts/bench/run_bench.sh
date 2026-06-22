@@ -593,9 +593,9 @@ case "$PLATFORM" in
         }
 
         # ── Variant expansion ────────────────────────────────────────
-        # Hardware (BPI-F3) supports: scalar_ref, scalar_zb, vector_ref, vector_rvv.
+        # Hardware (BPI-F3) supports: scalar_ref, scalar_zb, vector_rvv.
         # vector_zvk requires Zvbc/Zvbb extensions not available on this SoC.
-        HW_SUPPORTED_VARIANTS=(scalar_ref scalar_zb vector_ref vector_rvv)
+        HW_SUPPORTED_VARIANTS=(scalar_ref scalar_zb vector_rvv)
 
         bench_load_implemented_variants "$REPO_ROOT"
 
@@ -671,7 +671,7 @@ case "$PLATFORM" in
 
         # ── Store CSV result ─────────────────────────────────────────
         hw_store_csv() {
-            local output="$1" variant="$2" op="$3" slug="$4" timestamp="$5" level="$6"
+            local output="$1" variant="$2" op="$3" slug="$4" timestamp="$5"
 
             local n_iter n_warmup
             if [[ "$QUALITY" == "publish" ]]; then
@@ -781,6 +781,12 @@ ${output}"
             # Print variant header
             echo -e "\n📦 ${variant_label} (${MODE})"
 
+            # Accumulate transformed rows across all levels.
+            # We prepend a "level" column to match the sim CSV format:
+            #   level,op,iterations,min_cycles,...
+            local csv_col_header=""
+            local accumulated_rows=""
+
             for level in $LEVELS; do
                 # Build
                 hw_build "$level" "$polymul" || continue
@@ -792,9 +798,31 @@ ${output}"
                 # Progress
                 hw_print_progress "$output" "$level"
 
-                # Store (prints 🔄 Updated / ⏭ Unchanged with full path)
-                hw_store_csv "$output" "$variant" "$op" "$file_slug" "$timestamp" "$level"
+                # Extract column header from first level (strip comment lines)
+                if [[ -z "$csv_col_header" ]]; then
+                    csv_col_header="level,$(echo "$output" | grep -m1 '^op,')"
+                fi
+
+                # Extract data rows (skip comments and the header line) and prepend level
+                local level_rows
+                level_rows="$(echo "$output" | grep -v '^#' | grep -v '^op,' | awk -v lvl="$level" -F',' 'NF>1 {print lvl "," $0}')"
+
+                if [[ -n "$level_rows" ]]; then
+                    if [[ -n "$accumulated_rows" ]]; then
+                        accumulated_rows="${accumulated_rows}
+${level_rows}"
+                    else
+                        accumulated_rows="$level_rows"
+                    fi
+                fi
             done
+
+            # Store the combined result for all levels (single write)
+            if [[ -n "$accumulated_rows" && -n "$csv_col_header" ]]; then
+                local combined_csv="${csv_col_header}
+${accumulated_rows}"
+                hw_store_csv "$combined_csv" "$variant" "$op" "$file_slug" "$timestamp"
+            fi
         }
 
         # ── Main execution ───────────────────────────────────────────
