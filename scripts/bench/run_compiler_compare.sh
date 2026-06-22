@@ -17,7 +17,7 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 # ── Toolchain / environment ───────────────────────────────────────────────────
 RISCV="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
-ISA="rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b_zicntr_zihpm"
+ISA="rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b"
 SPIKE_TIMEOUT_SEC="${SPIKE_TIMEOUT_SEC:-120}"
 
 if [[ ! -x "$SPIKE" ]]; then

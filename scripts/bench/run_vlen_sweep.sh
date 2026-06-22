@@ -391,7 +391,7 @@ run_vlen_sweep_single_variant() {
             fi
 
             # Run Spike with the matching zvl<VLEN>b ISA string.
-            local isa="${ISA_BASE}_zvl${vlen}b_zicntr_zihpm"
+            local isa="${ISA_BASE}_zvl${vlen}b"
             local tmp_log
             tmp_log="$(mktemp)"
             if ! "$SPIKE" --isa="$isa" "$elf" > "$tmp_log" 2>/dev/null; then

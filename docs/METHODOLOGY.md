@@ -194,7 +194,7 @@ All tools ranked against our three constraints:
 |---|---|
 | Available | Yes (`~/Thesis/installed-tools/bin/spike`) |
 | `rdcycle` semantics | Exact retired instruction count (deterministic) |
-| Zvbc support | Yes: `--isa=rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm` |
+| Zvbc support | Yes: `--isa=rv64gcv_zbc_zbb_zbkb_zvbc` |
 | Throughput | ~1–5 M insn/s (use micro-benchmarks to keep runs short) |
 
 **Why #1:** Spike is the only tool providing a meaningful, deterministic,

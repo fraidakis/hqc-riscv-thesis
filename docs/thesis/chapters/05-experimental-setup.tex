@@ -20,44 +20,50 @@
 ντετερμινιστική καταμέτρηση εντολών, και το Banana Pi BPI-F3 (SpacemiT K1 X60),
 που προσφέρει μετρήσεις κύκλων σε πραγματικό hardware για τα tiers που υποστηρίζει.
 
-\paragraph{Spike — Ο Προσομοιωτής Αναφοράς (Reference ISS)}
+\subsection{Spike — Ο Προσομοιωτής Αναφοράς (Reference ISS)}
+\label{ssec:spike}
 
-Ο Spike αποτελεί τον επίσημο προσομοιωτή αναφοράς (reference model) της
-αρχιτεκτονικής RISC-V, αναπτυγμένο από το RISC-V Software Foundation~\cite{spike-github}:
-λειτουργεί ως αυθεντική υλοποίηση που ορίζει τη σωστή συμπεριφορά της αρχιτεκτονικής
-και, ως εκ τούτου, χρησιμοποιείται ως σημείο αναφοράς για τη λειτουργική επαλήθευση
+Ο Spike αποτελεί τον επίσημο προσομοιωτή αναφοράς (golden reference) της
+αρχιτεκτονικής RISC-V, αναπτυγμένο από το RISC-V International~\cite{spike-github}:
+λειτουργεί ως η υλοποίηση που ορίζει τη σωστή συμπεριφορά της αρχιτεκτονικής
+και, ως εκ τούτου, χρησιμοποιείται ως σημείο αναφοράς για την επαλήθευση ορθότητας
 και την καταμέτρηση εντολών. Υλοποιεί ένα
-\defterm{λειτουργικό μοντέλο} (functional model — αναπαράσταση μόνο του λειτουργικού
-αποτελέσματος κάθε εντολής, χωρίς μοντελοποίηση του χρονισμού ή της
-μικροαρχιτεκτονικής) ενός ή περισσότερων RISC-V harts (hardware threads — τα λογικά
+\defterm{λειτουργικό μοντέλο} (functional model, δηλαδή αναπαράσταση μόνο του αρχιτεκτονικού
+αποτελέσματος κάθε εντολής, της τελικής τιμής σε registers και μνήμη, χωρίς μοντελοποίηση της
+μικροαρχιτεκτονικής) ενός ή περισσότερων RISC-V harts (hardware threads: τα λογικά
 νήματα εκτέλεσης που εκθέτει ο επεξεργαστής):
 κάθε εντολή αποκωδικοποιείται και εκτελείται σειριακά, ενημερώνοντας την
-αρχιτεκτονική κατάσταση (architectural state: registers, μνήμη, \glspl{csr}) χωρίς κανένα μοντέλο
-pipeline, cache ή branch predictor. Η εκτέλεση είναι πλήρως ντετερμινιστική, καθώς το ίδιο ELF binary (Executable and
-Linkable Format — το compiled εκτελέσιμο αρχείο, το πρότυπο των Linux/RISC-V, σε
-αντιστοιχία με το \code{.exe} των Windows) με την ίδια αρχική κατάσταση παράγει
+αρχιτεκτονική κατάσταση (architectural state: registers, μνήμη, 
+\glspl{csr}) χωρίς κανένα μοντέλο pipeline, cache ή branch predictor. 
+Η εκτέλεση είναι πλήρως ντετερμινιστική, καθώς το ίδιο ELF binary 
+(Executable and Linkable Format: το compiled εκτελέσιμο αρχείο, το 
+πρότυπο των Linux/RISC-V) με την ίδια αρχική κατάσταση παράγει
 πάντοτε τον ίδιο αριθμό εκτελεσθεισών εντολών.
 
-Η κρίσιμη ιδιότητα του Spike για τη μεθοδολογία benchmarking (συγκριτικής αξιολόγησης απόδοσης) είναι ο τρόπος
-  με τον οποίο υλοποιεί τον μετρητή κύκλων \code{mcycle}. Η RISC-V εκθέτει δύο βασικούς
-  μετρητές επίδοσης: τον \code{mcycle} (μετρητής κύκλων, αναγνώσιμος μέσω της εντολής
-\code{rdcycle}) και τον \code{minstret} (μετρητής retired instructions — αποσυρθεισών
-εντολών — αναγνώσιμος μέσω της \code{rdinstret}). Στον Spike ισχύει \code{rdcycle} $\equiv$ \code{rdinstret},
-δηλαδή ο μετρητής κύκλων ταυτίζεται με τον μετρητή retired instructions. Αυτό σημαίνει
-ότι ο Spike επιβάλλει \gls{cpi} $= 1$ για κάθε εντολή, ανεξαρτήτως τύπου, δηλαδή μία
-εντολή \vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}. Οι συνέπειες αυτής
+Η RISC-V εκθέτει δύο βασικές μετρητές επίδοσης: τον \code{mcycle} (μετρητής κύκλων, αναγνώσιμος μέσω της εντολής
+\code{rdcycle}) και τον \code{minstret} (μετρητής retired instructions, αναγνώσιμος μέσω της \code{rdinstret}). Στον Spike ισχύει \code{rdcycle} $\equiv$ \code{rdinstret},
+δηλαδή ο μετρητής κύκλων ταυτίζεται με τον μετρητή retired instructions. Αυτό δεν σημαίνει
+ότι ο Spike \emph{επιβάλλει} \gls{cpi} $= 1$· ως καθαρό functional model, ο Spike δεν μοντελοποιεί
+καθόλου το latency, οπότε κάθε αποσυρόμενη εντολή προάγει τον \code{mcycle} κατά έναν κύκλο,
+ανεξαρτήτως τύπου, ώστε μία εντολή \vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}.
+Έτσι η μετρική του Spike εξαρτάται αποκλειστικά από το instruction count του αλγορίθμου, όχι από
+μικροαρχιτεκτονικά φαινόμενα. Οι συνέπειες αυτής
 της απλοποίησης αναλύονται στην \cref{ssec:benchmarking-limitations}.
 
 Ο Spike υποστηρίζει πλήρως τις επεκτάσεις που απαιτεί η παρούσα εργασία. Η
 κλήση εκτέλεσης χρησιμοποιεί το \gls{isa} string:
 
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\small, breaklines=true]
-spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b_zicntr_zihpm <elf>
+spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b_zicntr <elf>
 \end{lstlisting}
 
 \noindent
 όπου η παράμετρος \code{zvl256b} ορίζει \VLEN $= \num{256}$~bits, αντιστοιχώντας
-στο hardware profile που στοχεύει η υλοποίηση (βλ.\ \cref{ssec:bpi-f3}).
+στο hardware profile που στοχεύει η υλοποίηση (βλ.~\cref{ssec:bpi-f3}). Η επέκταση
+\ext{Zicntr} ενεργοποιεί τους βασικούς μετρητές (\code{cycle}, \code{time}, \code{instret})·
+περιλαμβάνεται ως προληπτικό μέτρο, ώστε τυχόν ELF που χρησιμοποιεί τις pseudo-instructions
+\code{rdcycle}/\code{rdinstret} να μην προκαλεί trap, αν και η καταμέτρηση εδώ διαβάζει
+απευθείας τους M-mode μετρητές \code{mcycle}/\code{minstret}, οι οποίοι δεν απαιτούν κάποια επέκταση.
 
 To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης ενός ELF binary στον Spike:
 ο host (ο φυσικός επεξεργαστής που εκτελεί τον Spike) ερμηνεύει σειριακά κάθε εντολή
@@ -71,18 +77,18 @@ To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης �
   \label{fig:spike-arch}
 \end{figure}
 
-\paragraph{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60)}
+\subsection{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60)}
 \label{ssec:bpi-f3}
 
 Το Banana Pi BPI-F3 (SpacemiT K1 X60) αποτελεί την πλατφόρμα πραγματικού 
 hardware της πειραματικής υποδομής, ένα development board βασισμένο στο 
-SpacemiT K1 SoC(System-on-Chip — ολοκληρωμένο που ενσωματώνει CPU, 
-μνήμη και περιφερειακά σε ένατσιπ). Σε αντίθεση με το Spike, η 
+SpacemiT K1 SoC (System-on-Chip: ολοκληρωμένο που ενσωματώνει CPU, 
+μνήμη και περιφερειακά σε ένα τσιπ). Σε αντίθεση με το Spike, η 
 πλατφόρμα αυτή παρέχει πραγματικές μετρήσεις κύκλων (cycles) με 
 pipeline effects, cache behavior, και dual-issue scheduling, 
 συμπληρωματικά προς τα ντετερμινιστικά \instret του Spike.
 
-\subparagraph{Προδιαγραφές Hardware.}
+\paragraph{Προδιαγραφές Hardware.}
 Ο SpacemiT K1 είναι octa-core σε \emph{ασύμμετρη} dual-cluster τοπολογία: το
 Cluster~0 (\num{4} cores) διαθέτει επιπλέον \SI{512}{\kilo\byte} TCM αποκλειστικά
 για την επέκταση AI, ενώ το Cluster~1 (\num{4} cores) όχι· κατά τα άλλα τα δύο
@@ -113,69 +119,6 @@ core, \SI{512}{\kilo\byte} L2 ανά cluster). Οι
   \end{tabular}
 \end{table}
 
-\subparagraph{Υποστηριζόμενες Επεκτάσεις.}
-
-Ο K1 X60 (RVA22 profile) υποστηρίζει το πλήρες σύνολο scalar bit-manipulation
-extensions, με την παρούσα εργασία να αξιοποιεί τις \ext{Zbb} και \ext{Zbc}.
-Ωστόσο, \textbf{δεν υποστηρίζει} \gls{zvbc} και \gls{zvbb} (βλ.\ \cref{ch:risc-v-architecture}). 
-Η πρακτική συνέπεια είναι ότι τα scalar και
-Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
-\code{vector\_rvv}) εκτελούνται natively στο hardware, ενώ το
-Vector-Crypto variant (\code{vector\_zvk}) αξιολογείται αποκλειστικά
-μέσω Spike.
-
-\subparagraph{Μεθοδολογία Μέτρησης.}
-
-Στο default Linux configuration το bit \code{scounteren.CY} είναι 0, οπότε η
-εντολή \code{rdcycle} (απευθείας ανάγνωση του μετρητή κύκλων από userspace) δεν
-επιτρέπεται. Η μέτρηση κύκλων πραγματοποιείται επομένως μέσω του
-\code{perf\_event\_open} syscall (η διεπαφή του Linux perf subsystem για μετρητές
-απόδοσης) με \code{exclude\_kernel=1}, που περιορίζει τη μέτρηση αποκλειστικά στους
-κύκλους userspace, εξαιρώντας τον χρόνο εντός του kernel.
-Το πρωτόκολλο μέτρησης ακολουθεί την εξής διαδικασία:
-
-\begin{itemize}
-  \item \textbf{CPU isolation:} Η εκτέλεση γίνεται σε isolated core μέσω
-    \code{taskset -c 7}, αποτρέποντας migration μεταξύ cores.
-  \item \textbf{Frequency governor:} Ρύθμιση σε \code{performance} mode
-    (σταθερή συχνότητα \SI{1.6}{\giga\hertz}).
-  \item \textbf{Warm-up:} \num{100} iterations (discarded) για αρχικοποίηση
-    i-cache, branch predictor, και \gls{prng} state.
-  \item \textbf{Μετρήσεις:} \num{10000} measured iterations ανά λειτουργία.
-  \item \textbf{Στατιστική:} Αναφέρεται η \textbf{median} (βασική μετρική),
-    μαζί με mean, stddev, min, max.
-  \item \textbf{Static binary:} Μεταγλώττιση με \code{-static} για εξάλειψη
-    PLT/GOT overhead.
-\end{itemize}
-
-\noindent
-Η per-iteration μέτρηση χρησιμοποιεί τον κύκλο
-\code{ioctl(RESET)} $\to$ \code{ioctl(ENABLE)} $\to$ KEM operation $\to$
-\code{ioctl(DISABLE)} $\to$ \code{read()}, εξασφαλίζοντας ότι κάθε iteration
-μετράται ανεξάρτητα. Το overhead των \code{ioctl} κλήσεων εκτιμάται σε
-$\approx \num{100}$–\num{200} cycles — αμελητέο για operations
-$>\num{100000}$ cycles.
-
-\subparagraph{Σημασία για τη Μεθοδολογία.}
-
-Η σύγκριση Spike \instret vs πραγματικών κύκλων αποκαλύπτει τον πραγματικό
-\gls{ipc} (Instructions Per Cycle) — δείκτη pipeline utilization. Η
-εμπειρική επικύρωση (βλ.\ \cref{ssec:spike-vs-hw}) τεκμηριώνει ότι τα Spike
-speedups αποκλίνουν μόλις $\approx\pct{2}$ από τα πραγματικά για HQC-128/192,
-ενισχύοντας την αξιοπιστία της μετρικής \instret ως δείκτη σχετικής απόδοσης.
-
-Πέραν της αξιολόγησης απόδοσης, το BPI-F3 αποτελεί την πλατφόρμα εμπειρικής
-επαλήθευσης constant-time εκτέλεσης μέσω dudect-based στατιστικής ανάλυσης
-χρονισμού (βλ.\ \cref{ssec:ct-dudect}). Η μεθοδολογία dudect απαιτεί
-πραγματικούς κύκλους hardware — ο προσομοιωτής Spike δεν παρέχει
-αξιόπιστη πληροφορία χρονισμού για ανίχνευση timing leakage. Η κάλυψη
-περιορίζεται στα Tier~1 (scalar \gls{zbc}) και Tier~2 (Base-RVV) variants, καθώς
-ο K1 X60 δεν υποστηρίζει \gls{zvbc}/\gls{zvbb} — η CT επαλήθευση των Tier~3
-Vector-Crypto variants παραμένει ανοιχτή: κατά την εκπόνηση της εργασίας δεν υπήρχε
-εμπορικά προσβάσιμο RISC-V silicon με υποστήριξη RVA23· το SpacemiT K3 ανακοινώθηκε
-προς το τέλος της συγγραφής, αλλά δεν ήταν διαθέσιμο εγκαίρως ώστε να ενταχθεί στην
-πειραματική αξιολόγηση.
-
 Το \cref{fig:bananapi-f3} δείχνει την πλατφόρμα πραγματικού hardware 
 (Banana Pi BPI-F3) που χρησιμοποιείται για επικύρωση σε silicon.
 
@@ -187,6 +130,18 @@ Vector-Crypto variants παραμένει ανοιχτή: κατά την εκπ
   \label{fig:bananapi-f3}
 \end{figure}
 
+
+\paragraph{Υποστηριζόμενες Επεκτάσεις.}
+
+Ο K1 X60 (RVA22 profile) υποστηρίζει το πλήρες σύνολο scalar bit-manipulation
+extensions, με την παρούσα εργασία να αξιοποιεί τις \ext{Zbb} και \ext{Zbc}.
+Ωστόσο, \textbf{δεν υποστηρίζει} \gls{zvbc} και \gls{zvbb} (βλ.~\cref{ch:risc-v-architecture}). 
+Η πρακτική συνέπεια είναι ότι τα scalar και
+Base-RVV variants (\code{scalar\_ref}, \code{scalar\_zb},
+\code{vector\_rvv}) εκτελούνται natively στο hardware, ενώ το
+Vector-Crypto variant (\code{vector\_zvk}) αξιολογείται αποκλειστικά
+μέσω Spike.
+
 \paragraph{Στρατηγική Δύο Πλατφορμών}
 
 Η συνδυαστική χρήση των δύο πλατφορμών ακολουθεί αυστηρό διαχωρισμό ρόλων:
@@ -195,44 +150,13 @@ Vector-Crypto variants παραμένει ανοιχτή: κατά την εκπ
   \item \textbf{Spike:} ντετερμινιστική καταμέτρηση εντολών (\instret), profiling
     μέσω PC histograms, VLEN sweep (\num{256}–\num{2048}), και πλήρης κάλυψη
     όλων των variants (συμπεριλαμβανομένων \gls{zvbc}/\gls{zvbb}). Αποτελεί την αυθεντική
-    πηγή για κάθε αριθμητικό αποτέλεσμα που αναφέρεται στα
-    \cref{ch:polymul-optimization} και \cref{ch:results}, ενώ ταυτόχρονα εκτελεί
-    τη λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από κάθε αλλαγή κώδικα.
+    πηγή για κάθε αριθμητικό αποτέλεσμα που αναφέρεται στο \cref{ch:results}, ενώ ταυτόχρονα 
+    εκτελεί τη λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από κάθε αλλαγή κώδικα.
   \item \textbf{BPI-F3:} hardware validation μέσω πραγματικών κύκλων (cycles),
     υπολογισμός \gls{ipc}, cross-check Spike predictions, και παραγωγή
     wall-clock time ($\text{cycles} / \SI{1.6}{\giga\hertz}$). Καλύπτει
     τα scalar και Base-RVV variants (Tier~1, Tier~2).
 \end{itemize}
-
-\noindent
-Ο \cref{tab:platform-comparison} συνοψίζει τα χαρακτηριστικά κάθε πλατφόρμας.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Σύγκριση των δύο πλατφορμών εκτέλεσης. Ο Spike παρέχει ντετερμινιστική
-    μετρική και λειτουργική επαλήθευση για όλα τα variants, και το BPI-F3
-    πραγματικούς κύκλους με pipeline effects.}
-  \label{tab:platform-comparison}
-  \begin{tabular}{l l l}
-    \toprule
-    & \textbf{Spike ISS} & \textbf{BPI-F3 (K1 X60)} \\
-    \midrule
-    Μετρική          & \instret (ντετερμ.) & cycles (στατιστ.) \\
-    Pipeline model   & Κανένα (CPI=1)      & Real 8-stage dual-issue \\
-    Cache model      & Κανένα              & Real 32KB L1 + 512KB L2 \\
-    Variant coverage & Όλα (incl.\ Zvbc)   & Scalar + RVV μόνο \\
-    Ταχύτητα         & Αργός               & Real-time \\
-    Χρήση            & Benchmarking + KAT         & HW validation \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\noindent
-Ο διαχωρισμός αυτός διατηρεί καθαρό διαχωρισμό μεταξύ ντετερμινιστικής μέτρησης
-και πρακτικής επικύρωσης, με σύντομο κύκλο ανάπτυξης–επαλήθευσης. Οι δύο
-πλατφόρμες παρέχουν συμπληρωματικά επίπεδα εμπιστοσύνης: αλγοριθμική σύγκριση
-και λειτουργική ορθότητα (Spike \instret + \gls{kat}), και πρακτική απόδοση
-σε silicon (BPI-F3 cycles).
 
 \section{Cross-Compilation Toolchains και Ρυθμίσεις Μεταγλώττισης}
 \label{sec:toolchains}
@@ -720,6 +644,28 @@ subsystem, χρησιμοποιώντας τον \code{perf\_event\_open} syscal
 σε Linux userspace υπόκειται σε στατιστική μεταβλητότητα λόγω timer interrupts,
 cache state variations, και residual OS activity. Η μεθοδολογία αντιμετωπίζει
 αυτή τη μεταβλητότητα μέσω μεγάλου αριθμού δειγμάτων και robust στατιστικής.
+
+\paragraph{Πειραματικό Περιβάλλον}
+
+Στο default Linux configuration το bit \code{scounteren.CY} είναι 0, οπότε η εντολή
+\code{rdcycle} (απευθείας ανάγνωση του μετρητή κύκλων από userspace) δεν επιτρέπεται· γι' αυτό
+η μέτρηση στηρίζεται στο \code{perf\_event\_open} αντί για απευθείας CSR reads. Για επαναλήψιμες
+μετρήσεις, το περιβάλλον ελέγχεται ως εξής:
+
+\begin{itemize}
+  \item \textbf{CPU isolation:} Η διεργασία είναι pinned στον πυρήνα 7 μέσω \code{taskset -c 7},
+    αποτρέποντας τη μετακίνησή της (migration) μεταξύ πυρήνων από τον scheduler, που
+    θα εισήγαγε θόρυβο cache/TLB cold-start στις μετρήσεις.
+  \item \textbf{Frequency governor:} Ρύθμιση σε \code{performance} mode. Ο governor αυτός δεν
+    εφαρμόζει δυναμική κλιμάκωση συχνότητας ανάλογα με το φορτίο· διατηρεί σταθερά τη μέγιστη
+    συχνότητα (εδώ \SI{1.6}{\giga\hertz}), εξαλείφοντας τη μεταβλητότητα από DVFS transitions.
+  \item \textbf{Warm-up:} \num{100} iterations (απορρίπτονται) για αρχικοποίηση i-cache, branch
+    predictor και \gls{prng} state.
+  \item \textbf{Static binary:} Μεταγλώττιση με \code{-static}, ώστε όλες οι κλήσεις συναρτήσεων
+    να επιλύονται στατικά και να αποφεύγεται το overhead των έμμεσων αναπηδήσεων μέσω PLT/GOT
+    (Procedure Linkage Table / Global Offset Table — οι πίνακες που υλοποιούν το dynamic linking),
+    το οποίο θα εισήγαγε μη ντετερμινιστική διακύμανση στις πρώτες κλήσεις.
+\end{itemize}
 
 \paragraph{Αρχιτεκτονική Measurement Harness}
 

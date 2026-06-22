@@ -25,7 +25,7 @@ source "${REPO_ROOT}/scripts/bench/lib_bench.sh"
 
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
-ISA="rv64gcv_zbc_zbb_zbkb_zvbc_zicntr_zihpm"
+ISA="rv64gcv_zbc_zbb_zbkb_zvbc"
 BUILD_DIR="${REPO_ROOT}/build/spike"
 OUT_DIR="${REPO_ROOT}/results/simulation/benchmarks/experiments/hybrid"
 
