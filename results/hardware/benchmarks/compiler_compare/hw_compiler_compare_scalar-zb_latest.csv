@@ -1,0 +1,10 @@
+# date: 2026-06-22 23:58
+# commit: 45892ca
+# platform: bpi-f3
+# quality: dev
+# variant: scalar_zb
+compiler,opt,level,variant,status,cycles,text_bytes,binary,error
+gcc,-O2,128,karatsuba_zbc,OK,2230853,523497,build-hw/bench_hw_kem_hqc128_scalar_zb,
+gcc,-O3,128,karatsuba_zbc,OK,2032218,540153,build-hw/bench_hw_kem_hqc128_scalar_zb,
+clang,-O2,128,karatsuba_zbc,OK,2180716,542507,build-hw/bench_hw_kem_hqc128_scalar_zb,
+clang,-O3,128,karatsuba_zbc,OK,2163643,561411,build-hw/bench_hw_kem_hqc128_scalar_zb,

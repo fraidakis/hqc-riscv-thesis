@@ -1,10 +1,9 @@
-# date: 2026-05-31 23:00
-# commit: e97d10b
+# date: 2026-06-23 01:30
+# commit: 45892ca
 # variant: scalar_zb
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-# level=128,decode=rvv,n_iter=100,n_warmup=10,platform=hw
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
-decode,100,204776,205402,239867,206415.3,4752.4,141148,141148,148238,141332.4,1060.8
+level,op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
+256,decode,100,545397,546321,639600,549344.2,11426.1,378751,378751,389778,379322.1,1907.8

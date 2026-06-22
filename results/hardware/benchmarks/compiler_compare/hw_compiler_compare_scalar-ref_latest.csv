@@ -1,0 +1,10 @@
+# date: 2026-06-22 23:59
+# commit: 45892ca
+# platform: bpi-f3
+# quality: dev
+# variant: scalar_ref
+compiler,opt,level,variant,status,cycles,text_bytes,binary,error
+gcc,-O2,128,ref_scalar,OK,119650719,517897,build-hw/bench_hw_kem_hqc128_scalar_ref,
+gcc,-O3,128,ref_scalar,OK,71000264,531865,build-hw/bench_hw_kem_hqc128_scalar_ref,
+clang,-O2,128,ref_scalar,OK,82643954,533315,build-hw/bench_hw_kem_hqc128_scalar_ref,
+clang,-O3,128,ref_scalar,OK,82547603,547303,build-hw/bench_hw_kem_hqc128_scalar_ref,

@@ -1,0 +1,10 @@
+# date: 2026-06-23 00:01
+# commit: 45892ca
+# platform: bpi-f3
+# quality: dev
+# variant: vector_rvv
+compiler,opt,level,variant,status,cycles,text_bytes,binary,error
+gcc,-O2,128,karatsuba_rvv,FAIL,,,build-hw/bench_hw_kem_hqc128_vector_rvv,build_failed
+gcc,-O3,128,karatsuba_rvv,FAIL,,,build-hw/bench_hw_kem_hqc128_vector_rvv,build_failed
+clang,-O2,128,karatsuba_rvv,OK,1644795,541479,build-hw/bench_hw_kem_hqc128_vector_rvv,
+clang,-O3,128,karatsuba_rvv,OK,1615757,550041,build-hw/bench_hw_kem_hqc128_vector_rvv,
