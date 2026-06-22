@@ -112,6 +112,14 @@ CFLAGS_BASE := -O3 -static -march=$(MARCH) -mabi=lp64d \
                -DPOLYMUL_NAME=\"$(POLYMUL)\" \
                $(EXTRA_CFLAGS)
 
+# ── LTO support (enabled by default for bench, disabled for dudect) ──────────
+# LTO provides 1–3% improvement from cross-TU inlining.
+# Override with LTO=0 to disable.
+LTO ?= 1
+ifeq ($(LTO),1)
+  CFLAGS_BASE += -flto
+endif
+
 # ── Core sources (invariant across polymul variants) ─────────────────────────
 CORE_SOURCES := $(VENDOR)/src/common/kem.c \
                 $(VENDOR)/src/common/crypto_memset.c \
@@ -298,12 +306,63 @@ info:
 	@echo "  LEVEL    = $(LEVEL)"
 	@echo "  POLYMUL  = $(POLYMUL)"
 	@echo "  MODE     = $(MODE)"
+	@echo "  LTO      = $(LTO)"
 	@echo "  MARCH    = $(MARCH)"
 	@echo "  N_ITER   = $(N_ITER)"
 	@echo "  N_WARMUP = $(N_WARMUP)"
 	@echo "  EXTENDED = $(EXTENDED)"
 	@echo "  KEM_BIN  = $(KEM_BIN)"
 	@echo "  MUL_BIN  = $(MUL_BIN)"
+
+# ── PGO targets (two-pass: generate profile → train → rebuild with profile) ─
+# Usage:
+#   make -f Makefile.hw SUITE=bench LEVEL=128 POLYMUL=scalar_zb pgo_kem
+#   make -f Makefile.hw SUITE=bench LEVEL=128 POLYMUL=scalar_zb pgo_mul
+#
+# The resulting binary is the same KEM_BIN/MUL_BIN but compiled with PGO data.
+# PGO provides 5–12% improvement by training branch predictors and code layout.
+
+PGO_DIR       := $(OUTDIR)/pgo_data/$(POLYMUL)_hqc$(LEVEL)
+PGO_TRAIN_ITER ?= 50
+
+# CFLAGS for training pass (fewer iterations to keep training fast)
+PGO_TRAIN_CFLAGS := $(CFLAGS_BASE) -DN_ITER=$(PGO_TRAIN_ITER) -DN_WARMUP=5
+ifeq ($(EXTENDED),1)
+  PGO_TRAIN_CFLAGS += -DPERF_HW_EXTENDED=1
+endif
+
+.PHONY: pgo_kem pgo_mul pgo_clean
+
+pgo_kem:
+	@mkdir -p $(PGO_DIR)
+	@echo "━━━ PGO [1/3] Building instrumented binary ━━━"
+	$(CC) $(PGO_TRAIN_CFLAGS) -fprofile-generate=$(PGO_DIR) \
+	    $(INCLUDES) $(KEM_SOURCES) -lm -lgcov -o $(KEM_BIN)
+	@echo "━━━ PGO [2/3] Training ($(PGO_TRAIN_ITER) iterations) ━━━"
+	sudo nice -n -20 taskset -c 7 ./$(KEM_BIN) > /dev/null 2>&1
+	@echo "  Profile files: $$(find $(PGO_DIR) -name '*.gcda' | wc -l) .gcda"
+	@echo "━━━ PGO [3/3] Rebuilding with profile data ━━━"
+	$(CC) $(CFLAGS) -fprofile-use=$(PGO_DIR) -fprofile-correction \
+	    $(INCLUDES) $(KEM_SOURCES) -lm -o $(KEM_BIN)
+	@echo "✓ PGO build complete: $(KEM_BIN)"
+	@size $(KEM_BIN) | awk 'NR==2{printf "  .text: %s bytes\n", $$1}'
+
+pgo_mul:
+	@mkdir -p $(PGO_DIR)
+	@echo "━━━ PGO [1/3] Building instrumented binary ━━━"
+	$(CC) $(PGO_TRAIN_CFLAGS) -fprofile-generate=$(PGO_DIR) \
+	    $(INCLUDES) $(MUL_SOURCES) -lm -lgcov -o $(MUL_BIN)
+	@echo "━━━ PGO [2/3] Training ($(PGO_TRAIN_ITER) iterations) ━━━"
+	sudo nice -n -20 taskset -c 7 ./$(MUL_BIN) > /dev/null 2>&1
+	@echo "  Profile files: $$(find $(PGO_DIR) -name '*.gcda' | wc -l) .gcda"
+	@echo "━━━ PGO [3/3] Rebuilding with profile data ━━━"
+	$(CC) $(CFLAGS) -fprofile-use=$(PGO_DIR) -fprofile-correction \
+	    $(INCLUDES) $(MUL_SOURCES) -lm -o $(MUL_BIN)
+	@echo "✓ PGO build complete: $(MUL_BIN)"
+	@size $(MUL_BIN) | awk 'NR==2{printf "  .text: %s bytes\n", $$1}'
+
+pgo_clean:
+	rm -rf $(OUTDIR)/pgo_data
 
 clean:
 	rm -f $(OUTDIR)/bench_hw_*

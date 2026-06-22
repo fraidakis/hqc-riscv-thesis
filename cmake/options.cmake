@@ -86,37 +86,44 @@ message(STATUS "  VLEN matrix: ${VLEN_LIST}")
 # strategies that contain RVV code whose performance is VLEN-sensitive.
 set(VECTOR_POLYMUL_VARIANTS vector_zvk vector_rvv)
 
-# ── LTO + PGO for reference baselines (P-06) ─────────────────────────────────
+# ── PGO for reference baselines (P-06) ────────────────────────────────────────
 # These flags apply ONLY to scalar_ref/vector_ref targets (KAT + bench + polymul bench).
 # They do NOT affect any other variant.
 #
-# HQC_REF_LTO    : ON (default) | OFF  — enable -flto on reference targets
-#
 # HQC_REF_PGO    : off (default) | generate | use
 #   generate : compile with -fprofile-generate / -fprofile-instr-generate to
-#              emit raw profile data when the ELF is run on Spike.
-#              Run the ELF, convert the raw profile with llvm-profdata, then
-#              rebuild with HQC_REF_PGO=use.
+#              emit raw profile data when the ELF is run on Spike or hardware.
+#              Run the ELF, collect the profile, then rebuild with
+#              HQC_REF_PGO=use.
 #   use      : compile with -fprofile-use / -fprofile-instr-use pointing at
-#              HQC_REF_PGO_FILE (path to the merged .profdata file).
+#              HQC_REF_PGO_FILE (path to the merged .profdata or profile dir).
 #
-# Example workflow:
-#   cmake -B build/qemu -DHQC_REF_LTO=ON -DHQC_REF_PGO=generate ...
-#   cmake --build build/qemu --target bench_hqc128_scalar_ref
+# Note: LTO (-flto) was evaluated and found to provide negligible benefit
+# (<0.001% instret improvement on Spike, +0.3% cycle regression on real HW).
+# PGO alone provides ~4.8% cycle improvement on real hardware (BPI-F3,
+# SpacemiT K1 X60) via improved branch prediction and code layout — without
+# requiring LTO.  Accordingly, LTO is no longer applied.
+#
+# Example workflow (GCC on hardware):
+#   cd tests/bench
+#   make -f Makefile.hw LEVEL=128 POLYMUL=ref_scalar PGO=generate kem
+#   sudo ./bench_hw_kem_hqc128_ref_scalar  # emits .gcda profile data
+#   make -f Makefile.hw LEVEL=128 POLYMUL=ref_scalar PGO=use kem
+#
+# Example workflow (Clang on Spike):
+#   cmake -B build/pgo -DHQC_REF_PGO=generate ...
+#   cmake --build build/pgo --target bench_hqc128_scalar_ref
 #   spike --isa=rv64gcv ... bench_hqc128_scalar_ref.elf   # emits default.profraw
 #   llvm-profdata merge -output=hqc_ref.profdata default.profraw
-#   cmake -B build/qemu -DHQC_REF_PGO=use -DHQC_REF_PGO_FILE=hqc_ref.profdata ...
-#   cmake --build build/qemu --target bench_hqc128_scalar_ref
-
-set(HQC_REF_LTO ON CACHE BOOL
-    "Enable LTO (-flto) for scalar_ref baseline targets")
+#   cmake -B build/pgo -DHQC_REF_PGO=use -DHQC_REF_PGO_FILE=hqc_ref.profdata ...
+#   cmake --build build/pgo --target bench_hqc128_scalar_ref
 
 set(HQC_REF_PGO "off" CACHE STRING
     "PGO mode for scalar_ref: off | generate | use")
 set_property(CACHE HQC_REF_PGO PROPERTY STRINGS "off" "generate" "use")
 
 set(HQC_REF_PGO_FILE "" CACHE FILEPATH
-    "Path to merged .profdata file (required when HQC_REF_PGO=use)")
+    "Path to merged .profdata or profile directory (required when HQC_REF_PGO=use)")
 
 # Validate PGO settings
 if(HQC_REF_PGO STREQUAL "use" AND NOT HQC_REF_PGO_FILE)
@@ -131,7 +138,6 @@ if(NOT HQC_REF_PGO STREQUAL "off" AND
     message(FATAL_ERROR "HQC_REF_PGO must be 'off', 'generate', or 'use', got '${HQC_REF_PGO}'")
 endif()
 
-message(STATUS "  reference LTO : ${HQC_REF_LTO}")
 message(STATUS "  reference PGO : ${HQC_REF_PGO}")
 
 # ── Validation ────────────────────────────────────────────────────────────────

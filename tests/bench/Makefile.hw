@@ -76,7 +76,26 @@ CFLAGS := -O3 -static -march=$(MARCH) -mabi=lp64d \
           -DN_ITER=$(N_ITER) -DN_WARMUP=$(N_WARMUP) \
           $(EXTRA_CFLAGS)
 
-# ── Include paths ────────────────────────────────────────────────────────────
+# ── PGO support ─────────────────────────────────────────────────────────────
+# PGO=generate : build with -fprofile-generate (training instrumentation)
+# PGO=use      : build with -fprofile-use (optimized with collected profile)
+# PGO=         : (default) no PGO
+#
+# Workflow:
+#   make -f Makefile.hw POLYMUL=ref_scalar PGO=generate kem
+#   sudo taskset -c 7 ./bench_hw_kem_hqc128_ref_scalar   # generates .gcda files
+#   make -f Makefile.hw POLYMUL=ref_scalar PGO=use kem    # builds with profile
+#   sudo taskset -c 7 ./bench_hw_kem_hqc128_ref_scalar   # benchmarks PGO build
+PGO ?=
+PGO_PROFILE_DIR ?= $(CURDIR)/pgo_profiles/$(POLYMUL)
+LDFLAGS ?=
+
+ifeq ($(PGO),generate)
+  CFLAGS += -fprofile-generate=$(PGO_PROFILE_DIR)
+  LDFLAGS += -lgcov
+else ifeq ($(PGO),use)
+  CFLAGS += -fprofile-use=$(PGO_PROFILE_DIR) -fprofile-correction
+endif# ── Include paths ────────────────────────────────────────────────────────────
 INCLUDES := -I$(VENDOR)/src/common/$(VARIANT_DIR) \
             -I$(VENDOR)/src/common \
             -I$(VENDOR)/src/ref/$(VARIANT_DIR) \
@@ -144,22 +163,22 @@ keccak: $(KECCAK_BIN)
 decode: $(DECODE_BIN)
 
 $(KEM_BIN): bench_kem.c bench_common.h perf_hw.h $(KEM_SOURCES)
-	$(CC) $(CFLAGS) $(INCLUDES) $(KEM_SOURCES) -lm -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) $(KEM_SOURCES) $(LDFLAGS) -lm -o $@
 	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
 	@echo "Verify Zbc/RVV instructions:"
 	@objdump -d $@ | grep -cE "clmul|clmulh" || true
 	@objdump -d $@ | grep -cE "vle|vse|vxor|vslide" || true
 
 $(MUL_BIN): bench_mul.c bench_common.h perf_hw.h $(MUL_SOURCES)
-	$(CC) $(CFLAGS) $(INCLUDES) $(MUL_SOURCES) -lm -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) $(MUL_SOURCES) $(LDFLAGS) -lm -o $@
 	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
 $(KECCAK_BIN): bench_keccak.c bench_common.h perf_hw.h $(KECCAK_SOURCES)
-	$(CC) $(CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"ref\" $(KECCAK_SOURCES) -lm -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"ref\" $(KECCAK_SOURCES) $(LDFLAGS) -lm -o $@
 	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
 $(DECODE_BIN): bench_decode.c bench_common.h perf_hw.h $(DECODE_SOURCES)
-	$(CC) $(CFLAGS) $(INCLUDES) -DDECODE_NAME=\"ref\" $(DECODE_SOURCES) -lm -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) -DDECODE_NAME=\"ref\" $(DECODE_SOURCES) $(LDFLAGS) -lm -o $@
 	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
 run_kem: $(KEM_BIN)
@@ -188,6 +207,13 @@ info:
 
 clean:
 	rm -f bench_hw_kem_hqc* bench_hw_mul_hqc* bench_hw_keccak_hqc* bench_hw_decode_hqc*
+
+# ── LTO/PGO comparison for ref_scalar ────────────────────────────────────────
+# Builds and benchmarks ref_scalar with: baseline, LTO, LTO+PGO
+# Usage: make -f Makefile.hw LEVEL=128 MODE=dev lto_pgo_compare
+.PHONY: lto_pgo_compare
+lto_pgo_compare:
+	bash $(ROOT)/scripts/bench/run_hw_lto_pgo_compare.sh --level $(LEVEL) --mode $(MODE)
 
 # ── Convenience: build all variants for a given level ────────────────────────
 .PHONY: all_variants

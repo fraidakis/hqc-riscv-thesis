@@ -231,19 +231,10 @@ set(LOCAL_BENCH_SOURCES
     ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
 )
 
-# ── LTO + PGO helper for reference baseline targets (P-06) ───────────────────
-# Applies -flto and/or PGO flags to a named target.
+# ── PGO helper for reference baseline targets (P-06) ─────────────────────────
+# Applies PGO flags to a named target.
 # Called for every scalar_ref/vector_ref executable (KAT, bench, polymul bench).
-function(hqc_apply_ref_lto_pgo TARGET)
-    if(HQC_REF_LTO)
-        if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND "${TARGET}" MATCHES "_vector_ref$")
-            message(STATUS "Skipping LTO for ${TARGET} with GCC (known lto1 builtin incompatibility)")
-        else()
-            target_compile_options(${TARGET} PRIVATE -flto)
-            target_link_options(${TARGET} PRIVATE -flto)
-        endif()
-    endif()
-
+function(hqc_apply_ref_pgo TARGET)
     if(HQC_REF_PGO STREQUAL "generate")
         # LLVM IR-level instrumentation (works with Clang; Spike captures the
         # profile via the LLVM profile runtime's __llvm_profile_write_file
@@ -407,7 +398,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${KAT_TARGET}.map"
         )
         if(VARIANT_REF_PROFILE)
-            hqc_apply_ref_lto_pgo(${KAT_TARGET})
+            hqc_apply_ref_pgo(${KAT_TARGET})
         endif()
 
         # CTest KAT gate — must pass before any branch is merged.
@@ -471,7 +462,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${BENCH_TARGET}.map"
         )
         if(VARIANT_REF_PROFILE)
-            hqc_apply_ref_lto_pgo(${BENCH_TARGET})
+            hqc_apply_ref_pgo(${BENCH_TARGET})
         endif()
         add_custom_target(run_${BENCH_TARGET}
             COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${BENCH_TARGET}>
@@ -524,7 +515,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             "-Wl,-Map=${CMAKE_BINARY_DIR}/${POLYMUL_BENCH_TARGET}.map"
         )
         if(VARIANT_REF_PROFILE)
-            hqc_apply_ref_lto_pgo(${POLYMUL_BENCH_TARGET})
+            hqc_apply_ref_pgo(${POLYMUL_BENCH_TARGET})
         endif()
         add_custom_target(run_${POLYMUL_BENCH_TARGET}
             COMMAND ${BENCH_SIM_RUNNER} ${BENCH_SIM_ARGS} $<TARGET_FILE:${POLYMUL_BENCH_TARGET}>
