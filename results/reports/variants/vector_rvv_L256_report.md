@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-23 14:21:01 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-23 18:43:06 |
+| Commit | `f21e6c4` |
 
 ---
 
@@ -16,22 +16,22 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 142,197 | 6430 |
-| 192 | vect_mul | 441,263 | 7608 |
+| 128 | vect_mul | 140,487 | 14,674 |
+| 192 | vect_mul | 439,516 | 16,590 |
 | 256 | vect_mul | 1,014,499 | 7064 |
 
 ### Full KEM Suite
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 288,219 | 30,680 |
-| 128 | encaps | 576,557 | 30,680 |
-| 128 | decaps | 1,120,509 | 30,680 |
-| 128 | **total** | 1,985,285 | 30,680 |
-| 192 | keypair | 701,986 | 35,028 |
-| 192 | encaps | 1,418,278 | 35,028 |
-| 192 | decaps | 2,554,126 | 35,028 |
-| 192 | **total** | 4,674,390 | 35,028 |
+| 128 | keypair | 286,509 | 38,924 |
+| 128 | encaps | 573,137 | 38,924 |
+| 128 | decaps | 1,115,379 | 38,924 |
+| 128 | **total** | 1,975,025 | 38,924 |
+| 192 | keypair | 700,239 | 44,010 |
+| 192 | encaps | 1,414,784 | 44,010 |
+| 192 | decaps | 2,548,885 | 44,010 |
+| 192 | **total** | 4,663,908 | 44,010 |
 | 256 | keypair | 1,432,597 | 39,730 |
 | 256 | encaps | 2,890,400 | 39,730 |
 | 256 | decaps | 5,186,418 | 39,730 |
@@ -43,17 +43,17 @@
 
 | Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 878 | 73 | 805 | 57 | 10,377,481 | 4,752,239 | 1,576,639 | 778,058 |
-| 192 | 1889 | 176 | 1713 | 310 | 22,901,560 | 12,700,829 | 3,314,695 | 1,880,346 |
-| 256 | 3689 | 547 | 3142 | 1087 | 39,538,591 | 25,888,840 | 5,703,723 | 3,732,609 |
+| 128 | 893 | 76 | 817 | 66 | 10,706,609 | 3,676,551 | 1,617,780 | 643,597 |
+| 192 | 1901 | 161 | 1740 | 311 | 24,683,632 | 9,204,117 | 3,537,454 | 1,443,257 |
+| 256 | 3621 | 502 | 3119 | 1010 | 39,538,599 | 25,888,832 | 5,703,724 | 3,732,608 |
 
 ### Memory Footprint
 
 | Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1844 | 1728 | 26,585 | 17,670 | 416 | 277 |
-| 192 | 1889 | 1651 | 29,575 | 18,076 | 463 | 283 |
-| 256 | 2394 | 2184 | 33,019 | 22,153 | 516 | 347 |
+| 128 | 5030 | 2861 | 49,777 | 25,950 | 778 | 406 |
+| 192 | 4637 | 2509 | 49,263 | 24,156 | 770 | 378 |
+| 256 | 2394 | 2178 | 33,019 | 22,105 | 516 | 346 |
 
 ## 3. Hotspots
 
@@ -88,23 +88,23 @@
 | --- | ---: | ---: |
 | __riscv_clmul_64 at riscv_bitmanip.h:214 | 904,026 | 9.49 |
 | __riscv_clmulh_64 at riscv_bitmanip.h:221 | 887,928 | 9.32 |
-| clmul_leaf at gf2x_clmul.c:491 | 695,016 | 7.30 |
-| clmul_leaf at gf2x_clmul.c:492 | 695,016 | 7.30 |
-| clmul_leaf at gf2x_clmul.c:493 | 695,016 | 7.30 |
-| clmul_leaf at gf2x_clmul.c:490 | 405,426 | 4.26 |
-| clmul_leaf at gf2x_clmul.c:494 | 347,508 | 3.65 |
+| clmul_leaf at gf2x_clmul.c:797 | 695,016 | 7.30 |
+| clmul_leaf at gf2x_clmul.c:798 | 695,016 | 7.30 |
+| clmul_leaf at gf2x_clmul.c:799 | 695,016 | 7.30 |
+| clmul_leaf at gf2x_clmul.c:796 | 405,426 | 4.26 |
+| clmul_leaf at gf2x_clmul.c:800 | 347,508 | 3.65 |
 | keccak_inc_absorb at fips202.c:438 | 315,953 | 3.32 |
 | keccak_inc_squeeze at fips202.c:505 | 212,416 | 2.23 |
-| clmul_leaf at gf2x_clmul.c:479 (discriminator 1) | 173,754 | 1.82 |
-| clmul_leaf at gf2x_clmul.c:512 | 172,536 | 1.81 |
+| clmul_leaf at gf2x_clmul.c:785 (discriminator 1) | 173,754 | 1.82 |
+| clmul_leaf at gf2x_clmul.c:818 | 172,536 | 1.81 |
 | gf_reduce at gf.c:80 | 103,440 | 1.09 |
 | gf_reduce at gf.c:82 | 103,440 | 1.09 |
 | keccak_inc_absorb at fips202.c:435 | 86,615 | 0.91 |
-| clmul_leaf at gf2x_clmul.c:511 | 86,268 | 0.91 |
-| clmul_leaf at gf2x_clmul.c:425 | 63,498 | 0.67 |
-| clmul_leaf at gf2x_clmul.c:521 | 61,236 | 0.64 |
-| clmul_leaf at gf2x_clmul.c:502 | 59,136 | 0.62 |
-| clmul_leaf at gf2x_clmul.c:485 | 57,918 | 0.61 |
+| clmul_leaf at gf2x_clmul.c:817 | 86,268 | 0.91 |
+| clmul_leaf at gf2x_clmul.c:731 | 63,498 | 0.67 |
+| clmul_leaf at gf2x_clmul.c:827 | 61,236 | 0.64 |
+| clmul_leaf at gf2x_clmul.c:808 | 59,136 | 0.62 |
+| clmul_leaf at gf2x_clmul.c:791 | 57,918 | 0.61 |
 | vect_compare at vector.c:282 | 57,684 | 0.61 |
 
 ### Basic Block Histogram (Top 20)
