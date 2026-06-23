@@ -33,7 +33,7 @@
 επιλέγουν τον συνδυασμό υλοποιήσεων ανά tier χωρίς αλλαγή πηγαίου κώδικα:
 
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\small, breaklines=true]
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
       -DHQC_KECCAK_IMPL=zvbb_x2_soa -DHQC_DECODE_IMPL=zvbc
 cmake --build build
 \end{lstlisting}

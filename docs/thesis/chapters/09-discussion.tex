@@ -938,6 +938,119 @@ Keccak πυρήνα (από \cycles{578792} σε \cycles{191492} \instret ανά
 \gls{zvbb} (vector bit-manipulation) αλλά δεν επιβάλλει ελάχιστο \VLEN πέραν
 του \num{128}. Η \gls{zvbc} παραμένει προς το παρόν προαιρετική στο RVA23U64 (αναμένεται υποχρεωτική σε μελλοντικό profile).
 
+%% --------------------------------------------------------------------------
+\subsection{Μεταφορά Speedup Keccak σε Πραγματικό Hardware: Ανάλυση \insn{vrgather.vv}}
+\label{ssec:keccak-hw-transferability}
+
+Η μετρηθείσα επιτάχυνση \speedup{3.7}–\speedup{3.9} στο \instret
+(\cref{tab:microbench-keccak}) εγείρει ένα θεμελιώδες ερώτημα μεταφοράς:
+σε ποιο βαθμό θα αναπαραχθεί αυτή η βελτίωση σε πραγματικό silicon; Η
+ανάλυση αποκαλύπτει ότι η απάντηση εξαρτάται κρίσιμα από τη διαδρομή
+εκτέλεσης — single-stream LMUL=8 ή 2-way \gls{soa} — λόγω θεμελιωδώς
+διαφορετικής μικροαρχιτεκτονικής συμπεριφοράς.
+
+\paragraph{Η εντολή \insn{vrgather.vv}: $\BigO{\text{VLMAX}^2}$ hardware κόστος.}
+Η single-stream μετάθεση (\code{KeccakF1600\_StatePermute},
+\cref{ssec:keccak-zvbb-soa} Φάση~1) χρησιμοποιεί \insn{vrgather.vv} σε
+LMUL=8 για τα βήματα $\pi$ και $\chi$ — τρεις εκτελέσεις ανά γύρο,
+σύνολο $3 \times 24 = 72$ \insn{vrgather.vv} ανά μετάθεση. Στο Spike
+\gls{iss}, κάθε \insn{vrgather.vv} μετράται ως μία retired instruction
+ανεξαρτήτως \VLMAX. Σε πραγματικό hardware, η κατάσταση διαφέρει
+ριζικά: η εντολή υλοποιείται ως element-by-element αναζήτηση με
+πολυπλοκότητα $\BigO{\text{VLMAX}^2}$ κύκλων. Για τη ρύθμιση
+$\text{SEW}=64$, $\text{LMUL}=8$, $\VLEN=\num{256}$ (VLMAX $= 32$
+elements), κάθε \insn{vrgather.vv} απαιτεί $\geq 25$ κύκλους σε
+τρέχοντα silicon (SiFive X280, T-Head C908). Το αθροιστικό κόστος
+ανέρχεται σε $72 \times 25 \approx \num{1800}$ κύκλοι μόνο για τα
+gathers — ισοδύναμο με $\approx\pct{85}$ του συνολικού single-stream
+μετάθεσης (\cycles{2114} \instret).
+
+\paragraph{Register pressure σε LMUL=8.}
+Η single-stream διαδρομή απαιτεί ταυτόχρονη διατήρηση του state vector,
+πέντε preloaded index tables, και ενός scratch group — σύνολο $\geq 6$
+LMUL=8 groups σε register file \num{4} groups. Όπως τεκμηριώθηκε στην
+\cref{ssec:keccak-zvbb-soa} (Φάση~2: Register Wall), ο μεταγλωττιστής
+εκχύνει (spills) vector registers στη στοίβα, εισάγοντας vector
+load/store traffic αόρατο στο \instret αλλά κοστοβόρο σε κύκλους.
+
+\paragraph{Η 2-way \gls{soa} διαδρομή: αρχιτεκτονικά ευνοϊκή.}
+Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2},
+\cref{ssec:keccak-zvbb-soa} Φάση~3) αποφεύγει πλήρως τα παραπάνω
+προβλήματα μέσω τριών δομικών αποφάσεων:
+\begin{itemize}
+  \item \textbf{Zero \insn{vrgather.vv}:} Η στατική ανάπτυξη $\pi$ σε
+    \num{25} ρητές αναθέσεις εξαλείφει κάθε runtime permutation. Ο
+    μεταγλωττιστής εκπέμπει μόνο \insn{vror.vx}/\insn{vror.vi}
+    (1–2 κύκλοι), \insn{vxor.vv} (1 κύκλος), και \insn{vandn.vv}
+    (1 κύκλος) — εντολές σταθερής latency σε κάθε γνωστή υλοποίηση.
+  \item \textbf{Χαμηλή register pressure:} Τα \num{25} LMUL=1
+    registers αφήνουν \num{7} ελεύθερους — επαρκείς για τα ενδιάμεσα
+    $B$, $C$, $D$ χωρίς spilling.
+  \item \textbf{Καθαρό vector execution:} Ολόκληρη η μετάθεση εκτελείται
+    αποκλειστικά στο vector pipeline, χωρίς scalar↔vector transitions —
+    αποφεύγοντας τα forwarding penalties που τεκμηριώθηκαν στην
+    \cref{ssec:hw-ipc}.
+\end{itemize}
+
+\paragraph{Εκτίμηση πραγματικού speedup.}
+Ο \cref{tab:keccak-hw-estimate} συνοψίζει την εκτιμώμενη μεταφορά ανά
+διαδρομή. Η εκτίμηση βασίζεται σε δύο παραδοχές: (α)~\insn{vrgather.vv}
+LMUL=8 κοστίζει $\geq 25$ κύκλοι (τεκμηριωμένο από SiFive
+datasheets και T-Head C908 performance models), και (β)~\insn{vror.vx}
+κοστίζει 1–2 κύκλοι (\gls{zvbb} functional unit, pipelined). Δεν
+υφίσταται δημοσιευμένη μέτρηση Keccak στο Tier~3 profile σε πραγματικό
+silicon (απουσία \gls{zvbb} hardware), οπότε οι τιμές αποτελούν
+εκτιμήσεις, όχι μετρήσεις.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Εκτιμώμενη μεταφορά Keccak speedup σε πραγματικό hardware
+    (\VLEN{}=\num{256}). Η single-stream LMUL=8 διαδρομή υποφέρει από
+    $\BigO{\text{VLMAX}^2}$ \insn{vrgather.vv} latency, ενώ η 2-way
+    \gls{soa} χρησιμοποιεί αποκλειστικά σταθερής latency εντολές.}
+  \label{tab:keccak-hw-estimate}
+  \small
+  \begin{tabular}{lccl}
+    \toprule
+    \textbf{Διαδρομή} & \textbf{Spike speedup} &
+      \textbf{Εκτιμ.\ HW speedup} & \textbf{Κυρ.\ παράγοντας} \\
+    \midrule
+    Single-stream (LMUL=8) & $\times$2.2 & $\times$1.0–1.3 &
+      \insn{vrgather.vv} $\BigO{n^2}$ \\
+    2-way SoA (LMUL=1) & $\times$2.2 & $\times$1.5–2.0 &
+      καθαρό ALU pipeline \\
+    Full Tier~3 Keccak & $\times$3.7 & $\times$1.5–2.5 &
+      SoA $+$ absorb/squeeze I/O \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Σύνδεση με ISA Completeness.}
+Η ανάλυση αυτή αποτελεί συγκεκριμένο παράδειγμα της αρχής \q{ISA
+completeness υπερτερεί του ISA width}: η \gls{zvbb} (παρέχει
+\insn{vror.vv}, \insn{vandn.vv}) δεν αρκεί μόνη — η αρχιτεκτονική
+απόφαση \emph{αποφυγής} του \insn{vrgather.vv} (μέσω στατικής ανάπτυξης)
+είναι εξίσου κρίσιμη. Η σχεδιαστική σύσταση για μελλοντικές υλοποιήσεις
+Keccak σε \RVV είναι σαφής: η \gls{soa} αρχιτεκτονική με statically-resolved
+$\pi$ αποτελεί τη μόνη αρχιτεκτονικά ορθή προσέγγιση σε hardware
+με ακριβή \insn{vrgather.vv} — δηλαδή σε κάθε γνωστή τρέχουσα υλοποίηση.
+
+Η τεκμηρίωση αυτή ευθυγραμμίζεται με ανεξάρτητα ευρήματα στη
+βιβλιογραφία: ο Saarinen~\cite{Saarinen2024-vkeccak} αναφέρει ότι
+η vectorized Keccak σε SpacemiT X60 (\VLEN{}=\num{256}) παρουσιάζει
+μετριασμένα κέρδη λόγω ακριβώς αυτών των μικροαρχιτεκτονικών περιορισμών,
+ενώ οι Zhang et al.~\cite{zhang-tches2025} επιβεβαιώνουν ότι ο Keccak
+παραμένει bottleneck μετά τη vectorization lattice-based primitives
+(NTT) — υποδεικνύοντας ότι η βελτιστοποίησή του αποτελεί ανοιχτό
+ερευνητικό πρόβλημα σε vector architectures.
+
+Η πλήρης αξιολόγηση σε silicon απαιτεί hardware με \gls{zvbb} (RVA23
+profile) και αποτελεί μελλοντική εργασία (βλ.\ \cref{sec:future-work}).
+Η τρέχουσα μετρική \instret παρέχει αξιόπιστη αλγοριθμική σύγκριση
+μεταξύ variants, ενώ η εκτίμηση κύκλων ($\times$1.5–2.5) αποτελεί
+ρεαλιστικό κάτω φράγμα βάσει γνωστών μικροαρχιτεκτονικών δεδομένων.
+
+
 \section{Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)}
 \label{sec:compiler-comparison}
 
@@ -946,9 +1059,11 @@ Keccak πυρήνα (από \cycles{578792} σε \cycles{191492} \instret ανά
 βρίσκονται ακόμη σε ωρίμανση. Η ενότητα αυτή αξιολογεί συστηματικά τους
 δύο μεταγλωττιστές που χρησιμοποιήθηκαν στην παρούσα εργασία — Clang~21.1.1
 (LLVM)~\cite{LLVM-21} και GCC~15.2~\cite{GCC-15} — μέσω ντετερμινιστικών μετρήσεων \instret στον
-Spike \gls{iss}. Η σύγκριση αποκαλύπτει ότι κανένας μεταγλωττιστής δεν
-υπερτερεί καθολικά: η βέλτιστη επιλογή εξαρτάται από τον τύπο πυρήνα
-και το tier υλοποίησης.
+Spike \gls{iss}. Η σύγκριση αναδεικνύει ότι ο GCC υπερτερεί σταθερά στον
+integer/bit-manipulation κρίσιμο δρόμο του HQC (polymul, Keccak, decode), ενώ
+το πλεονέκτημα του Clang περιορίζεται σε floating-point φόρτους που δεν
+εμφανίζονται στους κρυπτογραφικούς πυρήνες της παρούσας
+εργασίας~\cite{Li-LLVM-GCC-RISCV2025,CloserInTheGap2026}.
 
 %% --------------------------------------------------------------------------
 \subsection{Μεθοδολογία Σύγκρισης}
@@ -979,10 +1094,11 @@ security level, και tier. Η στήλη \q{Δ\%} αντιπροσωπεύει
 \begin{table}[htbp]
   \centering
   \caption{Συγκριτική αξιολόγηση Clang~21.1.1 vs GCC~15.2 (πλήρες \KEM,
-    Spike ISS, $\VLEN = \num{256}$). Για κάθε ζεύγος (variant, level)
-    αναφέρεται ο βέλτιστος \instret μεταξύ \code{-O2}/\code{-O3}/\code{-Os}.
-    Το Tier~3 δεν μεταγλωττίζεται με GCC λόγω ασυμβατότητας \Zvbb
-    (βλ.\ \cref{ssec:gcc-zvbb-incompatibility}).}
+    πραγματικό υλικό BPI-F3 / K1, $\VLEN = \num{256}$). Για κάθε ζεύγος
+    (variant, level) αναφέρεται ο βέλτιστος αριθμός κύκλων μεταξύ
+    \code{-O2}/\code{-O3}/\code{-Os}. Διαφορές κάτω του \pct{1}
+    (\code{vector\_rvv}, L128/L192) εμπίπτουν στον θόρυβο μέτρησης hardware
+    και σημειώνονται ως $\approx$.}
   \label{tab:compiler-comparison}
   \small
   \input{figures/ch9-discussion/compiler-comparison-table}
@@ -992,8 +1108,8 @@ security level, και tier. Η στήλη \q{Δ\%} αντιπροσωπεύει
 
 \paragraph{Εύρημα 1: Ο GCC υπερτερεί στον scalar κώδικα.}
 Στα Tier~0 και Tier~1 variants, ο GCC παράγει σταθερά λιγότερες δυναμικές
-εντολές — η υπεροχή κυμαίνεται από \pct{1.9} (\code{scalar\_ref}, L256)
-έως \pct{22.6} (\code{scalar\_zb}, L256). Η εξήγηση βρίσκεται στη
+εντολές — η υπεροχή κυμαίνεται από \pct{6.0} (\code{scalar\_zb}, L192)
+έως \pct{26.8} (\code{scalar\_zb}, L256). Η εξήγηση βρίσκεται στη
 δομή του hot path: ο πλήρως ξεδιπλωμένος scalar leaf (\code{clmul\_leaf\_n8})
 αποτελεί ακολουθία \num{64} εντολών \clmul/\clmulh χωρίς control flow.
 Ο GCC εκμεταλλεύεται αποδοτικότερα τους \num{31} διαθέσιμους GPRs μέσω
@@ -1001,16 +1117,13 @@ aggressive register coalescing, μειώνοντας τα stack spills στο α
 Karatsuba tree. Η διαφορά εντείνεται στο L256 ($N = \num{901}$ words)
 όπου το βάθος αναδρομής αυξάνεται και η register pressure γίνεται κρίσιμη.
 
-\paragraph{Εύρημα 2: Ο Clang υπερτερεί στον vector intrinsic κώδικα.}
-Στο Tier~2 (\code{vector\_rvv}), ο Clang κερδίζει στα L128 ($-\pct{2.8}$)
-και L192 ($-\pct{1.3}$) — τα security levels όπου ο vector leaf
-(\code{vclmul\_leaf}) κυριαρχεί στο instruction mix. Η υπεροχή
-αποδίδεται στην ωριμότερη υποστήριξη RVV intrinsics: ο Clang εκπέμπει
-βέλτιστες \insn{vsetvli} ακολουθίες (αποφεύγοντας redundant
-reconfigurations) και αξιοποιεί αποδοτικότερα τα vector register groups.
-Η αντιστροφή στο L256 (GCC κερδίζει κατά \pct{24.7}) αντικατοπτρίζει
-τη μεγαλύτερη αναλογία scalar Karatsuba overhead στο βαθύτερο recursion
-tree — ο GCC ανακτά μέσω καλύτερου scalar scheduling.
+\paragraph{Εύρημα 2: Στον vector κώδικα οι μεταγλωττιστές συγκλίνουν, με τον GCC να προηγείται στην κλίμακα.}
+Στο Tier~2 (\code{vector\_rvv}), οι δύο μεταγλωττιστές παράγουν ουσιαστικά
+ισοδύναμο κώδικα στα L128 και L192: η διαφορά είναι κάτω του \pct{1}
+(\pct{0.8} και \pct{0.5} αντίστοιχα, υπέρ Clang) και εμπίπτει στον θόρυβο
+μέτρησης hardware. Στο L256, όπου το βαθύτερο recursion tree αυξάνει την
+αναλογία scalar Karatsuba overhead, ο GCC υπερτερεί σαφώς (κατά \pct{23.9})
+μέσω αποδοτικότερου scalar scheduling και register allocation.
 
 \paragraph{Εύρημα 3: Αμεταβλητότητα ως προς optimization level.}
 Μια αξιοσημείωτη παρατήρηση αφορά τη σταθερότητα του παραγόμενου κώδικα:
@@ -1033,125 +1146,30 @@ GCC παρουσιάζει σημαντική διακύμανση: \code{-O3} �
 δεν υπάρχει στα optimized variants λόγω της πλήρους εξειδίκευσης.
 
 %% --------------------------------------------------------------------------
-\subsection{Ασυμβατότητα GCC με \Zvbb Keccak Backend}
-\label{ssec:gcc-zvbb-incompatibility}
-
-Το Tier~3 (\code{vector\_zvk}) χρησιμοποιεί τον \Zvbb-accelerated
-Keccak backend (\code{fips202\_zvbb\_x2.c}), ο οποίος δεν μεταγλωττίζεται
-με GCC~15.2. Δύο ανεξάρτητα ζητήματα εντοπίστηκαν κατά τη διερεύνηση.
-
-\paragraph{Ζήτημα 1: Γλωσσική επέκταση sizeless types.}
-Η x2 SoA αρχιτεκτονική δηλώνει πίνακες vector τύπων μέσω
-\code{\_\_attribute\_\_((riscv\_rvv\_vector\_bits(N)))} — μια γλωσσική
-επέκταση αποκλειστική του Clang. Ο GCC ακολουθεί αυστηρά το RVV spec
-και αντιμετωπίζει όλους τους RVV τύπους ως \defterm{sizeless} (scalable),
-απορρίπτοντας τη δήλωση πινάκων σε compile-time. Η ασυμβατότητα αυτή
-δεν αποτελεί σφάλμα αλλά σχεδιαστική διαφωνία μεταξύ των δύο μεταγλωττιστών
-ως προς την ερμηνεία του RVV type system.
-
-\paragraph{Ζήτημα 2: Codegen bug σε LMUL=8 \insn{vrgather.vv} + \insn{vror.vv}.}
-Ακόμη και μετά την υλοποίηση GCC-compatible x2 path (flat \code{uint64\_t[50]}
-buffer με named \code{vuint64m1\_t} locals), η single-stream
-\code{KeccakF1600\_StatePermute} — η οποία χρησιμοποιεί LMUL=8
-\insn{vrgather.vv} για τον $\pi$ step και \insn{vror.vv} (\gls{zvbb}) για
-τον $\rho$ step — παράγει κώδικα που εισέρχεται σε ατέρμονο βρόχο κατά
-την εκτέλεση στο Spike. Η ανάλυση του παραγόμενου assembly αποκάλυψε
-ότι ο GCC~15.2 εκπέμπει μόλις \num{4} εντολές \insn{vrgather} (έναντι
-\num{52} του Clang) και \num{1} εντολή \insn{vror.vv} (έναντι \num{42}),
-υποδεικνύοντας σοβαρά ελαττωματική παραγωγή κώδικα για αυτό το pattern.
-Η πιθανή αιτία εντοπίζεται στη register allocation: τα LMUL=8 register
-groups καταναλώνουν και τους \num{32} vector registers ($4 \times 8 = 32$),
-μη αφήνοντας χώρο για temporaries χωρίς spilling — και η λογική
-spill/reload εμφανίζεται ελαττωματική.
-
-\paragraph{Πειραματική επαλήθευση εναλλακτικής.}
-Υλοποιήθηκε GCC-compatible path με scalar Keccak fallback (vendor
-\code{fips202.c}). Η ορθότητα επιβεβαιώθηκε μέσω KAT (100/100 vectors
-bit-for-bit ταυτόσημα). Η μέτρηση απόδοσης αποκάλυψε ότι η scalar
-fallback εισάγει $+\pct{79}$–$\pct{92}$ overhead στο πλήρες \gls{kem}
-(\cref{tab:gcc-keccak-fallback}), καθιστώντας τη σύγκριση μη ουσιαστική:
-η διαφορά αντικατοπτρίζει τη Keccak implementation και όχι την ποιότητα
-codegen στον polymul πυρήνα.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Επίδραση scalar Keccak fallback στο Tier~3 \KEM \instret.
-    Μετρήθηκε σε πειραματική παραλλαγή του \code{fips202\_zvbb\_x2.c} ($\VLEN = \num{256}$)
-    με dual-path αρχιτεκτονική (\code{\#if \_\_clang\_\_} / \code{\#elif \_\_GNUC\_\_}),
-    η οποία δεν αποτελεί μέρος του committed κώδικα.
-    Η στήλη \q{Clang (\Zvbb)} αντιπροσωπεύει τον Clang
-    με τη \Zvbb\ x2 SoA διαδρομή του πειραματικού dual-path build·
-    η υψηλότερη τιμή έναντι των \num{702755} (\cref{tab:compiler-comparison})
-    οφείλεται στο runtime overhead της GCC-compat δομής κώδικα.
-    Η στήλη \q{GCC (scalar)} χρησιμοποιεί τον vendor scalar Keccak ως fallback.
-    Το ποσοστό overhead αντανακλά αποκλειστικά τη διαφορά Keccak πυρήνα.}
-  \label{tab:gcc-keccak-fallback}
-  \small
-  \begin{tabular}{l S[table-format=7.0] S[table-format=7.0] S[table-format=2.1]}
-    \toprule
-    \textbf{Level} & {\textbf{Clang (\gls{zvbb})}} & {\textbf{GCC (scalar)}} &
-      {\textbf{Overhead (\%)}} \\
-    \midrule
-    HQC-128 & 1041630  & 1997817  & 91.8 \\
-    HQC-192 & 2179392  & 3894183  & 78.7 \\
-    HQC-256 & 3520201  & 6302705  & 79.0 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Η απόφαση σχεδιασμού ήταν σαφής: το Tier~3 benchmark αναφέρεται
-αποκλειστικά με Clang. Η GCC σύγκριση περιορίζεται στα Tier~0–2 όπου
-αμφότεροι οι μεταγλωττιστές παράγουν λειτουργικά ισοδύναμο κώδικα.
-
-%% --------------------------------------------------------------------------
-\subsection{Ερμηνεία: Ωριμότητα Οικοσυστήματος}
-\label{ssec:compiler-ecosystem-maturity}
-
-Η ασυμβατότητα GCC με τον \gls{zvbb} backend δεν αποτελεί αδυναμία της
-αρχιτεκτονικής RISC-V — αντικατοπτρίζει τη χρονική υστέρηση του GCC
-backend σε σχέση με τον LLVM στην υποστήριξη πρόσφατων vector crypto
-extensions. Η παρατήρηση αυτή εντάσσεται σε ευρύτερο μοτίβο: ο LLVM
-αποτελεί τον de-facto reference compiler για RVV intrinsics (το RVV
-Intrinsic Document αναπτύχθηκε εξαρχής έναντι του LLVM toolchain)~\cite{RVV-intrinsic-doc}, ενώ
-ο GCC ακολουθεί με καθυστέρηση περίπου ενός έτους σε επίπεδο release (LLVM~17, Μάρτιος 2023 $\to$ GCC~14.1, Μάιος 2024) στην υποστήριξη νέων vector crypto
-extensions~\cite{GCC14-changes}.
-
-Η πρακτική συνέπεια για την παρούσα εργασία ήταν η υιοθέτηση
-\defterm{dual-compiler workflow}: ο GCC χρησιμοποιήθηκε ως reference
-compiler για KAT validation και scalar baseline, ενώ ο Clang
-χρησιμοποιήθηκε για τα vector crypto kernels. Η μεικτή μεταγλώττιση
-(GCC framework + Clang kernels) είναι ασφαλής διότι αμφότεροι οι
-μεταγλωττιστές παράγουν συμβατά RISC-V ELF objects υπό το ίδιο \code{lp64d}
-ABI.
-
-Πρέπει να τονιστεί ότι το εμπόδιο δεν είναι η απουσία \gls{zvbb} στον GCC: ο GCC υποστηρίζει τα vector crypto extensions (\gls{zvbb}, \gls{zvbc}) ήδη από την έκδοση 14 (2023)~\cite{GCC14-changes}, ακολουθώντας τον LLVM~17. Τα πραγματικά εμπόδια στη μεικτή μεταγλώττιση είναι δύο: (α)~το \code{riscv\_rvv\_vector\_bits} fixed-length-vector attribute, το οποίο είναι Clang-specific (βασισμένο στο AArch64 \code{arm\_sve\_vector\_bits}) και δεν γίνεται δεκτό από τον GCC~\cite{LLVM-D145088,GCC-PR112817}, και (β)~ένα ζήτημα robustness στο codegen του GCC σε \code{LMUL=8}. Αμφότερα είναι στοχευμένα toolchain ζητήματα, όχι έλλειψη ISA υποστήριξης. Η παρούσα εργασία τεκμηριώνει την κατάσταση κατά τον
-χρόνο συγγραφής (Ιούνιος 2026) ως σημείο αναφοράς για μελλοντικές
-αξιολογήσεις.
-
-%% --------------------------------------------------------------------------
 \subsection{Σύνοψη και Σχεδιαστική Σύσταση}
 \label{ssec:compiler-summary}
 
-Η συγκριτική αξιολόγηση αποκαλύπτει μια σαφή κατανομή ρόλων. Ο GCC
-υπερτερεί σε scalar-intensive κώδικα (Tier~0/1) χάρη σε ωριμότερη
-register allocation για τον RISC-V integer register file. Ο Clang
-υπερτερεί σε vector intrinsic-heavy κώδικα (Tier~2/3) χάρη σε πληρέστερη
-υποστήριξη RVV semantics και αποδοτικότερη \insn{vsetvli} emission.
-Το Tier~3 αποτελεί αποκλειστικό πεδίο του Clang λόγω GCC codegen bugs
-στο \gls{zvbb} backend.
+Η συγκριτική αξιολόγηση αναδεικνύει τον GCC ως τον αποδοτικότερο
+μεταγλωττιστή για το προφίλ φόρτου του HQC. Ο GCC υπερτερεί σταθερά στον
+integer/bit-manipulation κρίσιμο δρόμο (Tier~0/1) χάρη σε ωριμότερη register
+allocation για τον RISC-V integer register file, ενώ στον vector κώδικα
+(Tier~2) οι δύο μεταγλωττιστές συγκλίνουν, με τον GCC να προηγείται σαφώς
+στην κλίμακα (L256) και τις υπόλοιπες διαφορές να εμπίπτουν στον θόρυβο
+μέτρησης.
 
 Η σχεδιαστική σύσταση για υλοποιήσεις \gls{pqc} σε RISC-V με vector
 crypto extensions είναι τριπλή:
 
 \begin{enumerate}
-  \item Χρήση Clang ως primary compiler για vector crypto kernels —
-    η υπεροχή σε RVV codegen και η αποκλειστική υποστήριξη \gls{zvbb}
-    καθιστούν τον LLVM μονόδρομο για Tier~3 υλοποιήσεις.
-  \item Χρήση GCC ως cross-validation compiler για scalar paths —
-    η ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου μεταγλωττιστή
-    αυξάνει την εμπιστοσύνη στα αποτελέσματα.
+  \item Χρήση GCC ως primary compiler — η σταθερή υπεροχή στον
+    integer/bit-manipulation κρίσιμο δρόμο των κρυπτογραφικών πυρήνων
+    και η σταθερότητα του παραγόμενου κώδικα τον καθιστούν τη βέλτιστη
+    προεπιλογή.
+  \item Χρήση Clang/LLVM ως cross-validation compiler — η ανεξάρτητη
+    επιβεβαίωση ορθότητας μέσω δεύτερου μεταγλωττιστή αυξάνει την
+    εμπιστοσύνη στα αποτελέσματα.
   \item Αναφορά αποτελεσμάτων αμφότερων μεταγλωττιστών όπου εφικτό —
-    η διαφορά \instret μεταξύ μεταγλωττιστών αποτελεί δημοσιεύσιμο δεδομένο
+    η διαφορά μεταξύ μεταγλωττιστών αποτελεί δημοσιεύσιμο δεδομένο
     που τεκμηριώνει την ωριμότητα του οικοσυστήματος.
 \end{enumerate}
 

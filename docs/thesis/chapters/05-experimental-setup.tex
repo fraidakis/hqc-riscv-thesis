@@ -115,7 +115,7 @@ extensions, με την παρούσα εργασία να αξιοποιεί τ
 Σύμφωνα με το επίσημο datasheet~\cite{SpacemiT-K1-datasheet}, ο επεξεργαστής παρέχει
 \q{Support of RVA22 Profile and 256-bit RVV 1.0}.
 Ωστόσο, δεν υποστηρίζει \gls{zvbc} και \gls{zvbb} (βλ.~\cref{ch:risc-v-architecture}) 
-και έτσι μπορούν να εκτελέστουν μόνο τα scalar (Tier~1) και Base-RVV (Tier~2) variants, 
+και άρα μπορούν να εκτελέστουν μόνο τα scalar (Tier~1) και Base-RVV (Tier~2) variants, 
 ενώ το Vector-Crypto variant (Tier~3) αξιολογείται αποκλειστικά μέσω Spike.
 
 Το \cref{fig:bananapi-f3} δείχνει την πλατφόρμα πραγματικού hardware 
@@ -160,33 +160,29 @@ binaries του Banana Pi BPI-F3 (SpacemiT K1 X60) που επικυρώνουν
 \subsection{Στρατηγική Μεταγλώττισης και Επιλογή Compiler}
 \label{ssec:compiler-strategy}
 
-Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{Clang/LLVM~21.1.1} σε
+Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{GCC~15.2} σε
 bare-metal cross-compilation mode με target triple \code{riscv64-unknown-elf}.
 Το \emph{target triple} προσδιορίζει τον στόχο μεταγλώττισης στη μορφή
 \code{<αρχιτεκτονική>-<vendor>-<σύστημα/abi>}: εδώ \code{riscv64} (64-bit
 RISC-V), \code{unknown} ως vendor, και \code{elf} που δηλώνει bare-metal στόχο
 χωρίς λειτουργικό σύστημα.
 
-Η επιλογή του Clang ως κύριου μεταγλωττιστή τεκμηριώνεται από δύο παράγοντες.
-Πρώτον, η ενεργή ανάπτυξη του RVV vector backend είναι σήμερα συγκεντρωμένη
-στο LLVM με ταχείς ρυθμούς, με τον Clang να παράγει RVV κώδικα ταχύτερο από
-τον GCC στην πλειονότητα των μετρημένων SPEC benchmarks~\cite{Bradbury-LLVM-RVV2025}. 
-Δεύτερον, και κρισιμότερο για την παρούσα εργασία, ο
-GCC~15.2 — αν και υποστηρίζει τις ίδιες εντολές σε επίπεδο opcode και τα ίδια
-intrinsics μέσω του \code{<riscv\_vector.h>} — παρουσιάζει δύο project-specific ζητήματα
-κατά τη μεταγλώττιση πυρήνων \Zvbb: πρώτον, απουσία υποστήριξης για πίνακες
-sizeless vector types (\code{vint64m8\_t[]}) λόγω strict τήρησης του RVV spec
-(language extension gap, σε αντίθεση με την επέκταση \code{riscv\_rvv\_vector\_bits}
-του Clang), και δεύτερον, εσφαλμένη κατανομή καταχωρητών στα LMUL=8 patterns
-(κατανάλωση και των 32 vector registers χωρίς δυνατότητα spilling) που οδηγεί σε
-infinite loop στον παραγόμενο κώδικα. Τα δύο αυτά ζητήματα καθιστούν τον GCC
-ακατάλληλο για τα \Zvbb targets (\code{gcc\_zvbb\_incompatible} στο benchmark
-pipeline), χωρίς να αναιρούν τη γενική υποστήριξή του για Vector-Crypto opcodes.
-
-Ο \textbf{GCC~15.2} διατηρεί συμπληρωματικό ρόλο: χρησιμοποιείται ως εναλλακτικός
-μεταγλωττιστής για τα scalar-only variants (\code{scalar\_ref},
-\code{scalar\_zb}) και ως cross-validation εργαλείο. Η αναλυτική συγκριτική αξιολόγηση
-Clang–GCC παρουσιάζεται στο \cref{sec:compiler-comparison}.
+Η επιλογή του GCC ως κύριου μεταγλωττιστή τεκμηριώνεται από το προφίλ φόρτου
+του HQC. Οι hot kernels — πολυωνυμικός πολλαπλασιασμός σε $\mathrm{GF}(2)[x]$
+(Karatsuba/\clmul), Keccak, και RS/RM decode — είναι αμιγώς integer και
+bit-manipulation, όχι floating-point. Ανάλυση των backends LLVM/GCC για
+RISC-V σε SPEC CPU~2017 διαπιστώνει ότι ο GCC μειώνει αποδοτικότερα το
+δυναμικό πλήθος εντολών σε integer workloads, ενώ το πλεονέκτημα
+auto-vectorization του LLVM εντοπίζεται σε floating-point workloads~\cite{Li-LLVM-GCC-RISCV2025}
+— δηλαδή ακριβώς στην κατηγορία που \emph{δεν} βρίσκεται στον κρίσιμο δρόμο
+του HQC. Επιπλέον, σε ταυτόσημο υλικό (BananaPi-F3) και ταυτόσημες εκδόσεις
+(GCC~15 vs Clang~21), ο GCC παράγει πιο σταθερό και αποδοτικό RVV codegen,
+υπερτερώντας στην πλειονότητα των μετρημένων RVV workloads~\cite{CloserInTheGap2026}·
+η σταθερότητα (low variance) είναι κρίσιμη για αξιόπιστα benchmarks. Η επιλογή αυτή 
+επιβεβαιώνεται εμπειρικά και στις δικές μας μετρήσεις: ο GCC υπερτερεί σταθερά του Clang σε 
+κάθε μετρήσιμη διαφορά(αναλυτική συγκριτική αξιολόγηση στο \cref{sec:compiler-comparison}). 
+Ο Clang/LLVM~21.1.1 διατηρεί συμπληρωματικό ρόλο ως cross-validation
+εργαλείο: ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου μεταγλωττιστή.
 
 \subsection{CMake Build System και Toolchain Files}
 \label{ssec:cmake-build}
@@ -199,9 +195,8 @@ Clang–GCC παρουσιάζεται στο \cref{sec:compiler-comparison}.
   \centering
   \resizebox{\textwidth}{!}{\input{figures/ch5-setup/build-pipeline}}
   \caption{Ροή μεταγλώττισης και εκτέλεσης: ο πηγαίος κώδικας μεταγλωττίζεται
-    μέσω CMake και Clang~21.1.1 σε bare-metal ELF, το οποίο εκτελείται στο Spike
-    για εξαγωγή \instret. Η συμβολοσειρά \code{-march} καθορίζει τις
-    διαθέσιμες επεκτάσεις ανά variant.}
+    μέσω CMake και GCC~15.2 σε bare-metal ELF, το οποίο εκτελείται στο Spike
+    για εξαγωγή \instret.}
   \label{fig:build-pipeline}
 \end{figure}
 
@@ -908,6 +903,7 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
 \end{figure}
 
 \paragraph{Κάλυψη και Αυτοματοποίηση}
+\label{ssec:build-reproducibility}
 
 Η \gls{kat} επαλήθευση εκτελείται για κάθε polymul variant σε όλα τα security
 levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500}$ πλήρεις
@@ -1183,7 +1179,7 @@ assembly, C intrinsics, και auto-lowering μέσω μεταγλωττιστή
 στον optimizer χωρίς αντίστοιχο κέρδος σε αρχιτεκτονικές με πλούσιο intrinsic
 API.
 
-Η επιλογή intrinsics τεκμηριώνεται από τρεις παράγοντες. Πρώτον, ο Clang~21.1.1
+Η επιλογή intrinsics τεκμηριώνεται από τρεις παράγοντες. Πρώτον, ο GCC~15.2
 παρέχει πλήρες type-checked intrinsic API για \gls{zbc}, \gls{zbb}, \RVV 1.0, \gls{zvbc} και
 \gls{zvbb} — κάθε εντολή που αξιοποιεί η υλοποίηση διαθέτει αντίστοιχο intrinsic.
 Δεύτερον, τα intrinsics συμμετέχουν πλήρως στο optimization pipeline (register
@@ -1210,7 +1206,7 @@ assembly δεν χρησιμοποιείται στους κρυπτογραφι
 Η inline assembly χρησιμοποιείται αποκλειστικά για δύο λειτουργίες στο αρχείο
 \code{bench.c}: ανάγνωση των \glspl{csr} \code{mcycle} και \code{minstret},
 και η εντολή \insn{wfi} (Wait For Interrupt) στον βρόχο τερματισμού. Κανένα
-από αυτά δεν διαθέτει C intrinsic στον Clang~21.1.1 — η ανάγνωση \glspl{csr}
+από αυτά δεν διαθέτει C intrinsic στον GCC~15.2 — η ανάγνωση \glspl{csr}
 απαιτεί ρητή κωδικοποίηση της διεύθυνσης CSR:
 
 \begin{lstlisting}[language=C, basicstyle=\ttfamily\small]

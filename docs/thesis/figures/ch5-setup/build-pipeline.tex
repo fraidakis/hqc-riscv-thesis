@@ -17,7 +17,7 @@
 % Nodes
 \node[srcbox] (src) {Source\\\texttt{.c}/\texttt{.h}/\texttt{.S}};
 \node[toolbox, right=of src] (cmake) {CMake\\configuration};
-\node[toolbox, right=of cmake] (compiler) {Clang 18\\cross-compiler};
+\node[toolbox, right=of cmake] (compiler) {GCC 15.2\\cross-compiler};
 \node[outbox, right=of compiler] (elf) {ELF binary\\\texttt{.elf}};
 \node[toolbox, right=of elf] (spike) {Spike ISS\\execution};
 \node[outbox, right=of spike] (instretnode) {\texttt{instret}\\output};
@@ -35,7 +35,7 @@
 
 % Toolchain file annotation below cmake
 \node[below=1.4cm of cmake, font=\scriptsize\sffamily, text=gray!60!black, align=center] (tcfile)
-  {\texttt{riscv-clang.cmake}};
+  {\texttt{riscv-gcc.cmake}};
 \draw[-{Stealth[length=4pt]}, dashed, gray!50] (tcfile) -- (cmake);
 
 \end{tikzpicture}

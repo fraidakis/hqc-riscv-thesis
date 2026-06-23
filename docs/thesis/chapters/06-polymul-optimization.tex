@@ -864,7 +864,7 @@ pipeline transition penalty) ακυρώνει το data-parallel κέρδος.
 %
 \begin{enumerate}
   \item Η εντολή \insn{vsetvl} εισάγει \num{1}–\num{2} κύκλους pipeline
-    stall για ενεργοποίηση της \gls{vpu} μετά scalar φάση.
+    stall για ενεργοποίηση της vpu μετά scalar φάση.
   \item Η εναλλαγή μεταξύ scalar stores και vector loads στον ίδιο
     buffer απαιτεί store-buffer drain — ο K1 X60 δεν εκτελεί
     store-to-load forwarding μεταξύ scalar/vector paths.

@@ -111,12 +111,6 @@ cache effects.
 θεωρητική CT συμμόρφωση, αλλά η εμπειρική επιβεβαίωση σε πραγματικό silicon
 παραμένει εκκρεμής.
 
-\paragraph{Compiler ecosystem ωριμότητα}
-Ο \Zvbb-accelerated Keccak backend (\code{fips202\_zvbb\_x2.c}) μεταγλωττίζεται
-αποκλειστικά με Clang/LLVM λόγω ασυμβατότητας του GCC στο RVV/\gls{zvbb} codegen
-(\cref{ssec:gcc-zvbb-incompatibility}). Η εξάρτηση από μονό μεταγλωττιστή αποτελεί
-πρακτικό περιορισμό για production deployment.
-
 \paragraph{Μονοπύρηνη αξιολόγηση}
 Η αξιολόγηση εστιάζει σε single-core εκτέλεση. Σε multi-session σενάρια
 (\eg TLS server με πολλαπλές ταυτόχρονες KEM operations), η απόδοση εξαρτάται

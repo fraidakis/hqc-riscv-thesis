@@ -1,28 +1,23 @@
-% Compiler comparison table: Clang 21 vs GCC 15, best cycles per variant/level
-% Data source: results/hardware/benchmarks/compiler_compare/
+% Compiler comparison table: Clang 21.1.1 vs GCC 15.2, best hardware cycles per variant/level
+% Data source: results/reports/summaries/compiler_analysis.md (results/hardware/benchmarks/compiler_compare/)
 \begin{tabular}{l c S[table-format=9.0] S[table-format=9.0] l S[table-format=2.1]}
   \toprule
   \textbf{Variant} & \textbf{Level} & {\textbf{Clang (best)}} &
     {\textbf{GCC (best)}} & \textbf{Νικητής} & {\textbf{Δ\%}} \\
   \midrule
   \multicolumn{6}{l}{\textit{Tier~0 — Reference (bit-serial polymul)}} \\
-  \code{scalar\_ref}  & 128 & 117344294  & 113958344  & GCC  & 3.0  \\
-  \code{scalar\_ref}  & 192 & 354302605  & 344003671  & GCC  & 3.0  \\
-  \code{scalar\_ref}  & 256 & 861974446  & 845613464  & GCC  & 1.9  \\
+  \code{scalar\_ref}  & 128 & 82540770  & 70994731  & GCC & 16.3 \\
+  \code{scalar\_ref}  & 192 & 249443989 & 214228777 & GCC & 16.4 \\
+  \code{scalar\_ref}  & 256 & 611456033 & 533883002 & GCC & 14.5 \\
   \midrule
   \multicolumn{6}{l}{\textit{Tier~1 — Scalar Karatsuba + \Zbc}} \\
-  \code{scalar\_zb} & 128 & 3449795  & 3277538  & GCC  & 5.3  \\
-  \code{scalar\_zb} & 192 & 7811056  & 7448827  & GCC  & 4.9  \\
-  \code{scalar\_zb} & 256 & 17551791 & 14317378 & GCC  & 22.6 \\
+  \code{scalar\_zb} & 128 & 2158898  & 2032805  & GCC & 6.2  \\
+  \code{scalar\_zb} & 192 & 4897752  & 4621302  & GCC & 6.0  \\
+  \code{scalar\_zb} & 256 & 11360831 & 8958436  & GCC & 26.8 \\
   \midrule
   \multicolumn{6}{l}{\textit{Tier~2 — Vector Karatsuba + \RVV}} \\
-  \code{vector\_rvv} & 128 & 1975424  & 2029880  & Clang & 2.8  \\
-  \code{vector\_rvv} & 192 & 4730302  & 4792531  & Clang & 1.3  \\
-  \code{vector\_rvv} & 256 & 12135502 & 9732294  & GCC  & 24.7 \\
-  \midrule
-  \multicolumn{6}{l}{\textit{Tier~3 — Vector Karatsuba + \Zvbc + \Zvbb Keccak}} \\
-  \code{vector\_zvk} & 128 & 702755   & \multicolumn{1}{c}{---} & Clang & {---} \\
-  \code{vector\_zvk} & 192 & 1653804  & \multicolumn{1}{c}{---} & Clang & {---} \\
-  \code{vector\_zvk} & 256 & 2544133  & \multicolumn{1}{c}{---} & Clang & {---} \\
+  \code{vector\_rvv} & 128 & 1660813  & 1673598  & $\approx$ & 0.8 \\
+  \code{vector\_rvv} & 192 & 3954544  & 3975160  & $\approx$ & 0.5 \\
+  \code{vector\_rvv} & 256 & 9366365  & 7558296  & GCC & 23.9 \\
   \bottomrule
 \end{tabular}
