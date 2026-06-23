@@ -28,6 +28,11 @@ from pathlib import Path
 ROOT_NS = [277, 561, 901]
 DEFERRED_ROOT_NS = [277]  # Requirement 9: HQC-128 only for initial scope
 
+# Hybrid RVV threshold: functions with n <= this use scalar recomposition loops
+# to avoid scalar↔vector pipeline transitions at the bottom recursion levels.
+# At these sizes the RVV loops process ≤2 iterations and transition overhead dominates.
+RVV_HYBRID_THRESHOLD = 18
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _MODE_CONFIG: dict[str, dict] = {
@@ -237,6 +242,8 @@ def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int)
         # scalar / rvv
         if n == 8:
             return f"clmul_leaf_n8({dst}, {xa}, {xb});"
+        if n == 9:
+            return f"clmul_leaf_n9({dst}, {xa}, {xb});"
         return f"clmul_leaf({dst}, {xa}, {xb}, {n}u);"
     return f"kmul_{n}({dst}, {xa}, {xb}, child_buf);"
 
@@ -418,6 +425,85 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
         lines.append("    }")
 
 
+def _scalar_recomposition_directwrite(lines: list[str], n0: int, n1: int) -> None:
+    """Emit scalar recomposition for RVV direct-write discipline (hybrid mode).
+
+    Same logic as _rvv_recomposition but uses plain scalar C loops instead of
+    RVV intrinsics. This avoids scalar↔vector pipeline transitions at small
+    recursion sizes where the transition penalty dominates the XOR work.
+
+    Like _rvv_recomposition, z0 is at r[0..2*n0-1] and z2 is at r[2*n0..].
+    Only Loop 3 is needed (no Loop 1/2 copy).
+    """
+    two_n0 = 2 * n0
+    two_n1 = 2 * n1
+    second_half_count = two_n1 - n0  # elements in second half of Loop 3A
+
+    # --- Save overlap region r[n0..2*n0-1] to ta (scalar copy) ---
+    lines.append(f"    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */")
+    lines.append("    {")
+    lines.append(f"        const uint64_t *_cp_src = r + {n0}u;")
+    lines.append(f"        uint64_t *_cp_dst = ta;")
+    lines.append(f"        for (size_t _i = 0; _i < {n0}u; _i++)")
+    lines.append("            _cp_dst[_i] = _cp_src[_i];")
+    lines.append("    }")
+    lines.append("")
+
+    # --- Loop 3A first half: i in [0, n0) — z0[i]=r[i] is safe (below dst) ---
+    lines.append("    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */")
+    lines.append("    {")
+    lines.append(f"        uint64_t *_dst = r + {n0}u;")
+    lines.append(f"        const uint64_t *_sm = zmid;")
+    lines.append(f"        const uint64_t *_s0 = r;")
+    lines.append(f"        const uint64_t *_s2 = r + {two_n0}u;")
+    lines.append(f"        for (size_t _i = 0; _i < {n0}u; _i++)")
+    lines.append("            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];")
+    lines.append("    }")
+
+    if second_half_count > 0:
+        lines.append("")
+        lines.append(f"    /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */")
+        lines.append("    {")
+        lines.append(f"        uint64_t *_dst = r + {two_n0}u;")
+        lines.append(f"        const uint64_t *_sm = zmid + {n0}u;")
+        lines.append(f"        const uint64_t *_s0 = ta;")
+        lines.append(f"        const uint64_t *_s2 = r + {3 * n0}u;")
+        lines.append(f"        for (size_t _i = 0; _i < {second_half_count}u; _i++)")
+        lines.append("            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];")
+        lines.append("    }")
+
+    if two_n0 > two_n1:
+        rem = two_n0 - two_n1
+        rm_off = n0 + two_n1
+        ta_off = two_n1 - n0
+        lines.append("")
+        lines.append("    /* Loop 3B: odd-n tail where z2 is absent, z0 from saved ta */")
+        lines.append("    {")
+        lines.append(f"        uint64_t *_dst = r + {rm_off}u;")
+        lines.append(f"        const uint64_t *_sm = zmid + {two_n1}u;")
+        lines.append(f"        const uint64_t *_s0 = ta + {ta_off}u;")
+        lines.append(f"        for (size_t _i = 0; _i < {rem}u; _i++)")
+        lines.append("            _dst[_i] ^= _sm[_i] ^ _s0[_i];")
+        lines.append("    }")
+
+
+def _scalar_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
+    """Emit scalar inline XOR preparation for ta/tb (hybrid mode).
+
+    Same as _emit_inline_xor_prep but uses plain scalar loops instead of RVV.
+    """
+    lines.append(f"    /* ta/tb preparation: scalar XOR (n1={n1}) */")
+    lines.append("    {")
+    lines.append(f"        for (size_t _i = 0; _i < {n1}u; _i++) {{")
+    lines.append(f"            ta[_i] = a[_i] ^ a[{n0}u + _i];")
+    lines.append(f"            tb[_i] = b[_i] ^ b[{n0}u + _i];")
+    lines.append("        }")
+    if n0 > n1:
+        lines.append(f"        ta[{n1}u] = a[{n1}u];")
+        lines.append(f"        tb[{n1}u] = b[{n1}u];")
+    lines.append("    }")
+
+
 def _emit_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
     """Emit inline RVV intrinsics for ta/tb XOR preparation (rvv mode).
 
@@ -496,7 +582,11 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
     # For the common part (0..n1-1), use inline intrinsics (rvv) or rvv_xor_u64 (zvbc).
     # For the odd tail (n1..n0-1), use scalar copy (at most 1 element).
     if mode == "rvv":
-        _emit_inline_xor_prep(lines, n0, n1)
+        # Hybrid: use scalar loops at bottom levels to avoid pipeline transitions
+        if n <= RVV_HYBRID_THRESHOLD:
+            _scalar_inline_xor_prep(lines, n0, n1)
+        else:
+            _emit_inline_xor_prep(lines, n0, n1)
     elif mode == "zvbc":
         lines.append(f"    rvv_xor_u64(ta, a, a + {n0}u, {n1}u);")
         lines.append(f"    rvv_xor_u64(tb, b, b + {n0}u, {n1}u);")
@@ -514,7 +604,11 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
     lines.append("")
 
     if mode == "rvv":
-        _rvv_recomposition(lines, n0, n1)
+        # Hybrid: use scalar recomposition at bottom levels
+        if n <= RVV_HYBRID_THRESHOLD:
+            _scalar_recomposition_directwrite(lines, n0, n1)
+        else:
+            _rvv_recomposition(lines, n0, n1)
     elif mode == "zvbc":
         _manual_loop_recomposition(lines, n0, n1)
     else:
@@ -904,9 +998,20 @@ def main() -> None:
         default=None,
         help="Output file path (overrides mode default)",
     )
+    parser.add_argument(
+        "--rvv-hybrid-threshold",
+        type=int,
+        default=None,
+        help="RVV hybrid threshold: functions with n <= this use scalar loops (default: 18)",
+    )
     args = parser.parse_args()
 
     validate_threshold(args.threshold)
+
+    # Allow overriding RVV_HYBRID_THRESHOLD from CLI
+    if args.rvv_hybrid_threshold is not None:
+        global RVV_HYBRID_THRESHOLD
+        RVV_HYBRID_THRESHOLD = args.rvv_hybrid_threshold
 
     if args.output is not None:
         out_path = Path(args.output)

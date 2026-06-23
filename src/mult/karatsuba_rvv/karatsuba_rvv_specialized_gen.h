@@ -18,104 +18,56 @@ static void kmul_17(uint64_t * __restrict__ r,
     uint64_t *child_buf = tb + 9u;
 
     /* Direct-write: z0 → r[0..17], z2 → r[18..33] */
-    clmul_leaf(r, a, b, 9u);
+    clmul_leaf_n9(r, a, b);
     clmul_leaf_n8(r + 18u, a + 9u, b + 9u);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m4, n1=8) */
+    /* ta/tb preparation: scalar XOR (n1=8) */
     {
-        size_t rem = 8u;
-        const uint64_t *sa = a, *sb = b;
-        const uint64_t *sa2 = a + 9u, *sb2 = b + 9u;
-        uint64_t *da = ta, *db = tb;
-        while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
-            vuint64m4_t va1 = __riscv_vle64_v_u64m4(sa, vl);
-            vuint64m4_t va2 = __riscv_vle64_v_u64m4(sa2, vl);
-            __riscv_vse64_v_u64m4(da, __riscv_vxor_vv_u64m4(va1, va2, vl), vl);
-            vuint64m4_t vb1 = __riscv_vle64_v_u64m4(sb, vl);
-            vuint64m4_t vb2 = __riscv_vle64_v_u64m4(sb2, vl);
-            __riscv_vse64_v_u64m4(db, __riscv_vxor_vv_u64m4(vb1, vb2, vl), vl);
-            sa += vl; sa2 += vl; da += vl;
-            sb += vl; sb2 += vl; db += vl;
-            rem -= vl;
+        for (size_t _i = 0; _i < 8u; _i++) {
+            ta[_i] = a[_i] ^ a[9u + _i];
+            tb[_i] = b[_i] ^ b[9u + _i];
         }
         ta[8u] = a[8u];
         tb[8u] = b[8u];
     }
 
-    clmul_leaf(zmid, ta, tb, 9u);
+    clmul_leaf_n9(zmid, ta, tb);
 
-    /* Save overlap region r[n0..2*n0-1] to ta — inline RVV copy (LMUL=m4) */
+    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */
     {
-        size_t _cp_rem = 9u;
         const uint64_t *_cp_src = r + 9u;
         uint64_t *_cp_dst = ta;
-        while (_cp_rem > 0) {
-            size_t _cp_vl = __riscv_vsetvl_e64m4(_cp_rem);
-            vuint64m4_t _cp_v = __riscv_vle64_v_u64m4(_cp_src, _cp_vl);
-            __riscv_vse64_v_u64m4(_cp_dst, _cp_v, _cp_vl);
-            _cp_src += _cp_vl; _cp_dst += _cp_vl; _cp_rem -= _cp_vl;
-        }
+        for (size_t _i = 0; _i < 9u; _i++)
+            _cp_dst[_i] = _cp_src[_i];
     }
 
-    /* Loop 3A first half: i in [0, n0) — z0[i]=r[i] is safe (below dst) */
+    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */
     {
-        size_t _rem = 9u;
         uint64_t *_dst = r + 9u;
         const uint64_t *_sm = zmid;
         const uint64_t *_s0 = r;
         const uint64_t *_s2 = r + 18u;
-        while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m2(_rem);
-            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
-            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);
-            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);
-            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);
-            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
-            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;
-        }
+        for (size_t _i = 0; _i < 9u; _i++)
+            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];
     }
 
     /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */
     {
-        size_t _rem = 7u;
         uint64_t *_dst = r + 18u;
         const uint64_t *_sm = zmid + 9u;
         const uint64_t *_s0 = ta;
         const uint64_t *_s2 = r + 27u;
-        while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m2(_rem);
-            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
-            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);
-            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);
-            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);
-            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
-            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;
-        }
+        for (size_t _i = 0; _i < 7u; _i++)
+            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];
     }
 
     /* Loop 3B: odd-n tail where z2 is absent, z0 from saved ta */
     {
-        size_t _rem = 2u;
         uint64_t *_dst = r + 25u;
         const uint64_t *_sm = zmid + 16u;
         const uint64_t *_s0 = ta + 7u;
-        while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m2(_rem);
-            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
-            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);
-            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);
-            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
-            _dst += _vl; _sm += _vl; _s0 += _vl; _rem -= _vl;
-        }
+        for (size_t _i = 0; _i < 2u; _i++)
+            _dst[_i] ^= _sm[_i] ^ _s0[_i];
     }
 }
 
@@ -130,84 +82,45 @@ static void kmul_18(uint64_t * __restrict__ r,
     uint64_t *child_buf = tb + 9u;
 
     /* Direct-write: z0 → r[0..17], z2 → r[18..35] */
-    clmul_leaf(r, a, b, 9u);
-    clmul_leaf(r + 18u, a + 9u, b + 9u, 9u);
+    clmul_leaf_n9(r, a, b);
+    clmul_leaf_n9(r + 18u, a + 9u, b + 9u);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m4, n1=9) */
+    /* ta/tb preparation: scalar XOR (n1=9) */
     {
-        size_t rem = 9u;
-        const uint64_t *sa = a, *sb = b;
-        const uint64_t *sa2 = a + 9u, *sb2 = b + 9u;
-        uint64_t *da = ta, *db = tb;
-        while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
-            vuint64m4_t va1 = __riscv_vle64_v_u64m4(sa, vl);
-            vuint64m4_t va2 = __riscv_vle64_v_u64m4(sa2, vl);
-            __riscv_vse64_v_u64m4(da, __riscv_vxor_vv_u64m4(va1, va2, vl), vl);
-            vuint64m4_t vb1 = __riscv_vle64_v_u64m4(sb, vl);
-            vuint64m4_t vb2 = __riscv_vle64_v_u64m4(sb2, vl);
-            __riscv_vse64_v_u64m4(db, __riscv_vxor_vv_u64m4(vb1, vb2, vl), vl);
-            sa += vl; sa2 += vl; da += vl;
-            sb += vl; sb2 += vl; db += vl;
-            rem -= vl;
+        for (size_t _i = 0; _i < 9u; _i++) {
+            ta[_i] = a[_i] ^ a[9u + _i];
+            tb[_i] = b[_i] ^ b[9u + _i];
         }
     }
 
-    clmul_leaf(zmid, ta, tb, 9u);
+    clmul_leaf_n9(zmid, ta, tb);
 
-    /* Save overlap region r[n0..2*n0-1] to ta — inline RVV copy (LMUL=m4) */
+    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */
     {
-        size_t _cp_rem = 9u;
         const uint64_t *_cp_src = r + 9u;
         uint64_t *_cp_dst = ta;
-        while (_cp_rem > 0) {
-            size_t _cp_vl = __riscv_vsetvl_e64m4(_cp_rem);
-            vuint64m4_t _cp_v = __riscv_vle64_v_u64m4(_cp_src, _cp_vl);
-            __riscv_vse64_v_u64m4(_cp_dst, _cp_v, _cp_vl);
-            _cp_src += _cp_vl; _cp_dst += _cp_vl; _cp_rem -= _cp_vl;
-        }
+        for (size_t _i = 0; _i < 9u; _i++)
+            _cp_dst[_i] = _cp_src[_i];
     }
 
-    /* Loop 3A first half: i in [0, n0) — z0[i]=r[i] is safe (below dst) */
+    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */
     {
-        size_t _rem = 9u;
         uint64_t *_dst = r + 9u;
         const uint64_t *_sm = zmid;
         const uint64_t *_s0 = r;
         const uint64_t *_s2 = r + 18u;
-        while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m2(_rem);
-            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
-            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);
-            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);
-            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);
-            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
-            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;
-        }
+        for (size_t _i = 0; _i < 9u; _i++)
+            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];
     }
 
     /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */
     {
-        size_t _rem = 9u;
         uint64_t *_dst = r + 18u;
         const uint64_t *_sm = zmid + 9u;
         const uint64_t *_s0 = ta;
         const uint64_t *_s2 = r + 27u;
-        while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m2(_rem);
-            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
-            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);
-            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);
-            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);
-            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
-            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;
-        }
+        for (size_t _i = 0; _i < 9u; _i++)
+            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];
     }
 }
 
