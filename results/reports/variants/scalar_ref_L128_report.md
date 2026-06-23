@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-08 14:02:15 |
-| Commit | `216edab` |
+| Generated | 2026-06-23 13:26:11 |
+| Commit | `c828690` |
 
 ---
 
@@ -136,36 +136,30 @@
 
 ### HQC-128
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | ref_scalar | OK | 117,418,020 | 23,972 |
-| clang | -O3 | ref_scalar | OK | 117,344,266 | 32,158 |
-| clang | -Os | ref_scalar | OK | 117,459,473 | 18,264 |
-| gcc | -O2 | ref_scalar | OK | 120,486,098 | 17,834 |
-| gcc | -O3 | ref_scalar | OK | 113,958,344 | 26,270 |
-| gcc | -Os | ref_scalar | OK | 122,366,611 | 16,888 |
+| gcc | -O2 | ref_scalar | OK | 119,588,829 | 517,897 |
+| gcc | -O3 | ref_scalar | OK | 70,994,731 | 531,865 |
+| clang | -O2 | ref_scalar | OK | 82,622,747 | 533,315 |
+| clang | -O3 | ref_scalar | OK | 82,540,770 | 547,303 |
 
 ### HQC-192
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | ref_scalar | OK | 354,434,380 | 25,844 |
-| clang | -O3 | ref_scalar | OK | 354,302,605 | 33,916 |
-| clang | -Os | ref_scalar | OK | 354,513,619 | 19,574 |
-| gcc | -O2 | ref_scalar | OK | 363,797,867 | 18,942 |
-| gcc | -O3 | ref_scalar | OK | 344,003,671 | 28,980 |
-| gcc | -Os | ref_scalar | OK | 369,265,318 | 17,786 |
+| gcc | -O2 | ref_scalar | OK | 360,726,712 | 519,209 |
+| gcc | -O3 | ref_scalar | OK | 214,228,777 | 533,481 |
+| clang | -O2 | ref_scalar | OK | 249,443,989 | 534,709 |
+| clang | -O3 | ref_scalar | OK | 249,475,460 | 548,665 |
 
 ### HQC-256
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | ref_scalar | OK | 862,204,770 | 31,746 |
-| clang | -O3 | ref_scalar | OK | 861,974,446 | 41,390 |
-| clang | -Os | ref_scalar | OK | 862,317,151 | 26,516 |
-| gcc | -O2 | ref_scalar | OK | 898,156,204 | 25,928 |
-| gcc | -O3 | ref_scalar | OK | 845,613,464 | 33,532 |
-| gcc | -Os | ref_scalar | OK | 907,517,922 | 24,678 |
+| gcc | -O2 | ref_scalar | OK | 925,792,203 | 526,337 |
+| gcc | -O3 | ref_scalar | OK | 533,883,002 | 537,857 |
+| clang | -O2 | ref_scalar | OK | 611,671,813 | 541,505 |
+| clang | -O3 | ref_scalar | OK | 611,456,033 | 552,753 |
 
 ## 6. Cross-Variant Reports
 

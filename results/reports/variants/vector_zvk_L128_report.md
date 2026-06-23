@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-18 19:14:28 |
-| Commit | `c5f821b` |
+| Generated | 2026-06-23 13:26:12 |
+| Commit | `c828690` |
 
 ---
 
@@ -165,36 +165,15 @@
 
 ### HQC-128
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
-| --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zvbc | OK | 702,755 | 46,000 |
-| clang | -O3 | karatsuba_zvbc | OK | 702,755 | 46,000 |
-| clang | -Os | karatsuba_zvbc | OK | 702,755 | 46,000 |
-| gcc | -O2 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -O3 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -Os | karatsuba_zvbc | SKIP |  |  |
+> _No data available._
 
 ### HQC-192
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
-| --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zvbc | OK | 1,653,804 | 50,214 |
-| clang | -O3 | karatsuba_zvbc | OK | 1,653,804 | 50,214 |
-| clang | -Os | karatsuba_zvbc | OK | 1,653,804 | 50,214 |
-| gcc | -O2 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -O3 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -Os | karatsuba_zvbc | SKIP |  |  |
+> _No data available._
 
 ### HQC-256
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
-| --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zvbc | OK | 2,544,133 | 57,346 |
-| clang | -O3 | karatsuba_zvbc | OK | 2,544,133 | 57,346 |
-| clang | -Os | karatsuba_zvbc | OK | 2,544,133 | 57,346 |
-| gcc | -O2 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -O3 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -Os | karatsuba_zvbc | SKIP |  |  |
+> _No data available._
 
 ## 6. Cross-Variant Reports
 

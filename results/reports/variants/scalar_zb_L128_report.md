@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-07 15:50:56 |
-| Commit | `20def7e` |
+| Generated | 2026-06-23 13:26:11 |
+| Commit | `c828690` |
 
 ---
 
@@ -136,36 +136,30 @@
 
 ### HQC-128
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zbc | OK | 3,449,795 | 47,788 |
-| clang | -O3 | karatsuba_zbc | OK | 3,449,795 | 47,788 |
-| clang | -Os | karatsuba_zbc | OK | 3,449,795 | 47,788 |
-| gcc | -O2 | karatsuba_zbc | OK | 3,277,538 | 31,248 |
-| gcc | -O3 | karatsuba_zbc | OK | 3,277,538 | 31,248 |
-| gcc | -Os | karatsuba_zbc | OK | 3,277,538 | 31,248 |
+| gcc | -O2 | karatsuba_zbc | OK | 2,234,431 | 523,497 |
+| gcc | -O3 | karatsuba_zbc | OK | 2,032,805 | 540,153 |
+| clang | -O2 | karatsuba_zbc | OK | 2,179,591 | 542,507 |
+| clang | -O3 | karatsuba_zbc | OK | 2,158,898 | 561,411 |
 
 ### HQC-192
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zbc | OK | 7,811,056 | 50,940 |
-| clang | -O3 | karatsuba_zbc | OK | 7,811,056 | 50,940 |
-| clang | -Os | karatsuba_zbc | OK | 7,811,056 | 50,940 |
-| gcc | -O2 | karatsuba_zbc | OK | 7,448,827 | 33,610 |
-| gcc | -O3 | karatsuba_zbc | OK | 7,448,827 | 33,610 |
-| gcc | -Os | karatsuba_zbc | OK | 7,448,827 | 33,610 |
+| gcc | -O2 | karatsuba_zbc | OK | 5,225,191 | 525,817 |
+| gcc | -O3 | karatsuba_zbc | OK | 4,621,302 | 541,337 |
+| clang | -O2 | karatsuba_zbc | OK | 4,897,752 | 544,679 |
+| clang | -O3 | karatsuba_zbc | OK | 4,912,525 | 564,729 |
 
 ### HQC-256
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zbc | OK | 17,551,791 | 55,672 |
-| clang | -O3 | karatsuba_zbc | OK | 17,551,791 | 55,672 |
-| clang | -Os | karatsuba_zbc | OK | 17,551,791 | 55,672 |
-| gcc | -O2 | karatsuba_zbc | OK | 14,317,378 | 38,488 |
-| gcc | -O3 | karatsuba_zbc | OK | 14,317,378 | 38,488 |
-| gcc | -Os | karatsuba_zbc | OK | 14,317,378 | 38,488 |
+| gcc | -O2 | karatsuba_zbc | OK | 11,223,044 | 531,865 |
+| gcc | -O3 | karatsuba_zbc | OK | 8,958,436 | 545,905 |
+| clang | -O2 | karatsuba_zbc | OK | 11,420,506 | 549,393 |
+| clang | -O3 | karatsuba_zbc | OK | 11,360,831 | 566,783 |
 
 ## 6. Cross-Variant Reports
 
