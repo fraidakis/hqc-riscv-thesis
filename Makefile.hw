@@ -88,7 +88,7 @@ else ifeq ($(POLYMUL),vector_ref)
 else ifeq ($(POLYMUL),vector_rvv)
   MARCH := rv64gcv_zbc_zbb_zba_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
-  EXTRA_CFLAGS :=
+  EXTRA_CFLAGS := -fno-tree-vectorize
 else ifeq ($(POLYMUL),vector_zvk)
   MARCH := rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zvbc/gf2x_vclmul.c

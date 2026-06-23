@@ -126,16 +126,16 @@ VARIANT_SLUG="$(bench_variant_slug "$MUL_VARIANT")"
 # ── Print configuration ──────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-printf "║  %-56s  ║\n" "run_compiler_compare.sh"
-printf "║  %-56s  ║\n" "Platform: ${PLATFORM}  Variant: ${MUL_VARIANT}"
-printf "║  %-56s  ║\n" "Keccak: ${KECCAK_IMPL}  Decode: ${DECODE_IMPL}"
-printf "║  %-56s  ║\n" "Commit:  ${GIT_HASH}  Date: ${BENCH_TIME}"
+printf "║  %-54s  ║\n" "run_compiler_compare.sh"
+printf "║  %-54s  ║\n" "Platform: ${PLATFORM}  Variant: ${MUL_VARIANT}"
+printf "║  %-54s  ║\n" "Keccak: ${KECCAK_IMPL}  Decode: ${DECODE_IMPL}"
+printf "║  %-54s  ║\n" "Commit:  ${GIT_HASH}  Date: ${BENCH_TIME}"
 if [[ "$PLATFORM" == "hw" ]]; then
     local_info=""
     if [[ "$LOCAL_MODE" -eq 1 ]]; then local_info="Local: yes"
     elif [[ -n "$REMOTE" ]]; then local_info="Remote: ${REMOTE}"
     fi
-    printf "║  %-56s  ║\n" "Quality: ${QUALITY}  ${local_info}"
+    printf "║  %-54s  ║\n" "Quality: ${QUALITY}  ${local_info}"
 fi
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""

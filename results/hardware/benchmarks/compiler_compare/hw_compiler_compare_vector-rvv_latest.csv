@@ -1,10 +1,18 @@
-# date: 2026-06-23 00:01
-# commit: 45892ca
+# date: 2026-06-23 12:01
+# commit: 516ff25
 # platform: bpi-f3
 # quality: dev
 # variant: vector_rvv
 compiler,opt,level,variant,status,cycles,text_bytes,binary,error
-gcc,-O2,128,karatsuba_rvv,FAIL,,,build-hw/bench_hw_kem_hqc128_vector_rvv,build_failed
-gcc,-O3,128,karatsuba_rvv,FAIL,,,build-hw/bench_hw_kem_hqc128_vector_rvv,build_failed
-clang,-O2,128,karatsuba_rvv,OK,1644795,541479,build-hw/bench_hw_kem_hqc128_vector_rvv,
-clang,-O3,128,karatsuba_rvv,OK,1615757,550041,build-hw/bench_hw_kem_hqc128_vector_rvv,
+gcc,-O2,128,karatsuba_rvv,OK,1820793,529971,build-hw/bench_hw_kem_hqc128_vector_rvv,
+gcc,-O3,128,karatsuba_rvv,OK,1673598,537187,build-hw/bench_hw_kem_hqc128_vector_rvv,
+clang,-O2,128,karatsuba_rvv,OK,1684379,542297,build-hw/bench_hw_kem_hqc128_vector_rvv,
+clang,-O3,128,karatsuba_rvv,OK,1660813,546833,build-hw/bench_hw_kem_hqc128_vector_rvv,
+gcc,-O2,192,karatsuba_rvv,OK,4430532,532515,build-hw/bench_hw_kem_hqc192_vector_rvv,
+gcc,-O3,192,karatsuba_rvv,OK,3975160,541955,build-hw/bench_hw_kem_hqc192_vector_rvv,
+clang,-O2,192,karatsuba_rvv,OK,3958739,546945,build-hw/bench_hw_kem_hqc192_vector_rvv,
+clang,-O3,192,karatsuba_rvv,OK,3954544,550985,build-hw/bench_hw_kem_hqc192_vector_rvv,
+gcc,-O2,256,karatsuba_rvv,OK,9429684,538579,build-hw/bench_hw_kem_hqc256_vector_rvv,
+gcc,-O3,256,karatsuba_rvv,OK,7558296,546827,build-hw/bench_hw_kem_hqc256_vector_rvv,
+clang,-O2,256,karatsuba_rvv,OK,9629208,549753,build-hw/bench_hw_kem_hqc256_vector_rvv,
+clang,-O3,256,karatsuba_rvv,OK,9366365,553481,build-hw/bench_hw_kem_hqc256_vector_rvv,
