@@ -1,7 +1,7 @@
-# date: 2026-06-07 14:13
-# commit: 20def7e
+# date: 2026-06-23 14:14
+# commit: d38ed14
 # variant: scalar_zb
 level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,3239,2880,21641,18859,339,295
-192,3566,3064,24007,20249,376,317
-256,3399,2942,22739,19392,356,303
+128,2072,1731,14707,12338,230,193
+192,2127,1786,14809,12598,232,197
+256,2140,1779,15052,12729,236,199
