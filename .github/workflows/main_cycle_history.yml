@@ -49,7 +49,7 @@ jobs:
       - name: Configure CMake for Spike benchmarks
         run: |
           cmake -S . -B build/spike -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
             -DHQC_SIM=spike \
             -DBENCH_N_ITER=11
 

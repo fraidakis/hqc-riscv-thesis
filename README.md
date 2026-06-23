@@ -42,8 +42,8 @@ Command workflows, rationale, and roadmap are maintained in:
 source toolchain/toolchain.env
 
 # 2. Configure QEMU and Spike build trees
-cmake -S . -B build/qemu -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=qemu
-cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1
+cmake -S . -B build/qemu -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake -DHQC_SIM=qemu
+cmake -S . -B build/spike -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake -DHQC_SIM=spike -DBENCH_N_ITER=1
 
 # 3. Build all targets
 cmake --build build/qemu -j$(nproc)

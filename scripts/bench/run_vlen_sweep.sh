@@ -179,7 +179,7 @@ unset _vlen
 # ── Environment ──────────────────────────────────────────────────────────────
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
-TOOLCHAIN_FILE="${HQC_TOOLCHAIN_FILE:-toolchain/riscv-clang.cmake}"
+TOOLCHAIN_FILE="${HQC_TOOLCHAIN_FILE:-toolchain/riscv-gcc.cmake}"
 SCALAR_MARCH="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"

@@ -1,5 +1,7 @@
 # toolchain/riscv-clang.cmake
 # CMake toolchain file for bare-metal RISC-V cross-compilation with Clang/LLVM.
+# Alternative toolchain — use when Clang-only features are needed (e.g. Zvbb Keccak).
+# The canonical simulation/Spike toolchain is riscv-gcc.cmake.
 # Usage: cmake -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake ..
 
 # ── Critical bare-metal settings ──────────────────────────────────────────────

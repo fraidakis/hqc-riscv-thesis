@@ -152,7 +152,7 @@ bench_auto_configure_and_build() {
     local _decode="${DECODE_IMPL:-ref}"
     local _scalar_march="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
     local _vector_bits="${HQC_VECTOR_BITS:-256}"
-    local _toolchain_file="${HQC_TOOLCHAIN_FILE:-toolchain/riscv-clang.cmake}"
+    local _toolchain_file="${HQC_TOOLCHAIN_FILE:-toolchain/riscv-gcc.cmake}"
     local _opt_level="${HQC_OPT_LEVEL:-}"
     local need_config=0
     local config_reason=""

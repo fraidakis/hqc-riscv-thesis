@@ -1,6 +1,7 @@
-# toolchain/riscv-riscv64-unknown-elf-gcc.cmake
-# CMake toolchain file for bare-metal RISC-V cross-compilation with Clang/LLVM.
-# Usage: cmake -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-riscv64-unknown-elf-gcc.cmake ..
+# toolchain/riscv-gcc.cmake
+# CMake toolchain file for bare-metal RISC-V cross-compilation with GCC.
+# This is the canonical toolchain for simulation/Spike builds.
+# Usage: cmake -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake ..
 
 # ── Critical bare-metal settings ──────────────────────────────────────────────
 set(CMAKE_SYSTEM_NAME Generic)
@@ -12,11 +13,25 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # ── Toolchain prefix ──────────────────────────────────────────────────────────
 if(NOT DEFINED RISCV)
-  # Default: toolchains/installed-tools lives two levels above this file
-  # (hqc-riscv/toolchain/ → hqc-riscv/ → Thesis/ → toolchains/installed-tools)
-  get_filename_component(_RISCV_DEFAULT
-      "${CMAKE_CURRENT_LIST_DIR}/../../toolchains/installed-tools" REALPATH)
-  set(RISCV "${_RISCV_DEFAULT}")
+  if(DEFINED ENV{RISCV} AND EXISTS "$ENV{RISCV}/bin/riscv64-unknown-elf-gcc")
+    set(RISCV "$ENV{RISCV}")
+  else()
+    # Default: toolchains/installed-tools lives two levels above this file
+    # (hqc-riscv/toolchain/ → hqc-riscv/ → Thesis/ → toolchains/installed-tools)
+    get_filename_component(_RISCV_DEFAULT
+        "${CMAKE_CURRENT_LIST_DIR}/../../toolchains/installed-tools" REALPATH)
+    if(EXISTS "${_RISCV_DEFAULT}/bin/riscv64-unknown-elf-gcc")
+      set(RISCV "${_RISCV_DEFAULT}")
+    elseif(DEFINED ENV{HOME} AND EXISTS "$ENV{HOME}/Thesis/installed-tools/bin/riscv64-unknown-elf-gcc")
+      set(RISCV "$ENV{HOME}/Thesis/installed-tools")
+    elseif(DEFINED ENV{HOME} AND EXISTS "$ENV{HOME}/Thesis/toolchains/installed-tools/bin/riscv64-unknown-elf-gcc")
+      set(RISCV "$ENV{HOME}/Thesis/toolchains/installed-tools")
+    else()
+      message(FATAL_ERROR
+        "Unable to locate RISC-V GCC toolchain. Set RISCV env var or pass -DRISCV=<toolchain-root>. "
+        "Tried: '$ENV{RISCV}', '${_RISCV_DEFAULT}', '$ENV{HOME}/Thesis/installed-tools', '$ENV{HOME}/Thesis/toolchains/installed-tools'.")
+    endif()
+  endif()
 endif()
 
 set(RISCV_TOOLCHAIN_PREFIX "${RISCV}/bin")
@@ -37,7 +52,7 @@ set(CMAKE_SYSROOT "${RISCV_SYSROOT}")
 set(RISCV_TARGET_TRIPLE "riscv64-unknown-elf")
 
 # ── Aggressive bare-metal compile flags ──────────────────────────────────────
-set(RISCV_MARCH "rv64gc_zbc_zbb")
+set(RISCV_MARCH "rv64gc_zbc_zbb_zbs")
 set(RISCV_MABI  "lp64d")
 set(RISCV_OPT_LEVEL "-O3" CACHE STRING "Optimization flag for GCC (e.g. -O2, -O3, -Os)")
 

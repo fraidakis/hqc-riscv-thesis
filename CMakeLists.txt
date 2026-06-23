@@ -118,16 +118,31 @@ set(KECCAK_INCLUDE_DIRS "")
 set(KECCAK_COMPILE_DEFINES "")
 
 if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
-    # Track C2: top-performing consolidated Zvbb backend (single TU).
-    # Contains both single-stream fips202 API and paired-stream x2 wrappers.
-    set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
-                   COMPILE_DEFINITIONS "HQC_VECTOR_BITS=${HQC_VECTOR_BITS}"
-    )
-    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
+    # GCC 15 cannot compile the Zvbb x2 SoA backend due to two issues:
+    #   1) __attribute__((riscv_rvv_vector_bits(N))) is Clang-only — GCC rejects
+    #      arrays of sizeless vector types (vu64m1_fixed_t state[25]).
+    #   2) LMUL=8 register pressure in KeccakF1600_StatePermute triggers an
+    #      infinite-loop / ICE in GCC's register allocator.
+    # Workaround: fall back to the scalar reference Keccak when compiling with GCC.
+    # The Zvbc polynomial multiplier (gf2x_vclmul.c, LMUL=4) is unaffected.
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        message(WARNING
+            "GCC cannot compile zvbb_x2_soa Keccak (sizeless array / LMUL=8 regalloc). "
+            "Falling back to ref Keccak.  Zvbc polymul remains fully vectorized.")
+        set(KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+        set(KECCAK_COMPILE_DEFINES "")
+    else()
+        # Track C2: top-performing consolidated Zvbb backend (single TU).
+        # Contains both single-stream fips202 API and paired-stream x2 wrappers.
+        set(KECCAK_SOURCES
+            ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
+        set_source_files_properties(
+            ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
+            PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;-mrvv-vector-bits=${HQC_VECTOR_BITS}"
+                       COMPILE_DEFINITIONS "HQC_VECTOR_BITS=${HQC_VECTOR_BITS}"
+        )
+        set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
+    endif()
 
 else()
     # Default (ref): vendor scalar fips202
@@ -232,18 +247,32 @@ set(LOCAL_BENCH_SOURCES
 # ── PGO helper for reference baseline targets (P-06) ─────────────────────────
 # Applies PGO flags to a named target.
 # Called for every scalar_ref/vector_ref executable (KAT, bench, polymul bench).
+# Supports both GCC (-fprofile-generate/-fprofile-use) and Clang
+# (-fprofile-instr-generate/-fprofile-instr-use) PGO workflows.
 function(hqc_apply_ref_pgo TARGET)
     if(HQC_REF_PGO STREQUAL "generate")
-        # LLVM IR-level instrumentation (works with Clang; Spike captures the
-        # profile via the LLVM profile runtime's __llvm_profile_write_file
-        # hook, which must be wired in via sim/common/bench.c or a wrapper).
-        target_compile_options(${TARGET} PRIVATE -fprofile-instr-generate)
-        target_link_options(${TARGET} PRIVATE -fprofile-instr-generate)
+        if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(${TARGET} PRIVATE -fprofile-generate=${HQC_REF_PGO_FILE})
+            target_link_options(${TARGET} PRIVATE -fprofile-generate=${HQC_REF_PGO_FILE})
+        else()
+            # LLVM IR-level instrumentation (works with Clang; Spike captures the
+            # profile via the LLVM profile runtime's __llvm_profile_write_file
+            # hook, which must be wired in via sim/common/bench.c or a wrapper).
+            target_compile_options(${TARGET} PRIVATE -fprofile-instr-generate)
+            target_link_options(${TARGET} PRIVATE -fprofile-instr-generate)
+        endif()
     elseif(HQC_REF_PGO STREQUAL "use")
-        target_compile_options(${TARGET} PRIVATE
-            -fprofile-instr-use=${HQC_REF_PGO_FILE})
-        target_link_options(${TARGET} PRIVATE
-            -fprofile-instr-use=${HQC_REF_PGO_FILE})
+        if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(${TARGET} PRIVATE
+                -fprofile-use=${HQC_REF_PGO_FILE} -fprofile-correction)
+            target_link_options(${TARGET} PRIVATE
+                -fprofile-use=${HQC_REF_PGO_FILE})
+        else()
+            target_compile_options(${TARGET} PRIVATE
+                -fprofile-instr-use=${HQC_REF_PGO_FILE})
+            target_link_options(${TARGET} PRIVATE
+                -fprofile-instr-use=${HQC_REF_PGO_FILE})
+        endif()
     endif()
 endfunction()
 

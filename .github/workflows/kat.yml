@@ -92,7 +92,7 @@ jobs:
       - name: Configure CMake (KAT mode, ref keccak + ref decoder)
         run: |
           cmake -S . -B build/qemu -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
             -DHQC_SIM=qemu \
             -DHQC_KECCAK_IMPL=ref \
             -DHQC_DECODE_IMPL=ref
@@ -142,7 +142,7 @@ jobs:
       - name: Configure CMake (KAT mode)
         run: |
           cmake -S . -B build/spike -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
             -DHQC_SIM=spike \
             -DHQC_KECCAK_IMPL=ref \
             -DHQC_DECODE_IMPL=ref

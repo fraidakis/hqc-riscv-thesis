@@ -37,7 +37,7 @@ jobs:
       - name: Build vector_zvbc target
         run: |
           cmake -B build -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake
           cmake --build build --target hqc128_vector_zvbc -j$(nproc)
 
       - name: Check vclmul opcodes present

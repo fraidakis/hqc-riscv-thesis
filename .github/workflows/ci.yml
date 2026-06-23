@@ -74,13 +74,13 @@ jobs:
       - name: Configure CMake for QEMU
         run: |
           cmake -S . -B build/qemu -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
             -DHQC_SIM=qemu
 
       - name: Configure CMake for Spike
         run: |
           cmake -S . -B build/spike -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
             -DHQC_SIM=spike \
             -DBENCH_N_ITER=1
 

@@ -226,12 +226,9 @@ run_one_hw() {
     local dir="$REPO_ROOT"
     if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}"; fi
 
-    # GCC is incompatible with the Zvbb x2 SoA Keccak backend on hardware too.
-    if [[ "$compiler" == "gcc" && "$KECCAK_IMPL" == "zvbb_x2_soa" ]]; then
-        echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},SKIP,,,build-hw/bench_hw_kem_hqc${level}_${MUL_VARIANT},gcc_zvbb_incompatible" >> "$CSV_OUT"
-        echo "SKIP (gcc_zvbb_incompatible)"
-        return 0
-    fi
+    # NOTE: GCC + zvbb_x2_soa is handled automatically in Makefile.hw — it falls
+    # back to ref Keccak.  No skip guard needed; GCC builds proceed with scalar
+    # Keccak while the Zvbc polynomial multiplier remains fully vectorized.
 
     local make_mode="${QUALITY}"
     local extra_args="KECCAK=${KECCAK_IMPL} DECODE=${DECODE_IMPL}"

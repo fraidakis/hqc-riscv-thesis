@@ -155,7 +155,15 @@ CORE_SOURCES := $(VENDOR)/src/common/kem.c \
 ifeq ($(KECCAK),ref)
   KEM_KECCAK_SOURCES := $(VENDOR)/lib/fips202/fips202.c
 else ifeq ($(KECCAK),zvbb_x2_soa)
-  KEM_KECCAK_SOURCES := $(SRC)/keccak/fips202_zvbb_x2.c
+  # GCC cannot compile the Zvbb x2 SoA backend (riscv_rvv_vector_bits is
+  # Clang-only, and LMUL=8 KeccakF1600 triggers GCC regalloc issues).
+  # Automatically fall back to scalar ref Keccak when CC=gcc.
+  ifneq ($(findstring clang,$(CC)),clang)
+    $(info NOTE: GCC detected with KECCAK=zvbb_x2_soa — falling back to ref Keccak (Zvbc polymul unaffected))
+    KEM_KECCAK_SOURCES := $(VENDOR)/lib/fips202/fips202.c
+  else
+    KEM_KECCAK_SOURCES := $(SRC)/keccak/fips202_zvbb_x2.c
+  endif
 else
   $(error Unsupported KECCAK=$(KECCAK). Use ref or zvbb_x2_soa)
 endif

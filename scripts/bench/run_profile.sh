@@ -141,7 +141,7 @@ profile_cache_mode() {
     # Isolated build dir per impl pairing — configure once, build per target.
     local build_dir="$REPO_ROOT/build/spike/cacheprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
     cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
         -DRISCV="$riscv" \
         -DHQC_SIM=spike >/dev/null 2>&1
 
@@ -243,7 +243,7 @@ profile_memory_mode() {
     # Pass impl flags so the correct keccak/decode sources are compiled.
     local build_dir="$REPO_ROOT/build/qemu/memprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
     cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
         -DRISCV="${riscv}" \
         -DHQC_SIM=qemu \
         -DHQC_KECCAK_IMPL="${KECCAK_IMPL:-ref}" \
@@ -361,7 +361,7 @@ profile_trace_mode() {
     fi
 
     cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
         -DRISCV="$riscv" \
         -DHQC_SIM=spike \
         -DHQC_TRACE_MODE=1 \
@@ -490,7 +490,7 @@ profile_histogram_mode() {
     mkdir -p "$out_dir"
 
     cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-clang.cmake \
+        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
         -DRISCV="$riscv" \
         -DHQC_SIM=spike \
         -DHQC_TRACE_MODE=1 \
