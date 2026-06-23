@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """
-Plot: End-to-End KEM Speedup — karatsuba_zbc vs ref_scalar
-Spike Instret Estimation vs Real Hardware (SpacemiT X60)
+Plot: Full KEM Speedup — karatsuba_zbc & vector_rvv vs scalar_ref
 
-Reads speedup data from benchmark CSVs and produces a grouped bar chart
-comparing Spike ISS (instret-based) and BPI-F3 hardware (cycle-based)
-speedups across all three HQC security levels.
+Design goal: show that the Spike simulator (instret-based) PREDICTS the real
+hardware speedup for the *scalar* path (delta < ~1%), but OVER-PREDICTS the
+speedup for the *vector* path.
+
+Encoding (marker-overlay, not stacked):
+  - Solid bar  : real hardware speedup (BPI-F3, cycle-based)  -> the ground truth
+  - Diamond + horizontal cap : Spike prediction (instret) at its own height
+  - Gap bar top -> marker     : prediction error
+      * |delta| <= MATCH_THRESHOLD_PCT -> green "match" badge (no gap region)
+      * delta  >  MATCH_THRESHOLD_PCT  -> red hatched over-prediction region + arrow
 
 Usage:
     python3 scripts/report/plot_speedup_comparison.py
@@ -19,6 +25,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch, Rectangle
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -27,15 +35,47 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_DIR = REPO_ROOT / "results" / "reports" / "figures"
 
-SIM_KEM_DIR  = REPO_ROOT / "results" / "simulation" / "benchmarks" / "kem"
-HW_KEM_DIR   = REPO_ROOT / "results" / "hardware"   / "benchmarks" / "kem"
+SIM_KEM_DIR = REPO_ROOT / "results" / "simulation" / "benchmarks" / "kem"
+HW_KEM_DIR  = REPO_ROOT / "results" / "hardware"   / "benchmarks" / "kem"
 
-SIM_REF_CSV  = SIM_KEM_DIR / "sim_kem_scalar-ref_latest.csv"
-SIM_ZBC_CSV  = SIM_KEM_DIR / "sim_kem_scalar-zb_latest.csv"
-HW_REF_CSV   = HW_KEM_DIR  / "hw_kem_scalar-ref_latest.csv"
-HW_ZBC_CSV   = HW_KEM_DIR  / "hw_kem_scalar-zb_latest.csv"
+# Baseline (scalar_ref)
+SIM_REF_CSV = SIM_KEM_DIR / "sim_kem_scalar-ref_latest.csv"
+HW_REF_CSV  = HW_KEM_DIR  / "hw_kem_scalar-ref_latest.csv"
+
+# karatsuba_zbc
+SIM_ZBC_CSV = SIM_KEM_DIR / "sim_kem_scalar-zb_latest.csv"
+HW_ZBC_CSV  = HW_KEM_DIR  / "hw_kem_scalar-zb_latest.csv"
+
+# vector_rvv
+SIM_RVV_CSV = SIM_KEM_DIR / "sim_kem_vector-rvv_latest.csv"
+HW_RVV_CSV  = HW_KEM_DIR  / "hw_kem_vector-rvv_latest.csv"
 
 LEVELS = [128, 192, 256]
+
+# ---------------------------------------------------------------------------
+# Presentation config (edit display names to match the thesis controlled
+# vocabulary / canonical tier naming used in intro/results/conclusion).
+# ---------------------------------------------------------------------------
+
+# Variant identity colour (encodes the *series*, kept stable across the thesis).
+VARIANT_DISPLAY = {
+    "karatsuba_zbc": "Zbc (scalar)",
+    "vector_rvv":    "RVV (vector)",
+}
+VARIANT_COLOR = {
+    "karatsuba_zbc": "#4C72B0",  # blue
+    "vector_rvv":    "#DD8452",  # orange
+}
+
+# Semantic colours encode the *prediction quality* (delta), NOT the tier.
+COLOR_MATCH = "#55A868"  # green  -> Spike agrees with HW
+COLOR_OVER  = "#C44E52"  # red    -> Spike over-predicts
+COLOR_SPIKE = "#2F2F2F"  # dark   -> Spike prediction marker
+
+# A |delta| at or below this (percent) is treated as agreement.
+MATCH_THRESHOLD_PCT = 2.0
+
+ONE_DP = "{:.1f}"  # single, consistent decimal precision everywhere
 
 # ---------------------------------------------------------------------------
 # CSV helpers
@@ -78,91 +118,182 @@ def _total_cycles(csv_path: Path) -> dict[int, float]:
     return totals
 
 # ---------------------------------------------------------------------------
-# Compute speedups
+# Compute speedups (both variants vs scalar_ref)
 # ---------------------------------------------------------------------------
 
-def compute_speedups() -> tuple[list[float], list[float]]:
+def compute_speedups() -> dict[str, tuple[list[float], list[float]]]:
+    """
+    Returns dict: variant -> (spike_speedups, hw_speedups)
+    Both measured against scalar_ref baseline on full KEM.
+    """
     sim_ref = _total_instret(SIM_REF_CSV)
-    sim_zbc = _total_instret(SIM_ZBC_CSV)
     hw_ref  = _total_cycles(HW_REF_CSV)
+
+    sim_zbc = _total_instret(SIM_ZBC_CSV)
     hw_zbc  = _total_cycles(HW_ZBC_CSV)
 
-    spike_speedup: list[float] = []
-    hw_speedup: list[float] = []
+    sim_rvv = _total_instret(SIM_RVV_CSV)
+    hw_rvv  = _total_cycles(HW_RVV_CSV)
 
-    for lvl in LEVELS:
-        if lvl not in sim_ref or lvl not in sim_zbc:
-            print(f"Error: missing simulation data for level {lvl}", file=sys.stderr)
-            sys.exit(1)
-        if lvl not in hw_ref or lvl not in hw_zbc:
-            print(f"Error: missing hardware data for level {lvl}", file=sys.stderr)
-            sys.exit(1)
+    results: dict[str, tuple[list[float], list[float]]] = {}
 
-        spike_speedup.append(sim_ref[lvl] / sim_zbc[lvl])
-        hw_speedup.append(hw_ref[lvl] / hw_zbc[lvl])
+    for name, sim_opt, hw_opt in [
+        ("karatsuba_zbc", sim_zbc, hw_zbc),
+        ("vector_rvv",    sim_rvv, hw_rvv),
+    ]:
+        spike_sp: list[float] = []
+        hw_sp: list[float] = []
+        for lvl in LEVELS:
+            if lvl not in sim_ref or lvl not in sim_opt:
+                print(f"Error: missing simulation data for {name} level {lvl}", file=sys.stderr)
+                sys.exit(1)
+            if lvl not in hw_ref or lvl not in hw_opt:
+                print(f"Error: missing hardware data for {name} level {lvl}", file=sys.stderr)
+                sys.exit(1)
+            spike_sp.append(sim_ref[lvl] / sim_opt[lvl])
+            hw_sp.append(hw_ref[lvl] / hw_opt[lvl])
+        results[name] = (spike_sp, hw_sp)
 
-    return spike_speedup, hw_speedup
+    return results
 
 # ---------------------------------------------------------------------------
 # Plot
 # ---------------------------------------------------------------------------
 
-def plot(spike_speedup: list[float], hw_speedup: list[float]) -> None:
+def plot(speedups: dict[str, tuple[list[float], list[float]]]) -> None:
+    n_levels = len(LEVELS)
+    variant_names = list(speedups.keys())
+
     x_labels = [f"HQC-{lvl}" for lvl in LEVELS]
-    x = np.arange(len(x_labels))
-    bar_width = 0.32
+    x = np.arange(n_levels)
+    bar_width = 0.34
+    offsets = [-bar_width / 2 - 0.02, bar_width / 2 + 0.02]
+    cap_half = bar_width * 0.52  # spike marker cap half-width
 
     plt.style.use("seaborn-v0_8-whitegrid")
-    fig, ax = plt.subplots(figsize=(9, 5.5))
+    fig, ax = plt.subplots(figsize=(10, 6.5))
 
-    # Colors — academic-friendly palette
-    color_spike = "#4C72B0"  # steel blue
-    color_hw    = "#DD8452"  # warm orange
+    all_tops: list[float] = []
+    saw_over = False
+    saw_match = False
 
-    bars_spike = ax.bar(
-        x - bar_width / 2, spike_speedup, bar_width,
-        label="Spike ISS (instret)", color=color_spike,
-        edgecolor="white", linewidth=0.8, zorder=3,
-    )
-    bars_hw = ax.bar(
-        x + bar_width / 2, hw_speedup, bar_width,
-        label="Banana Pi BPI-F3 (cycles)", color=color_hw,
-        edgecolor="white", linewidth=0.8, zorder=3,
-    )
+    for v_idx, variant in enumerate(variant_names):
+        spike_sp, hw_sp = speedups[variant]
+        color = VARIANT_COLOR[variant]
+        offset = offsets[v_idx]
 
-    # Value labels on bars
-    for bar, val in zip(bars_spike, spike_speedup):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.8,
-            f"\u00d7{val:.1f}",
-            ha="center", va="bottom", fontsize=10,
-            fontweight="bold", color=color_spike,
-        )
-    for bar, val in zip(bars_hw, hw_speedup):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.8,
-            f"\u00d7{val:.1f}",
-            ha="center", va="bottom", fontsize=10,
-            fontweight="bold", color=color_hw,
+        # Ground-truth hardware bars.
+        ax.bar(
+            x + offset, hw_sp, bar_width,
+            color=color, edgecolor="white", linewidth=0.8, zorder=3,
         )
 
-    ax.set_xlabel("Security Level", fontsize=11, labelpad=8)
-    ax.set_ylabel("Speedup over ref_scalar (\u00d7)", fontsize=11, labelpad=8)
+        for i in range(n_levels):
+            s_val = spike_sp[i]
+            h_val = hw_sp[i]
+            bar_x = x[i] + offset
+            delta_pct = (s_val - h_val) / h_val * 100.0
+            is_match = abs(delta_pct) <= MATCH_THRESHOLD_PCT
+            top_y = max(s_val, h_val)
+            all_tops.append(top_y)
+
+            # HW value inside the solid bar.
+            ax.text(
+                bar_x, h_val / 2,
+                ("\u00d7" + ONE_DP).format(h_val),
+                ha="center", va="center", fontsize=9.5,
+                fontweight="bold", color="white", zorder=6,
+            )
+
+            # Over-prediction gap region (only when Spike clearly exceeds HW).
+            if not is_match and s_val > h_val:
+                saw_over = True
+                ax.add_patch(Rectangle(
+                    (bar_x - bar_width / 2, h_val), bar_width, s_val - h_val,
+                    facecolor=COLOR_OVER, alpha=0.16, edgecolor=COLOR_OVER,
+                    linewidth=0.8, hatch="////", zorder=2,
+                ))
+                # Double-headed arrow spanning the error.
+                ax.annotate(
+                    "", xy=(bar_x, s_val), xytext=(bar_x, h_val),
+                    arrowprops=dict(arrowstyle="<->", color=COLOR_OVER, lw=1.4),
+                    zorder=5,
+                )
+            else:
+                saw_match = True
+
+            # Spike prediction marker: horizontal cap + diamond at its height.
+            ax.plot(
+                [bar_x - cap_half, bar_x + cap_half], [s_val, s_val],
+                color=COLOR_SPIKE, lw=1.8, zorder=7, solid_capstyle="round",
+            )
+            ax.plot(
+                bar_x, s_val, marker="D", markersize=7,
+                markerfacecolor="white", markeredgecolor=COLOR_SPIKE,
+                markeredgewidth=1.6, zorder=8,
+            )
+
+            # Delta badge above the marker, coloured by prediction quality.
+            if is_match:
+                badge_txt = ("Spike \u00d7" + ONE_DP + "  match ({:+.1f}%)").format(
+                    s_val, delta_pct,
+                )
+                badge_color = COLOR_MATCH
+            else:
+                badge_txt = ("Spike \u00d7" + ONE_DP + "  over +{:.1f}%").format(
+                    s_val, delta_pct,
+                )
+                badge_color = COLOR_OVER
+            ax.text(
+                bar_x, s_val + 1.4, badge_txt,
+                ha="center", va="bottom", fontsize=8, fontweight="bold",
+                color="white",
+                bbox=dict(boxstyle="round,pad=0.28", facecolor=badge_color,
+                          edgecolor="none", alpha=0.92),
+                zorder=9,
+            )
+
+    # Axes & titles.
+    ax.set_xlabel("Security level", fontsize=11, labelpad=8)
+    ax.set_ylabel("Full-KEM speedup over scalar_ref (\u00d7)", fontsize=11, labelpad=8)
     ax.set_title(
-        "End-to-End KEM Speedup: karatsuba_zbc vs ref_scalar\n"
-        "Spike Instret Estimation vs Real Hardware (SpacemiT X60)",
-        fontsize=12, fontweight="bold", pad=12,
+        "Spike (instret) tracks hardware for the scalar path, "
+        "but over-predicts the vector speedup",
+        fontsize=12.5, fontweight="bold", pad=14,
     )
     ax.set_xticks(x)
     ax.set_xticklabels(x_labels, fontsize=11)
-    ax.set_ylim(0, max(hw_speedup) * 1.25)
+
+    y_max = max(all_tops) * 1.22
+    ax.set_ylim(0, y_max)
     ax.yaxis.set_major_locator(plt.MultipleLocator(10))
-    ax.legend(loc="upper left", fontsize=10, framealpha=0.9)
-    ax.grid(axis="y", alpha=0.4, zorder=0)
+    ax.grid(axis="y", alpha=0.30, zorder=0)
     ax.grid(axis="x", visible=False)
     ax.set_axisbelow(True)
+
+    # Lean, semantic legend built from proxy handles.
+    handles: list = [
+        Patch(facecolor=VARIANT_COLOR[v], edgecolor="white",
+              label=f"{VARIANT_DISPLAY[v]} \u2014 BPI-F3 hardware (cycles)")
+        for v in variant_names
+    ]
+    handles.append(Line2D(
+        [0], [0], color=COLOR_SPIKE, lw=1.8, marker="D",
+        markerfacecolor="white", markeredgecolor=COLOR_SPIKE, markersize=7,
+        label="Spike prediction (instret)",
+    ))
+    if saw_over:
+        handles.append(Patch(
+            facecolor=COLOR_OVER, alpha=0.16, edgecolor=COLOR_OVER,
+            hatch="////", label="Spike over-prediction (gap)",
+        ))
+    if saw_match:
+        handles.append(Patch(
+            facecolor=COLOR_MATCH, edgecolor="none",
+            label=f"Spike \u2248 hardware (|\u0394| \u2264 {MATCH_THRESHOLD_PCT:.0f}%)",
+        ))
+    ax.legend(handles=handles, loc="upper left", fontsize=9, framealpha=0.92,
+              ncol=1, borderpad=0.8)
 
     plt.tight_layout()
 
@@ -180,7 +311,11 @@ def plot(spike_speedup: list[float], hw_speedup: list[float]) -> None:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    spike_speedup, hw_speedup = compute_speedups()
-    print("Spike speedups:", [f"{v:.2f}" for v in spike_speedup])
-    print("HW speedups:   ", [f"{v:.2f}" for v in hw_speedup])
-    plot(spike_speedup, hw_speedup)
+    speedups = compute_speedups()
+    for variant, (spike_sp, hw_sp) in speedups.items():
+        print(f"{variant}:")
+        print(f"  Spike speedups: {[f'{v:.2f}' for v in spike_sp]}")
+        print(f"  HW speedups:    {[f'{v:.2f}' for v in hw_sp]}")
+        deltas = [(s - h) / h * 100 for s, h in zip(spike_sp, hw_sp)]
+        print(f"  Spike extra:    {[f'{d:+.2f}%' for d in deltas]}")
+    plot(speedups)

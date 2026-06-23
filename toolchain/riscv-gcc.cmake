@@ -52,7 +52,13 @@ set(CMAKE_SYSROOT "${RISCV_SYSROOT}")
 set(RISCV_TARGET_TRIPLE "riscv64-unknown-elf")
 
 # ── Aggressive bare-metal compile flags ──────────────────────────────────────
-set(RISCV_MARCH "rv64gc_zbc_zbb_zbs")
+# Allow external override for ablation studies (e.g. strip zbb)
+if(DEFINED ENV{RISCV_MARCH_OVERRIDE} AND NOT "$ENV{RISCV_MARCH_OVERRIDE}" STREQUAL "")
+  set(RISCV_MARCH "$ENV{RISCV_MARCH_OVERRIDE}")
+  message(STATUS "[toolchain] RISCV_MARCH overridden via env: ${RISCV_MARCH}")
+else()
+  set(RISCV_MARCH "rv64gc_zbc_zbb_zbs")
+endif()
 set(RISCV_MABI  "lp64d")
 set(RISCV_OPT_LEVEL "-O3" CACHE STRING "Optimization flag for GCC (e.g. -O2, -O3, -Os)")
 
@@ -66,6 +72,7 @@ set(RISCV_COMMON_FLAGS
   "-mcmodel=medany"
   "${RISCV_OPT_LEVEL}"
   "-g"
+  "-gdwarf-4"
   "-fno-lto"
   "-mno-relax"
   "-ffreestanding"
@@ -81,6 +88,22 @@ set(CMAKE_CXX_FLAGS_INIT "${RISCV_FLAGS_STR} -fno-exceptions -fno-rtti")
 set(CMAKE_ASM_FLAGS_INIT "-march=${RISCV_MARCH} -mabi=${RISCV_MABI}")
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,--gc-sections -nostartfiles -nostdlib")
+
+# ── Force-append flags (survive CMake compiler detection passes) ──────────────
+# GCC cross-detection is more reliable than Clang's, but force-appending ensures
+# the critical ISA/ABI flags are never dropped in edge cases (e.g. CMake
+# re-testing the compiler with its own default flags).
+string(APPEND CMAKE_C_FLAGS " -march=${RISCV_MARCH} -mabi=${RISCV_MABI} -mcmodel=medany ${RISCV_OPT_LEVEL} -g -gdwarf-4 -ffreestanding -fno-lto -mno-relax -fno-tree-vectorize")
+string(APPEND CMAKE_CXX_FLAGS " -march=${RISCV_MARCH} -mabi=${RISCV_MABI} -mcmodel=medany ${RISCV_OPT_LEVEL} -g -gdwarf-4 -ffreestanding -fno-lto -mno-relax -fno-tree-vectorize -fno-exceptions -fno-rtti")
+string(APPEND CMAKE_ASM_FLAGS " -march=${RISCV_MARCH} -mabi=${RISCV_MABI}")
+
+# Explicit linker flags for bare-metal sysroot and libraries.
+string(APPEND CMAKE_EXE_LINKER_FLAGS
+  " -Wl,--gc-sections"
+  " -nostartfiles"
+  " -nostdlib"
+  " -L${RISCV_SYSROOT}/lib"
+)
 
 # ── Find root path for libraries ──────────────────────────────────────────────
 set(CMAKE_FIND_ROOT_PATH "${RISCV_SYSROOT}")
