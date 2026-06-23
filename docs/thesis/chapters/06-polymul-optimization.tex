@@ -458,11 +458,13 @@ overhead σε βάρος αυξημένου \code{.text} footprint. Η ποσο�
 
 Στον leaf, η εξειδίκευση \code{clmul\_leaf\_n8} καλύπτει την περίπτωση
 μεγέθους $n=8$ — μειοψηφία των φύλλων στο threshold $T=16$ (37 από τα
-243), ενώ τα κυρίαρχα φύλλα μεγέθους $n=9$ (206 από τα 243) εξυπηρετούνται
-από τον generic \code{clmul\_leaf}. Η συνάρτηση αυτή αποτελεί
+243 στο HQC-128). Η συνάρτηση αυτή αποτελεί
 πλήρως unrolled $8 \times 8$ schoolbook product — \num{64} διαδοχικές
 κλήσεις \code{clmul64} χωρίς κανένα branch, με ενσωματωμένη
-assign-on-first-write πειθαρχία. Μία ablation study επιβεβαίωσε ότι
+assign-on-first-write πειθαρχία. Αντίστοιχα, η \code{clmul\_leaf\_n9}
+(\cref{ssec:rvv-leaf-n9-hybrid}) καλύπτει τα κυρίαρχα φύλλα μεγέθους
+$n=9$ (206 από τα 243) — πλήρως ξεδιπλωμένο $9 \times 9$ product με
+\num{81} κλήσεις \code{clmul64}. Μία ablation study επιβεβαίωσε ότι
 η εξειδίκευση $n=4$ αποτελούσε dead code για το δέντρο HQC-128 —
 κανένα leaf call δεν παράγει $n=4$ στο threshold $T=16$ — και
 αφαιρέθηκε μαζί με τον αντίστοιχο dispatch arm.
@@ -796,14 +798,223 @@ $\lceil 277/32 \rceil = 9$ iterations αντί \num{277} scalar iterations.
 $<\pct{1}$ του συνολικού polymul \instret), αλλά εξαλείφει τον τελευταίο
 scalar bottleneck στο data path μετά τον Karatsuba tree.
 
+\subsection{Εξειδίκευση Leaf $n=9$ και Υβριδική Scalar/Vector Αναδρομή}
+\label{ssec:rvv-leaf-n9-hybrid}
+
+Τα αποτελέσματα profiling σε πραγματικό hardware (SpacemiT K1 X60) αποκάλυψαν
+δύο μικροαρχιτεκτονικά bottlenecks στο Tier~2 που δεν εντοπίζονται μέσω
+instruction-accurate εξομοίωσης (Spike). Η ενότητα αυτή παρουσιάζει δύο
+συμπληρωματικές βελτιστοποιήσεις που αντιμετωπίζουν τα ευρήματα: (α)~μία
+εξειδικευμένη πλήρως ξεδιπλωμένη συνάρτηση leaf για $n=9$, και (β)~μία
+υβριδική στρατηγική αναδρομής που χρησιμοποιεί scalar βρόχους στα κατώτερα
+επίπεδα του δέντρου αντί RVV intrinsics.
+
+\paragraph{Εξειδίκευση \code{clmul\_leaf\_n9}.}
+Στο δέντρο αναδρομής HQC-128 ($N=277$, threshold $T=16$), η αναδρομή
+τερματίζει στα μεγέθη $n \in \{8, 9\}$. Η κατανομή leaf calls είναι
+σαφώς ασύμμετρη: \num{206} από τα \num{243} φύλλα καλούνται με $n=9$
+(dominant path) και μόνο \num{37} με $n=8$. Ενώ η υπάρχουσα
+\code{clmul\_leaf\_n8} παρέχει πλήρως ξεδιπλωμένη εκτέλεση χωρίς
+branches για $n=8$, ο dominant $n=9$ path εξυπηρετούνταν από τον generic
+\code{clmul\_leaf} — ο οποίος χρησιμοποιεί 4-way unrolled βρόχο με loop
+overhead (branch prediction, $j$-comparisons, tail handling).
+
+Η νέα \code{clmul\_leaf\_n9} εξαλείφει αυτό το overhead μέσω πλήρους
+ξεδιπλώματος του $9 \times 9$ schoolbook product — \num{81} διαδοχικές
+κλήσεις \code{clmul64} χωρίς κανένα branch. Η δομή ακολουθεί την ίδια
+assign-on-first-write πειθαρχία με τη \code{clmul\_leaf\_n8}:
+%
+\begin{itemize}
+  \item Η σειρά $i=0$ αρχικοποιεί τις θέσεις $r[0 \ldots 9]$ μέσω
+    init pair (j=0,1), τρία loop pairs (j=2..7) και ένα odd-tail (j=8).
+  \item Κάθε σειρά $i \geq 1$ εισάγει μία νέα θέση $r[i+9]$ ως
+    fresh assign στο odd-tail, ενώ οι υπόλοιπες εγγραφές είναι
+    XOR-accumulations σε ήδη αρχικοποιημένες θέσεις.
+\end{itemize}
+%
+Η αλλαγή $n=9$ σε σχέση με $n=8$ εισάγει μία δομική διαφοροποίηση: η
+περιττή τιμή $n=9$ δεν επιτρέπει ομοιόμορφη ζεύγη σε ολόκληρο τον
+εξωτερικό βρόχο — κάθε σειρά τερματίζει με ένα μεμονωμένο odd-tail element
+(j=8) αντί pair. Η \code{clmul\_leaf\_n9} χειρίζεται αυτό μέσω ρητής
+εκπομπής μονού \code{clmul64} στο τέλος κάθε σειράς.
+
+Ο AP-2 generator αναγνωρίζει τώρα τρεις leaf dispatches:
+%
+\begin{itemize}
+  \item $n = 8$: \code{clmul\_leaf\_n8} (πλήρως ξεδιπλωμένο $8 \times 8$),
+  \item $n = 9$: \code{clmul\_leaf\_n9} (πλήρως ξεδιπλωμένο $9 \times 9$),
+  \item $n \in [10, 16]$: generic \code{clmul\_leaf} (4-way unrolled loop).
+\end{itemize}
+%
+Η εξειδίκευση αυτή καλύπτει πλέον το \pct{100} των leaf calls στο δέντρο
+HQC-128 μέσω branch-free κώδικα, εξαλείφοντας \num{206} branch
+misprediction opportunities ανά \code{vect\_mul} invocation.
+
+\paragraph{Υβριδική αναδρομή: scalar βρόχοι στα κατώτερα επίπεδα.}
+Στα κατώτερα δύο επίπεδα αναδρομής, οι κόμβοι \code{kmul\_17} και
+\code{kmul\_18} καλούνται \num{57} και \num{24} φορές αντίστοιχα
+(HQC-128). Σε αυτά τα μεγέθη ($n_0=9$, $n_1=8$ ή $n_0=n_1=9$), οι RVV
+strip-mining βρόχοι εκτελούν \num{1}–\num{2} iterations μόνο (σε
+\VLEN=\num{256}, $\VLMAX_\text{m2}=8$ elements — ένα $n_0=9$ XOR loop
+χρειάζεται $\lceil 9/8 \rceil = 2$ iterations). Για βρόχους τόσο μικρής
+διάρκειας, η \defterm{ποινή μετάβασης scalar↔vector} (scalar-to-vector
+pipeline transition penalty) ακυρώνει το data-parallel κέρδος.
+
+Η ποινή μετάβασης οφείλεται σε δύο μηχανισμούς:
+%
+\begin{enumerate}
+  \item Η εντολή \insn{vsetvl} εισάγει \num{1}–\num{2} κύκλους pipeline
+    stall για ενεργοποίηση της \gls{vpu} μετά scalar φάση.
+  \item Η εναλλαγή μεταξύ scalar stores και vector loads στον ίδιο
+    buffer απαιτεί store-buffer drain — ο K1 X60 δεν εκτελεί
+    store-to-load forwarding μεταξύ scalar/vector paths.
+\end{enumerate}
+%
+Σε κάθε κόμβο κατώτερου επιπέδου εκτελούνται τρεις τέτοιες μεταβάσεις:
+(1)~ta/tb XOR preparation, (2)~overlap-save copy, (3)~combine XOR.
+Στο δέντρο HQC-128, αυτό αθροίζει $81 \times 3 = 243$ μεταβάσεις
+scalar↔vector — κάθε μία με εμπειρικά μετρημένη ποινή $\sim\num{10}$
+κύκλων (backend stall attribution μέσω PMU counters), δηλαδή
+$\sim\num{2400}$ κύκλοι transition overhead.
+
+Η \defterm{υβριδική αναδρομή} εισάγει ένα \code{RVV\_HYBRID\_THRESHOLD}
+$=18$: κόμβοι με $n \leq 18$ χρησιμοποιούν plain scalar C loops για
+τα recomposition steps (ta/tb XOR, overlap-save, combine XOR), ενώ
+κόμβοι με $n > 18$ διατηρούν τους inline RVV intrinsics. Το threshold
+$=18$ εξασφαλίζει ότι οι \code{kmul\_17} και \code{kmul\_18} —
+αποκλειστικά αυτοί — εκτελούν scalar recomposition, ενώ ο
+\code{kmul\_34} ($n_0=17$, RVV loop: $\lceil 17/8 \rceil = 3$
+iterations) παραμένει σε RVV path.
+
+Η σχεδιαστική απόφαση τεκμηριώνεται μέσω ανάλυσης crossover point:
+σε $n=17$ ο scalar loop εκτελεί \num{17} iterations (17 load-XOR-store
+τριάδες ≈ $3 \times 17 = 51$ εντολές), ενώ ο RVV loop εκτελεί
+\num{3} iterations αλλά με vsetvl + 4 vector loads + 3 vxor + 1 store
+ανά iteration (≈ $3 \times 9 = 27$ εντολές, πλέον transition penalty).
+Σε instruction-accurate μοντέλο (Spike), η RVV version υπερτερεί. Σε
+πραγματικό hardware όμως, η transition penalty ($\sim\num{10}$ κύκλοι ×
+3 transitions = 30 κύκλοι) ανατρέπει το ισοζύγιο υπέρ του scalar path.
+
+\paragraph{Αποτελέσματα σε πραγματικό hardware.}
+Η συνδυασμένη εφαρμογή των δύο βελτιστοποιήσεων (clmul\_leaf\_n9 +
+υβριδική αναδρομή) μετρήθηκε σε πραγματικό hardware (SpacemiT K1 X60)
+μέσω PMU counters. Ο \cref{tab:rvv-hybrid-hw-results} συνοψίζει τα
+αποτελέσματα ανά security level.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Αποτελέσματα υβριδικής αναδρομής + \code{clmul\_leaf\_n9} σε
+    πραγματικό hardware (BPI-F3, SpacemiT K1 X60). Median κύκλοι
+    \code{vect\_mul} πριν και μετά τη βελτιστοποίηση. Η βελτίωση
+    οφείλεται αποκλειστικά σε μείωση pipeline stalls — το \instret
+    (Spike) μεταβάλλεται ελάχιστα.}
+  \label{tab:rvv-hybrid-hw-results}
+  \small
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Level} & \textbf{Πριν (cycles)} & \textbf{Μετά (cycles)}
+      & \textbf{$\Delta$} & \textbf{Speedup} \\
+    \midrule
+    HQC-128 & \cycles{141716}  & \cycles{125921}  & $-\cycles{15795}$ & \speedup{1.126} \\
+    HQC-192 & \cycles{420347}  & \cycles{364036}  & $-\cycles{56311}$ & \speedup{1.155} \\
+    HQC-256 & \cycles{849017}  & \cycles{847899}  & $-\cycles{1118}$  & \speedup{1.001} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Τα αποτελέσματα HQC-128 και HQC-192 είναι ουσιαστικά: \pct{11.1} και
+\pct{13.4} μείωση κύκλων αντίστοιχα. Το HQC-256 παρουσιάζει αμελητέα
+αλλαγή, καθώς το δέντρο αναδρομής του παράγει κατώτερα φύλλα μεγέθους
+$n \in \{14, 15\}$ (κόμβοι \code{kmul\_28}, \code{kmul\_29}) που δεν
+ωφελούνται από τη \code{clmul\_leaf\_n9} — εξυπηρετούνται από τον generic
+\code{clmul\_leaf} loop.
+
+Ο \cref{tab:rvv-hybrid-pmu} παρουσιάζει τη λεπτομερή PMU σύγκριση
+για HQC-128, αποκαλύπτοντας τους μηχανισμούς βελτίωσης.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Λεπτομερής PMU σύγκριση \code{vect\_mul} HQC-128 πριν και μετά
+    τις βελτιστοποιήσεις (median, \num{100} iterations, BPI-F3).}
+  \label{tab:rvv-hybrid-pmu}
+  \small
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Μετρική} & \textbf{Πριν} & \textbf{Μετά} & \textbf{$\Delta$} \\
+    \midrule
+    Median cycles       & \cycles{141716} & \cycles{125921} & $-\pct{11.1}$ \\
+    Instructions (\instret) & \cycles{149059} & \cycles{145071} & $-\pct{2.7}$ \\
+    IPC                 & 1.05 & 1.15 & $+\pct{9.5}$ \\
+    Backend stalls      & \cycles{36294} & \cycles{26021} & $-\pct{28.3}$ \\
+    VPU stalls          & \cycles{6469} & \cycles{5768} & $-\pct{10.8}$ \\
+    Vector instructions & \cycles{7038} & \cycles{3872} & $-\pct{45.0}$ \\
+    Branch mispredictions & 74 & 55 & $-\pct{25.7}$ \\
+    L1D miss rate       & \pct{0.13} & \pct{0.15} & αμελητέα \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Οι κρίσιμες παρατηρήσεις είναι τρεις. Πρώτον, το IPC βελτιώθηκε από
+$1.05$ σε $1.15$ — δείκτης σημαντικά καλύτερης αξιοποίησης του
+dual-issue pipeline. Δεύτερον, οι backend stalls μειώθηκαν κατά
+\pct{28.3}, επιβεβαιώνοντας ότι η εξάλειψη scalar↔vector transitions
+αφαιρεί store-buffer drain stalls. Τρίτον, οι vector instructions
+μειώθηκαν κατά \pct{45} — αντικατοπτρίζοντας τη μετάβαση από RVV loops σε
+scalar loops στα κατώτερα επίπεδα, χωρίς αντίστοιχη αύξηση στο
+συνολικό \instret (μόλις $-\pct{2.7}$). Η μείωση branch mispredictions
+κατά \pct{25.7} οφείλεται στην εξάλειψη του loop control overhead
+από τη \code{clmul\_leaf\_n9}.
+
+\paragraph{Σύγκριση με \code{scalar\_zb}.}
+Η βελτιστοποιημένη \code{vector\_rvv} υπερτερεί πλέον σαφώς
+του \code{scalar\_zb} (Tier~1) σε πραγματικό hardware:
+
+\begin{table}[htbp]
+  \centering
+  \caption{Σύγκριση \code{scalar\_zb} και βελτιστοποιημένης
+    \code{vector\_rvv} σε πραγματικό hardware (BPI-F3, median cycles).}
+  \label{tab:rvv-vs-scalarzb}
+  \small
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Level} & \textbf{\code{scalar\_zb}} & \textbf{\code{vector\_rvv} (opt)}
+      & \textbf{RVV speedup} \\
+    \midrule
+    HQC-128 & \cycles{148903} & \cycles{125921} & \speedup{1.183} \\
+    HQC-192 & \cycles{448455} & \cycles{364036} & \speedup{1.232} \\
+    HQC-256 & \cycles{927364} & \cycles{847899} & \speedup{1.094} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Το πλεονέκτημα του Tier~2 έναντι του Tier~1 εκτείνεται πλέον σε
+\pct{9}–\pct{19} σε πραγματικούς κύκλους — αυξημένο σημαντικά σε σχέση
+με το προηγούμενο \pct{5}–\pct{9} πριν τις βελτιστοποιήσεις.
+Η υβριδική αναδρομή εξαλείφει τη μικροαρχιτεκτονική ποινή που
+περιόριζε το πρακτικό κέρδος της διανυσματοποίησης σε μικρά μεγέθη,
+αποδεικνύοντας ότι σε real silicon η γνώση pipeline behavior
+αποδίδει μεγαλύτερη βελτίωση από ό,τι η μείωση αριθμού εντολών.
+
+\paragraph{Αρχιτεκτονική σημασία.}
+Η αναντιστοιχία μεταξύ Spike (instruction-count) και hardware
+(cycles) αποτελεί κεντρικό εύρημα: οι βελτιστοποιήσεις μειώνουν
+το \instret μόλις κατά \pct{2.7}, αλλά τους κύκλους κατά \pct{11.1}.
+Η διαφορά αυτή αποδίδεται αποκλειστικά σε μικροαρχιτεκτονικά φαινόμενα
+(pipeline transitions, backend stalls) που δεν μοντελοποιούνται στο
+instruction-accurate μοντέλο. Η παρατήρηση τεκμηριώνει τη σημασία
+hardware validation ως συμπληρωματικής μετρικής — η εξομοίωση αποτελεί
+αναγκαία αλλά μη επαρκή μεθοδολογία αξιολόγησης.
+
 \subsection{Αρχιτεκτονική Παρατήρηση: Ο Scalar Leaf ως Binding Constraint}
 \label{ssec:rvv-binding-constraint}
 
-Η direct-write discipline με overlap-save στενεύει σημαντικά το χάσμα
-μεταξύ Tier~2 και Tier~1, εξαλείφοντας τους δύο κυρίαρχους copy loops
-που αποτελούσαν το μεγαλύτερο μέρος του non-leaf overhead στο Track~B.
+Η direct-write discipline με overlap-save και η υβριδική scalar αναδρομή
+στενεύουν σημαντικά το χάσμα μεταξύ Tier~2 και Tier~1, εξαλείφοντας
+τόσο τους δύο κυρίαρχους copy loops όσο και τη μικροαρχιτεκτονική
+ποινή pipeline transitions στα κατώτερα επίπεδα.
 Η συνολική μείωση \instret ανέρχεται σε \pct{28.8} — από \num{221030}
-(Tier~1) σε \num{157473} (Tier~2) για HQC-128.
+(Tier~1) σε \num{157473} (Tier~2) για HQC-128 — ενώ σε πραγματικό
+hardware η μείωση κύκλων φτάνει \pct{15.4}.
 
 Ωστόσο, ο θεμελιώδης αρχιτεκτονικός περιορισμός παραμένει: ο scalar
 \clmul/\clmulh leaf αποτελεί το \defterm{binding constraint}. Οι
