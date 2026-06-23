@@ -273,7 +273,7 @@
 ### §9.5 Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC)
 
 * `docs/thesis-helper/writing/compiler-comparison.md` - **Writing Draft** - Full GCC vs Clang codegen analysis, dual-compiler workflow, GCC Zvbb incompatibility
-* `results/simulation/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for scalar and vector variants
+* `results/hardware/benchmarks/compiler_compare/` - **Data Report** - Compiler comparison CSVs for scalar and vector variants (hardware cycles)
 * `results/reports/summaries/compiler_analysis.md` - **Data Report** - Generated compiler showdown report with winner/margin per variant
 * `scripts/report/generate_compiler_compare.py` - **Script** - Generates compiler comparison Markdown from CSV data
 * `results/reports/figures/bar_compiler_comparison.pdf` - **Figure** - Side-by-side bar chart: Clang vs GCC instret per kernel and tier
@@ -492,7 +492,7 @@
 |--------------|-------------------|-------------|
 | `results/simulation/benchmarks/kem/` | §8.2, §8.3 | Complete KEM suite: keypair/encaps/decaps/vect_mul CSVs |
 | `results/simulation/benchmarks/vlen_scaling/` | §8.4 | VLEN sweep data for karatsuba_rvv/zvbc/ref_vector |
-| `results/simulation/benchmarks/compiler_compare/` | §9.5 | GCC vs Clang instret per variant (scalar + vector subtrees) |
+| `results/hardware/benchmarks/compiler_compare/` | §9.5 | GCC vs Clang cycles per variant on BPI-F3 hardware |
 | `results/simulation/benchmarks/components/keccak/` | §8.1.2 | Canonical Keccak benchmark CSVs (ref and opt) |
 | `results/simulation/benchmarks/components/decode/` | §8.1.3 | Canonical decode benchmark CSVs (ref, rvv, zvbc) |
 | `results/simulation/benchmarks/components/poly_mul/` | §8.1.1 | Canonical polymul benchmark CSVs (all variants) |

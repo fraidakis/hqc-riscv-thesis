@@ -9,7 +9,7 @@ This is required by the lab supervisor for audit and reproducibility.
 |------|---------|---------|--------------|--------|
 | 2026-05-28 | `linux-tools-6.6.63` | 6.6.63-2.2.7.3 | fraidakisg | Provides `perf` for hardware performance counter profiling (`perf_event_open` userspace cycles) |
 | 2026-05-28 | `linux-tools-common` | 6.6.63-2.2.7.3 | (auto-dep) | Pulled in automatically as dependency of `linux-tools-6.6.63` |
-| 2026-06-22 | `clang-20` | 1:20.1.2-0ubuntu1 | fraidakisg | Native Clang compiler on BPI-F3 for hardware compiler comparison benchmarks (`run_compiler_compare.sh --platform hw`) |
+| 2026-06-22 | `clang-20` | 1:20.1.2-0ubuntu1 | fraidakisg | Native Clang compiler on BPI-F3 for hardware compiler comparison benchmarks (`run_compiler_compare.sh --variant <name>`) |
 | 2026-06-22 | `clang-tools-20` | 1:20.1.2-0ubuntu1 | (auto-dep) | Pulled in automatically as dependency of `clang-20` |
 | 2026-06-22 | `libclang1-20` | 1:20.1.2-0ubuntu1 | (auto-dep) | Pulled in automatically as dependency of `clang-20` |
 | 2026-06-22 | `libclang-cpp20` | 1:20.1.2-0ubuntu1 | (auto-dep) | Pulled in automatically as dependency of `clang-20` |
