@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 # scripts/bench/run_compiler_compare.sh
-# Re-run compiler comparison (Clang vs GCC, -O2/-O3/-Os) for one variant.
-#
-# Supports both simulation (Spike ISS) and hardware (BPI-F3) platforms
-# via the --platform flag.
+# Re-run compiler comparison (Clang vs GCC, -O2/-O3) for one variant on BPI-F3 hardware.
 #
 # Usage:
-#   run_compiler_compare.sh --platform sim --variant vector_zvk [--level 128|192|256]
-#   run_compiler_compare.sh --platform hw --variant scalar_zb --quality publish
-#   run_compiler_compare.sh --platform hw --remote bpi-f3 --variant vector_rvv
+#   run_compiler_compare.sh --variant scalar_zb --quality publish
+#   run_compiler_compare.sh --remote bpi-f3 --variant vector_rvv
+#   run_compiler_compare.sh --local --variant scalar_ref --level 128
 #
 # Output:
-#   sim → results/simulation/benchmarks/compiler_compare/sim_compiler_compare_<slug>_latest.csv
-#   hw  → results/hardware/benchmarks/compiler_compare/hw_compiler_compare_<slug>_latest.csv
+#   results/hardware/benchmarks/compiler_compare/hw_compiler_compare_<slug>_latest.csv
 #
 # GCC is automatically SKIP-guarded for vector_zvk (Zvbb incompatible).
 
@@ -26,33 +22,29 @@ source "${SCRIPT_DIR}/lib_bench.sh"
 usage() {
     cat <<'EOF'
 Usage:
-  run_compiler_compare.sh --platform sim|hw --variant <variant> [OPTIONS]
+  run_compiler_compare.sh --variant <variant> [OPTIONS]
 
 Required:
-  --platform sim|hw       Execution platform (sim=Spike ISS, hw=BPI-F3 hardware)
   --variant  <variant>    Variant name (scalar_ref, scalar_zb, vector_ref, vector_rvv, vector_zvk)
 
 Options:
   --level 128|192|256     Security level (default: all three)
-  --quality dev|publish   Iteration quality (hw only, default: dev)
-  --remote HOST           Deploy and run on remote HOST via SSH (hw only)
-  --local                 Run directly on this machine (hw only)
+  --quality dev|publish   Iteration quality (default: dev)
+  --remote HOST           Deploy and run on remote HOST via SSH
+  --local                 Run directly on this machine
   --keccak IMPL           Keccak implementation override
   --decode IMPL           Decode implementation override
   -h, --help              Show this help and exit
 
-Platform-specific notes:
-  sim: Uses Spike ISS with deterministic instret counting. Compares cross-compiled
-       Clang vs GCC via CMake toolchain files.
-  hw:  Uses perf_event_open cycle counting on BPI-F3 hardware. Compares native
-       GCC vs Clang (CC= override in Makefile.hw).
-       --quality publish uses N=10000 iterations.
-       --quality dev uses N=100 iterations (default).
+Notes:
+  Uses perf_event_open cycle counting on BPI-F3 hardware. Compares native
+  GCC vs Clang (CC= override in Makefile.hw).
+  --quality publish uses N=10000 iterations.
+  --quality dev uses N=100 iterations (default).
 EOF
 }
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
-PLATFORM=""
 MUL_VARIANT=""
 LEVEL=""
 QUALITY="dev"
@@ -65,7 +57,6 @@ bench_parse_track_args "$@"   # sets MUL_VARIANT KECCAK_IMPL DECODE_IMPL
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --platform)   PLATFORM="$2"; shift 2 ;;
         --variant|--mul) shift 2 ;;
         --keccak|--decode) shift 2 ;;
         --level)      LEVEL="$2"; shift 2 ;;
@@ -78,16 +69,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ── Validation ───────────────────────────────────────────────────────────────
-# Default platform to sim for backward compatibility
-if [[ -z "$PLATFORM" ]]; then
-    PLATFORM="sim"
-fi
-
-if [[ "$PLATFORM" != "sim" && "$PLATFORM" != "hw" ]]; then
-    echo "ERROR: --platform must be 'sim' or 'hw', got: '$PLATFORM'" >&2
-    usage; exit 2
-fi
-
 if [[ -z "$MUL_VARIANT" ]]; then
     echo "ERROR: --variant is required" >&2
     usage; exit 2
@@ -123,170 +104,6 @@ variant_csv_name() {
 VARIANT_CSV_NAME="$(variant_csv_name "$MUL_VARIANT")"
 VARIANT_SLUG="$(bench_variant_slug "$MUL_VARIANT")"
 
-# ── Print configuration ──────────────────────────────────────────────────────
-echo ""
-echo "╔══════════════════════════════════════════════════════════╗"
-printf "║  %-54s  ║\n" "run_compiler_compare.sh"
-printf "║  %-54s  ║\n" "Platform: ${PLATFORM}  Variant: ${MUL_VARIANT}"
-printf "║  %-54s  ║\n" "Keccak: ${KECCAK_IMPL}  Decode: ${DECODE_IMPL}"
-printf "║  %-54s  ║\n" "Commit:  ${GIT_HASH}  Date: ${BENCH_TIME}"
-if [[ "$PLATFORM" == "hw" ]]; then
-    local_info=""
-    if [[ "$LOCAL_MODE" -eq 1 ]]; then local_info="Local: yes"
-    elif [[ -n "$REMOTE" ]]; then local_info="Remote: ${REMOTE}"
-    fi
-    printf "║  %-54s  ║\n" "Quality: ${QUALITY}  ${local_info}"
-fi
-echo "╚══════════════════════════════════════════════════════════╝"
-echo ""
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Platform: sim (Spike ISS)
-# ══════════════════════════════════════════════════════════════════════════════
-if [[ "$PLATFORM" == "sim" ]]; then
-
-# ── Toolchain / environment ───────────────────────────────────────────────────
-RISCV="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
-SPIKE="${RISCV}/bin/spike"
-ISA="rv64gcv_zbc_zbb_zba_zbs_zvbc_zvbb_zvl256b"
-SPIKE_TIMEOUT_SEC="${SPIKE_TIMEOUT_SEC:-120}"
-
-if [[ ! -x "$SPIKE" ]]; then
-    echo "ERROR: Spike not found at $SPIKE" >&2
-    echo "       Source toolchain/toolchain.env or set RISCV" >&2
-    exit 2
-fi
-
-# ── Output file ───────────────────────────────────────────────────────────────
-OUT_DIR="${REPO_ROOT}/results/simulation/benchmarks/compiler_compare"
-mkdir -p "$OUT_DIR"
-STAMP="$(date +'%Y-%m-%d_%H-%M')"
-CSV_OUT="${OUT_DIR}/sim_compiler_compare_${VARIANT_SLUG}_${STAMP}.csv"
-CSV_LATEST="${OUT_DIR}/sim_compiler_compare_${VARIANT_SLUG}_latest.csv"
-
-{
-    echo "# date: ${BENCH_TIME}"
-    echo "# commit: ${GIT_HASH}"
-    echo "compiler,opt,level,variant,status,instructions,text_bytes,elf,error"
-} > "$CSV_OUT"
-
-# ── Single build+run (simulation) ────────────────────────────────────────────
-run_one_sim() {
-    local compiler="$1" opt="$2" level="$3"
-    local toolchain elf target run_out run_err instret text_bytes
-
-    case "$compiler" in
-        clang) toolchain="toolchain/riscv-clang.cmake" ;;
-        gcc)   toolchain="toolchain/riscv-gcc.cmake" ;;
-        *) echo "ERROR: unknown compiler $compiler" >&2; return 1 ;;
-    esac
-
-    # GCC is incompatible with the Zvbb x2 SoA Keccak backend.
-    if [[ "$compiler" == "gcc" && "$KECCAK_IMPL" == "zvbb_x2_soa" ]]; then
-        local build_placeholder="${REPO_ROOT}/build/spike/bench_k${KECCAK_IMPL}_d${DECODE_IMPL}_${compiler}_${opt}"
-        echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},SKIP,,,${build_placeholder}/bench_hqc${level}_${VARIANT_CSV_NAME}.elf,gcc_zvbb_incompatible" >> "$CSV_OUT"
-        echo "SKIP (gcc_zvbb_incompatible)"
-        return 0
-    fi
-
-    local build_dir="${REPO_ROOT}/build/spike/bench_k${KECCAK_IMPL}_d${DECODE_IMPL}_${compiler}_${opt}"
-    mkdir -p "$build_dir"
-
-    # Configure (always fresh for opt-level isolation)
-    if ! cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE="${REPO_ROOT}/${toolchain}" \
-        -DRISCV="${RISCV}" \
-        -DRISCV_OPT_LEVEL="-${opt}" \
-        -DHQC_SIM=spike \
-        -DHQC_KECCAK_IMPL="${KECCAK_IMPL}" \
-        -DHQC_DECODE_IMPL="${DECODE_IMPL}" \
-        -DBENCH_N_ITER=1 \
-        >/dev/null 2>&1; then
-        echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},FAIL,,,${build_dir}/bench_hqc${level}_${VARIANT_CSV_NAME}.elf,cmake_configure_failed" >> "$CSV_OUT"
-        echo "FAIL (cmake configure)"
-        return 1
-    fi
-
-    target="bench_hqc${level}_${MUL_VARIANT}"
-    if ! cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1; then
-        echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},FAIL,,,${build_dir}/${target}.elf,build_failed" >> "$CSV_OUT"
-        echo "FAIL (build)"
-        return 1
-    fi
-
-    elf="${build_dir}/${target}.elf"
-    if [[ ! -f "$elf" ]]; then
-        echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},FAIL,,,${elf},elf_missing" >> "$CSV_OUT"
-        echo "FAIL (elf missing)"
-        return 1
-    fi
-
-    run_out="$(mktemp)"
-    run_err="$(mktemp)"
-
-    local rc=0
-    if command -v timeout >/dev/null 2>&1; then
-        timeout "${SPIKE_TIMEOUT_SEC}s" "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2>"$run_err" || rc=$?
-    else
-        "$SPIKE" --isa="$ISA" "$elf" > "$run_out" 2>"$run_err" || rc=$?
-    fi
-
-    if [[ "$rc" -eq 124 ]]; then
-        echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},FAIL,,,${elf},spike_run_timeout" >> "$CSV_OUT"
-        rm -f "$run_out" "$run_err"
-        echo "FAIL (spike timeout)"
-        return 1
-    elif [[ "$rc" -ne 0 ]]; then
-        echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},FAIL,,,${elf},spike_run_failed" >> "$CSV_OUT"
-        rm -f "$run_out" "$run_err"
-        echo "FAIL (spike error rc=$rc)"
-        return 1
-    fi
-
-    # Sum keypair + encaps + decaps instret (column 7 in Spike CSV output)
-    instret="$(awk -F',' '($1=="keypair" || $1=="encaps" || $1=="decaps") {sum += $7} END {print sum + 0}' "$run_out")"
-
-    local size_tool="${RISCV}/bin/llvm-size"
-    if [[ ! -x "$size_tool" ]]; then
-        size_tool="${RISCV}/bin/riscv64-unknown-elf-size"
-    fi
-    text_bytes="$("$size_tool" "$elf" 2>/dev/null | awk 'NR==2{print $1}')"
-    text_bytes="${text_bytes:-0}"
-
-    echo "${compiler},-${opt},${level},${VARIANT_CSV_NAME},OK,${instret},${text_bytes},${elf}," >> "$CSV_OUT"
-    rm -f "$run_out" "$run_err"
-    printf "%s instructions" "$instret"
-}
-
-# ── Main loop (sim) ──────────────────────────────────────────────────────────
-for level in "${LEVELS[@]}"; do
-    echo "── Level HQC-${level} ──────────────────────────────────────────────"
-    for compiler in clang gcc; do
-        for opt in O2 O3; do
-            printf "   %-6s %-3s  ⋯  " "$compiler" "-$opt"
-            run_one_sim "$compiler" "$opt" "$level" || true
-            echo ""
-        done
-    done
-done
-
-# Atomically update the _latest symlink/copy
-bench_refresh_tracked_csv "$CSV_OUT" "$CSV_LATEST" || true
-
-echo ""
-echo "✔  Written: ${CSV_LATEST}"
-echo ""
-
-# Regenerate the compiler analysis summary
-echo "Regenerating compiler_analysis.md ..."
-python3 "${REPO_ROOT}/scripts/report/generate_compiler_compare.py"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Platform: hw (BPI-F3 hardware)
-# ══════════════════════════════════════════════════════════════════════════════
-elif [[ "$PLATFORM" == "hw" ]]; then
-
 # ── Load credentials ─────────────────────────────────────────────────────────
 CREDS_FILE="${REPO_ROOT}/docs/hardware/BPI-F3/bpi-f3-credentials.env"
 BPI_PASS=""
@@ -309,7 +126,7 @@ fi
 # ── Validate execution target ────────────────────────────────────────────────
 if [[ "$LOCAL_MODE" -eq 0 && -z "$REMOTE" ]]; then
     echo "ERROR: Not on riscv64 — specify --remote HOST or --local" >&2
-    echo "       The hw platform requires a RISC-V target." >&2
+    echo "       This script requires a RISC-V target." >&2
     exit 1
 fi
 
@@ -371,6 +188,22 @@ set_governor() {
     run_cmd "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true"
 }
 
+# ── Print configuration ──────────────────────────────────────────────────────
+local_info=""
+if [[ "$LOCAL_MODE" -eq 1 ]]; then local_info="Local: yes"
+elif [[ -n "$REMOTE" ]]; then local_info="Remote: ${REMOTE}"
+fi
+
+echo ""
+echo "╔══════════════════════════════════════════════════════════╗"
+printf "║  %-54s  ║\n" "run_compiler_compare.sh (hardware)"
+printf "║  %-54s  ║\n" "Variant: ${MUL_VARIANT}"
+printf "║  %-54s  ║\n" "Keccak: ${KECCAK_IMPL}  Decode: ${DECODE_IMPL}"
+printf "║  %-54s  ║\n" "Commit:  ${GIT_HASH}  Date: ${BENCH_TIME}"
+printf "║  %-54s  ║\n" "Quality: ${QUALITY}  ${local_info}"
+echo "╚══════════════════════════════════════════════════════════╝"
+echo ""
+
 # ── Output file ───────────────────────────────────────────────────────────────
 OUT_DIR="${REPO_ROOT}/results/hardware/benchmarks/compiler_compare"
 mkdir -p "$OUT_DIR"
@@ -387,9 +220,7 @@ CSV_LATEST="${OUT_DIR}/hw_compiler_compare_${VARIANT_SLUG}_latest.csv"
     echo "compiler,opt,level,variant,status,cycles,text_bytes,binary,error"
 } > "$CSV_OUT"
 
-# ── Single build+run (hardware) ──────────────────────────────────────────────
-# Makefile.hw supports OPT=<level> (defaults to O3). We pass OPT from the
-# command line to override cleanly without touching EXTRA_CFLAGS.
+# ── Single build+run ─────────────────────────────────────────────────────────
 run_one_hw() {
     local compiler="$1" opt="$2" level="$3"
     local dir="$REPO_ROOT"
@@ -456,7 +287,7 @@ run_one_hw() {
     printf "%s cycles" "$cycles"
 }
 
-# ── Main execution (hw) ──────────────────────────────────────────────────────
+# ── Main execution ───────────────────────────────────────────────────────────
 deploy
 set_governor
 
@@ -489,5 +320,3 @@ fi
 # Regenerate the compiler analysis summary
 echo "Regenerating compiler_analysis.md ..."
 python3 "${REPO_ROOT}/scripts/report/generate_compiler_compare.py"
-
-fi

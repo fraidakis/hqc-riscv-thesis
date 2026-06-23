@@ -319,22 +319,22 @@ class DataLoader:
         return load_csv(path)
 
     def compiler_compare(self, track: str, variant: str) -> pd.DataFrame | None:
-        """Load compiler comparison CSV.
+        """Load compiler comparison CSV (hardware).
 
         The `track` parameter is accepted for API compatibility but ignored;
         the variant name encodes the execution model.
         Returns DataFrame with columns: compiler, opt, level, variant, status,
-        instructions, text_bytes, elf, error.
+        cycles, text_bytes, binary, error.
         Returns None and prints to stderr if file not found.
         """
         slug = variant_slug(variant)
         path = (
             self._root
             / "results"
-            / "simulation"
+            / "hardware"
             / "benchmarks"
             / "compiler_compare"
-            / f"sim_compiler_compare_{slug}_latest.csv"
+            / f"hw_compiler_compare_{slug}_latest.csv"
         )
         return load_csv(path)
 
@@ -997,7 +997,7 @@ def chart_compiler_comparison(loader: DataLoader, level: int) -> None:
             )
             return
 
-        # Find best Clang result (lowest instructions where status != SKIP)
+        # Find best Clang result (lowest cycles where status != SKIP)
         clang_rows = df_level[df_level["compiler"] == "clang"]
         clang_ok = clang_rows[clang_rows["status"] != "SKIP"]
         if clang_ok.empty:
@@ -1005,11 +1005,11 @@ def chart_compiler_comparison(loader: DataLoader, level: int) -> None:
             clang_values.append(None)
             clang_skip.append(True)
         else:
-            best_clang = clang_ok["instructions"].min()
+            best_clang = clang_ok["cycles"].min()
             clang_values.append(float(best_clang))
             clang_skip.append(False)
 
-        # Find best GCC result (lowest instructions where status != SKIP)
+        # Find best GCC result (lowest cycles where status != SKIP)
         gcc_rows = df_level[df_level["compiler"] == "gcc"]
         gcc_ok = gcc_rows[gcc_rows["status"] != "SKIP"]
         if gcc_ok.empty:
@@ -1017,7 +1017,7 @@ def chart_compiler_comparison(loader: DataLoader, level: int) -> None:
             gcc_values.append(None)
             gcc_skip.append(True)
         else:
-            best_gcc = gcc_ok["instructions"].min()
+            best_gcc = gcc_ok["cycles"].min()
             gcc_values.append(float(best_gcc))
             gcc_skip.append(False)
 
@@ -1113,7 +1113,7 @@ def chart_compiler_comparison(loader: DataLoader, level: int) -> None:
         )
 
     ax.set_xlabel("Variant")
-    ax.set_ylabel("Instructions (Instret)")
+    ax.set_ylabel("Cycles (Hardware)")
     ax.set_title(f"Compiler Comparison — HQC-{level} Total KEM")
     ax.set_xticks(x)
     ax.set_xticklabels(x_labels)

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Generate a compiler showdown Markdown report from compare_compilers CSV files.
+"""Generate a compiler showdown Markdown report from hardware compare_compilers CSV files.
 
-The script scans results/simulation/benchmarks/compiler_compare for CSV outputs
-matching the pattern sim_compiler_compare_*.csv and, for each (variant, level),
-picks the best Clang and best GCC run by minimum instruction count among rows
+The script scans results/hardware/benchmarks/compiler_compare for CSV outputs
+matching the pattern hw_compiler_compare_*.csv and, for each (variant, level),
+picks the best Clang and best GCC run by minimum cycle count among rows
 where status == OK. It then computes the winner and the percentage margin:
 
-    margin = ((loser_instret / winner_instret) - 1) * 100
+    margin = ((loser_cycles / winner_cycles) - 1) * 100
 """
 
 from __future__ import annotations
@@ -20,13 +20,12 @@ from hqc_bench import resolve_variant
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMPARE_ROOT = REPO_ROOT / "results" / "simulation" / "benchmarks" / "compiler_compare"
+COMPARE_ROOT = REPO_ROOT / "results" / "hardware" / "benchmarks" / "compiler_compare"
 OUT_PATH = REPO_ROOT / "results" / "reports" / "summaries" / "compiler_analysis.md"
 TARGET_COMPILERS = {"clang", "gcc"}
 VARIANT_ORDER = [
     "scalar_ref",
     "scalar_zb",
-    "vector_ref",
     "vector_rvv",
     "vector_zvk",
 ]
@@ -39,7 +38,7 @@ class BestRun:
     opt: str
     level: int
     variant: str
-    instructions: int
+    cycles: int
 
 
 def read_rows(csv_path: Path) -> list[dict[str, str]]:
@@ -54,8 +53,8 @@ def read_rows(csv_path: Path) -> list[dict[str, str]]:
 def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], set[int], int]:
     best: dict[tuple[str, int, str], BestRun] = {}
     levels_seen: set[int] = set()
-    expected_pattern = COMPARE_ROOT / "sim_compiler_compare_*.csv"
-    csv_files = sorted(COMPARE_ROOT.glob("sim_compiler_compare_*.csv"))
+    expected_pattern = COMPARE_ROOT / "hw_compiler_compare_*.csv"
+    csv_files = sorted(COMPARE_ROOT.glob("hw_compiler_compare_*.csv"))
 
     if not csv_files:
         print(
@@ -72,7 +71,7 @@ def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], set[int], int
                 level = int(row["level"])
                 variant = resolve_variant(row["variant"].strip())
                 status = row["status"].strip().upper()
-                instructions = int(row["instructions"])
+                cycles = int(row["cycles"])
             except (KeyError, TypeError, ValueError):
                 continue
 
@@ -89,7 +88,7 @@ def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], set[int], int
                 opt=opt,
                 level=level,
                 variant=variant,
-                instructions=instructions,
+                cycles=cycles,
             )
 
             current = best.get(key)
@@ -97,11 +96,11 @@ def scan_best_runs() -> tuple[dict[tuple[str, int, str], BestRun], set[int], int
                 best[key] = candidate
                 continue
 
-            if candidate.instructions < current.instructions:
+            if candidate.cycles < current.cycles:
                 best[key] = candidate
                 continue
 
-            if candidate.instructions == current.instructions and candidate.opt < current.opt:
+            if candidate.cycles == current.cycles and candidate.opt < current.opt:
                 best[key] = candidate
 
     return best, levels_seen, len(csv_files)
@@ -116,7 +115,7 @@ def fmt_int(value: int | None) -> str:
 def fmt_best(run: BestRun | None) -> str:
     if run is None:
         return "N/A"
-    return f"{run.opt} ({fmt_int(run.instructions)})"
+    return f"{run.opt} ({fmt_int(run.cycles)})"
 
 
 def pick_winner(clang: BestRun | None, gcc: BestRun | None) -> tuple[str, str]:
@@ -127,12 +126,12 @@ def pick_winner(clang: BestRun | None, gcc: BestRun | None) -> tuple[str, str]:
     if gcc is None:
         return "Clang", "N/A"
 
-    if clang.instructions < gcc.instructions:
-        margin = ((gcc.instructions / clang.instructions) - 1.0) * 100.0
+    if clang.cycles < gcc.cycles:
+        margin = ((gcc.cycles / clang.cycles) - 1.0) * 100.0
         return "Clang", f"{margin:.1f}%"
 
-    if gcc.instructions < clang.instructions:
-        margin = ((clang.instructions / gcc.instructions) - 1.0) * 100.0
+    if gcc.cycles < clang.cycles:
+        margin = ((clang.cycles / gcc.cycles) - 1.0) * 100.0
         return "GCC", f"{margin:.1f}%"
 
     return "Tie", "0.0%"
@@ -155,7 +154,7 @@ def build_markdown(
     lines.append("# Compiler Showdown Analysis")
     lines.append("")
     lines.append(
-        "Derived from compare_compilers CSVs under results/simulation/benchmarks/compiler_compare."
+        "Derived from hardware compiler compare CSVs under results/hardware/benchmarks/compiler_compare."
     )
     lines.append(f"Scanned CSV files: {scanned_files}")
     lines.append("")
@@ -165,6 +164,8 @@ def build_markdown(
     for variant, level in keys:
         clang = best.get((variant, level, "clang"))
         gcc = best.get((variant, level, "gcc"))
+        if clang is None and gcc is None:
+            continue
         winner, margin = pick_winner(clang, gcc)
         lines.append(
             f"| {variant} | {level} | {fmt_best(clang)} | {fmt_best(gcc)} | {winner} | {margin} |"

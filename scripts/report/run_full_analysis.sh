@@ -230,7 +230,7 @@ generate_report() {
     local trace_lines_csv="${REPO_ROOT}/results/simulation/profiling/traces/${new_variant_dir}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_lines_latest.csv"
     local histogram_csv="${REPO_ROOT}/results/simulation/profiling/histograms/${new_variant_dir}/histogram_kem_L${REPORT_LEVEL}_${variant_slug}_latest.csv"
 
-    local compiler_csv="${REPO_ROOT}/results/simulation/benchmarks/compiler_compare/sim_compiler_compare_${variant_slug}_latest.csv"
+    local compiler_csv="${REPO_ROOT}/results/hardware/benchmarks/compiler_compare/hw_compiler_compare_${variant_slug}_latest.csv"
 
     local vlen_csv_128="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L128_${variant_slug}_latest.csv"
     local vlen_csv_192="${REPO_ROOT}/results/simulation/benchmarks/vlen_scaling/${new_variant_dir}/vlen_sweep_L192_${variant_slug}_latest.csv"
@@ -359,7 +359,7 @@ generate_report() {
         rm -f "$tmp_histogram"
     fi
 
-    # compiler compare CSV — drop elf path (col 8) and error message (col 9)
+    # compiler compare CSV — drop binary path (col 8) and error message (col 9)
     if [[ -f "$compiler_csv" ]]; then
         awk -F',' '
             BEGIN { OFS=","; hdr=0 }
@@ -618,6 +618,46 @@ run_variant_analysis() {
     fi
 }
 
+generate_summary_reports() {
+    echo ""
+    echo "------------------------------------------------------------"
+    echo "         REGENERATING SUMMARY REPORTS"
+    echo "------------------------------------------------------------"
+    echo ""
+
+    local total=4
+    local step=0
+
+    step=$((step + 1))
+    run_step_with_timer $step $total "Generate simulation speedups report" \
+        python3 ./scripts/report/generate_speedups.py --platform sim
+
+    step=$((step + 1))
+    run_step_with_timer $step $total "Generate compiler analysis report" \
+        python3 ./scripts/report/generate_compiler_compare.py
+
+    # Hardware speedups report (conditional on hardware data existing)
+    step=$((step + 1))
+    local hw_data_dir="${REPO_ROOT}/results/hardware/benchmarks"
+    if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
+        run_step_with_timer $step $total "Generate hardware speedups report" \
+            python3 ./scripts/report/generate_speedups.py --platform hw
+    else
+        printf "[%s/%s] ⏭  Hardware speedups report (skipped: no hardware data)\n" "$step" "$total"
+    fi
+
+    # Cross-platform comparison report (conditional on both Spike + HW data)
+    step=$((step + 1))
+    local spike_data_dir="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul"
+    if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q . \
+       && find "$spike_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
+        run_step_with_timer $step $total "Generate cross-platform comparison report" \
+            python3 ./scripts/report/generate_speedups.py --platform cross
+    else
+        printf "[%s/%s] ⏭  Cross-platform comparison report (skipped: missing Spike or hardware data)\n" "$step" "$total"
+    fi
+}
+
 bench_load_implemented_variants "$REPO_ROOT"
 
 if [[ "$REPORT_ONLY" -eq 1 ]]; then
@@ -628,6 +668,9 @@ if [[ "$REPORT_ONLY" -eq 1 ]]; then
     else
         run_report_only_variant "$MUL_VARIANT"
     fi
+    # Also regenerate cross-variant summary reports from existing CSV data
+    cd "$REPO_ROOT"
+    generate_summary_reports
 elif [[ "$MUL_VARIANT" == "all" ]]; then
     for variant in "${IMPLEMENTED_VARIANTS[@]}"; do
         run_variant_analysis "$variant"
