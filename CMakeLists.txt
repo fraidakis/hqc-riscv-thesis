@@ -328,7 +328,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gcv_zbc_zbb_zba
                 -mabi=lp64d
-                -O3)
+                -O3
+                -fno-tree-vectorize)
         elseif(POLYMUL STREQUAL "vector_zvk")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zvbc/gf2x_vclmul.c)
