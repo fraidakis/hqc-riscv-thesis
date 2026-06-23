@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-18 19:14:28 |
-| Commit | `c5f821b` |
+| Generated | 2026-06-23 14:23:32 |
+| Commit | `d38ed14` |
 
 ---
 
@@ -16,26 +16,26 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 60,380 | 5830 |
-| 192 | vect_mul | 178,624 | 8034 |
-| 256 | vect_mul | 260,624 | 7274 |
+| 128 | vect_mul | 63,804 | 5882 |
+| 192 | vect_mul | 189,388 | 6894 |
+| 256 | vect_mul | 272,896 | 7082 |
 
 ### Full KEM Suite
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 103,129 | 46,000 |
-| 128 | encaps | 213,179 | 46,000 |
-| 128 | decaps | 386,447 | 46,000 |
-| 128 | **total** | 702,755 | 46,000 |
-| 192 | keypair | 251,755 | 50,214 |
-| 192 | encaps | 521,642 | 50,214 |
-| 192 | decaps | 880,407 | 50,214 |
-| 192 | **total** | 1,653,804 | 50,214 |
-| 256 | keypair | 373,210 | 57,346 |
-| 256 | encaps | 795,269 | 57,346 |
-| 256 | decaps | 1,375,654 | 57,346 |
-| 256 | **total** | 2,544,133 | 57,346 |
+| 128 | keypair | 209,826 | 30,774 |
+| 128 | encaps | 419,771 | 30,774 |
+| 128 | decaps | 824,660 | 30,774 |
+| 128 | **total** | 1,454,257 | 30,774 |
+| 192 | keypair | 450,111 | 33,834 |
+| 192 | encaps | 914,528 | 33,834 |
+| 192 | decaps | 1,719,604 | 33,834 |
+| 192 | **total** | 3,084,243 | 33,834 |
+| 256 | keypair | 690,994 | 39,906 |
+| 256 | encaps | 1,407,194 | 39,906 |
+| 256 | decaps | 2,764,123 | 39,906 |
+| 256 | **total** | 4,862,311 | 39,906 |
 
 ## 2. Memory & Cache
 
@@ -43,17 +43,17 @@
 
 | Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1313 | 105 | 1208 | 142 | 12,941,247 | 7,168,903 | 1,921,470 | 1,193,813 |
-| 192 | 3067 | 267 | 2800 | 773 | 30,195,236 | 19,772,475 | 4,275,928 | 2,925,103 |
-| 256 | 6746 | 952 | 5794 | 3103 | 59,124,975 | 42,075,906 | 8,222,072 | 5,994,861 |
+| 128 | 1314 | 84 | 1230 | 146 | 13,142,297 | 7,174,511 | 1,922,241 | 1,080,842 |
+| 192 | 3026 | 206 | 2820 | 735 | 30,742,554 | 19,952,135 | 4,294,814 | 2,786,754 |
+| 256 | 6814 | 867 | 5947 | 3193 | 59,825,441 | 42,194,770 | 8,239,574 | 5,770,845 |
 
 ### Memory Footprint
 
 | Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1227 | 1459 | 23,282 | 18,867 | 364 | 295 |
-| 192 | 1502 | 1774 | 32,244 | 24,523 | 504 | 384 |
-| 256 | 1485 | 1803 | 28,130 | 22,461 | 440 | 351 |
+| 128 | 1583 | 1530 | 23,269 | 17,714 | 364 | 277 |
+| 192 | 1596 | 1508 | 25,285 | 18,620 | 396 | 291 |
+| 256 | 1880 | 1759 | 27,291 | 20,521 | 427 | 321 |
 
 ## 3. Hotspots
 
@@ -61,76 +61,76 @@
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| vclmul_leaf | 1,121,106 | 43.73 |
-| KeccakF1600_StatePermute | 527,318 | 20.57 |
-| gf_reduce | 140,866 | 5.49 |
-| rvv_xor3_u64 | 126,234 | 4.92 |
-| rvv_copy_u64 | 108,066 | 4.21 |
-| rvv_xor_u64 | 78,480 | 3.06 |
-| rol1_zbb | 50,520 | 1.97 |
-| kmul_29 | 37,488 | 1.46 |
-| reed_solomon_encode | 35,698 | 1.39 |
-| kmul_28 | 34,938 | 1.36 |
-| gf_mul | 31,724 | 1.24 |
-| support_contains_value | 24,082 | 0.94 |
-| kmul_57 | 19,008 | 0.74 |
-| expand_and_sum | 17,640 | 0.69 |
-| ?? ??:0 | 13,089 | 0.51 |
-| vect_write_support_to_vector | 11,598 | 0.45 |
-| kmul_56 | 11,544 | 0.45 |
-| vect_generate_random_support2 | 11,100 | 0.43 |
-| memset | 11,073 | 0.43 |
-| _start | 10,994 | 0.43 |
+| KeccakF1600_StatePermute | 1,752,202 | 35.97 |
+| vclmul_leaf | 1,101,198 | 22.60 |
+| keccak_inc_absorb | 473,564 | 9.72 |
+| keccak_inc_squeeze | 300,162 | 6.16 |
+| rvv_xor3_u64 | 155,442 | 3.19 |
+| gf_reduce | 126,038 | 2.59 |
+| memset | 112,827 | 2.32 |
+| rvv_copy_u64 | 112,794 | 2.32 |
+| vect_compare | 100,968 | 2.07 |
+| compute_error_values_zvbc | 92,328 | 1.90 |
+| rvv_xor_u64 | 90,384 | 1.86 |
+| reduce | 59,502 | 1.22 |
+| reed_solomon_encode | 56,680 | 1.16 |
+| kmul_28 | 46,500 | 0.95 |
+| gf_mul | 31,724 | 0.65 |
+| kmul_29 | 27,984 | 0.57 |
+| support_contains_value | 23,697 | 0.49 |
+| vect_generate_random_support2 | 19,822 | 0.41 |
+| expand_and_sum | 15,033 | 0.31 |
+| kmul_57 | 14,784 | 0.30 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| vclmul_leaf at gf2x_vclmul.c:? | 89,592 | 3.49 |
-| KeccakF1600_StatePermute at fips202_zvbb_x2.c:? | 71,161 | 2.78 |
-| gf_reduce at gf.c:82 | 66,726 | 2.60 |
-| vclmul_leaf at gf2x_vclmul.c:185 | 52,488 | 2.05 |
-| gf_reduce at gf.c:80 | 51,898 | 2.02 |
-| rol1_zbb at fips202_zvbb_x2.c:113 | 50,520 | 1.97 |
-| vclmul_leaf at gf2x_vclmul.c:186 | 39,366 | 1.54 |
-| vclmul_leaf at gf2x_vclmul.c:187 | 39,366 | 1.54 |
-| vclmul_leaf at gf2x_vclmul.c:188 | 39,366 | 1.54 |
-| KeccakF1600_StatePermute at fips202_zvbb_x2.c:156 | 30,312 | 1.18 |
-| KeccakF1600_StatePermute at fips202_zvbb_x2.c:209 | 30,312 | 1.18 |
-| KeccakF1600_StatePermute at fips202_zvbb_x2.c:192 | 30,312 | 1.18 |
-| vclmul_leaf at gf2x_vclmul.c:189 | 26,244 | 1.02 |
-| vclmul_leaf at gf2x_vclmul.c:193 | 26,244 | 1.02 |
-| vclmul_leaf at gf2x_vclmul.c:195 | 26,244 | 1.02 |
-| vclmul_leaf at gf2x_vclmul.c:215 | 26,244 | 1.02 |
-| vclmul_leaf at gf2x_vclmul.c:218 | 26,244 | 1.02 |
-| vclmul_leaf at gf2x_vclmul.c:223 | 26,244 | 1.02 |
-| vclmul_leaf at gf2x_vclmul.c:226 | 26,244 | 1.02 |
-| vclmul_leaf at gf2x_vclmul.c:231 | 26,244 | 1.02 |
+| keccak_inc_absorb at fips202.c:438 | 315,953 | 6.49 |
+| keccak_inc_squeeze at fips202.c:505 | 212,416 | 4.36 |
+| keccak_inc_absorb at fips202.c:435 | 86,615 | 1.78 |
+| gf_reduce at gf.c:80 | 59,312 | 1.22 |
+| gf_reduce at gf.c:82 | 59,312 | 1.22 |
+| vect_compare at vector.c:282 | 57,684 | 1.18 |
+| vclmul_leaf at gf2x_vclmul.c:218 | 52,488 | 1.08 |
+| vclmul_leaf at gf2x_vclmul.c:226 | 52,488 | 1.08 |
+| vclmul_leaf at gf2x_vclmul.c:234 | 52,488 | 1.08 |
+| vclmul_leaf at gf2x_vclmul.c:242 | 52,488 | 1.08 |
+| memset at mem.c:85 | 52,384 | 1.08 |
+| vclmul_leaf at gf2x_vclmul.c:215 | 39,366 | 0.81 |
+| KeccakF1600_StatePermute at fips202.c:110 | 35,364 | 0.73 |
+| KeccakF1600_StatePermute at fips202.c:114 | 35,364 | 0.73 |
+| KeccakF1600_StatePermute at fips202.c:208 | 35,364 | 0.73 |
+| KeccakF1600_StatePermute at fips202.c:134 | 34,101 | 0.70 |
+| KeccakF1600_StatePermute at fips202.c:229 | 34,101 | 0.70 |
+| vclmul_leaf at gf2x_vclmul.c:193 | 30,618 | 0.63 |
+| KeccakF1600_StatePermute at fips202.c:113 | 30,312 | 0.62 |
+| KeccakF1600_StatePermute at fips202.c:111 | 30,312 | 0.62 |
 
 ### Basic Block Histogram (Top 20)
 
 | instruction | count | % Total |
 | --- | ---: | ---: |
-| ld | 492,899 | 14.74 |
-| bnez | 435,888 | 13.03 |
-| sh3add | 248,638 | 7.43 |
-| addi | 237,716 | 7.11 |
-| vxor.vv | 216,696 | 6.48 |
-| vle64.v | 208,775 | 6.24 |
-| vse64.v | 162,700 | 4.86 |
-| xor | 114,635 | 3.43 |
-| add | 92,092 | 2.75 |
-| vslidedown.vi | 80,837 | 2.42 |
-| vsetvli | 71,358 | 2.13 |
-| slli | 70,189 | 2.10 |
-| sub | 66,654 | 1.99 |
-| mv | 63,882 | 1.91 |
-| vclmul.vx | 63,238 | 1.89 |
-| vclmulh.vx | 62,292 | 1.86 |
-| vmv.x.s | 50,888 | 1.52 |
-| vl8r.v | 50,520 | 1.51 |
-| rori | 50,520 | 1.51 |
-| bltu | 49,583 | 1.48 |
+| xor | 895,320 | 15.76 |
+| ld | 851,677 | 14.99 |
+| bnez | 449,599 | 7.92 |
+| addi | 327,928 | 5.77 |
+| rori | 293,016 | 5.16 |
+| add | 286,480 | 5.04 |
+| andn | 252,600 | 4.45 |
+| sd | 246,770 | 4.34 |
+| vle64.v | 208,202 | 3.67 |
+| vse64.v | 162,252 | 2.86 |
+| vxor.vv | 153,813 | 2.71 |
+| sh3add | 137,993 | 2.43 |
+| andi | 118,463 | 2.09 |
+| slliw | 101,845 | 1.79 |
+| bne | 87,939 | 1.55 |
+| li | 80,054 | 1.41 |
+| slli | 77,974 | 1.37 |
+| sub | 66,548 | 1.17 |
+| vsetvli | 66,370 | 1.17 |
+| lbu | 64,639 | 1.14 |
 
 ## 4. VLEN Scaling Sweep
 
@@ -165,36 +165,15 @@
 
 ### HQC-128
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
-| --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zvbc | OK | 702,755 | 46,000 |
-| clang | -O3 | karatsuba_zvbc | OK | 702,755 | 46,000 |
-| clang | -Os | karatsuba_zvbc | OK | 702,755 | 46,000 |
-| gcc | -O2 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -O3 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -Os | karatsuba_zvbc | SKIP |  |  |
+> _No data available._
 
 ### HQC-192
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
-| --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zvbc | OK | 1,653,804 | 50,214 |
-| clang | -O3 | karatsuba_zvbc | OK | 1,653,804 | 50,214 |
-| clang | -Os | karatsuba_zvbc | OK | 1,653,804 | 50,214 |
-| gcc | -O2 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -O3 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -Os | karatsuba_zvbc | SKIP |  |  |
+> _No data available._
 
 ### HQC-256
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
-| --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zvbc | OK | 2,544,133 | 57,346 |
-| clang | -O3 | karatsuba_zvbc | OK | 2,544,133 | 57,346 |
-| clang | -Os | karatsuba_zvbc | OK | 2,544,133 | 57,346 |
-| gcc | -O2 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -O3 | karatsuba_zvbc | SKIP |  |  |
-| gcc | -Os | karatsuba_zvbc | SKIP |  |  |
+> _No data available._
 
 ## 6. Cross-Variant Reports
 

@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 192 |
-| Generated | 2026-06-07 15:50:56 |
-| Commit | `20def7e` |
+| Generated | 2026-06-23 14:17:57 |
+| Commit | `d38ed14` |
 
 ---
 
@@ -16,26 +16,26 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 221,030 | 15,270 |
-| 192 | vect_mul | 670,293 | 17,258 |
-| 256 | vect_mul | 1,879,602 | 15,090 |
+| 128 | vect_mul | 186,629 | 12,220 |
+| 192 | vect_mul | 591,557 | 11,904 |
+| 256 | vect_mul | 1,306,068 | 11,514 |
 
 ### Full KEM Suite
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 462,794 | 47,788 |
-| 128 | encaps | 898,649 | 47,788 |
-| 128 | decaps | 2,088,352 | 47,788 |
-| 128 | **total** | 3,449,795 | 47,788 |
-| 192 | keypair | 1,132,934 | 50,940 |
-| 192 | encaps | 2,235,711 | 50,940 |
-| 192 | decaps | 4,442,411 | 50,940 |
-| 192 | **total** | 7,811,056 | 50,940 |
-| 256 | keypair | 2,621,830 | 55,672 |
-| 256 | encaps | 5,204,511 | 55,672 |
-| 256 | decaps | 9,725,450 | 55,672 |
-| 256 | **total** | 17,551,791 | 55,672 |
+| 128 | keypair | 432,968 | 36,490 |
+| 128 | encaps | 842,287 | 36,490 |
+| 128 | decaps | 2,002,282 | 36,490 |
+| 128 | **total** | 3,277,537 | 36,490 |
+| 192 | keypair | 1,062,817 | 38,724 |
+| 192 | encaps | 2,104,122 | 38,724 |
+| 192 | decaps | 4,281,887 | 38,724 |
+| 192 | **total** | 7,448,826 | 38,724 |
+| 256 | keypair | 2,062,593 | 43,628 |
+| 256 | encaps | 4,086,039 | 43,628 |
+| 256 | decaps | 8,168,745 | 43,628 |
+| 256 | **total** | 14,317,377 | 43,628 |
 
 ## 2. Memory & Cache
 
@@ -43,17 +43,17 @@
 
 | Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1343 | 111 | 1232 | 142 | 11,924,919 | 6,573,507 | 1,787,693 | 1,170,512 |
-| 192 | 3121 | 286 | 2835 | 816 | 26,911,032 | 17,591,587 | 3,854,785 | 2,823,772 |
-| 256 | 6797 | 1019 | 5778 | 3161 | 59,034,481 | 34,049,564 | 8,204,642 | 5,256,250 |
+| 128 | 1331 | 90 | 1241 | 155 | 10,225,881 | 5,107,503 | 1,557,477 | 982,784 |
+| 192 | 3098 | 197 | 2901 | 809 | 22,916,958 | 13,988,195 | 3,316,397 | 2,369,632 |
+| 256 | 6890 | 883 | 6007 | 3266 | 41,210,119 | 28,307,416 | 5,912,256 | 4,531,455 |
 
 ### Memory Footprint
 
 | Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 3239 | 2880 | 21,641 | 18,859 | 339 | 295 |
-| 192 | 3566 | 3064 | 24,007 | 20,249 | 376 | 317 |
-| 256 | 3399 | 2942 | 22,739 | 19,392 | 356 | 303 |
+| 128 | 2072 | 1731 | 14,707 | 12,338 | 230 | 193 |
+| 192 | 2127 | 1786 | 14,809 | 12,598 | 232 | 197 |
+| 256 | 2140 | 1779 | 15,052 | 12,729 | 236 | 199 |
 
 ## 3. Hotspots
 
@@ -61,111 +61,105 @@
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| clmul_leaf | 1,581,648 | 20.10 |
-| KeccakF1600_StatePermute | 1,129,052 | 14.35 |
-| clmul64 | 739,788 | 9.40 |
-| memset | 607,032 | 7.72 |
-| kmul_18 | 405,840 | 5.16 |
-| kmul_35 | 345,930 | 4.40 |
-| support_contains_value | 324,294 | 4.12 |
-| keccak_inc_absorb | 279,123 | 3.55 |
-| hadamard | 276,976 | 3.52 |
-| memcpy | 275,464 | 3.50 |
-| expand_and_sum | 199,808 | 2.54 |
-| keccak_inc_squeeze | 187,760 | 2.39 |
-| kmul_70 | 157,662 | 2.00 |
-| clmul_leaf_n8 | 144,300 | 1.83 |
-| gf_reduce | 142,652 | 1.81 |
-| find_peaks | 128,899 | 1.64 |
-| kmul_17 | 106,470 | 1.35 |
-| kmul_140 | 86,910 | 1.10 |
-| kmul_36 | 85,248 | 1.08 |
-| kmul_561 | 76,170 | 0.97 |
+| clmul_leaf | 1,474,080 | 19.73 |
+| KeccakF1600_StatePermute | 1,152,874 | 15.43 |
+| memset | 597,330 | 8.00 |
+| __riscv_clmul_64 | 366,092 | 4.90 |
+| __riscv_clmulh_64 | 358,974 | 4.81 |
+| support_contains_value | 324,300 | 4.34 |
+| keccak_inc_absorb | 316,045 | 4.23 |
+| kmul_18 | 286,224 | 3.83 |
+| hadamard | 279,496 | 3.74 |
+| memcpy | 275,464 | 3.69 |
+| kmul_35 | 247,650 | 3.32 |
+| expand_and_sum | 246,064 | 3.29 |
+| keccak_inc_squeeze | 203,516 | 2.72 |
+| kmul_70 | 154,356 | 2.07 |
+| gf_reduce | 127,636 | 1.71 |
+| kmul_140 | 86,970 | 1.16 |
+| find_peaks | 86,883 | 1.16 |
+| kmul_561 | 83,856 | 1.12 |
+| kmul_17 | 81,510 | 1.09 |
+| kmul_281 | 72,636 | 0.97 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| memset at mem.c:84 | 404,578 | 5.14 |
-| clmul64 at gf2x_clmul.c:39 | 347,664 | 4.42 |
-| clmul64 at gf2x_clmul.c:40 | 347,664 | 4.42 |
-| clmul_leaf at gf2x_clmul.c:370 | 286,848 | 3.65 |
-| clmul_leaf at gf2x_clmul.c:371 | 254,976 | 3.24 |
-| clmul_leaf at gf2x_clmul.c:372 | 254,976 | 3.24 |
-| support_contains_value at vector.c:81 | 214,240 | 2.72 |
-| memset at mem.c:85 | 202,124 | 2.57 |
-| KeccakF1600_StatePermute at fips202.c:? | 192,238 | 2.44 |
-| keccak_inc_absorb at fips202.c:438 | 178,780 | 2.27 |
-| expand_and_sum at reed_muller.c:132 | 166,656 | 2.12 |
-| memcpy at mem.c:33 | 165,068 | 2.10 |
-| clmul_leaf at gf2x_clmul.c:369 | 159,360 | 2.03 |
-| clmul_leaf at gf2x_clmul.c:373 | 127,488 | 1.62 |
-| memcpy at mem.c:34 | 109,344 | 1.39 |
-| support_contains_value at vector.c:80 | 108,100 | 1.37 |
-| keccak_inc_squeeze at fips202.c:505 | 104,640 | 1.33 |
-| hadamard at reed_muller.c:98 | 100,352 | 1.28 |
-| hadamard at reed_muller.c:99 | 100,352 | 1.28 |
-| clmul_leaf at gf2x_clmul.c:397 | 95,616 | 1.22 |
+| __riscv_clmul_64 at riscv_bitmanip.h:214 | 366,092 | 4.90 |
+| __riscv_clmulh_64 at riscv_bitmanip.h:221 | 358,974 | 4.81 |
+| clmul_leaf at gf2x_clmul.c:370 | 254,976 | 3.41 |
+| clmul_leaf at gf2x_clmul.c:372 | 254,976 | 3.41 |
+| clmul_leaf at gf2x_clmul.c:371 | 254,976 | 3.41 |
+| support_contains_value at vector.c:81 | 214,240 | 2.87 |
+| memset at mem.c:84 (discriminator 1) | 199,340 | 2.67 |
+| memset at mem.c:85 | 198,926 | 2.66 |
+| memset at mem.c:84 | 198,926 | 2.66 |
+| keccak_inc_absorb at fips202.c:438 | 196,658 | 2.63 |
+| clmul_leaf at gf2x_clmul.c:369 | 159,360 | 2.13 |
+| keccak_inc_squeeze at fips202.c:505 | 139,520 | 1.87 |
+| clmul_leaf at gf2x_clmul.c:373 | 127,488 | 1.71 |
+| expand_and_sum at reed_muller.c:132 | 116,480 | 1.56 |
+| memcpy at mem.c:33 (discriminator 1) | 110,396 | 1.48 |
+| memcpy at mem.c:34 | 109,344 | 1.46 |
+| support_contains_value at vector.c:80 (discriminator 1) | 108,405 | 1.45 |
+| hadamard at reed_muller.c:98 | 100,352 | 1.34 |
+| hadamard at reed_muller.c:99 | 100,352 | 1.34 |
+| clmul_leaf at gf2x_clmul.c:358 (discriminator 1) | 95,616 | 1.28 |
 
 ### Basic Block Histogram (Top 20)
 
 | instruction | count | % Total |
 | --- | ---: | ---: |
-| ld | 1,805,735 | 20.74 |
-| xor | 1,564,551 | 17.97 |
-| sd | 1,043,334 | 11.99 |
-| addi | 751,561 | 8.63 |
-| bne | 441,360 | 5.07 |
-| bnez | 423,826 | 4.87 |
-| clmul | 355,172 | 4.08 |
-| clmulh | 347,664 | 3.99 |
-| sb | 277,991 | 3.19 |
-| rori | 192,792 | 2.21 |
-| andn | 166,790 | 1.92 |
-| lh | 155,056 | 1.78 |
-| add | 146,614 | 1.68 |
-| mv | 113,403 | 1.30 |
-| slli | 109,058 | 1.25 |
-| lbu | 98,903 | 1.14 |
-| sh | 91,215 | 1.05 |
-| or | 71,988 | 0.83 |
-| lw | 68,798 | 0.79 |
-| andi | 60,733 | 0.70 |
+| ld | 1,567,066 | 18.87 |
+| xor | 1,511,936 | 18.21 |
+| sd | 818,114 | 9.85 |
+| addi | 781,724 | 9.41 |
+| bne | 494,695 | 5.96 |
+| bnez | 422,956 | 5.09 |
+| clmul | 355,172 | 4.28 |
+| clmulh | 347,664 | 4.19 |
+| sb | 274,601 | 3.31 |
+| rori | 192,792 | 2.32 |
+| andn | 166,665 | 2.01 |
+| lhu | 143,498 | 1.73 |
+| add | 106,373 | 1.28 |
+| lbu | 96,604 | 1.16 |
+| sh | 92,702 | 1.12 |
+| slliw | 82,454 | 0.99 |
+| andi | 75,667 | 0.91 |
+| or | 70,371 | 0.85 |
+| addw | 57,999 | 0.70 |
+| lw | 56,342 | 0.68 |
 
 ## 5. Compiler Comparison
 
 ### HQC-128
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zbc | OK | 3,449,795 | 47,788 |
-| clang | -O3 | karatsuba_zbc | OK | 3,449,795 | 47,788 |
-| clang | -Os | karatsuba_zbc | OK | 3,449,795 | 47,788 |
-| gcc | -O2 | karatsuba_zbc | OK | 3,277,538 | 31,248 |
-| gcc | -O3 | karatsuba_zbc | OK | 3,277,538 | 31,248 |
-| gcc | -Os | karatsuba_zbc | OK | 3,277,538 | 31,248 |
+| gcc | -O2 | karatsuba_zbc | OK | 2,234,431 | 523,497 |
+| gcc | -O3 | karatsuba_zbc | OK | 2,032,805 | 540,153 |
+| clang | -O2 | karatsuba_zbc | OK | 2,179,591 | 542,507 |
+| clang | -O3 | karatsuba_zbc | OK | 2,158,898 | 561,411 |
 
 ### HQC-192
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zbc | OK | 7,811,056 | 50,940 |
-| clang | -O3 | karatsuba_zbc | OK | 7,811,056 | 50,940 |
-| clang | -Os | karatsuba_zbc | OK | 7,811,056 | 50,940 |
-| gcc | -O2 | karatsuba_zbc | OK | 7,448,827 | 33,610 |
-| gcc | -O3 | karatsuba_zbc | OK | 7,448,827 | 33,610 |
-| gcc | -Os | karatsuba_zbc | OK | 7,448,827 | 33,610 |
+| gcc | -O2 | karatsuba_zbc | OK | 5,225,191 | 525,817 |
+| gcc | -O3 | karatsuba_zbc | OK | 4,621,302 | 541,337 |
+| clang | -O2 | karatsuba_zbc | OK | 4,897,752 | 544,679 |
+| clang | -O3 | karatsuba_zbc | OK | 4,912,525 | 564,729 |
 
 ### HQC-256
 
-| Compiler | Opt | Variant | Status | Instructions | Text (B) |
+| Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| clang | -O2 | karatsuba_zbc | OK | 17,551,791 | 55,672 |
-| clang | -O3 | karatsuba_zbc | OK | 17,551,791 | 55,672 |
-| clang | -Os | karatsuba_zbc | OK | 17,551,791 | 55,672 |
-| gcc | -O2 | karatsuba_zbc | OK | 14,317,378 | 38,488 |
-| gcc | -O3 | karatsuba_zbc | OK | 14,317,378 | 38,488 |
-| gcc | -Os | karatsuba_zbc | OK | 14,317,378 | 38,488 |
+| gcc | -O2 | karatsuba_zbc | OK | 11,223,044 | 531,865 |
+| gcc | -O3 | karatsuba_zbc | OK | 8,958,436 | 545,905 |
+| clang | -O2 | karatsuba_zbc | OK | 11,420,506 | 549,393 |
+| clang | -O3 | karatsuba_zbc | OK | 11,360,831 | 566,783 |
 
 ## 6. Cross-Variant Reports
 

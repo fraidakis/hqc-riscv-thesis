@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-23 13:26:11 |
-| Commit | `c828690` |
+| Generated | 2026-06-23 14:40:26 |
+| Commit | `d38ed14` |
 
 ---
 
@@ -16,26 +16,26 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 19,214,277 | 2012 |
-| 192 | vect_mul | 58,433,896 | 2016 |
-| 256 | vect_mul | 142,641,043 | 2026 |
+| 128 | vect_mul | 18,639,752 | 5216 |
+| 192 | vect_mul | 56,702,057 | 5252 |
+| 256 | vect_mul | 139,877,019 | 4466 |
 
 ### Full KEM Suite
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 19,454,626 | 32,176 |
-| 128 | encaps | 38,875,925 | 32,176 |
-| 128 | decaps | 59,013,743 | 32,176 |
-| 128 | **total** | 117,344,294 | 32,176 |
-| 192 | keypair | 58,895,392 | 33,930 |
-| 192 | encaps | 117,744,966 | 33,930 |
-| 192 | decaps | 177,662,495 | 33,930 |
-| 192 | **total** | 354,302,853 | 33,930 |
-| 256 | keypair | 143,382,635 | 41,392 |
-| 256 | encaps | 286,701,285 | 41,392 |
-| 256 | decaps | 431,890,526 | 41,392 |
-| 256 | **total** | 861,974,446 | 41,392 |
+| 128 | keypair | 18,886,091 | 29,486 |
+| 128 | encaps | 37,748,533 | 29,486 |
+| 128 | decaps | 57,361,651 | 29,486 |
+| 128 | **total** | 113,996,275 | 29,486 |
+| 192 | keypair | 57,173,317 | 32,072 |
+| 192 | encaps | 114,325,122 | 32,072 |
+| 192 | decaps | 172,613,387 | 32,072 |
+| 192 | **total** | 344,111,826 | 32,072 |
+| 256 | keypair | 140,633,544 | 36,580 |
+| 256 | encaps | 281,227,941 | 36,580 |
+| 256 | decaps | 423,881,598 | 36,580 |
+| 256 | **total** | 845,743,083 | 36,580 |
 
 ## 2. Memory & Cache
 
@@ -43,17 +43,17 @@
 
 | Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1358 | 87 | 1271 | 125 | 372,774,966 | 237,223,951 | 46,807,726 | 30,974,223 |
-| 192 | 3325 | 287 | 3038 | 906 | 1,123,633,067 | 719,436,907 | 140,822,271 | 93,607,383 |
-| 256 | 7878 | 1136 | 6742 | 4027 | 2,808,117,202 | 1,823,990,638 | 351,646,625 | 233,895,589 |
+| 128 | 1349 | 87 | 1262 | 136 | 372,860,807 | 236,874,517 | 46,886,869 | 30,932,959 |
+| 192 | 3298 | 291 | 3007 | 932 | 1,123,549,340 | 718,572,777 | 140,895,471 | 93,503,859 |
+| 256 | 7593 | 1131 | 6462 | 3778 | 2,808,270,227 | 1,822,987,412 | 351,794,801 | 233,769,062 |
 
 ### Memory Footprint
 
 | Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1643 | 2131 | 7715 | 10,629 | 121 | 167 |
-| 192 | 1810 | 2240 | 8127 | 10,776 | 127 | 169 |
-| 256 | 1829 | 2226 | 7659 | 9993 | 120 | 157 |
+| 128 | 1207 | 1060 | 7787 | 6970 | 122 | 109 |
+| 192 | 1236 | 1131 | 7681 | 7358 | 121 | 115 |
+| 256 | 1107 | 1041 | 6788 | 6825 | 107 | 107 |
 
 ## 3. Hotspots
 
@@ -61,76 +61,76 @@
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| schoolbook_mul | 112,621,824 | 95.96 |
-| memset | 1,995,963 | 1.70 |
-| karatsuba_mul | 958,428 | 0.82 |
-| KeccakF1600_StatePermute | 578,792 | 0.49 |
-| hadamard | 186,162 | 0.16 |
-| keccak_inc_absorb | 141,110 | 0.12 |
-| support_contains_value | 139,683 | 0.12 |
-| memcpy | 124,446 | 0.11 |
-| gf_reduce | 106,191 | 0.09 |
-| find_peaks | 105,965 | 0.09 |
-| keccak_inc_squeeze | 95,567 | 0.08 |
-| expand_and_sum | 90,206 | 0.08 |
+| schoolbook_mul | 108,419,784 | 95.79 |
+| memset | 1,994,589 | 1.76 |
+| karatsuba_mul | 899,916 | 0.80 |
+| KeccakF1600_StatePermute | 591,004 | 0.52 |
+| hadamard | 229,586 | 0.20 |
+| keccak_inc_absorb | 159,678 | 0.14 |
+| support_contains_value | 140,436 | 0.12 |
+| memcpy | 137,922 | 0.12 |
+| expand_and_sum | 116,426 | 0.10 |
+| keccak_inc_squeeze | 103,803 | 0.09 |
+| gf_reduce | 95,013 | 0.08 |
+| find_peaks | 71,293 | 0.06 |
 | vect_compare | 31,058 | 0.03 |
 | gf_mul | 23,702 | 0.02 |
-| reduce | 19,997 | 0.02 |
-| vect_add | 15,781 | 0.01 |
-| compute_syndromes | 13,770 | 0.01 |
-| compute_elp | 12,117 | 0.01 |
-| vect_generate_random_support2 | 11,718 | 0.01 |
-| code_decode | 11,387 | 0.01 |
+| reduce | 18,312 | 0.02 |
+| compute_error_values | 17,745 | 0.02 |
+| vect_add | 17,744 | 0.02 |
+| reed_solomon_encode | 14,966 | 0.01 |
+| compute_syndromes | 13,708 | 0.01 |
+| compute_elp | 13,413 | 0.01 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| schoolbook_mul at gf2x.c:55 | 43,214,472 | 36.82 |
-| schoolbook_mul at gf2x.c:54 | 36,012,060 | 30.69 |
-| schoolbook_mul at gf2x.c:53 | 22,419,936 | 19.10 |
-| schoolbook_mul at gf2x.c:0 | 4,115,100 | 3.51 |
-| schoolbook_mul at gf2x.c:44 | 2,476,800 | 2.11 |
-| schoolbook_mul at gf2x.c:43 | 1,651,200 | 1.41 |
-| memset at mem.c:84 | 1,331,280 | 1.13 |
-| schoolbook_mul at gf2x.c:48 | 825,600 | 0.70 |
-| schoolbook_mul at gf2x.c:47 | 812,700 | 0.69 |
-| memset at mem.c:85 | 662,961 | 0.56 |
-| schoolbook_mul at gf2x.c:50 | 571,620 | 0.49 |
-| schoolbook_mul at gf2x.c:49 | 355,872 | 0.30 |
-| karatsuba_mul at gf2x.c:115 | 159,510 | 0.14 |
-| karatsuba_mul at gf2x.c:114 | 154,608 | 0.13 |
-| schoolbook_mul at gf2x.c:42 | 103,200 | 0.09 |
-| KeccakF1600_StatePermute at fips202.c:0 | 98,548 | 0.08 |
+| schoolbook_mul at gf2x.c:55 | 43,214,472 | 38.18 |
+| schoolbook_mul at gf2x.c:54 | 36,012,060 | 31.82 |
+| schoolbook_mul at gf2x.c:53 (discriminator 1) | 21,607,236 | 19.09 |
+| schoolbook_mul at gf2x.c:47 | 2,439,558 | 2.16 |
+| schoolbook_mul at gf2x.c:44 | 1,664,100 | 1.47 |
+| schoolbook_mul at gf2x.c:48 | 825,600 | 0.73 |
+| schoolbook_mul at gf2x.c:43 (discriminator 1) | 814,158 | 0.72 |
+| schoolbook_mul at gf2x.c:43 (discriminator 2) | 812,700 | 0.72 |
+| memset at mem.c:84 (discriminator 1) | 668,693 | 0.59 |
+| memset at mem.c:85 | 661,799 | 0.58 |
+| memset at mem.c:84 | 661,799 | 0.58 |
+| schoolbook_mul at gf2x.c:50 | 571,620 | 0.51 |
+| schoolbook_mul at gf2x.c:49 (discriminator 1) | 342,972 | 0.30 |
+| karatsuba_mul at gf2x.c:120 | 173,796 | 0.15 |
+| karatsuba_mul at gf2x.c:116 (discriminator 1) | 106,512 | 0.09 |
+| keccak_inc_absorb at fips202.c:438 | 94,325 | 0.08 |
 | support_contains_value at vector.c:81 | 92,340 | 0.08 |
-| karatsuba_mul at gf2x.c:119 | 89,904 | 0.08 |
-| karatsuba_mul at gf2x.c:116 | 89,904 | 0.08 |
-| keccak_inc_absorb at fips202.c:438 | 85,750 | 0.07 |
+| hadamard at reed_muller.c:98 | 82,432 | 0.07 |
+| hadamard at reed_muller.c:99 | 82,432 | 0.07 |
+| karatsuba_mul at gf2x.c:115 (discriminator 1) | 70,338 | 0.06 |
 
 ### Basic Block Histogram (Top 20)
 
 | instruction | count | % Total |
 | --- | ---: | ---: |
-| ld | 23,497,739 | 19.86 |
-| addi | 16,579,202 | 14.02 |
-| xor | 15,005,645 | 12.68 |
-| sd | 14,724,060 | 12.45 |
-| and | 14,536,031 | 12.29 |
-| bne | 8,116,107 | 6.86 |
-| srl | 8,037,222 | 6.79 |
-| sll | 7,212,529 | 6.10 |
-| mv | 3,345,004 | 2.83 |
-| slli | 918,451 | 0.78 |
-| beq | 878,540 | 0.74 |
-| j | 848,758 | 0.72 |
-| beqz | 829,992 | 0.70 |
-| srai | 826,336 | 0.70 |
-| sub | 824,034 | 0.70 |
-| sb | 700,036 | 0.59 |
-| bnez | 470,006 | 0.40 |
-| add | 232,454 | 0.20 |
-| rori | 98,832 | 0.08 |
-| andn | 85,723 | 0.07 |
+| ld | 23,491,942 | 20.59 |
+| addi | 15,788,522 | 13.84 |
+| xor | 14,981,853 | 13.13 |
+| sd | 14,701,186 | 12.88 |
+| and | 14,528,757 | 12.73 |
+| bne | 8,958,801 | 7.85 |
+| sll | 7,211,869 | 6.32 |
+| srl | 7,211,596 | 6.32 |
+| mv | 1,684,691 | 1.48 |
+| addiw | 844,554 | 0.74 |
+| subw | 842,841 | 0.74 |
+| bext | 830,364 | 0.73 |
+| neg | 825,600 | 0.72 |
+| sb | 700,653 | 0.61 |
+| bnez | 469,079 | 0.41 |
+| add | 121,818 | 0.11 |
+| lhu | 105,605 | 0.09 |
+| rori | 98,832 | 0.09 |
+| andn | 85,606 | 0.08 |
+| sh | 63,977 | 0.06 |
 
 ## 5. Compiler Comparison
 
