@@ -70,7 +70,7 @@ To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης �
   \label{fig:spike-arch}
 \end{figure}
 
-\subsection{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60)}
+\subsection{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware}
 \label{ssec:bpi-f3}
 
 Το Banana Pi BPI-F3 (SpacemiT K1 X60) αποτελεί την πλατφόρμα πραγματικού 
@@ -153,9 +153,13 @@ extensions, με την παρούσα εργασία να αξιοποιεί τ
 επιβάλλεται από τον κύριο στόχο εκτέλεσης, τον \gls{iss} Spike, ο οποίος
 εκτελεί bare-metal ELF χωρίς λειτουργικό σύστημα και άρα το παραγόμενο ELF πρέπει να είναι freestanding (χωρίς εξάρτηση από
 libc ή system calls). Γι' αυτό η μεταγλώττιση γίνεται υποχρεωτικά από τον host.
-Το ίδιο host-based toolchain χρησιμοποιείται και για τα
-binaries του Banana Pi BPI-F3 (SpacemiT K1 X60) που επικυρώνουν την υλοποίηση
-σε πραγματικό υλικό, ώστε η διαδικασία build να παραμένει ενιαία.
+Το host-based αυτό toolchain (GCC~15.2 / Clang~21.1.1) αφορά
+αποκλειστικά τα bare-metal ELF του Spike. Αντιθέτως, τα binaries του Banana Pi
+BPI-F3 (SpacemiT K1 X60), που επικυρώνουν την υλοποίηση σε πραγματικό υλικό,
+μεταγλωττίζονται \emph{native} στο ίδιο το board με το Bianbu toolchain
+(GCC~14.2.0, και Clang~20.1.2)·
+οι δύο πλατφόρμες χρησιμοποιούν επομένως διακριτά toolchains, όπως συνοψίζει
+ο \cref{tab:toolchains-per-platform}.
 
 \subsection{Στρατηγική Μεταγλώττισης και Επιλογή Compiler}
 \label{ssec:compiler-strategy}
@@ -183,6 +187,21 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
 κάθε μετρήσιμη διαφορά(αναλυτική συγκριτική αξιολόγηση στο \cref{sec:compiler-comparison}). 
 Ο Clang/LLVM~21.1.1 διατηρεί συμπληρωματικό ρόλο ως cross-validation
 εργαλείο: ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου μεταγλωττιστή.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Toolchains ανά πλατφόρμα μέτρησης.}
+  \label{tab:toolchains-per-platform}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Πλατφόρμα} & \textbf{Μετρική} & \textbf{Toolchain} \\
+    \midrule
+    Spike \gls{iss} (cross, bare-metal) & \instret & GCC~15.2 / Clang~21.1.1 (host x86-64) \\
+    Banana Pi BPI-F3 (native, Linux) & κύκλοι & GCC~14.2.0 / Clang~20.1.2 \\
+    \bottomrule
+  \end{tabular}
+  \par\smallskip\footnotesize
+\end{table}
 
 \subsection{CMake Build System και Toolchain Files}
 \label{ssec:cmake-build}
@@ -711,45 +730,6 @@ HQC-256 διαθέτει working set $\approx \SI{57}{\kilo\byte}$ που υπε
 cache misses — ένα πλεονέκτημα αόρατο στη μετρική \instret αλλά μετρήσιμο σε
 πραγματικούς κύκλους.
 
-\paragraph{Μοντέλο Εκτίμησης CPI}
-
-Προκειμένου να παρασχεθεί συμπληρωματική εκτίμηση κύκλων πέραν της ακατέργαστης
-\instret, η υποδομή περιλαμβάνει ένα παραμετρικό μοντέλο \gls{cpi}. Το μοντέλο
-ταξινομεί κάθε εντολή του instruction mix σε κλάσεις (ALU, load, store, multiply,
-\clmul, vector ALU, vector crypto, vector memory) και αναθέτει εκτιμώμενο κόστος
-κύκλων ανά κλάση, βάσει δημοσιευμένων χαρακτηριστικών in-order RISC-V πυρήνων
-(Rocket-class). Ο \cref{tab:cpi-classes} παρουσιάζει τις βασικές κλάσεις:
-
-\begin{table}[htbp]
-  \centering
-  \caption{Κλάσεις εντολών και εκτιμώμενο κόστος κύκλων στο παραμετρικό
-    \gls{cpi} μοντέλο (Rocket-class single-issue in-order πυρήνας).}
-  \label{tab:cpi-classes}
-  \begin{tabular}{l l S[table-format=2]}
-    \toprule
-    {Κλάση} & {Εντολές} & {\gls{cpi}} \\
-    \midrule
-    ALU (scalar)     & \insn{add}, \insn{xor}, \insn{slli}, \rori & 1 \\
-    Load             & \insn{ld}, \insn{lw}, \insn{lbu}           & 2 \\
-    Store            & \insn{sd}, \insn{sw}                       & 1 \\
-    Scalar multiply  & \insn{mul}, \insn{mulh}                    & 5 \\
-    Carry-less mul   & \clmul, \clmulh                            & 3 \\
-    Vector ALU       & \insn{vxor.vv}, \insn{vsll.vi}             & 2 \\
-    Vector crypto    & \vclmul, \vclmulh                          & 6 \\
-    Vector memory    & \insn{vle64.v}, \insn{vse64.v}             & 4 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\noindent
-Το μοντέλο παράγει εκτιμώμενο συνολικό \gls{cpi} και κατανομή κύκλων ανά κλάση,
-επιτρέποντας ποιοτική αξιολόγηση: αν η βελτιστοποίηση αντικαθιστά εντολές
-υψηλού κόστους (scalar loops) με εντολές χαμηλότερου κόστους ανά μονάδα εργασίας
-(\clmul, \vclmul), τότε η μείωση κύκλων είναι τουλάχιστον ανάλογη της μείωσης
-\instret. Τα αποτελέσματα του μοντέλου χρησιμοποιούνται ως συμπληρωματική
-τεκμηρίωση στο \cref{ch:discussion} — δεν αντικαθιστούν τη μετρική \instret ως
-πρωτεύον αποτέλεσμα.
-
 \subsection{Παραγωγή IPC και Wall-Clock Time}
 \label{ssec:ipc-wallclock}
 
@@ -761,7 +741,7 @@ cache misses — ένα πλεονέκτημα αόρατο στη μετρικ�
     Δείκτης pipeline utilization. Τιμή $\gls{ipc} > 1$ υποδηλώνει ότι ο
     dual-issue πυρήνας αποσύρει περισσότερες από μία εντολές ανά κύκλο
     (αποδοτική αξιοποίηση). Τιμή $\gls{ipc} < 1$ υποδηλώνει pipeline stalls
-    (memory-bound ή data hazards).
+    (memory-bound ή data hazards). ??? γιατι οχι $\text{HW\_instret} / \text{HW\_cycles}$ instead ???
   \item \textbf{Wall-clock time} $= \text{HW\_cycles} / \SI{1.6}{\giga\hertz}$:
     Πρακτική μετρική deployment readiness — πόσα microseconds απαιτεί κάθε
     \gls{kem} λειτουργία στο συγκεκριμένο hardware.
