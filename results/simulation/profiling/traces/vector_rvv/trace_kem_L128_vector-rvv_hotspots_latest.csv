@@ -1,41 +1,41 @@
-# date: 2026-06-23 14:18
-# commit: d38ed14
+# date: 2026-06-23 18:40
+# commit: f21e6c4
 # variant: vector_rvv
 # level: 128
 function,instructions,percentage
-KeccakF1600_StatePermute,591004,29.55
-clmul_leaf,457320,22.86
-keccak_inc_absorb,151064,7.55
-__riscv_clmul_64,120783,6.04
-__riscv_clmulh_64,116322,5.82
-keccak_inc_squeeze,103803,5.19
-gf_reduce,72063,3.60
-memset,44514,2.23
-kmul_18,36168,1.81
-kmul_17,34188,1.71
-clmul_leaf_n8,31968,1.60
-vect_compare,31052,1.55
+KeccakF1600_StatePermute,591004,29.72
+clmul_leaf_n9,236442,11.89
+__riscv_clmulh_64,216444,10.88
+__riscv_clmul_64,195483,9.83
+keccak_inc_absorb,151064,7.60
+keccak_inc_squeeze,103803,5.22
+gf_reduce,72063,3.62
+kmul_18,54648,2.75
+kmul_17,46620,2.34
+memset,44514,2.24
+clmul_leaf_n8,36852,1.85
+vect_compare,31052,1.56
 kmul_35,26532,1.33
-compute_error_values,18405,0.92
+compute_error_values,18405,0.93
 gf_mul,16952,0.85
 reed_solomon_encode,14950,0.75
 compute_elp,14765,0.74
-vect_generate_random_support2,10050,0.50
-support_contains_value,8688,0.43
+vect_generate_random_support2,10050,0.51
+support_contains_value,8688,0.44
 kmul_69,8550,0.43
 fft_rec,7576,0.38
 kmul_70,6264,0.31
-?? ??:0,6082,0.30
-vect_write_support_to_vector,5868,0.29
+vect_write_support_to_vector,5868,0.30
 kmul_34,5430,0.27
 kmul_139,5268,0.26
+?? ??:0,4846,0.24
 kmul_277,4578,0.23
 expand_and_sum,4557,0.23
 fft_retrieve_error_poly,3721,0.19
-vect_generate_random_support1,3687,0.18
-_start,3497,0.17
+vect_generate_random_support1,3687,0.19
+_start,3497,0.18
 compute_subset_sums,3102,0.16
-memcpy,3090,0.15
+memcpy,3090,0.16
 encode,3056,0.15
 kmul_138,2580,0.13
 fft,2055,0.10
@@ -70,7 +70,7 @@ hqc_pke_keygen,165,0.01
 vect_sample_fixed_weight2,144,0.01
 crypto_kem_keypair,124,0.01
 crypto_kem_enc,118,0.01
-main,100,0.00
+main,100,0.01
 shake256_inc_squeeze,98,0.00
 hqc_pke_decrypt,97,0.00
 hash_g,96,0.00

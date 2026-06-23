@@ -1,38 +1,38 @@
-# date: 2026-06-23 14:18
-# commit: d38ed14
+# date: 2026-06-23 18:41
+# commit: f21e6c4
 # variant: vector_rvv
 # level: 192
 function,instructions,percentage
-clmul_leaf,1474080,31.16
-KeccakF1600_StatePermute,1152874,24.37
-__riscv_clmul_64,372132,7.87
-__riscv_clmulh_64,367944,7.78
-keccak_inc_absorb,298128,6.30
-keccak_inc_squeeze,203516,4.30
-kmul_18,146316,3.09
+KeccakF1600_StatePermute,1152874,24.45
+clmul_leaf_n9,772386,16.38
+__riscv_clmulh_64,692400,14.68
+__riscv_clmul_64,635658,13.48
+keccak_inc_absorb,298128,6.32
+kmul_18,221076,4.69
+keccak_inc_squeeze,203516,4.32
 gf_reduce,97716,2.07
-kmul_35,81120,1.71
+kmul_35,81510,1.73
+kmul_17,76440,1.62
 vect_compare,62867,1.33
-clmul_leaf_n8,54210,1.15
-kmul_17,47580,1.01
+clmul_leaf_n8,53430,1.13
 memset,47560,1.01
 kmul_70,29754,0.63
-reed_solomon_encode,23814,0.50
+reed_solomon_encode,23814,0.51
 gf_mul,22753,0.48
-compute_error_values,21956,0.46
+compute_error_values,21956,0.47
 kmul_36,18624,0.39
 compute_elp,16692,0.35
 support_contains_value,16002,0.34
 vect_generate_random_support2,15198,0.32
 kmul_71,13584,0.29
 kmul_140,12480,0.26
-?? ??:0,11528,0.24
 kmul_141,10536,0.22
 fft_rec,10190,0.22
 kmul_281,9372,0.20
 expand_and_sum,9355,0.20
 vect_write_support_to_vector,8892,0.19
 kmul_561,8634,0.18
+?? ??:0,7544,0.16
 _start,6908,0.15
 memcpy,6450,0.14
 vect_generate_random_support1,5587,0.12
