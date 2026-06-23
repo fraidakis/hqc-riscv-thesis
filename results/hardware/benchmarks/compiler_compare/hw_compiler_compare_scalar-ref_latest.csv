@@ -1,10 +1,18 @@
-# date: 2026-06-22 23:59
-# commit: 45892ca
+# date: 2026-06-23 13:11
+# commit: c828690
 # platform: bpi-f3
 # quality: dev
 # variant: scalar_ref
 compiler,opt,level,variant,status,cycles,text_bytes,binary,error
-gcc,-O2,128,ref_scalar,OK,119650719,517897,build-hw/bench_hw_kem_hqc128_scalar_ref,
-gcc,-O3,128,ref_scalar,OK,71000264,531865,build-hw/bench_hw_kem_hqc128_scalar_ref,
-clang,-O2,128,ref_scalar,OK,82643954,533315,build-hw/bench_hw_kem_hqc128_scalar_ref,
-clang,-O3,128,ref_scalar,OK,82547603,547303,build-hw/bench_hw_kem_hqc128_scalar_ref,
+gcc,-O2,128,ref_scalar,OK,119588829,517897,build-hw/bench_hw_kem_hqc128_scalar_ref,
+gcc,-O3,128,ref_scalar,OK,70994731,531865,build-hw/bench_hw_kem_hqc128_scalar_ref,
+clang,-O2,128,ref_scalar,OK,82622747,533315,build-hw/bench_hw_kem_hqc128_scalar_ref,
+clang,-O3,128,ref_scalar,OK,82540770,547303,build-hw/bench_hw_kem_hqc128_scalar_ref,
+gcc,-O2,192,ref_scalar,OK,360726712,519209,build-hw/bench_hw_kem_hqc192_scalar_ref,
+gcc,-O3,192,ref_scalar,OK,214228777,533481,build-hw/bench_hw_kem_hqc192_scalar_ref,
+clang,-O2,192,ref_scalar,OK,249443989,534709,build-hw/bench_hw_kem_hqc192_scalar_ref,
+clang,-O3,192,ref_scalar,OK,249475460,548665,build-hw/bench_hw_kem_hqc192_scalar_ref,
+gcc,-O2,256,ref_scalar,OK,925792203,526337,build-hw/bench_hw_kem_hqc256_scalar_ref,
+gcc,-O3,256,ref_scalar,OK,533883002,537857,build-hw/bench_hw_kem_hqc256_scalar_ref,
+clang,-O2,256,ref_scalar,OK,611671813,541505,build-hw/bench_hw_kem_hqc256_scalar_ref,
+clang,-O3,256,ref_scalar,OK,611456033,552753,build-hw/bench_hw_kem_hqc256_scalar_ref,

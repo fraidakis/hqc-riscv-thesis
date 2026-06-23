@@ -1,10 +1,11 @@
-# date: 2026-05-31 18:47
-# commit: b709a5f
+# date: 2026-06-23 12:51
+# commit: c828690
 # variant: scalar_ref
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-# level=128,polymul=ref_scalar,n_iter=100,n_warmup=10,platform=hw
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
-vect_mul,100,11617708,11664579,11764620,11664908.6,28552.7,18253011,18258882,18269656,18258667.7,2976.2
+level,op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+128,vect_mul,100,11620073,11636523,11698736,11638748.4,14494.2,18253755,18259506,18273050,18259375.8,3141.7,282,6265696,0.00%,52,2904,146214,1092852,0,0
+192,vect_mul,100,35356844,35380368,35753200,35390713.8,46164.0,55508556,55514469,55530000,55514255.9,4068.6,690,19057771,0.00%,92,8306,438241,3341539,0,0
+256,vect_mul,100,88346459,88394244,88753575,88410769.8,52662.0,137979053,137989155,138098249,137991320.0,11988.5,1538,48055520,0.00%,176,12871,692744,9016436,0,0
