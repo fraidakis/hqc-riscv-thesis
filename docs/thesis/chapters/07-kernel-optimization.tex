@@ -150,7 +150,7 @@ group και χρησιμοποίησε \insn{vrgather.vv} για το $\pi$ ste
 \num{4} groups. Η ταυτόχρονη διατήρηση του state vector, ενός scratch
 group, και τεσσάρων hoisted index vectors απαιτεί \num{5} groups — ένα
 περισσότερο από τα διαθέσιμα. Ο μεταγλωττιστής αντέδρασε εκχύνοντας
-(spilling) τον state vector στη στοίβα σε κάθε γύρο, προσθέτοντας
+(spilling) τον state vector στο stack σε κάθε γύρο, προσθέτοντας
 $48 \times \insn{vse64.v} + 48 \times \insn{vle64.v}$ — κόστος που
 υπερέβαινε τις \num{96} φορτώσεις δεικτών που υποτίθεται ότι εξαλείφθηκαν.
 Η μετρούμενη παλινδρόμηση ήταν $+\num{47663}$ \instret στο \Decaps path.
@@ -500,7 +500,7 @@ $2^M = 256$ σημεία του $\GF{2^8}$ μέσω αναδρομικής radix
 Ο μετασχηματισμός εξαλείφει $\BigO{2^M}$ κλήσεις συναρτήσεων (function
 call overhead: prologue/epilogue, stack frame allocation, argument passing)
 και αντικαθιστά τις με explicit level-loops επί compile-time-bounded
-arrays. Η μνήμη εργασίας εκχωρείται στη στοίβα με σταθερά μεγέθη
+arrays. Η μνήμη εργασίας εκχωρείται στο stack με σταθερά μεγέθη
 καθοριζόμενα από \code{PARAM\_M} και \code{PARAM\_FFT} — χωρίς heap
 allocation.
 
@@ -810,7 +810,7 @@ linker script και η διανυσματοποίηση των runtime memory r
 
 \paragraph{Linker-Level Alignment.}
 Ο linker script (\code{sim/common/link.ld}) εφαρμόζει \code{ALIGN(8)}
-στα sections \code{.data} και \code{.bss}, ενώ η στοίβα ξεκινά σε σύνορο
+στα sections \code{.data} και \code{.bss}, ενώ το stack ξεκινά σε σύνορο
 \code{ALIGN(16)}. Η πολιτική αυτή εγγυάται ότι κάθε stack-allocated
 \code{uint64\_t} array (πολυωνυμικοί buffers, ενδιάμεσα Keccak state)
 βρίσκεται σε φυσική ευθυγράμμιση 8~bytes — προϋπόθεση για τη fast-path

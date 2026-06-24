@@ -19,9 +19,7 @@
 \node[process, right=2.5cm of vcheck] (venable) {Enable Vector Unit\\\texttt{csrs mstatus, 0x600}\\+ \texttt{vsetvli}};
 \node[process, below=1.5cm of vcheck] (bss) {Zero BSS segment\\(\texttt{\_bss\_start} → \texttt{\_bss\_end})};
 \node[process, below=of bss] (main) {Call \texttt{main()}\\(argc=0, argv=NULL)};
-\node[process, below=of main] (kem) {HQC KEM execution\\(KeyGen / Encaps / Decaps)};
-\node[process, below=of kem] (instret) {Read \texttt{minstret}\\(CSR \texttt{0xb02})};
-\node[startstop, below=of instret] (exit) {HTIF exit\\(\texttt{tohost} write)};
+\node[startstop, below=of main] (exit) {HTIF exit\\(\texttt{tohost} write)};
 
 % Arrows
 \draw[arrow] (reset) -- (sp);
@@ -30,8 +28,6 @@
 \draw[arrow] (vcheck) -- node[above, font=\scriptsize] {yes} (venable);
 \draw[arrow] (venable) |- (bss);
 \draw[arrow] (bss) -- (main);
-\draw[arrow] (main) -- (kem);
-\draw[arrow] (kem) -- (instret);
-\draw[arrow] (instret) -- (exit);
+\draw[arrow] (main) -- (exit);
 
 \end{tikzpicture}
