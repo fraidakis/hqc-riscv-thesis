@@ -396,8 +396,57 @@ pgo_mul:
 pgo_clean:
 	rm -rf $(OUTDIR)/pgo_data
 
+# ── Profile targets (harness-free, for perf record task-clock profiling) ──────
+# These binaries contain NO perf_event_open harness — just a tight loop calling
+# the target function.  Compiled at -O3 -fno-omit-frame-pointer -g for frame-
+# pointer call graphs with full inlining (no -fno-inline, no -pg).
+#
+# Usage:
+#   make -f Makefile.hw SUITE=bench LEVEL=128 POLYMUL=scalar_zb profile_mul
+#   perf record -e task-clock -F 4999 --call-graph fp -- taskset -c 7 ./build-hw/bench_profile_mul_hqc128_scalar_zb
+
+PROFILE_CFLAGS := -O3 -fno-omit-frame-pointer -g -static -march=$(MARCH) -mabi=lp64d \
+                  -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
+                  -DHQC_PLATFORM_HW=1 -DHQC_BENCH_MODE=1 \
+                  -DPOLYMUL_NAME=\"$(POLYMUL)\" \
+                  $(EXTRA_CFLAGS)
+
+ifeq ($(LTO),1)
+  PROFILE_CFLAGS += -flto
+  ifeq ($(CC),clang)
+    PROFILE_CFLAGS += -fuse-ld=lld
+  endif
+endif
+
+# N_PROFILE: target ~2-5s at 1.6 GHz for >5000 samples at 4999 Hz
+# mul is fast (~160K cycles) → need many iterations
+# kem is slow (~millions of cycles) → fewer iterations suffice
+N_PROFILE_MUL ?= 50000
+N_PROFILE_KEM ?= 2000
+
+PROFILE_MUL_BIN    := $(OUTDIR)/bench_profile_mul_hqc$(LEVEL)_$(POLYMUL)
+PROFILE_KEM_BIN    := $(OUTDIR)/bench_profile_kem_hqc$(LEVEL)_$(POLYMUL)
+
+PROFILE_MUL_SOURCES := $(BENCH_DIR)/bench_profile_mul.c $(POLYMUL_SRC)
+PROFILE_KEM_SOURCES := $(BENCH_DIR)/bench_profile_kem.c $(KEM_CHAIN)
+
+.PHONY: profile_mul profile_kem
+
+profile_mul: $(PROFILE_MUL_BIN)
+profile_kem: $(PROFILE_KEM_BIN)
+
+$(PROFILE_MUL_BIN): $(PROFILE_MUL_SOURCES)
+	$(CC) $(PROFILE_CFLAGS) -DN_PROFILE=$(N_PROFILE_MUL) \
+	    $(INCLUDES) $(PROFILE_MUL_SOURCES) -lm -o $@
+	@echo "Built (profile): $@ ($(POLYMUL), HQC-$(LEVEL), N_PROFILE=$(N_PROFILE_MUL))"
+
+$(PROFILE_KEM_BIN): $(PROFILE_KEM_SOURCES)
+	$(CC) $(PROFILE_CFLAGS) -DN_PROFILE=$(N_PROFILE_KEM) \
+	    $(INCLUDES) -I$(VENDOR)/lib/fips202 $(PROFILE_KEM_SOURCES) -lm -o $@
+	@echo "Built (profile): $@ ($(POLYMUL), HQC-$(LEVEL), N_PROFILE=$(N_PROFILE_KEM))"
+
 clean:
-	rm -f $(OUTDIR)/bench_hw_*
+	rm -f $(OUTDIR)/bench_hw_* $(OUTDIR)/bench_profile_*
 
 
 # ══════════════════════════════════════════════════════════════════════════════

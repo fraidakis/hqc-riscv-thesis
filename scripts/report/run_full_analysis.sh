@@ -228,7 +228,6 @@ generate_report() {
 
     local trace_hotspots_csv="${REPO_ROOT}/results/simulation/profiling/traces/${new_variant_dir}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_hotspots_latest.csv"
     local trace_lines_csv="${REPO_ROOT}/results/simulation/profiling/traces/${new_variant_dir}/trace_kem_L${REPORT_LEVEL}_${variant_slug}_lines_latest.csv"
-    local histogram_csv="${REPO_ROOT}/results/simulation/profiling/histograms/${new_variant_dir}/histogram_kem_L${REPORT_LEVEL}_${variant_slug}_latest.csv"
 
     local compiler_csv="${REPO_ROOT}/results/hardware/benchmarks/compiler_compare/hw_compiler_compare_${variant_slug}_latest.csv"
 
@@ -245,7 +244,6 @@ generate_report() {
     local tmp_memory
     local tmp_trace_hot
     local tmp_trace_lines
-    local tmp_histogram
     local tmp_compiler
     local tmp_vlen_128
     local tmp_vlen_192
@@ -260,7 +258,6 @@ generate_report() {
     tmp_memory="$(mktemp)"
     tmp_trace_hot="$(mktemp)"
     tmp_trace_lines="$(mktemp)"
-    tmp_histogram="$(mktemp)"
     tmp_compiler="$(mktemp)"
     tmp_vlen_128="$(mktemp)"
     tmp_vlen_192="$(mktemp)"
@@ -269,7 +266,7 @@ generate_report() {
     tmp_cc_192="$(mktemp)"
     tmp_cc_256="$(mktemp)"
 
-    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}" "${tmp_histogram:-}" "${tmp_compiler:-}" "${tmp_vlen_128:-}" "${tmp_vlen_192:-}" "${tmp_vlen_256:-}" "${tmp_cc_128:-}" "${tmp_cc_192:-}" "${tmp_cc_256:-}" "${tmp_report:-}"' RETURN
+    trap 'rm -f "${tmp_poly:-}" "${tmp_kem:-}" "${tmp_cache:-}" "${tmp_memory:-}" "${tmp_trace_hot:-}" "${tmp_trace_lines:-}" "${tmp_compiler:-}" "${tmp_vlen_128:-}" "${tmp_vlen_192:-}" "${tmp_vlen_256:-}" "${tmp_cc_128:-}" "${tmp_cc_192:-}" "${tmp_cc_256:-}" "${tmp_report:-}"' RETURN
 
     if [[ -f "$poly_csv" ]]; then
         awk -F',' '
@@ -345,18 +342,6 @@ generate_report() {
     fi
     if [[ ! -s "$tmp_trace_lines" ]]; then
         rm -f "$tmp_trace_lines"
-    fi
-
-    if [[ -f "$histogram_csv" ]]; then
-        awk -F',' '
-            BEGIN { OFS=","; hdr=0 }
-            /^#/ { next }
-            !hdr { print $0; hdr=1; next }
-            { print $0 }
-        ' "$histogram_csv" | head -n 21 > "$tmp_histogram" || true
-    fi
-    if [[ ! -s "$tmp_histogram" ]]; then
-        rm -f "$tmp_histogram"
     fi
 
     # compiler compare CSV — drop binary path (col 8) and error message (col 9)
@@ -449,7 +434,6 @@ generate_report() {
 
     append_table_or_note "$tmp_report" "Function-Level Hotspots (Top 20 Rows)" "$tmp_trace_hot"
     append_table_or_note "$tmp_report" "Line-Level Hotspots (Top 20 Rows)" "$tmp_trace_lines"
-    append_table_or_note "$tmp_report" "Basic Block Histogram (Top 20)" "$tmp_histogram"
 
     if [[ "$TRACK" == "vector" ]]; then
         {
@@ -573,48 +557,45 @@ run_variant_analysis() {
     run_step_with_timer 5 14 "Trace profiler (function-level)" \
         ./scripts/bench/run_profile.sh --trace --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_step_with_timer 6 14 "Trace profiler (line-level)" \
+    run_step_with_timer 6 13 "Trace profiler (line-level)" \
         ./scripts/bench/run_profile.sh --trace --lines --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
 
-    run_step_with_timer 7 14 "Histogram profiler" \
-        ./scripts/bench/run_profile.sh --histogram --variant "$MUL_VARIANT" --keccak "$KECCAK_IMPL" --decode "$DECODE_IMPL" --level "$LEVEL"
-
     if [[ "$TRACK" == "vector" ]]; then
-        run_step_with_timer 8 14 "VLEN scaling sweep (256/512/1024/2048)" \
+        run_step_with_timer 7 13 "VLEN scaling sweep (256/512/1024/2048)" \
             ./scripts/bench/run_bench.sh --platform sim --mode mul --variant "$MUL_VARIANT" --level all
     else
-        printf "[8/14] ⏭  VLEN scaling sweep (skipped: scalar variant)\n"
+        printf "[7/13] ⏭  VLEN scaling sweep (skipped: scalar variant)\n"
     fi
 
-    run_step_with_timer 9 14 "Compiler comparison (Clang vs GCC)" \
+    run_step_with_timer 8 13 "Compiler comparison (Clang vs GCC)" \
         ./scripts/bench/run_bench.sh --platform sim --mode mul --variant "$MUL_VARIANT"
 
-    run_step_with_timer 10 14 "Generate speedups report" \
+    run_step_with_timer 9 13 "Generate speedups report" \
         python3 ./scripts/report/generate_speedups.py --platform sim
 
-    run_step_with_timer 11 14 "Generate compiler analysis report" \
+    run_step_with_timer 10 13 "Generate compiler analysis report" \
         python3 ./scripts/report/generate_compiler_compare.py
 
-    run_step_with_timer 12 14 "Generate Markdown report" \
+    run_step_with_timer 11 13 "Generate Markdown report" \
         generate_reports
 
-    # Step 13: Generate hardware speedups report (conditional on hardware data)
+    # Step 12: Generate hardware speedups report (conditional on hardware data)
     local hw_data_dir="${REPO_ROOT}/results/hardware/benchmarks"
     if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
-        run_step_with_timer 13 14 "Generate hardware speedups report" \
+        run_step_with_timer 12 13 "Generate hardware speedups report" \
             python3 ./scripts/report/generate_speedups.py --platform hw
     else
-        printf "[13/14] ⏭  Hardware speedups report (skipped: no hardware data)\n"
+        printf "[12/13] ⏭  Hardware speedups report (skipped: no hardware data)\n"
     fi
 
-    # Step 14: Generate cross-platform comparison report (conditional on both Spike + HW data)
+    # Step 13: Generate cross-platform comparison report (conditional on both Spike + HW data)
     local spike_data_dir="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul"
     if find "$hw_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q . \
        && find "$spike_data_dir" -path '*/*_latest.csv' -print -quit 2>/dev/null | grep -q .; then
-        run_step_with_timer 14 14 "Generate cross-platform comparison report" \
+        run_step_with_timer 13 13 "Generate cross-platform comparison report" \
             python3 ./scripts/report/generate_speedups.py --platform cross
     else
-        printf "[14/14] ⏭  Cross-platform comparison report (skipped: missing Spike or hardware data)\n"
+        printf "[13/13] ⏭  Cross-platform comparison report (skipped: missing Spike or hardware data)\n"
     fi
 }
 

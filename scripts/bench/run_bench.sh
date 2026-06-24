@@ -639,7 +639,7 @@ case "$PLATFORM" in
                     # No extra component args needed
                     ;;
             esac
-            if ! build_log=$(run_cmd "cd $dir && make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY EXTENDED=1 $extra_args clean >/dev/null 2>&1; make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY EXTENDED=1 $extra_args $target 2>&1"); then
+            if ! build_log=$(run_cmd "cd $dir && make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY EXTENDED=0 $extra_args clean >/dev/null 2>&1; make -f Makefile.hw SUITE=bench LEVEL=$level POLYMUL=$polymul MODE=$QUALITY EXTENDED=0 $extra_args $target 2>&1"); then
                 echo " ├── ❌ BUILD FAIL (level=$level)" >&2
                 echo "$build_log" | tail -5 >&2
                 return 1

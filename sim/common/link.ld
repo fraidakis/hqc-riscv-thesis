@@ -63,8 +63,10 @@ SECTIONS
     /* ── Stack (grows downward) ─────────────────────────────────── */
     .stack (NOLOAD) : ALIGN(16) {
         _stack_bottom = .;
-        . += 512K;     /* 512 KB: vect_mul alone needs ~40 KB tmp_buffer; */
-                       /* full keygen/enc/dec call chain needs ~70 KB.     */
+        . += 512K;     /* 512 KB stack. Worst-case frames (array sizes only):       */
+                       /*   HQC-128: vect_mul frame ~40 KB, peak kem_dec chain ~60 KB; */
+                       /*   HQC-256: vect_mul frame ~130 KB, peak kem_dec chain ~200 KB.*/
+                       /* Leaves comfortable headroom above the HQC-256 worst case.    */
         _stack_top = .;
     } > RAM
 

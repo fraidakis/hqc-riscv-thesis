@@ -6,13 +6,11 @@
 #   --cache      Spike D$ profiling
 #   --memory     QEMU memory-traffic profiling
 #   --trace      Spike trace + hotspot mapping
-#   --histogram  Spike PC histogram pipeline
 #
 # Examples:
 #   scripts/bench/run_profile.sh --cache --variant scalar_zb --level 128
 #   scripts/bench/run_profile.sh --memory --variant vector_rvv --level 192
 #   scripts/bench/run_profile.sh --trace --variant scalar_zb
-#   scripts/bench/run_profile.sh --histogram --variant scalar_zb --report
 
 set -euo pipefail
 
@@ -49,6 +47,14 @@ COMPARE_WITH=""
 CONTEXT_FLAG=0
 PROFILE_POLYMUL=0
 PROFILE_LINES=0
+
+# Hardware profiling options
+PLATFORM="sim"
+HW_MODE="kem"
+QUALITY="dev"
+REMOTE=""
+REMOTE_EXPLICIT=0
+LOCAL_MODE=0
 
 format_int() {
     local n="${1:-0}"
@@ -450,18 +456,133 @@ profile_trace_mode() {
     cleanup_profile_trace_mode
 }
 
-profile_histogram_mode() {
-    if [[ -z "$MUL_VARIANT" ]]; then
-    echo "ERROR: --histogram requires --variant <variant>" >&2
-        exit 2
+# ══════════════════════════════════════════════════════════════════════════════
+# Hardware profiling: shared SSH/deploy infrastructure
+# ══════════════════════════════════════════════════════════════════════════════
+_hw_profile_setup() {
+    # Sets up shared variables for all hw profiling modes.
+    # Called once at the top of each hw mode function.
+    local creds_file="${REPO_ROOT}/docs/hardware/BPI-F3/bpi-f3-credentials.env"
+    _hw_bpi_pass=""
+    if [[ -f "$creds_file" ]]; then
+        source "$creds_file"
+        _hw_bpi_pass="${BPI_PASS:-}"
     fi
 
-    bench_load_implemented_variants "$REPO_ROOT"
+    # Auto-detect local mode on riscv64
+    if [[ "$(uname -m)" == "riscv64" && "$REMOTE_EXPLICIT" -eq 0 ]]; then
+        LOCAL_MODE=1
+    fi
+    if [[ "$REMOTE_EXPLICIT" -eq 0 && "$LOCAL_MODE" -eq 0 ]]; then
+        REMOTE="${BPI_USER:-root}@${BPI_HOST:-192.168.1.50}"
+    fi
+    if [[ "$LOCAL_MODE" -eq 0 && -z "$REMOTE" ]]; then
+        echo "ERROR: Not on riscv64 — specify --remote HOST or --local" >&2
+        exit 1
+    fi
 
-    local riscv="${RISCV:-$HOME/Thesis/installed-tools}"
-    local spike="${riscv}/bin/spike"
-    local isa="rv64gcv_zbc_zbb_zbs_zba_zbkb_zvbc_zvbb_zvl256b"
-    local build_dir="$REPO_ROOT/build/spike/trace"
+    # SSH transport
+    _hw_use_sshpass=0
+    if [[ "$LOCAL_MODE" -eq 0 && -n "$REMOTE" ]]; then
+        if ssh -o ConnectTimeout=5 -o BatchMode=yes "$REMOTE" true 2>/dev/null; then
+            _hw_use_sshpass=0
+        elif [[ -n "$_hw_bpi_pass" ]] && command -v sshpass &>/dev/null; then
+            _hw_use_sshpass=1
+        else
+            echo "ERROR: Cannot connect to ${REMOTE} via SSH." >&2
+            exit 2
+        fi
+    fi
+}
+
+_hw_ssh() {
+    if [[ "$_hw_use_sshpass" -eq 1 ]]; then
+        sshpass -p "$_hw_bpi_pass" ssh -o StrictHostKeyChecking=no "$@"
+    else
+        ssh -o StrictHostKeyChecking=no "$@"
+    fi
+}
+
+_hw_rsync() {
+    if [[ "$_hw_use_sshpass" -eq 1 ]]; then
+        sshpass -p "$_hw_bpi_pass" rsync -e "ssh -o StrictHostKeyChecking=no" "$@"
+    else
+        rsync -e "ssh -o StrictHostKeyChecking=no" "$@"
+    fi
+}
+
+_hw_run_cmd() {
+    if [[ "$LOCAL_MODE" -eq 1 ]]; then
+        eval "$1"
+    else
+        _hw_ssh "$REMOTE" "$1"
+    fi
+}
+
+_hw_deploy() {
+    if [[ "$LOCAL_MODE" -eq 1 ]]; then return; fi
+    echo "[deploy] Syncing to ${REMOTE}..."
+    _hw_rsync -az --delete \
+        --exclude='.venv' --exclude='build*' --exclude='.git' \
+        --exclude='__pycache__' --exclude='.hypothesis' \
+        --exclude='results' --exclude='.tmp' \
+        "${REPO_ROOT}/" "${REMOTE}:~/hqc-riscv/"
+    echo "[deploy] Done."
+}
+
+_hw_set_governor() {
+    _hw_run_cmd "echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true"
+}
+
+_hw_ensure_paranoid() {
+    local val
+    val="$(_hw_run_cmd 'cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo 3')"
+    if [[ "$val" =~ ^[0-9]+$ ]] && [[ "$val" -gt 1 ]]; then
+        _hw_run_cmd "sudo sysctl -w kernel.perf_event_paranoid=1 >/dev/null 2>&1 || true"
+    fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Hardware profiling mode: --counters (EXTENDED perf_event_open per-region)
+# ══════════════════════════════════════════════════════════════════════════════
+profile_counters_hw_mode() {
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
+    local core="7"
+
+    _hw_profile_setup
+    _hw_deploy
+    _hw_set_governor
+    _hw_ensure_paranoid
+
+    local remote_dir="~/hqc-riscv"
+    local n_iter n_warmup
+    if [[ "$QUALITY" == "publish" ]]; then
+        n_iter=10000; n_warmup=100
+    else
+        n_iter=100; n_warmup=10
+    fi
+
+    # Determine components to profile
+    local components=()
+    case "$HW_MODE" in
+        all)     components=(kem mul keccak decode) ;;
+        kem)     components=(kem) ;;
+        mul)     components=(mul) ;;
+        keccak)  components=(keccak) ;;
+        decode)  components=(decode) ;;
+        *)       components=(kem) ;;
+    esac
+
+    local out_base="$REPO_ROOT/results/hardware/profiling/counters/$(variant_to_dir "$variant")"
+    mkdir -p "$out_base"
+
+    echo -e "\n╔══════════════════════════════════════════════════════════════╗"
+    printf  "║  %-60s║\n" "Hardware Profiling: Counters (EXTENDED perf_event_open)"
+    printf  "║  %-60s║\n" "Variant: ${variant}  Quality: ${QUALITY}  Target: ${REMOTE:-local}"
+    echo    "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+
     local target_levels=()
     if [[ "$LEVEL" == "all" ]]; then
         target_levels=(128 192 256)
@@ -469,114 +590,412 @@ profile_histogram_mode() {
         target_levels=("$LEVEL")
     fi
 
-    local BENCH_TIME
-    BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
-    local profile_kind="KEM"
-    local target_prefix="bench"
-    local out_prefix="kem"
-    if [[ "$PROFILE_POLYMUL" == "1" ]]; then
-        profile_kind="PolyMul"
-        target_prefix="bench_polymul"
-        out_prefix="poly"
-    fi
+    for component in "${components[@]}"; do
+        echo "📦 ${variant} / ${component}"
 
-    local variant="${MUL_VARIANT:-scalar_zb}"
-    local variant_slug="$(bench_variant_slug "$variant")"
-    local out_dir="${REPO_ROOT}/results/simulation/profiling/histograms/$(variant_to_dir "$variant")"
+        local total_levels="${#target_levels[@]}"
+        local idx=0
 
-    if ! bench_require_executable "$spike" "Spike not found"; then
-        echo "       Source toolchain/toolchain.env or set RISCV" >&2
-        exit 2
-    fi
+        for level in "${target_levels[@]}"; do
+            idx=$((idx + 1))
 
-    mkdir -p "$out_dir"
+            # Build with EXTENDED=1
+            local make_base="make -f Makefile.hw SUITE=bench LEVEL=${level} POLYMUL=${variant} MODE=${QUALITY} EXTENDED=1"
+            _hw_run_cmd "cd ${remote_dir} && ${make_base} clean >/dev/null 2>&1; ${make_base} ${component} >/dev/null 2>&1"
 
-    cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
-        -DRISCV="$riscv" \
-        -DHQC_SIM=spike \
-        -DHQC_TRACE_MODE=1 \
-        -DHQC_KECCAK_IMPL="${KECCAK_IMPL:-ref}" \
-        -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" >/dev/null 2>&1
+            # Determine binary name
+            local bin_name
+            case "$component" in
+                kem)     bin_name="build-hw/bench_hw_kem_hqc${level}_${variant}" ;;
+                mul)     bin_name="build-hw/bench_hw_mul_hqc${level}_${variant}" ;;
+                keccak)  bin_name="build-hw/bench_hw_keccak_hqc${level}" ;;
+                decode)  bin_name="build-hw/bench_hw_decode_hqc${level}_ref" ;;
+            esac
 
-    echo -e "\n📦 ${variant} (histogram - ${profile_kind})"
-
-    local total_levels="${#target_levels[@]}"
-    local idx=0
-    local latest_status_tmp
-    latest_status_tmp="$(mktemp)"
-
-    for level in "${target_levels[@]}"; do
-        idx=$((idx + 1))
-        local target="${target_prefix}_hqc${level}_${variant}"
-        bench_build_target_if_configured "$build_dir" "$target" "histogram" >/dev/null 2>&1 || true
-
-        local elf="${build_dir}/${target}.elf"
-        if [[ ! -f "$elf" ]]; then
-            # Auto-configure and build if ELF is missing
-            if ! bench_auto_configure_and_build "$build_dir" "$REPO_ROOT" "$target" "spike" "1" "histogram"; then
-                echo "ERROR: Failed to auto-configure and build $elf" >&2
+            if ! _hw_run_cmd "test -f ${remote_dir}/${bin_name}" 2>/dev/null; then
+                echo " ├── ❌ BUILD FAIL (${component}, L${level})"
                 continue
             fi
-            if [[ ! -f "$elf" ]]; then
-                echo "ERROR: Missing ELF $elf" >&2
+
+            # Execute and capture the binary's own CSV output
+            local exec_prefix="sudo nice -n -20 taskset -c ${core}"
+            local raw_output
+            raw_output="$(_hw_run_cmd "cd ${remote_dir} && ${exec_prefix} ./${bin_name} 2>/dev/null")"
+
+            if [[ -z "$raw_output" ]]; then
+                echo " ├── ❌ EXEC FAIL (${component}, L${level})"
                 continue
             fi
-        fi
 
-        local hist="${out_dir}/${out_prefix}_hqc${level}_${variant}_hist.txt"
-        local mix_file="${out_dir}/histogram_${out_prefix}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
-        local objdump_bin="${RISCV:-$HOME/Thesis/installed-tools}/bin/llvm-objdump"
+            # Store raw output
+            local csv_out="${out_base}/counters_${component}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
+            local csv_latest="${out_base}/counters_${component}_L${level}_${variant_slug}_latest.csv"
 
-        "$spike" --isa="$isa" -g "$elf" >/dev/null 2> "$hist"
+            {
+                echo "# date: $(date +'%Y-%m-%d %H:%M')"
+                echo "# commit: ${GIT_HASH}"
+                echo "# variant: ${variant}"
+                echo "# level: ${level}"
+                echo "# component: ${component}"
+                echo "# quality: ${QUALITY}"
+                echo "# n_iter: ${n_iter}"
+                echo "# n_warmup: ${n_warmup}"
+                echo "# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)"
+                echo "# core: ${core}"
+                echo "# governor: performance"
+                echo "$raw_output"
+            } > "$csv_out"
 
-        # Write CSV preamble, then parse mnemonics and auto-delete raw log
-        echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$mix_file"
-        echo "# commit: ${GIT_HASH}" >> "$mix_file"
-        echo "# variant: ${variant}" >> "$mix_file"
-        echo "# level: ${level}" >> "$mix_file"
-        python3 "$REPO_ROOT/scripts/report/parse_histogram.py" "$hist" "$elf" "$objdump_bin" >> "$mix_file"
-        rm -f "$hist"
-        local prefix=" ├──"
-        if [[ "$idx" -eq "$total_levels" ]]; then prefix=" └──"; fi
-        echo "${prefix} L${level} ⋯ $(basename "$mix_file")"
-        if ! bench_refresh_tracked_csv_quiet "$mix_file" "${out_dir}/histogram_${out_prefix}_L${level}_${variant_slug}_latest.csv" >> "$latest_status_tmp"; then
-            true
-        fi
-        if [[ "$REPORT_FLAG" -eq 1 ]]; then
-            cat "$mix_file" | head -n "$(( ${TOP_N:-20} + 3 ))"
-            echo ""
-        fi
+            bench_refresh_tracked_csv_quiet "$csv_out" "$csv_latest" >/dev/null 2>&1 || true
+
+            # Print summary (extract median cycles from output)
+            local med_cycles
+            med_cycles="$(echo "$raw_output" | grep -v '^#' | grep -v '^op,' | head -1 | awk -F',' '{print $4}')"
+            local branch="├──"
+            if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
+            echo " ${branch} L${level} ⋯ median_cycles=${med_cycles:-?}"
+
+        done
+        echo ""
     done
 
-    echo ""
-    if grep -q '^UPDATED|' "$latest_status_tmp"; then
-        grep '^UPDATED|' "$latest_status_tmp" | tail -n 1 | cut -d'|' -f2-
-    elif [[ -s "$latest_status_tmp" ]]; then
-        tail -n 1 "$latest_status_tmp" | cut -d'|' -f2-
-    fi
-    rm -f "$latest_status_tmp"
+    # ── Compute derived metrics ──────────────────────────────────────────
+    echo "[derived] Computing miss rates, MPKI, stall%, vector%..."
+    python3 "${REPO_ROOT}/scripts/report/compute_derived_counters.py" \
+        --input-dir "$out_base" \
+        --variant "$variant" \
+        --levels "$(IFS=,; echo "${target_levels[*]}")" 2>/dev/null || \
+        echo "  ⚠ Derived metric computation skipped (script not ready or parse error)"
 
     echo ""
-    echo "✔️ Saved: ${out_dir}"
+    echo " Output: ${out_base}/"
+    echo ""
 }
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Hardware profiling mode: --hotspots (task-clock sampling, flame graphs)
+# ══════════════════════════════════════════════════════════════════════════════
+profile_hotspots_hw_mode() {
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
+    local core="7"
+
+    _hw_profile_setup
+    _hw_deploy
+    _hw_set_governor
+    _hw_ensure_paranoid
+
+    local remote_dir="~/hqc-riscv"
+
+    # Determine components to profile
+    local components=()
+    case "$HW_MODE" in
+        all)     components=(kem mul) ;;
+        kem)     components=(kem) ;;
+        mul)     components=(mul) ;;
+        keccak)  components=(keccak) ;;
+        decode)  components=(decode) ;;
+        *)       components=(mul) ;;
+    esac
+
+    local out_base="$REPO_ROOT/results/hardware/profiling/hotspots/$(variant_to_dir "$variant")"
+    mkdir -p "$out_base"
+
+    echo -e "\n╔══════════════════════════════════════════════════════════════╗"
+    printf  "║  %-60s║\n" "Hardware Profiling: Hotspots (task-clock sampling)"
+    printf  "║  %-60s║\n" "Variant: ${variant}  Target: ${REMOTE:-local}"
+    printf  "║  %-60s║\n" "Method: perf record -e task-clock -F 4999 --call-graph fp"
+    echo    "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    local target_levels=()
+    if [[ "$LEVEL" == "all" ]]; then
+        target_levels=(128 192 256)
+    else
+        target_levels=("$LEVEL")
+    fi
+
+    for component in "${components[@]}"; do
+        echo "📦 ${variant} / ${component} (hotspots)"
+
+        local total_levels="${#target_levels[@]}"
+        local idx=0
+
+        for level in "${target_levels[@]}"; do
+            idx=$((idx + 1))
+
+            # Build profile binary (harness-free, -O3 -fno-omit-frame-pointer -g)
+            local profile_target="profile_${component}"
+            local make_base="make -f Makefile.hw SUITE=bench LEVEL=${level} POLYMUL=${variant}"
+
+            _hw_run_cmd "cd ${remote_dir} && ${make_base} clean >/dev/null 2>&1; ${make_base} ${profile_target} >/dev/null 2>&1"
+
+            # Determine binary name
+            local bin_name="build-hw/bench_profile_${component}_hqc${level}_${variant}"
+
+            if ! _hw_run_cmd "test -f ${remote_dir}/${bin_name}" 2>/dev/null; then
+                echo " ├── ❌ BUILD FAIL (profile_${component}, L${level})"
+                continue
+            fi
+
+            # Run perf record with task-clock
+            local perf_data="/tmp/perf_hotspot_${component}_${level}_${variant_slug}.data"
+            local exec_cmd="cd ${remote_dir} && perf record -e task-clock -F 4999 --call-graph fp -o ${perf_data} -- sudo nice -n -20 taskset -c ${core} ./${bin_name} 2>/dev/null"
+
+            _hw_run_cmd "$exec_cmd" >/dev/null 2>&1
+
+            # Extract sample count
+            local sample_count
+            sample_count="$(_hw_run_cmd "perf report -i ${perf_data} --stdio 2>&1 | grep '# Samples:' | sed 's/.*# Samples: *//;s/ of .*//' | head -1" 2>/dev/null || echo "?")"
+            sample_count="${sample_count:-?}"
+
+            # Extract hotspot report (filter kernel/libc/ioctl/harness)
+            local report_raw
+            report_raw="$(_hw_run_cmd "perf report -i ${perf_data} --stdio --no-children --percent-limit 0.5 2>&1")"
+
+            # Parse into CSV
+            local csv_out="${out_base}/hotspots_${component}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
+            local csv_latest="${out_base}/hotspots_${component}_L${level}_${variant_slug}_latest.csv"
+
+            {
+                echo "# date: $(date +'%Y-%m-%d %H:%M')"
+                echo "# commit: ${GIT_HASH}"
+                echo "# variant: ${variant}"
+                echo "# level: ${level}"
+                echo "# component: ${component}"
+                echo "# method: perf record -e task-clock -F 4999 --call-graph fp"
+                echo "# binary: ${bin_name} (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)"
+                echo "# samples: ${sample_count}"
+                echo "# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)"
+                echo "# note: harness-free binary (no perf_event_open/ioctl overhead)"
+                echo "function,self_pct,samples"
+            } > "$csv_out"
+
+            # Parse perf report output into CSV rows, filtering kernel/system
+            echo "$report_raw" | python3 -c "
+import sys, re
+for line in sys.stdin:
+    line = line.strip()
+    # Match lines like: '  46.14%  bench_hw_mul_hq  bench_hw_mul_hqc128_scalar_zb  [.] clmul_leaf.constprop.1'
+    m = re.match(r'^\s*([\d.]+)%\s+\S+\s+\S+\s+\[(.)\]\s+(.+)', line)
+    if not m:
+        continue
+    pct, space, func = m.group(1), m.group(2), m.group(3)
+    # Filter kernel symbols [k], unknown addresses, and system functions
+    if space == 'k':
+        continue
+    if func.startswith('0x'):
+        continue
+    # Filter measurement harness and system symbols
+    skip_prefixes = ('perf_hw_', 'ioctl', '__syscall', '__internal_syscall',
+                     '__libc_start', '_start', '__GI_', 'read', 'write',
+                     '__clock_gettime', 'clock_gettime')
+    if any(func.startswith(p) for p in skip_prefixes):
+        continue
+    if float(pct) < 0.5:
+        continue
+    # Estimate samples from percentage (approximate)
+    print(f'{func},{pct},')
+" >> "$csv_out"
+
+            bench_refresh_tracked_csv_quiet "$csv_out" "$csv_latest" >/dev/null 2>&1 || true
+
+            # Generate FlameGraph SVG if tools available
+            local svg_out="${out_base}/hotspots_${component}_L${level}_${variant_slug}_latest.svg"
+            local flamegraph_ok=0
+            if _hw_run_cmd "test -x ~/FlameGraph/flamegraph.pl" 2>/dev/null; then
+                local folded
+                folded="$(_hw_run_cmd "perf script -i ${perf_data} 2>/dev/null | ~/FlameGraph/stackcollapse-perf.pl --kernel 2>/dev/null | grep -v -E '^(ioctl|__syscall|perf_hw_|__libc_start|_start)' || true")"
+                if [[ -n "$folded" ]]; then
+                    echo "$folded" | _hw_ssh "$REMOTE" "cat | ~/FlameGraph/flamegraph.pl --title='${variant} ${component} L${level} (task-clock)' --width=1200" > "$svg_out" 2>/dev/null && flamegraph_ok=1
+                fi
+            fi
+
+            # Clean up remote perf data
+            _hw_run_cmd "rm -f ${perf_data}" 2>/dev/null || true
+
+            # Print summary
+            local branch="├──"
+            if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
+            local svg_note=""
+            if [[ "$flamegraph_ok" -eq 1 ]]; then svg_note=" + SVG"; fi
+            local sample_warning=""
+            # Parse sample count — handle "21K" "1.2M" and plain numbers
+            local sample_numeric="${sample_count}"
+            sample_numeric="${sample_numeric//,/}"
+            if [[ "$sample_numeric" =~ ^([0-9.]+)K$ ]]; then
+                sample_numeric=$(awk "BEGIN{printf \"%d\", ${BASH_REMATCH[1]} * 1000}")
+            elif [[ "$sample_numeric" =~ ^([0-9.]+)M$ ]]; then
+                sample_numeric=$(awk "BEGIN{printf \"%d\", ${BASH_REMATCH[1]} * 1000000}")
+            fi
+            if [[ "$sample_numeric" =~ ^[0-9]+$ ]] && [[ "$sample_numeric" -lt 1000 ]]; then
+                sample_warning=" ⚠ LOW SAMPLES"
+            fi
+            echo " ${branch} L${level} ⋯ ${sample_count} samples${svg_note}${sample_warning}"
+
+        done
+        echo ""
+    done
+
+    echo " Output: ${out_base}/"
+    echo ""
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Hardware profiling mode: --isa-mix (static instruction-mix from objdump)
+# ══════════════════════════════════════════════════════════════════════════════
+profile_isa_mix_hw_mode() {
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
+
+    _hw_profile_setup
+    _hw_deploy
+
+    local remote_dir="~/hqc-riscv"
+
+    # Determine components
+    local components=()
+    case "$HW_MODE" in
+        all)     components=(kem mul) ;;
+        kem)     components=(kem) ;;
+        mul)     components=(mul) ;;
+        keccak)  components=(keccak) ;;
+        decode)  components=(decode) ;;
+        *)       components=(mul) ;;
+    esac
+
+    local out_base="$REPO_ROOT/results/hardware/profiling/isa_mix/$(variant_to_dir "$variant")"
+    mkdir -p "$out_base"
+
+    echo -e "\n╔══════════════════════════════════════════════════════════════╗"
+    printf  "║  %-60s║\n" "Hardware Profiling: ISA Instruction Mix (objdump)"
+    printf  "║  %-60s║\n" "Variant: ${variant}  Target: ${REMOTE:-local}"
+    echo    "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    local target_levels=()
+    if [[ "$LEVEL" == "all" ]]; then
+        target_levels=(128 192 256)
+    else
+        target_levels=("$LEVEL")
+    fi
+
+    for component in "${components[@]}"; do
+        echo "📦 ${variant} / ${component} (ISA mix)"
+
+        local total_levels="${#target_levels[@]}"
+        local idx=0
+
+        for level in "${target_levels[@]}"; do
+            idx=$((idx + 1))
+
+            # Build the standard -O3 binary (same as bench, no frame pointers needed)
+            local make_base="make -f Makefile.hw SUITE=bench LEVEL=${level} POLYMUL=${variant} MODE=dev EXTENDED=0"
+            _hw_run_cmd "cd ${remote_dir} && ${make_base} clean >/dev/null 2>&1; ${make_base} ${component} >/dev/null 2>&1"
+
+            local bin_name
+            case "$component" in
+                kem)     bin_name="build-hw/bench_hw_kem_hqc${level}_${variant}" ;;
+                mul)     bin_name="build-hw/bench_hw_mul_hqc${level}_${variant}" ;;
+                keccak)  bin_name="build-hw/bench_hw_keccak_hqc${level}" ;;
+                decode)  bin_name="build-hw/bench_hw_decode_hqc${level}_ref" ;;
+            esac
+
+            if ! _hw_run_cmd "test -f ${remote_dir}/${bin_name}" 2>/dev/null; then
+                echo " ├── ❌ BUILD FAIL (${component}, L${level})"
+                continue
+            fi
+
+            # Run objdump and count instruction categories on the board
+            local isa_mix_raw
+            isa_mix_raw="$(_hw_run_cmd "cd ${remote_dir} && objdump -d ./${bin_name} | python3 scripts/report/parse_isa_mix.py")"
+
+            local csv_out="${out_base}/isa_mix_${component}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
+            local csv_latest="${out_base}/isa_mix_${component}_L${level}_${variant_slug}_latest.csv"
+
+            {
+                echo "# date: $(date +'%Y-%m-%d %H:%M')"
+                echo "# commit: ${GIT_HASH}"
+                echo "# variant: ${variant}"
+                echo "# level: ${level}"
+                echo "# component: ${component}"
+                echo "# binary: ${bin_name} (-O3, same as bench)"
+                echo "# platform: bpi-f3 (SpacemiT X60)"
+                echo "category,mnemonic,count"
+                echo "$isa_mix_raw"
+            } > "$csv_out"
+
+            bench_refresh_tracked_csv_quiet "$csv_out" "$csv_latest" >/dev/null 2>&1 || true
+
+            # Print summary
+            local zbc_count rvv_count total_count
+            zbc_count="$(grep 'summary,zbc_total' "$csv_out" 2>/dev/null | cut -d',' -f3 || echo 0)"
+            rvv_count="$(grep -E 'summary,rvv_(arith|load|store|config)_total' "$csv_out" 2>/dev/null | awk -F',' '{s+=$3}END{print s+0}' || echo 0)"
+            total_count="$(grep 'total,all_instructions' "$csv_out" 2>/dev/null | cut -d',' -f3 || echo 0)"
+
+            local branch_char="├──"
+            if [[ "$idx" -eq "$total_levels" ]]; then branch_char="└──"; fi
+            echo " ${branch_char} L${level} ⋯ total=${total_count} Zbc=${zbc_count:-0} RVV=${rvv_count:-0}"
+
+        done
+        echo ""
+    done
+
+    echo " Output: ${out_base}/"
+    echo ""
+}
+
+
 
 usage() {
     cat <<'EOF'
 Usage:
+  Simulation modes (--platform sim, default):
     run_profile.sh --cache [--variant V] [--level 128|192|256|all] [--polymul]
     run_profile.sh --memory [--variant V] [--level 128|192|256|all] [--polymul]
     run_profile.sh --trace [--variant V] [--level 128|192|256|all] [--polymul] [--lines]
-    run_profile.sh --histogram --variant <variant> [--polymul] [--report]
-             [--top N] [--compare-with set] [--context]
+
+  Hardware modes (--platform hw):
+    run_profile.sh --platform hw --counters [--variant V] [--level 128|192|256|all]
+                   [--component kem|mul|keccak|decode|all] [--quality dev|publish]
+                   [--remote HOST|--local]
+    run_profile.sh --platform hw --hotspots [--variant V] [--level 128|192|256|all]
+                   [--component kem|mul] [--remote HOST|--local]
+    run_profile.sh --platform hw --isa-mix [--variant V] [--level 128|192|256|all]
+                   [--component kem|mul] [--remote HOST|--local]
+
+Hardware profiling (--platform hw):
+  --counters         Per-region EXTENDED perf_event_open counters + derived metrics
+  --hotspots         task-clock sampling hotspots (perf record -e task-clock)
+  --isa-mix          Static ISA instruction-mix analysis (objdump)
+  --component C      Component to profile: kem, mul, keccak, decode, all (default: kem)
+  --quality Q        dev (100 iters) or publish (10000 iters) — default: dev
+  --remote HOST      Deploy and run on remote HOST via SSH
+  --local            Run directly on this machine (auto-detected on riscv64)
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --cache|--memory|--trace|--histogram)
+        --cache|--memory|--trace)
             MODE="${1#--}"
             shift
+            ;;
+        --counters)
+            MODE="counters"
+            shift
+            ;;
+        --hotspots)
+            MODE="hotspots"
+            shift
+            ;;
+        --isa-mix|--isa_mix|--isamix)
+            MODE="isa_mix"
+            shift
+            ;;
+        --platform)
+            PLATFORM="$2"
+            shift 2
             ;;
         --variant)
             MUL_VARIANT="$(bench_resolve_variant "$2")"
@@ -588,6 +1007,24 @@ while [[ $# -gt 0 ]]; do
         --level)
             LEVEL="$2"
             LEVEL_SET=1
+            shift 2
+            ;;
+        --quality)
+            QUALITY="$2"
+            shift 2
+            ;;
+        --remote)
+            REMOTE="$2"
+            REMOTE_EXPLICIT=1
+            LOCAL_MODE=0
+            shift 2
+            ;;
+        --local)
+            LOCAL_MODE=1
+            shift
+            ;;
+        --component|--mode)
+            HW_MODE="$2"
             shift 2
             ;;
         --report)
@@ -627,8 +1064,25 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$MODE" ]]; then
-    echo "ERROR: one of --cache|--memory|--trace|--histogram is required" >&2
+    echo "ERROR: one of --cache|--memory|--trace|--counters|--hotspots|--isa-mix is required" >&2
     usage >&2
+    exit 2
+fi
+
+# Validate platform
+if [[ "$PLATFORM" != "sim" && "$PLATFORM" != "hw" ]]; then
+    echo "ERROR: --platform must be 'sim' or 'hw', got: '$PLATFORM'" >&2
+    exit 2
+fi
+
+# hw modes auto-set platform
+if [[ "$MODE" == "counters" || "$MODE" == "hotspots" || "$MODE" == "isa_mix" ]]; then
+    PLATFORM="hw"
+fi
+
+# sim modes are only valid on sim platform
+if [[ "$PLATFORM" == "hw" && "$MODE" != "counters" && "$MODE" != "hotspots" && "$MODE" != "isa_mix" ]]; then
+    echo "ERROR: --platform hw supports --counters, --hotspots, --isa-mix" >&2
     exit 2
 fi
 
@@ -642,7 +1096,9 @@ run_mode_for_variant() {
         cache)     profile_cache_mode ;;
         memory)    profile_memory_mode ;;
         trace)     profile_trace_mode ;;
-        histogram) profile_histogram_mode ;;
+        counters)  profile_counters_hw_mode ;;
+        hotspots)  profile_hotspots_hw_mode ;;
+        isa_mix)   profile_isa_mix_hw_mode ;;
     esac
 }
 
@@ -675,8 +1131,6 @@ if [[ "$MUL_VARIANT" == "all" ]]; then
     batch_variants=("${IMPLEMENTED_VARIANTS[@]}")
 elif [[ -n "$MUL_VARIANT" ]]; then
     batch_variants=("$MUL_VARIANT")
-elif [[ "$MODE" == "histogram" ]]; then
-    batch_variants=("")
 else
     batch_variants=("scalar_zb")
 fi
