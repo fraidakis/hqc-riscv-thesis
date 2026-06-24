@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
         --mode)    MODE="$2"; shift 2 ;;
         --cc)      CC="$2"; shift 2 ;;
         --core)    CORE="$2"; shift 2 ;;
-        --polymul) POLYMUL="$2"; shift 2 ;;
+        --polymul) POLYMUL="$(bench_resolve_variant "$2")"; shift 2 ;;
         -h|--help)
             echo "Usage: $0 [--level 128|192|256] [--mode dev|publish] [--cc gcc] [--core 7] [--polymul scalar_ref|scalar_zb]"
             exit 0

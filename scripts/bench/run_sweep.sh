@@ -97,7 +97,7 @@ while [[ $# -gt 0 ]]; do
                 usage >&2
                 exit 1
             fi
-            VARIANT="$2"
+            VARIANT="$(bench_resolve_variant "$2")"
             shift 2
             ;;
         --values)

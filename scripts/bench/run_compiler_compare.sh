@@ -54,6 +54,8 @@ LOCAL_MODE=0
 
 # ── Argument parsing ─────────────────────────────────────────────────────────
 bench_parse_track_args "$@"   # sets MUL_VARIANT KECCAK_IMPL DECODE_IMPL
+# Resolve any legacy variant name to canonical form.
+MUL_VARIANT="$(bench_resolve_variant "${MUL_VARIANT:-}")"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -90,16 +92,10 @@ fi
 GIT_HASH="$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 BENCH_TIME="$(date +'%Y-%m-%d %H:%M')"
 
-# Canonical variant name embedded in CSV rows (matches old naming for compatibility)
+# Canonical variant name embedded in CSV rows.
 variant_csv_name() {
-    case "$1" in
-        scalar_ref) echo "ref_scalar" ;;
-        scalar_zb)  echo "karatsuba_zbc" ;;
-        vector_ref) echo "ref_vector" ;;
-        vector_rvv) echo "karatsuba_rvv" ;;
-        vector_zvk) echo "karatsuba_zvbc" ;;
-        *)          echo "$1" ;;
-    esac
+    # Use the canonical variant name directly — no legacy mapping needed.
+    echo "$1"
 }
 VARIANT_CSV_NAME="$(variant_csv_name "$MUL_VARIANT")"
 VARIANT_SLUG="$(bench_variant_slug "$MUL_VARIANT")"

@@ -12,6 +12,20 @@ bench_sanitize_label() {
     echo "$raw"
 }
 
+bench_resolve_variant() {
+    local raw="$1"
+    # Map legacy variant names to their canonical equivalents.
+    # If the name is already canonical or unknown, return it unchanged.
+    case "$raw" in
+        ref_scalar)      echo "scalar_ref" ;;
+        karatsuba_zbc)   echo "scalar_zb" ;;
+        ref_vector)      echo "vector_ref" ;;
+        karatsuba_rvv)   echo "vector_rvv" ;;
+        karatsuba_zvbc)  echo "vector_zvk" ;;
+        *)               echo "$raw" ;;
+    esac
+}
+
 bench_variant_slug() {
     local canonical="$1"
     # Map canonical variant names to hyphenated slugs (used in CSV filenames).
@@ -66,7 +80,7 @@ bench_parse_track_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --variant)
-                MUL_VARIANT="${2:-}"
+                MUL_VARIANT="$(bench_resolve_variant "${2:-}")"
                 shift 2
                 ;;
             --keccak)

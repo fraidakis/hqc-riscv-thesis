@@ -37,6 +37,8 @@ PROFILE_TMP_ROOT="$REPO_ROOT/.tmp"
 
 # Populate MUL_VARIANT, KECCAK_IMPL, DECODE_IMPL via shared auto-mapping.
 bench_parse_track_args "$@"
+# Resolve any legacy variant name to canonical form.
+MUL_VARIANT="$(bench_resolve_variant "${MUL_VARIANT:-}")"
 
 MODE=""
 LEVEL="128"
@@ -577,7 +579,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --variant)
-            MUL_VARIANT="$2"
+            MUL_VARIANT="$(bench_resolve_variant "$2")"
             shift 2
             ;;
         --keccak|--decode)
