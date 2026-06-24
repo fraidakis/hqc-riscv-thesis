@@ -30,8 +30,7 @@
 και καταμέτρησης εντολών. Υλοποιεί ένα
 \defterm{λειτουργικό μοντέλο} (functional model: αναπαράσταση μόνο του αρχιτεκτονικού
 αποτελέσματος κάθε εντολής, δηλαδή τελική τιμή σε registers, μνήμη και \glspl{csr})
-ενός ή περισσότερων RISC-V harts (hardware threads: τα λογικά
-νήματα εκτέλεσης που εκθέτει ο επεξεργαστής). Κάθε εντολή αποκωδικοποιείται και
+ενός ή περισσότερων RISC-V harts (hardware threads). Κάθε εντολή αποκωδικοποιείται και
 εκτελείται σειριακά, ενημερώνοντας την αρχιτεκτονική κατάσταση χωρίς κανένα
 μοντέλο pipeline, cache ή branch predictor. 
 Η εκτέλεση είναι πλήρως ντετερμινιστική, καθώς το ίδιο ELF binary 
@@ -43,8 +42,8 @@
 (μετρητής κύκλων) και ο \code{minstret} (μετρητής retired instructions). Και οι δύο είναι
 M-mode \glspl{csr} (διευθύνσεις \code{0xb00} και \code{0xb02} αντίστοιχα) και διαβάζονται
 απευθείας με την εντολή \code{csrr}. Στο Spike,
-ως καθαρό functional model, ισχύει \code{mcycle} $\equiv$ \code{minstret}: κάθε αποσυρόμενη
-εντολή προάγει τον \code{mcycle} κατά έναν κύκλο ανεξαρτήτως τύπου. Οπότε για παράδειγμα, μία εντολή
+ως καθαρό functional model, ισχύει \code{mcycle} $\equiv$ \code{minstret}: κάθε αποσυρθείσα
+εντολή προάγει τον \code{mcycle} κατά έναν κύκλο ανεξαρτήτως τύπου. Έτσι, για παράδειγμα, μία εντολή
 \vclmul{} \q{κοστίζει} ακριβώς όσο μία εντολή \insn{addi}.
 
 Το Spike υποστηρίζει πλήρως τις επεκτάσεις που απαιτεί η παρούσα εργασία. Η
@@ -74,16 +73,13 @@ To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης �
 \label{ssec:bpi-f3}
 
 Το Banana Pi BPI-F3 (SpacemiT K1 X60) αποτελεί την πλατφόρμα πραγματικού 
-hardware της πειραματικής υποδομής, ένα development board βασισμένο στο 
+hardware της πειραματικής υποδομής και πρόκειται για ένα development board βασισμένο στο 
 SpacemiT K1 SoC (System-on-Chip: ολοκληρωμένο που ενσωματώνει CPU, 
 μνήμη και περιφερειακά σε ένα τσιπ). Σε αντίθεση με το Spike, η 
 πλατφόρμα αυτή παρέχει πραγματικές μετρήσεις κύκλων (cycles) με 
 pipeline effects, cache behavior, και dual-issue scheduling.
 
-\paragraph{Προδιαγραφές Hardware.}
-Ο SpacemiT K1 είναι octa-core σε δύο clusters των \num{4} cores, με \SI{32}{\kilo\byte}
-L1i + \SI{32}{\kilo\byte} L1d ανά core και \SI{512}{\kilo\byte} L2 ανά cluster. Οι
-πλήρεις προδιαγραφές συνοψίζονται στο \cref{tab:bpif3-specs}.
+Ο \cref{tab:bpif3-specs} συνοψίζει τις πλήρεις προδιαγραφές του SpacemiT K1.
 
 \begin{table}[htbp]
   \centering
@@ -112,8 +108,7 @@ L1i + \SI{32}{\kilo\byte} L1d ανά core και \SI{512}{\kilo\byte} L2 ανά 
 
 Ο K1 X60 υποστηρίζει το πλήρες σύνολο scalar bit-manipulation
 extensions, με την παρούσα εργασία να αξιοποιεί τις \ext{Zbb} και \ext{Zbc}.
-Σύμφωνα με το επίσημο datasheet~\cite{SpacemiT-K1-datasheet}, ο επεξεργαστής παρέχει
-\q{Support of RVA22 Profile and 256-bit RVV 1.0}.
+Ο επεξεργαστής υποστηρίζει το προφίλ RVA22 και RVV~1.0 με \VLEN $= \num{256}$~bits~\cite{SpacemiT-K1-datasheet}.
 Ωστόσο, δεν υποστηρίζει \gls{zvbc} και \gls{zvbb} (βλ.~\cref{ch:risc-v-architecture}) 
 και άρα μπορούν να εκτελέστουν μόνο τα scalar (Tier~1) και Base-RVV (Tier~2) variants, 
 ενώ το Vector-Crypto variant (Tier~3) αξιολογείται αποκλειστικά μέσω Spike.
@@ -140,53 +135,29 @@ extensions, με την παρούσα εργασία να αξιοποιεί τ
     όλων των variants (συμπεριλαμβανομένων \gls{zvbc}/\gls{zvbb}). Αποτελεί τη βάση
     κάθε αριθμητικού αποτελέσματος που παρατίθεται στο \cref{ch:results}, ενώ ταυτόχρονα 
     εκτελεί τη λειτουργική επαλήθευση μέσω \gls{kat} vectors μετά από κάθε αλλαγή κώδικα.
-  \item \textbf{BPI-F3:} hardware validation μέσω πραγματικών κύκλων και cross-check
-    των προβλέψεων του Spike. Καλύπτει
-    τα scalar και Base-RVV variants (Tier~1, Tier~2).
+  \item \textbf{BPI-F3:} hardware validation: διασταύρωση των εκτιμήσεων 
+    \instret του Spike έναντι πραγματικών μετρήσεων κύκλων. Καλύπτει τα Scalar και Base-RVV variants.
 \end{itemize}
 
-\section{Toolchains και Ρυθμίσεις Cross-Compilation}
+\section{Toolchains και Στρατηγική Μεταγλώττισης}
 \label{sec:toolchains}
 
-Η μεταγλώττιση γίνεται σε καθεστώς \emph{cross-compilation}: ο κώδικας
-παράγεται σε host x86-64 αλλά στοχεύει την αρχιτεκτονική RISC-V. Αυτό
-επιβάλλεται από τον κύριο στόχο εκτέλεσης, τον \gls{iss} Spike, ο οποίος
-εκτελεί bare-metal ELF χωρίς λειτουργικό σύστημα και άρα το παραγόμενο ELF πρέπει να είναι freestanding (χωρίς εξάρτηση από
-libc ή system calls). Γι' αυτό η μεταγλώττιση γίνεται υποχρεωτικά από τον host.
-Το host-based αυτό toolchain (GCC~15.2 / Clang~21.1.1) αφορά
-αποκλειστικά τα bare-metal ELF του Spike. Αντιθέτως, τα binaries του Banana Pi
-BPI-F3 (SpacemiT K1 X60), που επικυρώνουν την υλοποίηση σε πραγματικό υλικό,
-μεταγλωττίζονται \emph{native} στο ίδιο το board με το Bianbu toolchain
-(GCC~14.2.0, και Clang~20.1.2)·
-οι δύο πλατφόρμες χρησιμοποιούν επομένως διακριτά toolchains, όπως συνοψίζει
-ο \cref{tab:toolchains-per-platform}.
+Η πειραματική υποδομή χρησιμοποιεί δύο διακριτά toolchains. Το
+\gls{iss} Spike, εκτελεί bare-metal ELF χωρίς λειτουργικό σύστημα, και για τον
+λόγο αυτό το παραγόμενο binary είναι freestanding (χωρίς εξάρτηση από libc ή
+system calls) και παράγεται με cross-compilation στον host. Αντιθέτως, τα
+binaries του Banana Pi BPI-F3 παράγονται native πάνω στο
+ίδιο το board υπό Bianbu Linux.
 
 \subsection{Στρατηγική Μεταγλώττισης και Επιλογή Compiler}
 \label{ssec:compiler-strategy}
 
-Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{GCC~15.2} σε
-bare-metal cross-compilation mode με target triple \code{riscv64-unknown-elf}.
-Το \emph{target triple} προσδιορίζει τον στόχο μεταγλώττισης στη μορφή
-\code{<αρχιτεκτονική>-<vendor>-<σύστημα/abi>}: εδώ \code{riscv64} (64-bit
-RISC-V), \code{unknown} ως vendor, και \code{elf} που δηλώνει bare-metal στόχο
-χωρίς λειτουργικό σύστημα.
-
-Η επιλογή του GCC ως κύριου μεταγλωττιστή τεκμηριώνεται από το προφίλ φόρτου
-του HQC. Οι hot kernels — πολυωνυμικός πολλαπλασιασμός σε $\mathrm{GF}(2)[x]$
-(Karatsuba/\clmul), Keccak, και RS/RM decode — είναι αμιγώς integer και
-bit-manipulation, όχι floating-point. Ανάλυση των backends LLVM/GCC για
-RISC-V σε SPEC CPU~2017 διαπιστώνει ότι ο GCC μειώνει αποδοτικότερα το
-δυναμικό πλήθος εντολών σε integer workloads, ενώ το πλεονέκτημα
-auto-vectorization του LLVM εντοπίζεται σε floating-point workloads~\cite{Li-LLVM-GCC-RISCV2025}
-— δηλαδή ακριβώς στην κατηγορία που \emph{δεν} βρίσκεται στον κρίσιμο δρόμο
-του HQC. Επιπλέον, σε ταυτόσημο υλικό (BananaPi-F3) και ταυτόσημες εκδόσεις
-(GCC~15 vs Clang~21), ο GCC παράγει πιο σταθερό και αποδοτικό RVV codegen,
-υπερτερώντας στην πλειονότητα των μετρημένων RVV workloads~\cite{CloserInTheGap2026}·
-η σταθερότητα (low variance) είναι κρίσιμη για αξιόπιστα benchmarks. Η επιλογή αυτή 
-επιβεβαιώνεται εμπειρικά και στις δικές μας μετρήσεις: ο GCC υπερτερεί σταθερά του Clang σε 
-κάθε μετρήσιμη διαφορά(αναλυτική συγκριτική αξιολόγηση στο \cref{sec:compiler-comparison}). 
-Ο Clang/LLVM~21.1.1 διατηρεί συμπληρωματικό ρόλο ως cross-validation
-εργαλείο: ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου μεταγλωττιστή.
+Η υλοποίηση χρησιμοποιεί ως κύριο μεταγλωττιστή τον \textbf{GCC~15.2}, μέσω
+cross-toolchain με prefix \code{riscv64-unknown-elf-} που στοχεύει bare-metal
+RISC-V (ELF χωρίς λειτουργικό σύστημα). Το \code{riscv64-unknown-elf} είναι το
+\emph{target triplet} του GNU build system, στη μορφή
+\code{<αρχιτεκτονική>-<vendor>-<σύστημα/abi>}: \code{riscv64} (64-bit RISC-V),
+\code{unknown} (vendor), και \code{elf} (bare-metal, χωρίς OS).
 
 \begin{table}[htbp]
   \centering
@@ -203,12 +174,26 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
   \par\smallskip\footnotesize
 \end{table}
 
-\subsection{CMake Build System και Toolchain Files}
-\label{ssec:cmake-build}
+
+Η επιλογή του GCC ως κύριου μεταγλωττιστή τεκμηριώνεται από τα hotspots 
+του HQC, ο πολυωνυμικός πολλαπλασιασμός (Karatsuba/\clmul), Keccak, 
+και RS/RM decode,  είναι αμιγώς integer και
+bit-manipulation, όχι floating-point. Ανάλυση των backends LLVM/GCC για
+RISC-V σε SPEC CPU~2017 διαπιστώνει ότι ο GCC μειώνει αποδοτικότερα το
+δυναμικό πλήθος εντολών σε integer workloads, ενώ το πλεονέκτημα
+auto-vectorization του LLVM εντοπίζεται σε floating-point workloads~\cite{Li-LLVM-GCC-RISCV2025}
+— δηλαδή ακριβώς στην κατηγορία που \emph{δεν} βρίσκεται στον κρίσιμο δρόμο
+του HQC. Επιπλέον, σε ταυτόσημο υλικό (BananaPi-F3) και ταυτόσημες εκδόσεις
+(GCC~15 vs Clang~21), ο GCC παράγει πιο σταθερό και αποδοτικό RVV codegen,
+υπερτερώντας στην πλειονότητα των μετρημένων RVV workloads~\cite{CloserInTheGap2026}·
+η σταθερότητα (low variance) είναι κρίσιμη για αξιόπιστα benchmarks. Η επιλογή αυτή 
+επιβεβαιώνεται εμπειρικά και στις δικές μας μετρήσεις: ο GCC υπερτερεί σταθερά του Clang σε 
+κάθε μετρήσιμη διαφορά(αναλυτική συγκριτική αξιολόγηση στο \cref{sec:compiler-comparison}). 
+Ο Clang/LLVM~21.1.1 διατηρεί συμπληρωματικό ρόλο ως cross-validation
+εργαλείο: ανεξάρτητη επιβεβαίωση ορθότητας μέσω δεύτερου μεταγλωττιστή.
 
 
-\Cref{fig:build-pipeline} απεικονίζει τη ροή από τον πηγαίο κώδικα έως την
-εξαγωγή \instret μέσω Spike.
+Το \cref{fig:build-pipeline} απεικονίζει τη ροή εξαγωγής \instret μέσω Spike.
 
 \begin{figure}[htbp]
   \centering
@@ -219,18 +204,18 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
   \label{fig:build-pipeline}
 \end{figure}
 
-\subsection{ISA Flags και Per-Variant Αρχιτεκτονικές Συμβολοσειρές}
+\subsection{Διαμόρφωση Build: ISA Flags και Βελτιστοποίηση}
 \label{ssec:march-flags}
+\label{ssec:cmake-build}
 
+\paragraph{Per-Variant \code{-march} Συμβολοσειρές.}
 Κάθε polymul variant μεταγλωττίζεται με διαφορετική συμβολοσειρά \code{-march}
 που αντικατοπτρίζει ακριβώς τις επεκτάσεις του αντίστοιχου tier
 (\cref{sec:polymul-tiers}). Αυτή η πρακτική εξυπηρετεί διπλό σκοπό: αφενός εξασφαλίζει ότι ο assembler
 απορρίπτει κάθε εντολή εκτός tier (ένα \vclmul{} σε scalar target προκαλεί
 σφάλμα μεταγλώττισης), αφετέρου επιτρέπει στον μεταγλωττιστή να αξιοποιήσει
 αυτόματα τις δηλωμένες επεκτάσεις μέσω auto-lowering (βλ.\
-\cref{sec:methods-application}).
-
-Ο \cref{tab:march-per-variant} παρουσιάζει τις συμβολοσειρές \code{-march} ανά
+\cref{sec:methods-application}). Ο \cref{tab:march-per-variant} παρουσιάζει τις συμβολοσειρές \code{-march} ανά
 variant:
 
 \begin{table}[htbp]
@@ -249,7 +234,7 @@ variant:
   \end{tabular}
 \end{table}
 
-\subsection{Επίπεδα Βελτιστοποίησης και Ειδικές Ρυθμίσεις}
+\paragraph{Επίπεδα Βελτιστοποίησης.}
 \label{ssec:opt-levels}
 
 Όλα τα variants μεταγλωττίζονται με \code{-O3} ως βασικό επίπεδο
@@ -264,9 +249,9 @@ optimizer.
 \begin{itemize}
   \item \code{-ffreestanding} — δηλώνει απουσία hosted environment (απαιτείται
     για bare-metal).
-  \item \code{-fno-tree-vectorize} (scalar variants) — αποτρέπει αυτόματη
-    vectorization στα Tier~1 targets, εξασφαλίζοντας ότι η μέτρηση
-    αντικατοπτρίζει αποκλειστικά scalar εκτέλεση.
+  \item \code{-fno-tree-vectorize} — απενεργοποιεί το αυτόματη (compiler-driven)
+    vectorization. Η διανυσματοποίηση επιτυγχάνεται αποκλειστικά
+    μέσω ρητών intrinsics (\cref{sec:methods-application}).
   \item \code{-mcmodel=medany} — επιτρέπει σχετική διευθυνσιοδότηση σε
     οποιαδήποτε θέση μνήμης (απαραίτητο για bare-metal linker scripts).
   \item \code{-mno-relax} — απενεργοποιεί linker relaxation, εξασφαλίζοντας
@@ -276,35 +261,32 @@ optimizer.
     footprint.
 \end{itemize}
 
-\paragraph{Profile-Guided Optimization (PGO) στα Reference Baselines}
+\paragraph{Profile-Guided και Link-Time Optimization (PGO + LTO).}
 \label{ssec:lto-pgo}
 
-Το reference baseline (\code{scalar\_ref}) μεταγλωττίζεται
-με \gls{pgo} (\code{-fprofile-use}) κατά τη μέτρηση σε πραγματικό hardware,
-παρέχοντας στον μεταγλωττιστή πληροφορίες εκτέλεσης (branch frequencies,
-hot/cold paths) που βελτιώνουν τη διάταξη κώδικα και τις αποφάσεις inlining.
-Η μεθοδολογία ακολουθεί δύο φάσεις: μεταγλώττιση με \code{-fprofile-generate}
-και εκτέλεση εκπαίδευσης (20 iterations) που παράγει profile data (\code{.gcda}
+Όλα τα variants μεταγλωττίζονται με συνδυασμό \gls{pgo} (\code{-fprofile-use})
+και \gls{lto} (\code{-flto}) κατά τη μέτρηση σε πραγματικό hardware. Το \gls{pgo}
+ακολουθεί δύο φάσεις: αρχική μεταγλώττιση με \code{-fprofile-generate} και
+εκτέλεση εκπαίδευσης που παράγει profile data (\code{.gcda}
 αρχεία), ακολουθούμενη από τελική μεταγλώττιση με \code{-fprofile-use} που
-αξιοποιεί τα συλλεγμένα δεδομένα.
-
-Η \gls{lto} (\code{-flto}) αξιολογήθηκε επίσης αλλά απορρίφθηκε, καθώς δεν
-προσέφερε μετρήσιμο όφελος έναντι της \gls{pgo} στα baselines. Η ποσοτική
-αποτίμηση αμφότερων (\gls{pgo} και \gls{lto}, σε Spike και πραγματικό
-hardware) παρουσιάζεται αναλυτικά στο \cref{ssec:hw-pgo-results}.
+αξιοποιεί branch frequencies και hot/cold paths για βελτιωμένη διάταξη κώδικα και
+αποφάσεις inlining. Το \gls{lto} επιτρέπει στον μεταγλωττιστή να βελτιστοποιεί
+ολόκληρο το πρόγραμμα ενιαία κατά τη σύνδεση, αντί κάθε αρχείο ξεχωριστά,
+ενεργοποιώντας cross-module inlining και απαλοιφή νεκρού κώδικα. Η ποσοτική
+αποτίμηση αμφοτέρων (σε Spike και πραγματικό hardware) παρουσιάζεται στο
+\cref{ssec:hw-pgo-results}.
 
 \section{Bare-Metal Πλαίσιο Εκτέλεσης}
 \label{sec:bare-metal}
 
-Η εκτέλεση κρυπτογραφικού κώδικα σε περιβάλλον λειτουργικού συστήματος εισάγει
-μη ντετερμινιστικό θόρυβο: context switches, interrupt handlers, TLB flushes και
-scheduler preemption αλλοιώνουν τις μετρήσεις \instret κατά τρόπο μη
-αναπαραγώγιμο. Στο μονοπάτι μέτρησης \instret μέσω Spike, η παρούσα υποδομή
-εξαλείφει αυτές τις πηγές θορύβου μέσω bare-metal εκτέλεσης: ο κρυπτογραφικός
-κώδικας εκτελείται απευθείας σε Machine mode χωρίς λειτουργικό σύστημα, runtime
-βιβλιοθήκες ή δυναμική διαχείριση μνήμης. Οι μετρήσεις κύκλων στο BPI-F3, που
-εκτελείται υπό Bianbu Linux, αντιμετωπίζουν το residual OS noise στατιστικά
-(βλ.\ \cref{ssec:hw-measurement}). Η ενότητα αυτή περιγράφει τα τρία δομικά στοιχεία του
+Η εκτέλεση κρυπτογραφικού κώδικα υπό λειτουργικό σύστημα προσμετρά στη μέτρηση
+εντολές άσχετες με τον πυρήνα (system calls, runtime, scheduler/interrupt paths),
+αλλοιώνοντας το \instret με μη κρυπτογραφικό φορτίο. Στο μονοπάτι μέτρησης μέσω
+Spike, η bare-metal εκτέλεση εξασφαλίζει ότι ο μετρητής αποτυπώνει αποκλειστικά
+τον κρυπτογραφικό κώδικα: εκτελείται απευθείας σε Machine mode χωρίς λειτουργικό
+σύστημα, runtime βιβλιοθήκες ή δυναμική διαχείριση μνήμης. Αντίθετα, στο BPI-F3,
+που εκτελείται υπό Bianbu Linux, ο θόρυβος του λειτουργικού συστήματος
+αντιμετωπίζεται στατιστικά (βλ.\ \cref{ssec:hw-measurement}). Η ενότητα αυτή περιγράφει τα τρία δομικά στοιχεία του
 πλαισίου: την ακολουθία εκκίνησης, τη διαχείριση μνήμης, και τις εγγυήσεις
 καθαρότητας μέτρησης.
 
@@ -320,7 +302,7 @@ scheduler preemption αλλοιώνουν τις μετρήσεις \instret κ�
 \paragraph{Βήμα 1: Αρχικοποίηση Stack Pointer}
 
 Ο stack pointer (\code{sp}) φορτώνεται με τη διεύθυνση \code{\_stack\_top},
-η οποία ορίζεται στο linker script (\cf \cref{ssec:memory-management}). Η
+η οποία ορίζεται στο linker script (βλ. \cref{ssec:memory-management}). Η
 στοίβα αναπτύσσεται προς τα κάτω (descending) και διαθέτει \SI{512}{\kilo\byte}
 — μέγεθος που καλύπτει τις ανάγκες της πλήρους αλυσίδας κλήσεων \KeyGen +
 \Encaps + \Decaps (μέγιστη μετρημένη χρήση $\approx \SI{70}{\kilo\byte}$,
@@ -361,7 +343,7 @@ mask-agnostic — η τυπική ρύθμιση για τους κρυπτογ�
 \code{argc = 0} και \code{argv = NULL}. Κατά τον τερματισμό, η τιμή
 επιστροφής κωδικοποιείται ως \code{(code << 1) | 1} και εγγράφεται στο
 σύμβολο \code{tohost} — ο μηχανισμός \gls{htif} που σηματοδοτεί στο Spike
-τον τερματισμό της εξομοίωσης με τον αντίστοιχο exit code.
+τον τερματισμό της εξομοίωσης με το αντίστοιχο exit code.
 
 \begin{figure}[htbp]
   \centering
@@ -391,10 +373,7 @@ mask-agnostic — η τυπική ρύθμιση για τους κρυπτογ�
 \begin{figure}[htbp]
   \centering
   \input{figures/ch5-setup/memory-map}
-  \caption{Διάταξη μνήμης (memory map) του bare-metal ELF. Η στοίβα
-    (\SI{512}{\kilo\byte}) καλύπτει τις ανάγκες ολόκληρης της αλυσίδας
-    κλήσεων \KEM, συμπεριλαμβανομένων των temporary buffers του πολυωνυμικού
-    πολλαπλασιασμού ($\approx \SI{40}{\kilo\byte}$).}
+  \caption{Διάταξη μνήμης (memory map) του bare-metal ELF.}
   \label{fig:memory-map}
 \end{figure}
 
@@ -421,22 +400,25 @@ mask-agnostic — η τυπική ρύθμιση για τους κρυπτογ�
     fallback (1~byte/εντολή).
 \end{itemize}
 
-\noindent
-Η \code{memset} διαθέτει επιπλέον fast-path για τη συχνή περίπτωση μηδενισμού
-(\code{c == 0}) ευθυγραμμισμένων buffers: χρησιμοποιεί \SEW $= 64$ και
-\LMUL $= 8$ με \code{vmv.v.x} (splat zero) + \code{vse64}, μηδενίζοντας
-$\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration. Η βελτιστοποίηση
-αυτή στοχεύει τους μεγάλους μηδενισμούς scratch buffers κατά τον πολυωνυμικό
-πολλαπλασιασμό.
-
 \paragraph{Σταθερός Χρόνος Εκτέλεσης (Constant-Time Intent)}
 
-Οι ρουτίνες μνήμης σχεδιάστηκαν με πρόθεση σταθερού χρόνου: η ροή ελέγχου
-εξαρτάται αποκλειστικά από δημόσιες παραμέτρους (μέγεθος \code{n}, ευθυγράμμιση
-δεικτών) και ποτέ από το περιεχόμενο των δεδομένων. Η ιδιότητα αυτή δεν
-αποτελεί εγγύηση side-channel resistance (βλ.\ \cref{sec:ct-methodology} και \cref{sec:future-ct} για
+Οι ρουτίνες \code{memcpy}, \code{memset} και \code{memmove} σχεδιάστηκαν με
+πρόθεση σταθερού χρόνου: η ροή ελέγχου εξαρτάται αποκλειστικά από δημόσιες
+παραμέτρους (μέγεθος \code{n}, ευθυγράμμιση δεικτών) και ποτέ από το
+περιεχόμενο των δεδομένων. Η ιδιότητα αυτή δεν αποτελεί εγγύηση side-channel
+resistance (βλ.\ \cref{sec:ct-methodology} και \cref{sec:future-ct} για
 μελλοντική εργασία), αλλά εξασφαλίζει ότι η μετρική \instret δεν εξαρτάται
 από τις τιμές εισόδου — προϋπόθεση για ντετερμινιστικές μετρήσεις.
+
+Εξαίρεση αποτελεί η \code{memcmp}, η οποία είναι εσκεμμένα variable-time
+(early-return στο πρώτο byte διαφοράς). Η ρουτίνα αυτή δεν χρησιμοποιείται
+σε κρυπτογραφικά μονοπάτια: η ευαίσθητη σύγκριση ciphertext της
+Fujisaki-Okamoto transform εκτελείται μέσω της constant-time
+\code{vect\_compare()} (\code{src/vector.c}), η οποία συσσωρεύει XOR
+διαφορές χωρίς data-dependent branches (\code{r |= v1[i]\^{}v2[i]}).
+Η \code{memcmp} εμφανίζεται αποκλειστικά στο test/bench harness
+(\code{kat\_gen.c}, \code{bench\_kem.c}) για post-hoc έλεγχο ισότητας
+shared secrets — εκτός μετρούμενου και ασφαλούς μονοπατιού.
 
 \paragraph{Console I/O και Simulator Backend}
 
@@ -445,12 +427,10 @@ $\num{256} \times 8 / 8 = \num{256}$ bytes ανά iteration. Η βελτιστο
 εγγράφεται στο σύμβολο \code{tohost} με κωδικοποίηση
 \code{(1 << 56) | (1 << 48) | char}. Το Spike επεξεργάζεται τον χαρακτήρα και
 μηδενίζει το \code{tohost}, σηματοδοτώντας ετοιμότητα για τον επόμενο. Ο
-μηχανισμός αυτός δεν απαιτεί UART hardware ή device tree.
-
-\noindent
-Η αριθμητική εκτύπωση (\code{hqc\_htif\_putu64}) υλοποιείται χωρίς \code{printf}
-ή heap allocation: ένας στατικός buffer \num{21} bytes μετατρέπει τον ακέραιο
-σε δεκαδική αναπαράσταση μέσω επαναλαμβανόμενης διαίρεσης.
+μηχανισμός αυτός δεν απαιτεί UART hardware ή device tree. Η αριθμητική εκτύπωση 
+(\code{hqc\_htif\_putu64}) υλοποιείται χωρίς \code{printf} ή heap allocation: 
+ένας στατικός buffer \num{21} bytes μετατρέπει τον ακέραιο σε δεκαδική αναπαράσταση 
+μέσω επαναλαμβανόμενης διαίρεσης.
 
 \subsection{Καθαρότητα Μέτρησης (Measurement Purity)}
 \label{ssec:measurement-purity}
@@ -512,9 +492,12 @@ uint64_t t1 = hqc_read_minstret();
 
 \section{Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής}
 \label{sec:benchmarking}
-\label{conv:baseline}%
+\label{conv:baseline}
 
-\noindent\textbf{Σύμβαση baseline.} Όλες οι επιταχύνσεις αναφέρονται ως προς το \code{scalar\_ref} — τον μη βελτιστοποιημένο κώδικα αναφοράς~\cite{HQC-reference-impl} (schoolbook πολλαπλασιασμός, scalar Keccak, scalar decode) χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις. Αυτή η ενιαία βάση αναφοράς καθιστά τα speedups μεταξύ διαφορετικών tiers άμεσα συγκρίσιμα.
+\noindent\textbf{Σύμβαση baseline.} Όλες οι επιταχύνσεις αναφέρονται ως 
+προς το \code{scalar\_ref} variant — τον μη βελτιστοποιημένο κώδικα 
+αναφοράς~\cite{HQC-reference-impl} (schoolbook πολλαπλασιασμός, scalar 
+Keccak, scalar decode) χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις. 
 
 Η βασική μετρική απόδοσης της παρούσας εργασίας είναι ο αριθμός
 \defterm{retired instructions} (δυναμικές αποσυρθείσες εντολές, retired instruction count, \instret) —

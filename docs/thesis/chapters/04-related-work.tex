@@ -312,7 +312,7 @@ hardware και όχι στις επικυρωμένες κρυπτογραφι�
 υλοποιείται ως \emph{constant-time} dense$\times$dense πράξη, με 
 \texttt{Toom3Mult(Karat3)} για HQC-128/192\footnote{Η βιβλιογραφία 
 χρησιμοποιεί την ονοματοδοσία κατά NIST (HQC-1/3/5)· σε όλη τη 
-διατριβή τα αναφέρουμε ως HQC-128/192/256 ανάλογα με το επίπεδο 
+διπλωματική τα αναφέρουμε ως HQC-128/192/256 ανάλογα με το επίπεδο 
 ασφαλείας.} και \texttt{Toom3Mult(Karat5)} 
 για HQC-256: Toom-Cook 3-way στο ανώτερο επίπεδο, με ενσωματωμένο 3-way 
 (ή 5-way) Karatsuba και αναδρομικό 2-way Karatsuba στα φύλλα, όπου το 
@@ -347,7 +347,7 @@ R\&V μειώνει τις retired εντολές κατά παράγοντα $\
 Ως προς την παρούσα εργασία, οι Robert \& Véron αποτελούν την επίσημη 
 AVX βάση και το αλγοριθμικό πλαίσιο αναφοράς· μοιράζονται όμως μόνο 
 τη γενική προσέγγιση «Karatsuba + clmul base multiplication». Η 
-διατριβή δεν υιοθετεί τον Toom-Cook σκελετό τους, αλλά βελτιστοποιεί 
+παρούσα διπλωματική δεν υιοθετεί τον Toom-Cook σκελετό τους, αλλά βελτιστοποιεί 
 τον αναδρομικό 2-way Karatsuba της portable C reference 
 (\code{scalar\_ref}, \cref{conv:baseline}), αντικαθιστώντας το 
 schoolbook φύλλο με \vclmul. 
@@ -381,7 +381,7 @@ Karatsuba καθώς και Toom-Cook 3-, 4- και 5-way (βαθμοί έως $
 η FFT-based προσέγγιση των Chen et al.\ (\cref{ssec:rw-chen-fft}).
 
 Η στρατηγική αυτή, δηλαδή clmul-based base multiplication εντός Karatsuba 
-decomposition, ακολουθεί την ίδια βασική προσέγγιση με τη διατριβή. 
+decomposition, ακολουθεί την ίδια βασική προσέγγιση με την παρούσα διπλωματική. 
 Η κρίσιμη διαφορά βρίσκεται στο ISA: οι Jang et al.\ στοχεύουν 
 fixed-width SIMD (\texttt{VPCLMULQDQ}, 256-bit, 2 παράλληλοι 64-bit 
 πολλαπλασιασμοί), ενώ η παρούσα εργασία αξιοποιεί \vclmul 

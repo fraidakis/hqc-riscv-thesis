@@ -1,6 +1,6 @@
 # date: 2026-05-25 18:52
 # commit: a727910
-# variant: ref_vector
+# variant: vector_ref
 # level: 256
 instruction,count,percentage
 ld,173822530,20.71

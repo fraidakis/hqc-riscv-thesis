@@ -1,5 +1,5 @@
 # date: 2026-05-31 23:10
-# variant: karatsuba_zbc
+# variant: scalar_zb
 # level: 128
 # sweep_type: threshold
 threshold,median_cycles,median_instret,ipc
