@@ -5,7 +5,7 @@
 | Board | Banana Pi BPI-F3 (SpacemiT K1) |
 | Core | SpacemiT X60 |
 | VLEN | 256 |
-| Compiler | GCC 14.2.0 (native) / Clang 20.1.2 |
+| Compiler | GCC (native) |
 | Isolation | taskset (single-core pinning) |
 | Iterations | 100 |
 

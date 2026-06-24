@@ -1,0 +1,18 @@
+# date: 2026-06-24 18:24
+# commit: 0eb2718
+# variant: scalar_zb
+# level: 256
+# component: mul
+# quality: dev
+# n_iter: 100
+# n_warmup: 10
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# core: 7
+# governor: performance
+# level=256,polymul=scalar_zb,n_iter=100,n_warmup=10,platform=hw,extended=1
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+vect_mul,100,926447,929289,994901,933751.5,11786.8,1309907,1309907,1327117,1310926.0,2701.3,622,514642,0.12%,65,77,3833,94538,0,0
+
+# --- derived metrics ---
+op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,dram_bytes_est,arith_intensity
+vect_mul,1.4096,0.001209,0.475,0.050,0.059,0.0041,0.1017,39808,32.91

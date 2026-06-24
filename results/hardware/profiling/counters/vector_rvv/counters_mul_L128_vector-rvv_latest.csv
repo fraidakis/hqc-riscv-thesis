@@ -1,0 +1,18 @@
+# date: 2026-06-24 18:25
+# commit: 0eb2718
+# variant: vector_rvv
+# level: 128
+# component: mul
+# quality: dev
+# n_iter: 100
+# n_warmup: 10
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# core: 7
+# governor: performance
+# level=128,polymul=vector_rvv,n_iter=100,n_warmup=10,platform=hw,extended=1
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+vect_mul,100,124620,125570,135616,126062.6,1568.3,145071,145071,145071,145071.0,0.0,89,65849,0.14%,40,37,2098,25722,3872,5781
+
+# --- derived metrics ---
+op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,dram_bytes_est,arith_intensity
+vect_mul,1.1553,0.001352,0.613,0.276,0.255,0.0167,0.2048,5696,25.47,0.0267,0.0460

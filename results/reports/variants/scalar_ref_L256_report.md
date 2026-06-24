@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-23 18:01:53 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -64,31 +64,6 @@
 ### Line-Level Hotspots (Top 20 Rows)
 
 > _No data available._
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| ld | 175,640,247 | 20.84 |
-| addi | 118,839,776 | 14.10 |
-| xor | 114,443,037 | 13.58 |
-| sd | 113,493,313 | 13.47 |
-| and | 112,789,162 | 13.38 |
-| bne | 64,450,062 | 7.65 |
-| sll | 55,968,949 | 6.64 |
-| srl | 55,966,432 | 6.64 |
-| mv | 8,074,112 | 0.96 |
-| addiw | 4,010,944 | 0.48 |
-| subw | 3,995,029 | 0.47 |
-| neg | 3,986,688 | 0.47 |
-| bext | 3,981,996 | 0.47 |
-| sb | 3,233,451 | 0.38 |
-| bnez | 516,930 | 0.06 |
-| add | 501,776 | 0.06 |
-| rori | 293,016 | 0.03 |
-| bltu | 287,057 | 0.03 |
-| andn | 254,253 | 0.03 |
-| lhu | 246,291 | 0.03 |
 
 ## 5. Compiler Comparison
 

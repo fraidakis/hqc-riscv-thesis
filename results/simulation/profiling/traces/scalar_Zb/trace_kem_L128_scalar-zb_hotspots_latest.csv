@@ -1,5 +1,5 @@
-# date: 2026-06-23 14:14
-# commit: d38ed14
+# date: 2026-06-24 17:07
+# commit: 0eb2718
 # variant: scalar_zb
 # level: 128
 function,instructions,percentage
@@ -71,7 +71,7 @@ reed_solomon_decode,160,0.00
 vect_sample_fixed_weight2,144,0.00
 crypto_kem_keypair,124,0.00
 crypto_kem_enc,118,0.00
-main,102,0.00
+main,100,0.00
 shake256_inc_squeeze,98,0.00
 hqc_pke_decrypt,97,0.00
 hash_g,96,0.00
@@ -98,3 +98,4 @@ hqc_read_minstret,12,0.00
 shake256_inc_finalize,9,0.00
 vect_truncate,9,0.00
 hqc_htif_exit,8,0.00
+bench_consume,2,0.00

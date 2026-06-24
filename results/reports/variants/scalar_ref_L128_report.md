@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-23 14:40:26 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | hadamard at reed_muller.c:98 | 82,432 | 0.07 |
 | hadamard at reed_muller.c:99 | 82,432 | 0.07 |
 | karatsuba_mul at gf2x.c:115 (discriminator 1) | 70,338 | 0.06 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| ld | 23,491,942 | 20.59 |
-| addi | 15,788,522 | 13.84 |
-| xor | 14,981,853 | 13.13 |
-| sd | 14,701,186 | 12.88 |
-| and | 14,528,757 | 12.73 |
-| bne | 8,958,801 | 7.85 |
-| sll | 7,211,869 | 6.32 |
-| srl | 7,211,596 | 6.32 |
-| mv | 1,684,691 | 1.48 |
-| addiw | 844,554 | 0.74 |
-| subw | 842,841 | 0.74 |
-| bext | 830,364 | 0.73 |
-| neg | 825,600 | 0.72 |
-| sb | 700,653 | 0.61 |
-| bnez | 469,079 | 0.41 |
-| add | 121,818 | 0.11 |
-| lhu | 105,605 | 0.09 |
-| rori | 98,832 | 0.09 |
-| andn | 85,606 | 0.08 |
-| sh | 63,977 | 0.06 |
 
 ## 5. Compiler Comparison
 

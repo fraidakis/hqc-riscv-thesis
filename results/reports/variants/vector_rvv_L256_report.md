@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-23 18:43:06 |
-| Commit | `f21e6c4` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | clmul_leaf at gf2x_clmul.c:808 | 59,136 | 0.62 |
 | clmul_leaf at gf2x_clmul.c:791 | 57,918 | 0.61 |
 | vect_compare at vector.c:282 | 57,684 | 0.61 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| xor | 2,586,251 | 24.98 |
-| ld | 1,783,673 | 17.23 |
-| sd | 1,229,400 | 11.87 |
-| clmul | 900,858 | 8.70 |
-| clmulh | 887,928 | 8.57 |
-| bnez | 452,473 | 4.37 |
-| addi | 350,976 | 3.39 |
-| rori | 293,016 | 2.83 |
-| andn | 252,600 | 2.44 |
-| add | 181,797 | 1.76 |
-| slliw | 134,926 | 1.30 |
-| bne | 127,688 | 1.23 |
-| andi | 118,521 | 1.14 |
-| sh3add | 92,706 | 0.90 |
-| vle64.v | 80,432 | 0.78 |
-| bltu | 64,994 | 0.63 |
-| lbu | 64,645 | 0.62 |
-| sb | 58,207 | 0.56 |
-| mv | 54,428 | 0.53 |
-| vxor.vv | 54,238 | 0.52 |
 
 ## 4. VLEN Scaling Sweep
 

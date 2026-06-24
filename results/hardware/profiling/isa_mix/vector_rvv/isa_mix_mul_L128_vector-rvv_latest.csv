@@ -1,0 +1,87 @@
+# date: 2026-06-24 18:22
+# commit: 0eb2718
+# variant: vector_rvv
+# level: 128
+# component: mul
+# binary: build-hw/bench_hw_mul_hqc128_vector_rvv (-O3, same as bench)
+# platform: bpi-f3 (SpacemiT X60)
+category,mnemonic,count
+zbc,clmul,469
+zbc,clmulh,469
+zbb,andn,25
+zbb,orn,4
+zbb,clz,3
+zbb,ctz,14
+zbb,cpop,1
+zbb,max,45
+zbb,maxu,64
+zbb,min,19
+zbb,minu,43
+zbb,orc.b,30
+zbb,rev8,43
+zbb,rori,2
+zbb,sext.b,91
+zbb,sext.h,6
+zbb,zext.h,19
+zba,sh1add,110
+zba,sh2add,267
+zba,sh3add,553
+zba,add.uw,92
+zba,sh1add.uw,3
+zba,sh2add.uw,36
+zba,sh3add.uw,46
+zba,slli.uw,90
+zbs,bclri,17
+zbs,bext,31
+zbs,bexti,35
+zbs,bset,24
+zbs,bseti,168
+rvv_arith,vxor,66
+rvv_arith,vsll,1
+rvv_arith,vsrl,1
+rvv_arith,vmv,1
+rvv_load,vle64,108
+rvv_store,vse8,8
+rvv_store,vse64,42
+rvv_config,vsetvli,33
+rvv_config,vsetivli,3
+scalar_mul,mul,81
+scalar_mul,mulhu,13
+scalar_mul,mulw,4
+scalar_mul,div,2
+scalar_mul,divu,14
+scalar_mul,remu,41
+branch,beq,1730
+branch,bne,1317
+branch,blt,230
+branch,bge,191
+branch,bltu,1041
+branch,bgeu,821
+branch,jal,3768
+branch,jalr,294
+load,lb,31
+load,lbu,1286
+load,lh,13
+load,lhu,369
+load,lw,2160
+load,lwu,82
+load,ld,18051
+load,fld,129
+store,sb,714
+store,sh,139
+store,sw,1261
+store,sd,12576
+store,fsd,98
+total,all_instructions,107564
+summary,zbc_total,938
+summary,zbb_total,409
+summary,zba_total,1197
+summary,zbs_total,275
+summary,rvv_arith_total,69
+summary,rvv_load_total,108
+summary,rvv_store_total,50
+summary,rvv_config_total,36
+summary,scalar_mul_total,155
+summary,branch_total,9392
+summary,load_total,22121
+summary,store_total,14788

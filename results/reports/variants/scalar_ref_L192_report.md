@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 192 |
-| Generated | 2026-06-23 17:18:23 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | karatsuba_mul at gf2x.c:114 | 210,546 | 0.06 |
 | karatsuba_mul at gf2x.c:114 (discriminator 1) | 208,458 | 0.06 |
 | karatsuba_mul at gf2x.c:107 | 205,452 | 0.06 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| ld | 70,395,195 | 20.54 |
-| addi | 47,731,310 | 13.93 |
-| xor | 45,188,588 | 13.19 |
-| sd | 44,636,012 | 13.03 |
-| and | 44,165,390 | 12.89 |
-| bne | 27,009,895 | 7.88 |
-| sll | 21,921,404 | 6.40 |
-| srl | 21,920,984 | 6.40 |
-| mv | 5,075,292 | 1.48 |
-| addiw | 2,509,255 | 0.73 |
-| subw | 2,499,732 | 0.73 |
-| neg | 2,494,464 | 0.73 |
-| bext | 2,491,328 | 0.73 |
-| sb | 2,023,847 | 0.59 |
-| bnez | 498,945 | 0.15 |
-| add | 331,439 | 0.10 |
-| rori | 192,792 | 0.06 |
-| bltu | 179,060 | 0.05 |
-| andn | 166,665 | 0.05 |
-| lhu | 143,498 | 0.04 |
 
 ## 5. Compiler Comparison
 

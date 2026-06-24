@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 192 |
-| Generated | 2026-06-23 14:23:32 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | vclmul_leaf at gf2x_vclmul.c:193 | 21,090 | 0.67 |
 | memset at mem.c:85 | 20,742 | 0.66 |
 | KeccakF1600_StatePermute at fips202.c:113 | 19,944 | 0.64 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| ld | 693,408 | 17.67 |
-| xor | 569,376 | 14.51 |
-| bnez | 429,171 | 10.93 |
-| addi | 196,493 | 5.01 |
-| rori | 192,792 | 4.91 |
-| add | 174,691 | 4.45 |
-| sd | 169,681 | 4.32 |
-| andn | 166,200 | 4.23 |
-| vle64.v | 139,482 | 3.55 |
-| vse64.v | 108,878 | 2.77 |
-| sh3add | 103,370 | 2.63 |
-| vxor.vv | 100,104 | 2.55 |
-| andi | 75,581 | 1.93 |
-| li | 57,675 | 1.47 |
-| slliw | 56,441 | 1.44 |
-| mv | 52,958 | 1.35 |
-| bne | 51,217 | 1.30 |
-| sub | 49,143 | 1.25 |
-| vsetvli | 48,340 | 1.23 |
-| slli | 45,697 | 1.16 |
 
 ## 4. VLEN Scaling Sweep
 

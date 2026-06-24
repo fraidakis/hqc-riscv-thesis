@@ -1,0 +1,22 @@
+# date: 2026-06-24 18:28
+# commit: 0eb2718
+# variant: scalar_ref
+# level: 192
+# component: kem
+# quality: dev
+# n_iter: 100
+# n_warmup: 10
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# core: 7
+# governor: performance
+# level=192,polymul=scalar_ref,n_iter=100,n_warmup=10,platform=hw,extended=1
+op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+keypair,100,35556459,35579783,40641335,35649010.8,508351.1,55833965,55846607,58143828,55874671.5,230220.5,814,19128561,0.00%,101,8701,445369,3364332,0,0
+encaps,100,71144683,71174964,72018743,71211328.4,107288.8,111705687,111711747,111787318,111719330.1,20736.7,1587,38264743,0.00%,184,17445,885646,6734301,0,0
+decaps,100,107445025,107496386,107751872,107523987.5,69686.3,168625123,168633817,168710434,168644769.0,23925.8,2397,57706492,0.00%,253,26812,1342456,10185120,0,0
+
+# --- derived metrics ---
+op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,dram_bytes_est,arith_intensity
+keypair,1.5696,0.000043,0.015,0.002,0.156,0.0125,0.0946,52096,1071.99
+encaps,1.5695,0.000041,0.014,0.002,0.156,0.0124,0.0946,101568,1099.87
+decaps,1.5687,0.000042,0.014,0.002,0.159,0.0125,0.0947,153408,1099.25

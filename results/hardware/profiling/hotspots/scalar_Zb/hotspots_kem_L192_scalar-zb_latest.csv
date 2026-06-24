@@ -1,0 +1,28 @@
+# date: 2026-06-24 19:54
+# commit: 0eb2718
+# variant: scalar_zb
+# level: 192
+# component: kem
+# method: perf record -e task-clock -F 4999 --call-graph fp
+# binary: build-hw/bench_profile_kem_hqc192_scalar_zb (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
+# samples: 30K
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# note: harness-free binary (no perf_event_open/ioctl overhead)
+function,self_pct,samples
+clmul_leaf.constprop.0,32.03,
+KeccakF1600_StatePermute,13.96,
+crypto_kem_dec.constprop.0.isra.0,13.68,
+kmul_35,6.78,
+vect_sample_fixed_weight2.constprop.0,5.04,
+keccak_inc_absorb,4.88,
+kmul_18,4.46,
+vect_mul,2.71,
+kmul_70,2.49,
+keccak_inc_squeeze.constprop.2,2.36,
+vect_sample_fixed_weight1.constprop.0,2.04,
+hqc_pke_encrypt,1.39,
+kmul_140,1.34,
+kmul_281,1.23,
+kmul_141,1.11,
+kmul_36,1.10,
+kmul_71,1.04,

@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-23 14:23:32 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | memset at mem.c:84 (discriminator 1) | 10,723 | 0.73 |
 | KeccakF1600_StatePermute at fips202.c:113 | 10,224 | 0.70 |
 | KeccakF1600_StatePermute at fips202.c:111 | 10,224 | 0.70 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| ld | 516,398 | 23.26 |
-| bnez | 388,207 | 17.49 |
-| xor | 298,394 | 13.44 |
-| rori | 98,832 | 4.45 |
-| addi | 93,562 | 4.21 |
-| andn | 85,200 | 3.84 |
-| add | 84,665 | 3.81 |
-| sd | 82,029 | 3.69 |
-| vle64.v | 45,852 | 2.07 |
-| andi | 38,986 | 1.76 |
-| vse64.v | 35,914 | 1.62 |
-| sh3add | 34,042 | 1.53 |
-| slliw | 33,242 | 1.50 |
-| vxor.vv | 33,029 | 1.49 |
-| bne | 26,062 | 1.17 |
-| bltu | 22,470 | 1.01 |
-| sb | 22,159 | 1.00 |
-| li | 21,641 | 0.97 |
-| lbu | 21,005 | 0.95 |
-| mv | 20,115 | 0.91 |
 
 ## 4. VLEN Scaling Sweep
 

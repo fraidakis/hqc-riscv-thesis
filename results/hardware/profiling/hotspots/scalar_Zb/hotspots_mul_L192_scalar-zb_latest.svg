@@ -1,0 +1,1346 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="550" onload="init(evt)" viewBox="0 0 1200 550" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:17px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Function: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 12 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (0 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+		if (currentSearchTerm === null) return;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="550.0" fill="url(#background)"  />
+<text id="title" x="600.00" y="24" >scalar_zb mul L192 (task-clock)</text>
+<text id="details" x="10.00" y="533" > </text>
+<text id="unzoom" x="10.00" y="24" class="hide">Reset Zoom</text>
+<text id="search" x="1090.00" y="24" >Search</text>
+<text id="ignorecase" x="1174.00" y="24" >ic</text>
+<text id="matched" x="1090.00" y="533" > </text>
+<g id="frames">
+<g >
+<title>kmul_35 (26,605,320 samples, 0.19%)</title><rect x="57.1" y="389" width="2.2" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="60.13" y="399.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="453" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="463.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (1,085,217,000 samples, 7.63%)</title><rect x="237.2" y="341" width="90.0" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="240.18" y="351.5" >clmul_leaf..</text>
+</g>
+<g >
+<title>__libc_dlopen_mode (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="181" width="0.1" height="15.0" fill="rgb(243,176,42)" rx="2" ry="2" />
+<text  x="1191.27" y="191.5" ></text>
+</g>
+<g >
+<title>kmul_18 (41,208,240 samples, 0.29%)</title><rect x="963.4" y="373" width="3.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="966.35" y="383.5" ></text>
+</g>
+<g >
+<title>kmul_18 (2,000,400 samples, 0.01%)</title><rect x="1088.7" y="405" width="0.2" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1091.69" y="415.5" ></text>
+</g>
+<g >
+<title>kmul_71 (2,208,641,640 samples, 15.52%)</title><rect x="742.4" y="373" width="183.2" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="745.44" y="383.5" >kmul_71</text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (652,330,440 samples, 4.58%)</title><rect x="688.3" y="325" width="54.1" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="691.34" y="335.5" >clmul..</text>
+</g>
+<g >
+<title>_Fork (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="325" width="0.1" height="15.0" fill="rgb(252,220,52)" rx="2" ry="2" />
+<text  x="1189.86" y="335.5" ></text>
+</g>
+<g >
+<title>dl_open_worker (4,600,920 samples, 0.03%)</title><rect x="1187.6" y="101" width="0.4" height="15.0" fill="rgb(236,145,34)" rx="2" ry="2" />
+<text  x="1190.63" y="111.5" ></text>
+</g>
+<g >
+<title>dlopen@@GLIBC_2.34 (3,400,680 samples, 0.02%)</title><rect x="1187.0" y="341" width="0.3" height="15.0" fill="rgb(209,22,5)" rx="2" ry="2" />
+<text  x="1190.01" y="351.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (3,800,760 samples, 0.03%)</title><rect x="1087.5" y="405" width="0.3" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="1090.47" y="415.5" ></text>
+</g>
+<g >
+<title>kmul_35 (30,806,160 samples, 0.22%)</title><rect x="56.8" y="405" width="2.5" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="59.78" y="415.5" ></text>
+</g>
+<g >
+<title>kmul_70 (2,400,480 samples, 0.02%)</title><rect x="54.8" y="389" width="0.2" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="57.79" y="399.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="261" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.86" y="271.5" ></text>
+</g>
+<g >
+<title>kmul_70 (33,406,680 samples, 0.23%)</title><rect x="61.4" y="389" width="2.7" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="64.36" y="399.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (14,602,920 samples, 0.10%)</title><rect x="1187.6" y="389" width="1.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.58" y="399.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (14,402,880 samples, 0.10%)</title><rect x="1187.6" y="373" width="1.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.58" y="383.5" ></text>
+</g>
+<g >
+<title>kmul_35 (204,040,800 samples, 1.43%)</title><rect x="934.2" y="389" width="16.9" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="937.22" y="399.5" ></text>
+</g>
+<g >
+<title>_dl_sysdep_start (5,801,160 samples, 0.04%)</title><rect x="1189.2" y="437" width="0.5" height="15.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="1192.24" y="447.5" ></text>
+</g>
+<g >
+<title>kmul_70 (36,807,360 samples, 0.26%)</title><rect x="61.1" y="405" width="3.0" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="64.08" y="415.5" ></text>
+</g>
+<g >
+<title>_dl_map_object (1,400,280 samples, 0.01%)</title><rect x="1187.7" y="53" width="0.1" height="15.0" fill="rgb(248,199,47)" rx="2" ry="2" />
+<text  x="1190.66" y="63.5" ></text>
+</g>
+<g >
+<title>_dlerror_run (4,800,960 samples, 0.03%)</title><rect x="1187.6" y="197" width="0.4" height="15.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1190.63" y="207.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="405" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="415.5" ></text>
+</g>
+<g >
+<title>internal_getgrouplist (2,600,520 samples, 0.02%)</title><rect x="1188.2" y="229" width="0.3" height="15.0" fill="rgb(254,227,54)" rx="2" ry="2" />
+<text  x="1191.24" y="239.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (74,414,880 samples, 0.52%)</title><rect x="937.2" y="357" width="6.1" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="940.17" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_18 (470,694,120 samples, 3.31%)</title><rect x="196.4" y="341" width="39.1" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="199.42" y="351.5" >kmu..</text>
+</g>
+<g >
+<title>kmul_70 (927,385,440 samples, 6.52%)</title><rect x="963.3" y="389" width="76.9" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="966.33" y="399.5" >kmul_70</text>
+</g>
+<g >
+<title>kmul_36 (33,206,640 samples, 0.23%)</title><rect x="960.6" y="373" width="2.7" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="963.58" y="383.5" ></text>
+</g>
+<g >
+<title>__libc_start_main_impl (14,182,635,960 samples, 99.68%)</title><rect x="10.1" y="453" width="1176.2" height="15.0" fill="rgb(218,63,15)" rx="2" ry="2" />
+<text  x="13.07" y="463.5" >__libc_start_main_impl</text>
+</g>
+<g >
+<title>[sudoers.so] (2,600,520 samples, 0.02%)</title><rect x="1186.6" y="309" width="0.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1189.58" y="319.5" ></text>
+</g>
+<g >
+<title>dlopen_doit (3,400,680 samples, 0.02%)</title><rect x="1187.0" y="277" width="0.3" height="15.0" fill="rgb(211,31,7)" rx="2" ry="2" />
+<text  x="1190.01" y="287.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="293" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.86" y="303.5" ></text>
+</g>
+<g >
+<title>kmul_35 (886,377,240 samples, 6.23%)</title><rect x="668.9" y="357" width="73.5" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="671.93" y="367.5" >kmul_35</text>
+</g>
+<g >
+<title>dlopen@@GLIBC_2.34 (4,800,960 samples, 0.03%)</title><rect x="1187.6" y="213" width="0.4" height="15.0" fill="rgb(209,22,5)" rx="2" ry="2" />
+<text  x="1190.63" y="223.5" ></text>
+</g>
+<g >
+<title>[nice] (1,400,280 samples, 0.01%)</title><rect x="1186.3" y="469" width="0.1" height="15.0" fill="rgb(244,179,42)" rx="2" ry="2" />
+<text  x="1189.28" y="479.5" ></text>
+</g>
+<g >
+<title>dl_open_worker (3,200,640 samples, 0.02%)</title><rect x="1187.0" y="229" width="0.3" height="15.0" fill="rgb(236,145,34)" rx="2" ry="2" />
+<text  x="1190.01" y="239.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (13,602,720 samples, 0.10%)</title><rect x="1187.6" y="357" width="1.1" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.58" y="367.5" ></text>
+</g>
+<g >
+<title>_dl_catch_error (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="149" width="0.1" height="15.0" fill="rgb(223,83,20)" rx="2" ry="2" />
+<text  x="1191.27" y="159.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (2,000,400 samples, 0.01%)</title><rect x="1187.3" y="341" width="0.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.33" y="351.5" ></text>
+</g>
+<g >
+<title>do_dlopen (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="117" width="0.1" height="15.0" fill="rgb(239,159,38)" rx="2" ry="2" />
+<text  x="1191.27" y="127.5" ></text>
+</g>
+<g >
+<title>kmul_18 (20,204,040 samples, 0.14%)</title><rect x="932.5" y="373" width="1.7" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="935.54" y="383.5" ></text>
+</g>
+<g >
+<title>kmul_36 (1,308,661,680 samples, 9.20%)</title><rect x="817.1" y="357" width="108.5" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="820.08" y="367.5" >kmul_36</text>
+</g>
+<g >
+<title>kmul_18 (393,278,640 samples, 2.76%)</title><rect x="784.5" y="341" width="32.6" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="787.46" y="351.5" >km..</text>
+</g>
+<g >
+<title>_dl_relocate_object (2,200,440 samples, 0.02%)</title><rect x="1187.1" y="181" width="0.2" height="15.0" fill="rgb(231,120,28)" rx="2" ry="2" />
+<text  x="1190.08" y="191.5" ></text>
+</g>
+<g >
+<title>kmul_35 (377,475,480 samples, 2.65%)</title><rect x="608.2" y="357" width="31.3" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="611.20" y="367.5" >km..</text>
+</g>
+<g >
+<title>kmul_18 (240,448,080 samples, 1.69%)</title><rect x="752.2" y="341" width="20.0" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="755.21" y="351.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (14,802,960 samples, 0.10%)</title><rect x="1187.6" y="405" width="1.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.58" y="415.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (3,000,600 samples, 0.02%)</title><rect x="1188.2" y="309" width="0.3" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1191.22" y="319.5" ></text>
+</g>
+<g >
+<title>kmul_141 (4,000,800 samples, 0.03%)</title><rect x="1088.4" y="405" width="0.3" height="15.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="1091.35" y="415.5" ></text>
+</g>
+<g >
+<title>kmul_36 (225,245,040 samples, 1.58%)</title><rect x="639.5" y="373" width="18.7" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="642.50" y="383.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="604.3" y="277" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="607.30" y="287.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="469" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="479.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="421" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="431.5" ></text>
+</g>
+<g >
+<title>kmul_18 (31,006,200 samples, 0.22%)</title><rect x="639.5" y="357" width="2.6" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="642.50" y="367.5" ></text>
+</g>
+<g >
+<title>taskset (2,800,560 samples, 0.02%)</title><rect x="1189.8" y="485" width="0.2" height="15.0" fill="rgb(208,17,4)" rx="2" ry="2" />
+<text  x="1192.77" y="495.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (39,607,920 samples, 0.28%)</title><rect x="658.2" y="341" width="3.3" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="661.25" y="351.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="357" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="367.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="213" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.86" y="223.5" ></text>
+</g>
+<g >
+<title>_Fork (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="341" width="0.1" height="15.0" fill="rgb(252,220,52)" rx="2" ry="2" />
+<text  x="1189.86" y="351.5" ></text>
+</g>
+<g >
+<title>kmul_18 (686,737,320 samples, 4.83%)</title><rect x="178.5" y="357" width="57.0" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="181.50" y="367.5" >kmul_18</text>
+</g>
+<g >
+<title>[sudoers.so] (3,000,600 samples, 0.02%)</title><rect x="1188.2" y="293" width="0.3" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1191.22" y="303.5" ></text>
+</g>
+<g >
+<title>bench_profile_m (14,183,636,160 samples, 99.69%)</title><rect x="10.0" y="485" width="1176.3" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="13.00" y="495.5" >bench_profile_m</text>
+</g>
+<g >
+<title>_dl_lookup_symbol_x (2,000,400 samples, 0.01%)</title><rect x="1187.1" y="149" width="0.2" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
+<text  x="1190.10" y="159.5" ></text>
+</g>
+<g >
+<title>_dl_relocate_object (2,800,560 samples, 0.02%)</title><rect x="1189.5" y="405" width="0.2" height="15.0" fill="rgb(231,120,28)" rx="2" ry="2" />
+<text  x="1192.45" y="415.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="389" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="399.5" ></text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (6,201,240 samples, 0.04%)</title><rect x="1187.6" y="261" width="0.5" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1190.63" y="271.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (2,000,400 samples, 0.01%)</title><rect x="1187.3" y="357" width="0.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.33" y="367.5" ></text>
+</g>
+<g >
+<title>dl_open_worker_begin (3,200,640 samples, 0.02%)</title><rect x="1187.0" y="197" width="0.3" height="15.0" fill="rgb(233,129,31)" rx="2" ry="2" />
+<text  x="1190.01" y="207.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="604.3" y="245" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="607.30" y="255.5" ></text>
+</g>
+<g >
+<title>kmul_70 (5,137,027,200 samples, 36.10%)</title><rect x="178.4" y="373" width="426.0" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="181.42" y="383.5" >kmul_70</text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (29,805,960 samples, 0.21%)</title><rect x="68.6" y="389" width="2.4" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="71.56" y="399.5" ></text>
+</g>
+<g >
+<title>kmul_18 (1,308,061,560 samples, 9.19%)</title><rect x="817.1" y="341" width="108.5" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="820.13" y="351.5" >kmul_18</text>
+</g>
+<g >
+<title>dlerror_run (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="165" width="0.1" height="15.0" fill="rgb(224,90,21)" rx="2" ry="2" />
+<text  x="1191.27" y="175.5" ></text>
+</g>
+<g >
+<title>sudo (38,807,760 samples, 0.27%)</title><rect x="1186.5" y="485" width="3.3" height="15.0" fill="rgb(251,215,51)" rx="2" ry="2" />
+<text  x="1189.55" y="495.5" ></text>
+</g>
+<g >
+<title>[sudo] (9,201,840 samples, 0.06%)</title><rect x="1186.6" y="373" width="0.7" height="15.0" fill="rgb(213,37,9)" rx="2" ry="2" />
+<text  x="1189.57" y="383.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (26,605,320 samples, 0.19%)</title><rect x="1045.8" y="357" width="2.2" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="1048.75" y="367.5" ></text>
+</g>
+<g >
+<title>_dl_catch_error (4,800,960 samples, 0.03%)</title><rect x="1187.6" y="181" width="0.4" height="15.0" fill="rgb(223,83,20)" rx="2" ry="2" />
+<text  x="1190.63" y="191.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (4,600,920 samples, 0.03%)</title><rect x="1187.6" y="117" width="0.4" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1190.63" y="127.5" ></text>
+</g>
+<g >
+<title>_start (6,601,320 samples, 0.05%)</title><rect x="1189.2" y="469" width="0.5" height="15.0" fill="rgb(245,185,44)" rx="2" ry="2" />
+<text  x="1192.17" y="479.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (3,000,600 samples, 0.02%)</title><rect x="56.8" y="389" width="0.2" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="59.78" y="399.5" ></text>
+</g>
+<g >
+<title>kmul_18 (113,422,680 samples, 0.80%)</title><rect x="951.2" y="373" width="9.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="954.17" y="383.5" ></text>
+</g>
+<g >
+<title>dl_open_worker_begin (4,200,840 samples, 0.03%)</title><rect x="1187.7" y="69" width="0.3" height="15.0" fill="rgb(233,129,31)" rx="2" ry="2" />
+<text  x="1190.66" y="79.5" ></text>
+</g>
+<g >
+<title>kmul_18 (187,037,400 samples, 1.31%)</title><rect x="1055.1" y="357" width="15.5" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1058.11" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_71 (569,513,880 samples, 4.00%)</title><rect x="1040.2" y="389" width="47.3" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="1043.24" y="399.5" >kmul..</text>
+</g>
+<g >
+<title>kmul_140 (6,431,886,120 samples, 45.20%)</title><rect x="71.0" y="389" width="533.4" height="15.0" fill="rgb(238,154,36)" rx="2" ry="2" />
+<text  x="74.03" y="399.5" >kmul_140</text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (220,644,120 samples, 1.55%)</title><rect x="669.4" y="341" width="18.3" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="672.40" y="351.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="309" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.86" y="319.5" ></text>
+</g>
+<g >
+<title>kmul_36 (198,239,640 samples, 1.39%)</title><rect x="1054.2" y="373" width="16.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1057.18" y="383.5" ></text>
+</g>
+<g >
+<title>_dl_catch_error (3,400,680 samples, 0.02%)</title><rect x="1187.0" y="309" width="0.3" height="15.0" fill="rgb(223,83,20)" rx="2" ry="2" />
+<text  x="1190.01" y="319.5" ></text>
+</g>
+<g >
+<title>dlopen_doit (4,800,960 samples, 0.03%)</title><rect x="1187.6" y="149" width="0.4" height="15.0" fill="rgb(211,31,7)" rx="2" ry="2" />
+<text  x="1190.63" y="159.5" ></text>
+</g>
+<g >
+<title>kmul_35 (541,708,320 samples, 3.81%)</title><rect x="772.2" y="357" width="44.9" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="775.15" y="367.5" >kmul..</text>
+</g>
+<g >
+<title>kmul_18 (75,015,000 samples, 0.53%)</title><rect x="1048.0" y="357" width="6.2" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1050.96" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_18 (39,807,960 samples, 0.28%)</title><rect x="1041.9" y="357" width="3.3" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1044.92" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_35 (333,066,600 samples, 2.34%)</title><rect x="966.8" y="373" width="27.6" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="969.77" y="383.5" >k..</text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (5,001,000 samples, 0.04%)</title><rect x="1187.6" y="229" width="0.4" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1190.63" y="239.5" ></text>
+</g>
+<g >
+<title>kmul_18 (25,205,040 samples, 0.18%)</title><rect x="606.1" y="357" width="2.1" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="609.11" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_35 (1,294,458,840 samples, 9.10%)</title><rect x="71.1" y="373" width="107.3" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="74.07" y="383.5" >kmul_35</text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (202,440,480 samples, 1.42%)</title><rect x="977.6" y="341" width="16.8" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="980.60" y="351.5" ></text>
+</g>
+<g >
+<title>kmul_36 (2,200,440 samples, 0.02%)</title><rect x="64.2" y="389" width="0.2" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="67.22" y="399.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (5,601,120 samples, 0.04%)</title><rect x="55.4" y="389" width="0.5" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="58.44" y="399.5" ></text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (6,801,360 samples, 0.05%)</title><rect x="1187.6" y="293" width="0.6" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1190.63" y="303.5" ></text>
+</g>
+<g >
+<title>_dl_start (5,801,160 samples, 0.04%)</title><rect x="1189.2" y="453" width="0.5" height="15.0" fill="rgb(237,151,36)" rx="2" ry="2" />
+<text  x="1192.24" y="463.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,400,280 samples, 0.01%)</title><rect x="1186.9" y="197" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.88" y="207.5" ></text>
+</g>
+<g >
+<title>kmul_18 (76,415,280 samples, 0.54%)</title><rect x="76.2" y="357" width="6.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="79.24" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_70 (1,016,003,160 samples, 7.14%)</title><rect x="658.2" y="373" width="84.2" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="661.18" y="383.5" >kmul_70</text>
+</g>
+<g >
+<title>_dl_relocate_object_no_relro (2,200,440 samples, 0.02%)</title><rect x="1187.1" y="165" width="0.2" height="15.0" fill="rgb(236,142,34)" rx="2" ry="2" />
+<text  x="1190.08" y="175.5" ></text>
+</g>
+<g >
+<title>[sudo] (12,202,440 samples, 0.09%)</title><rect x="1186.6" y="405" width="1.0" height="15.0" fill="rgb(213,37,9)" rx="2" ry="2" />
+<text  x="1189.57" y="415.5" ></text>
+</g>
+<g >
+<title>[sudo] (11,602,320 samples, 0.08%)</title><rect x="1186.6" y="389" width="0.9" height="15.0" fill="rgb(213,37,9)" rx="2" ry="2" />
+<text  x="1189.57" y="399.5" ></text>
+</g>
+<g >
+<title>kmul_18 (10,602,120 samples, 0.07%)</title><rect x="55.9" y="389" width="0.9" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="58.90" y="399.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (185,437,080 samples, 1.30%)</title><rect x="1055.2" y="341" width="15.4" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="1058.24" y="351.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (80,816,160 samples, 0.57%)</title><rect x="970.7" y="357" width="6.7" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="973.72" y="367.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (13,202,640 samples, 0.09%)</title><rect x="1187.6" y="341" width="1.1" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.59" y="351.5" ></text>
+</g>
+<g >
+<title>_start (14,183,036,040 samples, 99.68%)</title><rect x="10.0" y="469" width="1176.3" height="15.0" fill="rgb(245,185,44)" rx="2" ry="2" />
+<text  x="13.05" y="479.5" >_start</text>
+</g>
+<g >
+<title>sudo_dso_load_v1 (3,400,680 samples, 0.02%)</title><rect x="1187.0" y="357" width="0.3" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1190.01" y="367.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (12,602,520 samples, 0.09%)</title><rect x="1187.6" y="325" width="1.1" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.63" y="335.5" ></text>
+</g>
+<g >
+<title>nice (3,200,640 samples, 0.02%)</title><rect x="1186.3" y="485" width="0.2" height="15.0" fill="rgb(232,127,30)" rx="2" ry="2" />
+<text  x="1189.28" y="495.5" ></text>
+</g>
+<g >
+<title>kmul_36 (21,004,200 samples, 0.15%)</title><rect x="59.3" y="405" width="1.8" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="62.34" y="415.5" ></text>
+</g>
+<g >
+<title>vect_mul.constprop.0 (3,200,640 samples, 0.02%)</title><rect x="1186.0" y="421" width="0.3" height="15.0" fill="rgb(224,89,21)" rx="2" ry="2" />
+<text  x="1189.00" y="431.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (62,412,480 samples, 0.44%)</title><rect x="71.1" y="357" width="5.1" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="74.07" y="367.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (82,616,520 samples, 0.58%)</title><rect x="925.7" y="373" width="6.8" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="928.69" y="383.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (4,800,960 samples, 0.03%)</title><rect x="1187.6" y="165" width="0.4" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1190.63" y="175.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="53" width="0.1" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1191.27" y="63.5" ></text>
+</g>
+<g >
+<title>vect_mul.constprop.0 (1,167,833,520 samples, 8.21%)</title><rect x="1089.1" y="405" width="96.8" height="15.0" fill="rgb(224,89,21)" rx="2" ry="2" />
+<text  x="1092.07" y="415.5" >vect_mul.co..</text>
+</g>
+<g >
+<title>kmul_18 (29,405,880 samples, 0.21%)</title><rect x="964.3" y="357" width="2.5" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="967.33" y="367.5" ></text>
+</g>
+<g >
+<title>dl_open_worker (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="69" width="0.1" height="15.0" fill="rgb(236,145,34)" rx="2" ry="2" />
+<text  x="1191.27" y="79.5" ></text>
+</g>
+<g >
+<title>kmul_36 (18,203,640 samples, 0.13%)</title><rect x="59.6" y="389" width="1.5" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="62.57" y="399.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (107,421,480 samples, 0.75%)</title><rect x="951.7" y="357" width="8.9" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="954.67" y="367.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (117,223,440 samples, 0.82%)</title><rect x="742.5" y="341" width="9.7" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="745.49" y="351.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1188.9" y="341" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.94" y="351.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="277" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.86" y="287.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (3,200,640 samples, 0.02%)</title><rect x="1187.0" y="245" width="0.3" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1190.01" y="255.5" ></text>
+</g>
+<g >
+<title>_dl_open (4,600,920 samples, 0.03%)</title><rect x="1187.6" y="133" width="0.4" height="15.0" fill="rgb(238,156,37)" rx="2" ry="2" />
+<text  x="1190.63" y="143.5" ></text>
+</g>
+<g >
+<title>kmul_18 (16,203,240 samples, 0.11%)</title><rect x="55.4" y="405" width="1.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="58.44" y="415.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (11,802,360 samples, 0.08%)</title><rect x="963.4" y="357" width="0.9" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="966.35" y="367.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (1,800,360 samples, 0.01%)</title><rect x="1189.3" y="389" width="0.2" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1192.30" y="399.5" ></text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (2,400,480 samples, 0.02%)</title><rect x="1186.6" y="293" width="0.2" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1189.58" y="303.5" ></text>
+</g>
+<g >
+<title>kmul_141 (3,872,574,360 samples, 27.22%)</title><rect x="604.4" y="389" width="321.2" height="15.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="607.45" y="399.5" >kmul_141</text>
+</g>
+<g >
+<title>__libc_start_main@@GLIBC_2.34 (28,605,720 samples, 0.20%)</title><rect x="1186.5" y="453" width="2.4" height="15.0" fill="rgb(229,113,27)" rx="2" ry="2" />
+<text  x="1189.55" y="463.5" ></text>
+</g>
+<g >
+<title>sudo_getgrouplist2_v1 (3,000,600 samples, 0.02%)</title><rect x="1188.2" y="261" width="0.3" height="15.0" fill="rgb(239,157,37)" rx="2" ry="2" />
+<text  x="1191.22" y="271.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="604.3" y="309" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="607.30" y="319.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (3,200,640 samples, 0.02%)</title><rect x="1187.0" y="213" width="0.3" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1190.01" y="223.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1188.9" y="325" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.94" y="335.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (384,876,960 samples, 2.70%)</title><rect x="785.2" y="325" width="31.9" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="788.16" y="335.5" >cl..</text>
+</g>
+<g >
+<title>[sudoers.so] (2,600,520 samples, 0.02%)</title><rect x="1186.6" y="325" width="0.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1189.58" y="335.5" ></text>
+</g>
+<g >
+<title>kmul_35 (3,400,680 samples, 0.02%)</title><rect x="61.1" y="389" width="0.3" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="64.08" y="399.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (3,000,600 samples, 0.02%)</title><rect x="1188.2" y="277" width="0.3" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1191.22" y="287.5" ></text>
+</g>
+<g >
+<title>__libc_start_call_main (14,178,035,040 samples, 99.65%)</title><rect x="10.1" y="437" width="1175.8" height="15.0" fill="rgb(210,26,6)" rx="2" ry="2" />
+<text  x="13.10" y="447.5" >__libc_start_call_main</text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (216,043,200 samples, 1.52%)</title><rect x="178.5" y="341" width="17.9" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="181.50" y="351.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (4,600,920 samples, 0.03%)</title><rect x="1187.6" y="85" width="0.4" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1190.63" y="95.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="133" width="0.1" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1191.27" y="143.5" ></text>
+</g>
+<g >
+<title>vect_mul.constprop.0 (1,187,037,360 samples, 8.34%)</title><rect x="1087.5" y="421" width="98.4" height="15.0" fill="rgb(224,89,21)" rx="2" ry="2" />
+<text  x="1090.47" y="431.5" >vect_mul.co..</text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="373" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="383.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="1188.9" y="437" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1191.92" y="447.5" ></text>
+</g>
+<g >
+<title>vect_mul.constprop.0 (12,304,860,480 samples, 86.48%)</title><rect x="67.0" y="405" width="1020.5" height="15.0" fill="rgb(224,89,21)" rx="2" ry="2" />
+<text  x="70.00" y="415.5" >vect_mul.constprop.0</text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (7,201,440 samples, 0.05%)</title><rect x="1187.6" y="309" width="0.6" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1190.63" y="319.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="245" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.86" y="255.5" ></text>
+</g>
+<g >
+<title>kmul_71 (203,240,640 samples, 1.43%)</title><rect x="1070.6" y="373" width="16.9" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="1073.62" y="383.5" ></text>
+</g>
+<g >
+<title>pam_end (1,400,280 samples, 0.01%)</title><rect x="1187.4" y="325" width="0.1" height="15.0" fill="rgb(236,145,34)" rx="2" ry="2" />
+<text  x="1190.38" y="335.5" ></text>
+</g>
+<g >
+<title>kmul_70 (13,402,680 samples, 0.09%)</title><rect x="35.0" y="389" width="1.1" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="38.03" y="399.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="229" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="1189.86" y="239.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="85" width="0.1" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1191.27" y="95.5" ></text>
+</g>
+<g >
+<title>_dl_relocate_object_no_relro (2,800,560 samples, 0.02%)</title><rect x="1189.5" y="389" width="0.2" height="15.0" fill="rgb(236,142,34)" rx="2" ry="2" />
+<text  x="1192.45" y="399.5" ></text>
+</g>
+<g >
+<title>__libc_start_main@@GLIBC_2.34 (1,400,280 samples, 0.01%)</title><rect x="1186.3" y="453" width="0.1" height="15.0" fill="rgb(229,113,27)" rx="2" ry="2" />
+<text  x="1189.28" y="463.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (2,600,520 samples, 0.02%)</title><rect x="1186.6" y="341" width="0.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1189.58" y="351.5" ></text>
+</g>
+<g >
+<title>all (14,228,445,120 samples, 100%)</title><rect x="10.0" y="501" width="1180.0" height="15.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.00" y="511.5" ></text>
+</g>
+<g >
+<title>[sudoers.so] (2,000,400 samples, 0.01%)</title><rect x="1187.3" y="373" width="0.2" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="1190.33" y="383.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (1,294,458,840 samples, 9.10%)</title><rect x="818.3" y="325" width="107.3" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="821.26" y="335.5" >clmul_leaf.co..</text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (20,204,040 samples, 0.14%)</title><rect x="1040.2" y="357" width="1.7" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="1043.24" y="367.5" ></text>
+</g>
+<g >
+<title>_dlerror_run (3,400,680 samples, 0.02%)</title><rect x="1187.0" y="325" width="0.3" height="15.0" fill="rgb(210,27,6)" rx="2" ry="2" />
+<text  x="1190.01" y="335.5" ></text>
+</g>
+<g >
+<title>kmul_71 (5,401,080 samples, 0.04%)</title><rect x="55.0" y="389" width="0.4" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="57.99" y="399.5" ></text>
+</g>
+<g >
+<title>dl_main (5,201,040 samples, 0.04%)</title><rect x="1189.3" y="421" width="0.4" height="15.0" fill="rgb(236,145,34)" rx="2" ry="2" />
+<text  x="1192.29" y="431.5" ></text>
+</g>
+<g >
+<title>kmul_71 (34,606,920 samples, 0.24%)</title><rect x="64.1" y="405" width="2.9" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="67.13" y="415.5" ></text>
+</g>
+<g >
+<title>kmul_140 (6,801,360 samples, 0.05%)</title><rect x="1087.8" y="405" width="0.6" height="15.0" fill="rgb(238,154,36)" rx="2" ry="2" />
+<text  x="1090.79" y="415.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (146,229,240 samples, 1.03%)</title><rect x="772.3" y="341" width="12.2" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="775.33" y="351.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (73,414,680 samples, 0.52%)</title><rect x="1048.1" y="341" width="6.1" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="1051.09" y="351.5" ></text>
+</g>
+<g >
+<title>kmul_18 (2,800,560 samples, 0.02%)</title><rect x="59.3" y="389" width="0.3" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="62.34" y="399.5" ></text>
+</g>
+<g >
+<title>_dl_catch_exception (3,400,680 samples, 0.02%)</title><rect x="1187.0" y="293" width="0.3" height="15.0" fill="rgb(253,223,53)" rx="2" ry="2" />
+<text  x="1190.01" y="303.5" ></text>
+</g>
+<g >
+<title>main (12,990,997,680 samples, 91.30%)</title><rect x="10.1" y="421" width="1077.4" height="15.0" fill="rgb(243,179,42)" rx="2" ry="2" />
+<text  x="13.10" y="431.5" >main</text>
+</g>
+<g >
+<title>kmul_71 (31,406,280 samples, 0.22%)</title><rect x="64.4" y="389" width="2.6" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="67.40" y="399.5" ></text>
+</g>
+<g >
+<title>kmul_18 (3,343,268,520 samples, 23.50%)</title><rect x="327.2" y="341" width="277.2" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="330.18" y="351.5" >kmul_18</text>
+</g>
+<g >
+<title>main (28,005,600 samples, 0.20%)</title><rect x="1186.6" y="421" width="2.3" height="15.0" fill="rgb(243,179,42)" rx="2" ry="2" />
+<text  x="1189.57" y="431.5" ></text>
+</g>
+<g >
+<title>kmul_140 (314,062,800 samples, 2.21%)</title><rect x="10.1" y="405" width="26.0" height="15.0" fill="rgb(238,154,36)" rx="2" ry="2" />
+<text  x="13.10" y="415.5" >k..</text>
+</g>
+<g >
+<title>kmul_18 (128,825,760 samples, 0.91%)</title><rect x="658.2" y="357" width="10.7" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="661.25" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_35 (422,284,440 samples, 2.97%)</title><rect x="604.5" y="373" width="35.0" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="607.48" y="383.5" >km..</text>
+</g>
+<g >
+<title>kmul_141 (232,646,520 samples, 1.64%)</title><rect x="36.1" y="405" width="19.3" height="15.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="39.15" y="415.5" ></text>
+</g>
+<g >
+<title>_dl_open (3,200,640 samples, 0.02%)</title><rect x="1187.0" y="261" width="0.3" height="15.0" fill="rgb(238,156,37)" rx="2" ry="2" />
+<text  x="1190.01" y="271.5" ></text>
+</g>
+<g >
+<title>kmul_36 (194,238,840 samples, 1.37%)</title><rect x="642.1" y="357" width="16.1" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="645.07" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_35 (4,449,289,680 samples, 31.27%)</title><rect x="235.5" y="357" width="368.9" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="238.46" y="367.5" >kmul_35</text>
+</g>
+<g >
+<title>__nss_module_get_function (2,200,440 samples, 0.02%)</title><rect x="1188.3" y="213" width="0.1" height="15.0" fill="rgb(238,153,36)" rx="2" ry="2" />
+<text  x="1191.26" y="223.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (19,603,920 samples, 0.14%)</title><rect x="604.5" y="357" width="1.6" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="607.48" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_18 (89,217,840 samples, 0.63%)</title><rect x="661.5" y="341" width="7.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="664.53" y="351.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="604.3" y="261" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="607.30" y="271.5" ></text>
+</g>
+<g >
+<title>pam_sm_open_session (1,400,280 samples, 0.01%)</title><rect x="1186.6" y="277" width="0.1" height="15.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1189.62" y="287.5" ></text>
+</g>
+<g >
+<title>kmul_35 (94,018,800 samples, 0.66%)</title><rect x="943.3" y="373" width="7.8" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="946.34" y="383.5" ></text>
+</g>
+<g >
+<title>[sudo] (3,600,720 samples, 0.03%)</title><rect x="1186.6" y="357" width="0.3" height="15.0" fill="rgb(213,37,9)" rx="2" ry="2" />
+<text  x="1189.57" y="367.5" ></text>
+</g>
+<g >
+<title>kmul_18 (357,671,520 samples, 2.51%)</title><rect x="742.5" y="357" width="29.7" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="745.49" y="367.5" >km..</text>
+</g>
+<g >
+<title>kmul_36 (147,029,400 samples, 1.03%)</title><rect x="951.1" y="389" width="12.2" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="954.14" y="399.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (3,304,260,720 samples, 23.22%)</title><rect x="330.4" y="325" width="274.0" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="333.42" y="335.5" >clmul_leaf.constprop.1</text>
+</g>
+<g >
+<title>kmul_70 (552,910,560 samples, 3.89%)</title><rect x="994.4" y="373" width="45.8" height="15.0" fill="rgb(235,141,33)" rx="2" ry="2" />
+<text  x="997.39" y="383.5" >kmul..</text>
+</g>
+<g >
+<title>_dl_map_object_deps (1,800,360 samples, 0.01%)</title><rect x="1189.3" y="405" width="0.2" height="15.0" fill="rgb(219,68,16)" rx="2" ry="2" />
+<text  x="1192.30" y="415.5" ></text>
+</g>
+<g >
+<title>kmul_35 (108,021,600 samples, 0.76%)</title><rect x="1045.2" y="373" width="9.0" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="1048.22" y="383.5" ></text>
+</g>
+<g >
+<title>kmul_18 (204,640,920 samples, 1.44%)</title><rect x="977.4" y="357" width="17.0" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="980.42" y="367.5" ></text>
+</g>
+<g >
+<title>module_load (2,200,440 samples, 0.02%)</title><rect x="1188.3" y="197" width="0.1" height="15.0" fill="rgb(239,158,37)" rx="2" ry="2" />
+<text  x="1191.26" y="207.5" ></text>
+</g>
+<g >
+<title>kmul_140 (300,660,120 samples, 2.11%)</title><rect x="10.1" y="389" width="24.9" height="15.0" fill="rgb(238,154,36)" rx="2" ry="2" />
+<text  x="13.10" y="399.5" >k..</text>
+</g>
+<g >
+<title>kmul_35 (1,155,631,080 samples, 8.12%)</title><rect x="82.6" y="357" width="95.8" height="15.0" fill="rgb(229,111,26)" rx="2" ry="2" />
+<text  x="85.58" y="367.5" >kmul_35</text>
+</g>
+<g >
+<title>kmul_18 (660,132,000 samples, 4.64%)</title><rect x="687.7" y="341" width="54.7" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="690.69" y="351.5" >kmul_18</text>
+</g>
+<g >
+<title>__libc_start_call_main (28,205,640 samples, 0.20%)</title><rect x="1186.5" y="437" width="2.4" height="15.0" fill="rgb(210,26,6)" rx="2" ry="2" />
+<text  x="1189.55" y="447.5" ></text>
+</g>
+<g >
+<title>kmul_18 (60,012,000 samples, 0.42%)</title><rect x="1040.2" y="373" width="5.0" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1043.24" y="383.5" ></text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (5,601,120 samples, 0.04%)</title><rect x="1187.6" y="245" width="0.5" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1190.63" y="255.5" ></text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (6,601,320 samples, 0.05%)</title><rect x="1187.6" y="277" width="0.6" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1190.63" y="287.5" ></text>
+</g>
+<g >
+<title>kmul_141 (224,844,960 samples, 1.58%)</title><rect x="36.1" y="389" width="18.7" height="15.0" fill="rgb(232,124,29)" rx="2" ry="2" />
+<text  x="39.15" y="399.5" ></text>
+</g>
+<g >
+<title>_dl_lookup_symbol_x (1,400,280 samples, 0.01%)</title><rect x="1189.6" y="373" width="0.1" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
+<text  x="1192.57" y="383.5" ></text>
+</g>
+<g >
+<title>[sudo] (28,605,720 samples, 0.20%)</title><rect x="1186.5" y="469" width="2.4" height="15.0" fill="rgb(213,37,9)" rx="2" ry="2" />
+<text  x="1189.55" y="479.5" ></text>
+</g>
+<g >
+<title>openaux (1,600,320 samples, 0.01%)</title><rect x="1189.3" y="373" width="0.2" height="15.0" fill="rgb(252,217,52)" rx="2" ry="2" />
+<text  x="1192.32" y="383.5" ></text>
+</g>
+<g >
+<title>kmul_18 (103,820,760 samples, 0.73%)</title><rect x="925.6" y="389" width="8.6" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="928.61" y="399.5" ></text>
+</g>
+<g >
+<title>kmul_18 (80,816,160 samples, 0.57%)</title><rect x="936.6" y="373" width="6.7" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="939.64" y="383.5" ></text>
+</g>
+<g >
+<title>getgrouplist (2,600,520 samples, 0.02%)</title><rect x="1188.2" y="245" width="0.3" height="15.0" fill="rgb(230,115,27)" rx="2" ry="2" />
+<text  x="1191.24" y="255.5" ></text>
+</g>
+<g >
+<title>clmul_leaf.constprop.1 (29,005,800 samples, 0.20%)</title><rect x="934.2" y="373" width="2.4" height="15.0" fill="rgb(248,200,48)" rx="2" ry="2" />
+<text  x="937.23" y="383.5" ></text>
+</g>
+<g >
+<title>_dl_open (2,000,400 samples, 0.01%)</title><rect x="1188.3" y="101" width="0.1" height="15.0" fill="rgb(238,156,37)" rx="2" ry="2" />
+<text  x="1191.27" y="111.5" ></text>
+</g>
+<g >
+<title>[unknown] (1,800,360 samples, 0.01%)</title><rect x="604.3" y="293" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="607.30" y="303.5" ></text>
+</g>
+<g >
+<title>main (1,400,280 samples, 0.01%)</title><rect x="1186.3" y="421" width="0.1" height="15.0" fill="rgb(243,179,42)" rx="2" ry="2" />
+<text  x="1189.28" y="431.5" ></text>
+</g>
+<g >
+<title>sudo_debug_fork_v1 (1,600,320 samples, 0.01%)</title><rect x="1186.9" y="357" width="0.1" height="15.0" fill="rgb(225,95,22)" rx="2" ry="2" />
+<text  x="1189.86" y="367.5" ></text>
+</g>
+<g >
+<title>main (3,600,720 samples, 0.03%)</title><rect x="1186.0" y="437" width="0.3" height="15.0" fill="rgb(243,179,42)" rx="2" ry="2" />
+<text  x="1188.97" y="447.5" ></text>
+</g>
+<g >
+<title>dl_open_worker_begin (1,600,320 samples, 0.01%)</title><rect x="1188.3" y="37" width="0.1" height="15.0" fill="rgb(233,129,31)" rx="2" ry="2" />
+<text  x="1191.31" y="47.5" ></text>
+</g>
+<g >
+<title>getaddrinfo (2,200,440 samples, 0.02%)</title><rect x="1188.5" y="309" width="0.2" height="15.0" fill="rgb(226,99,23)" rx="2" ry="2" />
+<text  x="1191.49" y="319.5" ></text>
+</g>
+<g >
+<title>[libpam.so.0.85.1] (1,400,280 samples, 0.01%)</title><rect x="1187.4" y="309" width="0.1" height="15.0" fill="rgb(232,125,30)" rx="2" ry="2" />
+<text  x="1190.38" y="319.5" ></text>
+</g>
+<g >
+<title>__libc_start_call_main (1,400,280 samples, 0.01%)</title><rect x="1186.3" y="437" width="0.1" height="15.0" fill="rgb(210,26,6)" rx="2" ry="2" />
+<text  x="1189.28" y="447.5" ></text>
+</g>
+</g>
+</svg>

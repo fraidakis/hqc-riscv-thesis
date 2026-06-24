@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-23 14:17:57 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | support_contains_value at vector.c:80 (discriminator 1) | 47,013 | 1.44 |
 | gf_reduce at gf.c:80 | 44,712 | 1.37 |
 | gf_reduce at gf.c:82 | 44,712 | 1.37 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| ld | 789,904 | 19.46 |
-| xor | 621,405 | 15.31 |
-| bnez | 394,853 | 9.73 |
-| addi | 369,500 | 9.10 |
-| sd | 285,682 | 7.04 |
-| bne | 244,815 | 6.03 |
-| sb | 141,039 | 3.47 |
-| clmul | 119,913 | 2.95 |
-| clmulh | 114,324 | 2.82 |
-| lhu | 105,605 | 2.60 |
-| rori | 98,832 | 2.43 |
-| andn | 85,606 | 2.11 |
-| sh | 63,977 | 1.58 |
-| slliw | 52,634 | 1.30 |
-| add | 51,354 | 1.26 |
-| lbu | 49,743 | 1.23 |
-| andi | 38,826 | 0.96 |
-| addw | 35,580 | 0.88 |
-| or | 33,851 | 0.83 |
-| addiw | 31,824 | 0.78 |
 
 ## 5. Compiler Comparison
 

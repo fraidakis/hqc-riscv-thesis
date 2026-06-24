@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-23 18:43:06 |
-| Commit | `f21e6c4` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | kmul_17 at karatsuba_rvv_specialized_gen.h:61 | 10,434 | 0.52 |
 | memset at mem.c:84 (discriminator 3) | 10,239 | 0.51 |
 | memset at mem.c:84 (discriminator 1) | 10,239 | 0.51 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| ld | 724,663 | 26.07 |
-| xor | 549,805 | 19.78 |
-| bnez | 401,213 | 14.43 |
-| sd | 158,287 | 5.69 |
-| clmul | 118,563 | 4.26 |
-| clmulh | 114,102 | 4.10 |
-| rori | 98,832 | 3.56 |
-| andn | 85,200 | 3.06 |
-| addi | 64,763 | 2.33 |
-| add | 62,156 | 2.24 |
-| slliw | 44,545 | 1.60 |
-| andi | 39,000 | 1.40 |
-| mv | 28,278 | 1.02 |
-| bne | 21,982 | 0.79 |
-| bltu | 21,953 | 0.79 |
-| sb | 21,681 | 0.78 |
-| lbu | 21,011 | 0.76 |
-| zext.b | 14,989 | 0.54 |
-| sh3add | 13,902 | 0.50 |
-| srli | 11,467 | 0.41 |
 
 ## 4. VLEN Scaling Sweep
 

@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-23 14:17:57 |
-| Commit | `d38ed14` |
+| Generated | 2026-06-24 15:21:07 |
+| Commit | `0eb2718` |
 
 ---
 
@@ -106,31 +106,6 @@
 | clmul_leaf at gf2x_clmul.c:358 (discriminator 1) | 173,754 | 1.22 |
 | clmul_leaf at gf2x_clmul.c:391 | 172,536 | 1.21 |
 | hadamard at reed_muller.c:98 | 161,280 | 1.13 |
-
-### Basic Block Histogram (Top 20)
-
-| instruction | count | % Total |
-| --- | ---: | ---: |
-| xor | 3,101,853 | 20.54 |
-| ld | 2,654,164 | 17.57 |
-| sd | 1,675,981 | 11.10 |
-| addi | 1,299,350 | 8.60 |
-| clmul | 906,020 | 6.00 |
-| clmulh | 887,928 | 5.88 |
-| bne | 821,460 | 5.44 |
-| sb | 431,943 | 2.86 |
-| bnez | 427,891 | 2.83 |
-| rori | 293,016 | 1.94 |
-| andn | 254,253 | 1.68 |
-| lhu | 246,291 | 1.63 |
-| slliw | 165,901 | 1.10 |
-| add | 164,702 | 1.09 |
-| lbu | 158,745 | 1.05 |
-| sh | 155,720 | 1.03 |
-| or | 118,572 | 0.78 |
-| andi | 118,373 | 0.78 |
-| addw | 98,062 | 0.65 |
-| sub | 96,141 | 0.64 |
 
 ## 5. Compiler Comparison
 

@@ -1,0 +1,18 @@
+# date: 2026-06-24 19:50
+# commit: 0eb2718
+# variant: scalar_zb
+# level: 128
+# component: mul
+# method: perf record -e task-clock -F 4999 --call-graph fp
+# binary: build-hw/bench_profile_mul_hqc128_scalar_zb (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
+# samples: 21K
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# note: harness-free binary (no perf_event_open/ioctl overhead)
+function,self_pct,samples
+clmul_leaf.constprop.1,58.76,
+kmul_17,10.81,
+vect_mul.constprop.0,9.03,
+kmul_35,6.78,
+kmul_18,6.27,
+kmul_69,5.02,
+kmul_70,2.05,
