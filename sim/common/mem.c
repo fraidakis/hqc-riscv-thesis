@@ -2,10 +2,17 @@
  *
  * Bare-metal C string/memory routines for HQC RISC-V -nostdlib targets.
  *
- * Constant-time intent:
+ * Constant-time intent (memcpy, memmove, memset):
  * - No branches depend on loaded memory contents.
  * - Control flow depends only on public parameters (n, pointer overlap,
  *   and alignment checks used by memset zero fast-path).
+ *
+ * Exceptions (variable-time, non-secret data only):
+ * - memcmp: early-returns on first mismatch.  Used exclusively in
+ *   test/bench harnesses for shared-secret sanity checks, never on
+ *   secret data.  The FO ciphertext comparison uses the constant-time
+ *   vect_compare() in src/vector.c instead.
+ * - strlen: iterates until NUL.  Used only for HTIF console output.
  */
 
 #include <stddef.h>
@@ -86,6 +93,18 @@ void *memset(void *dst, int c, size_t n)
     return dst;
 }
 
+/*
+ * NOTE: memcmp is intentionally VARIABLE-TIME (early-return on first
+ * differing byte).  This is acceptable because memcmp is NEVER used on
+ * secret data in the cryptographic path.  The security-sensitive
+ * Fujisaki-Okamoto ciphertext comparison uses the constant-time
+ * vect_compare() (src/vector.c) which accumulates XOR differences via
+ * r |= v1[i] ^ v2[i] without data-dependent branches.
+ *
+ * Call sites of memcmp (all non-secret, test/bench harness only):
+ *   - tests/kat/kat_gen.c       : ss_enc vs ss_dec consistency check
+ *   - tests/bench/bench_kem.c   : post-measurement sanity assertion
+ */
 int memcmp(const void *a, const void *b, size_t n)
 {
     const unsigned char *pa = (const unsigned char *)a;
