@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot: Full KEM Speedup — karatsuba_zbc & vector_rvv vs scalar_ref
+Plot: Full KEM Speedup — scalar_zb & vector_rvv vs scalar_ref
 
 Design goal: show that the Spike simulator (instret-based) PREDICTS the real
 hardware speedup for the *scalar* path (delta < ~1%), but OVER-PREDICTS the
@@ -42,7 +42,7 @@ HW_KEM_DIR  = REPO_ROOT / "results" / "hardware"   / "benchmarks" / "kem"
 SIM_REF_CSV = SIM_KEM_DIR / "sim_kem_scalar-ref_latest.csv"
 HW_REF_CSV  = HW_KEM_DIR  / "hw_kem_scalar-ref_latest.csv"
 
-# karatsuba_zbc
+# scalar_zb
 SIM_ZBC_CSV = SIM_KEM_DIR / "sim_kem_scalar-zb_latest.csv"
 HW_ZBC_CSV  = HW_KEM_DIR  / "hw_kem_scalar-zb_latest.csv"
 
@@ -59,12 +59,12 @@ LEVELS = [128, 192, 256]
 
 # Variant identity colour (encodes the *series*, kept stable across the thesis).
 VARIANT_DISPLAY = {
-    "karatsuba_zbc": "Zbc (scalar)",
-    "vector_rvv":    "RVV (vector)",
+    "scalar_zb":  "Zbc (scalar)",
+    "vector_rvv": "RVV (vector)",
 }
 VARIANT_COLOR = {
-    "karatsuba_zbc": "#4C72B0",  # blue
-    "vector_rvv":    "#DD8452",  # orange
+    "scalar_zb":  "#4C72B0",  # blue
+    "vector_rvv": "#DD8452",  # orange
 }
 
 # Semantic colours encode the *prediction quality* (delta), NOT the tier.
@@ -138,8 +138,8 @@ def compute_speedups() -> dict[str, tuple[list[float], list[float]]]:
     results: dict[str, tuple[list[float], list[float]]] = {}
 
     for name, sim_opt, hw_opt in [
-        ("karatsuba_zbc", sim_zbc, hw_zbc),
-        ("vector_rvv",    sim_rvv, hw_rvv),
+        ("scalar_zb",  sim_zbc, hw_zbc),
+        ("vector_rvv", sim_rvv, hw_rvv),
     ]:
         spike_sp: list[float] = []
         hw_sp: list[float] = []
