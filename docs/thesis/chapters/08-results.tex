@@ -1032,14 +1032,7 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
     {\textbf{HW Speedup}} & {\textbf{HW/Spike}} \\
     \midrule
     \multicolumn{4}{l}{\textit{\code{scalar\_zb} vs \code{scalar\_ref}}} \\
-    \quad Polymul  & 86.90 & 78.55 & 0.90 \\
-    \quad \Decaps  & 28.26 & 27.79 & 0.98 \\
-    \quad Total \gls{kem} & 34.01 & 34.33 & 1.01 \\
-    \midrule
-    \multicolumn{4}{l}{\textit{\code{vector\_rvv} vs \code{scalar\_ref}}} \\
-    \quad Polymul  & 122.04 & 55.07 & 0.45 \\
-    \quad \Decaps  & 54.43 & 31.14 & 0.57 \\
-    \quad Total \gls{kem} & 59.96 & 34.62 & 0.58 \\
+    \quad Polymul & 99.88 & 78.15 & 0.78 \\ \quad \Decaps & 28.65 & 28.25 & 0.99 \\ \quad Total \gls{kem} & 34.78 & 34.93 & 1.00 \\ \midrule \multicolumn{4}{l}{\textit{\code{vector\_rvv} vs \code{scalar\_ref}}} \\ \quad Polymul & 132.68 & 92.41 & 0.70 \\ \quad \Decaps & 51.43 & 39.02 & 0.76 \\ \quad Total \gls{kem} & 57.72 & 45.32 & 0.79 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1048,19 +1041,36 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
 
 \paragraph{Scalar path: εξαιρετική πρόβλεψη (HW/Spike $\approx 1.0$).}
 Στο πλήρες \gls{kem}, ο λόγος HW/Spike για τον \code{scalar\_zb} ανέρχεται
-σε $1.01$ — σχεδόν τέλεια συμφωνία. Η εξήγηση είναι ότι τόσο ο
-reference όσο και ο optimized variant εκτελούνται αποκλειστικά στον scalar
-pipeline, με παρόμοιο IPC ($\sim 1.3$–$1.6$). Ο λόγος IPC$_\text{ref}$ /
-IPC$_\text{opt}$ ($= 1.65 / 1.48 = 1.11$) εξηγεί τη μικρή απόκλιση στο
-isolated polymul (HW/Spike $= 0.90$): ο reference polymul αξιοποιεί
-ελαφρώς καλύτερα τον dual-issue λόγω μεγαλύτερου instruction-level
-parallelism στον schoolbook loop. Στο πλήρες \gls{kem}, η απόκλιση αυτή
-αμβλύνεται από τους υπόλοιπους πυρήνες (Keccak, decode, sampling) που
-παρουσιάζουν παρόμοιο IPC μεταξύ reference και optimized.
+σε $1.00$, σχεδόν τέλεια συμφωνία. Η εξήγηση είναι ότι τόσο ο reference όσο
+και ο optimized variant εκτελούνται αποκλειστικά στον scalar pipeline, με
+παρόμοιο IPC. Η μικρή υστέρηση στο isolated polymul (HW/Spike $= 0.78$)
+οφείλεται στο ότι ο reference polymul αξιοποιεί ελαφρώς καλύτερα τον
+dual-issue λόγω μεγαλύτερου instruction-level parallelism στον schoolbook
+loop. Στο πλήρες \gls{kem} η απόκλιση αυτή αμβλύνεται από τους υπόλοιπους
+πυρήνες (Keccak, decode, sampling) που παρουσιάζουν παρόμοιο IPC μεταξύ
+reference και optimized. Η ίδια συμφωνία επεκτείνεται και στα HQC-192 και
+HQC-256 (\cref{tab:hw-spike-prediction-levels}), με τον λόγο HW/Spike να
+παραμένει $\approx 1.0$ ανεξαρτήτως μεγέθους παραμέτρων.
 
-\paragraph{Vector path: σημαντική απόκλιση (HW/Spike $\approx 0.6$).}
-Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.58$ στο \gls{kem} — η
-πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{42}. Η
+\begin{table}[htbp]
+  \centering
+  \caption{Επέκταση της επικύρωσης Spike vs hardware στα τρία security
+    levels (\code{scalar\_zb} έναντι \code{scalar\_ref}, πλήρες \gls{kem}).
+    Ο λόγος HW/Spike παραμένει $\approx 1.0$ σε όλα τα levels.}
+  \label{tab:hw-spike-prediction-levels}
+  \begin{tabular}{l S[table-format=2.2] S[table-format=2.2] S[table-format=1.2]}
+    \toprule
+    {Level} & {Spike Speedup} & {HW Speedup} & {HW/Spike} \\
+    \midrule
+    HQC-128 & 34.78 & 34.93 & 1.00 \\
+    HQC-192 & 46.20 & 46.26 & 1.00 \\
+    HQC-256 & 59.07 & 59.68 & 1.01 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Vector path: απόκλιση (HW/Spike $\approx 0.8$).}
+Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.79$ στο \gls{kem}, η πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{21}. Η
 απόκλιση οφείλεται εξ ολοκλήρου στα microarchitectural penalties που
 αναλύθηκαν στην~\cref{ssec:hw-ipc}: το Spike μοντελοποιεί κάθε εντολή
 ως CPI$=$1, αγνοώντας τα scalar↔vector transition costs και τα store

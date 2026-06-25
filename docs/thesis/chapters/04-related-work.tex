@@ -237,7 +237,7 @@ custom εντολή trailing-zero count 16-bit) και carry-less GF πολλα�
 accelerator, με dedicated 1600-bit register κατάστασης, εκτελεί τους 24 γύρους της
 permutation μέσω τριών custom εντολών (φόρτωση 64-bit, start, αποθήκευση
 32-bit). Οι εντολές ορίζονται ως R-/R4-type μέσω inline assembly (\code{.insn})
-σε ελεύθερα opcodes, χωρίς τροποποίηση του toolchain. Οι επιταχύνσεις ανά
+σε ελεύθερα opcodes, χωρίς τροποποίηση του toolchain. Τα speedups ανά
 συνάρτηση είναι \pct{99.14} (Karatsuba), \pct{91.27} (GF-reduce), \pct{90.54}
 (Keccak-f) και \pct{81.33} (GF-carryless) ως μείωση κύκλων ρολογιού, για
 συνολική μείωση χρόνου \pct{94}–\pct{96} σε KeyGen/Encaps/Decaps. Όλα τα

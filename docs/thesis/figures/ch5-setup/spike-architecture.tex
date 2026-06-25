@@ -1,47 +1,46 @@
-% figures/spike-architecture.tex
-% Spike ISS architecture diagram: Host CPU → Spike → instret counter
-\tikzsetnextfilename{ch5-setup-spike-architecture}
+% figures/ch5-setup/spike-architecture_v1.tex
+% VARIANT (_v1, baseline refined) — token migration + cleanup, SAME layout.
+% Type A (conceptual dataflow). Verdict R.
+% NOT \input by main.tex; promote manually:
+%   mv spike-architecture_v1.tex spike-architecture.tex
+\tikzsetnextfilename{ch5-setup-spike-architecture_v1}
 \begin{tikzpicture}[
     node distance=1.8cm and 2.5cm,
-    box/.style={
-        draw, rounded corners=3pt, minimum width=3.2cm, minimum height=1.2cm,
-        align=center, font=\sffamily\small
-    },
-    bigbox/.style={
-        draw, rounded corners=5pt, minimum width=4.5cm, minimum height=3.8cm,
-        align=center, font=\sffamily\small, dashed, thick, fill=blue!3
-    },
-    arr/.style={-{Stealth[length=3mm]}, thick},
-    note/.style={font=\sffamily\scriptsize, text=gray!70!black}
+    % --- local styles (no shared token for these container/result roles) ---
+    container/.style={draw=figprocess, dashed, figLW/base, rounded corners=5pt,
+        minimum width=4.5cm, minimum height=3.8cm, align=center, fill=figprocess!4},
+    resultbox/.style={figbox, draw=figsolution, figLW/base, fill=figsolutionfill,
+        align=center, minimum width=3.2cm, minimum height=1.2cm},
 ]
 
-% Host system
-\node[box, fill=gray!10] (host) {Host CPU\\(x86-64)};
+% Host system (external)
+\node[fignode/mem, minimum width=3.2cm, minimum height=1.2cm] (host) {Host CPU\\(x86-64)};
 
-% Spike ISS big container
-\node[bigbox, right=3cm of host] (spike_box) {};
-\node[font=\sffamily\small\bfseries, anchor=north] at (spike_box.north) {Spike ISS};
+% Spike ISS container
+\node[container, right=2.0cm of host] (spike_box) {};
+\node[figT/title, anchor=north] at (spike_box.north) {Spike ISS};
 
 % Internal Spike components
-\node[box, fill=orange!10, minimum width=2.8cm, minimum height=0.8cm]
+\node[figbox/emph, minimum width=2.8cm, minimum height=0.8cm, align=center]
     (decode) at ([yshift=0.5cm]spike_box.center) {Decode \& Execute\\(sequential)};
-\node[box, fill=green!10, minimum width=2.8cm, minimum height=0.8cm]
+\node[figbox/focal, minimum width=2.8cm, minimum height=0.8cm, align=center]
     (csr) at ([yshift=-1cm]spike_box.center) {\texttt{minstret} CSR\\(+1 per insn)};
 
-% Output
-\node[box, fill=yellow!10, right=2.5cm of spike_box] (output) {Retired\\Instruction\\Count};
+% Output (measured result)
+\node[resultbox, right=2.8cm of spike_box] (output) {Retired Instruction\\Count};
 
-% ELF input
-\node[box, fill=violet!8, above=1.2cm of spike_box] (elf) {ELF Binary\\(\texttt{-{}-isa=rv64gcv\_zvbc...})};
+% ELF input (artifact)
+\node[fignode/data, align=center, above=1.2cm of spike_box] (elf)
+    {ELF Binary\\(\texttt{-{}-isa=rv64gcv\_zvbc...})};
 
 % Arrows
-\draw[arr] (host) -- node[above, note] {interprets} (spike_box.west);
-\draw[arr] (elf) -- (spike_box.north);
-\draw[arr] (decode) -- (csr);
-\draw[arr] (spike_box.east) -- node[above, note] {\texttt{mcycle} $\equiv$ \texttt{minstret}} (output);
+\draw[figedge] (host) -- node[figT/annot, above] {interprets} (spike_box.west);
+\draw[figedge] (elf) -- (spike_box.north);
+\draw[figedge] (decode) -- (csr);
+\draw[figedge] (spike_box.east) -- node[figT/annot, above] {\texttt{mcycle} $\equiv$ \texttt{minstret}} (output);
 
 % Annotations
-\node[note, below=0.3cm of spike_box] {No pipeline model, no cache, no branch predictor};
-\node[note, below=0.1cm of host] {Ντετερμινιστική εκτέλεση};
+\node[figT/annot, below=0.3cm of spike_box] {No pipeline model, no cache, no branch predictor};
+\node[figT/annot, below=0.1cm of host] {Ντετερμινιστική εκτέλεση};
 
 \end{tikzpicture}

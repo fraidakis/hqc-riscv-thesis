@@ -1,41 +1,41 @@
-% figures/build-pipeline.tex
-% Build pipeline diagram: Source → CMake → Toolchain → ELF → Spike → instret
-\tikzsetnextfilename{ch5-setup-build-pipeline}
+% figures/ch5-setup/build-pipeline_strip.tex
+% VARIANT (_strip, LAYOUT — single-row option to compare) — the linear strip you
+% currently use, cleaned and BUGFIXED (local style `out` -> `output`), with
+% taller nodes. NOTE: a one-row strip is inherently wide-and-short (~6:1), so
+% when the chapter scales it to \textwidth it still renders SMALL/short; for a
+% visibly bigger figure prefer `_phases` (two-row). Kept here so you can pick.
+% Uses the `fit` library (FLAGGED). Type A. Verdict L.
+% NOT \input by main.tex; promote manually.
+\usetikzlibrary{fit}
+\tikzsetnextfilename{ch5-setup-build-pipeline_strip}
 \begin{tikzpicture}[
-  node distance=1.2cm and 1.6cm,
-  box/.style={
-    draw, rounded corners=2pt, minimum height=0.9cm, minimum width=2.0cm,
-    font=\small\sffamily, align=center, fill=white
-  },
-  srcbox/.style={box, fill=blue!8, draw=blue!40},
-  toolbox/.style={box, fill=orange!8, draw=orange!40},
-  outbox/.style={box, fill=green!8, draw=green!40},
-  arr/.style={-{Stealth[length=5pt]}, thick},
-  lbl/.style={font=\scriptsize\sffamily, midway, above, text=gray!70!black}
+  node distance=1.0cm and 1.3cm,
+  stage/.style ={fignode/data, align=center, minimum height=1.5cm, minimum width=2.5cm, font=\small},
+  tool/.style  ={figbox/emph, align=center, minimum height=1.5cm, minimum width=2.5cm, font=\small},
+  output/.style={figbox, draw=figsolution, figLW/base, fill=figsolutionfill,
+                 align=center, minimum height=1.5cm, minimum width=2.5cm, font=\small},
+  phaseframe/.style={rounded corners=4pt, figLW/base, inner sep=10pt},
 ]
 
-% Nodes
-\node[srcbox] (src) {Source\\\texttt{.c}/\texttt{.h}/\texttt{.S}};
-\node[toolbox, right=of src] (cmake) {CMake\\configuration};
-\node[toolbox, right=of cmake] (compiler) {GCC 15.2\\cross-compiler};
-\node[outbox, right=of compiler] (elf) {ELF binary\\\texttt{.elf}};
-\node[toolbox, right=of elf] (spike) {Spike ISS\\execution};
-\node[outbox, right=of spike] (instretnode) {\texttt{instret}\\output};
+\node[stage] (src) {Source\\\texttt{.c}/\texttt{.h}/\texttt{.S}};
+\node[tool, right=of src] (cmake) {CMake\\configuration};
+\node[tool, right=of cmake] (compiler) {GCC 15.2\\cross-compiler};
+\node[output, right=of compiler] (elf) {ELF binary\\\texttt{.elf}};
+\node[tool, right=1.6cm of elf] (spike) {Spike ISS\\execution};
+\node[output, right=of spike] (instretnode) {\texttt{instret}\\output};
 
-% Arrows
-\draw[arr] (src) -- (cmake);
-\draw[arr] (cmake) -- node[lbl] {toolchain file} (compiler);
-\draw[arr] (compiler) -- node[lbl] {\texttt{-march}} (elf);
-\draw[arr] (elf) -- node[lbl] {\texttt{--isa}} (spike);
-\draw[arr] (spike) -- (instretnode);
+\node[phaseframe, draw=figprocess, fit=(src)(cmake)(compiler)(elf)] (hostph) {};
+\node[phaseframe, draw=figaccent,  fit=(spike)(instretnode)] (spikeph) {};
+\node[figT/title, text=figprocess, anchor=south west] at (hostph.north west) {Host (cross-compile, x86-64)};
+\node[figT/title, text=figaccent,  anchor=south west] at (spikeph.north west) {Spike ISS (bare-metal exec)};
 
-% Flags annotation below compiler
-\node[below=0.4cm of compiler, font=\scriptsize\ttfamily, text=gray!60!black, align=center] (flags)
+\draw[figedge] (src) -- (cmake);
+\draw[figedge] (cmake) -- node[figT/annot, above] {toolchain} node[figT/annot, below] {file} (compiler);
+\draw[figedge] (compiler) -- node[figT/annot, above] {\texttt{-march}} (elf);
+\draw[figedge/accent] (elf) -- node[figT/annot, above] {\texttt{-{}-isa}} (spike);
+\draw[figedge] (spike) -- (instretnode);
+
+\node[figT/mono, text=figneutral, align=center, below=0.7cm of compiler] (flags)
   {-march=rv64gcv\_zbc\_zbb\_...\\-O3 -ffreestanding};
-
-% Toolchain file annotation below cmake
-\node[below=1.4cm of cmake, font=\scriptsize\sffamily, text=gray!60!black, align=center] (tcfile)
-  {\texttt{riscv-gcc.cmake}};
-\draw[-{Stealth[length=4pt]}, dashed, gray!50] (tcfile) -- (cmake);
 
 \end{tikzpicture}

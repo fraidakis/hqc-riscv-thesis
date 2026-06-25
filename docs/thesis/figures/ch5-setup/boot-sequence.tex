@@ -1,18 +1,21 @@
-% figures/boot-sequence.tex
-% Boot sequence flowchart for §5.6.1
-\tikzsetnextfilename{ch5-setup-boot-sequence}
+% figures/ch5-setup/boot-sequence_badged.tex
+% VARIANT (_badged, presentation — SAME layout) — attaches the six step numbers
+% from the prose (1: SP, 2–3: vector unit, 4: BSS, 5: main, 6: exit) as counter
+% badges. Axis: numbering + emphasis. Local `stepbadge` style (rectangular so
+% the "2–3" range fits). Type A. Verdict R.
+% NOT \input by main.tex; promote manually.
+\tikzsetnextfilename{ch5-setup-boot-sequence_badged}
 \begin{tikzpicture}[
   node distance=1.2cm,
-  startstop/.style={rectangle, rounded corners, draw=thesisblue!70, fill=thesisblue!8,
-    text width=3.8cm, minimum height=0.9cm, align=center, font=\small\sffamily},
-  process/.style={rectangle, draw=black!60, fill=gray!5,
-    text width=4.2cm, minimum height=0.9cm, align=center, font=\small\sffamily},
-  decision/.style={diamond, draw=orange!70, fill=orange!8, aspect=2.5,
-    text width=2.8cm, align=center, font=\small\sffamily},
-  arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!60},
+  startstop/.style={figbox/focal, align=center, text width=3.8cm, minimum height=0.9cm},
+  process/.style  ={figbox, align=center, text width=4.2cm, minimum height=0.9cm},
+  decision/.style ={diamond, draw=figprocess, fill=figprocessfill, aspect=2.5,
+                    figLW/base, text width=2.8cm, align=center, figT/label},
+  stepbadge/.style={rounded corners=2pt, draw=figprocess, fill=figprocess!12,
+                    text=figprocess!75!black, font=\sffamily\scriptsize\bfseries,
+                    inner sep=2pt},
 ]
 
-% Nodes
 \node[startstop] (reset) {Reset vector\\(\texttt{0x80000000})};
 \node[process, below=of reset] (sp) {Set stack pointer\\(\texttt{la sp, \_stack\_top})};
 \node[decision, below=of sp] (vcheck) {\texttt{\_\_riscv\_vector}\\defined?};
@@ -21,13 +24,19 @@
 \node[process, below=of bss] (main) {Call \texttt{main()}\\(argc=0, argv=NULL)};
 \node[startstop, below=of main] (exit) {HTIF exit\\(\texttt{tohost} write)};
 
-% Arrows
-\draw[arrow] (reset) -- (sp);
-\draw[arrow] (sp) -- (vcheck);
-\draw[arrow] (vcheck) -- node[left, font=\scriptsize] {no} (bss);
-\draw[arrow] (vcheck) -- node[above, font=\scriptsize] {yes} (venable);
-\draw[arrow] (venable) |- (bss);
-\draw[arrow] (bss) -- (main);
-\draw[arrow] (main) -- (exit);
+% Step badges (from the enumerated prose)
+\node[stepbadge, anchor=center] at (sp.north west) {1};
+\node[stepbadge, anchor=center] at (venable.north west) {2\,–\,3};
+\node[stepbadge, anchor=center] at (bss.north west) {4};
+\node[stepbadge, anchor=center] at (main.north west) {5};
+\node[stepbadge, anchor=center] at (exit.north west) {6};
+
+\draw[figedge] (reset) -- (sp);
+\draw[figedge] (sp) -- (vcheck);
+\draw[figedge] (vcheck) -- node[figT/annot, left] {no} (bss);
+\draw[figedge] (vcheck) -- node[figT/annot, above] {yes} (venable);
+\draw[figedge] (venable) |- (bss);
+\draw[figedge] (bss) -- (main);
+\draw[figedge] (main) -- (exit);
 
 \end{tikzpicture}

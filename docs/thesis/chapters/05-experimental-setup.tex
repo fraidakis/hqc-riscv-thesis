@@ -57,7 +57,7 @@ spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b <elf>
 όπου η παράμετρος \code{zvl256b} ορίζει \VLEN $= \num{256}$~bits, αντιστοιχώντας
 στο hardware profile που στοχεύει η υλοποίηση (βλ.~\cref{ssec:bpi-f3}).
 
-To \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης ενός ELF binary στο Spike:
+Το \cref{fig:spike-arch} απεικονίζει τη ροή εκτέλεσης ενός ELF binary στο Spike:
 ο host (ο φυσικός επεξεργαστής που εκτελεί το Spike) ερμηνεύει σειριακά κάθε εντολή
 του guest ELF, ενημερώνει τον μετρητή \code{minstret}, και στο τέλος της εκτέλεσης η
 τιμή αυτή αποτελεί τη βασική μετρική απόδοσης.
@@ -97,7 +97,7 @@ pipeline effects, cache behavior, και dual-issue scheduling.
     ISA Profile      & RVA22 compliant \\
     L1 Cache         & \SI{32}{\kilo\byte} I + \SI{32}{\kilo\byte} D ανά core \\
     L2 Cache         & \SI{512}{\kilo\byte} ανά cluster \\
-    RAM              & \SI{16}{\giga\byte} LPDDR4X @ \SI{2666}{Mbps} \\
+    RAM              & \SI{16}{\giga\byte} LPDDR4X @ \num{2666}~MT/s \\
     Αποθήκευση       & \SI{128}{\giga\byte} eMMC \\
     OS               & Bianbu Linux (kernel 6.6.x) \\
     \bottomrule
@@ -110,7 +110,7 @@ pipeline effects, cache behavior, και dual-issue scheduling.
 extensions, με την παρούσα εργασία να αξιοποιεί τις \ext{Zbb} και \ext{Zbc}.
 Ο επεξεργαστής υποστηρίζει το προφίλ RVA22 και RVV~1.0 με \VLEN $= \num{256}$~bits~\cite{SpacemiT-K1-datasheet}.
 Ωστόσο, δεν υποστηρίζει \gls{zvbc} και \gls{zvbb} (βλ.~\cref{ch:risc-v-architecture}) 
-και άρα μπορούν να εκτελέστουν μόνο τα scalar (Tier~1) και Base-RVV (Tier~2) variants, 
+και άρα μπορούν να εκτελεστούν μόνο τα scalar (Tier~1) και Base-RVV (Tier~2) variants, 
 ενώ το Vector-Crypto variant (Tier~3) αξιολογείται αποκλειστικά μέσω Spike.
 
 Το \cref{fig:bananapi-f3} δείχνει την πλατφόρμα πραγματικού hardware 
@@ -205,7 +205,6 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
 \end{figure}
 
 \subsection{Διαμόρφωση Build: ISA Flags και Βελτιστοποίηση}
-\label{ssec:march-flags}
 \label{ssec:cmake-build}
 
 \paragraph{Per-Variant \code{-march} Συμβολοσειρές.}
@@ -341,9 +340,12 @@ doubleword, \num{64}-bit store). Ο ορθός μηδενισμός είναι �
 Μετά την αρχικοποίηση, η εκτέλεση μεταβιβάζεται στη \code{main()} με
 \code{argc = 0} και \code{argv = NULL}. Κατά τον τερματισμό, η τιμή
 επιστροφής κωδικοποιείται ως \code{(code << 1) | 1} και εγγράφεται στη
-θέση μνήμης του συμβόλου \code{tohost} (μια 64-bit memory-mapped τοποθεσία) — ο
-μηχανισμός \glsentrylong{htif} (\glsentryshort{htif}) που σηματοδοτεί στο Spike
-τον τερματισμό της εξομοίωσης με το αντίστοιχο exit code.
+θέση μνήμης του συμβόλου \code{tohost}. Το χαμηλό bit (τιμή 1) 
+σηματοδοτεί στο HTIF αίτημα τερματισμού, ενώ τα υψηλότερα bits 
+μεταφέρουν το exit code. Το \code{tohost} είναι μια 64-bit 
+memory-mapped θέση μνήμης την οποία αξιοποιεί ο μηχανισμός 
+\glsentrylong{htif} (\glsentryshort{htif}) για να σηματοδοτήσει 
+στο Spike τον τερματισμό της εξομοίωσης.
 
 \begin{figure}[htbp]
   \centering
@@ -356,8 +358,8 @@ doubleword, \num{64}-bit store). Ο ορθός μηδενισμός είναι �
 \subsection{Διαχείριση Μνήμης και Runtime Υποστήριξη}
 \label{ssec:memory-management}
 
-Η απουσία standard library (\code{-nostdlib}) απαιτεί χειροκίνητη υλοποίηση
-τριών βασικών μηχανισμών: memory layout (linker script), memory operations
+Η απουσία standard library (\code{-nostdlib}) απαιτεί υλοποίηση from 
+scratch τριών βασικών μηχανισμών: memory layout (linker script), memory operations
 (\code{memcpy}/\code{memset}/\code{memmove}), και console I/O.
 
 \paragraph{Linker Script και Memory Layout}
@@ -382,12 +384,12 @@ doubleword, \num{64}-bit store). Ο ορθός μηδενισμός είναι �
 Ένα \code{ASSERT} στο τέλος του linker script ελέγχει κατά τη σύνδεση ότι
 το πέρας του stack (\code{\_stack\_top}), δηλαδή το άθροισμα όλων των sections,
 με κυρίαρχα τα \code{.bss} και \code{.stack}, δεν υπερβαίνει το όριο των
-\SI{128}{\mebi\byte}, αποτρέποντας σιωπηλή υπερχείλιση σε μεγαλύτερα security levels.
+\SI{128}{\mebi\byte}, αποτρέποντας μη ανιχνεύσιμη υπερχείλιση σε μεγαλύτερα security levels.
 
 \paragraph{Εξειδικευμένες Ρουτίνες Μνήμης}
 
-Οι ρουτίνες \code{memcpy}, \code{memset} και \code{memmove} υλοποιούνται
-χειροκίνητα στο αρχείο \code{mem.c} με δύο μονοπάτια εκτέλεσης:
+Οι ρουτίνες \code{memcpy}, \code{memset} και \code{memmove} υλοποιούνται 
+from scratch στο αρχείο \code{mem.c} με δύο μονοπάτια εκτέλεσης:
 
 \begin{itemize}
   \item \textbf{Scalar fallback:} Byte-by-byte αντιγραφή/μηδενισμός — χρησιμοποιείται
@@ -413,25 +415,25 @@ device (\num{1} = console), τα επόμενα \num{8} την εντολή
 σηματοδοτώντας ετοιμότητα για τον επόμενο. Ο μηχανισμός αυτός δεν απαιτεί 
 UART hardware ή device tree.
 
-\section{Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής}
+\section{Μεθοδολογία Benchmarking}
 \label{sec:benchmarking}
-\label{conv:baseline}
 
-\noindent\textbf{Σύμβαση baseline.} Όλες οι επιταχύνσεις αναφέρονται ως 
-προς το \code{scalar\_ref} variant — τον μη βελτιστοποιημένο κώδικα 
-αναφοράς~\cite{HQC-reference-impl} (schoolbook πολλαπλασιασμός, scalar 
-Keccak, scalar decode) χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις. 
+\label{conv:baseline}%
+Η αξιολόγηση κάθε βελτιστοποίησης προϋποθέτει μια κοινή βάση σύγκρισης. 
+Όλα τα speedups αναφέρονται ως προς το \code{scalar\_ref} variant, 
+δηλαδή τη φορητή (portable) C υλοποίηση αναφοράς του \gls{hqc} όπως 
+δημοσιεύτηκε από την ομάδα σχεδίασης του αλγορίθμου στο πλαίσιο της 
+υποβολής στο \gls{nist}~\cite{HQC-reference-impl}. Πρόκειται για τον 
+επίσημο κώδικα αναφοράς, χωρίς αλγοριθμικές ή ISA βελτιστοποιήσεις. 
 
-Η βασική μετρική απόδοσης της παρούσας εργασίας είναι ο αριθμός
-\defterm{retired instructions} (δυναμικές αποσυρθείσες εντολές, retired instruction count, \instret) —
-όχι κύκλοι ρολογιού, όχι wall-clock χρόνος. Η επιλογή αυτή υπαγορεύεται από τον
-πειραματικό περιορισμό (απουσία silicon με \gls{zvbc} κατά τη στιγμή εκπόνησης) αλλά
-είναι μεθοδολογικά αποδεκτή στη βιβλιογραφία \gls{pqc}: το pqm4
-framework~\cite{pqm4} και το Spike \gls{iss} χρησιμοποιούνται ευρέως για
-αναφορά πλήθους εντολών σε εργασίες δημοσιευμένες σε TCHES και στα NIST PQC
-Conferences~\cite{zhang-tches2025, ras-nist2025}. Η μετρική αυτή
-συμπληρώνεται από πραγματικές μετρήσεις κύκλων στο BPI-F3
-(\cf \cref{ssec:hw-measurement}) για τα variants που υποστηρίζονται σε silicon.
+Η παρούσα εργασία αποτιμά την απόδοση με δύο συμπληρωματικές μετρικές: 
+τον αριθμό \defterm{retired instructions} (δυναμικές αποσυρθείσες 
+εντολές, \instret) στο Spike και τους πραγματικούς κύκλους ρολογιού 
+στο BPI-F3. Η μέτρηση \instret παρέχει ντετερμινιστική, μικροαρχιτεκτονικά 
+ανεξάρτητη βάση σύγκρισης για όλα τα variants, συμπεριλαμβανομένων των 
+Tier~3 που δεν υποστηρίζονται από το BPI-F3. Οι μετρήσεις κύκλων 
+(βλ.\ \cref{ssec:hw-measurement}) αποτιμούν τη μεταφορά των αποτελεσμάτων 
+σε πραγματικό hardware για τα variants που υποστηρίζονται σε silicon.
 
 \subsection{Μέτρηση σε Spike (\instret)}
 \label{ssec:spike-measurement}
@@ -448,12 +450,12 @@ csrr a0, 0xb02    # read minstret (retired instruction count)
 \noindent
 Η ανάγνωση εκτελείται αμέσως πριν και μετά από κάθε κρυπτογραφική λειτουργία
 (\KeyGen, \Encaps, \Decaps), και η διαφορά $\Delta\text{instret} = t_1 - t_0$
-αποτελεί τη μέτρηση. Στο Spike, η τιμή αυτή είναι πλήρως ντετερμινιστική:
-επαναλαμβανόμενες εκτελέσεις με ίδιο ELF binary παράγουν πάντα ίδιο αποτέλεσμα,
-καθιστώντας περιττή τη στατιστική επεξεργασία πολλαπλών δειγμάτων. Το benchmark
-harness εκτελεί μία μόνο μέτρηση ανά λειτουργία, προηγουμένως ενός warmup pass
-που επαληθεύει ορθότητα (shared secret matching) και αρχικοποιεί την κατάσταση
-\gls{prng}.
+αποτελεί τη μέτρηση. Λόγω του ντετερμινιστικού χαρακτήρα του Spike, μία 
+μέτρηση ανά λειτουργία αρκεί, χωρίς ανάγκη στατιστικής επεξεργασίας 
+πολλαπλών δειγμάτων (εκτελέσεων). Το benchmark harness εκτελεί πρώτα 
+ένα warmup pass που επαληθεύει την ορθότητα (shared secret matching) 
+και αρχικοποιεί την κατάσταση του \gls{prng}, και ακολουθεί μία 
+μόνο μέτρηση ανά λειτουργία του \gls{kem}.
 
 \paragraph{Profiling μέσω PC Histograms και DWARF Symbols}
 
@@ -487,141 +489,54 @@ harness εκτελεί μία μόνο μέτρηση ανά λειτουργί�
 \label{ssec:hw-measurement}
 
 Η μέτρηση κύκλων σε πραγματικό hardware πραγματοποιείται μέσω του Linux perf
-subsystem, χρησιμοποιώντας τον \code{perf\_event\_open} syscall. Σε αντίθεση
+subsystem, χρησιμοποιώντας τον \code{perf\_event\_open} syscall, τη 
+διεπαφή του πυρήνα Linux που παρέχει σε userspace πρόσβαση στους 
+hardware performance counters του επεξεργαστή (κύκλους και retired 
+instructions). Σε αντίθεση
 με τη bare-metal μέτρηση στο Spike (μία μόνο ντετερμινιστική τιμή), η μέτρηση
-σε Linux userspace υπόκειται σε στατιστική μεταβλητότητα λόγω timer interrupts,
-cache state variations, και residual OS activity. Η μεθοδολογία αντιμετωπίζει
-αυτή τη μεταβλητότητα μέσω μεγάλου αριθμού δειγμάτων και robust στατιστικής.
+σε Linux userspace υπόκειται σε στατιστική μεταβλητότητα λόγω timer 
+interrupts, cache state variations, και residual OS activity. Οι 
+ρυθμίσεις που περιγράφονται παρακάτω περιορίζουν αυτή τη μεταβλητότητα, 
+ενώ η εναπομένουσα διασπορά αντιμετωπίζεται στατιστικά μέσω μεγάλου 
+αριθμού δειγμάτων και ανθεκτικών στατιστικών μέτρων, με κύρια τη διάμεσο (median).
 
 \paragraph{Πειραματικό Περιβάλλον}
 
-Στο default Linux configuration το bit \code{scounteren.CY} είναι 0, οπότε η εντολή
-\code{rdcycle} (απευθείας ανάγνωση του μετρητή κύκλων από userspace) δεν επιτρέπεται· γι' αυτό
-η μέτρηση στηρίζεται στο \code{perf\_event\_open} αντί για απευθείας CSR reads. Για επαναλήψιμες
+Στο default Linux configuration το bit \code{CY} του \code{scounteren} 
+(Supervisor Counter-Enable CSR, που ελέγχει αν επιτρέπεται η ανάγνωση 
+του cycle counter από userspace) είναι 0, οπότε η εντολή \code{rdcycle} 
+προκαλεί illegal-instruction trap, γι' αυτό χρησιμοποιείται το 
+\code{perf\_event\_open} αντί για απευθείας CSR reads. Για επαναλήψιμες
 μετρήσεις, το περιβάλλον ελέγχεται ως εξής:
 
 \begin{itemize}
   \item \textbf{CPU isolation:} Η διεργασία είναι pinned στον πυρήνα 7 μέσω \code{taskset -c 7},
     αποτρέποντας τη μετακίνησή της (migration) μεταξύ πυρήνων από τον scheduler, που
     θα εισήγαγε θόρυβο cache/TLB cold-start στις μετρήσεις.
-  \item \textbf{Frequency governor:} Ρύθμιση σε \code{performance} mode. Ο governor αυτός δεν
-    εφαρμόζει δυναμική κλιμάκωση συχνότητας ανάλογα με το φορτίο· διατηρεί σταθερά τη μέγιστη
-    συχνότητα (εδώ \SI{1.6}{\giga\hertz}), εξαλείφοντας τη μεταβλητότητα από DVFS transitions.
-  \item \textbf{Warm-up:} \num{100} iterations (απορρίπτονται) για αρχικοποίηση i-cache, branch
-    predictor και \gls{prng} state.
-  \item \textbf{Static binary:} Μεταγλώττιση με \code{-static}, ώστε όλες οι κλήσεις συναρτήσεων
-    να επιλύονται στατικά και να αποφεύγεται το overhead των έμμεσων αναπηδήσεων μέσω PLT/GOT
-    (Procedure Linkage Table / Global Offset Table — οι πίνακες που υλοποιούν το dynamic linking),
-    το οποίο θα εισήγαγε μη ντετερμινιστική διακύμανση στις πρώτες κλήσεις.
+  \item \textbf{Frequency governor:} ο διαχειριστής συχνότητας του 
+  πυρήνα ρυθμίζεται σε \code{performance}, ο οποίος κλειδώνει τον 
+  επεξεργαστή στη μέγιστη συχνότητα (\SI{1.6}{\giga\hertz}) αντί να 
+  την προσαρμόζει δυναμικά στο φορτίο, εξαλείφοντας τη μεταβλητότητα 
+  από μεταβάσεις \gls{dvfs}.
+  \item \textbf{Warm-up:} πριν την καταγραφή εκτελούνται \num{100} 
+  επαναλήψεις των οποίων οι μετρήσεις δεν λαμβάνονται υπόψη, ώστε να 
+  σταθεροποιηθούν το instruction cache, ο branch predictor και η κατάσταση του \gls{prng}.
+  \item \textbf{Static binary:} Μεταγλώττιση με \code{-static}, ώστε 
+  όλες οι κλήσεις συναρτήσεων να επιλύονται στατικά και να αποφεύγεται 
+  το overhead των έμμεσων μεταβάσεων μέσω PLT/GOT (Procedure Linkage 
+  Table και Global Offset Table, οι πίνακες που υλοποιούν το dynamic 
+  linking), καθώς και η μη ντετερμινιστική επίλυση συμβόλων (lazy PLT 
+  binding), εξασφαλίζοντας σταθερό code layout μεταξύ εκτελέσεων.
 \end{itemize}
-
-\paragraph{Αρχιτεκτονική Measurement Harness}
-
-Το benchmark harness (\code{bench\_hw\_kem.c}) χρησιμοποιεί δύο ανεξάρτητους
-perf counters: έναν για CPU cycles (\code{PERF\_COUNT\_HW\_CPU\_CYCLES}) και
-έναν για retired instructions (\code{PERF\_COUNT\_HW\_INSTRUCTIONS}), αμφότεροι
-με \code{exclude\_kernel=1} και \code{exclude\_hv=1} ώστε να μετρούν
-αποκλειστικά userspace εκτέλεση. Η per-iteration μέτρηση ακολουθεί τον κύκλο:
-
-\begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
-perf_hw_start(&ctx);    /* ioctl(RESET) + ioctl(ENABLE) */
-crypto_kem_dec(ss, ct, sk);
-perf_hw_stop(&ctx);     /* ioctl(DISABLE) */
-perf_hw_read(&ctx, &s); /* read(fd_cycles) + read(fd_instret) */
-samples_cyc[i] = s.cycles;
-samples_ins[i] = s.instret;
-\end{lstlisting}
-
-\noindent
-Η χρήση \code{RESET} πριν από κάθε \code{ENABLE} εξασφαλίζει ότι κάθε
-iteration μετράται ανεξάρτητα — δεν υπάρχει σωρευτικό σφάλμα μεταξύ
-iterations.
 
 \paragraph{Στατιστική Επεξεργασία}
 
 Μετά τη συλλογή \num{10000} δειγμάτων, τα αποτελέσματα ταξινομούνται και
 υπολογίζονται: median (βασική μετρική), mean, standard deviation, min,
-max. Η \textbf{median} επιλέγεται ως βασική μετρική αντί του mean
-διότι είναι ανθεκτική σε outliers — σποραδικά timer interrupts
-($\approx$ κάθε \SI{4}{\milli\second}) εισάγουν μεμονωμένα δείγματα με
-αυξημένους κύκλους, τα οποία αλλοιώνουν τον μέσο αλλά δεν επηρεάζουν τη
-διάμεσο.
-
-\subsection{Εμπειρική Επικύρωση: Spike vs Hardware}
-\label{ssec:spike-vs-hw}
-
-\paragraph{Η Σχέση \instret–Κύκλων: Γιατί \instret $\neq$ Cycles}
-
-Η κρίσιμη μεθοδολογική επισήμανση αφορά τη σχέση μεταξύ retired instructions (αποσυρθεισών εντολών)
-και πραγματικών κύκλων ρολογιού. Η σχέση αυτή εξαρτάται από τον \gls{cpi} του
-εκάστοτε μικροαρχιτεκτονικού μοντέλου, όπως απεικονίζεται στο
-\cref{fig:instret-vs-cycles}:
-
-\begin{itemize}
-  \item \textbf{Ιδανικό single-issue pipeline (\gls{cpi} $= 1$):}
-    $\text{cycles} = \text{instret}$. Αυτό είναι το μοντέλο του Spike — κάθε
-    εντολή κοστίζει ακριβώς έναν κύκλο, ανεξαρτήτως τύπου.
-  \item \textbf{Πραγματικό in-order pipeline (\gls{cpi} $> 1$):}
-    $\text{cycles} > \text{instret}$. Cache misses, pipeline stalls (data
-    hazards, structural hazards) και branch mispredictions εισάγουν επιπλέον
-    κύκλους. Σε αυτή την περίπτωση, η μετρική \instret αποτελεί
-    \textbf{κάτω φράγμα} (lower bound) του πραγματικού κόστους.
-  \item \textbf{Superscalar/dual-issue pipeline (\gls{cpi} $< 1$):}
-    $\text{cycles} < \text{instret}$. Ο επεξεργαστής αποσύρει περισσότερες
-    από μία εντολές ανά κύκλο. Σε αυτή την περίπτωση, η μετρική \instret
-    αποτελεί \textbf{άνω φράγμα} του πραγματικού κόστους.
-\end{itemize}
-
-\begin{figure}[htbp]
-  \centering
-  \resizebox{\textwidth}{!}{\input{figures/ch5-setup/instret-vs-cycles}}
-  \caption{Σχέση \instret και κύκλων ρολογιού υπό τρία μικροαρχιτεκτονικά
-    μοντέλα. Το Spike \gls{iss} υλοποιεί το ιδανικό μοντέλο (αριστερά).
-    Σε πραγματικό hardware, η σχέση εξαρτάται από τον \gls{cpi} του
-    συγκεκριμένου πυρήνα.}
-  \label{fig:instret-vs-cycles}
-\end{figure}
-
-\paragraph{Σύγκριση Spike Predictions vs Hardware Reality}
-
-Η εγκυρότητα της μετρικής \instret ως δείκτη πραγματικής απόδοσης επικυρώνεται
-εμπειρικά μέσω μετρήσεων στο Banana Pi BPI-F3 (SpacemiT K1, πυρήνας X60,
-dual-issue in-order, \VLEN $= \num{256}$~bits). Ο \cref{tab:spike-vs-hw}
-συγκρίνει τα speedups που προβλέπει το Spike (βάσει \instret) με τα μετρημένα
-speedups σε πραγματικούς κύκλους (μέσω \code{perf\_event\_open}, userspace-only
-counters):
-
-\begin{table}[htbp]
-  \centering
-  \caption{Σύγκριση speedup predictions (Spike \instret) με μετρημένα speedups
-    σε πραγματικό hardware (SpacemiT X60). Η στήλη \q{HW/Spike} δείχνει τον
-    λόγο πραγματικού προς προβλεπόμενο speedup — τιμή κοντά στο $1{,}0$
-    υποδηλώνει ακριβή πρόβλεψη. Μετρική: πλήρες \KEM (KeyGen + Encaps +
-    Decaps), variant \code{scalar\_zb} έναντι \code{scalar\_ref}.}
-  \label{tab:spike-vs-hw}
-  \begin{tabular}{l S[table-format=2.2] S[table-format=2.2] S[table-format=1.2]}
-    \toprule
-    {Level} & {Spike Speedup} & {Hardware Speedup} & {HW/Spike} \\
-    \midrule
-    HQC-128 & 34.01 & 34.33 & 1.01 \\
-    HQC-192 & 45.36 & 46.15 & 1.02 \\
-    HQC-256 & 49.11 & 59.14 & 1.20 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\noindent
-Για τα επίπεδα HQC-128 και HQC-192, η πρόβλεψη του Spike αποκλίνει μόλις
-\pct{2} από την πραγματικότητα — η μετρική \instret αποτελεί εξαιρετικό δείκτη
-σχετικής απόδοσης. Στο HQC-256, το πραγματικό hardware παρέχει \pct{20}
-μεγαλύτερο speedup από ό,τι προβλέπει η \instret. Η απόκλιση αυτή εξηγείται
-από τη μικροαρχιτεκτονική: η αναφορική υλοποίηση (\code{scalar\_ref}) στο
-HQC-256 διαθέτει working set $\approx \SI{57}{\kilo\byte}$ που υπερβαίνει το
-μέγεθος του L1 data cache (\SI{32}{\kilo\byte} ανά core), υφιστάμενη capacity misses που
-αυξάνουν τον \gls{cpi}. Η βελτιστοποιημένη υλοποίηση (\code{scalar\_zb})
-διατηρεί compact working set ($\approx \SI{17}{\kilo\byte}$), αποφεύγοντας τα
-cache misses — ένα πλεονέκτημα αόρατο στη μετρική \instret αλλά μετρήσιμο σε
-πραγματικούς κύκλους.
+max. Επιλέγεται ως βασική μετρική το median αντί του mean 
+διότι είναι ανθεκτικό σε outliers: μεμονωμένα δείγματα με αυξημένους 
+κύκλους (π.χ.\ από OS interrupts ή scheduling jitter) αλλοιώνουν το
+mean αλλά δεν επηρεάζουν το median.
 
 \section{Επαλήθευση Ορθότητας (KAT Tests)}
 \label{sec:kat-tests}
@@ -630,7 +545,7 @@ cache misses — ένα πλεονέκτημα αόρατο στη μετρικ�
 αλγοριθμικής παραβίασης: μία λανθασμένη αναδιάταξη bits στον πολυωνυμικό
 πολλαπλασιασμό, ένα off-by-one σε index αναδρομής, ή μία εσφαλμένη reduction
 mask αρκούν για να παράγουν λανθασμένο shared secret χωρίς runtime crash.
-Η επαλήθευση ορθότητας βασίζεται στους \glspl{kat} που δημοσιεύει το \gls{nist}
+Η επαλήθευση ορθότητας βασίζεται στα \glspl{kat} που δημοσιεύει το \gls{nist}
 ως μέρος της διαδικασίας τυποποίησης: \num{100} ντετερμινιστικά test vectors ανά
 security level, καθένα από τα οποία ορίζει πλήρως τις εισόδους και τις
 αναμενόμενες εξόδους ενός κύκλου \KeyGen $\to$ \Encaps $\to$ \Decaps.
@@ -696,41 +611,6 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
 ανιχνεύει ασυνέπειες μεταξύ \Encaps και \Decaps, ενώ ο εξωτερικός ανιχνεύει
 αποκλίσεις από τη υλοποίηση αναφοράς του \gls{nist}.
 
-\Cref{fig:kat-pipeline} απεικονίζει τη ροή επαλήθευσης από τα αρχεία αναφοράς
-έως την τελική ετυμηγορία.
-
-\begin{figure}[htbp]
-  \centering
-  \resizebox{\textwidth}{!}{\input{figures/ch5-setup/kat-pipeline}}
-  \caption[Ροή επαλήθευσης ορθότητας μέσω KAT]{Ροή επαλήθευσης ορθότητας μέσω \glsfmtshortpl{kat}: τα \num{100} entropy
-    seeds εξάγονται offline σε C header, ενσωματώνονται στο bare-metal ELF,
-    εκτελούνται στον simulator, και η console output συγκρίνεται byte-exact
-    με τις αναμενόμενες τιμές του \glsfmtshort{nist}.}
-  \label{fig:kat-pipeline}
-\end{figure}
-
-\paragraph{Κάλυψη και Αυτοματοποίηση}
-\label{ssec:build-reproducibility}
-
-Η \gls{kat} επαλήθευση εκτελείται για κάθε polymul variant σε όλα τα security
-levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500}$ πλήρεις
-\gls{kem} κύκλους ανά εκτέλεση. Η αυτοματοποίηση πραγματοποιείται σε δύο επίπεδα:
-
-\begin{itemize}
-  \item \textbf{Τοπικά:} Το script \code{run\_kat.sh} δέχεται ως παράμετρο
-    το polymul variant (\code{-{}-mul vector\_zvk}), μεταγλωττίζει αυτόματα
-    το αντίστοιχο ELF, εκτελεί στο Spike, και καλεί τον \code{kat\_check.py} για
-    επαλήθευση. Η εκτέλεση ολοκληρώνεται σε \num{5}–\SI{20}{\minute} ανά
-    variant στο Spike.
-  \item \textbf{CI Pipeline:} Το GitHub Actions workflow
-    (\code{.github/workflows/kat.yml}) εκτελεί αυτόματα \gls{kat} tests σε
-    κάθε push στους branches \code{main} και \code{dev}. Η λίστα variants
-    ανιχνεύεται δυναμικά από το αρχείο
-    \code{scripts/implemented\_variants.txt}, εξαλείφοντας χειροκίνητη
-    συντήρηση. Όλα τα variants εκτελούνται στο Spike, ο οποίος υποστηρίζει
-    πλήρως τις επεκτάσεις \gls{zvbc}/\gls{zvbb}.
-\end{itemize}
-
 \paragraph{Ρόλος στη Μεθοδολογία Βελτιστοποίησης}
 
 Η \gls{kat} επαλήθευση αποτελεί αναπόσπαστο μέρος του κύκλου ανάπτυξης: κάθε
@@ -738,8 +618,7 @@ levels, παράγοντας συνολικά $5 \times 3 \times 100 = \num{1500
 \cref{ch:kernel-optimization} εφαρμόστηκε αποκλειστικά μετά από επιτυχή
 \gls{kat} validation σε όλα τα security levels. Η πρακτική αυτή εξασφαλίζει
 ότι κανένα αποτέλεσμα απόδοσης δεν αναφέρεται για κώδικα που δεν παράγει
-bit-exact σωστά αποτελέσματα. Η αναπαραγωγιμότητα ολόκληρης της διαδικασίας
-τεκμηριώνεται στο Παράρτημα~Β.
+bit-exact σωστά αποτελέσματα.
 
 %% ==========================================================================
 %% §5.5 Μεθοδολογία Επαλήθευσης Σταθερού Χρόνου Εκτέλεσης
@@ -749,8 +628,8 @@ bit-exact σωστά αποτελέσματα. Η αναπαραγωγιμότη
 
 Η επιτάχυνση κρυπτογραφικού κώδικα δεν έχει αξία εάν εισάγει πλευρικά
 κανάλια χρονισμού (timing side-channels). Η ενότητα αυτή παρουσιάζει τη μεθοδολογία με την οποία επαληθεύεται ότι
-οι βελτιστοποιημένες υλοποιήσεις \gls{hqc} διατηρούν constant-time συμπεριφορά
-— η εκτέλεσή τους είναι ανεξάρτητη από μυστικά δεδομένα. Η στρατηγική
+οι βελτιστοποιημένες υλοποιήσεις \gls{hqc} διατηρούν constant-time συμπεριφορά,
+δηλαδή ότι η εκτέλεσή τους είναι ανεξάρτητη από μυστικά δεδομένα. Η στρατηγική
 επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: αρχιτεκτονική ανάλυση
 Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο data-independent timing subset)
 και στατιστική ανίχνευση διαρροής μέσω dudect σε πραγματικό hardware. Τα
@@ -972,7 +851,7 @@ input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμ
 προγραμματισμού RISC-V κατά φθίνοντα βαθμό ελέγχου: καθαρή assembly, inline
 assembly, C intrinsics, και auto-lowering μέσω μεταγλωττιστή. Η παρούσα ενότητα
 αντιστοιχίζει κάθε μέθοδο στα συγκεκριμένα αρχεία και πυρήνες της υλοποίησης,
-τεκμηριώνοντας τη σχεδιαστική απόφαση που διέπει την επιλογή.
+τεκμηριώνοντας τη σχεδιαστική απόφαση για την επιλογή.
 
 \paragraph{Σχεδιαστική Αρχή}
 
@@ -1143,25 +1022,20 @@ C idioms και εκπέμπει εξειδικευμένες εντολές, α
 μεταγλωττίζεται, εκτελείται σε bare-metal, παράγει bit-exact σωστά αποτελέσματα
 (\gls{kat} validation), και εξάγει ντετερμινιστικές μετρήσεις \instret. Η
 ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \gls{kem} για το
-scalar baseline — τους αριθμούς που αποτελούν τον παρονομαστή κάθε speedup
-calculation στα \cref{ch:polymul-optimization} και \cref{ch:results}.
+scalar baseline.
 
 \subsection{Reference \instret ανά Λειτουργία \KEM}
 \label{ssec:baseline-kem-instret}
 
 Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για κάθε
-λειτουργία \gls{kem} στο scalar baseline (\code{scalar\_ref}, μεταγλωττισμένο με
-Clang~21.1.1, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb}). Η υλοποίηση
+λειτουργία \gls{kem} στο scalar baseline (\code{scalar\_ref}). Η υλοποίηση
 αντιστοιχεί στον αρχικό κώδικα αναφοράς του \gls{nist} χωρίς αλγοριθμικές
-βελτιστοποιήσεις — μόνο η αυτόματη αξιοποίηση \gls{zbc}/\gls{zbb} μέσω auto-lowering
-(\cf \cref{sec:methods-application}).
+βελτιστοποιήσεις.
 
 \begin{table}[htbp]
   \centering
   \caption{Reference \instret (scalar baseline) ανά λειτουργία \KEM και
-    security level. Οι τιμές αυτές αποτελούν τη βάση αναφοράς (denominator, \cref{conv:baseline})
-    για όλα τα speedups που αναφέρονται στα \cref{ch:polymul-optimization}
-    και \cref{ch:results}.}
+    security level.}
   \label{tab:baseline-kem}
   \begin{tabular}{l S[table-format=9.0] S[table-format=9.0] S[table-format=9.0] S[table-format=9.0]}
     \toprule
@@ -1178,15 +1052,11 @@ Clang~21.1.1, \code{-O3}, \code{-march=rv64gc\_zbc\_zbb}). Η υλοποίηση
 σχέση μεταξύ λειτουργιών ακολουθεί σταθερή αναλογία: \Encaps $\approx 2\times$
 \KeyGen και \Decaps $\approx 3\times$ \KeyGen, αντικατοπτρίζοντας τον αριθμό
 πολυωνυμικών πολλαπλασιασμών σε κάθε λειτουργία (ένας στο \KeyGen, δύο στο
-\Encaps, τρεις στο \Decaps — ο τρίτος προέρχεται από το re-encryption check
-του Fujisaki-Okamoto transform). Δεύτερον, η κλιμάκωση μεταξύ security levels
+\Encaps, τρεις στο \Decaps). Δεύτερον, η κλιμάκωση μεταξύ security levels
 είναι σχεδόν τετραγωνική: η μετάβαση από HQC-128 σε HQC-256 αυξάνει το \instret
 κατά \num{7.3}$\times$, αντικατοπτρίζοντας την $\BigO{n^2}$ πολυπλοκότητα
 του bit-serial schoolbook πολλαπλασιασμού που κυριαρχεί στο reference
-implementation. Τρίτον, το απόλυτο μέγεθος — \num{59013743} εντολές
-για ένα μόνο \Decaps στο HQC-128 — καθιστά σαφή την ανάγκη βελτιστοποίησης:
-σε πυρήνα \SI{1}{\giga\hertz} με \gls{cpi} $= 1$, αυτό αντιστοιχεί σε
-$\approx \SI{59}{\milli\second}$ ανά αποενθυλάκωση· σε πραγματικό πυρήνα με \gls{cpi} $> 1$ ο χρόνος είναι αναλόγως μεγαλύτερος.
+implementation. 
 
 \subsection{Κατανομή Υπολογιστικού Κόστους (Hotspot Analysis)}
 \label{ssec:baseline-hotspots}
@@ -1198,9 +1068,7 @@ HQC-128 \Decaps:
 
 \begin{table}[htbp]
   \centering
-  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM, \num{117344294} εντολές). Ο πολυωνυμικός πολλαπλασιασμός
-    (\code{schoolbook\_mul} + \code{karatsuba\_mul}) κυριαρχεί με \pct{96.8}
-    του συνολικού κόστους.}
+  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM).}
   \label{tab:baseline-hotspots}
   \begin{tabular}{l S[table-format=9.0] S[table-format=2.2]}
     \toprule
@@ -1238,50 +1106,14 @@ scratch buffers πριν από κάθε πολλαπλασιασμό — ένα
 \begin{figure}[htbp]
   \centering
   \resizebox{0.75\textwidth}{!}{\input{figures/ch2-background/pie-scalar-ref}}
-  \caption{Κατανομή δυναμικών εντολών στο reference scalar HQC-128. Ο
-    πολυωνυμικός πολλαπλασιασμός κυριαρχεί με $\approx\pct{97}$, καθορίζοντας
-    τη σειρά βελτιστοποίησης: polymul πρώτα, Keccak και decode μετά.}
+  \caption{Κατανομή δυναμικών εντολών στο reference scalar HQC-128.}
   \label{fig:baseline-pie}
 \end{figure}
-
-\subsection{Isolated Polymul Baseline}
-\label{ssec:baseline-polymul}
-
-Πέραν της μέτρησης πλήρους \gls{kem}, η υποδομή παρέχει isolated μέτρηση του
-πολυωνυμικού πολλαπλασιασμού (\code{vect\_mul}) — αποκλειστικά η πράξη
-$a(x) \cdot b(x) \bmod (x^N - 1)$ χωρίς Keccak, decode, ή control overhead.
-Ο \cref{tab:baseline-polymul} παρουσιάζει τα isolated \instret:
-
-\begin{table}[htbp]
-  \centering
-  \caption{Isolated polymul \instret (reference scalar baseline) ανά security
-    level. Η σύγκριση με τον \cref{tab:baseline-kem} επιβεβαιώνει ότι ο
-    πολυωνυμικός πολλαπλασιασμός αποτελεί $\approx\pct{99}$ του \KeyGen.}
-  \label{tab:baseline-polymul}
-  \begin{tabular}{l S[table-format=9.0] S[table-format=2.1]}
-    \toprule
-    {Level} & {\code{vect\_mul} \instret} & {\% του \KeyGen} \\
-    \midrule
-    HQC-128 & 19214277  & 98.8 \\
-    HQC-192 & 58433901  & 99.2 \\
-    HQC-256 & 142641044 & 99.5 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\noindent
-Η αναλογία \code{vect\_mul}/\KeyGen αυξάνεται με το security level (από
-\pct{98.8} στο HQC-128 σε \pct{99.5} στο HQC-256), επιβεβαιώνοντας ότι
-η σχεδόν τετραγωνική κλιμάκωση του πολλαπλασιασμού κυριαρχεί πλήρως στα
-υψηλότερα security levels. Η isolated μέτρηση χρησιμοποιείται ως
-denominator για τα polymul-specific speedups στο \cref{ch:polymul-optimization},
-ενώ η μέτρηση πλήρους \gls{kem} χρησιμοποιείται για τα system-level speedups
-στο \cref{ch:results}.
 
 \subsection{Θεμελίωση Στρατηγικής Βελτιστοποίησης}
 \label{ssec:baseline-strategy}
 
-Η κατανομή κόστους του \cref{fig:baseline-pie} θεμελιώνει τη στρατηγική
+Η κατανομή κόστους στο \cref{fig:baseline-pie} θεμελιώνει τη στρατηγική
 βελτιστοποίησης που ακολουθείται στα επόμενα κεφάλαια. Ο νόμος του Amdahl
 ορίζει ότι η μέγιστη δυνατή επιτάχυνση ενός συστήματος περιορίζεται από το
 μη-βελτιστοποιήσιμο κλάσμα:
@@ -1306,7 +1138,7 @@ isolated polymul επιτάχυνση (\speedup{86.9}).
   \item \textbf{Πολυωνυμικός πολλαπλασιασμός} (\cref{ch:polymul-optimization}):
     Αντικατάσταση του bit-serial schoolbook με word-level Karatsuba αξιοποιώντας
     \clmul/\clmulh (\gls{zbc}) και \vclmul/\vclmulh (\gls{zvbc}). Στόχος: μείωση του
-    κυρίαρχου \pct{97} κατά τουλάχιστον δύο τάξεις μεγέθους.
+    κυρίαρχου \pct{97}.
 
   \item \textbf{Keccak και αποκωδικοποίηση} (\cref{ch:kernel-optimization}):
     Μετά τη βελτιστοποίηση polymul, το Keccak και η αποκωδικοποίηση
@@ -1321,8 +1153,7 @@ isolated polymul επιτάχυνση (\speedup{86.9}).
 \noindent
 Η σειρά αυτή δεν είναι αυθαίρετη: κάθε φάση στοχεύει το τρέχον κυρίαρχο
 bottleneck, εξασφαλίζοντας ότι η προσπάθεια βελτιστοποίησης αποδίδει μέγιστο
-system-level κέρδος. Η ανακατανομή του προφίλ μετά από κάθε φάση
-τεκμηριώνεται ποσοτικά στην \cref{sec:polymul-assessment}.
+system-level κέρδος.
 
 \bigskip
 \noindent

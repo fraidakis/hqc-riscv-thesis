@@ -867,11 +867,11 @@ instruction scheduling, common subexpression elimination, constant folding
 \paragraph{Διαθέσιμα headers.}
 Τα RISC-V intrinsics παρέχονται μέσω δύο standard headers:
 \begin{itemize}
-  \item \code{<riscv\_bitmanip.h>}~\autocite{RISCV-bitmanip-spec}: scalar intrinsics για \gls{zbc} και \gls{zbb}
-   — \eg \code{\_\_riscv\_clmul\_64(a, b)},
+  \item \code{<riscv\_bitmanip.h>}~\autocite{RISCV-bitmanip-spec}: scalar intrinsics για \gls{zbc} και \gls{zbb},
+  πχ \code{\_\_riscv\_clmul\_64(a, b)},
     \code{\_\_riscv\_clmulh\_64(a, b)}, \code{\_\_riscv\_ror\_64(x, k)}.
   \item \code{<riscv\_vector.h>}~\autocite{RISCV-vector-spec}: vector intrinsics για \RVV 1.0, \gls{zvbc}
-    και \gls{zvbb} — \eg \code{\_\_riscv\_vclmul\_vv\_u64m4(vs2, vs1, vl)},
+    και \gls{zvbb}, πχ \\ \code{\_\_riscv\_vclmul\_vv\_u64m4(vs2, vs1, vl)},
     \code{\_\_riscv\_vror\_vv\_u64m8(vs2, vs1, vl)},
     \code{\_\_riscv\_vsetvl\_e64m4(avl)}.
 \end{itemize}

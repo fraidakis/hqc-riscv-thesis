@@ -1,20 +1,24 @@
-% figures/memory-map.tex
-% Memory map diagram for §5.6.2
-\tikzsetnextfilename{ch5-setup-memory-map}
+% figures/ch5-setup/memory-map_v1.tex
+% VARIANT (_v1, baseline refined) — token migration + a colour-blind-safe,
+% print-safe segment palette (Paul Tol pale washes, designed for fills behind
+% black text) replacing the raw rainbow; siunitx sizes. SAME stacked layout.
+% Type A (spatial map). Verdict R. NOT \input by main.tex; promote manually.
+\tikzsetnextfilename{ch5-setup-memory-map_v1}
 \begin{tikzpicture}[
-  segment/.style={rectangle, draw=black!60, minimum width=5cm, minimum height=0.9cm,
-    align=center, font=\small\sffamily},
-  label/.style={font=\scriptsize\ttfamily, anchor=west},
-  addr/.style={font=\scriptsize\ttfamily, anchor=east},
+  segment/.style={draw=figrule, figLW/base, minimum width=5cm, minimum height=0.9cm,
+    align=center, figT/label},
+  addr/.style ={figT/mono, anchor=east},
+  slabel/.style={figT/mono, anchor=west},
 ]
 
 % Memory segments (bottom to top, matching address growth)
-\node[segment, fill=thesisblue!15] (text) at (0,0) {\texttt{.text.startup} + \texttt{.text}\\(code)};
-\node[segment, fill=green!10, above=0pt of text] (rodata) {\texttt{.rodata}\\(KAT seeds, constants)};
-\node[segment, fill=orange!8, above=0pt of rodata] (tohost) {\texttt{.tohost}\\(HTIF, 64B-aligned)};
-\node[segment, fill=yellow!10, above=0pt of tohost] (data) {\texttt{.data}\\(initialized globals)};
-\node[segment, fill=red!8, above=0pt of data] (bss) {\texttt{.bss}\\(Keccak state, scratch buffers)};
-\node[segment, fill=purple!10, minimum height=1.4cm, above=0pt of bss] (stack) {\texttt{.stack} (512\,KB)\\(polymul tmp, call chain)};
+\node[segment, fill=tolPaleGrey] (text) at (0,0) {\texttt{.text.startup} + \texttt{.text}\\(code)};
+\node[segment, fill=tolPaleGreen, above=0pt of text] (rodata) {\texttt{.rodata}\\(KAT seeds, constants)};
+\node[segment, fill=tolPaleYellow, above=0pt of rodata] (tohost) {\texttt{.tohost}\\(HTIF, 64B-aligned)};
+\node[segment, fill=tolPaleCyan, above=0pt of tohost] (data) {\texttt{.data}\\(initialized globals)};
+\node[segment, fill=tolPaleRed, above=0pt of data] (bss) {\texttt{.bss}\\(Keccak state, scratch buffers)};
+\node[segment, fill=tolPaleBlue, minimum height=1.4cm, above=0pt of bss] (stack)
+  {\texttt{.stack} (\SI{512}{\kilo\byte})\\(polymul tmp, call chain)};
 
 % Address labels (left side)
 \node[addr] at ([xshift=-0.3cm]text.south west) {\texttt{0x8000\_0000}};
@@ -23,16 +27,16 @@
 \node[addr] at ([xshift=-0.3cm]bss.north west) {\texttt{\_bss\_end}};
 
 % Annotations (right side)
-\node[label] at ([xshift=0.3cm]text.east) {Entry: \texttt{\_start}};
-\node[label] at ([xshift=0.3cm]stack.east) {Grows ↓};
+\node[slabel] at ([xshift=0.3cm]text.east) {Entry: \texttt{\_start}};
+\node[slabel] at ([xshift=0.3cm]stack.east) {Grows ↓};
 
 % RAM boundary
-\draw[thick, dashed, gray] ([xshift=-2.8cm, yshift=-0.3cm]text.south west) --
+\draw[figLW/base, dashed, draw=figrule] ([xshift=-2.8cm, yshift=-0.3cm]text.south west) --
   ([xshift=3.5cm, yshift=-0.3cm]text.south east)
-  node[midway, below, font=\scriptsize\sffamily] {DRAM base (Spike)};
+  node[midway, below, figT/annot] {DRAM base (Spike)};
 
 % Total RAM annotation
-\draw[<->, thick, gray!60] ([xshift=3.2cm]text.south east) -- ([xshift=3.2cm]stack.north east)
-  node[midway, right, font=\scriptsize\sffamily, text=gray!80] {128\,MiB};
+\draw[<->, figLW/base, draw=figneutral] ([xshift=3.2cm]text.south east) -- ([xshift=3.2cm]stack.north east)
+  node[midway, right, figT/annot] {\SI{128}{\mebi\byte}};
 
 \end{tikzpicture}
