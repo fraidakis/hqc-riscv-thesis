@@ -1,11 +1,9 @@
-# date: 2026-06-23 01:32
-# commit: 45892ca
+# date: 2026-06-25 02:02
+# commit: eeac22f
 # variant: scalar_zb
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-level,op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
-128,vect_mul,100,147574,148903,186620,149801.2,4695.0,195887,195887,202436,196008.0,854.4,157,78037,0.20%,41,62,3126,15690,0,0
-192,vect_mul,100,439752,448455,493073,450112.3,8943.0,600700,600700,609667,601206.3,1765.8,368,247087,0.15%,46,141,3959,53372,0,0
-256,vect_mul,100,925449,927364,973251,931697.5,10371.7,1309907,1309907,1318647,1310827.2,2218.5,612,514915,0.12%,65,268,4018,94421,0,0
+level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
+128,vect_mul,100,144379,145303,145832,146350,1047,258898,195221

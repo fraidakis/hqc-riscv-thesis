@@ -1,0 +1,15 @@
+# date: 2026-06-25 01:33
+# commit: eeac22f
+# variant: scalar_ref
+# level: 192
+# component: mul
+# method: perf record -e task-clock -F 4999 --call-graph fp
+# binary: build-hw/bench_profile_mul_hqc192_scalar_ref (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
+# samples: 5M
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# note: harness-free binary (no perf_event_open/ioctl overhead)
+function,self_pct,samples
+schoolbook_mul,98.53,5638428
+karatsuba_mul,1.10,63212
+vect_mul,0.22,12859
+memset,0.15,8659

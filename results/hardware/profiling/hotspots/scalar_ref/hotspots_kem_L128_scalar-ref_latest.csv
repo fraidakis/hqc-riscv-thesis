@@ -1,0 +1,14 @@
+# date: 2026-06-24 22:09
+# commit: eeac22f
+# variant: scalar_ref
+# level: 128
+# component: kem
+# method: perf record -e task-clock -F 4999 --call-graph fp
+# binary: build-hw/bench_profile_kem_hqc128_scalar_ref (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
+# samples: 459K
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# note: harness-free binary (no perf_event_open/ioctl overhead)
+function,self_pct,samples
+schoolbook_mul,96.78,444751
+karatsuba_mul,0.87,3999
+crypto_kem_dec.constprop.0.isra.0,0.68,3131

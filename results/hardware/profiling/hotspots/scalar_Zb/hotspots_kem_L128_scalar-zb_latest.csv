@@ -1,5 +1,5 @@
-# date: 2026-06-24 19:53
-# commit: 0eb2718
+# date: 2026-06-25 00:35
+# commit: eeac22f
 # variant: scalar_zb
 # level: 128
 # component: kem
@@ -9,19 +9,37 @@
 # platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
 # note: harness-free binary (no perf_event_open/ioctl overhead)
 function,self_pct,samples
-clmul_leaf.constprop.0,22.58,
-crypto_kem_dec.constprop.0.isra.0,21.73,
-KeccakF1600_StatePermute,16.74,
-keccak_inc_absorb,6.04,
-vect_sample_fixed_weight2.constprop.0,5.23,
-kmul_17,4.07,
-vect_mul,2.98,
-kmul_35,2.90,
-keccak_inc_squeeze.constprop.2,2.62,
-kmul_18,2.51,
-vect_sample_fixed_weight1.constprop.0,2.28,
-hqc_pke_encrypt,1.94,
-kmul_69,1.82,
-kmul_139,1.30,
-kmul_70,1.19,
-gf_inverse,0.79,
+clmul_leaf,23.05,3067
+crypto_kem_dec,22.25,2961
+KeccakF1600_StatePermute,16.58,2207
+keccak_inc_absorb,5.98,796
+vect_sample_fixed_weight2,5.38,716
+kmul_17,4.12,549
+kmul_35,3.13,416
+vect_mul,3.04,404
+keccak_inc_squeeze,3.00,399
+kmul_18,2.79,371
+vect_sample_fixed_weight1,2.18,291
+hqc_pke_encrypt,1.81,241
+kmul_69,1.81,240
+kmul_139,1.23,164
+kmul_70,1.18,157
+gf_inverse,0.70,93
+memset,0.49,65
+crypto_kem_keypair,0.27,37
+__memcpy_noalignment,0.17,23
+fft_rec,0.15,20
+fft_rec,0.15,20
+do_lookup_x,0.11,15
+_dl_relocate_object_no_relro,0.08,11
+sha3_256_inc_finalize,0.07,10
+sha3_512_inc_finalize,0.07,9
+keccak_inc_squeeze,0.06,8
+strcmp,0.04,5
+_dl_lookup_symbol_x,0.03,4
+crypto_kem_enc,0.02,3
+keccak_inc_squeeze,0.01,2
+main,0.01,2
+check_match,0.01,2
+_int_malloc,0.01,2
+sudo_debug_vprintf2_v1,0.01,2

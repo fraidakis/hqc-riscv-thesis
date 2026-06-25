@@ -1,5 +1,5 @@
-# date: 2026-06-24 18:30
-# commit: 0eb2718
+# date: 2026-06-24 21:38
+# commit: eeac22f
 # variant: scalar_zb
 # level: 192
 # component: kem
@@ -10,13 +10,17 @@
 # core: 7
 # governor: performance
 # level=192,polymul=scalar_zb,n_iter=100,n_warmup=10,platform=hw,extended=1
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
-keypair,100,636417,642217,677362,644081.7,8797.9,926644,931301,961720,934651.0,8219.3,466,318182,0.15%,50,659,11500,69829,0,0
-encaps,100,1283680,1287716,1342835,1293317.8,12536.6,1885127,1885127,1898900,1887661.7,3528.4,861,644156,0.13%,81,1037,15644,138019,0,0
-decaps,100,2680020,2690715,2799827,2698722.4,19253.9,3896955,3896955,3912186,3899358.6,3180.6,1250,1275822,0.10%,110,2478,38042,281375,0,0
+op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+keypair,100,651101,654850,660260,663747,8897,714682,938790,473,318789,0.15%,50,575,11655,70472,0,0
+encaps,100,1287750,1290195,1292372,1297279,7084,1341265,1887898,856,644796,0.13%,82,1291,16427,139085,0,0
+decaps,100,2685345,2693466,2699788,2718562,25096,2849231,3899574,1271,1276966,0.10%,111,2858,31785,291558,0,0
 
 # --- derived metrics ---
-op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,dram_bytes_est,arith_intensity
-keypair,1.4501,0.001465,0.500,0.054,0.708,0.0179,0.1087,29824,31.23
-encaps,1.4639,0.001337,0.457,0.043,0.550,0.0121,0.1072,55104,34.21
-decaps,1.4483,0.000980,0.321,0.028,0.636,0.0141,0.1046,80000,48.71
+op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
+keypair,1.4218,0.001484,0.504,0.053,0.612,0.0177,0.1067,NA,NA,NA,30272,31.01,0.0135
+encaps,1.4608,0.001328,0.453,0.043,0.684,0.0127,0.1076,NA,NA,NA,54784,34.46,0.0055
+decaps,1.4444,0.000995,0.326,0.028,0.733,0.0118,0.1080,NA,NA,NA,81344,47.94,0.0093
+op,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,NA
+keypair,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.3340
+encaps,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.2953
+decaps,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.4214

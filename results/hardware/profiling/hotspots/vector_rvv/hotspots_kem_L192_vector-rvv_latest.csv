@@ -1,0 +1,67 @@
+# date: 2026-06-25 00:42
+# commit: eeac22f
+# variant: vector_rvv
+# level: 192
+# component: kem
+# method: perf record -e task-clock -F 4999 --call-graph fp
+# binary: build-hw/bench_profile_kem_hqc192_vector_rvv (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
+# samples: 26K
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# note: harness-free binary (no perf_event_open/ioctl overhead)
+function,self_pct,samples
+kmul_18,30.56,8134
+KeccakF1600_StatePermute,16.08,4279
+kmul_35,14.58,3883
+reed_muller_decode,7.34,1955
+keccak_inc_absorb,5.38,1431
+expand_and_sum,4.39,1167
+gf_mul,3.08,820
+shake256_inc_squeeze,2.99,795
+kmul_70,1.89,503
+vect_mul,1.64,438
+vect_generate_random_support2,1.40,372
+vect_compare,1.33,354
+kmul_36,0.96,255
+reed_solomon_decode,0.92,244
+kmul_140,0.85,226
+kmul_71,0.84,222
+kmul_281,0.82,217
+vect_generate_random_support1,0.78,207
+kmul_141,0.74,195
+vect_add,0.53,143
+gf_inverse,0.53,141
+memset,0.50,134
+reed_solomon_encode,0.34,91
+vect_sample_fixed_weight2,0.25,67
+crypto_kem_keypair,0.12,31
+vect_sample_fixed_weight1,0.10,26
+crypto_kem_dec,0.08,22
+fft_rec,0.08,22
+hqc_c_kem_from_string,0.07,20
+hqc_c_kem_to_string,0.07,20
+reed_muller_encode,0.07,19
+fft_retrieve_error_poly,0.07,18
+fft,0.06,17
+fft_rec,0.06,17
+fft_rec,0.06,15
+do_lookup_x,0.05,14
+hqc_ek_pke_from_string,0.04,11
+fft_rec,0.04,10
+xof_init,0.04,10
+encode,0.03,9
+gf_square,0.03,8
+crypto_kem_enc,0.03,7
+sha3_256_inc_finalize,0.03,7
+xof_get_bytes,0.03,7
+_dl_relocate_object_no_relro,0.02,6
+hqc_pke_encrypt,0.01,4
+radix,0.01,4
+sha3_512_inc_finalize,0.01,4
+_dl_lookup_symbol_x,0.01,4
+check_match,0.01,4
+hqc_pke_keygen,0.01,3
+shake256_inc_absorb,0.01,3
+shake256_inc_init,0.01,3
+_dl_map_object_deps,0.01,3
+strcmp,0.01,3
+free,0.01,3

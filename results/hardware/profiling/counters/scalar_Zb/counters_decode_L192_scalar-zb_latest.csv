@@ -1,0 +1,20 @@
+# date: 2026-06-24 21:40
+# commit: eeac22f
+# variant: scalar_zb
+# level: 192
+# component: decode
+# quality: dev
+# n_iter: 100
+# n_warmup: 10
+# platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
+# core: 7
+# governor: performance
+# level=192,decode=ref,n_iter=100,n_warmup=10,platform=hw
+op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
+decode,100,613958,614491,614957,616791,2300,752103,854929
+
+# --- derived metrics ---
+op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
+decode,1.3902,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0037
+op,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,NA
+decode,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,NA

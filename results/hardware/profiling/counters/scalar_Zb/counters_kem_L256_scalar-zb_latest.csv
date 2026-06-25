@@ -1,5 +1,5 @@
-# date: 2026-06-24 18:30
-# commit: 0eb2718
+# date: 2026-06-24 21:39
+# commit: eeac22f
 # variant: scalar_zb
 # level: 256
 # component: kem
@@ -10,13 +10,17 @@
 # core: 7
 # governor: performance
 # level=256,polymul=scalar_zb,n_iter=100,n_warmup=10,platform=hw,extended=1
-op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
-keypair,100,1243908,1251535,1333655,1256561.4,14290.0,1818613,1822851,1865263,1827308.4,10396.4,938,620260,0.15%,65,686,15792,131072,0,0
-encaps,100,2531749,2543932,2769252,2550761.0,25509.3,3721029,3725255,3786020,3725306.8,7006.7,1653,1262435,0.13%,120,1127,22720,261223,0,0
-decaps,100,5166512,5207172,5494389,5215216.9,40781.1,7472802,7478240,7521842,7477987.8,5324.9,2229,2404957,0.09%,180,3396,62334,572621,0,0
+op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
+keypair,100,1244945,1249372,1256486,1270180,20808,1439899,1820702,928,620097,0.15%,65,811,17116,132868,0,0
+encaps,100,2535779,2546152,2566491,2587947,41795,2811729,3723154,1645,1263565,0.13%,120,1168,24525,265405,0,0
+decaps,100,5211578,5258396,5277576,5352194,93798,5739617,7478086,2233,2406521,0.09%,174,3731,60074,618850,0,0
 
 # --- derived metrics ---
-op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,dram_bytes_est,arith_intensity
-keypair,1.4565,0.001512,0.515,0.036,0.376,0.0126,0.1047,60032,30.36
-encaps,1.4644,0.001309,0.444,0.032,0.303,0.0089,0.1027,105792,35.21
-decaps,1.4361,0.000927,0.298,0.024,0.454,0.0120,0.1100,142656,52.42
+op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
+keypair,1.4490,0.001497,0.510,0.036,0.445,0.0136,0.1057,NA,NA,NA,59392,30.66,0.0166
+encaps,1.4507,0.001302,0.442,0.032,0.314,0.0096,0.1034,NA,NA,NA,105280,35.36,0.0163
+decaps,1.4170,0.000928,0.299,0.023,0.499,0.0114,0.1173,NA,NA,NA,142912,52.33,0.0178
+op,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,NA
+keypair,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.3778
+encaps,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.3000
+decaps,0.0000,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.4957

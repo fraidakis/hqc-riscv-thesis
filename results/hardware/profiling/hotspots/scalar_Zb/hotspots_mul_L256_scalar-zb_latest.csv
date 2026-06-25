@@ -1,5 +1,5 @@
-# date: 2026-06-24 18:43
-# commit: 0eb2718
+# date: 2026-06-25 00:39
+# commit: eeac22f
 # variant: scalar_zb
 # level: 256
 # component: mul
@@ -9,14 +9,15 @@
 # platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
 # note: harness-free binary (no perf_event_open/ioctl overhead)
 function,self_pct,samples
-clmul_leaf.constprop.0,55.66,
-clmul_leaf.part.0.constprop.1,19.19,
-kmul_28,5.62,
-kmul_113,4.41,
-kmul_57,3.94,
-kmul_29,3.57,
-kmul_56,3.43,
-vect_mul.constprop.0,1.98,
-kmul_225,0.74,
-kmul_226,0.71,
-kmul_451,0.57,
+clmul_leaf,51.72,77880
+clmul_leaf,18.91,28487
+vect_mul,6.37,9591
+kmul_28,5.18,7794
+kmul_57,3.86,5803
+kmul_113,3.78,5688
+kmul_29,3.61,5428
+kmul_56,2.90,4359
+kmul_451,1.76,2660
+kmul_225,1.10,1658
+kmul_226,0.80,1201
+main,0.01,18

@@ -1,5 +1,5 @@
-# date: 2026-06-24 18:45
-# commit: 0eb2718
+# date: 2026-06-25 00:43
+# commit: eeac22f
 # variant: vector_rvv
 # level: 128
 # component: mul
@@ -9,10 +9,17 @@
 # platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
 # note: harness-free binary (no perf_event_open/ioctl overhead)
 function,self_pct,samples
-kmul_18,44.02,
-kmul_17,34.74,
-kmul_35,7.66,
-kmul_69,4.44,
-vect_mul,3.38,
-kmul_70,2.53,
-kmul_139,1.92,
+kmul_18,44.28,8155
+kmul_17,35.18,6478
+kmul_35,7.33,1349
+vect_mul,4.49,827
+kmul_69,4.46,820
+kmul_70,2.32,428
+kmul_139,1.73,319
+strcmp,0.07,13
+do_lookup_x,0.05,10
+_dl_relocate_object_no_relro,0.03,6
+check_match,0.03,6
+_dl_lookup_symbol_x,0.01,2
+__strcasecmp,0.01,2
+memchr,0.01,2

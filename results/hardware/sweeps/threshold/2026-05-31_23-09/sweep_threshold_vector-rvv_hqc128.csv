@@ -1,5 +1,0 @@
-# date: 2026-05-31 23:09
-# variant: vector_rvv
-# level: 128
-# sweep_type: threshold
-threshold,median_cycles,median_instret,ipc
