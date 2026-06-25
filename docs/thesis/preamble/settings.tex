@@ -270,6 +270,10 @@
   \def\equationautorefname{Εξίσωση}%
 }
 
+% --- Constant-time content toggle: set \includeCTtrue to restore CT sections ---
+\newif\ifincludeCT
+\includeCTfalse
+
 % --- cleveref Greek names (prefer \cref{} / \Cref{} in new text) ---
 % \cref{} outputs: σχήμα 3.1 | \Cref{} outputs: Σχήμα 3.1 (sentence start)
 \crefname{figure}{σχήμα}{σχήματα}
