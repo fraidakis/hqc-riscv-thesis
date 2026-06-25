@@ -379,18 +379,58 @@ static inline void perf_hw_ext_close(perf_hw_ext_ctx *ctx)
     }
 }
 
-/* ── Extended sample CSV header (for file output) ────────────────────────── */
-
+/* ── Extended sample CSV header (canonical single source of truth) ────────── */
+/*
+ * Column layout (20 columns):
+ *   1  op
+ *   2  iterations
+ *   3  min_cycles
+ *   4  p25_cycles
+ *   5  median_cycles   ← headline stat
+ *   6  p75_cycles
+ *   7  iqr_cycles      (= p75 − p25, kept for downstream convenience)
+ *   8  max_cycles      (tail guard only)
+ *   9  instret         (single deterministic value = median; instret is
+ *                       constant for fixed-data kernels so spread metrics
+ *                       on it are pure noise — one column suffices)
+ *   10 median_l1d_miss
+ *   11 median_l1d_access
+ *   12 l1d_miss_rate
+ *   13 median_dtlb_miss
+ *   14 median_br_mispred
+ *   15 median_stall_fe
+ *   16 median_stall_be
+ *   17 median_vec_inst
+ *   18 median_vpu_stall
+ *
+ * Design rationale:
+ *   - cycles distribution is right-skewed (OS jitter adds positive
+ *     perturbations) → IQR/quartiles are robust; mean+stddev are dropped.
+ *   - instret is deterministic for fixed-data kernels → single median value.
+ *   - median_cycles is the headline stat; min_cycles is the least-perturbed
+ *     lower bound.
+ *
+ * ALL bench binaries MUST call this function instead of emitting inline
+ * headers, so the schema stays in one place and can never diverge.
+ */
 static inline void perf_hw_ext_print_csv_header(void)
 {
     printf("op,iterations,"
-           "min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,"
-           "min_instret,median_instret,max_instret,mean_instret,stddev_instret,"
-           "median_l1d_load_miss,median_l1d_access,l1d_miss_rate,"
-           "median_dtlb_load_miss,"
+           "min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,"
+           "instret,"
+           "median_l1d_miss,median_l1d_access,l1d_miss_rate,"
+           "median_dtlb_miss,"
            "median_br_mispred,"
-           "median_stall_frontend,median_stall_backend,"
-           "median_vector_inst,median_vpu_stall\n");
+           "median_stall_fe,median_stall_be,"
+           "median_vec_inst,median_vpu_stall\n");
+}
+
+/* Basic (non-extended) CSV header — same cycles/instret columns, no PMU counters */
+static inline void perf_hw_basic_print_csv_header(void)
+{
+    printf("op,iterations,"
+           "min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,"
+           "instret\n");
 }
 
 /* ── Extended sample: names array for programmatic access ────────────────── */
@@ -430,22 +470,30 @@ static inline uint64_t perf_hw_median(const uint64_t *sorted, int n)
     return (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
 }
 
-static inline double perf_hw_mean(const uint64_t *arr, int n)
+/* perf_hw_p25 / perf_hw_p75 — quartile helpers on a SORTED array.
+ * Uses the "lower quartile = median of lower half" (Tukey) definition:
+ *   p25 = median of sorted[0 .. floor((n-1)/2)]
+ *   p75 = median of sorted[ceil((n+1)/2) .. n-1]
+ * These are unambiguous for any n and identical to what numpy defaults give. */
+static inline uint64_t perf_hw_p25(const uint64_t *sorted, int n)
 {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++)
-        sum += (double)arr[i];
-    return sum / (double)n;
+    int half = n / 2;               /* size of lower half */
+    if (half == 0) return sorted[0];
+    if (half % 2 == 1)
+        return sorted[half / 2];
+    return (sorted[half / 2 - 1] + sorted[half / 2]) / 2;
 }
 
-static inline double perf_hw_stddev(const uint64_t *arr, int n, double mean)
+static inline uint64_t perf_hw_p75(const uint64_t *sorted, int n)
 {
-    double sum_sq = 0.0;
-    for (int i = 0; i < n; i++) {
-        double d = (double)arr[i] - mean;
-        sum_sq += d * d;
-    }
-    return __builtin_sqrt(sum_sq / (double)(n - 1));
+    int lo_size = n / 2;            /* lower half size (floor) */
+    int hi_start = n - lo_size;     /* start of upper half */
+    int hi_size = n - hi_start;     /* = lo_size (even n) or lo_size (odd n, upper half is same size) */
+    /* For odd n, upper half = sorted[hi_start..n-1], size = n - hi_start = lo_size */
+    if (hi_size == 0) return sorted[n - 1];
+    if (hi_size % 2 == 1)
+        return sorted[hi_start + hi_size / 2];
+    return (sorted[hi_start + hi_size / 2 - 1] + sorted[hi_start + hi_size / 2]) / 2;
 }
 
 /* ── System checks (call once at startup) ────────────────────────────────── */

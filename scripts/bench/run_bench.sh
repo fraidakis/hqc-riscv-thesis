@@ -16,7 +16,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# ── Usage ────────────────────────────────────────────────────────────────────
+# ── Source shared library early (needed for bench_resolve_variant in arg parsing) ──
+# shellcheck source=lib_bench.sh
+source "${SCRIPT_DIR}/lib_bench.sh"
 usage() {
     cat <<'EOF'
 Usage:
@@ -209,10 +211,6 @@ if [[ "$QUALITY" != "dev" && "$QUALITY" != "publish" ]]; then
     echo "ERROR: --quality must be 'dev' or 'publish', got: '$QUALITY'" >&2
     exit 1
 fi
-
-# ── Source shared library ────────────────────────────────────────────────────
-# shellcheck source=lib_bench.sh
-source "${SCRIPT_DIR}/lib_bench.sh"
 
 # ── Expand level ─────────────────────────────────────────────────────────────
 if [[ "$LEVEL" == "all" ]]; then
@@ -704,9 +702,9 @@ ${output}"
             local ins_str=""
             if [[ "$MODE" == "kem" ]]; then
                 local kp enc dec total
-                kp="$(echo "$output" | awk -F',' '/^keypair,/ {print $4; exit}')"
-                enc="$(echo "$output" | awk -F',' '/^encaps,/ {print $4; exit}')"
-                dec="$(echo "$output" | awk -F',' '/^decaps,/ {print $4; exit}')"
+                kp="$(echo "$output" | awk -F',' '/^#/{next} !col{for(i=1;i<=NF;i++)if($i=="median_cycles")col=i; next} /^keypair,/{print $col; exit}')"
+                enc="$(echo "$output" | awk -F',' '/^#/{next} !col{for(i=1;i<=NF;i++)if($i=="median_cycles")col=i; next} /^encaps,/{print $col; exit}')"
+                dec="$(echo "$output" | awk -F',' '/^#/{next} !col{for(i=1;i<=NF;i++)if($i=="median_cycles")col=i; next} /^decaps,/{print $col; exit}')"
                 kp="${kp:-0}"; enc="${enc:-0}"; dec="${dec:-0}"
                 total=$(awk "BEGIN {print $kp + $enc + $dec}")
                 ins_str="$(printf 'Kp: %s | Enc: %s | Dec: %s | Total: %s' "$kp" "$enc" "$dec" "$total")"
@@ -718,7 +716,7 @@ ${output}"
                     decode)  metric_field="decode" ;;
                 esac
                 local median
-                median="$(echo "$output" | awk -F',' -v op="$metric_field" '$1==op {print $4; exit}')"
+                median="$(echo "$output" | awk -F',' -v op="$metric_field" '/^#/{next} !col{for(i=1;i<=NF;i++)if($i=="median_cycles")col=i; next} $1==op{print $col; exit}')"
                 median="${median:-0}"
                 ins_str="${median} cycles (median)"
             fi

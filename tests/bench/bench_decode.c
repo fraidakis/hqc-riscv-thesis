@@ -91,29 +91,29 @@ extern char _text_end[];
 
 #ifdef HQC_PLATFORM_HW
 
-/* ── CSV emit helper (HW — extended statistics) ──────────────────────────── */
+/* ── CSV emit helper (HW — robust quartile stats, single instret) ──────────── */
 static void emit_csv_row(const char *op, int n)
 {
     perf_hw_sort_u64(samples_cyc, n);
-    perf_hw_sort_u64(samples_ins, n);
-
-    double mean_c = perf_hw_mean(samples_cyc, n);
-    double std_c  = perf_hw_stddev(samples_cyc, n, mean_c);
-    double mean_i = perf_hw_mean(samples_ins, n);
-    double std_i  = perf_hw_stddev(samples_ins, n, mean_i);
+    uint64_t cyc_min    = samples_cyc[0];
+    uint64_t cyc_p25    = perf_hw_p25(samples_cyc, n);
+    uint64_t cyc_median = perf_hw_median(samples_cyc, n);
+    uint64_t cyc_p75    = perf_hw_p75(samples_cyc, n);
+    uint64_t cyc_iqr    = cyc_p75 - cyc_p25;
+    uint64_t cyc_max    = samples_cyc[n - 1];
+    uint64_t ins_median = perf_hw_median(samples_ins, n);
 
     printf("%s,%d,"
-           "%lu,%lu,%lu,%.1f,%.1f,"
-           "%lu,%lu,%lu,%.1f,%.1f\n",
+           "%lu,%lu,%lu,%lu,%lu,%lu,"
+           "%lu\n",
            op, n,
-           (unsigned long)samples_cyc[0],
-           (unsigned long)perf_hw_median(samples_cyc, n),
-           (unsigned long)samples_cyc[n - 1],
-           mean_c, std_c,
-           (unsigned long)samples_ins[0],
-           (unsigned long)perf_hw_median(samples_ins, n),
-           (unsigned long)samples_ins[n - 1],
-           mean_i, std_i);
+           (unsigned long)cyc_min,
+           (unsigned long)cyc_p25,
+           (unsigned long)cyc_median,
+           (unsigned long)cyc_p75,
+           (unsigned long)cyc_iqr,
+           (unsigned long)cyc_max,
+           (unsigned long)ins_median);
 }
 
 /* ── Raw per-iteration dump ──────────────────────────────────────────────── */
@@ -211,9 +211,7 @@ int main(void)
     /* ── Emit metadata header ─────────────────────────────────────────── */
     printf("# level=%d,decode=%s,n_iter=%d,n_warmup=%d,platform=hw\n",
            SECURITY_LEVEL, DECODE_NAME, N_ITER, N_WARMUP);
-    printf("op,iterations,"
-           "min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,"
-           "min_instret,median_instret,max_instret,mean_instret,stddev_instret\n");
+    perf_hw_basic_print_csv_header();
 
     /* ── Timed passes ────────────────────────────────────────────────── */
     for (int i = 0; i < N_ITER; i++) {

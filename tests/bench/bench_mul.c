@@ -88,26 +88,29 @@ static const char *raw_dump_path = NULL;
 /* ── CSV emit helper ─────────────────────────────────────────────────────── */
 static void emit_csv_row(const char *op, int n)
 {
+    /* cycles: sort then compute quartiles */
     perf_hw_sort_u64(samples_cyc, n);
-    perf_hw_sort_u64(samples_ins, n);
+    uint64_t cyc_min    = samples_cyc[0];
+    uint64_t cyc_p25    = perf_hw_p25(samples_cyc, n);
+    uint64_t cyc_median = perf_hw_median(samples_cyc, n);
+    uint64_t cyc_p75    = perf_hw_p75(samples_cyc, n);
+    uint64_t cyc_iqr    = cyc_p75 - cyc_p25;
+    uint64_t cyc_max    = samples_cyc[n - 1];
 
-    double mean_c = perf_hw_mean(samples_cyc, n);
-    double std_c  = perf_hw_stddev(samples_cyc, n, mean_c);
-    double mean_i = perf_hw_mean(samples_ins, n);
-    double std_i  = perf_hw_stddev(samples_ins, n, mean_i);
+    /* instret: deterministic for fixed-data kernels → single median value */
+    uint64_t ins_median = perf_hw_median(samples_ins, n);
 
     BENCH_PRINTF("%s,%d,"
-                 "%lu,%lu,%lu,%.1f,%.1f,"
-                 "%lu,%lu,%lu,%.1f,%.1f",
+                 "%lu,%lu,%lu,%lu,%lu,%lu,"
+                 "%lu",
                  op, n,
-                 (unsigned long)samples_cyc[0],
-                 (unsigned long)perf_hw_median(samples_cyc, n),
-                 (unsigned long)samples_cyc[n - 1],
-                 mean_c, std_c,
-                 (unsigned long)samples_ins[0],
-                 (unsigned long)perf_hw_median(samples_ins, n),
-                 (unsigned long)samples_ins[n - 1],
-                 mean_i, std_i);
+                 (unsigned long)cyc_min,
+                 (unsigned long)cyc_p25,
+                 (unsigned long)cyc_median,
+                 (unsigned long)cyc_p75,
+                 (unsigned long)cyc_iqr,
+                 (unsigned long)cyc_max,
+                 (unsigned long)ins_median);
 
 #ifdef PERF_HW_EXTENDED
     perf_hw_sort_u64(samples_l1d_miss, n);
@@ -242,19 +245,11 @@ int main(int argc, char **argv)
 #ifdef PERF_HW_EXTENDED
     BENCH_PRINTF("# level=%d,polymul=%s,n_iter=%d,n_warmup=%d,platform=hw,extended=1\n",
                  SECURITY_LEVEL, POLYMUL_NAME, N_ITER, N_WARMUP);
-    BENCH_PRINTF("op,iterations,"
-                 "min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,"
-                 "min_instret,median_instret,max_instret,mean_instret,stddev_instret,"
-                 "median_l1d_miss,median_l1d_access,l1d_miss_rate,"
-                 "median_dtlb_miss,median_br_mispred,"
-                 "median_stall_fe,median_stall_be,"
-                 "median_vec_inst,median_vpu_stall\n");
+    perf_hw_ext_print_csv_header();
 #else
     BENCH_PRINTF("# level=%d,polymul=%s,n_iter=%d,n_warmup=%d,platform=hw\n",
                  SECURITY_LEVEL, POLYMUL_NAME, N_ITER, N_WARMUP);
-    BENCH_PRINTF("op,iterations,"
-                 "min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,"
-                 "min_instret,median_instret,max_instret,mean_instret,stddev_instret\n");
+    perf_hw_basic_print_csv_header();
 #endif
 
     /* ── Pass 1: Timed passes (cycles + instret only, no PMU noise) ───── */

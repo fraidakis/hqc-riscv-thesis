@@ -457,8 +457,51 @@ profile_trace_mode() {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Hardware profiling: shared SSH/deploy infrastructure
+# Hardware profiling: shared validation + SSH/deploy infrastructure
 # ══════════════════════════════════════════════════════════════════════════════
+
+# Validate hw-mode inputs (call once after args are parsed, before any hw work)
+_hw_validate_inputs() {
+    local variant="${MUL_VARIANT:-}"
+    local level="${LEVEL:-}"
+    local quality="${QUALITY:-dev}"
+    local hw_mode="${HW_MODE:-}"
+
+    # Variant: must be one of the hw-supported set (uses the loaded implemented
+    # variants filtered to what BPI-F3 supports)
+    if [[ -n "$variant" && "$variant" != "all" ]]; then
+        local -a _hw_valid=(scalar_ref scalar_zb vector_rvv)
+        local _found=0
+        for _v in "${_hw_valid[@]}"; do
+            [[ "$_v" == "$variant" ]] && { _found=1; break; }
+        done
+        if [[ "$_found" -eq 0 ]]; then
+            echo "ERROR: unsupported variant '${variant}' for hw profiling." >&2
+            echo "       BPI-F3 supported variants: ${_hw_valid[*]}" >&2
+            exit 2
+        fi
+        unset _found _v _hw_valid
+    fi
+
+    # Level
+    case "$level" in
+        128|192|256|all) ;;
+        *) echo "ERROR: --level must be 128, 192, 256, or all; got '${level}'" >&2; exit 2 ;;
+    esac
+
+    # Quality
+    case "$quality" in
+        dev|publish) ;;
+        *) echo "ERROR: --quality must be 'dev' or 'publish'; got '${quality}'" >&2; exit 2 ;;
+    esac
+
+    # Component / hw_mode
+    case "$hw_mode" in
+        kem|mul|keccak|decode|all) ;;
+        *) echo "ERROR: --component must be kem, mul, keccak, decode, or all; got '${hw_mode}'" >&2; exit 2 ;;
+    esac
+}
+
 _hw_profile_setup() {
     # Sets up shared variables for all hw profiling modes.
     # Called once at the top of each hw mode function.
@@ -550,6 +593,7 @@ profile_counters_hw_mode() {
     local variant_slug="$(bench_variant_slug "$variant")"
     local core="7"
 
+    _hw_validate_inputs
     _hw_profile_setup
     _hw_deploy
     _hw_set_governor
@@ -648,12 +692,17 @@ profile_counters_hw_mode() {
 
             bench_refresh_tracked_csv_quiet "$csv_out" "$csv_latest" >/dev/null 2>&1 || true
 
-            # Print summary (extract median cycles from output)
+            # Print summary (extract median cycles from output, by column name)
             local med_cycles
-            med_cycles="$(echo "$raw_output" | grep -v '^#' | grep -v '^op,' | head -1 | awk -F',' '{print $4}')"
+            med_cycles="$(echo "$raw_output" | awk -F',' '
+                /^#/ { next }
+                !col { for(i=1;i<=NF;i++) if($i=="median_cycles") col=i; next }
+                NF>1 { print $col; exit }
+            ')"
             local branch="├──"
             if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
             echo " ${branch} L${level} ⋯ median_cycles=${med_cycles:-?}"
+            echo "         → $(realpath -m "${csv_latest}")"
 
         done
         echo ""
@@ -668,18 +717,16 @@ profile_counters_hw_mode() {
         echo "  ⚠ Derived metric computation skipped (script not ready or parse error)"
 
     echo ""
-    echo " Output: ${out_base}/"
+    echo " Output (counters): ${out_base}/"
     echo ""
 }
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Hardware profiling mode: --hotspots (task-clock sampling, flame graphs)
 # ══════════════════════════════════════════════════════════════════════════════
 profile_hotspots_hw_mode() {
     local variant="${MUL_VARIANT:-scalar_zb}"
     local variant_slug="$(bench_variant_slug "$variant")"
     local core="7"
 
+    _hw_validate_inputs
     _hw_profile_setup
     _hw_deploy
     _hw_set_governor
@@ -744,14 +791,29 @@ profile_hotspots_hw_mode() {
 
             _hw_run_cmd "$exec_cmd" >/dev/null 2>&1
 
-            # Extract sample count
+            # Extract exact total sample count from perf report header
             local sample_count
             sample_count="$(_hw_run_cmd "perf report -i ${perf_data} --stdio 2>&1 | grep '# Samples:' | sed 's/.*# Samples: *//;s/ of .*//' | head -1" 2>/dev/null || echo "?")"
             sample_count="${sample_count:-?}"
 
-            # Extract hotspot report (filter kernel/libc/ioctl/harness)
+            # Parse total samples as an integer for per-symbol calculation
+            local sample_total_int=0
+            {
+                local _s="${sample_count//,/}"
+                if [[ "$_s" =~ ^([0-9.]+)K$ ]]; then
+                    sample_total_int=$(awk "BEGIN{printf \"%d\", ${BASH_REMATCH[1]} * 1000}")
+                elif [[ "$_s" =~ ^([0-9.]+)M$ ]]; then
+                    sample_total_int=$(awk "BEGIN{printf \"%d\", ${BASH_REMATCH[1]} * 1000000}")
+                elif [[ "$_s" =~ ^[0-9]+$ ]]; then
+                    sample_total_int="$_s"
+                fi
+            }
+
+            # Extract hotspot report with exact per-symbol sample counts (-n flag)
+            # --no-children: show self cost only (no call-chain aggregation)
+            # --percent-limit 0.2: capture all functions ≥0.20% (mirrors simulation traces)
             local report_raw
-            report_raw="$(_hw_run_cmd "perf report -i ${perf_data} --stdio --no-children --percent-limit 0.5 2>&1")"
+            report_raw="$(_hw_run_cmd "perf report -i ${perf_data} --stdio -n --no-children --percent-limit 0.2 2>&1")"
 
             # Parse into CSV
             local csv_out="${out_base}/hotspots_${component}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
@@ -771,45 +833,58 @@ profile_hotspots_hw_mode() {
                 echo "function,self_pct,samples"
             } > "$csv_out"
 
-            # Parse perf report output into CSV rows, filtering kernel/system
+            # Parse perf report -n output into CSV rows, filtering kernel/system.
+            # perf report -n adds a "Samples" column after the "Overhead" column:
+            #   46.14%    1234  bench_hw_mul...  bench_hw_mul...  [.] clmul_leaf...
+            # NOTE: With large sample counts, perf may format with commas (e.g., 2,953,500)
+            # After filtering, percentages are normalized to 100% (removing kernel/noise share).
+            # GCC internal suffixes (.constprop.N, .isra.N, .part.N) are stripped from names.
             echo "$report_raw" | python3 -c "
 import sys, re
+
+rows = []
 for line in sys.stdin:
     line = line.strip()
-    # Match lines like: '  46.14%  bench_hw_mul_hq  bench_hw_mul_hqc128_scalar_zb  [.] clmul_leaf.constprop.1'
-    m = re.match(r'^\s*([\d.]+)%\s+\S+\s+\S+\s+\[(.)\]\s+(.+)', line)
+    # With -n: '  46.14%    1234  <dso>  <binary>  [.] <symbol>'
+    # Also handles comma-formatted samples: '  98.45%  2,953,500  <dso>  <binary>  [.] <symbol>'
+    m = re.match(r'^\s*([\d.]+)%\s+([\d,]+)\s+\S+\s+\S+\s+\[(.)\]\s+(.+)', line)
     if not m:
-        continue
-    pct, space, func = m.group(1), m.group(2), m.group(3)
-    # Filter kernel symbols [k], unknown addresses, and system functions
+        # Try without sample count (fallback for older perf versions)
+        m2 = re.match(r'^\s*([\d.]+)%\s+\S+\s+\S+\s+\[(.)\]\s+(.+)', line)
+        if not m2:
+            continue
+        pct, space, func = float(m2.group(1)), m2.group(2), m2.group(3)
+        samples_col = ''
+    else:
+        pct = float(m.group(1))
+        samples_col = m.group(2).replace(',', '')
+        space = m.group(3)
+        func = m.group(4)
+    # Filter kernel symbols, unknown addresses, system/harness functions
     if space == 'k':
         continue
     if func.startswith('0x'):
         continue
-    # Filter measurement harness and system symbols
     skip_prefixes = ('perf_hw_', 'ioctl', '__syscall', '__internal_syscall',
-                     '__libc_start', '_start', '__GI_', 'read', 'write',
-                     '__clock_gettime', 'clock_gettime')
+                     '__libc_start', '_start', '__GI_', '__clock_gettime',
+                     'clock_gettime')
     if any(func.startswith(p) for p in skip_prefixes):
         continue
-    if float(pct) < 0.5:
+    if pct < 0.01:
         continue
-    # Estimate samples from percentage (approximate)
-    print(f'{func},{pct},')
+    # Strip GCC internal suffixes: .constprop.N, .isra.N, .part.N, .cold
+    func = re.sub(r'(\.(constprop|isra|part|cold)(\.\d+)?)+$', '', func)
+    rows.append((func, pct, samples_col))
+
+# Normalize percentages so they sum to 100%
+total = sum(r[1] for r in rows)
+if total > 0:
+    for func, pct, samples_col in rows:
+        norm_pct = pct * 100.0 / total
+        print(f'{func},{norm_pct:.2f},{samples_col}')
 " >> "$csv_out"
 
             bench_refresh_tracked_csv_quiet "$csv_out" "$csv_latest" >/dev/null 2>&1 || true
-
-            # Generate FlameGraph SVG if tools available
-            local svg_out="${out_base}/hotspots_${component}_L${level}_${variant_slug}_latest.svg"
-            local flamegraph_ok=0
-            if _hw_run_cmd "test -x ~/FlameGraph/flamegraph.pl" 2>/dev/null; then
-                local folded
-                folded="$(_hw_run_cmd "perf script -i ${perf_data} 2>/dev/null | ~/FlameGraph/stackcollapse-perf.pl --kernel 2>/dev/null | grep -v -E '^(ioctl|__syscall|perf_hw_|__libc_start|_start)' || true")"
-                if [[ -n "$folded" ]]; then
-                    echo "$folded" | _hw_ssh "$REMOTE" "cat | ~/FlameGraph/flamegraph.pl --title='${variant} ${component} L${level} (task-clock)' --width=1200" > "$svg_out" 2>/dev/null && flamegraph_ok=1
-                fi
-            fi
 
             # Clean up remote perf data
             _hw_run_cmd "rm -f ${perf_data}" 2>/dev/null || true
@@ -817,12 +892,8 @@ for line in sys.stdin:
             # Print summary
             local branch="├──"
             if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
-            local svg_note=""
-            if [[ "$flamegraph_ok" -eq 1 ]]; then svg_note=" + SVG"; fi
             local sample_warning=""
-            # Parse sample count — handle "21K" "1.2M" and plain numbers
-            local sample_numeric="${sample_count}"
-            sample_numeric="${sample_numeric//,/}"
+            local sample_numeric="${sample_count//,/}"
             if [[ "$sample_numeric" =~ ^([0-9.]+)K$ ]]; then
                 sample_numeric=$(awk "BEGIN{printf \"%d\", ${BASH_REMATCH[1]} * 1000}")
             elif [[ "$sample_numeric" =~ ^([0-9.]+)M$ ]]; then
@@ -831,13 +902,14 @@ for line in sys.stdin:
             if [[ "$sample_numeric" =~ ^[0-9]+$ ]] && [[ "$sample_numeric" -lt 1000 ]]; then
                 sample_warning=" ⚠ LOW SAMPLES"
             fi
-            echo " ${branch} L${level} ⋯ ${sample_count} samples${svg_note}${sample_warning}"
+            echo " ${branch} L${level} ⋯ ${sample_count} samples${sample_warning}"
+            echo "         → $(realpath -m "${csv_latest}")"
 
         done
         echo ""
     done
 
-    echo " Output: ${out_base}/"
+    echo " Output (hotspots): ${out_base}/"
     echo ""
 }
 
@@ -848,6 +920,7 @@ profile_isa_mix_hw_mode() {
     local variant="${MUL_VARIANT:-scalar_zb}"
     local variant_slug="$(bench_variant_slug "$variant")"
 
+    _hw_validate_inputs
     _hw_profile_setup
     _hw_deploy
 
@@ -929,19 +1002,20 @@ profile_isa_mix_hw_mode() {
 
             # Print summary
             local zbc_count rvv_count total_count
-            zbc_count="$(grep 'summary,zbc_total' "$csv_out" 2>/dev/null | cut -d',' -f3 || echo 0)"
-            rvv_count="$(grep -E 'summary,rvv_(arith|load|store|config)_total' "$csv_out" 2>/dev/null | awk -F',' '{s+=$3}END{print s+0}' || echo 0)"
-            total_count="$(grep 'total,all_instructions' "$csv_out" 2>/dev/null | cut -d',' -f3 || echo 0)"
+            zbc_count="$(grep 'summary,zbc_total' "$csv_latest" 2>/dev/null | cut -d',' -f3 || echo 0)"
+            rvv_count="$(grep -E 'summary,rvv_(arith|load|store|config)_total' "$csv_latest" 2>/dev/null | awk -F',' '{s+=$3}END{print s+0}' || echo 0)"
+            total_count="$(grep 'total,all_instructions' "$csv_latest" 2>/dev/null | cut -d',' -f3 || echo 0)"
 
             local branch_char="├──"
             if [[ "$idx" -eq "$total_levels" ]]; then branch_char="└──"; fi
             echo " ${branch_char} L${level} ⋯ total=${total_count} Zbc=${zbc_count:-0} RVV=${rvv_count:-0}"
+            echo "         → $(realpath -m "${csv_latest}")"
 
         done
         echo ""
     done
 
-    echo " Output: ${out_base}/"
+    echo " Output (isa_mix): ${out_base}/"
     echo ""
 }
 
@@ -1150,7 +1224,8 @@ if [[ "${#batch_variants[@]}" -gt 1 ]]; then
     else
         profile_require_parallel
 
-        jobs="$(profile_select_parallel_jobs)"
+        local _parallel_jobs
+        _parallel_jobs="$(profile_select_parallel_jobs)"
         declare -a cmds=()
         v=""
         l=""
@@ -1167,7 +1242,7 @@ if [[ "${#batch_variants[@]}" -gt 1 ]]; then
             cmds+=("$cmd")
         done
 
-        printf '%s\n' "${cmds[@]}" | parallel --jobs "$jobs"
+        printf '%s\n' "${cmds[@]}" | parallel --jobs "$_parallel_jobs"
     fi
 else
     run_mode_for_variant "${batch_variants[0]}"
