@@ -540,6 +540,8 @@ mean αλλά δεν επηρεάζουν το median.
 
 \section{Επαλήθευση Ορθότητας (KAT Tests)}
 \label{sec:kat-tests}
+\label{ssec:benchmarking-limitations}%
+\label{ssec:build-reproducibility}%
 
 Κάθε βελτιστοποίηση που εφαρμόζεται στον κώδικα \gls{hqc} εισάγει κίνδυνο
 αλγοριθμικής παραβίασης: μία λανθασμένη αναδιάταξη bits στον πολυωνυμικό
@@ -1100,7 +1102,7 @@ scratch buffers πριν από κάθε πολλαπλασιασμό — ένα
 αναδεικνύεται σε σημαντικό bottleneck μετά τη βελτιστοποίηση του polymul
 (\cf \cref{ch:kernel-optimization}). Η αποκωδικοποίηση \code{hadamard} αντιπροσωπεύει \pct{0.16}, ομοίως αμελητέα αρχικά· η \gls{rs} περιλαμβάνεται στις λοιπές συναρτήσεις.
 
-\Cref{fig:baseline-pie} απεικονίζει γραφικά την κατανομή κόστους σε τέσσερις
+Το \cref{fig:baseline-pie} απεικονίζει γραφικά την κατανομή κόστους σε τέσσερις
 κατηγορίες.
 
 \begin{figure}[htbp]

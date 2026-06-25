@@ -154,10 +154,6 @@
 * `docs/thesis-helper/notes/notes_mine.md` - **Research Notes** - RVA23 profile mandatory extensions, mainstream adoption evidence
 * `cmake/options.cmake` (HQC_SCALAR_MARCH) - **Build Config** - Concrete ISA strings used: `rv64gc_zbc_zbb_zbs`, `rv64gcv_zbc_zbb_zba_zvbc_zvbb` — demonstrates modular extension composition
 
-#### §3.1.4 Σύγκριση Σχεδιαστικής Φιλοσοφίας με ARM και x86
-
-* `docs/thesis-helper/notes/notes_mine.md` - **Research Notes** - "Architectural Comparison: SHA-2 vs SHA-3", ARM EOR3/RAX1 vs RISC-V Zvbb comparison
-
 ### §3.2 Scalar Κρυπτογραφικές Επεκτάσεις (Zbc, Zbb, Zbkb)
 
 * `docs/thesis-helper/optimizations/multiplication.md` §3.2.1 - **Optimization Notes** - "Native clmul/clmulh Injection", Zbc description and before/after analysis

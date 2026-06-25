@@ -24,6 +24,10 @@
 % Enable auto-processing without an external tool (no makeglossaries needed)
 \makenoidxglossaries
 
+% Suppress "No language module detected for elmonoton" warning — no
+% glossaries-greek package exists on CTAN; this is purely cosmetic.
+\glssetcategoryattribute{abbreviation}{nohypertargets}{true}
+
 % Suppress hypertargets for glossary entries (avoids "unreferenced destination"
 % warnings from the PDF backend when \printnoidxglossary is not active).
 % The targets are created by \gls on first use but nothing links back to them

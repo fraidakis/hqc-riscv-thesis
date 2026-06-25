@@ -574,7 +574,7 @@ A/B/D, scalar \code{fft\_rec} για το Στάδιο~C).
 \num{300}/\num{300} \gls{kat} vectors σε όλα τα security levels.
 
 %% --------------------------------------------------------------------------
-\subsection{Βελτιστοποίηση $\GF{2^8}$ Reduction: Single-Pass Barrett via \insn{vclmul}}
+\subsection{Βελτιστοποίηση \texorpdfstring{$\GF{2^8}$}{GF(2\textasciicircum 8)} Reduction: Single-Pass Barrett via \insn{vclmul}}
 \label{sec:decode-barrett}
 
 Η αναγωγή $\bmod\; p(x) = x^8 + x^4 + x^3 + x^2 + 1$ (0x11D)
@@ -707,7 +707,7 @@ loop control (\insn{add}~$i$\code{+=vl} + \insn{bltu}).
 compile-time υποθέσεις.
 
 %% --------------------------------------------------------------------------
-\subsection{$\BigO{weight}$ Direct-Scatter (\code{vect\_write\_support\_to\_vector})}
+\subsection{\texorpdfstring{$\BigO{weight}$}{O(weight)} Direct-Scatter (\code{vect\_write\_support\_to\_vector})}
 \label{ssec:scatter}
 
 Η \code{vect\_write\_support\_to\_vector} κατασκευάζει ένα bit-vector ύψους

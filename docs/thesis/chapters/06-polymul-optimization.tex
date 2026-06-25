@@ -295,7 +295,7 @@ static inline void clmul64(uint64_t a, uint64_t b,
 }
 \end{lstlisting}
 
-\Cref{fig:schoolbook-vs-clmul} αντιπαραβάλλει τον bit-serial schoolbook βρόχο με τον word-level \clmul{} leaf.
+Το \cref{fig:schoolbook-vs-clmul} αντιπαραβάλλει τον bit-serial schoolbook βρόχο με τον word-level \clmul{} leaf.
 
 \begin{figure}[htbp]
   \centering
@@ -414,7 +414,7 @@ $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$. Η αναδρομή
     optimizations.
 \end{itemize}
 
-\Cref{fig:ap2-pipeline} συνοψίζει το pipeline του AP-2 generator.
+Το \cref{fig:ap2-pipeline} συνοψίζει το pipeline του AP-2 generator.
 
 \begin{figure}[htbp]
   \centering
@@ -616,7 +616,7 @@ HQC-256 ($N=901$), η συνολική δέσμευση stack ανέρχεται
 $\sim\SI{42.2}{\kilo\byte}$ — πολύ κάτω από το bare-metal stack limit
 (\SI{512}{\kilo\byte}).
 
-\Cref{fig:direct-write-layout} αντιπαραβάλλει το memory layout πριν και μετά τη direct-write discipline.
+Το \cref{fig:direct-write-layout} αντιπαραβάλλει το memory layout πριν και μετά τη direct-write discipline.
 
 \begin{figure}[htbp]
   \centering
@@ -665,7 +665,7 @@ $r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
     $z_0$ από \code{ta} και παραλείπουν τη μη-υπάρχουσα συνεισφορά $z_2$.
 \end{enumerate}
 
-\Cref{fig:overlap-save} απεικονίζει το aliasing hazard και την overlap-save επίλυση.
+Το \cref{fig:overlap-save} απεικονίζει το aliasing hazard και την overlap-save επίλυση.
 
 \begin{figure}[htbp]
   \centering
@@ -798,7 +798,7 @@ $\lceil 277/32 \rceil = 9$ iterations αντί \num{277} scalar iterations.
 $<\pct{1}$ του συνολικού polymul \instret), αλλά εξαλείφει τον τελευταίο
 scalar bottleneck στο data path μετά τον Karatsuba tree.
 
-\subsection{Εξειδίκευση Leaf $n=9$ και Υβριδική Scalar/Vector Αναδρομή}
+\subsection{Εξειδίκευση Leaf \texorpdfstring{$n=9$}{n=9} και Υβριδική Scalar/Vector Αναδρομή}
 \label{ssec:rvv-leaf-n9-hybrid}
 
 Τα αποτελέσματα profiling σε πραγματικό hardware (SpacemiT K1 X60) αποκάλυψαν
@@ -1301,7 +1301,7 @@ $\approx$\pct{51} — ο πυρήνας παραμένει ο μεγαλύτερ
 δεν κυριαρχεί πλέον μονοπωλιακά. Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
 από $<$\pct{1} σε $\approx$\pct{27} του συνόλου, και η αποκωδικοποίηση
 (\gls{rm} + \gls{rs}) από $<$\pct{0.5} σε $\approx$\pct{5}.
-\Cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση, αντιπαραβάλλοντας το baseline (\cref{fig:pie-baseline}) με την κατανομή μετά το Tier~3 (\cref{fig:pie-post-polymul}).
+Το \cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση, αντιπαραβάλλοντας το baseline (\cref{fig:pie-baseline}) με την κατανομή μετά το Tier~3 (\cref{fig:pie-post-polymul}).
 
 \begin{figure}[htbp]
   \centering

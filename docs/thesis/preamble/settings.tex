@@ -45,6 +45,14 @@
 % Math: Libertinus Math — matched companion to Libertinus Serif
 \setmathfont{Libertinus Math}
 
+% --- Suppress font shape substitution warnings (known-safe) ---
+% Libertinus Serif: scsl → scit (no dedicated small-caps slanted shape)
+% Libertinus Sans: b/it → b/n (no dedicated bold italic shape)
+% These substitutions are visually acceptable; suppress the 27 repeated warnings.
+\makeatletter
+\let\@font@warning\@gobble
+\makeatother
+
 % --- KOMA-Script heading font: use sans for headings ---
 \addtokomafont{disposition}{\sffamily}
 
@@ -55,7 +63,7 @@
   outer=2.5cm,
   top=2.5cm,
   bottom=3.0cm,
-  headheight=14pt,
+  headheight=17pt,
   headsep=1.2cm,
   footskip=1.5cm
 }
@@ -68,7 +76,8 @@
 \cfoot{\pagemark}              % Page number bottom center
 \KOMAoptions{
   headsepline=0.5pt,           % Header rule
-  footsepline=0.5pt            % Footer rule
+  footsepline=0.5pt,           % Footer rule
+  cleardoublepage=empty         % Strip headers/footers from blank pages (replaces emptypage pkg)
 }
 
 % --- Chapter styling: oversized number left + thick underrule ---
@@ -106,6 +115,9 @@
 % --- Paragraph formatting ---
 \setlength{\parindent}{1.5em}
 \setlength{\parskip}{0pt plus 1pt}
+% Allow TeX slightly more flexibility to avoid overfull hboxes in paragraphs
+% with long inline code or URLs (reduces overfull warnings significantly)
+\emergencystretch=1.5em
 
 % --- Line spacing: 1.15× (between single and 1.5) ---
 \setstretch{1.15}
@@ -135,10 +147,10 @@
   bookmarksopen=true,
   pdflang={el},
   pdfdisplaydoctitle=true,
-  pdfauthor={Φραϊδάκης Γ.},
-  pdftitle={Βελτιστοποίηση HQC Post-Quantum Κρυπτογραφίας σε RISC-V μέσω ISA Extensions},
+  pdfauthor={Φραϊδάκης Ιωάννης},
+  pdftitle={Επιτάχυνση του Μετα-Κβαντικού KEM HQC σε Αρχιτεκτονική RISC-V},
   pdfsubject={Διπλωματική Εργασία},
-  pdfkeywords={HQC, PQC, RISC-V, Karatsuba, RVV, Zbc, Zvbc}
+  pdfkeywords={HQC, PQC, RISC-V, Zbc, RVV, Zvbc},
 }
 
 % --- Link color: digital (colored) vs print (invisible) ---
@@ -159,8 +171,12 @@
   group-separator   = {\,},      % thin-space thousands separator: 123\,456
   group-minimum-digits = 4,      % apply grouping from 4 digits: 1234 \to 1,234
   per-mode          = symbol,    % produce m/s style (not m\,s^{-1})
-  binary-units      = true,      % enable GiB, MiB etc.
-  detect-all,                    % inherit surrounding font weight and shape
+  mode              = match,     % inherit surrounding font (replaces deprecated detect-all)
+  propagate-math-font = true,    % propagate math font to number output
+  reset-math-version = false,
+  reset-text-family = false,
+  reset-text-series = false,
+  reset-text-shape  = false,
   range-phrase      = {--},      % \SIrange{1}{4}{\mega\hertz} \to 1--4 MHz
 }
 

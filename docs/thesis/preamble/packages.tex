@@ -4,7 +4,11 @@
 
 % --- Engine & font setup ---
 \usepackage{fontspec}           % OpenType/TrueType font loading
-\usepackage{unicode-math}       % Unicode math fonts (must load before math pkgs)
+% Suppress fontspec's verbose "scale = ..." info messages that bloat the log
+% (these are purely informational, not diagnostically useful)
+\ExplSyntaxOn
+\msg_redirect_module:nnn { fontspec } { info } { none }
+\ExplSyntaxOff
 
 % --- Language ---
 \usepackage{polyglossia}        % Multilingual support
@@ -18,7 +22,8 @@
 \usepackage[                    % Full microtypographic improvements
   protrusion=true,
   expansion=true,
-  tracking=true
+  tracking=true,
+  nopatch=footnote              % KOMA-Script manages footnotes itself
 ]{microtype}
 % selnolig (cross-morpheme ligature suppression) is disabled: it causes
 % LuaLaTeX fatal errors inside TikZ subprocesses ("bad argument #1 to 'char'")
@@ -34,7 +39,9 @@
 % --- Math ---
 \usepackage{amsmath}            % Math environments
 % amssymb NOT needed — unicode-math provides all symbols
-\usepackage{mathtools}          % Extensions to amsmath
+\usepackage{mathtools}          % Extensions to amsmath (must load before unicode-math)
+\usepackage[warnings-off={mathtools-overbracket,mathtools-colon}]{unicode-math}
+                                % Unicode math fonts (after mathtools per its docs)
 
 % --- Figures and graphics ---
 \usepackage{graphicx}           % Image inclusion
@@ -137,8 +144,14 @@
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 
 % --- Cross-references and links ---
-\usepackage{hyperref}           % Clickable links, PDF metadata
+\usepackage[hyperfootnotes=false]{hyperref}  % Clickable links, PDF metadata
 \usepackage[nameinlink,noabbrev]{cleveref}  % Smart cross-references (TL2026+)
+
+% Fix: \Greeknumeral in appendix chapter bookmarks — hyperref can't handle it
+% in PDF strings. Provide a text-only fallback for bookmarks.
+\pdfstringdefDisableCommands{%
+  \def\Greeknumeral#1{#1}%
+}
 
 % Fix cleveref + polyglossia Greek: cleveref has no Greek language support
 % and \cref@language is left undefined with polyglossia. We set it to
@@ -188,6 +201,7 @@
   acronym,          % dedicated acronym glossary type
   nomain,           % suppress unused main glossary
   nopostdot,        % no trailing period after descriptions
+  nowarn,           % suppress glossary-specific warnings (no \printnoidxglossary)
 ]{glossaries-extra}
 
 % --- Bibliography ---
@@ -222,7 +236,7 @@
 \tikzset{external/only named=true}
 
 % --- LuaLaTeX page niceties ---
-\usepackage{emptypage}          % strip headers/footers from blank pages
+% emptypage replaced by KOMA-Script native: \KOMAoptions{cleardoublepage=empty}
 \usepackage{bookmark}           % robust PDF bookmarks (loads after hyperref)
 
 % --- Colored boxes (definitions, key results, remarks) ---
