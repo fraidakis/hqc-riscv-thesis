@@ -2,7 +2,7 @@
 \label{ch:conclusions}
 
 Στο \cref{ch:discussion} αναλύθηκαν τα αποτελέσματα υπό το πρίσμα ετερογενών
-αρχιτεκτονικών, ISA ablation, και constant-time ασφάλειας. Το παρόν κεφάλαιο
+αρχιτεκτονικών, ISA ablation\ifincludeCT, και constant-time ασφάλειας\fi. Το παρόν κεφάλαιο
 συνοψίζει τη συνεισφορά της εργασίας, αναγνωρίζει τους περιορισμούς της, και
 χαρτογραφεί τις κατευθύνσεις μελλοντικής έρευνας.
 
@@ -44,6 +44,7 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 αποκωδικοποίηση \gls{rm}/\gls{rs} (\speedup{6.8}–\speedup{7.8} μέσω
 \RVV vectorization και \gls{zvbc} $\GF{2^8}$ acceleration).
 
+\ifincludeCT
 \paragraph{Constant-time ασφάλεια}
 Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής:
 αρχιτεκτονική ανάλυση Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο
@@ -52,6 +53,7 @@ data-independent timing subset) και εμπειρική στατιστική �
 variants (\cref{sec:ct-verification})· η εμπειρική dudect κάλυψη του Tier~2
 περιορίζεται σε επίπεδο polymul. Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
 θεωρητική CT συμμόρφωση για το Tier~3.
+\fi
 
 \paragraph{Hardware validation}
 Τα Tier~1 και Tier~2 επικυρώθηκαν σε πραγματικό RISC-V hardware (BPI-F3,
@@ -103,6 +105,7 @@ cache effects.
 και median statistic, residual OS noise (timer interrupts $\sim$κάθε
 \SI{4}{\milli\second}) εισάγει μικρή αβεβαιότητα στις μετρήσεις.
 
+\ifincludeCT
 \paragraph{Εμπειρική CT verification μόνο για Tier~1/2}
 Η dudect εμπειρική επαλήθευση καλύπτει τα variants \code{scalar\_ref}, \code{scalar\_zb}
 (Tier~1) και \code{vector\_rvv} (Tier~2). Το \code{vector\_zvk}
@@ -110,6 +113,8 @@ cache effects.
 Η αρχιτεκτονική ανάλυση Zkt (\cref{ssec:ct-design-patterns}) τεκμηριώνει
 θεωρητική CT συμμόρφωση, αλλά η εμπειρική επιβεβαίωση σε πραγματικό silicon
 παραμένει εκκρεμής.
+
+\fi
 
 \paragraph{Μονοπύρηνη αξιολόγηση}
 Η αξιολόγηση εστιάζει σε single-core εκτέλεση. Σε multi-session σενάρια
@@ -138,6 +143,7 @@ vector pipeline) μπορεί να μεταβάλει τον IPC και άρα �
 μακροπρόθεσμες (απαιτούν νέο hardware ή ISA extensions).
 
 %% --------------------------------------------------------------------------
+\ifincludeCT
 \subsection{Constant-Time Υλοποίηση}
 \label{sec:future-ct}
 
@@ -161,6 +167,7 @@ deployment σε νέο hardware χωρίς τροποποιήσεις.
 trial. Η επέκταση σε \num{10000000} measurements ανά trial (publish-mode) θα
 ενισχύσει τη στατιστική ισχύ, μειώνοντας τον κίνδυνο false negatives σε
 ασθενείς διαρροές.
+\fi
 
 %% --------------------------------------------------------------------------
 \subsection{Hardware Validation και Cycle-Accurate Simulation}
@@ -244,7 +251,7 @@ decoder όσο και γενικότερα AES-GCM/GHASH workloads.
 Συνοψίζοντας, η παρούσα εργασία τεκμηρίωσε ότι οι επικυρωμένες κρυπτογραφικές
 επεκτάσεις του RISC-V επαρκούν για να φέρουν μια υλοποίηση σε καθαρό λογισμικό
 code-based \gls{pqc} σε επίπεδο απόδοσης συγκρίσιμο με εξειδικευμένες SIMD
-αρχιτεκτονικές — χωρίς custom hardware, χωρίς vendor lock-in, και χωρίς
-υποχώρηση στην ασφάλεια timing side-channels. Η cryptographic agility που
+αρχιτεκτονικές — χωρίς custom hardware, χωρίς vendor lock-in\ifincludeCT, και χωρίς
+υποχώρηση στην ασφάλεια timing side-channels\fi. Η cryptographic agility που
 παρέχει η modular ISA φιλοσοφία του RISC-V αποδεικνύεται πρακτικά εφικτή:
 υψηλή απόδοση και αλγοριθμική ευελιξία δεν αποτελούν αντικρουόμενους στόχους.

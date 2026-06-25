@@ -126,9 +126,9 @@ bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχ�
 με σωστά μεγέθη buffers (\code{VEC\_N1N2\_SIZE\_64} $\to$
 \code{VEC\_N1\_SIZE\_64} $\to$ \code{PARAM\_K} bytes). Τα δεδομένα εισόδου
 είναι μηδενικά — αντιπροσωπευτικό λόγω της data-independent δομής βρόχων
-και των δύο αποκωδικοποιητών (βλ.\ \cref{sec:decode-optimization})· η
+και των δύο αποκωδικοποιητών (βλ.\ \cref{sec:decode-optimization})\ifincludeCT· η
 data-independent δομή τους επιβεβαιώνεται πειραματικά από την constant-time
-ανάλυση στην~\cref{sec:ct-verification}.
+ανάλυση στην~\cref{sec:ct-verification}\fi.
 
 Ο~\cref{tab:microbench-decode} παρουσιάζει τα αποτελέσματα. Σημειώνεται
 ότι τα Tier~1 δεδομένα δεν παρατίθενται ξεχωριστά, καθώς η μοναδική

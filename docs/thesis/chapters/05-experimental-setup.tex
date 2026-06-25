@@ -612,6 +612,7 @@ bit-exact σωστά αποτελέσματα.
 %% ==========================================================================
 %% §5.5 Μεθοδολογία Επαλήθευσης Σταθερού Χρόνου Εκτέλεσης
 %% ==========================================================================
+\ifincludeCT
 \section{Μεθοδολογία Επαλήθευσης Σταθερού Χρόνου Εκτέλεσης}
 \label{sec:ct-methodology}
 
@@ -833,23 +834,24 @@ input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμ
 ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση εν αναμονή εμπειρικής
 επιβεβαίωσης.
 
-\section{Baseline Profiling}
+\fi
+
+\section{Profiling της Υλοποίησης Αναφοράς}
 \label{sec:baseline-profiling}
 
-Η πρώτη εκτέλεση του reference \gls{hqc} στο Spike environment επιβεβαιώνει ότι η
+Η πρώτη εκτέλεση του reference \gls{hqc} στο Spike επιβεβαιώνει ότι η
 πειραματική υποδομή (\crefrange{sec:emulators}{sec:bare-metal}) λειτουργεί ολοκληρωμένα: ο κώδικας
 μεταγλωττίζεται, εκτελείται σε bare-metal, παράγει bit-exact σωστά αποτελέσματα
 (\gls{kat} validation), και εξάγει ντετερμινιστικές μετρήσεις \instret. 
-Η ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \gls{kem} για
+Η ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία του \gls{kem} για
 το baseline, ώστε να αποκτήσουμε εικόνα του αρχικού hotspot πριν την εφαρμογή
 των βελτιστοποιήσεων.
 
-\subsection{Reference \instret ανά Λειτουργία \KEM}
+\subsection{Κόστος ανά Λειτουργία και Κατανομή σε Hotspots}
 \label{ssec:baseline-kem-instret}
 
-Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για 
-κάθε λειτουργία \gls{kem} στο baseline (\code{scalar\_ref}). Η υλοποίηση
-αντιστοιχεί στον αρχικό κώδικα αναφοράς του \gls{nist} χωρίς αλγοριθμικές
+Ο \cref{tab:baseline-kem} καταγράφει το \instret κάθε λειτουργίας στον αρχικό
+κώδικα αναφοράς του \gls{nist} (\code{scalar\_ref}), χωρίς αλγοριθμικές
 βελτιστοποιήσεις.
 
 \begin{table}[htbp]
@@ -871,31 +873,27 @@ input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμ
 σχέση μεταξύ λειτουργιών ακολουθεί σταθερή αναλογία: \Encaps $\approx 2\times$
 \KeyGen και \Decaps $\approx 3\times$ \KeyGen, αντικατοπτρίζοντας τον αριθμό
 πολυωνυμικών πολλαπλασιασμών σε κάθε λειτουργία (ένας στο \KeyGen, δύο στο
-\Encaps, τρεις στο \Decaps). Δεύτερον, η κλιμάκωση μεταξύ των security levels είναι σχεδόν τετραγωνική: η
-αύξηση της διάστασης $N$ του πολυωνυμικού δακτυλίου (από \num{17669} σε
-\num{57637} bits) αυξάνει το \instret κατά \num{7.4}$\times$ από HQC-128 σε
-HQC-256, αντικατοπτρίζοντας την $\BigO{N^2}$ πολυπλοκότητα του κυρίαρχου
+\Encaps, και τρεις στο \Decaps). Δεύτερον, η κλιμάκωση μεταξύ των security levels είναι σχεδόν τετραγωνική: η
+αύξηση της διάστασης $N$ του πολυωνυμικού δακτυλίου από \num{17669} (HQC-128) σε
+\num{57637} bits (HQC-256) αυξάνει το \instret κατά \num{7.4}$\times$,
+αντικατοπτρίζοντας την $\BigO{N^2}$ πολυπλοκότητα του κυρίαρχου
 bit-serial schoolbook πολλαπλασιασμού. 
-
-\subsection{Κατανομή Υπολογιστικού Κόστους (Hotspot Analysis)}
-\label{ssec:baseline-hotspots}
-
-Η function-level attribution μέσω PC histogram και DWARF symbols
+Το function-level attribution μέσω PC histogram και DWARF symbols
 (\cf \cref{sec:benchmarking}) αποκαλύπτει τη δομή του υπολογιστικού κόστους.
 Ο \cref{tab:baseline-hotspots} παρουσιάζει τις κυρίαρχες συναρτήσεις στο
 HQC-128 (πλήρες \KEM):
 
 \begin{table}[htbp]
   \centering
-  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM).}
+  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM).\protect\footnotemark}
   \label{tab:baseline-hotspots}
   \begin{tabular}{l S[table-format=9.0] S[table-format=2.2]}
     \toprule
     {Συνάρτηση} & {Εντολές} & {\%} \\
     \midrule
-    \code{schoolbook\_mul}            & 108419784 & 95.79 \\
-    \code{memset}                     & 1994589   & 1.76 \\
-    \code{karatsuba\_mul}             & 899916    & 0.80 \\
+    \code{schoolbook\_mul}            & 108419784 & 95.11 \\
+    \code{memset}                     & 1994589   & 1.75 \\
+    \code{karatsuba\_mul}             & 899916    & 0.79 \\
     \code{KeccakF1600\_StatePermute}  & 591004    & 0.52 \\
     \code{hadamard}                   & 229586    & 0.20 \\
     \code{keccak\_inc\_absorb}        & 159678    & 0.14 \\
@@ -903,38 +901,30 @@ HQC-128 (πλήρες \KEM):
     \bottomrule
   \end{tabular}
 \end{table}
+\footnotetext{Εμφανίζονται μόνο συναρτήσεις με συνεισφορά ${>}\,\pct{0.10}$\,---\,οι υπόλοιπες αθροίζονται στη γραμμή \q{Λοιπές}. Τα αθροιστικά ποσοστά ανά οικογένεια στην ανάλυση που ακολουθεί συμπεριλαμβάνουν και αυτές.}
 
 Η κατανομή αυτή αποκαλύπτει μία εξαιρετικά ασύμμετρη δομή κόστους: ο
-πολυωνυμικός πολλαπλασιασμός (\code{schoolbook\_mul} + \code{karatsuba\_mul})
-καταναλώνει \pct{95.9} του συνολικού \instret. Η κυριαρχία αυτή οφείλεται
-στη bit-serial φύση της υλοποίησης αναφοράς: κάθε πολλαπλασιασμός
-\num{64}-bit πολυωνύμων απαιτεί \num{64} conditional shift-XOR iterations,
-ενώ η αναδρομική δομή Karatsuba πολλαπλασιάζει τον αριθμό κλήσεων εκθετικά
-με το βάθος. Η \code{memset} (\pct{1.8}) αντικατοπτρίζει τον μηδενισμό
-scratch buffers πριν από κάθε πολλαπλασιασμό, ένα overhead που εξαλείφεται
+πολυωνυμικός πολλαπλασιασμός (η οικογένεια \code{schoolbook\_mul},
+\code{karatsuba\_mul} και βοηθητικές συναρτήσεις πολλαπλασιασμού)
+καταναλώνει \pct{96.6} του συνολικού \instret. Η κυριαρχία αυτή οφείλεται
+στη bit-serial φύση της υλοποίησης αναφοράς, η οποία εκτελεί $\BigO{N^2}$
+πράξεις ολίσθησης-και-XOR σε bit-granularity (αναλυτικά,
+\cref{sec:schoolbook-algorithm}). Η \code{memset} (\pct{1.8}) αντικατοπτρίζει τον μηδενισμό
+βοηθητικών buffers πριν από κάθε πολλαπλασιασμό, ένα overhead που εξαλείφεται
 πλήρως στη βελτιστοποιημένη υλοποίηση (\cf \cref{sec:polymul-scalar}).
 
 Ο Keccak (\code{KeccakF1600\_StatePermute} + \code{keccak\_inc\_absorb})
-αντιπροσωπεύει μόλις \pct{0.7}, αμελητέο στο αρχικό προφίλ, αλλά
+αντιπροσωπεύει μόλις \pct{0.76}, αμελητέο στο αρχικό προφίλ, αλλά
 αναδεικνύεται σε σημαντικό bottleneck μετά τη βελτιστοποίηση του polymul
-(\cf \cref{ch:kernel-optimization}). Η αποκωδικοποίηση \code{hadamard} αντιπροσωπεύει \pct{0.20}, ομοίως αμελητέα αρχικά· η \gls{rs} περιλαμβάνεται στις λοιπές συναρτήσεις.
+(\cf \cref{sec:polymul-assessment}). Η αποκωδικοποίηση Reed–Solomon/Reed–Muller 
+(\code{hadamard} και λοιπές συναρτήσεις αποκωδικοποίησης) αθροίζει \pct{0.54}, ομοίως αμελητέο.
 
-\Cref{fig:baseline-pie} απεικονίζει γραφικά την κατανομή κόστους σε τέσσερις
-κατηγορίες.
-
-\begin{figure}[htbp]
-  \centering
-  \resizebox{0.75\textwidth}{!}{\input{figures/ch2-background/pie-scalar-ref}}
-  \caption{Κατανομή δυναμικών εντολών στο reference scalar HQC-128.}
-  \label{fig:baseline-pie}
-\end{figure}
-
-\subsection{Θεμελίωση Στρατηγικής Βελτιστοποίησης}
+\subsection{Στρατηγική Βελτιστοποίησης και Φράγμα Amdahl}
 \label{ssec:baseline-strategy}
 
-Η κατανομή κόστους στο \cref{fig:baseline-pie} θεμελιώνει τη στρατηγική
+Το παραπάνω προφίλ κόστους θεμελιώνει τη στρατηγική
 βελτιστοποίησης που ακολουθείται στα επόμενα κεφάλαια. Ο νόμος του Amdahl
-ορίζει ότι η μέγιστη δυνατή επιτάχυνση ενός συστήματος περιορίζεται από το
+ορίζει ότι η μέγιστη δυνατή επιτάχυνση ενός συστήματος ($S_{\max}$) περιορίζεται από το
 μη-βελτιστοποιήσιμο κλάσμα:
 
 \begin{equation}
@@ -943,19 +933,20 @@ scratch buffers πριν από κάθε πολλαπλασιασμό, ένα ov
 
 \noindent
 όπου $p$ το ποσοστό του συνολικού υπολογισμού που καταλαμβάνει το
-βελτιστοποιούμενο τμήμα του αλγορίθμου και $s$ η επιτάχυνση αυτού του τμήματος. Για $p = 0{,}97$ (polymul) και $s \to \infty$, η μέγιστη
-system-level επιτάχυνση τείνει σε $S_{\max} \approx 33\times$. Η τιμή αυτή
-ορίζει το θεωρητικό άνω όριο που καθοδηγεί την ιεράρχηση των βελτιστοποιήσεων
-στα επόμενα κεφάλαια.
+τμήμα που βελτιστοποιείται και $s$ η επιτάχυνση που επιτυγχάνεται σε αυτό. 
+Για $p = 0{,}97$ (polymul) και $s \to \infty$, η συνολική επιτάχυνση τείνει
+στο $S_{\max} \approx 33\times$: το θεωρητικό άνω όριο που μπορεί να αποδώσει η
+βελτιστοποίηση του πολλαπλασιασμού και μόνο, γεγονός που εξηγεί γιατί αποτελεί
+τον πρωταρχικό στόχο.
 
-Η στρατηγική βελτιστοποίησης ακολουθεί τρεις φάσεις, κατά σειρά
-αποτελεσματικότητας:
+Η στρατηγική βελτιστοποίησης ακολουθεί τρεις φάσεις, ιεραρχημένες κατά το
+εκάστοτε κυρίαρχο bottleneck:
 
 \begin{enumerate}
   \item \textbf{Πολυωνυμικός πολλαπλασιασμός} (\cref{ch:polymul-optimization}):
     Αντικατάσταση του bit-serial schoolbook με word-level Karatsuba αξιοποιώντας
-    \clmul/\clmulh (\gls{zbc}) και \vclmul/\vclmulh (\gls{zvbc}). Στόχος: μείωση του
-    κυρίαρχου \pct{97}.
+    \clmul/\clmulh (\gls{zbc}) και \vclmul/\vclmulh (\gls{zvbc}), με στόχο τη μείωση
+     του κυρίαρχου \pct{97}.
 
   \item \textbf{Keccak και αποκωδικοποίηση} (\cref{ch:kernel-optimization}):
     Μετά τη βελτιστοποίηση polymul, το Keccak και η αποκωδικοποίηση
@@ -963,13 +954,14 @@ system-level επιτάχυνση τείνει σε $S_{\max} \approx 33\times$.
     (vectorized περιστροφές) και vectorized \gls{rm}/\gls{rs}.
 
   \item \textbf{Βοηθητικοί πυρήνες} (\cref{ch:kernel-optimization}):
-    Μικρότερες βελτιστοποιήσεις σε \code{memcpy}, sampling, και control code, αποδοτικές μόνο αφού τα κύρια bottlenecks έχουν αντιμετωπιστεί.
+    Μικρότερες βελτιστοποιήσεις σε \code{memcpy}, sampling, και control code, μόνο αφού 
+    αντιμετωπιστούν τα κύρια bottlenecks.
 \end{enumerate}
 
 \noindent
 Η σειρά αυτή δεν είναι αυθαίρετη: κάθε φάση στοχεύει το τρέχον κυρίαρχο
-bottleneck, εξασφαλίζοντας ότι η προσπάθεια βελτιστοποίησης αποδίδει μέγιστο
-system-level κέρδος.
+bottleneck, εξασφαλίζοντας ότι η προσπάθεια βελτιστοποίησης αποδίδει το μέγιστο
+συνολικό κέρδος επιδόσεων.
 
 \bigskip
 \noindent
@@ -977,6 +969,5 @@ system-level κέρδος.
 εκτέλεσης (Spike, BPI-F3), τα toolchains μεταγλώττισης, η μεθοδολογία
 benchmarking, το bare-metal πλαίσιο, και το baseline profiling. Η υποδομή αυτή παρέχει ντετερμινιστικές, αναπαραγώγιμες
 μετρήσεις \instret που αποτελούν τη βάση αξιολόγησης κάθε βελτιστοποίησης.
-Στο επόμενο κεφάλαιο, η βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού —
-του κυρίαρχου bottleneck με \pct{97} του κόστους — αποτελεί τον πρώτο και
-κρισιμότερο στόχο.
+Στο επόμενο κεφάλαιο, η βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού 
+αποτελεί τον πρώτο και κρισιμότερο στόχο.

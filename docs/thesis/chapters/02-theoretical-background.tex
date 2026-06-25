@@ -383,9 +383,9 @@ circulant δομή. Αυτή ακριβώς αξιοποιεί η quasi-cyclic �
 $a_i = 1$, το $b(x)$ ολισθαίνεται κατά $i$ θέσεις και προστίθεται (XOR) στο
 αποτέλεσμα.
 
-\paragraph{Υλοποίηση reference σε bit-granularity.}
-Στην υλοποίηση αναφοράς του \gls{hqc}, ο schoolbook λειτουργεί σε
-\defterm{bit-granularity}: για κάθε λέξη $a[i]$, εξετάζονται και τα 64 bits
+\paragraph{Υλοποίηση reference με bit-serial τρόπο.}
+Στην υλοποίηση αναφοράς του \gls{hqc}, ο schoolbook λειτουργεί με
+\defterm{bit-serial} τρόπο (bit-granularity): για κάθε λέξη $a[i]$, εξετάζονται και τα 64 bits
 ξεχωριστά.
 Κάθε bit $a_i[\beta]$ (bit $\beta$ της λέξης $i$) παράγει μια υπό-συνθήκη
 ολίσθηση-και-XOR ολόκληρου του πίνακα $b[]$:

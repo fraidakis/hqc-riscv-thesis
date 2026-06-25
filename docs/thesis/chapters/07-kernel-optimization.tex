@@ -365,7 +365,7 @@ LMUL=8 ($\text{vl}=128$) για σάρωση ολόκληρου του μετα�
 %
 μέσω πέντε vectorized βημάτων ανά iteration: (1)~indexed gather στον
 \code{gf\_log[]} πίνακα μέσω \insn{vluxei16}, (2)~modular πρόσθεση
-λογαρίθμων με branchless conditional subtract ($\geq 255 \Rightarrow -255$)~(\cref{sec:ct-verification}, χωρίς εξάρτηση από \ext{Zkt}),
+λογαρίθμων με branchless conditional subtract ($\geq 255 \Rightarrow -255$)\ifincludeCT~(\cref{sec:ct-verification}, χωρίς εξάρτηση από \ext{Zkt})\fi,
 (3)~indexed gather στον \code{gf\_exp[]} πίνακα, (4)~zero-masking μέσω
 \insn{vmsne} + \insn{vmand} + \insn{vmerge} για τη συνθήκη $0 \cdot x = 0$,
 και (5)~XOR-reduction μέσω \insn{vredxor}.
@@ -419,7 +419,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
         — \insn{vclmul.vx} με τον $dd$ ως άμεσο scalar τελεστέο
         επί των zero-extended $X_{\sigma_p}$ στοιχείων, Barrett reduction, και
         XOR με τα τρέχοντα $\sigma$ values.
-  \item \textbf{Blend}: constant-time conditional copy~(\cref{sec:ct-verification}) μέσω bitwise select
+  \item \textbf{Blend}: constant-time conditional copy\ifincludeCT~(\cref{sec:ct-verification})\fi μέσω bitwise select
         pattern (\insn{vand} + \insn{vxor}) σε SEW=16, LMUL=4 — χωρίς
         $\GF{2^8}$ πολλαπλασιασμό.
   \item \textbf{Discrepancy dot-product}: φόρτωση $\sigma[1..n]$ contiguously
@@ -525,7 +525,7 @@ allocation.
         \insn{vzext} u16→u64 → \insn{vclmul.vv} → Barrett reduction →
         narrowing u64→u16 → \insn{vse16}. Η περίπτωση $\beta = 1$
         (identity) εκτελείται χωρίς branch — η \code{gf\_mul}(1, x) = x
-        αποτελεί fixed-latency vector no-op~(\cref{sec:ct-verification}).
+        αποτελεί fixed-latency vector no-op\ifincludeCT~(\cref{sec:ct-verification})\fi.
   \item \textbf{\code{xor\_broadcast\_zvbc}$(dst, src, len, val)$}: υπολογίζει
         $dst[k] = src[k] \oplus val$ μέσω \gls{vla} loop:
         \insn{vle16}/\insn{vxor.vx}/\insn{vse16} σε SEW=16, LMUL=4
@@ -773,6 +773,7 @@ index), \insn{andi} (εξαγωγή bit position), και \insn{sll}~+~\insn{or}
 σε \num{988672} (μείωση \pct{15.2}). Η συνάρτηση εξέπεσε από \pct{20.99}
 του συνολικού \gls{kem} σε θέση εκτός των \num{20} κορυφαίων hotspots.
 
+\ifincludeCT
 \paragraph{Side-channel σκέψεις.}
 Η πρόσβαση \code{v[support[i] >> 6]} εξαρτάται από τα δεδομένα: η
 διεύθυνση εγγραφής αποκαλύπτει τη θέση support μέσω cache access
@@ -798,6 +799,7 @@ patterns, καθιστώντας τη συνάρτηση \emph{μη} constant-ti
 απόδοσης σε simulator context. Η επιλογή αυτή τεκμηριώνεται, και η
 επίπτωσή της στις επαληθεύσεις σταθερού χρόνου αναλύεται στο
 \cref{sec:ct-verification}.
+\fi
 
 %% --------------------------------------------------------------------------
 \subsection{Πολιτικές Ευθυγράμμισης Μνήμης}
