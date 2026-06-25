@@ -379,6 +379,96 @@ static inline void perf_hw_ext_close(perf_hw_ext_ctx *ctx)
     }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+ * Vector Memory Counter API (Pass 3)
+ *
+ * Dedicated lightweight context measuring only vector load + vector store
+ * instruction counts.  Used in a separate pass to avoid exceeding PMU
+ * hardware counter slots (the X60 has limited HW counters and the main
+ * extended context already uses 8).  Since instret is deterministic for
+ * fixed-data kernels, a separate pass over the same kernel is directly
+ * comparable to Pass 1/2.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+#define PERF_HW_VECMEM_NUM_COUNTERS 2
+
+typedef struct {
+    int fd_vec_load;
+    int fd_vec_store;
+} perf_hw_vecmem_ctx;
+
+typedef struct {
+    uint64_t vec_load;
+    uint64_t vec_store;
+} perf_hw_vecmem_sample;
+
+static inline int perf_hw_vecmem_init(perf_hw_vecmem_ctx *ctx)
+{
+    struct perf_event_attr pe;
+    memset(&pe, 0, sizeof(pe));
+    pe.type           = PERF_X60_PMU_TYPE;
+    pe.size           = sizeof(struct perf_event_attr);
+    pe.disabled       = 1;
+    pe.exclude_kernel = 1;
+    pe.exclude_hv     = 1;
+
+    pe.config = PERF_X60_VECTOR_LOAD_INST;
+    ctx->fd_vec_load = (int)perf_event_open_(&pe, 0, -1, -1, 0);
+    if (ctx->fd_vec_load < 0) {
+        fprintf(stderr, "WARNING: perf_hw_vecmem_init: cannot open vector_load_inst (0x%x)\n",
+                PERF_X60_VECTOR_LOAD_INST);
+        ctx->fd_vec_load = -1;
+    }
+
+    pe.config = PERF_X60_VECTOR_STORE_INST;
+    ctx->fd_vec_store = (int)perf_event_open_(&pe, 0, -1, -1, 0);
+    if (ctx->fd_vec_store < 0) {
+        fprintf(stderr, "WARNING: perf_hw_vecmem_init: cannot open vector_store_inst (0x%x)\n",
+                PERF_X60_VECTOR_STORE_INST);
+        ctx->fd_vec_store = -1;
+    }
+
+    return 0;  /* non-fatal: counters may be unavailable */
+}
+
+static inline void perf_hw_vecmem_start(perf_hw_vecmem_ctx *ctx)
+{
+    if (ctx->fd_vec_load >= 0) {
+        ioctl(ctx->fd_vec_load,  PERF_EVENT_IOC_RESET,  0);
+        ioctl(ctx->fd_vec_load,  PERF_EVENT_IOC_ENABLE, 0);
+    }
+    if (ctx->fd_vec_store >= 0) {
+        ioctl(ctx->fd_vec_store, PERF_EVENT_IOC_RESET,  0);
+        ioctl(ctx->fd_vec_store, PERF_EVENT_IOC_ENABLE, 0);
+    }
+}
+
+static inline void perf_hw_vecmem_stop(perf_hw_vecmem_ctx *ctx)
+{
+    if (ctx->fd_vec_load >= 0)
+        ioctl(ctx->fd_vec_load,  PERF_EVENT_IOC_DISABLE, 0);
+    if (ctx->fd_vec_store >= 0)
+        ioctl(ctx->fd_vec_store, PERF_EVENT_IOC_DISABLE, 0);
+}
+
+static inline void perf_hw_vecmem_read(perf_hw_vecmem_ctx *ctx, perf_hw_vecmem_sample *s)
+{
+    s->vec_load  = 0;
+    s->vec_store = 0;
+    if (ctx->fd_vec_load >= 0)
+        read(ctx->fd_vec_load,  &s->vec_load,  sizeof(s->vec_load));
+    if (ctx->fd_vec_store >= 0)
+        read(ctx->fd_vec_store, &s->vec_store, sizeof(s->vec_store));
+}
+
+static inline void perf_hw_vecmem_close(perf_hw_vecmem_ctx *ctx)
+{
+    if (ctx->fd_vec_load >= 0)
+        close(ctx->fd_vec_load);
+    if (ctx->fd_vec_store >= 0)
+        close(ctx->fd_vec_store);
+}
+
 /* ── Extended sample CSV header (canonical single source of truth) ────────── */
 /*
  * Column layout (20 columns):
@@ -402,6 +492,8 @@ static inline void perf_hw_ext_close(perf_hw_ext_ctx *ctx)
  *   16 median_stall_be
  *   17 median_vec_inst
  *   18 median_vpu_stall
+ *   19 median_vec_load    (Pass 3 — vector load instructions)
+ *   20 median_vec_store   (Pass 3 — vector store instructions)
  *
  * Design rationale:
  *   - cycles distribution is right-skewed (OS jitter adds positive
@@ -409,6 +501,9 @@ static inline void perf_hw_ext_close(perf_hw_ext_ctx *ctx)
  *   - instret is deterministic for fixed-data kernels → single median value.
  *   - median_cycles is the headline stat; min_cycles is the least-perturbed
  *     lower bound.
+ *   - median_vec_load/median_vec_store are collected in a dedicated third
+ *     measurement pass to avoid PMU multiplexing (no TIME_ENABLED/RUNNING
+ *     rescaling in the read path).
  *
  * ALL bench binaries MUST call this function instead of emitting inline
  * headers, so the schema stays in one place and can never diverge.
@@ -422,7 +517,8 @@ static inline void perf_hw_ext_print_csv_header(void)
            "median_dtlb_miss,"
            "median_br_mispred,"
            "median_stall_fe,median_stall_be,"
-           "median_vec_inst,median_vpu_stall\n");
+           "median_vec_inst,median_vpu_stall,"
+           "median_vec_load,median_vec_store\n");
 }
 
 /* Basic (non-extended) CSV header — same cycles/instret columns, no PMU counters */

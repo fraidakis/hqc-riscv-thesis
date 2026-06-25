@@ -84,6 +84,9 @@ static uint64_t *samples_stall_fe;
 static uint64_t *samples_stall_be;
 static uint64_t *samples_vec_inst;
 static uint64_t *samples_vpu_stall;
+/* Pass 3: vector memory counters */
+static uint64_t *samples_vec_load;
+static uint64_t *samples_vec_store;
 #endif
 
 /* Raw dump directory (NULL = no dump) */
@@ -169,6 +172,15 @@ static void emit_csv_row_hw(const char *op, int n)
            (unsigned long)med_be,
            (unsigned long)med_vec,
            (unsigned long)med_vpu);
+
+    /* Pass 3 vector memory counters */
+    perf_hw_sort_u64(samples_vec_load, n);
+    perf_hw_sort_u64(samples_vec_store, n);
+    uint64_t med_vec_load  = perf_hw_median(samples_vec_load, n);
+    uint64_t med_vec_store = perf_hw_median(samples_vec_store, n);
+    printf(",%lu,%lu",
+           (unsigned long)med_vec_load,
+           (unsigned long)med_vec_store);
 #endif /* PERF_HW_EXTENDED */
 
     printf("\n");
@@ -204,9 +216,12 @@ int main(int argc, char **argv)
     samples_stall_be  = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
     samples_vec_inst  = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
     samples_vpu_stall = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_vec_load  = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
+    samples_vec_store = (uint64_t *)malloc((size_t)N_ITER * sizeof(uint64_t));
     if (!samples_l1d_miss || !samples_l1d_access || !samples_dtlb_miss ||
         !samples_br_mispred || !samples_stall_fe || !samples_stall_be ||
-        !samples_vec_inst || !samples_vpu_stall) {
+        !samples_vec_inst || !samples_vpu_stall ||
+        !samples_vec_load || !samples_vec_store) {
         fprintf(stderr, "ERROR: failed to allocate extended sample arrays\n");
         return 1;
     }
@@ -227,6 +242,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "ERROR: cannot initialize extended perf counters\n");
         return 1;
     }
+    perf_hw_vecmem_ctx ctx_vecmem;
+    perf_hw_vecmem_init(&ctx_vecmem);
 #else
     perf_hw_ctx ctx_basic;
     if (perf_hw_init(&ctx_basic) != 0) {
@@ -298,6 +315,16 @@ int main(int argc, char **argv)
         samples_vec_inst[i]   = s.vector_inst;
         samples_vpu_stall[i]  = s.vpu_stall;
     }
+    /* Pass 3: vector memory counters (dedicated, avoids multiplexing) */
+    for (int i = 0; i < N_ITER; i++) {
+        perf_hw_vecmem_sample vs;
+        perf_hw_vecmem_start(&ctx_vecmem);
+        crypto_kem_keypair(pk, sk);
+        perf_hw_vecmem_stop(&ctx_vecmem);
+        perf_hw_vecmem_read(&ctx_vecmem, &vs);
+        samples_vec_load[i]  = vs.vec_load;
+        samples_vec_store[i] = vs.vec_store;
+    }
 #endif
     dump_raw("keypair", N_ITER);
     emit_csv_row_hw("keypair", N_ITER);
@@ -329,6 +356,16 @@ int main(int argc, char **argv)
         samples_stall_be[i]   = s.stall_backend;
         samples_vec_inst[i]   = s.vector_inst;
         samples_vpu_stall[i]  = s.vpu_stall;
+    }
+    /* Pass 3: vector memory counters (dedicated, avoids multiplexing) */
+    for (int i = 0; i < N_ITER; i++) {
+        perf_hw_vecmem_sample vs;
+        perf_hw_vecmem_start(&ctx_vecmem);
+        crypto_kem_enc(ct, ss_enc, pk);
+        perf_hw_vecmem_stop(&ctx_vecmem);
+        perf_hw_vecmem_read(&ctx_vecmem, &vs);
+        samples_vec_load[i]  = vs.vec_load;
+        samples_vec_store[i] = vs.vec_store;
     }
 #endif
     dump_raw("encaps", N_ITER);
@@ -362,6 +399,16 @@ int main(int argc, char **argv)
         samples_vec_inst[i]   = s.vector_inst;
         samples_vpu_stall[i]  = s.vpu_stall;
     }
+    /* Pass 3: vector memory counters (dedicated, avoids multiplexing) */
+    for (int i = 0; i < N_ITER; i++) {
+        perf_hw_vecmem_sample vs;
+        perf_hw_vecmem_start(&ctx_vecmem);
+        crypto_kem_dec(ss_dec, ct, sk);
+        perf_hw_vecmem_stop(&ctx_vecmem);
+        perf_hw_vecmem_read(&ctx_vecmem, &vs);
+        samples_vec_load[i]  = vs.vec_load;
+        samples_vec_store[i] = vs.vec_store;
+    }
 #endif
     dump_raw("decaps", N_ITER);
     emit_csv_row_hw("decaps", N_ITER);
@@ -369,6 +416,7 @@ int main(int argc, char **argv)
     /* ── Cleanup ──────────────────────────────────────────────────────── */
 #ifdef PERF_HW_EXTENDED
     perf_hw_ext_close(&ctx_ext);
+    perf_hw_vecmem_close(&ctx_vecmem);
     free(samples_l1d_miss);
     free(samples_l1d_access);
     free(samples_dtlb_miss);
@@ -377,6 +425,8 @@ int main(int argc, char **argv)
     free(samples_stall_be);
     free(samples_vec_inst);
     free(samples_vpu_stall);
+    free(samples_vec_load);
+    free(samples_vec_store);
 #endif
     perf_hw_close(&ctx_basic);
     free(samples_cyc);

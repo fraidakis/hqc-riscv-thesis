@@ -394,6 +394,10 @@ bench_hw_csv_header() {
     if [[ "$mode" == "publish" && -n "$cov_cycles" ]]; then
         echo "# cov_cycles: ${cov_cycles}"
     fi
+    # Include isolation provenance if the library is loaded
+    if declare -f hw_isolation_provenance_comments >/dev/null 2>&1; then
+        hw_isolation_provenance_comments
+    fi
 }
 
 # ── bench_hw_store_result ──────────────────────────────────────────────────────

@@ -37,6 +37,8 @@ Options:
   --keccak IMPL           Keccak implementation override (e.g., ref, opt)
   --decode IMPL           Decode implementation override (e.g., ref, rvv, zvbc)
   --pgo                   Enable PGO (profile-guided optimization) for hw builds (kem/mul only)
+  --isolate               Force measurement isolation (IRQ migration, ASLR-off, freq monitor)
+  --no-isolate            Disable measurement isolation (even for publish quality)
   -h, --help              Show this help and exit
 
 Platform-specific notes:
@@ -67,6 +69,7 @@ LOCAL_MODE=0
 KECCAK_IMPL=""
 DECODE_IMPL=""
 PGO=0
+ISOLATE=-1  # -1=auto (on for publish), 0=off, 1=on
 
 # ── Argument Parsing ─────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -151,6 +154,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --pgo)
             PGO=1
+            shift
+            ;;
+        --isolate)
+            ISOLATE=1
+            shift
+            ;;
+        --no-isolate)
+            ISOLATE=0
             shift
             ;;
         -h|--help)
@@ -496,6 +507,10 @@ case "$PLATFORM" in
     hw)
         # ── Hardware execution path ──────────────────────────────────────
 
+        # ── Source isolation helpers ─────────────────────────────────────
+        # shellcheck source=lib_hw_isolation.sh
+        source "${SCRIPT_DIR}/lib_hw_isolation.sh"
+
         # ── Load credentials ─────────────────────────────────────────────
         CREDS_FILE="${REPO_ROOT}/docs/hardware/BPI-F3/bpi-f3-credentials.env"
         BPI_PASS=""
@@ -659,9 +674,11 @@ case "$PLATFORM" in
                 decode)  bin="build-hw/bench_hw_decode_hqc${level}_${decode_suffix}" ;;
             esac
 
-            local exec_prefix="taskset -c 7"
+            local exec_prefix
             if [[ "$QUALITY" == "publish" ]]; then
-                exec_prefix="sudo nice -n -20 taskset -c 7"
+                exec_prefix="$(hw_isolation_exec_prefix 7)"
+            else
+                exec_prefix="$(hw_isolation_exec_prefix_unprivileged 7)"
             fi
 
             run_cmd "cd $dir && $exec_prefix ./$bin"
@@ -827,9 +844,44 @@ ${accumulated_rows}"
         deploy
         set_governor
 
+        # ── Isolation setup (auto: on for publish, off for dev) ──────
+        _do_isolate=0
+        if [[ "$ISOLATE" -eq 1 ]]; then
+            _do_isolate=1
+        elif [[ "$ISOLATE" -eq -1 && "$QUALITY" == "publish" ]]; then
+            _do_isolate=1
+        fi
+
+        if [[ "$_do_isolate" -eq 1 && "$LOCAL_MODE" -eq 1 ]]; then
+            hw_isolation_setup 7
+        elif [[ "$_do_isolate" -eq 1 && "$LOCAL_MODE" -eq 0 ]]; then
+            # Remote: run isolation setup on the board via SSH
+            run_cmd "source ~/hqc-riscv/scripts/bench/lib_hw_isolation.sh && hw_isolation_setup 7" || true
+        fi
+
         for v in "${VARIANTS[@]}"; do
+            # Start freq/temp monitor for each variant run
+            if [[ "$_do_isolate" -eq 1 && "$LOCAL_MODE" -eq 1 ]]; then
+                hw_isolation_start_monitor 7
+            fi
+
             hw_run_single_variant "$v"
+
+            # Stop monitor and capture summary
+            if [[ "$_do_isolate" -eq 1 && "$LOCAL_MODE" -eq 1 ]]; then
+                _freq_summary="$(hw_isolation_stop_monitor)"
+                if [[ -n "$_freq_summary" ]]; then
+                    echo "  [freq/temp] ${_freq_summary}"
+                fi
+            fi
         done
+
+        # ── Isolation teardown ───────────────────────────────────────
+        if [[ "$_do_isolate" -eq 1 && "$LOCAL_MODE" -eq 1 ]]; then
+            hw_isolation_teardown
+        elif [[ "$_do_isolate" -eq 1 && "$LOCAL_MODE" -eq 0 ]]; then
+            run_cmd "source ~/hqc-riscv/scripts/bench/lib_hw_isolation.sh && hw_isolation_teardown" || true
+        fi
 
         # ── Sync results to remote (keep remote in sync with local) ────
         # Results are written locally by bench_hw_store_result. Push them

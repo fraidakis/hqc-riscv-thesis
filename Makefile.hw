@@ -445,8 +445,23 @@ $(PROFILE_KEM_BIN): $(PROFILE_KEM_SOURCES)
 	    $(INCLUDES) -I$(VENDOR)/lib/fips202 $(PROFILE_KEM_SOURCES) -lm -o $@
 	@echo "Built (profile): $@ ($(POLYMUL), HQC-$(LEVEL), N_PROFILE=$(N_PROFILE_KEM))"
 
+# ── Roofline peak micro-benchmark ───────────────────────────────────────────
+ROOFLINE_BIN := $(OUTDIR)/roofline_peak
+ROOFLINE_SRC := $(BENCH_DIR)/roofline_peak.c
+
+.PHONY: roofline
+
+roofline: $(ROOFLINE_BIN)
+
+$(ROOFLINE_BIN): $(ROOFLINE_SRC)
+	$(CC) -O3 -static -march=rv64gcv_zbc_zbb_zbs -mabi=lp64d $(ROOFLINE_SRC) -lm -o $@
+	@echo "Built (roofline): $@"
+
+run_roofline: $(ROOFLINE_BIN)
+	sudo nice -n -20 taskset -c 7 ./$(ROOFLINE_BIN)
+
 clean:
-	rm -f $(OUTDIR)/bench_hw_* $(OUTDIR)/bench_profile_*
+	rm -f $(OUTDIR)/bench_hw_* $(OUTDIR)/bench_profile_* $(OUTDIR)/roofline_peak
 
 
 # ══════════════════════════════════════════════════════════════════════════════

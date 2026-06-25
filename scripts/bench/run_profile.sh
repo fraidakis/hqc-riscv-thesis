@@ -17,6 +17,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${SCRIPT_DIR}/lib_bench.sh"
+# shellcheck source=lib_hw_isolation.sh
+source "${SCRIPT_DIR}/lib_hw_isolation.sh"
 
 variant_to_dir() {
     case "$1" in
@@ -599,6 +601,12 @@ profile_counters_hw_mode() {
     _hw_set_governor
     _hw_ensure_paranoid
 
+    # Isolation: setup on local mode
+    if [[ "$LOCAL_MODE" -eq 1 ]]; then
+        hw_isolation_setup "$core"
+        hw_isolation_start_monitor "$core"
+    fi
+
     local remote_dir="~/hqc-riscv"
     local n_iter n_warmup
     if [[ "$QUALITY" == "publish" ]]; then
@@ -662,7 +670,7 @@ profile_counters_hw_mode() {
             fi
 
             # Execute and capture the binary's own CSV output
-            local exec_prefix="sudo nice -n -20 taskset -c ${core}"
+            local exec_prefix="$(hw_isolation_exec_prefix ${core})"
             local raw_output
             raw_output="$(_hw_run_cmd "cd ${remote_dir} && ${exec_prefix} ./${bin_name} 2>/dev/null")"
 
@@ -716,6 +724,16 @@ profile_counters_hw_mode() {
         --levels "$(IFS=,; echo "${target_levels[*]}")" 2>/dev/null || \
         echo "  ⚠ Derived metric computation skipped (script not ready or parse error)"
 
+    # Isolation teardown + freq/temp summary
+    if [[ "$LOCAL_MODE" -eq 1 ]]; then
+        local _freq_summary
+        _freq_summary="$(hw_isolation_stop_monitor)"
+        if [[ -n "$_freq_summary" ]]; then
+            echo "  [freq/temp] ${_freq_summary}"
+        fi
+        hw_isolation_teardown
+    fi
+
     echo ""
     echo " Output (counters): ${out_base}/"
     echo ""
@@ -731,6 +749,11 @@ profile_hotspots_hw_mode() {
     _hw_deploy
     _hw_set_governor
     _hw_ensure_paranoid
+
+    # Isolation: setup on local mode
+    if [[ "$LOCAL_MODE" -eq 1 ]]; then
+        hw_isolation_setup "$core"
+    fi
 
     local remote_dir="~/hqc-riscv"
 
@@ -787,7 +810,8 @@ profile_hotspots_hw_mode() {
 
             # Run perf record with task-clock
             local perf_data="/tmp/perf_hotspot_${component}_${level}_${variant_slug}.data"
-            local exec_cmd="cd ${remote_dir} && perf record -e task-clock -F 4999 --call-graph fp -o ${perf_data} -- sudo nice -n -20 taskset -c ${core} ./${bin_name} 2>/dev/null"
+            local inner_prefix="$(hw_isolation_exec_prefix ${core})"
+            local exec_cmd="cd ${remote_dir} && perf record -e task-clock -F 4999 --call-graph fp -o ${perf_data} -- ${inner_prefix} ./${bin_name} 2>/dev/null"
 
             _hw_run_cmd "$exec_cmd" >/dev/null 2>&1
 
@@ -911,6 +935,11 @@ if total > 0:
 
     echo " Output (hotspots): ${out_base}/"
     echo ""
+
+    # Isolation teardown
+    if [[ "$LOCAL_MODE" -eq 1 ]]; then
+        hw_isolation_teardown
+    fi
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1019,6 +1048,170 @@ profile_isa_mix_hw_mode() {
     echo ""
 }
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Hardware profiling mode: --annotate (perf annotate on top hotspot functions)
+# ══════════════════════════════════════════════════════════════════════════════
+profile_annotate_hw_mode() {
+    local variant="${MUL_VARIANT:-scalar_zb}"
+    local variant_slug="$(bench_variant_slug "$variant")"
+    local core="7"
+    local top_k=5
+
+    _hw_validate_inputs
+    _hw_profile_setup
+    _hw_deploy
+    _hw_set_governor
+    _hw_ensure_paranoid
+
+    local remote_dir="~/hqc-riscv"
+
+    # Determine components to annotate
+    local components=()
+    case "$HW_MODE" in
+        all)     components=(kem mul) ;;
+        kem)     components=(kem) ;;
+        mul)     components=(mul) ;;
+        keccak)  components=(keccak) ;;
+        decode)  components=(decode) ;;
+        *)       components=(mul) ;;
+    esac
+
+    local out_base="$REPO_ROOT/results/hardware/profiling/annotate/$(variant_to_dir "$variant")"
+    mkdir -p "$out_base"
+
+    echo -e "\n╔══════════════════════════════════════════════════════════════╗"
+    printf  "║  %-60s║\n" "Hardware Profiling: perf annotate (top-${top_k} functions)"
+    printf  "║  %-60s║\n" "Variant: ${variant}  Target: ${REMOTE:-local}"
+    printf  "║  %-60s║\n" "Method: perf record -e task-clock + perf annotate --stdio"
+    echo    "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "NOTE: Annotation accuracy is limited by task-clock sampling skid."
+    echo "      Per-line percentages are approximate, not cycle-exact."
+    echo ""
+
+    local target_levels=()
+    if [[ "$LEVEL" == "all" ]]; then
+        target_levels=(128 192 256)
+    else
+        target_levels=("$LEVEL")
+    fi
+
+    # Priority functions to always annotate when present
+    local -a priority_funcs=(clmul_leaf kmul_karatsuba kmul_schoolbook KeccakF1600_StatePermute vect_mul gf2x_mul)
+
+    for component in "${components[@]}"; do
+        echo "📦 ${variant} / ${component} (annotate)"
+
+        local total_levels="${#target_levels[@]}"
+        local idx=0
+
+        for level in "${target_levels[@]}"; do
+            idx=$((idx + 1))
+
+            # Build profile binary (same as hotspots)
+            local profile_target="profile_${component}"
+            local make_base="make -f Makefile.hw SUITE=bench LEVEL=${level} POLYMUL=${variant}"
+
+            _hw_run_cmd "cd ${remote_dir} && ${make_base} clean >/dev/null 2>&1; ${make_base} ${profile_target} >/dev/null 2>&1"
+
+            local bin_name="build-hw/bench_profile_${component}_hqc${level}_${variant}"
+
+            if ! _hw_run_cmd "test -f ${remote_dir}/${bin_name}" 2>/dev/null; then
+                echo " ├── ❌ BUILD FAIL (profile_${component}, L${level})"
+                continue
+            fi
+
+            # Run perf record (reusing same approach as hotspots)
+            local perf_data="/tmp/perf_annotate_${component}_${level}_${variant_slug}.data"
+            local inner_prefix="$(hw_isolation_exec_prefix ${core})"
+            local exec_cmd="cd ${remote_dir} && perf record -e task-clock -F 4999 --call-graph fp -o ${perf_data} -- ${inner_prefix} ./${bin_name} 2>/dev/null"
+
+            _hw_run_cmd "$exec_cmd" >/dev/null 2>&1
+
+            # Get top functions from perf report (keep GCC suffixes for perf annotate)
+            local top_funcs
+            top_funcs="$(_hw_run_cmd "perf report -i ${perf_data} --stdio -n --no-children --percent-limit 0.5 2>&1 | sed -n 's/.*\\[.\\] \\([^ ]*\\).*/\\1/p' | grep -v '^0x' | grep -vE '^(perf_hw_|ioctl|__syscall|__libc_start|_start|__GI_)' | head -n ${top_k}" 2>/dev/null || true)"
+
+            # Also try priority functions with GCC suffixes
+            for pfunc in "${priority_funcs[@]}"; do
+                if ! echo "$top_funcs" | grep -q "${pfunc}"; then
+                    # Check if function exists (possibly with .constprop.N suffix)
+                    local found_func
+                    found_func="$(_hw_run_cmd "perf report -i ${perf_data} --stdio 2>&1 | sed -n 's/.*\\[.\\] \\(${pfunc}[^ ]*\\).*/\\1/p' | head -1" 2>/dev/null || true)"
+                    if [[ -n "$found_func" ]]; then
+                        top_funcs="${top_funcs}
+${found_func}"
+                    fi
+                fi
+            done
+
+            # Remove empty lines and duplicates
+            top_funcs="$(echo "$top_funcs" | grep -v '^$' | sort -u)"
+
+            if [[ -z "$top_funcs" ]]; then
+                echo " ├── ❌ No annotatable functions found (L${level})"
+                _hw_run_cmd "rm -f ${perf_data}" 2>/dev/null || true
+                continue
+            fi
+
+            # Output file
+            local annot_out="${out_base}/annotate_${component}_L${level}_${variant_slug}_latest.txt"
+
+            {
+                echo "# ═══════════════════════════════════════════════════════════════════"
+                echo "# perf annotate — ${variant} / ${component} / L${level}"
+                echo "# date: $(date +'%Y-%m-%d %H:%M')"
+                echo "# commit: ${GIT_HASH}"
+                echo "# binary: ${bin_name} (-O3 -fno-omit-frame-pointer -g -static)"
+                echo "# method: perf record -e task-clock -F 4999 → perf annotate --stdio"
+                echo "# NOTE: Per-line percentages are APPROXIMATE (task-clock skid)."
+                echo "#       These are not cycle-exact; treat as hot-line indicators."
+                echo "# ═══════════════════════════════════════════════════════════════════"
+                echo ""
+            } > "$annot_out"
+
+            local func_count=0
+            while IFS= read -r func; do
+                [[ -z "$func" ]] && continue
+                func_count=$((func_count + 1))
+
+                {
+                    echo ""
+                    echo "# ─── Function: ${func} ─────────────────────────────────────────"
+                    echo ""
+                } >> "$annot_out"
+
+                # Run perf annotate for this function
+                local annot_raw
+                annot_raw="$(_hw_run_cmd "perf annotate --stdio --symbol=${func} -i ${perf_data} 2>&1" | \
+                    grep -v '^#' | \
+                    grep -vE '(Percent|Samples).*Source' | \
+                    grep -v '^$' | \
+                    head -200)" || true
+
+                if [[ -n "$annot_raw" ]]; then
+                    echo "$annot_raw" >> "$annot_out"
+                else
+                    echo "  (no annotation data for ${func})" >> "$annot_out"
+                fi
+            done <<< "$top_funcs"
+
+            # Cleanup perf data
+            _hw_run_cmd "rm -f ${perf_data}" 2>/dev/null || true
+
+            local branch="├──"
+            if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
+            echo " ${branch} L${level} ⋯ annotated ${func_count} functions"
+            echo "         → $(realpath -m "${annot_out}")"
+
+        done
+        echo ""
+    done
+
+    echo " Output (annotate): ${out_base}/"
+    echo ""
+}
+
 
 
 usage() {
@@ -1065,6 +1258,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --isa-mix|--isa_mix|--isamix)
             MODE="isa_mix"
+            shift
+            ;;
+        --annotate)
+            MODE="annotate"
             shift
             ;;
         --platform)
@@ -1138,7 +1335,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$MODE" ]]; then
-    echo "ERROR: one of --cache|--memory|--trace|--counters|--hotspots|--isa-mix is required" >&2
+    echo "ERROR: one of --cache|--memory|--trace|--counters|--hotspots|--isa-mix|--annotate is required" >&2
     usage >&2
     exit 2
 fi
@@ -1150,13 +1347,13 @@ if [[ "$PLATFORM" != "sim" && "$PLATFORM" != "hw" ]]; then
 fi
 
 # hw modes auto-set platform
-if [[ "$MODE" == "counters" || "$MODE" == "hotspots" || "$MODE" == "isa_mix" ]]; then
+if [[ "$MODE" == "counters" || "$MODE" == "hotspots" || "$MODE" == "isa_mix" || "$MODE" == "annotate" ]]; then
     PLATFORM="hw"
 fi
 
 # sim modes are only valid on sim platform
-if [[ "$PLATFORM" == "hw" && "$MODE" != "counters" && "$MODE" != "hotspots" && "$MODE" != "isa_mix" ]]; then
-    echo "ERROR: --platform hw supports --counters, --hotspots, --isa-mix" >&2
+if [[ "$PLATFORM" == "hw" && "$MODE" != "counters" && "$MODE" != "hotspots" && "$MODE" != "isa_mix" && "$MODE" != "annotate" ]]; then
+    echo "ERROR: --platform hw supports --counters, --hotspots, --isa-mix, --annotate" >&2
     exit 2
 fi
 
@@ -1173,6 +1370,7 @@ run_mode_for_variant() {
         counters)  profile_counters_hw_mode ;;
         hotspots)  profile_hotspots_hw_mode ;;
         isa_mix)   profile_isa_mix_hw_mode ;;
+        annotate)  profile_annotate_hw_mode ;;
     esac
 }
 
