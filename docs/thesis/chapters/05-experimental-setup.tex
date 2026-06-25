@@ -20,7 +20,7 @@
 ντετερμινιστική καταμέτρηση εντολών, και το Banana Pi BPI-F3 (SpacemiT K1 X60),
 που προσφέρει μετρήσεις κύκλων σε πραγματικό hardware για τα tiers που υποστηρίζει.
 
-\subsection{Spike — Golden Reference ISS}
+\subsection{Spike: Golden Reference ISS}
 \label{ssec:spike}
 
 Το Spike αποτελεί τον επίσημο προσομοιωτή (golden reference) της
@@ -69,7 +69,7 @@ spike --isa=rv64gcv_zbc_zbb_zvbc_zvbb_zvl256b <elf>
   \label{fig:spike-arch}
 \end{figure}
 
-\subsection{Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware}
+\subsection{Banana Pi BPI-F3: Πραγματικό RISC-V Hardware}
 \label{ssec:bpi-f3}
 
 Το Banana Pi BPI-F3 (SpacemiT K1 X60) αποτελεί την πλατφόρμα πραγματικού 
@@ -181,8 +181,8 @@ RISC-V (ELF χωρίς λειτουργικό σύστημα). Το \code{riscv6
 bit-manipulation, όχι floating-point. Ανάλυση των backends LLVM/GCC για
 RISC-V σε SPEC CPU~2017 διαπιστώνει ότι ο GCC μειώνει αποδοτικότερα το
 δυναμικό πλήθος εκτελούμενων εντολών (\instret) σε integer workloads, ενώ το πλεονέκτημα
-auto-vectorization του LLVM εντοπίζεται σε floating-point workloads~\cite{Li-LLVM-GCC-RISCV2025}
-— δηλαδή ακριβώς στην κατηγορία που \emph{δεν} βρίσκεται στον κρίσιμο δρόμο
+auto-vectorization του LLVM εντοπίζεται σε floating-point workloads~\cite{Li-LLVM-GCC-RISCV2025},
+δηλαδή ακριβώς στην κατηγορία που \emph{δεν} βρίσκεται στον κρίσιμο δρόμο
 του HQC. Επιπλέον, σε ταυτόσημο υλικό (BananaPi-F3) και ταυτόσημες εκδόσεις
 (GCC~15 vs Clang~21), ο GCC παράγει πιο σταθερό και αποδοτικό RVV codegen,
 υπερτερώντας στην πλειονότητα των μετρημένων RVV workloads~\cite{CloserInTheGap2026}·
@@ -214,7 +214,7 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
 απορρίπτει κάθε εντολή εκτός tier (ένα \vclmul{} σε scalar target προκαλεί
 σφάλμα μεταγλώττισης), αφετέρου επιτρέπει στον μεταγλωττιστή να αξιοποιήσει
 αυτόματα τις δηλωμένες επεκτάσεις μέσω auto-lowering (βλ.\
-\cref{sec:methods-application}). Ο \cref{tab:march-per-variant} παρουσιάζει τις συμβολοσειρές \code{-march} ανά
+\cref{ssec:c-intrinsics}). Ο \cref{tab:march-per-variant} παρουσιάζει τις συμβολοσειρές \code{-march} ανά
 variant:
 
 \begin{table}[htbp]
@@ -245,17 +245,17 @@ variant:
 Πέραν του \code{-O3}, εφαρμόζονται οι ακόλουθες ειδικές ρυθμίσεις:
 
 \begin{itemize}
-  \item \code{-ffreestanding} — δηλώνει απουσία hosted environment (απαιτείται
+  \item \code{-ffreestanding}: δηλώνει απουσία hosted environment (απαιτείται
     για bare-metal).
-  \item \code{-fno-tree-vectorize} — απενεργοποιεί το αυτόματη (compiler-driven)
+  \item \code{-fno-tree-vectorize}: απενεργοποιεί το αυτόματη (compiler-driven)
     vectorization. Η διανυσματοποίηση επιτυγχάνεται αποκλειστικά
-    μέσω ρητών intrinsics (\cref{sec:methods-application}).
-  \item \code{-mcmodel=medany} — επιτρέπει σχετική διευθυνσιοδότηση σε
+    μέσω ρητών intrinsics.
+  \item \code{-mcmodel=medany}: επιτρέπει σχετική διευθυνσιοδότηση σε
     οποιαδήποτε θέση μνήμης (απαραίτητο για bare-metal linker scripts).
-  \item \code{-mno-relax} — απενεργοποιεί linker relaxation, εξασφαλίζοντας
+  \item \code{-mno-relax}: απενεργοποιεί linker relaxation, εξασφαλίζοντας
     ντετερμινιστικό code layout μεταξύ builds.
   \item \code{-ffunction-sections -fdata-sections} σε συνδυασμό με
-    \code{-Wl,--gc-sections} — εξαλείφει dead code, μειώνοντας το \code{.text}
+    \code{-Wl,--gc-sections}: εξαλείφει dead code, μειώνοντας το \code{.text}
     footprint.
 \end{itemize}
 
@@ -300,8 +300,8 @@ Spike, η bare-metal εκτέλεση εξασφαλίζει ότι ο μετρ�
 
 Ο stack pointer (\code{sp}) φορτώνεται με τη διεύθυνση \code{\_stack\_top},
 η οποία ορίζεται στο linker script (βλ. \cref{ssec:memory-management}). Το
-stack αναπτύσσεται προς τα κάτω (descending) και διαθέτει \SI{512}{\kilo\byte}
-— μέγεθος που καλύπτει με άνεση τις ανάγκες της πλήρους αλυσίδας κλήσεων \KeyGen +
+stack αναπτύσσεται προς τα κάτω (descending) και διαθέτει \SI{512}{\kilo\byte},
+μέγεθος που καλύπτει με άνεση τις ανάγκες της πλήρους αλυσίδας κλήσεων \KeyGen +
 \Encaps + \Decaps ακόμη και στο HQC-256 (εκτιμώμενη μέγιστη χρήση του stack βάσει
 των μεγεθών των πινάκων: $\approx \SI{60}{\kilo\byte}$ για το HQC-128 και
 $\approx \SI{200}{\kilo\byte}$ για το HQC-256.
@@ -324,7 +324,7 @@ vsetvli t0, zero, e64, m1, ta, ma  # configure vtype
 είναι ενεργή και τροποποιημένη. Χωρίς αυτό το βήμα, κάθε διανυσματική εντολή
 προκαλεί illegal instruction exception. Η εντολή \code{vsetvli} αρχικοποιεί
 τον \code{vtype} \gls{csr} με \SEW $= 64$ (\code{e64}), \LMUL $= 1$ (\code{m1}), και πολιτικές
-tail-agnostic (\code{ta}) και mask-agnostic (\code{ma}) — η τυπική ρύθμιση για τους κρυπτογραφικούς πυρήνες.
+tail-agnostic (\code{ta}) και mask-agnostic (\code{ma}), η τυπική ρύθμιση για τους κρυπτογραφικούς πυρήνες.
 
 \paragraph{Βήμα 4: Μηδενισμός BSS}
 
@@ -342,10 +342,10 @@ doubleword, \num{64}-bit store). Ο ορθός μηδενισμός είναι �
 επιστροφής κωδικοποιείται ως \code{(code << 1) | 1} και εγγράφεται στη
 θέση μνήμης του συμβόλου \code{tohost}. Το χαμηλό bit (τιμή 1) 
 σηματοδοτεί στο HTIF αίτημα τερματισμού, ενώ τα υψηλότερα bits 
-μεταφέρουν το exit code. Το \code{tohost} είναι μια 64-bit 
-memory-mapped θέση μνήμης την οποία αξιοποιεί ο μηχανισμός 
-\glsentrylong{htif} (\glsentryshort{htif}) για να σηματοδοτήσει 
-στο Spike τον τερματισμό της εξομοίωσης.
+μεταφέρουν το exit code. Το \code{tohost} είναι μια 64-bit
+memory-mapped θέση μνήμης που αποτελεί το βασικό κανάλι επικοινωνίας
+του μηχανισμού \glsentrylong{htif} (\glsentryshort{htif}) μεταξύ του
+εκτελούμενου προγράμματος και του host.
 
 \begin{figure}[htbp]
   \centering
@@ -392,7 +392,7 @@ scratch τριών βασικών μηχανισμών: memory layout (linker sc
 from scratch στο αρχείο \code{mem.c} με δύο μονοπάτια εκτέλεσης:
 
 \begin{itemize}
-  \item \textbf{Scalar fallback:} Byte-by-byte αντιγραφή/μηδενισμός — χρησιμοποιείται
+  \item \textbf{Scalar fallback:} Byte-by-byte αντιγραφή/μηδενισμός, χρησιμοποιείται
     σε scalar targets (Tier~1) και ως fallback για μη ευθυγραμμισμένα δεδομένα.
   \item \textbf{RVV fast-path:} Διανυσματοποιημένη υλοποίηση με \LMUL $= 8$
     (μέγιστο throughput), ενεργή σε vector targets. Η \code{memcpy}/\code{memmove}
@@ -532,22 +532,21 @@ interrupts, cache state variations, και residual OS activity. Οι
 \paragraph{Στατιστική Επεξεργασία}
 
 Μετά τη συλλογή \num{10000} δειγμάτων, τα αποτελέσματα ταξινομούνται και
-υπολογίζονται: median (βασική μετρική), mean, standard deviation, min,
-max. Επιλέγεται ως βασική μετρική το median αντί του mean 
+υπολογίζονται τα percentiles min, p25, median (βασική μετρική), p75 και
+max, καθώς και το IQR ως μέτρο διασποράς. Επιλέγεται ως βασική μετρική το median αντί του mean 
 διότι είναι ανθεκτικό σε outliers: μεμονωμένα δείγματα με αυξημένους 
 κύκλους (π.χ.\ από OS interrupts ή scheduling jitter) αλλοιώνουν το
 mean αλλά δεν επηρεάζουν το median.
 
 \section{Επαλήθευση Ορθότητας (KAT Tests)}
 \label{sec:kat-tests}
-\label{ssec:benchmarking-limitations}%
-\label{ssec:build-reproducibility}%
 
-Κάθε βελτιστοποίηση που εφαρμόζεται στον κώδικα \gls{hqc} εισάγει κίνδυνο
-αλγοριθμικής παραβίασης: μία λανθασμένη αναδιάταξη bits στον πολυωνυμικό
-πολλαπλασιασμό, ένα off-by-one σε index αναδρομής, ή μία εσφαλμένη reduction
+Κάθε βελτιστοποίηση που εφαρμόζεται στον κώδικα \gls{hqc} ενέχει τον 
+κίνδυνο αλλοίωσης της ορθότητας του αλγορίθμου: μία λανθασμένη αναδιάταξη bits στον πολυωνυμικό
+πολλαπλασιασμό, ένα σφάλμα κατά μία θέση σε δείκτη διαμέρισης της αναδρομής Karatsuba, ή μία εσφαλμένη reduction
 mask αρκούν για να παράγουν λανθασμένο shared secret χωρίς runtime crash.
-Η επαλήθευση ορθότητας βασίζεται στα \glspl{kat} που δημοσιεύει το \gls{nist}
+Η επαλήθευση ορθότητας βασίζεται στα \glspl{kat} (Known Answer Tests) που
+δημοσιεύει το \gls{nist}
 ως μέρος της διαδικασίας τυποποίησης: \num{100} ντετερμινιστικά test vectors ανά
 security level, καθένα από τα οποία ορίζει πλήρως τις εισόδους και τις
 αναμενόμενες εξόδους ενός κύκλου \KeyGen $\to$ \Encaps $\to$ \Decaps.
@@ -579,29 +578,17 @@ shared secrets ως \code{static const} πίνακες στο \code{.rodata} seg
 
 \paragraph{Αρχιτεκτονική του KAT Runner}
 
-Ο bare-metal \gls{kat} runner (\code{kat\_gen.c}) εκτελεί τον ακόλουθο κύκλο
-για κάθε ένα από τα \num{100} vectors:
-
-\begin{enumerate}
-  \item Αρχικοποίηση του \gls{prng} με το αντίστοιχο \num{48}-byte seed μέσω
-    \code{prng\_init()}.
-  \item Εκτέλεση \code{crypto\_kem\_keypair()} — παραγωγή ζεύγους κλειδιών.
-  \item Εκτέλεση \code{crypto\_kem\_enc()} — ενθυλάκωση, παραγωγή ciphertext
-    και shared secret $\text{ss}_{\text{enc}}$.
-  \item Εκτέλεση \code{crypto\_kem\_dec()} — αποενθυλάκωση, παραγωγή shared
-    secret $\text{ss}_{\text{dec}}$.
-  \item Εσωτερικός έλεγχος: $\text{ss}_{\text{enc}} \stackrel{?}{=}
-    \text{ss}_{\text{dec}}$ (consistency check — επιβεβαιώνει ότι η
-    αποενθυλάκωση ανακτά το ίδιο μυστικό).
-  \item Εκπομπή του $\text{ss}_{\text{enc}}$ σε hexadecimal μέσω HTIF/UART
-    console (\code{ss: <64 hex chars>}, δηλ.\ \num{32} bytes, ίσο με
-    \code{CRYPTO\_BYTES} και για τα τρία security levels).
-\end{enumerate}
-
-\noindent
-Μετά την ολοκλήρωση όλων των vectors, ο runner εκπέμπει σύνοψη
-(\code{PASS 100/100} ή \code{FAIL k failures}) και τερματίζει μέσω
-\code{hqc\_htif\_exit()}.
+Ο bare-metal \gls{kat} runner (\code{kat\_gen.c}) εκτελεί, για κάθε ένα από
+τα \num{100} vectors, έναν πλήρη κύκλο \gls{kem}: αρχικοποιεί τον \gls{prng} με
+το \num{48}-byte seed μέσω \code{prng\_init()}, καλεί διαδοχικά
+\code{crypto\_kem\_keypair()}, \code{crypto\_kem\_enc()} και
+\code{crypto\_kem\_dec()}, ελέγχει εσωτερικά ότι $\text{ss}_{\text{enc}} =
+\text{ss}_{\text{dec}}$ (consistency check), και εκπέμπει το
+$\text{ss}_{\text{enc}}$ σε hexadecimal μέσω της HTIF console
+(\code{ss: <64 hex chars>}, δηλ.\ \num{32} bytes ίσο με \code{CRYPTO\_BYTES} και
+για τα τρία security levels). Μετά την ολοκλήρωση όλων των vectors, ο runner
+εκπέμπει σύνοψη (\code{PASS 100/100} ή \code{FAIL}) και τερματίζει
+μέσω \code{hqc\_htif\_exit()}.
 
 \paragraph{Εξωτερική Επαλήθευση}
 
@@ -632,8 +619,8 @@ bit-exact σωστά αποτελέσματα.
 κανάλια χρονισμού (timing side-channels). Η ενότητα αυτή παρουσιάζει τη μεθοδολογία με την οποία επαληθεύεται ότι
 οι βελτιστοποιημένες υλοποιήσεις \gls{hqc} διατηρούν constant-time συμπεριφορά,
 δηλαδή ότι η εκτέλεσή τους είναι ανεξάρτητη από μυστικά δεδομένα. Η στρατηγική
-επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: αρχιτεκτονική ανάλυση
-Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο data-independent timing subset)
+επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: αρχιτεκτονική ανάλυση Zkt που τεκμηριώνει ότι όλες οι εντολές χειρισμού
+μυστικών δεδομένων ανήκουν στο data-independent timing subset
 και στατιστική ανίχνευση διαρροής μέσω dudect σε πραγματικό hardware. Τα
 εμπειρικά αποτελέσματα της επαλήθευσης και η ερμηνεία τους παρουσιάζονται
 στην \cref{sec:ct-verification}.
@@ -653,7 +640,7 @@ $\mathbf{sk} = (\mathbf{x}, \mathbf{y})$ (αραιά δυαδικά διανύσ
 \begin{enumerate}
   \item κανένα conditional branch δεν εξαρτάται από μυστικά δεδομένα,
   \item καμία διεύθυνση load/store δεν εξαρτάται από μυστικά δεδομένα, και
-  \item κάθε εκτελούμενη εντολή ανήκει στο Zkt subset — εντολές με
+  \item κάθε εκτελούμενη εντολή ανήκει στο Zkt subset, δηλαδή εντολές με
     αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση ανεξαρτήτως τιμών
     τελεστέων \cite{RISCV-crypto-spec}.
 \end{enumerate}
@@ -675,7 +662,7 @@ $x, y$ ίσου εύρους, υπό σταθερό μικροαρχιτεκτο
 (\code{vect\_mul}) επεξεργάζεται απευθείας το μυστικό κλειδί $\mathbf{y}$
 και απαιτεί constant-time εκτέλεση. Αντίθετα, η αποκωδικοποίηση
 \gls{rm}/\gls{rs} δύναται να είναι variable-time χωρίς να
-παραβιάζεται η ασφάλεια — η FO transform μασκάρει τη χρονική πληροφορία
+παραβιάζεται η ασφάλεια, καθώς η FO transform μασκάρει τη χρονική πληροφορία
 μέσω του re-encryption ελέγχου. Ο Keccak/SHAKE είναι εγγενώς
 constant-time λόγω αλγοριθμικής δομής: η μετάθεση Keccak-f[1600]
 αποτελείται αποκλειστικά από bitwise πράξεις (XOR, AND, NOT, ROT) χωρίς
@@ -691,7 +678,7 @@ data-dependent branches ή table lookups.
 \paragraph{Hardware-guaranteed σταθερή καθυστέρηση (\Zbc).}
 Οι εντολές \clmul/\clmulh της extension \gls{zbc} παρέχουν carry-less
 πολλαπλασιασμό με αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση (Zkt-compliant).
-Η latency είναι ανεξάρτητη από τις τιμές τελεστέων — δεν υπάρχει
+Η latency είναι ανεξάρτητη από τις τιμές τελεστέων, καθώς δεν υπάρχει
 early-termination βελτιστοποίηση βασισμένη σε leading zeros. Το αποτέλεσμα
 είναι πάντοτε \num{128} bits ανεξαρτήτως μεγέθους εισόδου.
 
@@ -701,7 +688,7 @@ early-termination βελτιστοποίηση βασισμένη σε leading z
 για δεδομένο security level, δεν υπάρχει data-dependent early exit, και
 κάθε leaf κλήση εκτελεί ταυτόσημη ακολουθία εντολών. Ο πλήρως
 ξεδιπλωμένος leaf (\code{clmul\_leaf\_n8}) εκτελεί \num{64} κλήσεις
-\clmul/\clmulh με ντετερμινιστικό XOR assembly — μηδέν branches εντός
+\clmul/\clmulh με ντετερμινιστικό XOR assembly, με μηδέν branches εντός
 του hot path.
 
 \paragraph{Vector carry-less πολλαπλασιασμός (\RVV + \Zvbc).}
@@ -748,7 +735,7 @@ false positives ακόμη και σε γνωστά constant-time κώδικα
 prepare-then-measure pattern:
 \begin{enumerate}
   \item \textbf{Phase 1 (Prepare):} παραγωγή όλων των εισόδων του batch
-    σε pre-allocated buffers — αμφότερες οι κλάσεις γράφουν στην ίδια
+    σε pre-allocated buffers: αμφότερες οι κλάσεις γράφουν στην ίδια
     δομή buffer, εξασφαλίζοντας συμμετρική κατάσταση cache.
   \item \textbf{Phase 2 (Measure):} tight loop μέτρησης χωρίς κλήσεις
     \gls{prng} ή class-dependent branching εντός της χρονομετρούμενης
@@ -759,7 +746,7 @@ prepare-then-measure pattern:
 Πριν τον κύριο βρόχο μέτρησης, ένα πλήρες batch εκτελείται και
 απορρίπτεται. Η τεχνική αυτή εξαλείφει cold-start transients από
 instruction cache misses, TLB fills, branch predictor training, και page
-table walks — φαινόμενα που θα εισήγαγαν ασύμμετρη διακύμανση στα πρώτα
+table walks, φαινόμενα που θα εισήγαγαν ασύμμετρη διακύμανση στα πρώτα
 batches.
 
 \paragraph{Percentile cropping (δεύτερος t-test).}
@@ -806,7 +793,7 @@ $|t| \approx 5.0$ στο απομονωμένο polymul test.
 re-encryption. Ο επιτιθέμενος παρατηρεί τον συνολικό χρόνο
 \code{crypto\_kem\_dec()}, ο οποίος περιλαμβάνει re-encryption σταθερού
 κόστους. Εάν το \code{dudect\_kem} περνά, η ασφάλεια σε επίπεδο
-πρωτοκόλλου ισχύει — ανεξαρτήτως εάν η decode είναι μεμονωμένα
+πρωτοκόλλου ισχύει, ανεξαρτήτως εάν η decode είναι μεμονωμένα
 constant-time.
 
 \paragraph{Γιατί δεν υπάρχει \code{dudect\_keccak}.}
@@ -814,7 +801,7 @@ constant-time.
 αποτελείται αποκλειστικά από bitwise πράξεις σε σταθερό state χωρίς
 table lookups ή data-dependent branches. Στο RISC-V, η scalar υλοποίηση
 μεταγλωττίζεται σε \code{xor}, \code{and}, \code{or}, \code{sll},
-\code{srl}, load/store σε σταθερές διευθύνσεις — εντολές χωρίς
+\code{srl}, load/store σε σταθερές διευθύνσεις, εντολές χωρίς
 input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμα
 θα ήταν trivially αναμενόμενο χωρίς πρόσθετη πληροφοριακή αξία.
 
@@ -846,219 +833,49 @@ input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμ
 ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση εν αναμονή εμπειρικής
 επιβεβαίωσης.
 
-\section{Εφαρμογή Μεθόδων Προγραμματισμού στην Παρούσα Εργασία}
-\label{sec:methods-application}
-
-Στην \cref{sec:programming-methods} παρουσιάστηκαν τέσσερις μέθοδοι
-προγραμματισμού RISC-V κατά φθίνοντα βαθμό ελέγχου: καθαρή assembly, inline
-assembly, C intrinsics, και auto-lowering μέσω μεταγλωττιστή. Η παρούσα ενότητα
-αντιστοιχίζει κάθε μέθοδο στα συγκεκριμένα αρχεία και πυρήνες της υλοποίησης,
-τεκμηριώνοντας τη σχεδιαστική απόφαση για την επιλογή.
-
-\paragraph{Σχεδιαστική Αρχή}
-
-Η κεντρική σχεδιαστική απόφαση είναι η χρήση \textbf{C intrinsics ως default
-μέθοδος} σε όλους τους κρυπτογραφικούς πυρήνες. Inline assembly χρησιμοποιείται
-αποκλειστικά όπου δεν υπάρχει αντίστοιχο intrinsic (\eg ανάγνωση \glspl{csr}),
-ενώ auto-lowering αξιοποιείται ως πρόσθετο όφελος χωρίς αλλαγή πηγαίου κώδικα.
-Η προσέγγιση αυτή αντιδιαστέλλεται με πολλές embedded crypto υλοποιήσεις στη
-βιβλιογραφία~\cite{zhang-tches2025, ras-nist2025} που γράφουν ολόκληρους
-πυρήνες σε assembly — θυσιάζοντας portability, maintainability, και ορατότητα
-στον optimizer χωρίς αντίστοιχο κέρδος σε αρχιτεκτονικές με πλούσιο intrinsic
-API.
-
-Η επιλογή intrinsics τεκμηριώνεται από τρεις παράγοντες. Πρώτον, ο GCC~15.2
-παρέχει πλήρες type-checked intrinsic API για \gls{zbc}, \gls{zbb}, \RVV 1.0, \gls{zvbc} και
-\gls{zvbb} — κάθε εντολή που αξιοποιεί η υλοποίηση διαθέτει αντίστοιχο intrinsic.
-Δεύτερον, τα intrinsics συμμετέχουν πλήρως στο optimization pipeline (register
-allocation, instruction scheduling, CSE, dead code elimination), ενώ τα
-\code{volatile} inline assembly blocks αποτελούν αδιαφανή φράγματα. Τρίτον,
-η δομή του κώδικα είναι compile-time generated μέσω Python generators
-(\cf \cref{sec:polymul-scalar}): ο παραγόμενος C κώδικας με intrinsics
-μεταγλωττίζεται σε ταυτόσημο instruction stream με χειρόγραφη assembly, χωρίς
-τα μειονεκτήματα συντήρησης.
-
-\paragraph{Καθαρή Assembly (\code{.S})}
-
-Η μοναδική χρήση καθαρής assembly περιορίζεται στο αρχείο \code{startup.S} —
-η ακολουθία εκκίνησης bare-metal που περιγράφηκε στην \cref{ssec:boot-sequence}.
-Η assembly είναι αναγκαία σε αυτό το σημείο διότι ο κώδικας εκτελείται πριν
-τη δημιουργία C runtime: δεν υπάρχει stack pointer, δεν υπάρχει αρχικοποιημένο
-\code{.bss}, και η διανυσματική μονάδα δεν είναι ενεργή. Κάθε εντολή
-(\insn{la}, \insn{csrs}, \insn{vsetvli}, \insn{sd}) πρέπει να εκτελεστεί σε
-αυστηρή σειρά χωρίς παρέμβαση optimizer. Μετά την κλήση \code{main()}, καμία
-assembly δεν χρησιμοποιείται στους κρυπτογραφικούς πυρήνες.
-
-\paragraph{Inline Assembly}
-
-Η inline assembly χρησιμοποιείται αποκλειστικά για δύο λειτουργίες στο αρχείο
-\code{bench.c}: ανάγνωση των \glspl{csr} \code{mcycle} και \code{minstret},
-και η εντολή \insn{wfi} (Wait For Interrupt) στον βρόχο τερματισμού. Κανένα
-από αυτά δεν διαθέτει C intrinsic στον GCC~15.2 — η ανάγνωση \glspl{csr}
-απαιτεί ρητή κωδικοποίηση της διεύθυνσης CSR:
-
-\begin{lstlisting}[language=C, basicstyle=\ttfamily\small]
-uint64_t hqc_read_minstret(void) {
-    uint64_t instret;
-    __asm__ volatile ("csrr %0, 0xb02" : "=r"(instret));
-    return instret;
-}
-\end{lstlisting}
-
-\noindent
-Η χρήση \code{volatile} εξασφαλίζει ότι ο μεταγλωττιστής δεν εξαλείφει ή αναδιατάσσει
-την ανάγνωση — κρίσιμο για τη σωστή τοποθέτηση του μετρητικού παραθύρου. Ο
-constraint \code{"=r"} δηλώνει ότι η έξοδος τοποθετείται σε general-purpose
-register. Πέραν αυτών των δύο σημείων, κανένας κρυπτογραφικός πυρήνας δεν
-περιέχει inline assembly.
-
-\paragraph{C Intrinsics — Κύρια Μέθοδος}
-
-Τα C intrinsics αποτελούν τη μέθοδο υλοποίησης σε όλους τους κρυπτογραφικούς
-πυρήνες, καλύπτοντας πέντε κατηγορίες εντολών:
-
-\begin{itemize}
-  \item \textbf{Scalar \gls{zbc}} (\code{<riscv\_bitmanip.h>}):
-    \code{\_\_riscv\_clmul\_64()} και \code{\_\_riscv\_clmulh\_64()} — carry-less
-    πολλαπλασιασμός \num{64}-bit πολυωνύμων στα Karatsuba leaves
-    (\cf \cref{sec:polymul-scalar}) και στην αριθμητική $\GF{2^8}$ του
-    \gls{rs} decoder.
-
-  \item \textbf{\RVV 1.0} (\code{<riscv\_vector.h>}):
-    \code{\_\_riscv\_vsetvl\_e64m4()}, \code{\_\_riscv\_vle64\_v\_u64m4()},
-    \code{\_\_riscv\_vxor\_vv\_u64m4()}, \code{\_\_riscv\_vse64\_v\_u64m4()} —
-    strip-mining, vector load/store, και XOR σε ολόκληρη τη διανυσματική
-    υλοποίηση (βρόχοι ανασύνθεσης, \code{vect\_add}, \code{memcpy}).
-
-  \item \textbf{\gls{zvbc}} (\code{<riscv\_vector.h>}):
-    \code{\_\_riscv\_vclmul\_vv\_u64m4()} και
-    \code{\_\_riscv\_vclmulh\_vv\_u64m4()} — vectorized carry-less πολλαπλασιασμός
-    στα Tier~3 leaf kernels (\cf \cref{sec:polymul-zvbc}).
-
-  \item \textbf{\gls{zvbb}} (\code{<riscv\_vector.h>}):
-    \code{\_\_riscv\_vror\_vv\_u64m8()} και \code{\_\_riscv\_vandn\_vv\_u64m8()}
-    — vectorized περιστροφή (ρ-step) και AND-NOT (χ-step) στον Keccak
-    (\cf \cref{sec:keccak-optimization}).
-\end{itemize}
-
-\noindent
-Η ομοιομορφία της μεθόδου σε όλους τους πυρήνες εξασφαλίζει ότι ο μεταγλωττιστής
-διατηρεί πλήρη ορατότητα στο instruction stream: register allocation,
-instruction scheduling, και constant propagation εφαρμόζονται ομοιόμορφα
-χωρίς αδιαφανή \code{asm} blocks που θα διέκοπταν τη ροή βελτιστοποίησης.
-
-\paragraph{Auto-Lowering (Plain C)}
-
-Η τέταρτη μέθοδος δεν απαιτεί ρητή παρέμβαση: ο μεταγλωττιστής αναγνωρίζει αυτόματα
-C idioms και εκπέμπει εξειδικευμένες εντολές, αρκεί η αντίστοιχη extension να
-είναι δηλωμένη στο \code{-march} flag. Στην παρούσα υλοποίηση αξιοποιείται
-η επέκταση \ext{Zbb} μέσω auto-lowering:
-
-\begin{itemize}
-  \item \textbf{\ext{Zbb}} (\insn{andn}/\rori):
-    Bitwise patterns σε βοηθητικές ρουτίνες. Η έκφραση \code{\textasciitilde a \& b}
-    μεταγλωττίζεται σε \insn{andn}, ενώ rotation idioms
-    (\code{(x << n) | (x >> (64-n))}) μεταγλωττίζονται σε \rori.
-    Χαρακτηριστικό παράδειγμα: η \code{rol1\_zbb()} στο θ-step του Keccak
-    (scalar path) εκφράζεται ως \code{ROL(x,\,1)} και μεταγλωττίζεται
-    αυτόματα σε \code{rori rd, rs, 63}.
-\end{itemize}
-
-\noindent
-Η αξία του auto-lowering έγκειται στο μηδενικό κόστος ενσωμάτωσης: δεν
-απαιτείται αλλαγή πηγαίου κώδικα, μόνο η δήλωση της extension στο
-\code{-march}. Ωστόσο, ο μηχανισμός έχει σαφή όρια — ο μεταγλωττιστής δεν
-αναγνωρίζει σύνθετα patterns (\eg δεν συνθέτει \vclmul{} από generic C loops).
-Τα ποσοτικά ablation αποτελέσματα και η ανάλυση ορίων παρουσιάζονται στην
-\cref{sec:isa-ablation}.
-
-\paragraph{Σύνοψη Αντιστοίχισης}
-
-Ο \cref{tab:method-mapping} συνοψίζει την αντιστοίχιση μεθόδων σε αρχεία,
-εντολές, και τεκμηρίωση επιλογής.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Αντιστοίχιση μεθόδων προγραμματισμού σε αρχεία και πυρήνες.
-    Τα C intrinsics αποτελούν τη μέθοδο στη συντριπτική πλειονότητα του κρυπτογραφικού
-    κώδικα.}
-  \label{tab:method-mapping}
-  \begin{tabular}{p{2.4cm} p{3.8cm} p{3.5cm} p{3.8cm}}
-    \toprule
-    \textbf{Μέθοδος} & \textbf{Αρχεία} & \textbf{Εντολές} & \textbf{Λόγος Επιλογής} \\
-    \midrule
-    Pure Assembly & \code{startup.S} &
-      \insn{csrs}, \insn{vsetvli}, \insn{sd} &
-      Εκτέλεση πριν C runtime \\
-    \addlinespace
-    Inline Asm & \code{bench.c} &
-      \insn{csrr} (mcycle, minstret), \insn{wfi} &
-      Δεν υπάρχει intrinsic \\
-    \addlinespace
-    C Intrinsics & \code{gf2x\_vclmul.c}, \code{gf2x\_clmul.c},
-      \code{fips202\_zvbb\_x2.c}, \code{gf.c}, \code{vector.c} &
-      \clmul, \clmulh, \vclmul, \vclmulh, \vror, \insn{vandn},
-      \insn{vle64}, \insn{vse64}, \insn{vxor} &
-      Type safety, optimizer visibility, portability \\
-    \addlinespace
-    Auto-Lowering & βοηθητικές ρουτίνες (Keccak θ-step) &
-      \insn{andn}, \rori (Zbb) &
-      Μηδενική αλλαγή κώδικα \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\noindent
-Η ιεραρχία αυτή — assembly μόνο για boot, inline asm μόνο για CSR, intrinsics
-για κρυπτογραφία, auto-lowering ως πρόσθετο όφελος — εξασφαλίζει μέγιστη ορατότητα στον
-μεταγλωττιστή χωρίς θυσία ελέγχου στα κρίσιμα σημεία. Η πρακτική αυτή αποδεικνύεται
-αποτελεσματική: κανένα σημείο στην υλοποίηση δεν απαιτεί χειρόγραφη assembly
-για επίτευξη βέλτιστης απόδοσης, καθώς η δομή του compile-time generated κώδικα
-δεν αφήνει περιθώριο βελτίωσης μέσω χειροκίνητου register scheduling.
-
 \section{Baseline Profiling}
 \label{sec:baseline-profiling}
 
 Η πρώτη εκτέλεση του reference \gls{hqc} στο Spike environment επιβεβαιώνει ότι η
 πειραματική υποδομή (\crefrange{sec:emulators}{sec:bare-metal}) λειτουργεί ολοκληρωμένα: ο κώδικας
 μεταγλωττίζεται, εκτελείται σε bare-metal, παράγει bit-exact σωστά αποτελέσματα
-(\gls{kat} validation), και εξάγει ντετερμινιστικές μετρήσεις \instret. Η
-ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \gls{kem} για το
-scalar baseline.
+(\gls{kat} validation), και εξάγει ντετερμινιστικές μετρήσεις \instret. 
+Η ενότητα αυτή παρουσιάζει τα reference \instret ανά λειτουργία \gls{kem} για
+το baseline, ώστε να αποκτήσουμε εικόνα του αρχικού hotspot πριν την εφαρμογή
+των βελτιστοποιήσεων.
 
 \subsection{Reference \instret ανά Λειτουργία \KEM}
 \label{ssec:baseline-kem-instret}
 
-Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για κάθε
-λειτουργία \gls{kem} στο scalar baseline (\code{scalar\_ref}). Η υλοποίηση
+Ο \cref{tab:baseline-kem} παρουσιάζει τον αριθμό δυναμικών εντολών για 
+κάθε λειτουργία \gls{kem} στο baseline (\code{scalar\_ref}). Η υλοποίηση
 αντιστοιχεί στον αρχικό κώδικα αναφοράς του \gls{nist} χωρίς αλγοριθμικές
 βελτιστοποιήσεις.
 
 \begin{table}[htbp]
   \centering
-  \caption{Reference \instret (scalar baseline) ανά λειτουργία \KEM και
-    security level.}
+  \caption{Reference \instret (baseline) ανά λειτουργία \KEM και security level.}
   \label{tab:baseline-kem}
   \begin{tabular}{l S[table-format=9.0] S[table-format=9.0] S[table-format=9.0] S[table-format=9.0]}
     \toprule
     {Level} & {\KeyGen} & {\Encaps} & {\Decaps} & {Total} \\
     \midrule
-    HQC-128 & 19454626  & 38875925  & 59013743  & 117344294 \\
-    HQC-192 & 58895392  & 117744966 & 177662247 & 354302605 \\
-    HQC-256 & 143382635 & 286701285 & 431890526 & 861974446 \\
+    HQC-128 & 18886091 & 37748533 & 57361651 & 113996275 \\
+    HQC-192 & 57173317 & 114325122 & 172613387 & 344111826 \\
+    HQC-256 & 140633544 & 281227941 & 423881598 & 845743083 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Τρεις παρατηρήσεις προκύπτουν από τον \cref{tab:baseline-kem}. Πρώτον, η
+Ο \cref{tab:baseline-kem} οδηγεί σε δύο παρατηρήσεις. Πρώτον, η
 σχέση μεταξύ λειτουργιών ακολουθεί σταθερή αναλογία: \Encaps $\approx 2\times$
 \KeyGen και \Decaps $\approx 3\times$ \KeyGen, αντικατοπτρίζοντας τον αριθμό
 πολυωνυμικών πολλαπλασιασμών σε κάθε λειτουργία (ένας στο \KeyGen, δύο στο
-\Encaps, τρεις στο \Decaps). Δεύτερον, η κλιμάκωση μεταξύ security levels
-είναι σχεδόν τετραγωνική: η μετάβαση από HQC-128 σε HQC-256 αυξάνει το \instret
-κατά \num{7.3}$\times$, αντικατοπτρίζοντας την $\BigO{n^2}$ πολυπλοκότητα
-του bit-serial schoolbook πολλαπλασιασμού που κυριαρχεί στο reference
-implementation. 
+\Encaps, τρεις στο \Decaps). Δεύτερον, η κλιμάκωση μεταξύ των security levels είναι σχεδόν τετραγωνική: η
+αύξηση της διάστασης $N$ του πολυωνυμικού δακτυλίου (από \num{17669} σε
+\num{57637} bits) αυξάνει το \instret κατά \num{7.4}$\times$ από HQC-128 σε
+HQC-256, αντικατοπτρίζοντας την $\BigO{N^2}$ πολυπλοκότητα του κυρίαρχου
+bit-serial schoolbook πολλαπλασιασμού. 
 
 \subsection{Κατανομή Υπολογιστικού Κόστους (Hotspot Analysis)}
 \label{ssec:baseline-hotspots}
@@ -1066,7 +883,7 @@ implementation.
 Η function-level attribution μέσω PC histogram και DWARF symbols
 (\cf \cref{sec:benchmarking}) αποκαλύπτει τη δομή του υπολογιστικού κόστους.
 Ο \cref{tab:baseline-hotspots} παρουσιάζει τις κυρίαρχες συναρτήσεις στο
-HQC-128 \Decaps:
+HQC-128 (πλήρες \KEM):
 
 \begin{table}[htbp]
   \centering
@@ -1076,33 +893,33 @@ HQC-128 \Decaps:
     \toprule
     {Συνάρτηση} & {Εντολές} & {\%} \\
     \midrule
-    \code{schoolbook\_mul}            & 112621824 & 95.96 \\
-    \code{memset}                     & 1995963   & 1.70 \\
-    \code{karatsuba\_mul}             & 958428    & 0.82 \\
-    \code{KeccakF1600\_StatePermute}  & 578792    & 0.49 \\
-    \code{hadamard}                   & 186162    & 0.16 \\
-    \code{keccak\_inc\_absorb}        & 141110    & 0.12 \\
-    Λοιπές                            & 862015    & 0.75 \\
+    \code{schoolbook\_mul}            & 108419784 & 95.79 \\
+    \code{memset}                     & 1994589   & 1.76 \\
+    \code{karatsuba\_mul}             & 899916    & 0.80 \\
+    \code{KeccakF1600\_StatePermute}  & 591004    & 0.52 \\
+    \code{hadamard}                   & 229586    & 0.20 \\
+    \code{keccak\_inc\_absorb}        & 159678    & 0.14 \\
+    Λοιπές                            & 1701718   & 1.49 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 Η κατανομή αυτή αποκαλύπτει μία εξαιρετικά ασύμμετρη δομή κόστους: ο
 πολυωνυμικός πολλαπλασιασμός (\code{schoolbook\_mul} + \code{karatsuba\_mul})
-καταναλώνει \pct{96.8} του συνολικού \instret. Η κυριαρχία αυτή οφείλεται
+καταναλώνει \pct{95.9} του συνολικού \instret. Η κυριαρχία αυτή οφείλεται
 στη bit-serial φύση της υλοποίησης αναφοράς: κάθε πολλαπλασιασμός
 \num{64}-bit πολυωνύμων απαιτεί \num{64} conditional shift-XOR iterations,
 ενώ η αναδρομική δομή Karatsuba πολλαπλασιάζει τον αριθμό κλήσεων εκθετικά
-με το βάθος. Η \code{memset} (\pct{1.7}) αντικατοπτρίζει τον μηδενισμό
-scratch buffers πριν από κάθε πολλαπλασιασμό — ένα overhead που εξαλείφεται
+με το βάθος. Η \code{memset} (\pct{1.8}) αντικατοπτρίζει τον μηδενισμό
+scratch buffers πριν από κάθε πολλαπλασιασμό, ένα overhead που εξαλείφεται
 πλήρως στη βελτιστοποιημένη υλοποίηση (\cf \cref{sec:polymul-scalar}).
 
 Ο Keccak (\code{KeccakF1600\_StatePermute} + \code{keccak\_inc\_absorb})
-αντιπροσωπεύει μόλις \pct{0.6}, αμελητέο στο αρχικό προφίλ, αλλά
+αντιπροσωπεύει μόλις \pct{0.7}, αμελητέο στο αρχικό προφίλ, αλλά
 αναδεικνύεται σε σημαντικό bottleneck μετά τη βελτιστοποίηση του polymul
-(\cf \cref{ch:kernel-optimization}). Η αποκωδικοποίηση \code{hadamard} αντιπροσωπεύει \pct{0.16}, ομοίως αμελητέα αρχικά· η \gls{rs} περιλαμβάνεται στις λοιπές συναρτήσεις.
+(\cf \cref{ch:kernel-optimization}). Η αποκωδικοποίηση \code{hadamard} αντιπροσωπεύει \pct{0.20}, ομοίως αμελητέα αρχικά· η \gls{rs} περιλαμβάνεται στις λοιπές συναρτήσεις.
 
-Το \cref{fig:baseline-pie} απεικονίζει γραφικά την κατανομή κόστους σε τέσσερις
+\Cref{fig:baseline-pie} απεικονίζει γραφικά την κατανομή κόστους σε τέσσερις
 κατηγορίες.
 
 \begin{figure}[htbp]
@@ -1125,13 +942,11 @@ scratch buffers πριν από κάθε πολλαπλασιασμό — ένα
 \end{equation}
 
 \noindent
-όπου $p$ το κλάσμα του χρόνου που βελτιστοποιείται και $s$ η τοπική
-επιτάχυνση. Για $p = 0{,}97$ (polymul) και $s \to \infty$, η μέγιστη
-system-level επιτάχυνση τείνει σε $S_{\max} \approx 33\times$ — μια θεωρητική
-τάξη μεγέθους συμβατή με τη μετρημένη συνολική επιτάχυνση \gls{kem} (\speedup{34}
-στο Tier~1· η οριακή υπέρβαση του $S_{\max}$ οφείλεται στο ότι το πραγματικό $p$
-ελαφρώς υπερβαίνει το $0{,}97$), η οποία παραμένει αισθητά χαμηλότερη από την
-isolated polymul επιτάχυνση (\speedup{86.9}).
+όπου $p$ το ποσοστό του συνολικού υπολογισμού που καταλαμβάνει το
+βελτιστοποιούμενο τμήμα του αλγορίθμου και $s$ η επιτάχυνση αυτού του τμήματος. Για $p = 0{,}97$ (polymul) και $s \to \infty$, η μέγιστη
+system-level επιτάχυνση τείνει σε $S_{\max} \approx 33\times$. Η τιμή αυτή
+ορίζει το θεωρητικό άνω όριο που καθοδηγεί την ιεράρχηση των βελτιστοποιήσεων
+στα επόμενα κεφάλαια.
 
 Η στρατηγική βελτιστοποίησης ακολουθεί τρεις φάσεις, κατά σειρά
 αποτελεσματικότητας:
@@ -1148,8 +963,7 @@ isolated polymul επιτάχυνση (\speedup{86.9}).
     (vectorized περιστροφές) και vectorized \gls{rm}/\gls{rs}.
 
   \item \textbf{Βοηθητικοί πυρήνες} (\cref{ch:kernel-optimization}):
-    Μικρότερες βελτιστοποιήσεις σε \code{memcpy}, sampling, και control
-    code — αποδοτικές μόνο αφού τα κύρια bottlenecks έχουν αντιμετωπιστεί.
+    Μικρότερες βελτιστοποιήσεις σε \code{memcpy}, sampling, και control code, αποδοτικές μόνο αφού τα κύρια bottlenecks έχουν αντιμετωπιστεί.
 \end{enumerate}
 
 \noindent
