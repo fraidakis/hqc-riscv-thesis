@@ -18,41 +18,41 @@
   }
 ]
 
-% Tier 1 (base layer)
-\node[tier, fill=blue!8, draw=blue!50] (t1) at (0, 0) {
-  \textbf{Tier 1 — Scalar Deployment}\\[2pt]
-  \footnotesize rv64gc + Zbc/Zbb/Zbs
+% Tier 1 (top layer)
+\node[tier, fill=blue!8, draw=blue!50] (t1) at (0, 4.4) {
+  \textbf{Tier 1 — Scalar}\\[2pt]
+  \footnotesize rv64gc + Zbc/Zbb
 };
 
 % Tier 2 (middle layer)
 \node[tier, fill=teal!8, draw=teal!50] (t2) at (0, 2.2) {
-  \textbf{Tier 2 — Base-RVV Deployment}\\[2pt]
-  \footnotesize rv64gcv + Zbc/Zbb/Zba
+  \textbf{Tier 2 — Base-RVV}\\[2pt]
+  \footnotesize rv64gcv + Zbc/Zbb
 };
 
-% Tier 3 (top layer)
-\node[tier, fill=violet!8, draw=violet!50] (t3) at (0, 4.4) {
-  \textbf{Tier 3 — Full Vector-Crypto Deployment}\\[2pt]
-  \footnotesize rv64gcv + Zbc/Zbb/Zba/Zvbc/Zvbb
+% Tier 3 (bottom layer)
+\node[tier, fill=violet!8, draw=violet!50] (t3) at (0, 0) {
+  \textbf{Tier 3 — Full Vector-Crypto}\\[2pt]
+  \footnotesize rv64gcv + Zbc/Zbb/Zvbc/Zvbb
 };
 
 % Extension annotations (right side)
-\node[extlabel] at (5.9, 0) {clmul, clmulh, rori, andn};
+\node[extlabel] at (5.9, 4.4) {clmul, clmulh, rori, andn};
 \node[extlabel] at (5.9, 2.2) {+ vle64, vse64, vxor, vsetvl};
-\node[extlabel] at (5.9, 4.4) {+ vclmul.vx, vclmulh.vx, vror.vv};
+\node[extlabel] at (5.9, 0) {+ vclmul.vx, vclmulh.vx, vror.vv};
 
 % Variant labels (left side)
-\node[font=\footnotesize\sffamily, anchor=east, blue!70!black] at (-5.9, 0)
+\node[font=\footnotesize\sffamily, anchor=east, blue!70!black] at (-5.9, 4.4)
   {\texttt{scalar\_zb}};
 \node[font=\footnotesize\sffamily, anchor=east, teal!70!black] at (-5.9, 2.2)
   {\texttt{vector\_rvv}};
-\node[font=\footnotesize\sffamily, anchor=east, violet!70!black] at (-5.9, 4.4)
+\node[font=\footnotesize\sffamily, anchor=east, violet!70!black] at (-5.9, 0)
   {\texttt{vector\_zvk}};
 
 % Superset arrows
-\draw[arrow] (t1.north) -- (t2.south)
+\draw[arrow] (t1.south) -- (t2.north)
   node[midway, right, font=\scriptsize, gray!80] {$+$ RVV 1.0};
-\draw[arrow] (t2.north) -- (t3.south)
+\draw[arrow] (t2.south) -- (t3.north)
   node[midway, right, font=\scriptsize, gray!80] {$+$ Zvbc/Zvbb};
 
 % Left brace with "ISA complexity increases" annotation
