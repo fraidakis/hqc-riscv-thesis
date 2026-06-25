@@ -921,7 +921,7 @@ HQC-192/256 ($n_2 = 640$). Ο πλεονασμός αυτός τροφοδοτε
 \begin{itemize}
   \item \code{MULTIPLICITY}: ο αριθμός πανομοιότυπων αντιγράφων ανά σύμβολο ($= \lceil n_2 / 128 \rceil$).
   \item $\mathbf{s}$: το διάνυσμα-συσσωρευτής 128 θέσεων· $\mathbf{s}[\ell]$ μετρά σε πόσα από τα \code{MULTIPLICITY} αντίγραφα ήταν 1 το $\ell$-οστό bit (soft-decision μετρική, Στάδιο 1).
-  \item $\mathbf{c}_j$: η κωδική λέξη 128 bits που αντιστοιχεί στο υποψήφιο μήνυμα $j \in \{0,\ldots,127\}$ μέσω της \cref{eq:rm-encoding}.
+  \item $\mathbf{c}_j$: η κωδική λέξη 128 bits που αντιστοιχεί στο υποψήφιο μήνυμα $j \in \{0,\ldots,127\}$ σύμφωνα με την \cref{eq:rm-encoding}.
   \item $\hat{\mathbf{s}}$: ο μετασχηματισμός Hadamard του $\mathbf{s}$· η θέση $\hat{\mathbf{s}}[j]$ ισούται με τη συσχέτιση $\langle \mathbf{s}, \mathbf{c}_j \rangle$ (Στάδιο 2).
   \item $j^*$: η θέση μέγιστης απόλυτης τιμής στο $\hat{\mathbf{s}}$, που δίνει το αποκωδικοποιημένο σύμβολο (Στάδιο 3).
 \end{itemize}
