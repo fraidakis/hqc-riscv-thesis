@@ -119,7 +119,7 @@
     \node[box,right=of src] (cc) {cross-compile\\ GCC / Clang};
     \node[box,above right=of cc,fill=oiGreen!12] (iss) {Spike ISS\\ \instret};
     \node[box,below right=of cc,fill=oiOrange!14] (hw) {BPI-F3 (K1)\\ cycles};
-    \node[box,right=34mm of cc,fill=oiVermillion!10] (ver) {KAT 100/100\\ + constant-time};
+    \node[box,right=34mm of cc,fill=oiVermillion!10] (ver) {KAT 100/100\ifincludeCT\\ + constant-time\fi};
     \draw[-{Latex}] (src) -- (cc);
     \draw[-{Latex}] (cc) -- (iss);
     \draw[-{Latex}] (cc) -- (hw);
@@ -325,6 +325,7 @@
 \end{frame}
 
 % ---------- B3. Constant-time ------------------------------------------------
+\ifincludeCT
 \begin{frame}{Backup — Constant-time επαλήθευση}
   \begin{itemize}
     \item Οι βελτιστοποιήσεις διατηρούν data-independent ροή: χωρίς secret-dependent branches/προσπελάσεις μνήμης.
@@ -333,6 +334,7 @@
   \end{itemize}
   \centering\footnotesize\textcolor{neutral}{Λεπτομέρειες: Κεφ. 5 (μεθοδολογία) \& Κεφ. 9 (αποτελέσματα).}
 \end{frame}
+\fi
 
 % ---------- B4. Code size vs performance -------------------------------------
 \begin{frame}{Backup — Code size vs performance}
