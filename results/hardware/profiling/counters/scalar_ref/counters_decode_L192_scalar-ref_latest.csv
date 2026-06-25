@@ -1,5 +1,5 @@
-# date: 2026-06-24 21:37
-# commit: eeac22f
+# date: 2026-06-25 12:45
+# commit: cbc6115
 # variant: scalar_ref
 # level: 192
 # component: decode
@@ -11,8 +11,8 @@
 # governor: performance
 # level=192,decode=ref,n_iter=100,n_warmup=10,platform=hw
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-decode,100,614140,614983,615501,619274,4291,699149,850463
+decode,100,614272,614795,615019,615538,743,670113,853753
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-decode,1.3817,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0070
+decode,1.3882,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0012

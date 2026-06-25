@@ -1,5 +1,5 @@
-# date: 2026-06-24 21:43
-# commit: eeac22f
+# date: 2026-06-25 12:51
+# commit: cbc6115
 # variant: vector_rvv
 # level: 256
 # component: mul
@@ -10,9 +10,9 @@
 # core: 7
 # governor: performance
 # level=256,polymul=vector_rvv,n_iter=100,n_warmup=10,platform=hw,extended=1
-op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
-vect_mul,100,846565,848744,850203,852027,3283,919042,1021631,710,431255,0.16%,51,215,1711,174775,26714,36767
+op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall,median_vec_load,median_vec_store
+vect_mul,100,846207,849462,850586,852046,2584,928991,1021771,761,431111,0.18%,53,171,1157,175670,26714,36243,13328,4327
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-vect_mul,1.2016,0.001646,0.695,0.050,0.210,0.0020,0.2056,0.0261,NA,0.0432,45440,22.48,0.0039
+vect_mul,1.2013,0.001765,0.745,0.052,0.167,0.0014,0.2065,0.0261,3.0801941298821354,0.0426,48704,20.98,0.0030

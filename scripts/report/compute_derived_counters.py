@@ -13,6 +13,10 @@ New unified schema (all variants, NA for columns that don't apply):
   dram_bytes_est, arith_intensity, cqv
 
   - vector_inst_pct / vector_ls_ratio / vpu_stall_pct → NA for scalar variants
+  - vector_ls_ratio = median_vec_load / median_vec_store (loads per store)
+    Measures vector memory access pattern balance.
+    High ratio → read-dominated kernel (typical for polynomial multiply).
+    Guard: if vec_store == 0 and vec_load > 0 → inf; both 0 → NA.
   - cqv = iqr_cycles / median_cycles (coefficient of quartile variation)
   - CQV > 0.025 triggers a noisy-run warning on stderr.
   - All derived metrics computed from median values.
@@ -134,7 +138,16 @@ def compute_derived(row: dict, variant: str) -> dict:
     is_vector = "vector" in variant.lower() or "rvv" in variant.lower()
     if is_vector:
         d["vector_inst_pct"] = vec_inst / instret if instret > 0 else 0.0
-        d["vector_ls_ratio"] = "NA"   # requires separate load/store vector counters
+        # vector_ls_ratio = vec_load / vec_store (loads per store)
+        # Measures vector memory access pattern; high ratio = read-dominated kernel
+        vec_load  = _get(row, "median_vec_load")
+        vec_store = _get(row, "median_vec_store")
+        if vec_store > 0:
+            d["vector_ls_ratio"] = vec_load / vec_store
+        elif vec_load > 0:
+            d["vector_ls_ratio"] = float("inf")  # loads but no stores
+        else:
+            d["vector_ls_ratio"] = "NA"
         d["vpu_stall_pct"]   = vpu_stall / cycles if cycles > 0 else 0.0
     else:
         d["vector_inst_pct"] = "NA"

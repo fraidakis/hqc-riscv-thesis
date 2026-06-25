@@ -1,5 +1,5 @@
-# date: 2026-06-24 21:33
-# commit: eeac22f
+# date: 2026-06-25 12:40
+# commit: cbc6115
 # variant: scalar_ref
 # level: 128
 # component: kem
@@ -10,13 +10,13 @@
 # core: 7
 # governor: performance
 # level=128,polymul=scalar_ref,n_iter=100,n_warmup=10,platform=hw,extended=1
-op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
-keypair,100,11749925,11768074,11773397,11780025,11951,11953471,18438014,339,6303920,0.01%,56,3192,152890,1117796,0,0
-encaps,100,23478936,23494959,23504555,23514466,19507,24028776,36866863,674,12608982,0.01%,85,6284,303023,2220603,0,0
-decaps,100,35738817,35785891,35920869,36031490,245599,39768917,56037083,1022,19121959,0.01%,116,10068,466513,3401801,0,0
+op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall,median_vec_load,median_vec_store
+keypair,100,11748242,11772303,11791290,11816386,44083,12016094,18442598,332,6303960,0.01%,56,3247,40128,1116133,0,0,0,0
+encaps,100,23472724,23501873,23532751,23597479,95606,23843064,36871360,635,12608916,0.01%,87,6259,78240,2215988,0,0,0,0
+decaps,100,35731140,35771322,35807638,35855035,83713,36290148,55998321,1029,19121804,0.01%,112,9991,117412,3390627,0,0,0,0
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-keypair,1.5661,0.000054,0.018,0.003,0.173,0.0130,0.0949,NA,NA,NA,21696,849.83,0.0010
-encaps,1.5685,0.000053,0.018,0.002,0.170,0.0129,0.0945,NA,NA,NA,43136,854.67,0.0008
-decaps,1.5600,0.000053,0.018,0.002,0.180,0.0130,0.0947,NA,NA,NA,65408,856.73,0.0068
+keypair,1.5641,0.000053,0.018,0.003,0.176,0.0034,0.0947,NA,NA,NA,21248,867.97,0.0037
+encaps,1.5668,0.000050,0.017,0.002,0.170,0.0033,0.0942,NA,NA,NA,40640,907.27,0.0041
+decaps,1.5639,0.000054,0.018,0.002,0.178,0.0033,0.0947,NA,NA,NA,65856,850.31,0.0023

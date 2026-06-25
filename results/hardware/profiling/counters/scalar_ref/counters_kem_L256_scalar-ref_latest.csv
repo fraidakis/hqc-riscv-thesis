@@ -1,5 +1,5 @@
-# date: 2026-06-24 21:35
-# commit: eeac22f
+# date: 2026-06-25 12:43
+# commit: cbc6115
 # variant: scalar_ref
 # level: 256
 # component: kem
@@ -10,13 +10,13 @@
 # core: 7
 # governor: performance
 # level=256,polymul=scalar_ref,n_iter=100,n_warmup=10,platform=hw,extended=1
-op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
-keypair,100,88754438,88810486,88837321,88928994,118508,89316974,138504945,1763,48162238,0.00%,197,13098,87809,9728272,0,0
-encaps,100,177599395,177697243,177781557,177918576,221333,178496006,277127232,3451,96347209,0.00%,379,25667,190889,19619838,0,0
-decaps,100,267839937,268078242,268192025,268690831,612589,272778856,417744474,5238,145031890,0.00%,598,39998,310611,29407761,0,0
+op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall,median_vec_load,median_vec_store
+keypair,100,88725673,88759990,88791290,88830409,70419,89985763,138522578,1720,48163145,0.00%,190,13418,717254,9062564,0,0,0,0
+encaps,100,177531193,177570375,177603794,177646262,75887,177870786,277109106,3450,96348493,0.00%,388,26427,1428393,18133163,0,0,0,0
+decaps,100,267655059,267752628,267830332,267915592,162964,268717469,417549007,5179,145032711,0.00%,591,41159,2167258,27385915,0,0,0,0
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-keypair,1.5591,0.000037,0.013,0.001,0.095,0.0010,0.1095,NA,NA,NA,112832,1227.53,0.0013
-encaps,1.5588,0.000036,0.012,0.001,0.093,0.0011,0.1104,NA,NA,NA,220864,1254.74,0.0012
-decaps,1.5576,0.000036,0.013,0.001,0.096,0.0012,0.1097,NA,NA,NA,335232,1246.14,0.0023
+keypair,1.5601,0.000036,0.012,0.001,0.097,0.0081,0.1021,NA,NA,NA,110080,1258.38,0.0008
+encaps,1.5603,0.000036,0.012,0.001,0.095,0.0080,0.1021,NA,NA,NA,220800,1255.02,0.0004
+decaps,1.5590,0.000036,0.012,0.001,0.099,0.0081,0.1023,NA,NA,NA,331456,1259.74,0.0006

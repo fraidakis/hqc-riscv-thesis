@@ -1,5 +1,5 @@
-# date: 2026-06-24 21:36
-# commit: eeac22f
+# date: 2026-06-25 12:44
+# commit: cbc6115
 # variant: scalar_ref
 # level: 128
 # component: keccak
@@ -11,8 +11,8 @@
 # governor: performance
 # level=128,keccak=ref,n_iter=100,n_warmup=10,platform=hw
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-keccak,100,354181,356765,357059,357857,1092,415492,568058
+keccak,100,354895,355284,355524,356126,842,427093,568058
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-keccak,1.5909,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0031
+keccak,1.5978,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0024
