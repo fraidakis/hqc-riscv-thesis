@@ -1,0 +1,15 @@
+# date: 2026-06-26 14:19
+# commit: 683734f
+# variant: scalar_zb_A
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# isolation_irq: off
+# isolation_aslr: off
+# isolation_isolcpus: off
+# isolation_core: 7
+level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
+128,vect_mul,100,359490,360984,361318,361934,950,458855,472825
+192,vect_mul,100,1089369,1090926,1091659,1093134,2208,1162456,1447414
+256,vect_mul,100,2396231,2399398,2402095,2420850,21452,2461407,3042942

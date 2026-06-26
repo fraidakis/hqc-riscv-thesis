@@ -34,7 +34,7 @@ All measurements are deterministic instruction-retired counts from Spike ISS.
 
 ## Table 2 — Tier 2 (Edge RVV)
 
-> rv64gcv + Zbc/Zbb; AP-2 fixed-tree polymul, scalar Keccak
+> rv64gcv + Zbc/Zbb; specialized fixed-tree polymul, scalar Keccak
 
 ### `vect_mul` (polynomial multiply)
 
