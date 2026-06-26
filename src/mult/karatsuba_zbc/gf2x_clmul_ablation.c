@@ -4,28 +4,42 @@
  *
  * Compile-time flags select which optimizations are active:
  *
- *   ABLATION_WORDLEVEL (A) : 1 = clmul64 word-level leaves
- *                            0 = bit-serial schoolbook (reference behaviour)
+ *   ABLATION_WORDLEVEL  (A) : 1 = clmul64 word-level leaves
+ *                             0 = bit-serial schoolbook (reference behaviour)
  *
- *   ABLATION_NOINIT    (B) : 1 = assign-on-first-write at tree recomposition
- *                            0 = memset(r, 0, ...) + XOR-accumulate recomposition
- *                            NOTE: applies to tree-level only; leaf always uses
- *                            the simple memset + XOR-accumulate pattern.
+ *   ABLATION_NOINIT     (B) : 1 = assign-on-first-write at tree recomposition
+ *                             0 = memset(r, 0, ...) + XOR-accumulate recomposition
+ *                             NOTE: applies to tree-level only; leaf always uses
+ *                             the simple memset + XOR-accumulate pattern unless
+ *                             leaf specialization is enabled.
  *
- *   ABLATION_AP2       (C) : 1 = compile-time specialized recursion tree
- *                            0 = generic recursive Karatsuba with n>>1 split
+ *   ABLATION_AP2        (C) : 1 = compile-time specialized recursion tree
+ *                             0 = generic recursive Karatsuba with n>>1 split
  *
- * Intended variant matrix (orthogonal axes):
+ *   ABLATION_LEAF_SPEC      : 1 = fixed-size fully-unrolled leaf specializations
+ *                                 (clmul_leaf_n8, clmul_leaf_n9) with 4-way ILP
+ *                                 and assign-on-first-write discipline
+ *                             0 = generic memset + XOR-accumulate leaf loop
+ *                             NOTE: this is part of the C optimization — it
+ *                             requires A=1 and C=1 (word-level clmul and known
+ *                             fixed leaf sizes from the specialized tree).
+ *                             Enabled together with C in scalar_zb_AC.
+ *
+ * Intended variant matrix (orthogonal axes A, B, C):
  *   scalar_zb_A   : A=1, B=0, C=0  (word-level only)
  *   scalar_zb_AB  : A=1, B=1, C=0  (word-level + noinit recomposition)
- *   scalar_zb_AC  : A=1, B=0, C=1  (word-level + specialized tree, memset recomp)
- *   scalar_zb     : A=1, B=1, C=1  (all three — champion, separate file)
+ *   scalar_zb_AC  : A=1, B=0, C=1  (word-level + specialized tree + leaf unrolling)
+ *   scalar_zb     : A=1, B=1, C=1  (all three — champion)
  *
  * Orthogonality guarantee:
  *   - A controls the leaf multiply primitive (clmul vs bit-serial)
  *   - B controls tree-level recomposition style (direct-write vs memset+XOR)
- *   - C controls tree structure (specialized compile-time vs generic runtime)
+ *   - C controls tree structure AND leaf specialization (specialized compile-time
+ *     tree with fully-unrolled fixed-size leaves vs generic runtime recursion
+ *     with generic loop-based leaves)
  *   Each axis is independent; no axis subsumes another.
+ *   Leaf specialization (ABLATION_LEAF_SPEC) is part of C — it exploits the
+ *   compile-time knowledge that the specialized tree provides.
  *
  * KAT validated by running all ablation variants against known-answer vectors.
  */
@@ -45,6 +59,9 @@
 #endif
 #ifndef ABLATION_AP2
 #define ABLATION_AP2 0
+#endif
+#ifndef ABLATION_LEAF_SPEC
+#define ABLATION_LEAF_SPEC 0
 #endif
 #ifndef ABLATION_SYMMETRIC_TREE
 #define ABLATION_SYMMETRIC_TREE 0
@@ -71,8 +88,19 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
     *hi = __riscv_clmulh_64(a, b);
 }
 
-/* Simple memset + XOR-accumulate leaf — always used regardless of B.
- * B only controls tree-level recomposition, not the leaf kernel.
+#if ABLATION_LEAF_SPEC
+/* ── Fixed-size leaf specializations (D optimization) ────────────────────
+ * Fully unrolled, assign-on-first-write leaves for the hot-path sizes
+ * (n=8, n=9) that the specialized recursion tree (C) produces.
+ * Uses 4-way ILP grouping to hide clmul latency on in-order pipelines.
+ * Requires A=1 (word-level clmul) and C=1 (specialized tree for fixed sizes).
+ */
+#include "clmul_leaf_specialized.h"
+#endif /* ABLATION_LEAF_SPEC */
+
+/* Simple memset + XOR-accumulate leaf — used as generic fallback.
+ * When D=1, this is only called for leaf sizes not covered by specializations
+ * (n=14, n=15 in HQC-192/256 recursion trees).
  */
 static void clmul_leaf(uint64_t * __restrict__ r,
                        const uint64_t * __restrict__ a,
@@ -128,7 +156,10 @@ static void schoolbook_mul(uint64_t *r, const uint64_t *a, const uint64_t *b, si
  * B selects the recomposition style:
  *   B=1 (noinit) → gen header with direct-write recomposition
  *   B=0 (memset) → gen header with memset + XOR-accumulate recomposition
- * Both call clmul_leaf() with the same simple memset-based leaf above.
+ * D selects leaf dispatch (via LEAF_CALL_N8/N9 macros in gen header):
+ *   D=1 → fixed-size unrolled clmul_leaf_n8/n9 (from clmul_leaf_specialized.h)
+ *   D=0 → generic clmul_leaf(..., 8u/9u)
+ * Both call clmul_leaf() for sizes not covered by specializations (n=14, 15).
  */
 
 #if ABLATION_NOINIT

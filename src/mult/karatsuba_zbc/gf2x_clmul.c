@@ -6,10 +6,12 @@
  *   - A: Word-level carry-less multiply (Zbc clmul/clmulh)
  *   - B: Assign-on-first-write tree recomposition (noinit gen header)
  *   - C: Compile-time specialized recursion tree (gen_karatsuba_specialized.py)
+ *   - D: Fixed-size leaf specializations (clmul_leaf_n9, clmul_leaf_n8)
+ *        eliminating memset + branch overhead for the hot-path leaf sizes
  *
- * Leaf uses simple memset + XOR-accumulate schoolbook. On the in-order X60
- * pipeline, the compact loop body (small I-cache footprint) outperforms
- * unrolled variants that increase code size without ILP benefit.
+ * The recursion tree for HQC-128 (n=277, T=16) produces only n=9 and n=8
+ * leaves.  Specialized leaves use assign-on-first-write discipline and
+ * 4-way ILP grouping to hide clmul latency on the in-order X60 pipeline.
  *
  * KAT validated: 300/300 vectors across HQC-{128,192,256}.
  */
@@ -44,13 +46,14 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 /* ── Temporary buffer sizing ─────────────────────────────────────────────*/
 #define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
-/* ── Leaf multiply: memset + XOR-accumulate schoolbook ────────────────────
- * Base-case schoolbook over GF(2)[x] using Zbc clmul.
+/* ── Fixed-size leaf specializations (D optimization) ────────────────────
+ * Fully unrolled n=8 and n=9 leaves with 4-way ILP and assign-on-first-write.
+ */
+#include "clmul_leaf_specialized.h"
+
+/* ── Generic leaf multiply: memset + XOR-accumulate schoolbook ────────────
+ * Fallback for leaf sizes not covered by fixed specializations (n=14, 15).
  * Uses memset to zero the output buffer, then XOR-accumulates products.
- *
- * Simple nested-loop structure chosen over 4-way unrolling: on the in-order
- * X60 pipeline, the reduced I-cache footprint from the compact loop body
- * outweighs any ILP gains from unrolling (empirically ~10% faster at n≤16).
  */
 static void clmul_leaf(uint64_t * __restrict__ r,
                        const uint64_t * __restrict__ a,
