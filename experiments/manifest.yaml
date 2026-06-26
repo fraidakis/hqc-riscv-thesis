@@ -82,7 +82,7 @@ experiments:
     path: experiments/EXP-mem-fastpath
     promoted_to: sim/common/mem.c
     hardware_class: crypto_vector_zvbc
-    tracks: [AP-2]
+    tracks: [specialized-tree]
     metrics:
       hqc128_ref_scalar:
         total_off: 117411071
@@ -216,7 +216,7 @@ experiments:
     hypothesis: "Promote scalar karatsuba_zbc as the default scalar polymul baseline."
     status: promoted_to_stable
     promoted_date: 2026-05-17
-    verdict: "Ultimate scalar champion baseline after AP-2 fixed-tree promotion."
+    verdict: "Ultimate scalar champion baseline after fixed-tree promotion."
     path: src/mult/karatsuba_zbc/gf2x_clmul.c
     hardware_class: scalar_zbc
     metrics:
@@ -235,7 +235,7 @@ experiments:
     hypothesis: "Promote vector karatsuba_zvbc as the default ZVBC polymul baseline."
     status: promoted_to_stable
     promoted_date: 2026-05-17
-    verdict: "Ultimate ZVBC champion baseline after AP-2 fixed-tree promotion and RVV Reed-Muller reactivation."
+    verdict: "Ultimate ZVBC champion baseline after fixed-tree promotion and RVV Reed-Muller reactivation."
     path: src/mult/karatsuba_zvbc/gf2x_vclmul.c
     hardware_class: crypto_vector_zvbc
     metrics:

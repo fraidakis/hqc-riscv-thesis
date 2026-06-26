@@ -6,7 +6,7 @@
 
 ## Summary
 
-This track captured intermediate scalar Karatsuba-Zbc experiments used during threshold sweeps and leaf-shape prototyping before the AP-2 fixed-tree route was promoted.
+This track captured intermediate scalar Karatsuba-Zbc experiments used during threshold sweeps and leaf-shape prototyping before the fixed-tree route was promoted.
 
 ## Why archived
 

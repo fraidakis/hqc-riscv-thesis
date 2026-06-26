@@ -1,12 +1,12 @@
 # archive_hybrid_zbc — Abandoned Hybrid Approach
 
-## Status: Archived (superseded by AP-2 fixed-tree variants)
+## Status: Archived (superseded by specialized fixed-tree variants)
 
 ## What was tried
 
 The `hybrid_zbc` track combined a partial Karatsuba decomposition at the top level
 with schoolbook `clmul` leaves, targeting a balance between recursion overhead and
-leaf efficiency without full AP-2 specialization.
+leaf efficiency without full compile-time specialization.
 
 Files in this archive:
 - `hybrid.c` — initial prototype
@@ -16,15 +16,15 @@ Files in this archive:
 
 ## Why it was abandoned
 
-The AP-2 fixed-tree Karatsuba specialization (`karatsuba_zbc` and `karatsuba_rvv`)
+The specialized fixed-tree Karatsuba (`karatsuba_zbc` and `karatsuba_rvv`)
 generates fully unrolled static kernel trees via `scripts/gen/gen_karatsuba_specialized.py`
 with `--mode zbc|rvv|zvbc`. This eliminates the function-call overhead, ABI stack
 pressure, and compiler spilling that limited the hybrid approach.
 
 Measured vect_mul instret at HQC-128:
 - hybrid track: ~600k–900k (varied across v1–v3)
-- karatsuba_zbc AP-2: **211,841**
-- karatsuba_rvv AP-2: **157,377**
+- karatsuba_zbc specialized: **211,841**
+- karatsuba_rvv specialized: **157,377**
 
 ## Do not re-promote without benchmarking all three HQC security levels
 
