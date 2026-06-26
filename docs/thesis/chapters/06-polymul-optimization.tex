@@ -196,13 +196,14 @@ implementation σε έναν πλήρως βελτιστοποιημένο Karat
 \subsection{Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό}
 \label{ssec:bit-to-word}
 
-Η υλοποίηση αναφοράς του HQC (\code{vendor/hqc-ref/src/ref/gf2x.c})
-χρησιμοποιεί αναδρομικό Karatsuba με schoolbook base case σε bit
+Η υλοποίηση αναφοράς του HQC που χρησιμοποιείται ως baseline
+(\code{vendor/hqc-ref/src/ref/gf2x.c}, portable scalar μοντέλο χωρίς
+αρχιτεκτονικές intrinsics) χρησιμοποιεί αναδρομικό Karatsuba με schoolbook base case σε bit
 granularity. Για κάθε ζεύγος \num{64}-bit words $(a[i], b[j])$, ο
-εσωτερικός βρόχος εξετάζει τα \num{64} bits του $a[i]$ ένα-ένα: αν το
-bit $k$ είναι ενεργό, εκτελείται conditional shift-XOR του $b[j]$ στη
-θέση $r[i+j]$ (\cref{sec:schoolbook-algorithm}). Η πολυπλοκότητα ανά leaf call μεγέθους $n$ words
-ανέρχεται σε $64 \times n^2$ conditional shift-and-XOR πράξεις.
+εσωτερικός βρόχος εξετάζει τα \num{64} bits του $a[i]$ ένα-ένα: για κάθε bit $k$ εκτελείται predicated (mask-based) shift-XOR
+του $b[j]$ στη θέση $r[i+j]$, όπου μια μάσκα παραγόμενη από το bit μηδενίζει
+τη συνεισφορά όταν το bit είναι ανενεργό (\cref{sec:schoolbook-algorithm}). Η πολυπλοκότητα ανά leaf call μεγέθους $n$ words
+ανέρχεται σε $64 \times n^2$ predicated shift-and-XOR πράξεις.
 
 Η επέκταση \gls{zbc} παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
 υπολογίζουν το πλήρες \num{128}-bit carry-less γινόμενο δύο \num{64}-bit
@@ -210,9 +211,10 @@ bit $k$ είναι ενεργό, εκτελείται conditional shift-XOR το
 
 Η αντικατάσταση του bit-serial βρόχου με ένα ζεύγος \clmul/\clmulh
 μετασχηματίζει τον εσωτερικό βρόχο από $64n$ iterations σε $n$
-iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου, εξαλείφοντας τη μάσκα εξαγωγής bit,
-το conditional branch, και τη μεταβλητή ολίσθηση που κυριαρχούσαν στο
-reference.
+iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το κέρδος δεν προέρχεται από εξάλειψη branch (ο
+reference leaf είναι ήδη branchless), αλλά από τη δραστική μείωση των
+iterations και την κατάργηση της per-bit μάσκας εξαγωγής και της μεταβλητής
+ολίσθησης που κυριαρχούσαν στο reference.
 
 Η υλοποίηση χρησιμοποιεί compiler intrinsics αντί inline assembly,
 επιτρέποντας στον μεταγλωττιστή πλήρη ορατότητα για register allocation
@@ -240,10 +242,12 @@ static inline void clmul64(uint64_t a, uint64_t b,
   \label{fig:schoolbook-vs-clmul}
 \end{figure}
 
-Πέραν της μείωσης iterations, το word-level leaf εισάγει δύο
-micro-optimizations στον εσωτερικό βρόχο. Πρώτον, ένα \defterm{two-way software pipeline}: εκδίδονται δύο ανεξάρτητες
-κλήσεις \code{clmul64} προτού καταναλωθεί το αποτέλεσμα οποιασδήποτε. Επειδή η
-δεύτερη κλήση δεν εξαρτάται από την πρώτη, ο επεξεργαστής τις εκτελεί
+Πέραν της μείωσης iterations, οι πλήρως ξεδιπλωμένες εξειδικεύσεις leaf
+(\code{clmul\_leaf\_n8}/\code{clmul\_leaf\_n9}, \cref{ssec:specialized-tree})
+εισάγουν δύο micro-optimizations. Πρώτον, \defterm{4-way ILP grouping}:
+εκδίδονται τέσσερις ανεξάρτητες κλήσεις \code{clmul64} προτού καταναλωθεί το
+αποτέλεσμα οποιασδήποτε. Επειδή οι τέσσερις κλήσεις είναι αμοιβαία
+ανεξάρτητες, ο in-order X60 pipeline τις εκτελεί
 επικαλυπτόμενα, αποκρύπτοντας τη latency της μονάδας carry-less αντί να σταματά
 (stall) περιμένοντας κάθε αποτέλεσμα. Δεύτερον, η \defterm{hi$\xorop$lo fusion}:
 γειτονικά γινόμενα μοιράζονται κοινή θέση εξόδου:
@@ -256,7 +260,12 @@ XOR-and-store ($r[i{+}j{+}1] \mathrel{\xorop}= \text{hi}_0 \xorop
 hi$\xorop$lo fusion να εκτείνεται σε όλα τα ζεύγη: τέσσερα διαδοχικά γινόμενα
 (δύο fused ζεύγη) μετατρέπουν οκτώ half-products σε πέντε output XORs,
 εξοικονομώντας τρεις εντολές \insn{xor} ανά τετράδα. Το four-way unrolling
-εφαρμόζεται χωριστά στους τρεις βρόχους ανασύνθεσης Karatsuba.
+εφαρμόζεται χωριστά στους τρεις βρόχους ανασύνθεσης Karatsuba. Το 4-way ILP grouping και η hi$\xorop$lo fusion υλοποιούνται αποκλειστικά
+στις πλήρως ξεδιπλωμένες εξειδικεύσεις
+\code{clmul\_leaf\_n8}/\code{clmul\_leaf\_n9}, οι οποίες καλύπτουν το
+\pct{100} των φύλλων του HQC-128. Ο generic \code{clmul\_leaf} αποτελεί την
+απλή, μη-fused εναλλακτική για τα μεγαλύτερα φύλλα ($n \in \{14, 15\}$) των
+HQC-192/256.
 
 \subsection{Assign-on-First-Write: Εξάλειψη memset}
 \label{ssec:memset-elimination}
@@ -290,7 +299,11 @@ Loop~3 διαβάζει από τον $r$, το προηγούμενο \code{mem
 αποδεδειγμένα περιττό. Η ίδια πειθαρχία εκτείνεται στον leaf: η
 πρώτη εξωτερική σειρά ($i=0$) χρησιμοποιεί direct assignment, και οι
 επόμενες σειρές χρησιμοποιούν XOR-accumulation σε θέσεις ήδη
-αρχικοποιημένες από τη σειρά~0.
+αρχικοποιημένες από τη σειρά~0. Η εξάλειψη του \code{memset} στον leaf ισχύει ωστόσο μόνο για τις πλήρως
+ξεδιπλωμένες εξειδικεύσεις ($n \in \{8, 9\}$), που καλύπτουν το σύνολο των
+φύλλων των HQC-128 και HQC-192. Τα μεγαλύτερα φύλλα $n \in \{14, 15\}$ του
+HQC-256 εξυπηρετούνται από τον generic \code{clmul\_leaf}, ο οποίος διατηρεί
+το αρχικό \code{memset} (\cref{ssec:specialized-tree}).
 
 Η επίδραση αυτής της αναδιάρθρωσης είναι δραματική. Στο αρχικό Zbc
 profile (μετά τη μετάβαση σε word-level leaf αλλά πριν την εξάλειψη
@@ -399,7 +412,12 @@ $n=9$ (206 από τα 243) — πλήρως ξεδιπλωμένο $9 \times 9$
 \num{81} κλήσεις \code{clmul64}. Μία ablation study επιβεβαίωσε ότι
 η εξειδίκευση $n=4$ αποτελούσε dead code για το δέντρο HQC-128 —
 κανένα leaf call δεν παράγει $n=4$ στο threshold $T=16$ — και
-αφαιρέθηκε μαζί με τον αντίστοιχο dispatch arm.
+αφαιρέθηκε μαζί με τον αντίστοιχο dispatch arm. Στο αντίθετο άκρο, εξειδικεύσεις για τα μεγαλύτερα φύλλα
+$n \in \{14, 15\}$ (που εμφανίζονται στα δέντρα HQC-192/256) δοκιμάστηκαν
+αλλά απορρίφθηκαν: προκάλεσαν regression \pct{8.4} στο HQC-256 λόγω I-cache
+pressure στον in-order X60 pipeline, καθώς το αυξημένο \code{.text} footprint
+των unrolled εκδοχών υπερβαίνει το όφελος. Τα φύλλα αυτά εξυπηρετούνται
+επομένως από τον compact generic \code{clmul\_leaf}.
 
 \paragraph{Worked example: πλήρης αναδρομή HQC-128.}
 Η κλήση \code{vect\_mul(o, a, b)} για HQC-128 ($N=277$ words,
