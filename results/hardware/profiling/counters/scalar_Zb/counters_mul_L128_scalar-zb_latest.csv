@@ -1,5 +1,5 @@
-# date: 2026-06-25 12:47
-# commit: cbc6115
+# date: 2026-06-26 14:38
+# commit: abc7e2a
 # variant: scalar_zb
 # level: 128
 # component: mul
@@ -11,8 +11,8 @@
 # governor: performance
 # level=128,polymul=scalar_zb,n_iter=100,n_warmup=10,platform=hw,extended=1
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall,median_vec_load,median_vec_store
-vect_mul,100,147951,149363,149900,150453,1090,210220,196027,151,78248,0.19%,42,112,2931,16309,0,0,0,0
+vect_mul,100,136317,137628,138014,138513,885,205520,181341,161,70569,0.23%,40,36,4121,14318,0,0,0,0
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-vect_mul,1.3077,0.001930,0.770,0.214,0.571,0.0196,0.1088,NA,NA,NA,9664,20.28,0.0073
+vect_mul,1.3139,0.002281,0.888,0.221,0.199,0.0299,0.1037,NA,NA,NA,10304,17.60,0.0064

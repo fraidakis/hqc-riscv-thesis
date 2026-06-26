@@ -1,5 +1,5 @@
-# date: 2026-06-25 12:46
-# commit: cbc6115
+# date: 2026-06-26 14:42
+# commit: abc7e2a
 # variant: scalar_zb
 # level: 128
 # component: kem
@@ -11,12 +11,12 @@
 # governor: performance
 # level=128,polymul=scalar_zb,n_iter=100,n_warmup=10,platform=hw,extended=1
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall,median_vec_load,median_vec_store
-keypair,100,256687,258697,259598,264288,5591,320680,374992,229,116148,0.20%,46,343,7716,27663,0,0,0,0
-encaps,100,501896,504496,505927,507583,3087,538586,738963,335,233552,0.14%,55,504,9735,49833,0,0,0,0
-decaps,100,1259675,1262141,1263313,1265730,3589,1374834,1803696,590,558683,0.11%,66,1700,21674,140309,0,0,0,0
+keypair,100,245690,247399,248818,252806,5407,297723,360112,229,108957,0.21%,44,639,9984,27628,0,0,0,0
+encaps,100,480971,482901,484416,486362,3461,520690,709203,359,219277,0.16%,53,463,11328,49897,0,0,0,0
+decaps,100,1225794,1226889,1227672,1229022,2133,1286199,1759056,583,537394,0.11%,66,1510,29839,138309,0,0,0,0
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-keypair,1.4445,0.001972,0.611,0.123,0.915,0.0297,0.1066,NA,NA,NA,14656,25.59,0.0215
-encaps,1.4606,0.001434,0.453,0.074,0.682,0.0192,0.0985,NA,NA,NA,21440,34.47,0.0061
-decaps,1.4278,0.001056,0.327,0.037,0.943,0.0172,0.1111,NA,NA,NA,37760,47.77,0.0028
+keypair,1.4473,0.002102,0.636,0.122,1.774,0.0401,0.1110,NA,NA,NA,14656,24.57,0.0217
+encaps,1.4640,0.001637,0.506,0.075,0.653,0.0234,0.1030,NA,NA,NA,22976,30.87,0.0071
+decaps,1.4328,0.001085,0.331,0.038,0.858,0.0243,0.1127,NA,NA,NA,37312,47.14,0.0017
