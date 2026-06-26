@@ -92,6 +92,10 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 set(POLYMUL_VARIANTS
     scalar_ref
     scalar_zb
+    scalar_zb_A
+    scalar_zb_AB
+    scalar_zb_AC
+    scalar_zb_ABC_nosplit
     vector_rvv
     vector_zvk
 )
@@ -351,6 +355,83 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -fno-tree-vectorize
                 $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
                 $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>)
+        elseif(POLYMUL STREQUAL "scalar_zb_A")
+            # Ablation: word-level only (no noinit, no specialized tree)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            set(VARIANT_DECODE_SOURCES
+                ${HQC_REF}/src/ref/reed_muller.c
+                ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=${HQC_SCALAR_MARCH}
+                -mabi=lp64d
+                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
+                -fno-tree-vectorize
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
+                -DABLATION_WORDLEVEL=1
+                -DABLATION_NOINIT=0
+                -DABLATION_AP2=0)
+        elseif(POLYMUL STREQUAL "scalar_zb_AB")
+            # Ablation: word-level + noinit (no specialized tree)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            set(VARIANT_DECODE_SOURCES
+                ${HQC_REF}/src/ref/reed_muller.c
+                ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=${HQC_SCALAR_MARCH}
+                -mabi=lp64d
+                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
+                -fno-tree-vectorize
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
+                -DABLATION_WORDLEVEL=1
+                -DABLATION_NOINIT=1
+                -DABLATION_AP2=0)
+        elseif(POLYMUL STREQUAL "scalar_zb_AC")
+            # Ablation: word-level + specialized tree (no noinit)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            set(VARIANT_DECODE_SOURCES
+                ${HQC_REF}/src/ref/reed_muller.c
+                ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=${HQC_SCALAR_MARCH}
+                -mabi=lp64d
+                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
+                -fno-tree-vectorize
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
+                -DABLATION_WORDLEVEL=1
+                -DABLATION_NOINIT=0
+                -DABLATION_AP2=1)
+        elseif(POLYMUL STREQUAL "scalar_zb_ABC_nosplit")
+            # Ablation: word-level + noinit + symmetric-split specialized tree
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            set(VARIANT_DECODE_SOURCES
+                ${HQC_REF}/src/ref/reed_muller.c
+                ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=${HQC_SCALAR_MARCH}
+                -mabi=lp64d
+                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
+                -fno-tree-vectorize
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
+                -DABLATION_WORDLEVEL=1
+                -DABLATION_NOINIT=1
+                -DABLATION_AP2=0
+                -DABLATION_SYMMETRIC_TREE=1)
         elseif(POLYMUL STREQUAL "vector_rvv")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)

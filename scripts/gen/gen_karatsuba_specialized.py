@@ -7,7 +7,7 @@ Supports four backends via --mode:
   --mode zvbc     Zvbc vector: vclmul_leaf, manual-loop recomposition
   --mode deferred Deferred two-phase: scalar leaves → flat buffer, then single RVV assembly pass
 
-Split rule (AP-2):
+Split rule:
   n0 = ceil(n/2), n1 = floor(n/2)
 Stop recursion at n <= 16.
 
@@ -65,7 +65,20 @@ def validate_threshold(t: int) -> None:
         sys.exit(f"Error: --threshold must be a power of 2 in [8, 128], got {t}")
 
 
+_SPLIT_MODE = "ap2"  # "ap2" = ceil/floor, "symmetric" = floor/ceil (both produce identical trees)
+
+
 def split_sizes(n: int) -> tuple[int, int]:
+    """Split: n0 = ceil(n/2), n1 = floor(n/2).
+
+    The --split=symmetric mode was added for ablation testing and produces
+    identical results because both ceil/floor and floor/ceil decompose into
+    the same set of sub-problem sizes.
+    """
+    if _SPLIT_MODE == "symmetric":
+        n0 = n // 2
+        n1 = n - n0
+        return max(n0, n1), min(n0, n1)
     return (n + 1) // 2, n // 2
 
 
@@ -235,21 +248,28 @@ def compute_ta_tb_buf_size(root_n: int, threshold: int) -> int:
     return total
 
 
-def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int) -> str:
+def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int,
+               leaf_style: str = "noinit", mode: str = "zbc") -> str:
     if n <= threshold:
         if leaf_fn == "zvbc":
             return f"vclmul_leaf({dst}, {xa}, {xb}, {n}u);"
         # scalar / rvv
-        if n == 8:
-            return f"clmul_leaf_n8({dst}, {xa}, {xb});"
-        if n == 9:
-            return f"clmul_leaf_n9({dst}, {xa}, {xb});"
+        if leaf_style == "noinit" and mode == "rvv":
+            if n == 8:
+                return f"clmul_leaf_n8({dst}, {xa}, {xb});"
+            if n == 9:
+                return f"clmul_leaf_n9({dst}, {xa}, {xb});"
+        # All zbc modes + memset style: use generic clmul_leaf
         return f"clmul_leaf({dst}, {xa}, {xb}, {n}u);"
     return f"kmul_{n}({dst}, {xa}, {xb}, child_buf);"
 
 
 def _manual_loop_recomposition(lines: list[str], n0: int, n1: int) -> None:
-    """Emit scalar manual-loop recomposition (used by zbc and zvbc modes)."""
+    """Emit scalar manual-loop recomposition with direct-write (noinit) discipline.
+
+    Assign-on-first-write: Loop 1 and 2 use '=' (direct assign), Loop 3 uses '^='.
+    No memset needed — every position in r[] is written before being read.
+    """
     two_n0 = 2 * n0
     two_n1 = 2 * n1
 
@@ -288,6 +308,80 @@ def _manual_loop_recomposition(lines: list[str], n0: int, n1: int) -> None:
     lines.append("    }")
     lines.append("")
     lines.append("    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */")
+    lines.append("    {")
+    lines.append(f"        uint64_t *rm_p = r + {n0}u;")
+    lines.append("        const uint64_t *zm_p = zmid;")
+    lines.append("        const uint64_t *z0_p = z0;")
+    lines.append("        const uint64_t *z2_p = z2;")
+    lines.append("")
+    lines.append(f"        for (size_t i = 0; i + 4u <= {two_n1}u; i += 4u) {{")
+    lines.append("            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];")
+    lines.append("            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];")
+    lines.append("            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];")
+    lines.append("            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];")
+    lines.append("            rm_p += 4;")
+    lines.append("            zm_p += 4;")
+    lines.append("            z0_p += 4;")
+    lines.append("            z2_p += 4;")
+    lines.append("        }")
+    lines.append(f"        for (size_t i = ({two_n1}u & ~3u); i < {two_n1}u; i++) {{")
+    lines.append("            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;")
+    lines.append("        }")
+    lines.append(f"        for (size_t i = {two_n1}u; i < {two_n0}u; i++) {{")
+    lines.append("            *rm_p++ ^= *zm_p++ ^ *z0_p++;")
+    lines.append("        }")
+    lines.append("    }")
+
+
+def _manual_loop_recomposition_memset(lines: list[str], n0: int, n1: int) -> None:
+    """Emit scalar manual-loop recomposition with memset + XOR-accumulate discipline.
+
+    Zeroes r[] first, then uses '^=' for all three sub-products.
+    This is the reference-style recomposition — orthogonal to B (noinit).
+    """
+    two_n0 = 2 * n0
+    two_n1 = 2 * n1
+    total_words = two_n0 + two_n1  # = 2*n total output words
+
+    # Compute actual output size (same as 2*n where n = n0 + n1)
+    n = n0 + n1
+    lines.append(f"    memset(r, 0, {2 * n}u * sizeof(uint64_t));")
+    lines.append("")
+    lines.append("    /* Accumulate z0 into r[0..2*n0-1] */")
+    lines.append("    {")
+    lines.append("        uint64_t *r_p = r;")
+    lines.append("        const uint64_t *z0_p = z0;")
+    lines.append(f"        for (size_t i = 0; i + 4u <= {two_n0}u; i += 4u) {{")
+    lines.append("            r_p[0] ^= z0_p[0];")
+    lines.append("            r_p[1] ^= z0_p[1];")
+    lines.append("            r_p[2] ^= z0_p[2];")
+    lines.append("            r_p[3] ^= z0_p[3];")
+    lines.append("            r_p += 4;")
+    lines.append("            z0_p += 4;")
+    lines.append("        }")
+    lines.append(f"        for (size_t i = ({two_n0}u & ~3u); i < {two_n0}u; i++) {{")
+    lines.append("            *r_p++ ^= *z0_p++;")
+    lines.append("        }")
+    lines.append("    }")
+    lines.append("")
+    lines.append("    /* Accumulate z2 into r[2*n0..2*n0+2*n1-1] */")
+    lines.append("    {")
+    lines.append(f"        uint64_t *rh_p = r + {two_n0}u;")
+    lines.append("        const uint64_t *z2_p = z2;")
+    lines.append(f"        for (size_t i = 0; i + 4u <= {two_n1}u; i += 4u) {{")
+    lines.append("            rh_p[0] ^= z2_p[0];")
+    lines.append("            rh_p[1] ^= z2_p[1];")
+    lines.append("            rh_p[2] ^= z2_p[2];")
+    lines.append("            rh_p[3] ^= z2_p[3];")
+    lines.append("            rh_p += 4;")
+    lines.append("            z2_p += 4;")
+    lines.append("        }")
+    lines.append(f"        for (size_t i = ({two_n1}u & ~3u); i < {two_n1}u; i++) {{")
+    lines.append("            *rh_p++ ^= *z2_p++;")
+    lines.append("        }")
+    lines.append("    }")
+    lines.append("")
+    lines.append("    /* Accumulate zmid ^ z0 ^ z2 into r[n0..n0+2*n1-1] */")
     lines.append("    {")
     lines.append(f"        uint64_t *rm_p = r + {n0}u;")
     lines.append("        const uint64_t *zm_p = zmid;")
@@ -541,7 +635,7 @@ def _emit_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
     lines.append("    }")
 
 
-def emit_function(n: int, mode: str, threshold: int) -> str:
+def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit") -> str:
     n0, n1 = split_sizes(n)
     two_n0 = 2 * n0
     two_n1 = 2 * n1
@@ -563,8 +657,8 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
         lines.append(f"    uint64_t *child_buf = tb + {n0}u;")
         lines.append("")
         lines.append(f"    /* Direct-write: z0 → r[0..{two_n0-1}], z2 → r[{two_n0}..{two_n0+two_n1-1}] */")
-        lines.append(f"    {child_call('r', 'a', 'b', n0, leaf_fn, threshold)}")
-        lines.append(f"    {child_call(f'r + {two_n0}u', f'a + {n0}u', f'b + {n0}u', n1, leaf_fn, threshold)}")
+        lines.append(f"    {child_call('r', 'a', 'b', n0, leaf_fn, threshold, leaf_style, mode)}")
+        lines.append(f"    {child_call(f'r + {two_n0}u', f'a + {n0}u', f'b + {n0}u', n1, leaf_fn, threshold, leaf_style, mode)}")
     else:
         # Original layout: z0 + z2 + zmid + ta + tb + child_buf in tmp
         lines.append("    uint64_t *z0        = tmp;")
@@ -574,8 +668,8 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
         lines.append(f"    uint64_t *tb        = ta + {n0}u;")
         lines.append(f"    uint64_t *child_buf = tb + {n0}u;")
         lines.append("")
-        lines.append(f"    {child_call('z0', 'a', 'b', n0, leaf_fn, threshold)}")
-        lines.append(f"    {child_call('z2', f'a + {n0}u', f'b + {n0}u', n1, leaf_fn, threshold)}")
+        lines.append(f"    {child_call('z0', 'a', 'b', n0, leaf_fn, threshold, leaf_style, mode)}")
+        lines.append(f"    {child_call('z2', f'a + {n0}u', f'b + {n0}u', n1, leaf_fn, threshold, leaf_style, mode)}")
     lines.append("")
 
     # ta/tb preparation: ta[i] = a[i] ^ a[n0+i], tb[i] = b[i] ^ b[n0+i]
@@ -600,7 +694,7 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
         lines.append(f"        tb[i] = b[i] ^ (i < {n1}u ? b[{n0}u + i] : 0u);")
         lines.append("    }")
     lines.append("")
-    lines.append(f"    {child_call('zmid', 'ta', 'tb', n0, leaf_fn, threshold)}")
+    lines.append(f"    {child_call('zmid', 'ta', 'tb', n0, leaf_fn, threshold, leaf_style, mode)}")
     lines.append("")
 
     if mode == "rvv":
@@ -612,14 +706,21 @@ def emit_function(n: int, mode: str, threshold: int) -> str:
     elif mode == "zvbc":
         _manual_loop_recomposition(lines, n0, n1)
     else:
-        _manual_loop_recomposition(lines, n0, n1)
+        # zbc mode: select recomposition style based on leaf_style flag.
+        # leaf_style="noinit" → direct-write (B optimization active)
+        # leaf_style="memset" → memset + XOR-accumulate (B off, reference style)
+        if leaf_style == "memset":
+            _manual_loop_recomposition_memset(lines, n0, n1)
+        else:
+            _manual_loop_recomposition(lines, n0, n1)
 
     lines.append("}")
     lines.append("")
     return "\n".join(lines)
 
 
-def generate_header(mode: str, threshold: int) -> str:
+def generate_header(mode: str, threshold: int, leaf_style: str = "noinit",
+                    guard_override: str | None = None) -> str:
     cfg = _MODE_CONFIG[mode]
     guard = cfg["guard"]
 
@@ -634,19 +735,28 @@ def generate_header(mode: str, threshold: int) -> str:
         collect_sizes(root, sizes, threshold)
     ordered = sorted(sizes)
 
+    # For memset leaf style, adjust guard to avoid collision with noinit header
+    # (only when no explicit output path overrides the default file)
+    if guard_override is not None:
+        guard = guard_override
+    elif leaf_style == "memset":
+        guard = guard.replace("_GEN_H", "_MEMSET_GEN_H")
+
     out: list[str] = []
     out.append(f"#ifndef {guard}")
     out.append(f"#define {guard}")
     out.append("")
     out.append("#include <stddef.h>")
     out.append("#include <stdint.h>")
+    if leaf_style == "memset" and mode in ("zbc",):
+        out.append("#include <string.h>")
     out.append("")
-    out.append(f"/* Auto-generated by scripts/gen/gen_karatsuba_specialized.py --mode {mode} --threshold {threshold}. */")
+    out.append(f"/* Auto-generated by scripts/gen/gen_karatsuba_specialized.py --mode {mode} --leaf-style {leaf_style} --threshold {threshold}. */")
     out.append("/* Fixed-size recursion roots: 277, 561, 901. */")
     out.append("")
 
     for n in ordered:
-        out.append(emit_function(n, mode, threshold))
+        out.append(emit_function(n, mode, threshold, leaf_style))
 
     out.append("#endif")
     out.append("")
@@ -999,14 +1109,31 @@ def main() -> None:
         help="Output file path (overrides mode default)",
     )
     parser.add_argument(
+        "--leaf-style",
+        choices=["noinit", "memset"],
+        default="noinit",
+        help="Leaf function style: noinit (assign-on-first-write, uses clmul_leaf_n8/n9) "
+             "or memset (zeroing leaf, uses generic clmul_leaf for all sizes)",
+    )
+    parser.add_argument(
         "--rvv-hybrid-threshold",
         type=int,
         default=None,
         help="RVV hybrid threshold: functions with n <= this use scalar loops (default: 18)",
     )
+    parser.add_argument(
+        "--split",
+        choices=["ap2", "symmetric"],
+        default="ap2",
+        help="Split rule: ap2 (n0=ceil(n/2), n1=floor(n/2)) or symmetric (n0=floor(n/2), n1=n-n0). Both produce identical recursion trees.",
+    )
     args = parser.parse_args()
 
     validate_threshold(args.threshold)
+
+    # Allow overriding split mode from CLI
+    global _SPLIT_MODE
+    _SPLIT_MODE = args.split
 
     # Allow overriding RVV_HYBRID_THRESHOLD from CLI
     if args.rvv_hybrid_threshold is not None:
@@ -1015,10 +1142,17 @@ def main() -> None:
 
     if args.output is not None:
         out_path = Path(args.output)
+        # Derive guard from filename when output is explicitly specified
+        stem = out_path.stem.upper().replace("-", "_").replace(".", "_")
+        guard_override = f"HQC_{stem}_H"
     else:
         out_path = _MODE_CONFIG[args.mode]["out"]
+        guard_override = None
+        # For memset leaf style in zbc mode, use a separate output file
+        if args.leaf_style == "memset" and args.mode == "zbc":
+            out_path = out_path.parent / "karatsuba_specialized_memset_gen.h"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(generate_header(args.mode, args.threshold))
+    out_path.write_text(generate_header(args.mode, args.threshold, args.leaf_style, guard_override))
     print(f"Generated {out_path}")
 
 

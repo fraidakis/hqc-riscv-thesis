@@ -29,16 +29,19 @@ bench_resolve_variant() {
 bench_variant_slug() {
     local canonical="$1"
     # Map canonical variant names to hyphenated slugs (used in CSV filenames).
-    # The slug is simply the canonical name with underscores replaced by hyphens.
+    # The slug must match [a-z0-9]+(-[a-z0-9]+)* — all lowercase.
     case "$canonical" in
         scalar_ref)     echo "scalar-ref" ;;
         scalar_zb)      echo "scalar-zb" ;;
+        scalar_zb_A)    echo "scalar-zb-a" ;;
+        scalar_zb_AB)   echo "scalar-zb-ab" ;;
+        scalar_zb_AC)   echo "scalar-zb-ac" ;;
         vector_ref)     echo "vector-ref" ;;
         vector_rvv)     echo "vector-rvv" ;;
         vector_zvk)     echo "vector-zvk" ;;
         # For non-variant identifiers (keccak/decode impl names like "ref", "rvv",
-        # "zvbc", "opt", "zvbb_x2_soa"), fall back to underscore→hyphen replacement.
-        *)              echo "${canonical//_/-}" ;;
+        # "zvbc", "opt", "zvbb_x2_soa"), fall back to underscore→hyphen + lowercase.
+        *)              echo "${canonical//_/-}" | tr '[:upper:]' '[:lower:]' ;;
     esac
 }
 

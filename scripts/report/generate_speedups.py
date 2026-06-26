@@ -60,7 +60,7 @@ TIERS = [
         "label": "Table 2 — Tier 2 (Edge RVV)",
         "baseline_variant": "scalar_ref",
         "champion_variant": "vector_rvv",
-        "note": "rv64gcv + Zbc/Zbb; AP-2 fixed-tree polymul, scalar Keccak",
+        "note": "rv64gcv + Zbc/Zbb; specialized fixed-tree polymul, scalar Keccak",
     },
     {
         "label": "Table 3 — Tier 3 (High-End Zvbc)",
