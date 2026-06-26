@@ -209,18 +209,12 @@ granularity. Για κάθε ζεύγος \num{64}-bit words $(a[i], b[j])$, ο
 
 Η επέκταση \gls{zbc} παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
 υπολογίζουν το πλήρες \num{128}-bit carry-less γινόμενο δύο \num{64}-bit
-πολυωνύμων σε $\GFpoly$ χωρίς αναγωγή.
-
-Η αντικατάσταση του bit-serial βρόχου με ένα ζεύγος \clmul/\clmulh
+πολυωνύμων σε $\GFpoly$ χωρίς αναγωγή. Η αντικατάσταση του bit-serial βρόχου με ένα ζεύγος \clmul/\clmulh
 μετασχηματίζει τον εσωτερικό βρόχο από $64n$ iterations σε $n$
 iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το κέρδος δεν προέρχεται από εξάλειψη branch (ο
 reference leaf είναι ήδη branchless), αλλά από τη δραστική μείωση των
 iterations και την κατάργηση της per-bit μάσκας εξαγωγής και της μεταβλητής
 ολίσθησης που κυριαρχούσαν στο reference.
-
-Η υλοποίηση χρησιμοποιεί compiler intrinsics αντί inline assembly,
-επιτρέποντας στον μεταγλωττιστή πλήρη ορατότητα για register allocation
-και instruction scheduling:
 
 \begin{lstlisting}[language=C,
   caption={Wrapper carry-less multiply μέσω Zbc intrinsics.},
