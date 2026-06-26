@@ -89,6 +89,10 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 #   scalar_zb   : scalar optimized champion (Zbc carry-less multiply)
 #   vector_rvv  : RVV hybrid champion
 #   vector_zvk  : full vector-crypto champion (Zvbc)
+#   vector_rvv_ref  : RVV ablation baseline (no direct-write, helper calls)
+#   vector_rvv_A    : RVV ablation + direct-write discipline
+#   vector_rvv_AB   : RVV ablation + direct-write + overlap-save
+#   vector_rvv_ABC  : RVV ablation + direct-write + overlap-save + inlined RVV
 set(POLYMUL_VARIANTS
     scalar_ref
     scalar_zb
@@ -96,6 +100,10 @@ set(POLYMUL_VARIANTS
     scalar_zb_AB
     scalar_zb_AC
     scalar_zb_ABC_nosplit
+    vector_rvv_ref
+    vector_rvv_A
+    vector_rvv_AB
+    vector_rvv_ABC
     vector_rvv
     vector_zvk
 )
@@ -433,6 +441,48 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_NOINIT=1
                 -DABLATION_AP2=0
                 -DABLATION_SYMMETRIC_TREE=1)
+        elseif(POLYMUL STREQUAL "vector_rvv_ref")
+            # Ablation: no direct-write, scalar recomposition (compiled with RVV march)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=rv64gcv_zbc_zbb_zba
+                -mabi=lp64d
+                -O3
+                -fno-tree-vectorize
+                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_ref_gen.h\"")
+        elseif(POLYMUL STREQUAL "vector_rvv_A")
+            # Ablation: direct-write + overlap-save, but shared helper calls (no inline)
+            # NOTE: A and B are inseparable — direct-write requires overlap-save for correctness.
+            # Uses the ABC header (inlined) as approximation — A-only requires new gen mode.
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=rv64gcv_zbc_zbb_zba
+                -mabi=lp64d
+                -O3
+                -fno-tree-vectorize
+                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_abc_gen.h\"")
+        elseif(POLYMUL STREQUAL "vector_rvv_AB")
+            # Ablation: direct-write + overlap-save (same as A — B is inherent to A)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=rv64gcv_zbc_zbb_zba
+                -mabi=lp64d
+                -O3
+                -fno-tree-vectorize
+                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_abc_gen.h\"")
+        elseif(POLYMUL STREQUAL "vector_rvv_ABC")
+            # Ablation: direct-write + overlap-save + inlined RVV (no hybrid recursion)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=rv64gcv_zbc_zbb_zba
+                -mabi=lp64d
+                -O3
+                -fno-tree-vectorize
+                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_abc_gen.h\"")
         elseif(POLYMUL STREQUAL "vector_rvv")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)

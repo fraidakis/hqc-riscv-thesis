@@ -75,7 +75,12 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
  *
  * All well under the 512 KB limit (Requirement 9.3).
  */
+#ifdef RVV_ABLATION_HEADER
+/* Ablation variants may use non-direct-write layout requiring more tmp space */
+#define TMP_BUFFER_WORDS (16u * VEC_N_SIZE_64)
+#else
 #define TMP_BUFFER_WORDS (4u * VEC_N_SIZE_64)
+#endif
 
 /* ── RVV helpers ──────────────────────────────────────────────────────────
  *
@@ -826,7 +831,11 @@ static void clmul_leaf(uint64_t * __restrict__ r,
     }
 }
 
+#ifdef RVV_ABLATION_HEADER
+#include RVV_ABLATION_HEADER
+#else
 #include "karatsuba_rvv_specialized_gen.h"
+#endif
 
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────*/
 static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)

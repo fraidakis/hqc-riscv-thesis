@@ -1,11 +1,15 @@
-# date: 2026-06-23 18:30
-# commit: f21e6c4
+# date: 2026-06-26 19:14
+# commit: f359339
 # variant: vector_rvv
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-level,op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall
-128,vect_mul,100,124822,125921,167574,126664.8,4508.7,145071,145071,153203,145152.3,813.2,102,65857,0.15%,40,55,2130,26021,3872,5768
-192,vect_mul,100,361611,364036,452463,367096.5,12861.8,431886,431886,447324,432535.8,2759.8,332,205256,0.16%,45,80,2425,81752,12168,20754
-256,vect_mul,100,844019,847899,884399,851290.4,9196.1,1021631,1021631,1029673,1022480.7,2140.8,722,430926,0.17%,53,102,1345,173401,26714,35612
+# isolation_irq: off
+# isolation_aslr: off
+# isolation_isolcpus: off
+# isolation_core: 7
+level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
+128,vect_mul,100,120932,121231,121479,123015,1784,168617,144378
+192,vect_mul,100,356444,357930,358481,359379,1449,397573,431193
+256,vect_mul,100,842735,845859,846920,848496,2637,908521,1020938

@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
 # scripts/bench/run_ablation.sh
 #
-# Run the full scalar Karatsuba ablation study: KAT validation and/or
-# polymul micro-benchmarks across all ablation variants.
+# Run ablation studies for HQC polymul optimizations: KAT validation
+# and/or polymul micro-benchmarks across all ablation variants.
 #
 # This script wraps run_bench.sh and run_kat.sh to iterate over the
 # ablation variant matrix in a single command.
 #
 # Usage:
-#   run_ablation.sh                           # Default: --sim + --hw
-#   run_ablation.sh --kat                     # KAT only (sim)
-#   run_ablation.sh --sim                     # Polymul bench on Spike
-#   run_ablation.sh --hw                      # Polymul bench on hardware
-#   run_ablation.sh --kat --sim               # KAT then bench
-#   run_ablation.sh --kat --sim --hw          # Everything
-#   run_ablation.sh --sim --level 128         # Single level
-#   run_ablation.sh --hw --quality publish    # Publication-quality HW run
-#   run_ablation.sh --sim --variant scalar_zb_A  # Single variant only
+#   run_ablation.sh --scalar_zb               # Scalar ablation (default: --sim + --hw)
+#   run_ablation.sh --vector_rvv              # Vector RVV ablation
+#   run_ablation.sh --scalar_zb --vector_rvv  # Both studies
+#   run_ablation.sh --scalar_zb --kat         # Scalar KAT only (sim)
+#   run_ablation.sh --vector_rvv --sim        # Vector bench on Spike
+#   run_ablation.sh --vector_rvv --hw         # Vector bench on hardware
+#   run_ablation.sh --scalar_zb --sim --level 128   # Single level
+#   run_ablation.sh --vector_rvv --hw --quality publish  # Publication-quality
+#   run_ablation.sh --scalar_zb --sim --variant scalar_zb_A  # Single variant
+#   run_ablation.sh --vector_rvv --sim --variant vector_rvv_A  # Single variant
+#
+# Study selection (at least one required):
+#   --scalar_zb         Run scalar Karatsuba ablation (Tier 1)
+#   --vector_rvv        Run vector RVV ablation (Tier 2)
 #
 # Flags:
 #   --kat               Run KAT validation (via Spike)
@@ -31,20 +36,27 @@
 #   --dry-run           Print commands without executing
 #   -h, --help          Show this help
 #
-# The ablation variants (in order of optimization layering):
+# Scalar ablation variants (in order of optimization layering):
 #   scalar_ref    : baseline (bit-serial + memset + n>>1 split)
 #   scalar_zb_A   : + word-level clmul
 #   scalar_zb_AB  : + word-level + assign-on-first-write
 #   scalar_zb_AC  : + word-level + specialized recursion tree + leaf unrolling
 #   scalar_zb     : + all three (champion)
+#
+# Vector RVV ablation variants (in order of optimization layering):
+#   vector_rvv_ref  : baseline (scalar_zb + naive RVV combine with shared helpers)
+#   vector_rvv_A    : + direct-write discipline (eliminate copy loops)
+#   vector_rvv_AB   : + direct-write + overlap-save combine
+#   vector_rvv_ABC  : + direct-write + overlap-save + inlined RVV (tuned LMUL)
+#   vector_rvv      : + all + hybrid scalar/vector recursion (champion)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# ── Ablation variant list (in thesis presentation order) ─────────────────────
-ALL_ABLATION_VARIANTS=(
+# ── Ablation variant lists (in thesis presentation order) ────────────────────
+SCALAR_ABLATION_VARIANTS=(
     scalar_ref
     scalar_zb_A
     scalar_zb_AB
@@ -52,7 +64,17 @@ ALL_ABLATION_VARIANTS=(
     scalar_zb
 )
 
+VECTOR_RVV_ABLATION_VARIANTS=(
+    vector_rvv_ref
+    vector_rvv_A
+    vector_rvv_AB
+    vector_rvv_ABC
+    vector_rvv
+)
+
 # ── Defaults ─────────────────────────────────────────────────────────────────
+DO_SCALAR=0
+DO_VECTOR_RVV=0
 DO_KAT=0
 DO_SIM=0
 DO_HW=0
@@ -70,6 +92,8 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --scalar_zb|--scalar-zb)  DO_SCALAR=1; shift ;;
+        --vector_rvv|--vector-rvv) DO_VECTOR_RVV=1; shift ;;
         --kat)        DO_KAT=1; shift ;;
         --sim)        DO_SIM=1; shift ;;
         --hw)         DO_HW=1;  shift ;;
@@ -98,18 +122,32 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# ── Auto-infer study from --variant if no study flag given ────────────────────
+if [[ $DO_SCALAR -eq 0 && $DO_VECTOR_RVV -eq 0 && -n "$VARIANT_FILTER" ]]; then
+    case "$VARIANT_FILTER" in
+        scalar_ref|scalar_zb|scalar_zb_*)
+            DO_SCALAR=1 ;;
+        vector_rvv_*|vector_rvv)
+            DO_VECTOR_RVV=1 ;;
+        *)
+            echo "ERROR: Cannot infer study from variant '${VARIANT_FILTER}'." >&2
+            echo "       Specify --scalar_zb or --vector_rvv explicitly." >&2
+            exit 1 ;;
+    esac
+fi
+
 # ── Validation ───────────────────────────────────────────────────────────────
+# At least one study must be selected
+if [[ $DO_SCALAR -eq 0 && $DO_VECTOR_RVV -eq 0 ]]; then
+    echo "ERROR: At least one study must be selected: --scalar_zb or --vector_rvv" >&2
+    usage >&2
+    exit 1
+fi
+
 # If no action flags given, default to running both --sim and --hw
 if [[ $DO_KAT -eq 0 && $DO_SIM -eq 0 && $DO_HW -eq 0 ]]; then
     DO_SIM=1
     DO_HW=1
-fi
-
-# ── Resolve variant list ─────────────────────────────────────────────────────
-if [[ -n "$VARIANT_FILTER" ]]; then
-    VARIANTS=("$VARIANT_FILTER")
-else
-    VARIANTS=("${ALL_ABLATION_VARIANTS[@]}")
 fi
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -140,74 +178,118 @@ section() {
     echo "── $1 ──────────────────────────────────────────────────────────────"
 }
 
-# ── Phase 1: KAT Validation ─────────────────────────────────────────────────
-if [[ $DO_KAT -eq 1 ]]; then
-    header "KAT VALIDATION"
-    for v in "${VARIANTS[@]}"; do
-        section "KAT: ${v} (level=${LEVEL})"
-        if run_cmd "${REPO_ROOT}/scripts/test/run_kat.sh" \
-                --variant "$v" --level "$LEVEL"; then
-            echo "  ✓ ${v}: PASS"
-            incr_pass
-        else
-            echo "  ✗ ${v}: FAIL"
-            incr_fail
-            if [[ $STOP_ON_FAIL -eq 1 ]]; then
-                echo "ERROR: KAT failed for ${v}, aborting (--stop-on-fail)" >&2
-                exit 1
-            fi
-        fi
-    done
-    echo ""
-    echo "KAT summary: ${PASS} passed, ${FAIL} failed"
+# Slug helper (underscore to hyphen, lowercase)
+slug() { echo "${1//_/-}" | tr '[:upper:]' '[:lower:]'; }
 
-    if [[ $FAIL -gt 0 && ($DO_SIM -eq 1 || $DO_HW -eq 1) ]]; then
-        echo "WARNING: Some KAT tests failed. Benchmark results may be invalid." >&2
+# ── Generic ablation runner ──────────────────────────────────────────────────
+# Arguments:
+#   $1 - study_name (for display)
+#   $2 - variants array name (nameref)
+run_ablation_phases() {
+    local study_name="$1"
+    local -n _variants="$2"
+
+    # ── Resolve variant list ─────────────────────────────────────────────
+    local variants_to_run=()
+    if [[ -n "$VARIANT_FILTER" ]]; then
+        # Check that the filter is valid for this study
+        local found=0
+        for v in "${_variants[@]}"; do
+            if [[ "$v" == "$VARIANT_FILTER" ]]; then
+                found=1
+                break
+            fi
+        done
+        if [[ $found -eq 0 ]]; then
+            echo "  ⏭  Skipping ${study_name}: --variant '${VARIANT_FILTER}' not in this study"
+            return 0
+        fi
+        variants_to_run=("$VARIANT_FILTER")
+    else
+        variants_to_run=("${_variants[@]}")
     fi
-fi
 
-# ── Phase 2: Simulation Benchmark (Spike) ────────────────────────────────────
-if [[ $DO_SIM -eq 1 ]]; then
-    header "SIMULATION BENCHMARK (Spike — instret)"
-    for v in "${VARIANTS[@]}"; do
-        section "Bench sim: ${v} (level=${LEVEL})"
-        if run_cmd "${REPO_ROOT}/scripts/bench/run_bench.sh" \
-                --platform sim --mode mul --variant "$v" --level "$LEVEL"; then
-            echo "  ✓ ${v}: done"
-        else
-            echo "  ✗ ${v}: FAILED"
-            incr_fail
-            if [[ $STOP_ON_FAIL -eq 1 ]]; then
-                echo "ERROR: Sim bench failed for ${v}, aborting" >&2
-                exit 1
+    # ── Phase 1: KAT Validation ──────────────────────────────────────────
+    if [[ $DO_KAT -eq 1 ]]; then
+        header "KAT VALIDATION — ${study_name}"
+        for v in "${variants_to_run[@]}"; do
+            section "KAT: ${v} (level=${LEVEL})"
+            if run_cmd "${REPO_ROOT}/scripts/test/run_kat.sh" \
+                    --variant "$v" --level "$LEVEL"; then
+                echo "  ✓ ${v}: PASS"
+                incr_pass
+            else
+                echo "  ✗ ${v}: FAIL"
+                incr_fail
+                if [[ $STOP_ON_FAIL -eq 1 ]]; then
+                    echo "ERROR: KAT failed for ${v}, aborting (--stop-on-fail)" >&2
+                    exit 1
+                fi
             fi
-        fi
-    done
-fi
+        done
+        echo ""
+        echo "KAT summary (${study_name}): ${PASS} passed, ${FAIL} failed"
 
-# ── Phase 3: Hardware Benchmark ──────────────────────────────────────────────
-if [[ $DO_HW -eq 1 ]]; then
-    header "HARDWARE BENCHMARK (cycles)"
-    for v in "${VARIANTS[@]}"; do
-        section "Bench hw: ${v} (level=${LEVEL}, quality=${QUALITY})"
-        if run_cmd "${REPO_ROOT}/scripts/bench/run_bench.sh" \
-                --platform hw --mode mul --variant "$v" --level "$LEVEL" \
-                --quality "$QUALITY" "${REMOTE_ARGS[@]+"${REMOTE_ARGS[@]}"}"; then
-            echo "  ✓ ${v}: done"
-        else
-            echo "  ✗ ${v}: FAILED"
-            incr_fail
-            if [[ $STOP_ON_FAIL -eq 1 ]]; then
-                echo "ERROR: HW bench failed for ${v}, aborting" >&2
-                exit 1
+        if [[ $FAIL -gt 0 && ($DO_SIM -eq 1 || $DO_HW -eq 1) ]]; then
+            echo "WARNING: Some KAT tests failed. Benchmark results may be invalid." >&2
+        fi
+    fi
+
+    # ── Phase 2: Simulation Benchmark (Spike) ────────────────────────────
+    if [[ $DO_SIM -eq 1 ]]; then
+        header "SIMULATION BENCHMARK — ${study_name} (Spike — instret)"
+        for v in "${variants_to_run[@]}"; do
+            section "Bench sim: ${v} (level=${LEVEL})"
+            if run_cmd "${REPO_ROOT}/scripts/bench/run_bench.sh" \
+                    --platform sim --mode mul --variant "$v" --level "$LEVEL"; then
+                echo "  ✓ ${v}: done"
+            else
+                echo "  ✗ ${v}: FAILED"
+                incr_fail
+                if [[ $STOP_ON_FAIL -eq 1 ]]; then
+                    echo "ERROR: Sim bench failed for ${v}, aborting" >&2
+                    exit 1
+                fi
             fi
-        fi
-    done
+        done
+    fi
+
+    # ── Phase 3: Hardware Benchmark ──────────────────────────────────────
+    if [[ $DO_HW -eq 1 ]]; then
+        header "HARDWARE BENCHMARK — ${study_name} (cycles)"
+        for v in "${variants_to_run[@]}"; do
+            section "Bench hw: ${v} (level=${LEVEL}, quality=${QUALITY})"
+            if run_cmd "${REPO_ROOT}/scripts/bench/run_bench.sh" \
+                    --platform hw --mode mul --variant "$v" --level "$LEVEL" \
+                    --quality "$QUALITY" "${REMOTE_ARGS[@]+"${REMOTE_ARGS[@]}"}"; then
+                echo "  ✓ ${v}: done"
+            else
+                echo "  ✗ ${v}: FAILED"
+                incr_fail
+                if [[ $STOP_ON_FAIL -eq 1 ]]; then
+                    echo "ERROR: HW bench failed for ${v}, aborting" >&2
+                    exit 1
+                fi
+            fi
+        done
+    fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Run selected studies
+# ══════════════════════════════════════════════════════════════════════════════
+
+if [[ $DO_SCALAR -eq 1 ]]; then
+    run_ablation_phases "Scalar Karatsuba (Tier 1)" SCALAR_ABLATION_VARIANTS
 fi
 
-# ── Phase 4: Aggregate Results & Generate Unified Report ─────────────────────
-# Always generate the report (after --sim, --hw, or both)
-header "GENERATING ABLATION REPORT"
+if [[ $DO_VECTOR_RVV -eq 1 ]]; then
+    run_ablation_phases "Vector RVV (Tier 2)" VECTOR_RVV_ABLATION_VARIANTS
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Phase 4: Report Generation
+# ══════════════════════════════════════════════════════════════════════════════
 
 REPORT_DIR="${REPO_ROOT}/results/reports/summaries"
 mkdir -p "$REPORT_DIR"
@@ -219,32 +301,40 @@ else
     IFS=',' read -ra REPORT_LEVELS <<< "$LEVEL"
 fi
 
-# Slug helper (underscore to hyphen, lowercase)
-slug() { echo "${1//_/-}" | tr '[:upper:]' '[:lower:]'; }
-
 # Data source directories
 HW_CSV_DIR="${REPO_ROOT}/results/hardware/benchmarks/components/poly_mul"
 SIM_CSV_DIR="${REPO_ROOT}/results/simulation/benchmarks/components/poly_mul"
-REPORT="${REPORT_DIR}/ablation.md"
 
-# Determine which data sources are available
-HAS_HW=0
-HAS_SIM=0
-[[ $DO_HW -eq 1 ]] && HAS_HW=1
-[[ $DO_SIM -eq 1 ]] && HAS_SIM=1
+# ── Scalar Ablation Report ───────────────────────────────────────────────────
+if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
+    header "GENERATING SCALAR ABLATION REPORT"
 
-# If only sim was run but HW data exists from a previous run, include it
-if [[ $HAS_HW -eq 0 ]]; then
-    hw_probe="${HW_CSV_DIR}/hw_mul_scalar-ref_latest.csv"
-    [[ -f "$hw_probe" ]] && HAS_HW=1
-fi
-# If only hw was run but sim data exists from a previous run, include it
-if [[ $HAS_SIM -eq 0 ]]; then
-    sim_probe="${SIM_CSV_DIR}/sim_mul_scalar-ref_latest.csv"
-    [[ -f "$sim_probe" ]] && HAS_SIM=1
-fi
+    REPORT="${REPORT_DIR}/ablation.md"
+    VARIANTS=("${SCALAR_ABLATION_VARIANTS[@]}")
+    if [[ -n "$VARIANT_FILTER" ]]; then
+        # Check if filter belongs to scalar study
+        _in_scalar=0
+        for v in "${SCALAR_ABLATION_VARIANTS[@]}"; do
+            [[ "$v" == "$VARIANT_FILTER" ]] && _in_scalar=1
+        done
+        [[ $_in_scalar -eq 1 ]] && VARIANTS=("$VARIANT_FILTER")
+    fi
 
-if [[ $DRY_RUN -eq 0 ]]; then
+    # Determine which data sources are available
+    HAS_HW=0
+    HAS_SIM=0
+    [[ $DO_HW -eq 1 ]] && HAS_HW=1
+    [[ $DO_SIM -eq 1 ]] && HAS_SIM=1
+
+    if [[ $HAS_HW -eq 0 ]]; then
+        hw_probe="${HW_CSV_DIR}/hw_mul_scalar-ref_latest.csv"
+        [[ -f "$hw_probe" ]] && HAS_HW=1
+    fi
+    if [[ $HAS_SIM -eq 0 ]]; then
+        sim_probe="${SIM_CSV_DIR}/sim_mul_scalar-ref_latest.csv"
+        [[ -f "$sim_probe" ]] && HAS_SIM=1
+    fi
+
     {
         echo "# Scalar Karatsuba Ablation Study"
         echo ""
@@ -262,12 +352,10 @@ if [[ $DRY_RUN -eq 0 ]]; then
         echo "- **C** — Compile-time specialized recursion tree"
         echo ""
 
-        # ── Per-level tables ─────────────────────────────────────────────
         for lvl in "${REPORT_LEVELS[@]}"; do
             echo "## HQC-${lvl}"
             echo ""
 
-            # Table header depends on available data
             if [[ $HAS_HW -eq 1 && $HAS_SIM -eq 1 ]]; then
                 echo "| Variant | Optimizations | median cycles | vs ref | vs prev | instret | vs ref | vs prev |"
                 echo "|---------|---------------|-------------:|-------:|--------:|--------:|-------:|--------:|"
@@ -279,14 +367,12 @@ if [[ $DRY_RUN -eq 0 ]]; then
                 echo "|---------|---------------|--------:|-------:|--------:|"
             fi
 
-            # Collect data for all variants at this level
             declare -A LVL_CYCLES=()
             declare -A LVL_INSTRET=()
 
             for v in "${VARIANTS[@]}"; do
                 s="$(slug "$v")"
 
-                # HW data (cycles + instret from perf counters)
                 if [[ $HAS_HW -eq 1 ]]; then
                     csv="${HW_CSV_DIR}/hw_mul_${s}_latest.csv"
                     if [[ -f "$csv" ]]; then
@@ -300,7 +386,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
                     fi
                 fi
 
-                # Sim data (instret only — use if no HW instret available)
                 if [[ $HAS_SIM -eq 1 && -z "${LVL_INSTRET[$v]:-}" ]]; then
                     csv="${SIM_CSV_DIR}/sim_mul_${s}_latest.csv"
                     if [[ -f "$csv" ]]; then
@@ -313,7 +398,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
                 fi
             done
 
-            # Reference values for speedup computation
             ref_cycles="${LVL_CYCLES[scalar_ref]:-}"
             ref_instret="${LVL_INSTRET[scalar_ref]:-}"
             a_cycles="${LVL_CYCLES[scalar_zb_A]:-}"
@@ -323,7 +407,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
             ab_instret="${LVL_INSTRET[scalar_zb_AB]:-}"
             ac_instret="${LVL_INSTRET[scalar_zb_AC]:-}"
 
-            # Best branch for ABC "vs prev" (lower is better)
             best_branch_cycles=""
             if [[ -n "$ab_cycles" && -n "$ac_cycles" ]]; then
                 [[ "$ac_cycles" -le "$ab_cycles" ]] && best_branch_cycles="$ac_cycles" || best_branch_cycles="$ab_cycles"
@@ -338,12 +421,10 @@ if [[ $DRY_RUN -eq 0 ]]; then
             elif [[ -n "$ac_instret" ]]; then best_branch_instret="$ac_instret"
             fi
 
-            # Emit rows
             for v in "${VARIANTS[@]}"; do
                 cycles="${LVL_CYCLES[$v]:-}"
                 instret="${LVL_INSTRET[$v]:-}"
 
-                # Optimization label
                 case "$v" in
                     scalar_ref)   opt_label="(none)" ;;
                     scalar_zb_A)  opt_label="A" ;;
@@ -353,7 +434,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
                     *)            opt_label="?" ;;
                 esac
 
-                # ── Cycles columns ───────────────────────────────────────
                 if [[ $HAS_HW -eq 1 ]]; then
                     if [[ -z "$cycles" ]]; then
                         col_cycles="—"; col_cyc_ref="—"; col_cyc_prev="—"
@@ -382,7 +462,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
                     fi
                 fi
 
-                # ── Instret columns ──────────────────────────────────────
                 if [[ -z "$instret" ]]; then
                     col_instret="—"; col_inst_ref="—"; col_inst_prev="—"
                 else
@@ -409,7 +488,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
                     esac
                 fi
 
-                # ── Emit row ─────────────────────────────────────────────
                 if [[ $HAS_HW -eq 1 && $HAS_SIM -eq 1 ]]; then
                     echo "| \`${v}\` | ${opt_label} | ${col_cycles} | ${col_cyc_ref} | ${col_cyc_prev} | ${col_instret} | ${col_inst_ref} | ${col_inst_prev} |"
                 elif [[ $HAS_HW -eq 1 ]]; then
@@ -446,7 +524,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
                 awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $6}' "$csv"
             }
 
-            # Determine finalist (lower cycles wins at HQC-128)
             hw_ab_128=$(hw_get_cycles "scalar_zb_AB" 128)
             hw_ac_128=$(hw_get_cycles "scalar_zb_AC" 128)
             if [[ -n "$hw_ac_128" && -n "$hw_ab_128" && "$hw_ac_128" -le "$hw_ab_128" ]]; then
@@ -481,7 +558,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
             echo "| Transition | What changes | HQC-128 | HQC-192 | HQC-256 |"
             echo "|------------|--------------|--------:|--------:|--------:|"
 
-            # Use HW instret if available, otherwise sim instret
             instret_get() {
                 local var="$1" lvl="$2"
                 if [[ $HAS_HW -eq 1 ]]; then
@@ -509,7 +585,6 @@ if [[ $DRY_RUN -eq 0 ]]; then
                 awk "BEGIN{printf \"×%.2f\",${from_val}/${to_val}}"
             }
 
-            # Determine finalist by instret at HQC-128
             inst_ab_128=$(instret_get "scalar_zb_AB" 128)
             inst_ac_128=$(instret_get "scalar_zb_AC" 128)
             if [[ -n "$inst_ac_128" && -n "$inst_ab_128" && "$inst_ac_128" -le "$inst_ab_128" ]]; then
@@ -539,13 +614,320 @@ if [[ $DRY_RUN -eq 0 ]]; then
 
     } > "$REPORT"
 
-    echo "  → Ablation report: ${REPORT}"
+    echo "  → Scalar ablation report: ${REPORT}"
+fi
+
+# ── Vector RVV Ablation Report ───────────────────────────────────────────────
+if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
+    header "GENERATING VECTOR RVV ABLATION REPORT"
+
+    REPORT="${REPORT_DIR}/ablation_vector_rvv.md"
+    VARIANTS=("${VECTOR_RVV_ABLATION_VARIANTS[@]}")
+    if [[ -n "$VARIANT_FILTER" ]]; then
+        _in_vector=0
+        for v in "${VECTOR_RVV_ABLATION_VARIANTS[@]}"; do
+            [[ "$v" == "$VARIANT_FILTER" ]] && _in_vector=1
+        done
+        [[ $_in_vector -eq 1 ]] && VARIANTS=("$VARIANT_FILTER")
+    fi
+
+    # Determine which data sources are available
+    HAS_HW=0
+    HAS_SIM=0
+    [[ $DO_HW -eq 1 ]] && HAS_HW=1
+    [[ $DO_SIM -eq 1 ]] && HAS_SIM=1
+
+    if [[ $HAS_HW -eq 0 ]]; then
+        hw_probe="${HW_CSV_DIR}/hw_mul_vector-rvv-ref_latest.csv"
+        [[ -f "$hw_probe" ]] && HAS_HW=1
+    fi
+    if [[ $HAS_SIM -eq 0 ]]; then
+        sim_probe="${SIM_CSV_DIR}/sim_mul_vector-rvv-ref_latest.csv"
+        [[ -f "$sim_probe" ]] && HAS_SIM=1
+    fi
+
+    {
+        echo "# Vector RVV Ablation Study (Tier 2)"
+        echo ""
+        echo "Generated: $(date '+%Y-%m-%d %H:%M')"
+        if [[ $HAS_HW -eq 1 ]]; then
+            echo "Platform: BPI-F3 (SpacemiT K1 X60)"
+            echo "Quality: ${QUALITY}"
+        fi
+        echo ""
+        echo "Baseline: \`vector_rvv_ref\` (scalar_zb champion + naive RVV combine with shared helper functions)"
+        echo ""
+        echo "Optimizations:"
+        echo "- **A** — Direct-write discipline (children write to output buffer, eliminate copy loops)"
+        echo "- **B** — Overlap-save combine (resolve aliasing hazard from direct-write)"
+        echo "- **C** — Inlined RVV operations with per-operation LMUL tuning"
+        echo "- **D** — Hybrid scalar/vector recursion (scalar loops at lower tree levels)"
+        echo ""
+
+        # ── Per-level tables ─────────────────────────────────────────────
+        for lvl in "${REPORT_LEVELS[@]}"; do
+            echo "## HQC-${lvl}"
+            echo ""
+
+            if [[ $HAS_HW -eq 1 && $HAS_SIM -eq 1 ]]; then
+                echo "| Variant | Optimizations | median cycles | vs ref | vs prev | instret | vs ref | vs prev |"
+                echo "|---------|---------------|-------------:|-------:|--------:|--------:|-------:|--------:|"
+            elif [[ $HAS_HW -eq 1 ]]; then
+                echo "| Variant | Optimizations | median cycles | vs ref | vs prev | instret |"
+                echo "|---------|---------------|-------------:|-------:|--------:|--------:|"
+            else
+                echo "| Variant | Optimizations | instret | vs ref | vs prev |"
+                echo "|---------|---------------|--------:|-------:|--------:|"
+            fi
+
+            # Collect data for all variants at this level
+            declare -A VEC_CYCLES=()
+            declare -A VEC_INSTRET=()
+
+            for v in "${VARIANTS[@]}"; do
+                s="$(slug "$v")"
+
+                if [[ $HAS_HW -eq 1 ]]; then
+                    csv="${HW_CSV_DIR}/hw_mul_${s}_latest.csv"
+                    if [[ -f "$csv" ]]; then
+                        read -r cyc inst <<< $(awk -F',' -v l="$lvl" \
+                            '!/^#/&&!/^level/&&$1==l{print $6, $10}' "$csv")
+                        VEC_CYCLES["$v"]="$cyc"
+                        VEC_INSTRET["$v"]="$inst"
+                    else
+                        VEC_CYCLES["$v"]=""
+                        VEC_INSTRET["$v"]=""
+                    fi
+                fi
+
+                if [[ $HAS_SIM -eq 1 && -z "${VEC_INSTRET[$v]:-}" ]]; then
+                    csv="${SIM_CSV_DIR}/sim_mul_${s}_latest.csv"
+                    if [[ -f "$csv" ]]; then
+                        inst=$(awk -F',' -v l="$lvl" \
+                            '!/^#/&&!/^level/&&$1==l{print $3}' "$csv")
+                        VEC_INSTRET["$v"]="$inst"
+                    else
+                        VEC_INSTRET["$v"]=""
+                    fi
+                fi
+            done
+
+            # Reference values for speedup computation
+            ref_cycles="${VEC_CYCLES[vector_rvv_ref]:-}"
+            ref_instret="${VEC_INSTRET[vector_rvv_ref]:-}"
+            a_cycles="${VEC_CYCLES[vector_rvv_A]:-}"
+            a_instret="${VEC_INSTRET[vector_rvv_A]:-}"
+            ab_cycles="${VEC_CYCLES[vector_rvv_AB]:-}"
+            ab_instret="${VEC_INSTRET[vector_rvv_AB]:-}"
+            abc_cycles="${VEC_CYCLES[vector_rvv_ABC]:-}"
+            abc_instret="${VEC_INSTRET[vector_rvv_ABC]:-}"
+
+            # Emit rows
+            for v in "${VARIANTS[@]}"; do
+                cycles="${VEC_CYCLES[$v]:-}"
+                instret="${VEC_INSTRET[$v]:-}"
+
+                # Optimization label
+                case "$v" in
+                    vector_rvv_ref)  opt_label="(none)" ;;
+                    vector_rvv_A)    opt_label="A" ;;
+                    vector_rvv_AB)   opt_label="A+B" ;;
+                    vector_rvv_ABC)  opt_label="A+B+C" ;;
+                    vector_rvv)      opt_label="A+B+C+D" ;;
+                    *)               opt_label="?" ;;
+                esac
+
+                # Determine "prev" variant for vs-prev speedup
+                prev_cycles="" ; prev_instret=""
+                case "$v" in
+                    vector_rvv_ref)  prev_cycles=""; prev_instret="" ;;
+                    vector_rvv_A)    prev_cycles="$ref_cycles"; prev_instret="$ref_instret" ;;
+                    vector_rvv_AB)   prev_cycles="$a_cycles"; prev_instret="$a_instret" ;;
+                    vector_rvv_ABC)  prev_cycles="$ab_cycles"; prev_instret="$ab_instret" ;;
+                    vector_rvv)      prev_cycles="$abc_cycles"; prev_instret="$abc_instret" ;;
+                esac
+
+                # ── Cycles columns ───────────────────────────────────────
+                if [[ $HAS_HW -eq 1 ]]; then
+                    if [[ -z "$cycles" ]]; then
+                        col_cycles="—"; col_cyc_ref="—"; col_cyc_prev="—"
+                    else
+                        col_cycles=$(printf "%'d" "$cycles")
+                        if [[ -n "$ref_cycles" && "$ref_cycles" -gt 0 ]]; then
+                            col_cyc_ref=$(awk "BEGIN{printf \"×%.1f\",${ref_cycles}/${cycles}}")
+                        else col_cyc_ref="—"; fi
+
+                        if [[ -z "$prev_cycles" || "$prev_cycles" -eq 0 ]]; then
+                            col_cyc_prev="—"
+                        else
+                            col_cyc_prev=$(awk "BEGIN{printf \"×%.1f\",${prev_cycles}/${cycles}}")
+                        fi
+                    fi
+                fi
+
+                # ── Instret columns ──────────────────────────────────────
+                if [[ -z "$instret" ]]; then
+                    col_instret="—"; col_inst_ref="—"; col_inst_prev="—"
+                else
+                    col_instret=$(printf "%'d" "$instret")
+                    if [[ -n "$ref_instret" && "$ref_instret" -gt 0 ]]; then
+                        col_inst_ref=$(awk "BEGIN{printf \"×%.1f\",${ref_instret}/${instret}}")
+                    else col_inst_ref="—"; fi
+
+                    if [[ -z "$prev_instret" || "$prev_instret" -eq 0 ]]; then
+                        col_inst_prev="—"
+                    else
+                        col_inst_prev=$(awk "BEGIN{printf \"×%.1f\",${prev_instret}/${instret}}")
+                    fi
+                fi
+
+                # ── Emit row ─────────────────────────────────────────────
+                if [[ $HAS_HW -eq 1 && $HAS_SIM -eq 1 ]]; then
+                    echo "| \`${v}\` | ${opt_label} | ${col_cycles} | ${col_cyc_ref} | ${col_cyc_prev} | ${col_instret} | ${col_inst_ref} | ${col_inst_prev} |"
+                elif [[ $HAS_HW -eq 1 ]]; then
+                    echo "| \`${v}\` | ${opt_label} | ${col_cycles} | ${col_cyc_ref} | ${col_cyc_prev} | ${col_instret} |"
+                else
+                    echo "| \`${v}\` | ${opt_label} | ${col_instret} | ${col_inst_ref} | ${col_inst_prev} |"
+                fi
+            done
+            echo ""
+        done
+
+        # ── Incremental Optimization Contribution (cycles) ───────────────
+        if [[ $HAS_HW -eq 1 ]]; then
+            echo "## Incremental Optimization Contribution (cycles)"
+            echo ""
+            echo "| Transition | What changes | HQC-128 | HQC-192 | HQC-256 |"
+            echo "|------------|--------------|--------:|--------:|--------:|"
+
+            vec_hw_compute_delta() {
+                local from_var="$1" to_var="$2" lvl="$3"
+                local from_csv="${HW_CSV_DIR}/hw_mul_$(slug "$from_var")_latest.csv"
+                local to_csv="${HW_CSV_DIR}/hw_mul_$(slug "$to_var")_latest.csv"
+                if [[ ! -f "$from_csv" || ! -f "$to_csv" ]]; then echo "—"; return; fi
+                local from_val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $6}' "$from_csv")
+                local to_val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $6}' "$to_csv")
+                if [[ -z "$from_val" || -z "$to_val" || "$to_val" -eq 0 ]]; then echo "—"; return; fi
+                awk "BEGIN{printf \"×%.2f\",${from_val}/${to_val}}"
+            }
+
+            vec_hw_transitions=(
+                "ref→A|+direct-write discipline|vector_rvv_ref|vector_rvv_A"
+                "A→AB|+overlap-save combine|vector_rvv_A|vector_rvv_AB"
+                "AB→ABC|+inlined RVV (tuned LMUL)|vector_rvv_AB|vector_rvv_ABC"
+                "ABC→ABCD|+hybrid scalar/vector recursion|vector_rvv_ABC|vector_rvv"
+            )
+
+            for t in "${vec_hw_transitions[@]}"; do
+                IFS='|' read -r label desc from_v to_v <<< "$t"
+                d128=$(vec_hw_compute_delta "$from_v" "$to_v" 128)
+                d192=$(vec_hw_compute_delta "$from_v" "$to_v" 192)
+                d256=$(vec_hw_compute_delta "$from_v" "$to_v" 256)
+                echo "| ${label} | ${desc} | ${d128} | ${d192} | ${d256} |"
+            done
+            echo ""
+        fi
+
+        # ── Incremental Optimization Contribution (instret) ──────────────
+        if [[ $HAS_SIM -eq 1 || $HAS_HW -eq 1 ]]; then
+            echo "## Incremental Optimization Contribution (instret)"
+            echo ""
+            echo "| Transition | What changes | HQC-128 | HQC-192 | HQC-256 |"
+            echo "|------------|--------------|--------:|--------:|--------:|"
+
+            vec_instret_get() {
+                local var="$1" lvl="$2"
+                if [[ $HAS_HW -eq 1 ]]; then
+                    local csv="${HW_CSV_DIR}/hw_mul_$(slug "$var")_latest.csv"
+                    if [[ -f "$csv" ]]; then
+                        local val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $10}' "$csv")
+                        if [[ -n "$val" ]]; then echo "$val"; return; fi
+                    fi
+                fi
+                if [[ $HAS_SIM -eq 1 ]]; then
+                    local csv="${SIM_CSV_DIR}/sim_mul_$(slug "$var")_latest.csv"
+                    if [[ -f "$csv" ]]; then
+                        awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$csv"
+                        return
+                    fi
+                fi
+                echo ""
+            }
+
+            vec_instret_compute_delta() {
+                local from_var="$1" to_var="$2" lvl="$3"
+                local from_val=$(vec_instret_get "$from_var" "$lvl")
+                local to_val=$(vec_instret_get "$to_var" "$lvl")
+                if [[ -z "$from_val" || -z "$to_val" || "$to_val" -eq 0 ]]; then echo "—"; return; fi
+                awk "BEGIN{printf \"×%.2f\",${from_val}/${to_val}}"
+            }
+
+            vec_inst_transitions=(
+                "ref→A|+direct-write discipline|vector_rvv_ref|vector_rvv_A"
+                "A→AB|+overlap-save combine|vector_rvv_A|vector_rvv_AB"
+                "AB→ABC|+inlined RVV (tuned LMUL)|vector_rvv_AB|vector_rvv_ABC"
+                "ABC→ABCD|+hybrid scalar/vector recursion|vector_rvv_ABC|vector_rvv"
+            )
+
+            for t in "${vec_inst_transitions[@]}"; do
+                IFS='|' read -r label desc from_v to_v <<< "$t"
+                d128=$(vec_instret_compute_delta "$from_v" "$to_v" 128)
+                d192=$(vec_instret_compute_delta "$from_v" "$to_v" 192)
+                d256=$(vec_instret_compute_delta "$from_v" "$to_v" 256)
+                echo "| ${label} | ${desc} | ${d128} | ${d192} | ${d256} |"
+            done
+            echo ""
+        fi
+
+        # ── Comparison vs Tier 1 champion ────────────────────────────────
+        echo "## Comparison: Tier 2 champion vs Tier 1 champion"
+        echo ""
+        echo "| Level | \`scalar_zb\` (Tier 1) | \`vector_rvv\` (Tier 2) | RVV speedup |"
+        echo "|-------|---------------------:|----------------------:|------------:|"
+
+        for lvl in "${REPORT_LEVELS[@]}"; do
+            # Get scalar_zb data
+            scalar_inst=""
+            if [[ $HAS_SIM -eq 1 ]]; then
+                csv="${SIM_CSV_DIR}/sim_mul_scalar-zb_latest.csv"
+                [[ -f "$csv" ]] && scalar_inst=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$csv")
+            fi
+            if [[ -z "$scalar_inst" && $HAS_HW -eq 1 ]]; then
+                csv="${HW_CSV_DIR}/hw_mul_scalar-zb_latest.csv"
+                [[ -f "$csv" ]] && scalar_inst=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $10}' "$csv")
+            fi
+
+            # Get vector_rvv data
+            rvv_inst=""
+            if [[ $HAS_SIM -eq 1 ]]; then
+                csv="${SIM_CSV_DIR}/sim_mul_vector-rvv_latest.csv"
+                [[ -f "$csv" ]] && rvv_inst=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$csv")
+            fi
+            if [[ -z "$rvv_inst" && $HAS_HW -eq 1 ]]; then
+                csv="${HW_CSV_DIR}/hw_mul_vector-rvv_latest.csv"
+                [[ -f "$csv" ]] && rvv_inst=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $10}' "$csv")
+            fi
+
+            if [[ -n "$scalar_inst" && -n "$rvv_inst" && "$rvv_inst" -gt 0 ]]; then
+                scalar_fmt=$(printf "%'d" "$scalar_inst")
+                rvv_fmt=$(printf "%'d" "$rvv_inst")
+                speedup=$(awk "BEGIN{printf \"×%.2f\",${scalar_inst}/${rvv_inst}}")
+                echo "| HQC-${lvl} | ${scalar_fmt} | ${rvv_fmt} | ${speedup} |"
+            else
+                echo "| HQC-${lvl} | — | — | — |"
+            fi
+        done
+        echo ""
+
+    } > "$REPORT"
+
+    echo "  → Vector RVV ablation report: ${REPORT}"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 header "ABLATION STUDY COMPLETE"
-echo "  Variants tested: ${#VARIANTS[@]}"
-echo "  Failures:        ${FAIL}"
+echo "  Studies run:      $(( DO_SCALAR + DO_VECTOR_RVV ))"
+echo "  Failures:         ${FAIL}"
 
 if [[ $FAIL -gt 0 ]]; then
     exit 1
