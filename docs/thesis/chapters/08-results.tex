@@ -25,11 +25,11 @@ reference–optimized για τους τρεις πυρήνες στο HQC-128, 
   \input{figures/ch8-results/microbench-bar-chart}
   \caption{Σύγκριση \instret ανά πυρήνα και tier για HQC-128 (λογαριθμική
     κλίμακα). Η μπάρα «Reference» αντιστοιχεί στο \code{scalar\_ref}
-    ($\num{19214277}$ εντολές για polymul). Ο πολυωνυμικός πολλαπλασιασμός
-    παρουσιάζει τη μεγαλύτερη μείωση: \speedup{318} ως προς
+    ($\num{18639752}$ εντολές για polymul). Ο πολυωνυμικός πολλαπλασιασμός
+    παρουσιάζει τη μεγαλύτερη μείωση: \speedup{292.1} ως προς
     \code{scalar\_ref}
-    ($\num{19214277}$ εντολές, βλ.\ \cref{conv:baseline}), ενώ Keccak
-    και decode ωφελούνται \speedup{3.5} και \speedup{6.8} αντίστοιχα.}
+    ($\num{18639752}$ εντολές, βλ.\ \cref{conv:baseline}), ενώ Keccak
+    και decode ωφελούνται \speedup{3.7} και \speedup{6.8} αντίστοιχα.}
   \label{fig:microbench-bar}
 \end{figure}
 
@@ -54,15 +54,15 @@ variants και security levels. Η στήλη speedup υπολογίζεται 
   \caption{Isolated polymul \instret ανά variant και security level
     (Spike, VLEN $= \num{256}$). Τα speedups δίνονται ως προς το
     \code{scalar\_ref} (\cref{conv:baseline}). Το Tier~3 (\code{vector\_zvk})
-    επιτυγχάνει \speedup{318} στο HQC-128 και \speedup{547} στο HQC-256.}
+    επιτυγχάνει \speedup{292.1} στο HQC-128 και \speedup{512.6} στο HQC-256.}
   \label{tab:microbench-polymul}
   \input{figures/ch8-results/microbench-polymul-table}
 \end{table}
 
 Δύο παρατηρήσεις αναδεικνύονται από τα δεδομένα. Πρώτον, η κλιμάκωση μεταξύ security
 levels παραμένει κάτω από τη θεωρητική πολυπλοκότητα $\BigO{N^{\log_2 3}}$ του
-Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι $\num{260624}
-/ \num{60380} = 4.32$ στο Tier~3 — χαμηλότερος από το pure-Karatsuba
+Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι $\num{272896}
+/ \num{63804} = 4.28$ στο Tier~3 — χαμηλότερος από το pure-Karatsuba
 $(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκωση (πρακτικός εκθέτης $<\log_2 3$)
 οφείλεται στο σταθερό overhead και στη γραμμική \insn{vclmul} συνιστώσα
 που αμορτίζονται σε μικρά $N$. Δεύτερον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
@@ -104,7 +104,7 @@ bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχ�
   \centering
   \caption{Keccak micro-benchmark \instret: reference vs optimized
     \code{zvbb\_x2\_soa} (Spike, VLEN $= \num{256}$). Η \gls{soa} αρχιτεκτονική δύο ροών επιτυγχάνει σταθερή επιτάχυνση
-    \speedup{3.5}–\speedup{3.7} ανεξαρτήτως security level.}
+    \speedup{3.7}–\speedup{3.9} ανεξαρτήτως security level.}
   \label{tab:microbench-keccak}
   \input{figures/ch8-results/microbench-keccak-table}
 \end{table}
@@ -160,8 +160,8 @@ levels στο Tier~3 ($\num{56326} \to \num{72012} \to \num{146513}$)
 \label{ssec:microbench-summary}
 
 Ο~\cref{tab:microbench-summary} συνοψίζει τα speedups ανά πυρήνα και tier
-για το HQC-128. Η ασυμμετρία μεταξύ πυρήνων — \speedup{318} polymul
-έναντι \speedup{3.5} Keccak — αντικατοπτρίζει τη θεμελιώδη διαφορά στην
+για το HQC-128. Η ασυμμετρία μεταξύ πυρήνων — \speedup{292.1} polymul
+έναντι \speedup{3.7} Keccak — αντικατοπτρίζει τη θεμελιώδη διαφορά στην
 αλγοριθμική δομή: ο πολυωνυμικός πολλαπλασιασμός μετασχηματίζεται πλήρως
 μέσω Karatsuba decomposition $+$ hardware carry-less πολλαπλασιασμού, ενώ ο Keccak
 περιορίζεται από τη σταθερή 25-lane κατάσταση και τις σειριακές εξαρτήσεις
@@ -186,7 +186,7 @@ levels στο Tier~3 ($\num{56326} \to \num{72012} \to \num{146513}$)
 
 Η ανάλυση αυτή θεμελιώνει τις μετρήσεις πλήρους \gls{kem} που ακολουθούν
 στην~\cref{sec:end-to-end}, όπου η σύνθεση των τριών πυρήνων αποκαλύπτει
-τον νόμο του Amdahl σε δράση: η \speedup{318} μείωση του polymul
+τον νόμο του Amdahl σε δράση: η \speedup{292.1} μείωση του polymul
 μεταφράζεται σε χαμηλότερο system-level speedup λόγω του μη βελτιστοποιήσιμου
 κλάσματος.
 
@@ -255,12 +255,12 @@ transform) αλλά επιπλέον φέρει το κόστος αποκωδι
 resources. Στο HQC-128:
 \begin{itemize}
   \item \textbf{Tier~1 $\to$ Tier~2} (Total \gls{kem}: $\num{3449795} \to \num{1956787}$ \instret, $+\pct{76}$): η vectorization της ανασύνθεσης του Karatsuba (\cref{sec:polymul-base-rvv}) μειώνει τις εντολές
-    polymul κατά \pct{28.7} ($\num{221030} \to \num{157473}$), ενώ η
+    polymul κατά \pct{24.7} ($\num{186629} \to \num{140487}$), ενώ η
     vectorization του decode (\cref{sec:decode-optimization}) επιταχύνει
     την αποκωδικοποίηση κατά \speedup{3.15}. Ο Keccak παραμένει scalar σε αυτό το tier.
   \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{702755}$ \instret, $+\pct{178}$): η αντικατάσταση των scalar
     \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
-    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{61.7}$, $\num{157473} \to \num{60380}$), ενώ η \gls{soa} δύο ροών Keccak
+    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{54.6}$, $\num{140487} \to \num{63804}$), ενώ η \gls{soa} δύο ροών Keccak
     με \gls{zvbb} (\cref{ssec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
     \speedup{3.7}. Η σύνθεση αυτών των βελτιώσεων παράγει τη
     μεγαλύτερη σχετική βελτίωση μεταξύ διαδοχικών tiers.
@@ -428,7 +428,7 @@ HQC-256), αλλά ο αριθμός \insn{vclmul} leaves αυξάνεται μ�
 $3^{\Delta d}$ ενώ το overhead ανασύνθεσης (XOR operations) αυξάνεται
 γραμμικά χάρη στη vectorization. Κατά συνέπεια, ο πρακτικός εκθέτης
 πολυπλοκότητας του Tier~3 polymul πέφτει σε $\sim 1.2$ (υπολογισμένος
-ως $\log(260624/60380) / \log(57637/17669) = 1.24$).
+ως $\log(272896/63804) / \log(57637/17669) = 1.23$).
 
 \paragraph{Το speedup αυξάνεται με το security level.}
 Η αντίστροφη πλευρά της υπο-Karatsuba κλιμάκωσης είναι ότι το speedup
@@ -439,11 +439,11 @@ $3^{\Delta d}$ ενώ το overhead ανασύνθεσης (XOR operations) αυ
 levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασιασμός κυριαρχεί
 ακόμη περισσότερο ($>\pct{98}$ στο HQC-256), ενώ η βελτιστοποιημένη
 υλοποίηση παρουσιάζει ηπιότερη κλιμάκωση. Συνεπώς το polymul speedup κορυφώνεται στο
-\speedup{547} στο HQC-256 ως άμεση συνέπεια της σχεδόν τετραγωνικής κλιμάκωσης
+\speedup{512.6} στο HQC-256 ως άμεση συνέπεια της σχεδόν τετραγωνικής κλιμάκωσης
 της βάσης \code{scalar\_ref} έναντι της υπο-Karatsuba κλιμάκωσης του Tier~3
-(πρακτικός εκθέτης $\sim 1.24$), και όχι ως μεμονωμένο peak. Ο γεωμετρικός μέσος
-των Tier~3 polymul speedups στα τρία security levels (\speedup{318}, \speedup{327},
-\speedup{547}) ανέρχεται σε $\approx 385\times$, παρέχοντας αντιπροσωπευτικό αδρό
+(πρακτικός εκθέτης $\sim 1.23$), και όχι ως μεμονωμένο peak. Ο γεωμετρικός μέσος
+των Tier~3 polymul speedups στα τρία security levels (\speedup{292.1}, \speedup{299.4},
+\speedup{512.6}) ανέρχεται σε $\approx 355\times$, παρέχοντας αντιπροσωπευτικό αδρό
 μέγεθος έναντι των μεμονωμένων peak τιμών.
 
 %% --------------------------------------------------------------------------
@@ -454,14 +454,14 @@ levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασ
 
 \paragraph{Polymul — κυρίαρχος παράγοντας.}
 Ο πολυωνυμικός πολλαπλασιασμός καθορίζει τη συνολική κλιμάκωση σε κάθε
-tier. Στο Tier~3, ο isolated polymul αυξάνεται ως $\num{60380} \to
-\num{178624} \to \num{260624}$ (λόγοι $2.96\times$ και $4.33\times$) —
-ο εκθέτης $\log(4.33)/\log(3.26) = 1.24$ επιβεβαιώνει τη sub-Karatsuba
-συμπεριφορά. Στο Tier~1, ο isolated polymul αυξάνεται ως $\num{221030} \to
-\num{670293} \to \num{1879602}$ (λόγοι $3.03\times$ και $8.50\times$) — ο
-εκθέτης εξαρτάται από το εύρος σύγκρισης: $\log(3.03)/\log(2.03) = 1.57$
+tier. Στο Tier~3, ο isolated polymul αυξάνεται ως $\num{63804} \to
+\num{189388} \to \num{272896}$ (λόγοι $2.97\times$ και $4.28\times$) —
+ο εκθέτης $\log(4.28)/\log(3.26) = 1.23$ επιβεβαιώνει τη sub-Karatsuba
+συμπεριφορά. Στο Tier~1, ο isolated polymul αυξάνεται ως $\num{186629} \to
+\num{591557} \to \num{1306068}$ (λόγοι $3.17\times$ και $7.00\times$) — ο
+εκθέτης εξαρτάται από το εύρος σύγκρισης: $\log(3.17)/\log(2.03) = 1.63$
 (192/128, κοντά στον θεωρητικό Karatsuba $1.585$) αλλά
-$\log(8.50)/\log(3.26) = 1.81$ για το πλήρες εύρος 256/128.
+$\log(7.00)/\log(3.26) = 1.65$ για το πλήρες εύρος 256/128.
 Η επιδείνωση στα υψηλότερα levels οφείλεται στο γεγονός ότι τα scalar
 \insn{clmul} leaves δεν ωφελούνται από τη διανυσματοποιημένη ανασύνθεση: καθώς
 βαθαίνει το recursion tree (από $d=9$ σε $d=10$ και $d=11$), το

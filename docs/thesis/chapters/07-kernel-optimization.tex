@@ -283,7 +283,7 @@ $\GF{2^8}$. Η υλοποίηση αναφοράς (\code{gf\_carryless\_mul}) �
 εντολές ανά $8 \times 8$-bit carry-less γινόμενο. Στο Tier~1, η
 αντικατάσταση με μία μόνο εντολή \clmul (μέσω \gls{zbc} intrinsic) μειώνει
 το κόστος σε μία εντολή για το γινόμενο, ακολουθούμενη από $\approx\num{12}$
-εντολές modular reduction μέσω \code{gf\_reduce} — σύνολο
+εντολές αναγωγής μέσω \code{gf\_reduce} — σύνολο
 $\approx\num{14}$ εντολές ανά κλήση \code{gf\_mul}, έναντι
 $\approx\num{27}$ στο software path (\cref{lst:gf-mul-zbc}).
 
