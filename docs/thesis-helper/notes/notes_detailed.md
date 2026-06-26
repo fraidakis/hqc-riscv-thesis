@@ -8,9 +8,9 @@ that should be reflected in the thesis narrative.
 
 ## Rolling Notes & Discoveries
 
-### Discovery 1 — The AP-2 Breakthrough
+### Discovery 1 — The Compile-Time Specialized Tree Breakthrough
 
-**What**: Replacing a dynamically-recursive Karatsuba with a statically-generated, fully-unrolled fixed-tree kernel (the "AP-2" specialization) eliminates ABI and stack pressure that the compiler cannot optimize away in a general recursive formulation.
+**What**: Replacing a dynamically-recursive Karatsuba with a statically-generated, fully-unrolled fixed-tree kernel eliminates ABI and stack pressure that the compiler cannot optimize away in a general recursive formulation.
 
 **Why it matters**: RISC-V calling convention requires the compiler to save/restore callee-saved registers at every non-leaf frame. For deep Karatsuba trees (depth 8–10 for HQC-256), the aggregate spill/restore overhead dwarfs the actual arithmetic. By emitting one flat function per size via the code generator (`scripts/gen/gen_karatsuba_specialized.py`), the compiler sees a single large function body and can allocate registers globally, inline the leaf operations, and schedule loads/stores freely.
 
@@ -18,9 +18,9 @@ that should be reflected in the thesis narrative.
 | Implementation | instret |
 |---|---|
 | ref_scalar (schoolbook) | 19,213,918 |
-| karatsuba_zbc (dynamic recursion) | ~600k (pre-AP2) |
-| karatsuba_zbc (AP-2 fixed-tree) | **211,841** |
-| karatsuba_rvv (AP-2, RVV leaves) | **157,377** |
+| karatsuba_zbc (dynamic recursion) | ~600k (pre-specialization) |
+| karatsuba_zbc (specialized fixed-tree) | **211,841** |
+| karatsuba_rvv (specialized, RVV leaves) | **157,377** |
 
 **Key lesson**: For deeply-nested divide-and-conquer algorithms on register-starved ISAs, static code generation often beats a smart compiler by an order of magnitude because the compiler's ABI obligations are structural.
 
@@ -61,9 +61,9 @@ that should be reflected in the thesis narrative.
 
 | Tier | Target | ISA | Champion | vect_mul speedup (HQC-128) | decaps speedup (HQC-128) |
 |------|--------|-----|----------|----------------------------|--------------------------|
-| **1 — IoT** | Embedded, no V-ext | rv64gc + Zbc/Zbb/Zbkb | `karatsuba_zbc` AP-2 | x91 | x28 |
-| **2 — Edge** | Application core + RVV | rv64gcv + Zbc/Zbb/Zbkb | `karatsuba_rvv` AP-2 (hybrid) | x118 | x41 |
-| **3 — High-End** | Full crypto vector | rv64gcv + Zvbc/Zvbb/Zvl256b | `karatsuba_zvbc` AP-2 | x255 | x63 |
+| **1 — IoT** | Embedded, no V-ext | rv64gc + Zbc/Zbb/Zbkb | `karatsuba_zbc` specialized | x91 | x28 |
+| **2 — Edge** | Application core + RVV | rv64gcv + Zbc/Zbb/Zbkb | `karatsuba_rvv` specialized (hybrid) | x118 | x41 |
+| **3 — High-End** | Full crypto vector | rv64gcv + Zvbc/Zvbb/Zvl256b | `karatsuba_zvbc` specialized | x255 | x63 |
 
 **Key architectural insights per tier**:
 
@@ -223,7 +223,7 @@ ISS. Η αξιολόγηση καλύπτει το πλήρες KEM-τρίπτυ
 | **AMD Zen 4** (Ryzen 7 7700 — SUPERCOP) | Κύκλοι | 402,210 | 674,620 | 868,857 | SUPERCOP reference baseline |
 | **ARM Cortex-M4** (STM32F4 — pqm4) | Κύκλοι | 1,837,507 | 4,878,515 | 7,502,580 | Bit-slicing / NTL lookup tables |
 | **RISC-V FAFFT** (Pure SW Baseline — 2025) | Κύκλοι | 12,208,482 | 24,882,981 | 38,099,269 | Additive FFT, scalar RISC-V core |
-| **Παρούσα εργασία** (RV64GBV — `karatsuba_zvbc`) | instret | **155,539** | **335,585** | **679,740** | AP-2 fixed-tree, Zvbc + Zvbb, Spike ISS |
+| **Παρούσα εργασία** (RV64GBV — `karatsuba_zvbc`) | instret | **155,539** | **335,585** | **679,740** | Specialized fixed-tree, Zvbc + Zvbb, Spike ISS |
 
 *Πίνακας 5.Χ: Συγκριτική αξιολόγηση HQC-128 KEM ανά αρχιτεκτονική. Τα δεδομένα
 AVX-512 και SUPERCOP αντλήθηκαν από τη βιβλιογραφία αναφοράς, τα Cortex-M4 από
@@ -266,7 +266,7 @@ Toom-Cook και Karatsuba, με πολυπλοκότητες $O(n^{\log_3 5})$ 
 $O(n^{\log_2 3})$ αντίστοιχα. Παρ' όλα αυτά, σε καθαρά λογισμικές υλοποιήσεις
 σε σκαλαριστούς RISC-V πυρήνες, ο FAFFT επιδεικνύει **38,099,269 κύκλους** για
 Decaps HQC-128 — δηλαδή πλέον των **56× περισσότερους κύκλους** σε σχέση με την
-παρούσα Karatsuba AP-2 υλοποίηση.
+παρούσα Karatsuba specialized-tree υλοποίηση.
 
 Η ρίζα της παραδοξότητας αυτής βρίσκεται στη μικροαρχιτεκτονική πραγματικότητα
 των πράξεων FFT σε μη-εξειδικευμένο υλικό:
@@ -283,7 +283,7 @@ Decaps HQC-128 — δηλαδή πλέον των **56× περισσότερο�
    $O(n \log n)$ δεν εκδηλώνεται σε πρακτικά μεγέθη χωρίς υλικοτεχνική
    επιτάχυνση των inner loop primitives. Ο σταθερός πολλαπλασιαστικός παράγοντας
    ξεπερνά την πολυπλοκότητα ενός επίπεδου, στατικά παραγόμενου δέντρου
-   Karatsuba (AP-2) για τα συγκεκριμένα μεγέθη.
+   Karatsuba (specialized tree) για τα συγκεκριμένα μεγέθη.
 
 3. **Αναγκαιότητα εξειδικευμένου υλικού:** Σε αρχιτεκτονικές με ευρείς
    καταχωρητές AVX-512 (512-bit ZMM) ή με Zvbc `vclmul.vv`, ο FAFFT αναμένεται
@@ -292,7 +292,7 @@ Decaps HQC-128 — δηλαδή πλέον των **56× περισσότερο�
    σκαλαριστούς πυρήνες καθιστά την ασυμπτωτική ανωτερότητα ουσιαστικά
    θεωρητική για πρακτικά μεγέθη παραμέτρων HQC.
 
-Το εύρημα αυτό δικαιώνει την επιλογή της AP-2 Karatsuba υλοποίησης ως champion
+Το εύρημα αυτό δικαιώνει την επιλογή της compile-time specialized Karatsuba υλοποίησης ως champion
 για όλα τα επίπεδα Tier 1/2/3 απουσία πλήρους vector-carryless υποστήριξης
 μέσω Zvbc.
 

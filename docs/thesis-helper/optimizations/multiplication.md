@@ -81,7 +81,7 @@ assign-on-first-write discipline directly into the unrolled structure, producing
 that the $n=4$ specialisation was dead code for the HQC-128 recursion tree and
 removed it along with its dispatch comparison.
 
-**Phase 5 — Compile-Time Recursion Tree Generation (AP-2).**
+**Phase 5 — Compile-Time Recursion Tree Generation.**
 A Python code generator (`gen_karatsuba_specialized.py`) was developed to
 traverse the Karatsuba recursion tree for each HQC parameter size and emit
 specialised C functions with all buffer offsets, loop bounds, and split sizes
@@ -155,7 +155,7 @@ Since Loops 1 and 2 cover all positions that Loop 3 reads from $r$, the prior
 first outer row ($i=0$) uses direct assignment, and subsequent rows use
 XOR-accumulation into positions already initialised by row 0.
 
-#### 3.1.3 Fixed-Size Recursion Tree Generation — AP-2 (High Expected Impact)
+#### 3.1.3 Fixed-Size Recursion Tree Generation (High Expected Impact)
 
 **Extensions used:** None (compile-time code generation; no runtime ISA dependency).
 
@@ -294,7 +294,7 @@ offset the savings. The optimisation was rejected.
 
 **Extensions used:** None (compile-time constant propagation; no ISA dependency).
 
-In the generated recursion tree (AP-2), all temporary buffer offsets are
+In the generated recursion tree, all temporary buffer offsets are
 resolved as integer literals. The pointer arithmetic that previously computed
 $z_0$, $z_2$, $z_{\text{mid}}$, $t_a$, $t_b$, and `child_buf` at each
 recursion entry is replaced by direct pointer declarations with constant
@@ -325,7 +325,7 @@ Karatsuba combine and data-movement operations differ.
 ### 4.1 Algorithm-Level Optimizations
 
 Same as Track A (Sections 3.1.1–3.1.3). The recursion structure, threshold,
-memset-free discipline, and AP-2 fixed-tree generation are shared. The code
+memset-free discipline, and fixed-tree generation are shared. The code
 generator emits Track B combine code via `--mode rvv`.
 
 #### 4.1.1 Direct-Write Discipline — Elimination of z0/z2 Copies (High Expected Impact)
@@ -502,7 +502,7 @@ vectorised leaf that exploits `vclmul.vv` and `vclmulh.vv` to compute multiple
 
 ### 5.1 Algorithm-Level Optimizations
 
-Same as Track A (Sections 3.1.1–3.1.3), with one key difference: the AP-2
+Same as Track A (Sections 3.1.1–3.1.3), with one key difference: the
 code generator emits `vclmul_leaf` calls at the recursion leaves instead of
 `clmul_leaf`/`clmul_leaf_n8`. The recursion structure, threshold, and
 fixed-tree generation are otherwise identical.
@@ -598,7 +598,7 @@ vectors in the three-way XOR pattern.
 
 The Karatsuba combine loops use `rvv_copy_u64` and `rvv_xor3_u64`
 helpers (the shared-function approach from Track B's earlier iteration).
-The AP-2 generated tree for `--mode zvbc` emits these helpers at the combine
+The generated tree for `--mode zvbc` emits these helpers at the combine
 sites while dispatching `vclmul_leaf` at the recursion leaves. The direct-write
 discipline introduced in Track B's `--mode rvv` has not yet been ported to
 Track C.
@@ -617,7 +617,7 @@ intuition based on hotspot proximity and algorithmic scope.
 |---|---|---|---|
 | Word-granularity `clmul`/`clmulh` leaf (§3.1.1) | A, B | Zbc | Eliminates the bit-level inner loop entirely; two-order-of-magnitude leaf reduction |
 | Memset-free output discipline (§3.1.2) | A, B, C | None (algorithmic) | Removes the single largest hotspot (23% of baseline); affects every recursion level |
-| Fixed-size recursion tree — AP-2 (§3.1.3) | A, B, C | None (code generation) | Eliminates all runtime dispatch, threshold checks, and dynamic pointer arithmetic |
+| Fixed-size recursion tree (§3.1.3) | A, B, C | None (code generation) | Eliminates all runtime dispatch, threshold checks, and dynamic pointer arithmetic |
 | Direct-write discipline — z0/z2 copy elimination (§4.1.1) | B | None (algorithmic) | Eliminates two full-array copy loops per recursion node across the entire tree |
 | Overlap-save combine strategy (§4.1.2) | B | V | Resolves aliasing from direct-write without additional buffer allocation; enables safe in-place combine |
 | Vector carry-less multiply leaf — `vclmul.vv` (§5.2.1) | C | Zvbc, V | Collapses the $O(n^2)$ inner loop to $O(n^2/\text{VLMAX})$; vectorises the binding constraint |

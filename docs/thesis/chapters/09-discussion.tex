@@ -175,7 +175,7 @@ $\GF{2}[x]$ (πολυωνυμική αναπαράσταση) — δεν υπο�
 (change-of-basis) εισάγει πρόσθετο κόστος που εξουδετερώνει το
 ασυμπτωτικό πλεονέκτημα \cite{Chen2026-TCHES-HQC-FFT}.
 
-Η ανάλυση αυτή δικαιώνει την επιλογή Karatsuba AP-2 ως champion αλγορίθμου
+Η ανάλυση αυτή δικαιώνει την επιλογή Karatsuba με compile-time specialized tree ως champion αλγορίθμου
 σε όλα τα tiers. Η FAFFT αποκτά πρακτική αξία μόνο σε αρχιτεκτονικές με
 ευρείς SIMD registers (AVX2/AVX-512 YMM/ZMM) ή με εξειδικευμένο hardware accelerator
 (ANDROMEDA~\cite{ras-nist2025}) — σενάρια εκτός του πεδίου εφαρμογής
@@ -217,7 +217,7 @@ scheduling.
 Η υλοποίηση \cite{Chen2026-TCHES-HQC-FFT} αξιοποιεί additive FFT σε
 συνδυασμό με CRT decomposition — αλγοριθμική προσέγγιση που μειώνει τον
 αριθμό carry-less πολλαπλασιασμών στο asymptotic regime. Η παρούσα εργασία
-χρησιμοποιεί Karatsuba AP-2 ($\BigO{n^{1.585}}$), ο οποίος υπερτερεί σε
+χρησιμοποιεί Karatsuba με compile-time specialized tree ($\BigO{n^{1.585}}$), ο οποίος υπερτερεί σε
 πρακτικά μεγέθη χωρίς GFNI αλλά παράγει περισσότερες XOR operations στα
 combine stages. Επιπλέον, η x86-64 υλοποίηση αξιοποιεί δεκαετίες
 βελτιστοποίησης compiler backends (ICC, GCC, Clang) για x86 SIMD, ενώ η
@@ -865,8 +865,8 @@ opacity στον compiler optimizer χωρίς πρόσθετο λειτουργ
  Παραγωγής Κώδικα}
 \label{ssec:principle-metaprogramming}
 
-Η πλήρης εξειδίκευση του Karatsuba recursion tree (AP-2,
-\cref{ssec:ap2-generator}) αποτελεί παράδειγμα \defterm{metaprogramming}:
+Η πλήρης εξειδίκευση του Karatsuba recursion tree (compile-time specialized generator,
+\cref{ssec:specialized-tree}) αποτελεί παράδειγμα \defterm{metaprogramming}:
 ένα Python script (\code{gen\_karatsuba\_specialized.py}) διασχίζει τον
 αναδρομικό δέντρο σε compile-time και εκπέμπει εξειδικευμένες C
 συναρτήσεις με σταθερές buffer offsets, loop bounds, και child dispatch.

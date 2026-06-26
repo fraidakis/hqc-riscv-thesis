@@ -219,7 +219,7 @@
 
 * `docs/thesis-helper/notes/notes_detailed.md` §5.3.1–5.3.2 - **Research Notes** - Cross-architecture table (AVX-512, Zen4, M4, FAFFT, ours), instret vs cycles methodology
 * `docs/METHODOLOGY.md` §11, §12 - **Documentation** - "We do NOT claim wall-clock time on real hardware", Spike limitations
-* `docs/thesis-helper/writing/mult_alternatives.md` - **Writing Draft** - FAFFT O(n log n) vs AP-2 Karatsuba comparison, tower-field incompatibility with vclmul.vv
+* `docs/thesis-helper/writing/mult_alternatives.md` - **Writing Draft** - FAFFT O(n log n) vs compile-time specialized Karatsuba comparison, tower-field incompatibility with vclmul.vv
 * `docs/references/notes/HQC Optimization Benchmarks Research.txt` - **Literature** - Aggregated cross-platform benchmark numbers
 * `results/simulation/profiling/cpi/reports/` - **Data Report** - CPI-derived cycle estimates supporting cross-architecture cycle-equivalent comparisons
 * `results/reports/summaries/speedups_cross_platform.md` - **Data Report** - Cross-platform speedup comparison summary

@@ -18,7 +18,7 @@
 \paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
 Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{19214277} σε
 \num{221030} \instret (HQC-128), επιτυγχάνοντας \speedup{87} μέσω
-Karatsuba AP-2 fixed-tree generation και εγγενούς \clmul/\clmulh. Το πλήρες
+Karatsuba compile-time specialized tree generation και εγγενούς \clmul/\clmulh. Το πλήρες
 \gls{kem} (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{34} στο HQC-128 και
 \speedup{49} στο HQC-256.
 
@@ -239,7 +239,7 @@ configurable reduction polynomial (\eg \code{Zvkgf} ή \code{Zvkpoly}) θα
 decoder όσο και γενικότερα AES-GCM/GHASH workloads.
 
 \paragraph{Ευρύτερη εφαρμογή σε code-based PQC}
-Οι τεχνικές που αναπτύχθηκαν (AP-2 Karatsuba, \gls{zvbc} vectorized leaves, 2-way
+Οι τεχνικές που αναπτύχθηκαν (compile-time specialized Karatsuba, \gls{zvbc} vectorized leaves, 2-way
 \gls{soa} Keccak) εφαρμόζονται άμεσα σε άλλα code-based σχήματα που
 χρησιμοποιούν πολυωνυμικό πολλαπλασιασμό στο $\GFpoly$ — ιδίως στο BIKE, το
 οποίο μοιράζεται τον ίδιο αλγεβρικό πυρήνα με τον \gls{hqc}. Η επέκταση της

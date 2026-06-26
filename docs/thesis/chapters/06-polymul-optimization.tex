@@ -75,30 +75,30 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}). Το \cref{fig:polym
 και η \cref{sec:polymul-zvbc} τη διανυσματική υλοποίηση των leaf kernels με \gls{zvbc} (Tier~3).
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 1 — Scalar (rv64gc + Zbc/Zbb)}
+\subsection{Tier 1: Scalar (rv64gc + Zbc/Zbb)}
 \label{ssec:tier1}
 
-Το Tier~1 στοχεύει πλατφόρμες χωρίς διανυσματική μονάδα — ενσωματωμένους
-επεξεργαστές και IoT κόμβους που υλοποιούν μόνο τις scalar bit-manipulation
-extensions. Η κρίσιμη αρχιτεκτονική δυνατότητα είναι η εντολή \clmul{} της
-\gls{zbc}: ένα ζεύγος \clmul/\clmulh υπολογίζει το πλήρες \num{128}-bit carry-less
-γινόμενο δύο \num{64}-bit πολυωνύμων σε δύο εντολές μηχανής.
+Το Tier~1 στοχεύει πλατφόρμες χωρίς διανυσματική μονάδα, δηλαδή RISC-V cores
+που υλοποιούν μόνο τις scalar bit-manipulation extensions (Zbc/Zbb) χωρίς RVV.
+Καθοριστική είναι η υποστήριξη carry-less multiply της \gls{zbc}: ένα ζεύγος
+\clmul/\clmulh υπολογίζει το πλήρες \num{128}-bit carry-less γινόμενο δύο
+\num{64}-bit πολυωνύμων σε δύο εντολές.
 
 Η βελτιστοποίηση Tier~1 συνδυάζει τρεις τεχνικές:
 %
 \begin{enumerate}
   \item \textbf{Word-level Karatsuba leaf:} Αντικατάσταση του bit-serial
-    schoolbook με word-granularity schoolbook βασισμένο σε \clmul/\clmulh
+    schoolbook με word-level schoolbook βασισμένο σε \clmul/\clmulh
     (\cref{ssec:bit-to-word}).
 
-  \item \textbf{Assign-on-first-write discipline:} Εξάλειψη του \code{memset}
-    μέσω πειθαρχίας πρώτης εγγραφής — κάθε output word λαμβάνει direct
-    assignment στην πρώτη πρόσβαση (\cref{ssec:memset-elimination}).
+  \item \textbf{Assign-on-first-write discipline:} Κάθε output word λαμβάνει
+    direct assignment στην πρώτη πρόσβαση, εξαλείφοντας το αρχικό \code{memset}
+    (\cref{ssec:memset-elimination}).
 
-  \item \textbf{Στατική παραγωγή δέντρου αναδρομής (AP-2):} Compile-time
+  \item \textbf{Στατική παραγωγή δέντρου αναδρομής:} Compile-time
     generation ολόκληρου του Karatsuba recursion tree, εξαλείφοντας runtime
-    dispatch, stack spilling, και ABI overhead
-    (\cref{ssec:ap2-generator}).
+    dispatch και το ABI overhead (callee-saved register spill/restore) των
+    αναδρομικών κλήσεων (\cref{ssec:specialized-tree}).
 \end{enumerate}
 
 \noindent
@@ -110,16 +110,15 @@ RVV εντολές και ότι η μέτρηση αντικατοπτρίζε�
 κώδικα.
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 2 — Base-RVV (rv64gcv χωρίς Zvbc/Zvbb)}
+\subsection{Tier 2: Base-RVV (rv64gcv χωρίς Zvbc/Zvbb)}
 \label{ssec:tier2}
 
 Το Tier~2 στοχεύει application-class πλατφόρμες με διανυσματική μονάδα
-RVV~1.0 αλλά χωρίς τις vector-crypto επεκτάσεις. Το ISA string
-\code{rv64gcv\_zbc\_zbb} προσθέτει τη δυνατότητα εκτέλεσης
-data-parallel πράξεων σε ευρείς vector registers.
-
-Η αρχιτεκτονική παρατήρηση-κλειδί είναι ότι η \gls{zvbc} δεν είναι διαθέσιμη
-σε αυτό το tier: η εντολή \vclmul{} απουσιάζει, επομένως ο leaf kernel
+RVV~1.0 που δεν διαθέτουν τις vector-crypto επεκτάσεις. Το \code{V} στο ISA
+string \code{rv64gcv\_zbc\_zbb} δηλώνει διανυσματική μονάδα, ικανή για
+data-parallel πράξεις στους ευρείς vector registers. Καθοριστικός 
+περιορισμός του tier είναι η απουσία της επέκτασης \gls{zvbc}: η εντολή
+\vclmul{} απουσιάζει, επομένως ο leaf kernel
 παραμένει scalar (\clmul/\clmulh, ταυτόσημος με Tier~1). Η διανυσματική
 μονάδα αξιοποιείται αποκλειστικά στους βρόχους ανασύνθεσης, τους γραμμικού
 κόστους βρόχους XOR, copy, και modular reduction που εκτελούνται σε κάθε
@@ -142,53 +141,53 @@ data-parallel πράξεων σε ευρείς vector registers.
 \end{enumerate}
 
 \noindent
-Η δομική αυτή αρχιτεκτονική (scalar leaf + διανυσματική) ανασύνθεση — αποτελεί
+Αυτός ο διαχωρισμός σε scalar leaf και διανυσματική ανασύνθεση αποτελεί
 \defterm{υβριδική scalar/vector προσέγγιση}: η αριθμητική πράξη (carry-less πολλαπλασιασμός)
-εκτελείται scalar, ενώ το data-movement (XOR, copy, reduce)
-εκτελείται vector. Η προσέγγιση αυτή αποδίδει μετρήσιμη βελτίωση, 
+εκτελείται σειριακά, ενώ η μετακίνηση δεδομένων (XOR, copy, reduce)
+εκτελείται διανυσματικά. Η προσέγγιση αυτή αποδίδει μετρήσιμη βελτίωση, 
 αλλά το κέρδος περιορίζεται δομικά από τον scalar leaf kernel. Ο τετραγωνικός 
 $\BigO{n^2}$ leaf κυριαρχεί έναντι των γραμμικών $\BigO{n}$ βρόχων ανασύνθεσης.
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 3 — Full Vector-Crypto (rv64gcv + Zvbc/Zvbb)}
+\subsection{Tier 3: Full Vector-Crypto (rv64gcv + Zvbc/Zvbb)}
 \label{ssec:tier3}
 
-Το Tier~3 αντιπροσωπεύει την πλήρη αξιοποίηση των vector-crypto επεκτάσεων. 
-Το ISA string \code{rv64gcv\_zbc\_zbb\_zvbc\_zvbb} προσθέτει
-τις εντολές \vclmul{} και \vclmulh{} (Zvbc) — vector carry-less multiply
-που υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
-παράλληλα σε ένα vector register group.
+Το Tier~3 αντιπροσωπεύει την πλήρη αξιοποίηση των vector-crypto επεκτάσεων.
+Οι προσθήκες Zvbc/Zvbb στο ISA string
+\code{rv64gcv\_zbc\_zbb\_zvbc\_zvbb} καθιστούν διαθέσιμες τις εντολές
+\vclmul{} και \vclmulh{}: vector carry-less multiply που υπολογίζει πολλαπλά
+\num{64}$\times$\num{64}-bit carry-less γινόμενα παράλληλα σε ένα vector
+register group.
 
-Η θεμελιώδης αρχιτεκτονική αλλαγή σε σχέση με το Tier~2 είναι η
-\defterm{διανυσματοποίηση του leaf kernel}: ο scalar \clmul/\clmulh
-αντικαθίσταται από τον \code{vclmul\_leaf}, ο οποίος εκτελεί ολόκληρο
-τον schoolbook πολλαπλασιασμό μεγέθους $n=16$ words μέσω vector
-instructions. Σε \VLEN=\num{256} με \LMUL=m4, κάθε vector register group
-περιέχει \num{16} elements — ακριβώς το μέγεθος του Karatsuba threshold —
-επομένως ο εσωτερικός βρόχος συμπτύσσεται σε ένα μόνο vector iteration
-ανά εξωτερικό index.
+Η βελτιστοποίηση Tier~3 εισάγει δύο τεχνικές πέραν του Tier~2:
+%
+\begin{enumerate}
+  \item \textbf{Vectorized leaf kernel:} Οι scalar εντολές \clmul/\clmulh
+    αντικαθίστανται από τον διανυσματικό leaf kernel \code{vclmul\_leaf}, ο
+    οποίος εκτελεί ολόκληρο τον schoolbook πολλαπλασιασμό μεγέθους $n=16$
+    words μέσω vector instructions (\cref{sec:polymul-zvbc}).
 
-Η \gls{zvbb} παρέχει επιπλέον τις εντολές \vror{} (vector rotate) και
-\insn{vandn.vv} (vector AND-NOT), οι οποίες αξιοποιούνται στον Keccak
-πυρήνα (\cref{ch:kernel-optimization}) αλλά δεν επηρεάζουν άμεσα τον
-πολυωνυμικό πολλαπλασιασμό.
+  \item \textbf{Threshold-matched vectorization:} Σε \VLEN=\num{256}
+    (\num{4} elements των \num{64}-bit ανά register) με \LMUL=m4, κάθε vector
+    register group περιέχει \num{16} elements (\num{4} elements/register
+    $\times$ \num{4} registers), ακριβώς το μέγεθος του Karatsuba threshold.
+    Έτσι ο εσωτερικός βρόχος (πάνω στα \num{16} words του ενός operand)
+    συμπτύσσεται σε μία μόνο vector πράξη για κάθε word του άλλου operand.
+\end{enumerate}
 
-\bigskip
 \noindent
-Η ορθότητα κάθε tier επαληθεύεται ανεξάρτητα μέσω του πλήρους KAT suite.
-Κανένα tier δεν εισάγει αλγοριθμική απόκλιση από τη υλοποίηση αναφοράς. 
-Η μεταγλώττιση κάθε variant με αυστηρά ελεγχόμενο \code{-march} string
-(\cref{tab:march-per-variant}) εξασφαλίζει ότι ο assembler απορρίπτει
-κάθε εντολή εκτός tier — ένα \vclmul{} σε Tier~1 target προκαλεί σφάλμα
-μεταγλώττισης, αποτρέποντας ακούσια εξάρτηση από μη-διαθέσιμο hardware.
+Η \gls{zvbb} παρέχει τις εντολές \vror{} (vector rotate) και
+\insn{vandn.vv} (vector AND-NOT), οι οποίες αξιοποιούνται στον Keccak
+πυρήνα (\cref{ch:kernel-optimization}) αλλά δεν επηρεάζουν τον
+πολυωνυμικό πολλαπλασιασμό.
 
 %% ============================================================================
 \section{Scalar Path: Karatsuba με \Zbc}
 \label{sec:polymul-scalar}
 
 Το scalar path αποτελεί τη θεμελιώδη βελτιστοποίηση του πολυωνυμικού
-πολλαπλασιασμού — εφαρμόσιμη σε κάθε RISC-V πλατφόρμα που υλοποιεί το
-\gls{zbc} extension, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας. Η ενότητα αυτή
+πολλαπλασιασμού — εφαρμόσιμη σε κάθε RISC-V πλατφόρμα που υλοποιεί την επέκταση
+\gls{zbc}, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας. Η ενότητα αυτή
 παρουσιάζει τη μετάβαση από τον bit-serial schoolbook του reference
 implementation σε έναν πλήρως βελτιστοποιημένο Karatsuba πυρήνα. 
 Η συνολική μείωση \instret στον πολυωνυμικό πολλαπλασιασμό HQC-128 
@@ -205,7 +204,7 @@ bit $k$ είναι ενεργό, εκτελείται conditional shift-XOR το
 θέση $r[i+j]$. Η πολυπλοκότητα ανά leaf call μεγέθους $n$ words
 ανέρχεται σε $64 \times n^2$ conditional shift-and-XOR πράξεις.
 
-Το \gls{zbc} extension παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
+Η επέκταση \gls{zbc} παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
 υπολογίζουν το πλήρες \num{128}-bit carry-less γινόμενο δύο \num{64}-bit
 πολυωνύμων σε $\GFpoly$ χωρίς modular reduction:
 %
@@ -315,20 +314,20 @@ $i$ εισάγει ακριβώς μία νέα θέση $r[i+8]$ ως fresh ass
 arithmetic από τον leaf, παράγοντας μία ευθύγραμμη ακολουθία \num{64}
 κλήσεων \code{clmul64} χωρίς κανένα branch.
 
-\subsection{Δομή Αναδρομής και AP-2 Generator}
-\label{ssec:ap2-generator}
+\subsection{Δομή Αναδρομής και Compile-Time Specialized Generator}
+\label{ssec:specialized-tree}
 
 Τα μεγέθη παραμέτρων του HQC είναι compile-time σταθερές:
 $N \in \{277, 561, 901\}$ words αντίστοιχα για τα τρία security levels.
 Κατά συνέπεια, ολόκληρο το δέντρο αναδρομής Karatsuba είναι
 ντετερμινιστικό — κάθε κόμβος γνωρίζει εκ των προτέρων τα μεγέθη
 εισόδου, τα offsets των buffers, και τα μεγέθη των child calls. Η
-παρατήρηση αυτή οδηγεί στη σχεδίαση του \defterm{AP-2 generator}: ένα
+παρατήρηση αυτή οδηγεί στη σχεδίαση ενός \defterm{compile-time specialized generator}: ένα
 Python script (\code{gen\_karatsuba\_specialized.py}) που διατρέχει το
 δέντρο αναδρομής και εκπέμπει εξειδικευμένες C συναρτήσεις με όλες τις
 αποφάσεις επιλυμένες σε compile-time.
 
-Ο κανόνας διαίρεσης ακολουθεί τη σύμβαση AP-2:
+Ο κανόνας διαίρεσης ακολουθεί τη συμμετρική σύμβαση:
 $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$. Η αναδρομή
 τερματίζει στο threshold $T=16$ words, όπου καλείται ο schoolbook leaf.
 Για το HQC-128 ($N=277$), το δέντρο αποσυντίθεται ως:
@@ -350,20 +349,20 @@ $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$. Η αναδρομή
     optimizations.
 \end{itemize}
 
-Το \cref{fig:ap2-pipeline} συνοψίζει το pipeline του AP-2 generator.
+Το \cref{fig:specialized-tree-pipeline} συνοψίζει το pipeline του generator.
 
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/ap2-pipeline.tex}
-  \caption{Pipeline του AP-2 generator. Ένα Python script αναλύει το
+  \caption{Pipeline του compile-time specialized generator. Ένα Python script αναλύει το
     δέντρο αναδρομής Karatsuba για κάθε HQC parameter size και εκπέμπει
     εξειδικευμένο C header. Κάθε απόφαση (buffer offsets, loop bounds,
     child dispatch) επιλύεται σε compile-time — μηδενικό runtime
     overhead.}
-  \label{fig:ap2-pipeline}
+  \label{fig:specialized-tree-pipeline}
 \end{figure}
 
-Η σημασία του AP-2 generator εκτείνεται πέραν της εξάλειψης runtime
+Η σημασία του generator εκτείνεται πέραν της εξάλειψης runtime
 dispatch. Σε βαθιά αναδρομικές δομές, η RISC-V calling convention
 επιβάλλει αποθήκευση και επαναφορά callee-saved registers σε κάθε
 non-leaf frame. Για δέντρα βάθους 8–10 (HQC-256), το αθροιστικό
@@ -384,7 +383,7 @@ helper calls), \code{rvv\_opt} (inlined RVV direct-write), και
 αυτόματα σε όλα τα tiers.
 
 \paragraph{Unrolling και βάθος αναδρομής.}
-Ο AP-2 generator εκπέμπει πλήρως unrolled recursion tree — κάθε
+Ο generator εκπέμπει πλήρως unrolled recursion tree — κάθε
 κόμβος αναδρομής αποτελεί ξεχωριστή \code{static} συνάρτηση με
 zero runtime dispatch. Η σχεδιαστική αυτή απόφαση εξαλείφει κάθε
 threshold comparison, dynamic pointer arithmetic, και stack frame
@@ -538,7 +537,9 @@ $z_0$ και $z_2$ στις τελικές θέσεις του output buffer $r$
 αναδρομής περιέχει \num{121} non-leaf κόμβους (5 επίπεδα αναδρομής,
 τρία sub-problems ανά κόμβο: $1+3+9+27+81=121$), καθένας από τους
 οποίους εκτελούσε δύο αντιγραφές μεγέθους $\sim n$ words — η direct-write
-discipline αφαιρεί το σύνολό τους.
+discipline αφαιρεί το σύνολό τους. Η τεχνική αυτή δεν εφαρμόζεται στο
+Tier~1: εξοικονομεί κόστος γραμμικών copy loops, αμελητέο εκεί όπου
+κυριαρχεί ο τετραγωνικός scalar leaf.
 
 \paragraph{Μείωση temporary buffer.}
 Δεδομένου ότι τα $z_0$ και $z_2$ δεν καταλαμβάνουν πλέον χώρο στο
@@ -627,7 +628,7 @@ $r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
 
 Η αρχική Track~B υλοποίηση χρησιμοποιούσε τρεις shared helper functions
 (\code{rvv\_copy\_u64}, \code{rvv\_xor3\_u64}, \code{rvv\_xor\_u64}) με
-σταθερές ρυθμίσεις \LMUL. Ο AP-2 generator σε \code{rvv\_opt} mode
+σταθερές ρυθμίσεις \LMUL. Ο specialized generator σε \code{rvv\_opt} mode
 αντικαθιστά αυτές τις κλήσεις με inline RVV intrinsic loops απευθείας
 εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης, με \LMUL ρυθμισμένο
 ανά operation βάσει του αριθμού ταυτόχρονα ενεργών vector register groups.
@@ -774,7 +775,7 @@ assign-on-first-write πειθαρχία με τη \code{clmul\_leaf\_n8}:
 (j=8) αντί pair. Η \code{clmul\_leaf\_n9} χειρίζεται αυτό μέσω ρητής
 εκπομπής μονού \code{clmul64} στο τέλος κάθε σειράς.
 
-Ο AP-2 generator αναγνωρίζει τώρα τρεις leaf dispatches:
+Ο specialized generator αναγνωρίζει τώρα τρεις leaf dispatches:
 %
 \begin{itemize}
   \item $n = 8$: \code{clmul\_leaf\_n8} (πλήρως ξεδιπλωμένο $8 \times 8$),
@@ -1163,7 +1164,7 @@ thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτε
 Tier~3 ανέρχεται σε \speedup{318} για HQC-128 ως προς \code{scalar\_ref}
 (\cref{conv:baseline}) — από \num{19214277} σε \num{60380} εντολές. Η μείωση αυτή αντικατοπτρίζει τη
 σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
-αναδιάρθρωση (Karatsuba + AP-2), εξάλειψη πλεονάζουσας μνήμης
+αναδιάρθρωση (Karatsuba + compile-time specialized tree), εξάλειψη πλεονάζουσας μνήμης
 (assign-on-first-write), και διανυσματοποίηση του binding constraint
 (\vclmul{} leaf). Η ποσοτική αποτίμηση κάθε στρώματος ξεχωριστά
 παρουσιάζεται στο \cref{ch:results}.
@@ -1172,7 +1173,7 @@ Tier~3 ανέρχεται σε \speedup{318} για HQC-128 ως προς \code{
 \section{Code Size vs Performance Trade-off}
 \label{sec:polymul-codesize}
 
-Η πλήρως ξεδιπλωμένη δομή του AP-2 generator και η εξειδίκευση του leaf
+Η πλήρως ξεδιπλωμένη δομή του specialized generator και η εξειδίκευση του leaf
 (\cref{sec:polymul-scalar}) ανταλλάσσουν αυξημένο μέγεθος κώδικα με την
 απαλοιφή κάθε runtime dispatch. Η αποτίμηση του συμβιβασμού αυτού απαιτεί την
 ταυτόχρονη θεώρηση τριών αλληλεπιδρώντων αξόνων: του βάθους ξεδιπλώματος της
@@ -1201,7 +1202,7 @@ Tier~3 ανέρχεται σε \speedup{318} για HQC-128 ως προς \code{
 συμπιέζοντας το μέγεθος του κώδικα ενώ ενισχύει την απόδοση.
 
 Το μέγεθος κώδικα του Tier~1 ανάγεται ευθέως στις σχεδιαστικές αποφάσεις του scalar
-μονοπατιού (\cref{sec:polymul-scalar}). Ο unrolled AP-2 generator και η
+μονοπατιού (\cref{sec:polymul-scalar}). Ο unrolled specialized generator και η
 εξειδίκευση \code{clmul\_leaf\_n8} εκπέμπουν \num{64} διαδοχικές κλήσεις
 \code{clmul64} ανά leaf χωρίς κανέναν βρόχο, προσθέτοντας περίπου
 \SI{13}{\kilo\byte} επιπλέον έναντι του \code{scalar\_ref}. Η ablation που αφαίρεσε το
