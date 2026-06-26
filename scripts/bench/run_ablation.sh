@@ -35,7 +35,7 @@
 #   scalar_ref    : baseline (bit-serial + memset + n>>1 split)
 #   scalar_zb_A   : + word-level clmul
 #   scalar_zb_AB  : + word-level + assign-on-first-write
-#   scalar_zb_AC  : + word-level + specialized recursion tree
+#   scalar_zb_AC  : + word-level + specialized recursion tree + leaf unrolling
 #   scalar_zb     : + all three (champion)
 
 set -euo pipefail
@@ -425,8 +425,8 @@ if [[ $DRY_RUN -eq 0 ]]; then
         if [[ $HAS_HW -eq 1 ]]; then
             echo "## Incremental Optimization Contribution (cycles)"
             echo ""
-            echo "| Transition | What changes | HQC-128 Δ | HQC-192 Δ | HQC-256 Δ |"
-            echo "|------------|--------------|----------:|----------:|----------:|"
+            echo "| Transition | What changes | HQC-128 | HQC-192 | HQC-256 |"
+            echo "|------------|--------------|--------:|--------:|--------:|"
 
             hw_compute_delta() {
                 local from_var="$1" to_var="$2" lvl="$3"
@@ -435,8 +435,8 @@ if [[ $DRY_RUN -eq 0 ]]; then
                 if [[ ! -f "$from_csv" || ! -f "$to_csv" ]]; then echo "—"; return; fi
                 local from_val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $6}' "$from_csv")
                 local to_val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $6}' "$to_csv")
-                if [[ -z "$from_val" || -z "$to_val" || "$from_val" -eq 0 ]]; then echo "—"; return; fi
-                awk "BEGIN{printf \"%+.1f%%\",(${to_val}-${from_val})/${from_val}*100}"
+                if [[ -z "$from_val" || -z "$to_val" || "$to_val" -eq 0 ]]; then echo "—"; return; fi
+                awk "BEGIN{printf \"×%.2f\",${from_val}/${to_val}}"
             }
 
             hw_get_cycles() {
@@ -460,7 +460,7 @@ if [[ $DRY_RUN -eq 0 ]]; then
             hw_transitions=(
                 "ref→A|+word-level clmul|scalar_ref|scalar_zb_A"
                 "A→AB|+assign-on-first-write|scalar_zb_A|scalar_zb_AB"
-                "A→AC|+specialized recursion tree|scalar_zb_A|scalar_zb_AC"
+                "A→AC|+specialized recursion tree + leaf unrolling|scalar_zb_A|scalar_zb_AC"
                 "${hw_finalist_label}→ABC|${hw_final_step_desc}|${hw_finalist}|scalar_zb"
             )
 
@@ -478,8 +478,8 @@ if [[ $DRY_RUN -eq 0 ]]; then
         if [[ $HAS_SIM -eq 1 || $HAS_HW -eq 1 ]]; then
             echo "## Incremental Optimization Contribution (instret)"
             echo ""
-            echo "| Transition | What changes | HQC-128 Δ | HQC-192 Δ | HQC-256 Δ |"
-            echo "|------------|--------------|----------:|----------:|----------:|"
+            echo "| Transition | What changes | HQC-128 | HQC-192 | HQC-256 |"
+            echo "|------------|--------------|--------:|--------:|--------:|"
 
             # Use HW instret if available, otherwise sim instret
             instret_get() {
@@ -505,8 +505,8 @@ if [[ $DRY_RUN -eq 0 ]]; then
                 local from_var="$1" to_var="$2" lvl="$3"
                 local from_val=$(instret_get "$from_var" "$lvl")
                 local to_val=$(instret_get "$to_var" "$lvl")
-                if [[ -z "$from_val" || -z "$to_val" || "$from_val" -eq 0 ]]; then echo "—"; return; fi
-                awk "BEGIN{printf \"%+.1f%%\",(${to_val}-${from_val})/${from_val}*100}"
+                if [[ -z "$from_val" || -z "$to_val" || "$to_val" -eq 0 ]]; then echo "—"; return; fi
+                awk "BEGIN{printf \"×%.2f\",${from_val}/${to_val}}"
             }
 
             # Determine finalist by instret at HQC-128
@@ -523,7 +523,7 @@ if [[ $DRY_RUN -eq 0 ]]; then
             inst_transitions=(
                 "ref→A|+word-level clmul|scalar_ref|scalar_zb_A"
                 "A→AB|+assign-on-first-write|scalar_zb_A|scalar_zb_AB"
-                "A→AC|+specialized recursion tree|scalar_zb_A|scalar_zb_AC"
+                "A→AC|+specialized recursion tree + leaf unrolling|scalar_zb_A|scalar_zb_AC"
                 "${inst_finalist_label}→ABC|${inst_final_step_desc}|${inst_finalist}|scalar_zb"
             )
 

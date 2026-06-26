@@ -57,11 +57,13 @@ def parse_binary_csv(filepath: str) -> tuple[list[str], list[dict]]:
     with open(filepath, "r") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#"):
+            if not line:
                 continue
             # Stop at the derived-metrics section if already present
             if line == "# --- derived metrics ---":
                 break
+            if line.startswith("#"):
+                continue
             cols = [c.strip() for c in line.split(",")]
             if header is None:
                 header = cols
