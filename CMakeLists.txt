@@ -394,7 +394,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_NOINIT=1
                 -DABLATION_AP2=0)
         elseif(POLYMUL STREQUAL "scalar_zb_AC")
-            # Ablation: word-level + specialized tree (no noinit)
+            # Ablation: word-level + specialized tree + leaf unrolling (no noinit)
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -411,7 +411,8 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
                 -DABLATION_WORDLEVEL=1
                 -DABLATION_NOINIT=0
-                -DABLATION_AP2=1)
+                -DABLATION_AP2=1
+                -DABLATION_LEAF_SPEC=1)
         elseif(POLYMUL STREQUAL "scalar_zb_ABC_nosplit")
             # Ablation: word-level + noinit + symmetric-split specialized tree
             set(POLYMUL_SOURCES

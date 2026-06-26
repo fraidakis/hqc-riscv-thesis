@@ -91,7 +91,7 @@ else ifeq ($(POLYMUL),scalar_zb_AB)
 else ifeq ($(POLYMUL),scalar_zb_AC)
   MARCH := rv64gc_zbc_zbb_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul_ablation.c
-  EXTRA_CFLAGS := -fno-tree-vectorize -DABLATION_WORDLEVEL=1 -DABLATION_NOINIT=0 -DABLATION_AP2=1
+  EXTRA_CFLAGS := -fno-tree-vectorize -DABLATION_WORDLEVEL=1 -DABLATION_NOINIT=0 -DABLATION_AP2=1 -DABLATION_LEAF_SPEC=1
 else ifeq ($(POLYMUL),vector_ref)
   # DEPRECATED — retained for manual one-off comparisons only.
   MARCH := rv64gcv_zbc_zbb_zbs
