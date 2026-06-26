@@ -16,21 +16,21 @@
 αντιστοιχούν στη σταδιακή υιοθέτηση ISA extensions:
 
 \paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
-Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{19214277} σε
-\num{221030} \instret (HQC-128), επιτυγχάνοντας \speedup{87} μέσω
+Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{18639752} σε
+\num{186629} \instret (HQC-128), επιτυγχάνοντας \speedup{99.9} μέσω
 Karatsuba compile-time specialized tree generation και εγγενούς \clmul/\clmulh. Το πλήρες
 \gls{kem} (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{34} στο HQC-128 και
 \speedup{49} στο HQC-256.
 
 \paragraph{Tier~2 — Base-RVV (\RVV + \Zbc/\Zbb)}
 Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
-speedup σε \speedup{122} (HQC-128) και το πλήρες \gls{kem} σε \speedup{60}.
+speedup σε \speedup{132.7} (HQC-128) και το πλήρες \gls{kem} σε \speedup{60}.
 Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το Base-RVV
 rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
 
 \paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
-Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vx} επιτυγχάνει \speedup{318} στο
-polymul (HQC-128) και \speedup{547} στο HQC-256. Το πλήρες \gls{kem} φτάνει
+Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vx} επιτυγχάνει \speedup{292.1} στο
+polymul (HQC-128) και \speedup{512.6} στο HQC-256. Το πλήρες \gls{kem} φτάνει
 \speedup{167} (HQC-128) και \speedup{339} (HQC-256), τοποθετώντας τον
 \instret σε \num{702755}. Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
 της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion· σε εκτιμώμενους κύκλους
@@ -40,7 +40,7 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 
 \paragraph{Βοηθητικοί πυρήνες}
 Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
-(\speedup{3.5}–\speedup{3.7} μέσω 2-way \gls{soa} με \gls{zvbb}) και η
+(\speedup{3.7}–\speedup{3.9} μέσω 2-way \gls{soa} με \gls{zvbb}) και η
 αποκωδικοποίηση \gls{rm}/\gls{rs} (\speedup{6.8}–\speedup{7.8} μέσω
 \RVV vectorization και \gls{zvbc} $\GF{2^8}$ acceleration).
 

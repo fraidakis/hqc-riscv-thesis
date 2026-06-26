@@ -292,7 +292,7 @@ hardware δυνατοτήτων και αλγοριθμικής απόδοσης
 θεμελιώδη extension — η εντολή \clmul μετασχηματίζει τον πολυωνυμικό
 πολλαπλασιασμό από $\BigO{n^2}$ bit-serial πράξεις σε $\BigO{n}$
 word-level carry-less γινόμενα, παρέχοντας μείωση \pct{99} στο \instret
-του \code{vect\_mul} (από \cycles{19214277} σε \cycles{221030}, HQC-128) και
+του \code{vect\_mul} (από \cycles{18639752} σε \cycles{186629}, HQC-128) και
 \pct{96} στο \instret \Decaps ολοκλήρου του \gls{kem} (βήμα Baseline→+\Zbc
 στο~\cref{fig:waterfall-ablation}). Η \gls{zvbc} επεκτείνει αυτή τη δυνατότητα στο vector
 register file, εξαλείφοντας τον scalar loop overhead και παρέχοντας
@@ -717,7 +717,7 @@ path. Η δομική αιτία αναλύθηκε στην \cref{sec:polymul-c
   \input{figures/ch9-discussion/code-size-dual-axis}
   \caption{Polymul \instret (στήλες, αριστερός y-axis) και \code{.text}
     footprint (γραμμή, δεξιός y-axis) ανά tier (HQC-128). Η
-    \code{scalar\_ref} εντολές ($\num{19214277}$) παραλείπονται λόγω
+    \code{scalar\_ref} εντολές ($\num{18639752}$) παραλείπονται λόγω
     κλίμακας. Η αρνητική συσχέτιση μεταξύ Tier~1 και Tier~3
     τεκμηριώνει ότι η vectorization αποτελεί ταυτόχρονη βελτίωση
     και στους δύο άξονες σε επίπεδο polymul kernel· αντιθέτως, η σύγκλιση μεγεθών που τεκμηριώνεται στην \cref{ssec:codesize-summary} αφορά το πλήρες \KEM binary. Πηγή: \cref{tab:microbench-polymul}.}
