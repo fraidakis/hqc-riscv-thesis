@@ -1,0 +1,17 @@
+CompileFlags:
+  Add:
+    - "-ferror-limit=0"
+  Remove:
+    - "-march=*"
+    - "-mabi=*"
+    - "-mcmodel=*"
+    - "-mno-relax"
+    - "--sysroot=*"
+    - "-ffreestanding"
+  Compiler: clang
+
+Diagnostics:
+  UnusedIncludes: None
+  Suppress:
+    - "unknown_argument"
+    - "unused-command-line-argument"
