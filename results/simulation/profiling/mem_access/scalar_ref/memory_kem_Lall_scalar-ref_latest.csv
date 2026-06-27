@@ -1,7 +1,0 @@
-# date: 2026-06-23 14:24
-# commit: d38ed14
-# variant: scalar_ref
-level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1207,1060,7787,6970,122,109
-192,1236,1131,7681,7358,121,115
-256,1107,1041,6788,6825,107,107

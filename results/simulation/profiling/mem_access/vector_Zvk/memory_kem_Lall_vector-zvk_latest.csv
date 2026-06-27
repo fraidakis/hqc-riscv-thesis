@@ -1,7 +1,0 @@
-# date: 2026-06-23 14:21
-# commit: d38ed14
-# variant: vector_zvk
-level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1583,1530,23269,17714,364,277
-192,1596,1508,25285,18620,396,291
-256,1880,1759,27291,20521,427,321

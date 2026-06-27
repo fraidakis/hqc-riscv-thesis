@@ -1,6 +1,0 @@
-# date: 2026-05-26 18:49
-# commit: c56c136
-# variant: vector_rvv
-# cache_config: 512:8:64
-level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-128,1298,92,1206,110,11395191,5947015,1728213,1041077

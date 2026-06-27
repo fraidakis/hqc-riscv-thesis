@@ -1,8 +1,0 @@
-# date: 2026-06-23 14:21
-# commit: d38ed14
-# variant: vector_zvk
-# cache_config: 512:8:64
-level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-128,1314,84,1230,146,13142297,7174511,1922241,1080842
-192,3026,206,2820,735,30742554,19952135,4294814,2786754
-256,6814,867,5947,3193,59825441,42194770,8239574,5770845

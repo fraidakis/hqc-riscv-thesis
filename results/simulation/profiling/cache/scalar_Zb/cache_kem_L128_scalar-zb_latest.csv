@@ -1,6 +1,0 @@
-# date: 2026-06-24 17:05
-# commit: 0eb2718
-# variant: scalar_zb
-# cache_config: 512:8:64
-level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses
-128,1322,86,1236,143,10225889,5107495,1557478,982783

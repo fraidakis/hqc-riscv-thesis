@@ -1,7 +1,0 @@
-# date: 2026-06-07 13:56
-# commit: 783fdca
-# variant: vector_ref
-level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store
-128,1891,2012,14197,18160,222,284
-192,2079,2112,15196,20031,238,313
-256,2144,2127,15855,19886,248,311
