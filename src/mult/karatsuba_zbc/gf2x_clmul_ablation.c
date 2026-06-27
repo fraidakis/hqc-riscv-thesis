@@ -16,30 +16,28 @@
  *   ABLATION_AP2        (C) : 1 = compile-time specialized recursion tree
  *                             0 = generic recursive Karatsuba with n>>1 split
  *
- *   ABLATION_LEAF_SPEC      : 1 = fixed-size fully-unrolled leaf specializations
+ *   ABLATION_LEAF_SPEC  (D) : 1 = fixed-size fully-unrolled leaf specializations
  *                                 (clmul_leaf_n8, clmul_leaf_n9) with 4-way ILP
  *                                 and assign-on-first-write discipline
  *                             0 = generic memset + XOR-accumulate leaf loop
- *                             NOTE: this is part of the C optimization — it
- *                             requires A=1 and C=1 (word-level clmul and known
- *                             fixed leaf sizes from the specialized tree).
- *                             Enabled together with C in scalar_zb_AC.
+ *                             NOTE: requires A=1 and C=1 (word-level clmul and
+ *                             known fixed leaf sizes from the specialized tree).
  *
- * Intended variant matrix (orthogonal axes A, B, C):
- *   scalar_zb_A   : A=1, B=0, C=0  (word-level only)
- *   scalar_zb_AB  : A=1, B=1, C=0  (word-level + noinit recomposition)
- *   scalar_zb_AC  : A=1, B=0, C=1  (word-level + specialized tree + leaf unrolling)
- *   scalar_zb     : A=1, B=1, C=1  (all three — champion)
+ * Intended variant matrix (orthogonal axes A, B, C, D):
+ *   scalar_zb_A   : A=1, B=0, C=0, D=0  (word-level only)
+ *   scalar_zb_AB  : A=1, B=1, C=0, D=0  (word-level + noinit recomposition)
+ *   scalar_zb_AC  : A=1, B=0, C=1, D=0  (word-level + specialized tree, generic leaves)
+ *   scalar_zb_ACD : A=1, B=0, C=1, D=1  (word-level + specialized tree + leaf unrolling)
+ *   scalar_zb     : A=1, B=1, C=1, D=1  (all four — champion)
  *
  * Orthogonality guarantee:
  *   - A controls the leaf multiply primitive (clmul vs bit-serial)
  *   - B controls tree-level recomposition style (direct-write vs memset+XOR)
- *   - C controls tree structure AND leaf specialization (specialized compile-time
- *     tree with fully-unrolled fixed-size leaves vs generic runtime recursion
- *     with generic loop-based leaves)
- *   Each axis is independent; no axis subsumes another.
- *   Leaf specialization (ABLATION_LEAF_SPEC) is part of C — it exploits the
- *   compile-time knowledge that the specialized tree provides.
+ *   - C controls tree structure (specialized compile-time tree with known
+ *     fixed leaf sizes vs generic runtime recursion with n>>1 split)
+ *   - D controls leaf specialization (fully-unrolled fixed-size leaves with
+ *     4-way ILP vs generic loop-based leaves). Requires C=1.
+ *   Each axis (A, B, C) is independent; D depends on C.
  *
  * KAT validated by running all ablation variants against known-answer vectors.
  */
