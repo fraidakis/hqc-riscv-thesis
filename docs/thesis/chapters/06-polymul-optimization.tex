@@ -125,8 +125,8 @@ vector register group: σε \VLEN = \num{256} με \LMUL = m4 το group καλ�
 \gls{zbc}, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας. Η scalar διαδρομή
 αντικαθιστά τον bit-serial schoolbook της υλοποίησης αναφοράς με word-level
 Karatsuba, μειώνοντας το \instret στον πολυωνυμικό πολλαπλασιασμό HQC-128 κατά
-\speedup{101.2} έναντι του \code{scalar\_ref}.
-Τα τρία στάδια αναπτύσσονται στη συνέχεια και η σωρευτική τους συνεισφορά
+\speedup{100.2} έναντι του \code{scalar\_ref}.
+Τα τέσσερα στάδια αναπτύσσονται στη συνέχεια και η σωρευτική τους συνεισφορά
 συνοψίζεται στον \cref{tab:scalar-ablation}.
 
 \subsection{Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό}
@@ -173,7 +173,7 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
 του \instret έναντι του bit-serial baseline (HQC-128), το μεγαλύτερο κέρδος
 μεμονωμένου σταδίου κατά την scalar βελτιστοποίηση.
 
-\subsection{Δομή Αναδρομής και Compile-Time Specialized Generator}
+\subsection{Στατική Παραγωγή του Δέντρου Αναδρομής Karatsuba}
 \label{ssec:specialized-tree}
 
 Οι παράμετροι του HQC είναι compile-time σταθερές, οπότε το μήκος
@@ -280,79 +280,68 @@ static void kmul_17(uint64_t *r, const uint64_t *a,
 }
 \end{lstlisting}
 
-Συνδυασμένη με τις πλήρως ξεδιπλωμένες leaf εξειδικεύσεις, η στατική
-παραγωγή του δέντρου αποδίδει επιπλέον \speedup{2.34} σε \instret έναντι
-του word-level \clmul{} σταδίου (HQC-128), τη δεύτερη μεγαλύτερη
-συνεισφορά της scalar διαδρομής.
+Η στατική παραγωγή του δέντρου αναδρομής αποδίδει
+\speedup{1.99} σε \instret έναντι του word-level \clmul{} σταδίου
+(HQC-128), τη δεύτερη μεγαλύτερη συνεισφορά της scalar διαδρομής. 
 
 \subsection{Εξειδικεύσεις Leaf: \code{clmul\_leaf\_n8} και \code{clmul\_leaf\_n9}}
 \label{ssec:leaf-specialization}
 
-Στο φύλλο, η εξειδίκευση \code{clmul\_leaf\_n8} καλύπτει την περίπτωση
-μεγέθους $n=8$ (37 από τα 243 φύλλα του HQC-128 στο threshold $T=16$):
-πλήρως unrolled $8 \times 8$ schoolbook product, \num{64} διαδοχικές
-κλήσεις \code{clmul64} χωρίς κανένα branch, με ενσωματωμένη
-\defterm{assign-on-first-write} πειθαρχία (κάθε θέση εξόδου λαμβάνει
-direct assignment στην πρώτη πρόσβαση, εξαλείφοντας το προηγούμενο
-\code{memset}). Αντίστοιχα, η \code{clmul\_leaf\_n9} καλύπτει τα
-κυρίαρχα φύλλα μεγέθους $n=9$ (206 από τα 243), τα οποία στην αρχική
-υλοποίηση εξυπηρετούνταν από τον generic \code{clmul\_leaf} με loop
-overhead (branch prediction, $j$-comparisons, tail handling). Η νέα
-εξειδίκευση είναι πλήρως ξεδιπλωμένο $9 \times 9$ product με \num{81}
-διαδοχικές κλήσεις \code{clmul64} χωρίς κανένα branch, ακολουθώντας την
-ίδια assign-on-first-write πειθαρχία: η σειρά $i=0$ αρχικοποιεί τις
-θέσεις $r[0 \ldots 9]$ μέσω init pair (j=0,1), τριών loop pairs (j=2..7)
-και ενός odd-tail (j=8), ενώ κάθε σειρά $i \geq 1$ εισάγει μία νέα θέση
-$r[i+9]$ ως fresh assign στο odd-tail. Η περιττή τιμή $n=9$ δεν επιτρέπει
-ομοιόμορφη ζεύγη σε ολόκληρο τον εξωτερικό βρόχο, οπότε κάθε σειρά
-τερματίζει με ρητή εκπομπή μονού \code{clmul64}. Ο specialized generator
-αναγνωρίζει έτσι τρία leaf dispatches: $n=8$ (\code{clmul\_leaf\_n8}),
-$n=9$ (\code{clmul\_leaf\_n9}) και $n \in [10, 16]$ (generic
-\code{clmul\_leaf}). Οι δύο πλήρως ξεδιπλωμένες εξειδικεύσεις καλύπτουν
-το \pct{100} των leaf calls του HQC-128 με branch-free κώδικα,
-εξαλείφοντας \num{206} branch misprediction opportunities ανά
-\code{vect\_mul} invocation. Μία ablation study επιβεβαίωσε ότι η
-εξειδίκευση $n=4$ αποτελούσε dead code για το δέντρο HQC-128 (κανένα
-leaf call δεν παράγει $n=4$ στο threshold $T=16$) και αφαιρέθηκε μαζί με
-τον αντίστοιχο dispatch arm. Στο αντίθετο άκρο, εξειδικεύσεις για τα
-μεγαλύτερα φύλλα $n \in \{14, 15\}$ (που εμφανίζονται στα δέντρα
-HQC-192/256) δοκιμάστηκαν αλλά απορρίφθηκαν: προκάλεσαν regression
-\pct{8.4} στο HQC-256 λόγω I-cache pressure στον in-order X60 pipeline,
-καθώς το αυξημένο \code{.text} footprint των unrolled εκδοχών υπερβαίνει
-το όφελος. Τα φύλλα αυτά εξυπηρετούνται επομένως από τον compact generic
-\code{clmul\_leaf}.
+Στο threshold $T=16$, το δέντρο του HQC-128 παράγει αποκλειστικά φύλλα
+μεγέθους $n=8$ και $n=9$. Ο generic \code{clmul\_leaf} εξυπηρετεί κάθε
+μέγεθος μέσω ενός παραμετρικού βρόχου, με το συνεπαγόμενο runtime
+overhead (branch prediction, $j$-comparisons, tail handling). Αξιοποιώντας
+ότι μόνο δύο μεγέθη εμφανίζονται, ο generator εκπέμπει δύο πλήρως
+ξεδιπλωμένες, branch-free εξειδικεύσεις ακριβώς γι' αυτά.
 
-Πέραν της μείωσης iterations, οι δύο πλήρως ξεδιπλωμένες εξειδικεύσεις
-εισάγουν δύο micro-optimizations. Πρώτον, \defterm{2-way pair scheduling}:
-εκδίδονται δύο ανεξάρτητες κλήσεις \code{clmul64} (ένα ζεύγος) προτού
-καταναλωθεί οποιοδήποτε αποτέλεσμα. Η τεχνική αυτή παρέχει ελάχιστη
-κάλυψη latency χωρίς υπερβολική αύξηση code footprint. Δεύτερον, η
-\defterm{hi$\xorop$lo fusion}: γειτονικά γινόμενα μοιράζονται κοινή θέση
-εξόδου: $\text{hi}(a[i], b[j])$ και $\text{lo}(a[i], b[j{+}1])$ στοχεύουν
-αμφότερα τη θέση $r[i{+}j{+}1]$. Η συγχώνευσή τους σε ένα μόνο
-XOR-and-store ($r[i{+}j{+}1] \mathrel{\xorop}= \text{hi}_0 \xorop
-\text{lo}_1$) εξαλείφει έναν κύκλο load-modify-store ανά ζεύγος.
+\paragraph{Δύο εξειδικεύσεις: \code{clmul\_leaf\_n8} και \code{clmul\_leaf\_n9}.}
+Η \code{clmul\_leaf\_n8} ($n=8$, 37 από τα 243 φύλλα) είναι πλήρως
+unrolled $8\times8$ schoolbook product, \num{64} διαδοχικές \code{clmul64}
+χωρίς κανένα branch. Η \code{clmul\_leaf\_n9} ($n=9$, τα κυρίαρχα 206 από
+τα 243 φύλλα) είναι το αντίστοιχο $9\times9$ product με \num{81}
+\code{clmul64}. Επειδή το $n=9$ είναι περιττό, ο εξωτερικός βρόχος δεν
+διαιρείται σε ομοιόμορφα ζεύγη, οπότε κάθε σειρά τερματίζει με ρητή
+εκπομπή μονού \code{clmul64}. Ο generator αναγνωρίζει έτσι τρία leaf
+dispatches: $n=8$, $n=9$ και $n\in[10,16]$ (generic \code{clmul\_leaf}).
+Οι δύο εξειδικεύσεις καλύπτουν το \pct{100} των leaf calls του HQC-128 με
+branch-free κώδικα, εξαλείφοντας \num{206} branch misprediction
+opportunities ανά \code{vect\_mul}.
+
+\paragraph{Micro-optimizations: 2-way pairing και hi$\xorop$lo fusion.}
+Πέραν της μείωσης iterations, οι εξειδικεύσεις εισάγουν δύο τοπικές
+βελτιστοποιήσεις. Το \defterm{2-way pair scheduling} εκδίδει δύο
+ανεξάρτητες \code{clmul64} πριν καταναλωθεί οποιοδήποτε αποτέλεσμα,
+παρέχοντας latency coverage χωρίς υπέρμετρο code footprint. Η
+\defterm{hi$\xorop$lo fusion} εκμεταλλεύεται ότι γειτονικά γινόμενα
+μοιράζονται θέση εξόδου: $\text{hi}(a[i], b[j])$ και
+$\text{lo}(a[i], b[j{+}1])$ στοχεύουν αμφότερα τη θέση $r[i{+}j{+}1]$,
+οπότε συγχωνεύονται σε ένα XOR-and-store
+($r[i{+}j{+}1] \mathrel{\xorop}= \text{hi}_0 \xorop \text{lo}_1$),
+εξοικονομώντας έναν κύκλο load-modify-store ανά ζεύγος. Το 2-way pairing
+εφαρμόζεται ομοιόμορφα σε ολόκληρο τον leaf, ενώ η hi$\xorop$lo fusion
+μόνο στις δύο ξεδιπλωμένες εξειδικεύσεις. Ο generic \code{clmul\_leaf}
+παραμένει η απλή, μη-fused εναλλακτική.
+
+\paragraph{Εύρος εφαρμογής: dead code και μεγάλα φύλλα.}
+Ένα ablation επιβεβαίωσε ότι η εξειδίκευση $n=4$ ήταν dead code για το
+HQC-128 (κανένα leaf call δεν παράγει $n=4$ στο $T=16$) και αφαιρέθηκε
+μαζί με τον dispatch arm. Στο αντίθετο άκρο, εξειδικεύσεις για τα
+μεγαλύτερα φύλλα $n\in\{14,15\}$ των HQC-192/256 δοκιμάστηκαν αλλά
+απορρίφθηκαν: προκάλεσαν regression \pct{8.4} στο HQC-256 λόγω I-cache
+pressure στον in-order X60, καθώς το αυξημένο \code{.text} footprint
+υπερβαίνει το όφελος. Τα φύλλα αυτά εξυπηρετούνται από τον compact
+generic \code{clmul\_leaf}.
 
 \paragraph{Εναλλακτική: 4-way ILP grouping (απορριφθείσα).}
-Αξιολογήθηκε εναλλακτική διαμόρφωση με εκπομπή τεσσάρων ανεξάρτητων κλήσεων
-\code{clmul64} πριν από οποιαδήποτε κατανάλωση αποτελεσμάτων (\defterm{4-way
-ILP grouping}), με στόχο τη μεγαλύτερη κάλυψη latency στον in-order X60
-pipeline. Η μέτρηση σε πραγματικό hardware (BPI-F3) απέδειξε ότι η τεχνική
-αυτή δεν αποδίδει μετρήσιμο κέρδος: στο \code{scalar\_zb}, η 4-way εκδοχή
-παρουσίασε $<\pct{0.5}$ διαφορά (\cycles{131551} έναντι \cycles{132266} στο
-HQC-128, εντός noise) ενώ στο \code{vector\_rvv} προκάλεσε regression
-\pct{1.6} (\cycles{123845} έναντι \cycles{121950}) λόγω αυξημένου
-\code{.text} footprint και I-cache pressure. Η 2-way pair δομή διατηρήθηκε
-ως champion σε αμφότερα τα variants.
+Αξιολογήθηκε διαμόρφωση με τέσσερις ανεξάρτητες \code{clmul64} πριν από
+κάθε κατανάλωση (\defterm{4-way ILP grouping}), για μεγαλύτερη latency
+coverage. Σε πραγματικό hardware (BPI-F3) δεν απέδωσε μετρήσιμο κέρδος:
+στο \code{scalar\_zb} $<\pct{0.5}$ διαφορά (\cycles{131551} έναντι
+\cycles{132266}, εντός noise), ενώ στο \code{vector\_rvv} προκάλεσε
+regression \pct{1.6} (\cycles{123845} έναντι \cycles{121950}) λόγω
+I-cache pressure. Η 2-way δομή διατηρήθηκε ως champion.
 
-Για σειρές $i \geq 1$, το φύλλο διατηρεί το pairwise scheme, με την
-hi$\xorop$lo fusion να εκτείνεται σε όλα τα ζεύγη: δύο διαδοχικά γινόμενα
-(ένα fused ζεύγος) μετατρέπουν τέσσερα half-products σε τρία output XORs,
-εξοικονομώντας μία εντολή \insn{xor} ανά ζεύγος. Το 2-way pair scheduling
-εφαρμόζεται ομοιόμορφα σε ολόκληρο τον leaf. Η hi$\xorop$lo fusion υλοποιείται αποκλειστικά
-στις δύο πλήρως ξεδιπλωμένες εξειδικεύσεις. Ο generic \code{clmul\_leaf}
-αποτελεί την απλή, μη-fused εναλλακτική για τα μεγαλύτερα φύλλα
-($n \in \{14, 15\}$) των HQC-192/256.
+Οι πλήρως ξεδιπλωμένες leaf εξειδικεύσεις, προσθέτουν επιπλέον \speedup{1.16}.
 
 \subsection{Assign-on-First-Write: Εξάλειψη memset}
 \label{ssec:memset-elimination}
@@ -390,7 +379,7 @@ Loop~3 διαβάζει από τον $r$, το προηγούμενο \code{mem
 ξεδιπλωμένες εξειδικεύσεις ($n \in \{8, 9\}$), που καλύπτουν το σύνολο των
 φύλλων των HQC-128 και HQC-192. Τα μεγαλύτερα φύλλα $n \in \{14, 15\}$ του
 HQC-256 εξυπηρετούνται από τον generic \code{clmul\_leaf}, ο οποίος διατηρεί
-το αρχικό \code{memset} (\cref{ssec:specialized-tree}).
+το αρχικό \code{memset} (\cref{ssec:leaf-specialization}).
 
 Η επίδραση αυτής της αναδιάρθρωσης είναι δραματική. Στο αρχικό Zbc
 profile (μετά τη μετάβαση σε word-level leaf αλλά πριν την εξάλειψη
@@ -413,12 +402,12 @@ arithmetic από το φύλλο, παράγοντας μία ευθύγραμ�
 
 Εφαρμοσμένη πάνω στο ήδη εξειδικευμένο δέντρο, η εξάλειψη του \code{memset}
 αποδίδει επιπλέον \speedup{1.12} σε \instret (HQC-128), ανεβάζοντας τη
-σωρευτική scalar βελτίωση σε \speedup{101.2} έναντι του \code{scalar\_ref}.
+σωρευτική scalar βελτίωση σε \speedup{100.2} έναντι του \code{scalar\_ref}.
 
-Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των τριών
-διαδοχικών σταδίων: μετάβαση σε word-level \clmul{} leaf, στατικό δέντρο
-αναδρομής με εξειδικεύσεις leaf, και assign-on-first-write (εξάλειψη
-\code{memset}).
+Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των
+τεσσάρων διαδοχικών σταδίων: μετάβαση σε word-level \clmul{} leaf,
+στατικό δέντρο αναδρομής, εξειδικεύσεις leaf, και assign-on-first-write
+(εξάλειψη \code{memset}).
 
 \begin{table}[htbp]
   \centering
@@ -432,8 +421,9 @@ arithmetic από το φύλλο, παράγοντας μία ευθύγραμ�
     \textbf{Στάδιο} & \textbf{Βελτιστοποίηση} & \textbf{vs prev} & \textbf{vs ref} \\
     \midrule
     1 & word-level \clmul{} leaf              & \speedup{38.62} & \speedup{38.62} \\
-    2 & στατικό δέντρο + leaf unrolling        & \speedup{2.34}  & \speedup{90.4}  \\
-    3 & assign-on-first-write (\code{memset})  & \speedup{1.12}  & \speedup{101.2} \\
+    2 & στατικό δέντρο αναδρομής              & \speedup{1.99}  & \speedup{76.7}  \\
+    3 & leaf unrolling                        & \speedup{1.16}  & \speedup{89.3}  \\
+    4 & assign-on-first-write (\code{memset})  & \speedup{1.12}  & \speedup{100.2} \\
     \bottomrule
   \end{tabular}
 \end{table}
