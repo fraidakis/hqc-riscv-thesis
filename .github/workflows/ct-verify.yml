@@ -8,7 +8,7 @@ name: Constant-Time Verification (DISABLED)
 #   1. All RISC-V-specific variants (scalar_zb, vector_rvv, vector_zvk, etc.)
 #      use RISC-V intrinsics (__riscv_clmul_64, <riscv_vector.h>) that cannot
 #      compile on x86-64. The script skips them with exit 0.
-#   2. The only variant that actually runs (scalar_ref, vector_ref) is the
+#   2. The only variant that actually runs (scalar_ref) is the
 #      upstream vendor reference code — verifying it adds no new information.
 #   3. Valgrind's RISC-V backend (v3.25.0+) does not yet support Zbc or RVV
 #      instructions, so native on-target execution is also not possible.

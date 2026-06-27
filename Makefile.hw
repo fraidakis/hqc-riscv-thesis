@@ -91,12 +91,11 @@ else ifeq ($(POLYMUL),scalar_zb_AB)
 else ifeq ($(POLYMUL),scalar_zb_AC)
   MARCH := rv64gc_zbc_zbb_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul_ablation.c
+  EXTRA_CFLAGS := -fno-tree-vectorize -DABLATION_WORDLEVEL=1 -DABLATION_NOINIT=0 -DABLATION_AP2=1 -DABLATION_LEAF_SPEC=0
+else ifeq ($(POLYMUL),scalar_zb_ACD)
+  MARCH := rv64gc_zbc_zbb_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul_ablation.c
   EXTRA_CFLAGS := -fno-tree-vectorize -DABLATION_WORDLEVEL=1 -DABLATION_NOINIT=0 -DABLATION_AP2=1 -DABLATION_LEAF_SPEC=1
-else ifeq ($(POLYMUL),vector_ref)
-  # DEPRECATED — retained for manual one-off comparisons only.
-  MARCH := rv64gcv_zbc_zbb_zbs
-  POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
-  EXTRA_CFLAGS := -ftree-vectorize
 else ifeq ($(POLYMUL),vector_rvv_D)
   # Ablation: direct-write discipline + scalar recomposition + scalar reduce.
   MARCH := rv64gcv_zbc_zbb_zba_zbs
@@ -134,7 +133,7 @@ else ifeq ($(POLYMUL),vector_zvk)
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zvbc/gf2x_vclmul.c
   EXTRA_CFLAGS := -DHQC_POLYMUL_ZVBC=1
 else
-  $(error Unsupported POLYMUL=$(POLYMUL). Use scalar_ref, scalar_zb, scalar_zb_A, scalar_zb_AB, scalar_zb_AC, vector_ref, vector_rvv_D, vector_rvv_V, vector_rvv_VD, vector_rvv_DV, vector_rvv, or vector_zvk)
+  $(error Unsupported POLYMUL=$(POLYMUL). Use scalar_ref, scalar_zb, scalar_zb_A, scalar_zb_AB, scalar_zb_AC, scalar_zb_ACD, vector_rvv_D, vector_rvv_V, vector_rvv_VD, vector_rvv_DV, vector_rvv, or vector_zvk)
 endif
 
 # ── Common include paths ─────────────────────────────────────────────────────

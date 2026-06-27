@@ -99,6 +99,7 @@ set(POLYMUL_VARIANTS
     scalar_zb_A
     scalar_zb_AB
     scalar_zb_AC
+    scalar_zb_ACD
     scalar_zb_ABC_nosplit
     vector_rvv_D
     vector_rvv_V
@@ -258,7 +259,7 @@ set(LOCAL_BENCH_SOURCES
 
 # ── PGO helper for reference baseline targets (P-06) ─────────────────────────
 # Applies PGO flags to a named target.
-# Called for every scalar_ref/vector_ref executable (KAT, bench, polymul bench).
+# Called for every scalar_ref executable (KAT, bench, polymul bench).
 # Supports both GCC (-fprofile-generate/-fprofile-use) and Clang
 # (-fprofile-instr-generate/-fprofile-instr-use) PGO workflows.
 function(hqc_apply_ref_pgo TARGET)
@@ -332,22 +333,6 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
                 $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>)
             set(VARIANT_REF_PROFILE ON)
-        elseif(POLYMUL STREQUAL "vector_ref")
-            # Reference vector baseline: compiler auto-vectorization ceiling for Tier 2 ISA.
-            set(POLYMUL_SOURCES ${HQC_REF}/src/ref/gf2x.c)
-            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
-            set(VARIANT_DECODE_SOURCES
-                ${HQC_REF}/src/ref/reed_muller.c
-                ${HQC_REF}/src/ref/reed_solomon.c)
-            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
-            list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb
-                -mabi=lp64d
-                -O3
-                $<$<C_COMPILER_ID:GNU>:-ftree-vectorize>
-                $<$<C_COMPILER_ID:Clang>:-fvectorize>
-                $<$<C_COMPILER_ID:Clang>:-fslp-vectorize>)
-            set(VARIANT_REF_PROFILE ON)
         elseif(POLYMUL STREQUAL "scalar_zb")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul.c)
@@ -402,6 +387,26 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_NOINIT=1
                 -DABLATION_AP2=0)
         elseif(POLYMUL STREQUAL "scalar_zb_AC")
+            # Ablation: word-level + specialized tree only (no leaf unrolling, no noinit)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            set(VARIANT_DECODE_SOURCES
+                ${HQC_REF}/src/ref/reed_muller.c
+                ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=${HQC_SCALAR_MARCH}
+                -mabi=lp64d
+                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
+                -fno-tree-vectorize
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
+                -DABLATION_WORDLEVEL=1
+                -DABLATION_NOINIT=0
+                -DABLATION_AP2=1
+                -DABLATION_LEAF_SPEC=0)
+        elseif(POLYMUL STREQUAL "scalar_zb_ACD")
             # Ablation: word-level + specialized tree + leaf unrolling (no noinit)
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)

@@ -23,7 +23,7 @@
 #     --dudect    : Run Dudect leakage detection
 #     --all       : Run all verification methods (Valgrind + Dudect)
 #     security_level : 128 | 192 | 256
-#     variant        : scalar_ref | scalar_zb | vector_ref |
+#     variant        : scalar_ref | scalar_zb |
 #                      vector_rvv | vector_zvk
 
 set -euo pipefail
@@ -47,7 +47,7 @@ Options:
 
 Arguments:
   security_level : 128 | 192 | 256
-  variant        : scalar_ref | scalar_zb | vector_ref | vector_rvv | vector_zvk
+  variant        : scalar_ref | scalar_zb | vector_rvv | vector_zvk
 
 Examples:
   check_ct.sh 128 scalar_ref
@@ -79,7 +79,7 @@ Options:
 
 Arguments:
   security_level : 128 | 192 | 256
-  variant        : scalar_ref | scalar_zb | vector_ref | vector_rvv | vector_zvk
+  variant        : scalar_ref | scalar_zb | vector_rvv | vector_zvk
 
 Examples:
   # Single variant with default Valgrind verification
@@ -167,9 +167,6 @@ case "$VARIANT" in
     vector_zvk)
         POLYMUL_SRCS=("src/mult/karatsuba_zvbc/gf2x_vclmul.c")
         RISCV_ONLY=1
-        ;;
-    vector_ref)
-        POLYMUL_SRCS=("${VENDOR}/src/ref/gf2x.c")
         ;;
     vector_rvv)
         POLYMUL_SRCS=("src/mult/karatsuba_rvv/gf2x_clmul.c")

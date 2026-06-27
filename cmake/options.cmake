@@ -46,7 +46,7 @@ set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb_zbs" CACHE STRING
 
 # ── Diagnostic messages ───────────────────────────────────────────────────────
 message(STATUS "HQC configuration:")
-message(STATUS "  POLYMUL  : matrix includes scalar_ref/vector_ref baselines and optimized variants")
+message(STATUS "  POLYMUL  : matrix includes scalar_ref baseline and optimized variants")
 message(STATUS "  KECCAK   : ${HQC_KECCAK_IMPL}")
 message(STATUS "  DECODE   : ${HQC_DECODE_IMPL}")
 if(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "ref")
@@ -87,7 +87,7 @@ message(STATUS "  VLEN matrix: ${VLEN_LIST}")
 set(VECTOR_POLYMUL_VARIANTS vector_zvk vector_rvv)
 
 # ── PGO for reference baselines (P-06) ────────────────────────────────────────
-# These flags apply ONLY to scalar_ref/vector_ref targets (KAT + bench + polymul bench).
+# These flags apply ONLY to scalar_ref targets (KAT + bench + polymul bench).
 # They do NOT affect any other variant.
 #
 # HQC_REF_PGO    : off (default) | generate | use
