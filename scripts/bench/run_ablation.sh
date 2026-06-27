@@ -41,7 +41,8 @@
 #   scalar_zb_A   : + word-level clmul
 #   scalar_zb_AB  : + word-level + assign-on-first-write
 #   scalar_zb_AC  : + word-level + specialized recursion tree (generic leaves)
-#   scalar_zb_ACD : + word-level + specialized tree + leaf unrolling
+#   scalar_zb_ACB : + word-level + specialized tree + noinit (no leaf unrolling)
+#   scalar_zb_ACD : + word-level + specialized tree + leaf unrolling (no noinit)
 #   scalar_zb     : + all four (champion)
 #
 # Vector RVV ablation variants (in order of optimization layering):
@@ -61,6 +62,7 @@ SCALAR_ABLATION_VARIANTS=(
     scalar_zb_A
     scalar_zb_AB
     scalar_zb_AC
+    scalar_zb_ACB
     scalar_zb_ACD
     scalar_zb
 )
@@ -407,24 +409,26 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
             a_instret="${LVL_INSTRET[scalar_zb_A]:-}"
             ab_cycles="${LVL_CYCLES[scalar_zb_AB]:-}"
             ac_cycles="${LVL_CYCLES[scalar_zb_AC]:-}"
+            acb_cycles="${LVL_CYCLES[scalar_zb_ACB]:-}"
             acd_cycles="${LVL_CYCLES[scalar_zb_ACD]:-}"
             ab_instret="${LVL_INSTRET[scalar_zb_AB]:-}"
             ac_instret="${LVL_INSTRET[scalar_zb_AC]:-}"
+            acb_instret="${LVL_INSTRET[scalar_zb_ACB]:-}"
             acd_instret="${LVL_INSTRET[scalar_zb_ACD]:-}"
 
             # For the champion (scalar_zb), "vs prev" compares against the
-            # better of the two fully-layered branches: AB and ACD.
+            # better of the two branches from AC: ACB and ACD.
             best_branch_cycles=""
-            if [[ -n "$ab_cycles" && -n "$acd_cycles" ]]; then
-                [[ "$acd_cycles" -le "$ab_cycles" ]] && best_branch_cycles="$acd_cycles" || best_branch_cycles="$ab_cycles"
-            elif [[ -n "$ab_cycles" ]]; then best_branch_cycles="$ab_cycles"
+            if [[ -n "$acb_cycles" && -n "$acd_cycles" ]]; then
+                [[ "$acb_cycles" -le "$acd_cycles" ]] && best_branch_cycles="$acb_cycles" || best_branch_cycles="$acd_cycles"
+            elif [[ -n "$acb_cycles" ]]; then best_branch_cycles="$acb_cycles"
             elif [[ -n "$acd_cycles" ]]; then best_branch_cycles="$acd_cycles"
             fi
 
             best_branch_instret=""
-            if [[ -n "$ab_instret" && -n "$acd_instret" ]]; then
-                [[ "$acd_instret" -le "$ab_instret" ]] && best_branch_instret="$acd_instret" || best_branch_instret="$ab_instret"
-            elif [[ -n "$ab_instret" ]]; then best_branch_instret="$ab_instret"
+            if [[ -n "$acb_instret" && -n "$acd_instret" ]]; then
+                [[ "$acb_instret" -le "$acd_instret" ]] && best_branch_instret="$acb_instret" || best_branch_instret="$acd_instret"
+            elif [[ -n "$acb_instret" ]]; then best_branch_instret="$acb_instret"
             elif [[ -n "$acd_instret" ]]; then best_branch_instret="$acd_instret"
             fi
 
@@ -437,6 +441,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                     scalar_zb_A)   opt_label="A" ;;
                     scalar_zb_AB)  opt_label="A+B" ;;
                     scalar_zb_AC)  opt_label="A+C" ;;
+                    scalar_zb_ACB) opt_label="A+C+B" ;;
                     scalar_zb_ACD) opt_label="A+C+D" ;;
                     scalar_zb)     opt_label="A+B+C+D" ;;
                     *)             opt_label="?" ;;
@@ -461,7 +466,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                                 [[ -n "$a_cycles" && "$a_cycles" -gt 0 && "$cycles" -gt 0 ]] \
                                     && col_cyc_prev=$(awk "BEGIN{printf \"×%.1f\",${a_cycles}/${cycles}}") \
                                     || col_cyc_prev="—" ;;
-                            scalar_zb_ACD)
+                            scalar_zb_ACB|scalar_zb_ACD)
                                 [[ -n "$ac_cycles" && "$ac_cycles" -gt 0 && "$cycles" -gt 0 ]] \
                                     && col_cyc_prev=$(awk "BEGIN{printf \"×%.1f\",${ac_cycles}/${cycles}}") \
                                     || col_cyc_prev="—" ;;
@@ -492,7 +497,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                             [[ -n "$a_instret" && "$a_instret" -gt 0 && "$instret" -gt 0 ]] \
                                 && col_inst_prev=$(awk "BEGIN{printf \"×%.1f\",${a_instret}/${instret}}") \
                                 || col_inst_prev="—" ;;
-                        scalar_zb_ACD)
+                        scalar_zb_ACB|scalar_zb_ACD)
                             [[ -n "$ac_instret" && "$ac_instret" -gt 0 && "$instret" -gt 0 ]] \
                                 && col_inst_prev=$(awk "BEGIN{printf \"×%.1f\",${ac_instret}/${instret}}") \
                                 || col_inst_prev="—" ;;
@@ -540,20 +545,21 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                 awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $6}' "$csv"
             }
 
-            hw_ab_128=$(hw_get_cycles "scalar_zb_AB" 128)
+            hw_acb_128=$(hw_get_cycles "scalar_zb_ACB" 128)
             hw_acd_128=$(hw_get_cycles "scalar_zb_ACD" 128)
-            if [[ -n "$hw_acd_128" && -n "$hw_ab_128" && "$hw_acd_128" -le "$hw_ab_128" ]]; then
+            if [[ -n "$hw_acb_128" && -n "$hw_acd_128" && "$hw_acb_128" -le "$hw_acd_128" ]]; then
+                hw_finalist="scalar_zb_ACB"; hw_finalist_label="ACB"; hw_finalist_opt="A+C+B"
+                hw_final_step_desc="+leaf unrolling (on top of ${hw_finalist_opt})"
+            else
                 hw_finalist="scalar_zb_ACD"; hw_finalist_label="ACD"; hw_finalist_opt="A+C+D"
                 hw_final_step_desc="+noinit (on top of ${hw_finalist_opt})"
-            else
-                hw_finalist="scalar_zb_AB"; hw_finalist_label="AB"; hw_finalist_opt="A+B"
-                hw_final_step_desc="+specialized tree + leaf unrolling (on top of ${hw_finalist_opt})"
             fi
 
             hw_transitions=(
                 "ref→A|+word-level clmul|scalar_ref|scalar_zb_A"
-                "A→AB|+assign-on-first-write|scalar_zb_A|scalar_zb_AB"
+                "A→AB|+assign-on-first-write (no tree)|scalar_zb_A|scalar_zb_AB"
                 "A→AC|+specialized recursion tree|scalar_zb_A|scalar_zb_AC"
+                "AC→ACB|+noinit recomposition|scalar_zb_AC|scalar_zb_ACB"
                 "AC→ACD|+leaf unrolling|scalar_zb_AC|scalar_zb_ACD"
                 "${hw_finalist_label}→ABCD|${hw_final_step_desc}|${hw_finalist}|scalar_zb"
             )
@@ -602,20 +608,21 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                 awk "BEGIN{printf \"×%.2f\",${from_val}/${to_val}}"
             }
 
-            inst_ab_128=$(instret_get "scalar_zb_AB" 128)
+            inst_acb_128=$(instret_get "scalar_zb_ACB" 128)
             inst_acd_128=$(instret_get "scalar_zb_ACD" 128)
-            if [[ -n "$inst_acd_128" && -n "$inst_ab_128" && "$inst_acd_128" -le "$inst_ab_128" ]]; then
+            if [[ -n "$inst_acb_128" && -n "$inst_acd_128" && "$inst_acb_128" -le "$inst_acd_128" ]]; then
+                inst_finalist="scalar_zb_ACB"; inst_finalist_label="ACB"; inst_finalist_opt="A+C+B"
+                inst_final_step_desc="+leaf unrolling (on top of ${inst_finalist_opt})"
+            else
                 inst_finalist="scalar_zb_ACD"; inst_finalist_label="ACD"; inst_finalist_opt="A+C+D"
                 inst_final_step_desc="+noinit (on top of ${inst_finalist_opt})"
-            else
-                inst_finalist="scalar_zb_AB"; inst_finalist_label="AB"; inst_finalist_opt="A+B"
-                inst_final_step_desc="+specialized tree + leaf unrolling (on top of ${inst_finalist_opt})"
             fi
 
             inst_transitions=(
                 "ref→A|+word-level clmul|scalar_ref|scalar_zb_A"
-                "A→AB|+assign-on-first-write|scalar_zb_A|scalar_zb_AB"
+                "A→AB|+assign-on-first-write (no tree)|scalar_zb_A|scalar_zb_AB"
                 "A→AC|+specialized recursion tree|scalar_zb_A|scalar_zb_AC"
+                "AC→ACB|+noinit recomposition|scalar_zb_AC|scalar_zb_ACB"
                 "AC→ACD|+leaf unrolling|scalar_zb_AC|scalar_zb_ACD"
                 "${inst_finalist_label}→ABCD|${inst_final_step_desc}|${inst_finalist}|scalar_zb"
             )

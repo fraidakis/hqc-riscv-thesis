@@ -176,36 +176,29 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
 \subsection{Δομή Αναδρομής και Compile-Time Specialized Generator}
 \label{ssec:specialized-tree}
 
-Τα μεγέθη παραμέτρων του HQC είναι compile-time σταθερές:
-$N \in \{277, 561, 901\}$ words αντίστοιχα για τα τρία security levels.
-Κατά συνέπεια, ολόκληρο το δέντρο αναδρομής Karatsuba είναι
-ντετερμινιστικό: κάθε κόμβος γνωρίζει εκ των προτέρων τα μεγέθη
-εισόδου, τα offsets των buffers, και τα μεγέθη των child calls. Η
-παρατήρηση αυτή οδηγεί στη σχεδίαση ενός \defterm{compile-time specialized generator}: ένα
-Python script που διατρέχει το δέντρο αναδρομής και εκπέμπει εξειδικευμένες C 
-συναρτήσεις με όλες τις αποφάσεις επιλυμένες σε compile-time.
+Οι παράμετροι του HQC είναι compile-time σταθερές, οπότε το μήκος
+$N$ των τελεστέων σε 64-bit words παίρνει μία γνωστή τιμή ανά security
+level ($N \in \{277, 561, 901\}$). Με το $N$ σταθερό, το δέντρο
+αναδρομής Karatsuba είναι εξ ολοκλήρου προκαθορισμένο, καθώς το πλήθος
+και η σειρά των βημάτων προκύπτουν αποκλειστικά από αυτό. Αξιοποιούμε
+αυτή τη γνώση μέσω ενός pre-build \emph{size-specialized code
+generator}, ενός Python script που διατρέχει το δέντρο και εκπέμπει C
+συναρτήσεις σταθερού μεγέθους. Έτσι η διάσπαση $n_0/n_1$, ο έλεγχος
+threshold και ο προορισμός κάθε child call αποτυπώνονται ως σταθερές
+μέσα στον παραγόμενο κώδικα, χωρίς κανέναν έλεγχο σε runtime.
 
-Ο κανόνας διαίρεσης ακολουθεί τη συμμετρική σύμβαση:
-$n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$. Η αναδρομή
-τερματίζει στο threshold $T=16$ words, όπου καλείται ο schoolbook leaf.
-Για το HQC-128 ($N=277$), το δέντρο αποσυντίθεται ως:
-%
-\begin{equation}
-  277 \rightarrow (139, 138) \rightarrow (70, 69) \rightarrow
-  (35, 34) \rightarrow (18, 17) \rightarrow (9, 8).
-\end{equation}
-%
-Κάθε παραγόμενη συνάρτηση (\code{kmul\_277}, \code{kmul\_139}, \ldots,
-\code{kmul\_17}) περιέχει:
-%
-\begin{itemize}
-  \item Compile-time constant buffer offsets για $z_0$, $z_2$,
-    $z_\text{mid}$, $t_a$, $t_b$, και τον child scratch buffer.
-  \item Στατικά dispatched child calls, χωρίς threshold comparison.
-  \item Loop bounds ως integer literals, επιτρέποντας στον μεταγλωττιστή
-    πλήρες unrolling μικρών βρόχων και constant-propagation
-    optimizations.
-\end{itemize}
+Η πλήρης αλυσίδα αποσύνθεσης για το HQC-128 δίνεται στην
+\cref{sec:karatsuba-hqc-structure}. 
+Κάθε αυτόματα παραγόμενη συνάρτηση (\code{kmul\_277}, \code{kmul\_139},
+\ldots, \code{kmul\_17}) ενσωματώνει τρία χαρακτηριστικά της στατικής
+παραγωγής. Πρώτον, τα buffer offsets για τα ενδιάμεσα γινόμενα $z_0$,
+$z_2$, $z_\text{mid}$, τους XOR τελεστέους $t_a$, $t_b$ και τον child
+scratch buffer (τη scratch περιοχή των επόμενων, μικρότερων επιπέδων της
+αναδρομής) είναι σταθερές γνωστές σε compile time. Δεύτερον, κάθε child
+call απευθύνεται στατικά στην αντίστοιχη ονομαστική συνάρτηση
+(\code{kmul\_9} κ.ο.κ.), χωρίς runtime έλεγχο threshold. Τρίτον, τα όρια
+των βρόχων είναι integer literals, ώστε ο μεταγλωττιστής να εφαρμόζει
+πλήρες unrolling των μικρών βρόχων και constant propagation.
 
 Το \cref{fig:specialized-tree-pipeline} συνοψίζει το pipeline του generator.
 
@@ -216,54 +209,76 @@ $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$. Η αναδρομή
   \label{fig:specialized-tree-pipeline}
 \end{figure}
 
-Η σημασία του generator εκτείνεται πέραν της εξάλειψης runtime
+Η σημασία του generator εκτείνεται πέραν της εξάλειψης του runtime
 dispatch. Σε βαθιά αναδρομικές δομές, η RISC-V calling convention
-επιβάλλει αποθήκευση και επαναφορά callee-saved registers σε κάθε
-non-leaf frame. Για δέντρα βάθους 8–10 (HQC-256), το αθροιστικό
-spill/restore overhead υπερβαίνει την πραγματική αριθμητική. Η
-στατική παραγωγή κώδικα εξαλείφει αυτό το δομικό overhead: ο μεταγλωττιστής
-βλέπει ένα μόνο μεγάλο function body ανά root size και εκτελεί global
-register allocation, inline leaf operations, και ελεύθερο scheduling
-loads/stores.
+επιβάλλει spill/restore των callee-saved registers σε κάθε non-leaf
+κλήση. Για δέντρα βάθους 5–6 (αναλόγως security level), το αθροιστικό
+αυτό overhead κλιμακώνεται με το πλήθος των κόμβων του δέντρου
+($\approx (3^{d+1}-1)/2$). Απ' την άλλη, η στατική παραγωγή εξαλείφει
+το per-call prologue/epilogue και επιτρέπει στον μεταγλωττιστή να κάνει
+inline τις leaf operations σε ένα ενιαίο function body, με global
+register allocation και ελεύθερο scheduling των loads/stores.
 
 \paragraph{Unrolling και βάθος αναδρομής.}
-Ο generator εκπέμπει πλήρως unrolled recursion tree, κάθε
-κόμβος αναδρομής αποτελεί ξεχωριστή \code{static} συνάρτηση με
-zero runtime dispatch. Η σχεδιαστική αυτή απόφαση εξαλείφει κάθε
-threshold comparison, dynamic pointer arithmetic, και stack frame
-overhead σε βάρος αυξημένου \code{.text} footprint. Η ποσοτική
+Ο generator εκπέμπει πλήρως unrolled recursion tree, όπου κάθε κόμβος
+αναδρομής αποτελεί ξεχωριστή \code{static} συνάρτηση. Το πλήρες
+unrolling ανταλλάσσει αυξημένο \code{.text} footprint με την εξάλειψη
+του dynamic pointer arithmetic και του per-call overhead. Η ποσοτική
 αξιολόγηση αυτού του trade-off (recursion depth vs \instret vs
 \code{.text} size) παρουσιάζεται στην \cref{sec:polymul-codesize}.
 
 \paragraph{Υποστήριξη πολλαπλών backends.}
-Ο generator υποστηρίζει τέσσερις emission modes μέσω της παραμέτρου
-\code{-{}-mode}: \code{zbc} (scalar combine loops), \code{rvv} 
-(direct-write με inline RVV intrinsics) και \code{zvbc} (vector 
-leaf dispatch). Η λογική διάσχισης του δέντρου
+Ο generator υποστηρίζει τρεις modes μέσω της παραμέτρου
+\code{-{}-mode}: \code{zbc} (scalar combine loops), \code{rvv}
+(direct-write με inline RVV intrinsics) και \code{zvbc} (vector
+leaf dispatch). Μια επιπλέον λειτουργία \code{rvv\_noD} χρησιμοποιείται
+αποκλειστικά για το ablation study. Η λογική διάσχισης του δέντρου
 αναδρομής είναι κοινή, μόνο ο κώδικας combine και leaf dispatch
 διαφοροποιείται ανά mode. Η αρχιτεκτονική αυτή εξασφαλίζει ότι
 αλλαγές στη δομή αναδρομής (threshold, split rule) εφαρμόζονται
 αυτόματα σε όλα τα tiers.
 
-\paragraph{Worked example: πλήρης αναδρομή HQC-128.}
-Η κλήση \code{vect\_mul(o, a, b)} για HQC-128 ($N=277$ words,
-$n = \num{17669}$ bits) εκτελεί τα ακόλουθα βήματα:
-%
-\begin{enumerate}
-  \item Δέσμευση stack buffers: \code{unreduced[$2 \times 277 = 554$
-    words]} και \code{tmp\_buf[$16 \times 277 = \num{4432}$ words]}.
-  \item Dispatch στο \code{kmul\_277(unreduced, a, b, tmp\_buf)}.
-  \item Αναδρομική αποσύνθεση: $277 \to 3 \times 139 \to 9 \times 70
-    \to 27 \times 35 \to 81 \times 18 \to 243$ leaf calls μεγέθους
-    $\leq 9$ words.
-  \item Modular reduction: \code{reduce(o, unreduced)},
-    $\text{unreduced} \bmod (x^{17669} - 1)$.
-\end{enumerate}
-%
-Ο συνολικός αριθμός leaf calls στο δέντρο ανέρχεται σε $3^5 = 243$
-(πέντε επίπεδα αναδρομής, τρεις sub-problems ανά επίπεδο). Κάθε leaf
-εκτελεί $n^2$ ζεύγη \clmul/\clmulh, για $n=9$, αυτό αντιστοιχεί σε
-\num{81} ζεύγη ανά leaf.
+\paragraph{Worked example: ο παραγόμενος leaf κόμβος \code{kmul\_17}.}
+Η κλήση \code{vect\_mul(o, a, b)} για HQC-128 ($N = 277$ words,
+$n = \num{17669}$ bits) δεσμεύει τα stack buffers
+\code{unreduced[$2 \times 277 = 554$ words]} και
+\code{tmp\_buf[$16 \times 277 = \num{4432}$ words]}, καλεί το
+\code{kmul\_277(unreduced, a, b, tmp\_buf)} και ολοκληρώνει με modular
+reduction \code{reduce(o, unreduced)}, δηλαδή
+$\text{unreduced} \bmod (x^{17669} - 1)$. Η αναδρομική αποσύνθεση που
+ακολουθεί το \code{kmul\_277} δίνεται αναλυτικά στο
+\cref{sec:karatsuba-hqc-structure}, με συνολικά $3^5 = 243$ leaf calls
+σε πέντε επίπεδα αναδρομής. Κάθε leaf εκτελεί $n^2$ ζεύγη
+\clmul/\clmulh, για $n=9$ αντιστοιχεί σε \num{81} ζεύγη ανά leaf.
+
+Για να γίνει συγκεκριμένη η δομή ενός παραγόμενου κόμβου, ο
+\cref{lst:kmul17} παραθέτει τον leaf \code{kmul\_17} ($n = 17$,
+$n_0 = 9$, $n_1 = 8$). Ο πίνακας \code{tmp} τεμαχίζεται σε σταθερά
+offsets, $z_0$ (μέγεθος $2n_0$), $z_2$ ($2n_1$), $z_\text{mid}$
+($2n_0$) και τους XOR τελεστέους $t_a$, $t_b$. Υπολογίζονται τα τρία
+υπο-γινόμενα $z_0 = a_L b_L$, $z_2 = a_H b_H$ και
+$z_\text{mid} = (a_L \oplus a_H)(b_L \oplus b_H)$, με zero-padding στο
+$t_a$ αφού το άνω μισό έχει μία λέξη λιγότερη. Η ανασύνθεση υλοποιεί την
+ταυτότητα
+$r = z_0 + (z_\text{mid} \oplus z_0 \oplus z_2)\,x^{n_0} + z_2\,x^{2n_0}$
+σε τρεις βρόχους, όπου ο τρίτος προστίθεται (XOR-accumulate) πάνω σε
+περιοχές που έχουν ήδη γραφτεί από τους δύο πρώτους.
+
+\begin{lstlisting}[language=C,caption={Παραγόμενος leaf κόμβος \code{kmul\_17}: arena allocation στο \code{tmp} και ανασύνθεση Karatsuba σε τρεις βρόχους.},label={lst:kmul17}]
+static void kmul_17(uint64_t *r, const uint64_t *a,
+                    const uint64_t *b, uint64_t *tmp) {
+    uint64_t *z0 = tmp, *z2 = z0 + 18u, *zmid = z2 + 16u;
+    uint64_t *ta = zmid + 18u, *tb = ta + 9u;   /* XOR-sum buffers */
+    LEAF_CALL_N9(z0, a, b);                       /* z0 = a_lo*b_lo */
+    LEAF_CALL_N8(z2, a + 9u, b + 9u);            /* z2 = a_hi*b_hi  */
+    for (size_t i = 0; i < 9u; i++) {            /* ta = a_lo ^ a_hi */
+        ta[i] = a[i] ^ (i < 8u ? a[9u + i] : 0u);
+        tb[i] = b[i] ^ (i < 8u ? b[9u + i] : 0u);
+    }
+    LEAF_CALL_N9(zmid, ta, tb);                   /* zmid = ta*tb    */
+    /* recompose: r = z0 + (zmid^z0^z2) x^{n0} + z2 x^{2 n0} */
+}
+\end{lstlisting}
 
 Συνδυασμένη με τις πλήρως ξεδιπλωμένες leaf εξειδικεύσεις, η στατική
 παραγωγή του δέντρου αποδίδει επιπλέον \speedup{2.34} σε \instret έναντι

@@ -1,0 +1,41 @@
+\tikzsetnextfilename{ch2-background-karatsuba-recursion-tree}
+\begin{tikzpicture}[
+  box/.style={figbox, align=center, minimum width=1.1cm, minimum height=0.6cm},
+  ann/.style={figT/annot}
+]
+  % Level 0
+  \node[figbox/focal] (n277) at (0, 0) {$277$};
+
+  % Level 1: 277 -> (139, 138)
+  \node[box, figbox/emph] (n139) at (-3.2, -1.7) {$139$};
+  \node[box]              (n138) at ( 3.2, -1.7) {$138$};
+  \draw[figedge] (n277) -- (n139);
+  \draw[figedge] (n277) -- (n138);
+
+  % Level 2
+  \node[box]               (n70)  at (-4.6, -3.4) {$70$};
+  \node[box, figbox/emph]  (n69)  at (-1.8, -3.4) {$69$};
+  \node[box]               (n69b) at ( 1.8, -3.4) {$69$};
+  \node[box]               (n69c) at ( 4.6, -3.4) {$69$};
+  \draw[figedge] (n139) -- (n70);
+  \draw[figedge] (n139) -- (n69);
+  \draw[figedge] (n138) -- (n69b);
+  \draw[figedge] (n138) -- (n69c);
+
+  % Level 3: even (70 -> 35,35) vs odd (69 -> 35,34)
+  \node[box] (l1) at (-5.5, -5.1) {$35$};
+  \node[box] (l2) at (-4.1, -5.1) {$35$};
+  \node[box] (l3) at (-2.5, -5.1) {$35$};
+  \node[box] (l4) at (-1.1, -5.1) {$34$};
+  \draw[figedge] (n70) -- (l1);
+  \draw[figedge] (n70) -- (l2);
+  \draw[figedge] (n69) -- (l3);
+  \draw[figedge] (n69) -- (l4);
+  \node[ann] at (-4.8, -5.9) {$70 \to 35,35$ (άρτιο)};
+  \node[ann] at (-1.8, -5.9) {$69 \to 35,34$ (περιττό)};
+
+  % Brace summarising remaining levels
+  \draw[figbrace] (-5.9, -6.6) -- node[below=6pt, ann]
+    {μετά από $d = 5$ επίπεδα: $3^5 = 243$ φύλλα μεγέθους 8–9 λέξεων}
+    (5.2, -6.6);
+\end{tikzpicture}

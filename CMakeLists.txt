@@ -99,6 +99,7 @@ set(POLYMUL_VARIANTS
     scalar_zb_A
     scalar_zb_AB
     scalar_zb_AC
+    scalar_zb_ACB
     scalar_zb_ACD
     scalar_zb_ABC_nosplit
     vector_rvv_D
@@ -404,6 +405,26 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
                 -DABLATION_WORDLEVEL=1
                 -DABLATION_NOINIT=0
+                -DABLATION_AP2=1
+                -DABLATION_LEAF_SPEC=0)
+        elseif(POLYMUL STREQUAL "scalar_zb_ACB")
+            # Ablation: word-level + specialized tree + noinit (no leaf unrolling)
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+            set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
+            set(VARIANT_DECODE_SOURCES
+                ${HQC_REF}/src/ref/reed_muller.c
+                ${HQC_REF}/src/ref/reed_solomon.c)
+            set(VARIANT_FFT_SOURCES ${HQC_REF}/src/common/fft.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=${HQC_SCALAR_MARCH}
+                -mabi=lp64d
+                $<$<C_COMPILER_ID:Clang>:-mno-zvector>
+                -fno-tree-vectorize
+                $<$<C_COMPILER_ID:Clang>:-fno-vectorize>
+                $<$<C_COMPILER_ID:Clang>:-fno-slp-vectorize>
+                -DABLATION_WORDLEVEL=1
+                -DABLATION_NOINIT=1
                 -DABLATION_AP2=1
                 -DABLATION_LEAF_SPEC=0)
         elseif(POLYMUL STREQUAL "scalar_zb_ACD")

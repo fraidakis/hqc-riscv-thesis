@@ -1,5 +1,5 @@
-# date: 2026-06-27 17:06
-# commit: dfc057b
+# date: 2026-06-27 18:46
+# commit: bce1dde
 # variant: scalar_zb
 # platform: bpi-f3
 # n_iter: 100
@@ -10,4 +10,6 @@
 # isolation_isolcpus: off
 # isolation_core: 7
 level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-128,vect_mul,100,130343,130804,131046,131488,684,175069,182262
+128,vect_mul,100,130619,131516,131893,132335,819,177618,182262
+192,vect_mul,100,390226,392050,392564,393482,1432,438086,563598
+256,vect_mul,100,870096,872136,872731,873927,1791,922853,1397486

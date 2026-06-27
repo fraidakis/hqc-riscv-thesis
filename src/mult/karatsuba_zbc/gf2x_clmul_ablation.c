@@ -27,6 +27,7 @@
  *   scalar_zb_A   : A=1, B=0, C=0, D=0  (word-level only)
  *   scalar_zb_AB  : A=1, B=1, C=0, D=0  (word-level + noinit recomposition)
  *   scalar_zb_AC  : A=1, B=0, C=1, D=0  (word-level + specialized tree, generic leaves)
+ *   scalar_zb_ACB : A=1, B=1, C=1, D=0  (word-level + specialized tree + noinit)
  *   scalar_zb_ACD : A=1, B=0, C=1, D=1  (word-level + specialized tree + leaf unrolling)
  *   scalar_zb     : A=1, B=1, C=1, D=1  (all four — champion)
  *
