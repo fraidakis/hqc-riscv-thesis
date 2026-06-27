@@ -419,8 +419,8 @@ across module boundaries.
 
 #### Optimized Build Behaviour
 
-The CMake infrastructure applies Profile-Guided Optimization (PGO) to all
-reference baseline targets (`scalar_ref`, `vector_ref`) via the
+The CMake infrastructure applies Profile-Guided Optimization (PGO) to the
+reference baseline target (`scalar_ref`) via the
 `hqc_apply_ref_pgo()` function. PGO enables the compiler to make informed
 decisions about branch prediction, code layout, and selective inlining based
 on actual execution profiles.
@@ -545,14 +545,12 @@ contribution to total KEM instruction reduction:
 ### 7.1 Observation
 
 When running `run_bench.sh --platform hw --mode keccak --variant all`, the
-`vector_ref` and `vector_rvv` keccak results are nearly identical (~0.1%
-difference), while both show ~12% improvement over `scalar_ref`/`scalar_zb`:
+`vector_rvv` keccak results show ~12% improvement over `scalar_ref`/`scalar_zb`:
 
 | Variant       | Keccak L128 cycles (median) | vs scalar_ref |
 |---------------|----------------------------|---------------|
 | scalar_ref    | 359,382                    | baseline      |
 | scalar_zb     | 358,812                    | −0.16%        |
-| vector_ref    | 313,867                    | −12.66%       |
 | vector_rvv    | 313,486                    | −12.77%       |
 
 ### 7.2 Root Cause
@@ -566,14 +564,11 @@ auto-vectorization policy differ by variant:
 |--------------|-------------------------------|--------------------|
 | ref_scalar   | rv64gc_zbc_zbb_zbs            | `-fno-tree-vectorize` (explicit suppression) |
 | karatsuba_zbc| rv64gc_zbc_zbb_zbs            | `-fno-tree-vectorize` (explicit suppression) |
-| vector_ref   | rv64gcv_zbc_zbb_zbs           | `-ftree-vectorize` (explicit enable) |
 | karatsuba_rvv| rv64gcv_zbc_zbb_zba_zbs       | (default, GCC auto-vectorizes with `-O3`) |
 
-Both `vector_ref` and `karatsuba_rvv` include the `v` extension in their
+The `karatsuba_rvv` variant includes the `v` extension in its
 `-march` string **without** `-fno-tree-vectorize`, allowing GCC to
-auto-vectorize the Keccak permutation. The resulting binary is essentially
-identical for both (same source, same optimization level, both V-capable),
-explaining the <0.1% difference (measurement noise).
+auto-vectorize the Keccak permutation.
 
 ### 7.3 What GCC Auto-Vectorizes in Keccak
 
@@ -599,14 +594,11 @@ The per-variant keccak iteration in `--mode keccak` on hardware serves to
 measure the **same keccak implementation under the compilation flags that
 each variant actually uses in the full KEM**. This is the correct behavior:
 
-- In a full `bench_hw_kem_hqc128_vector_ref` binary, the keccak code is
+- In a full `bench_hw_kem_hqc128_vector_rvv` binary, the keccak code is
   compiled with the same `-march=rv64gcv...` flags, so it genuinely benefits
   from auto-vectorization in the real KEM execution.
 - The keccak micro-bench correctly reflects this: "what does keccak cost in
   the context of this variant's compilation environment?"
-
-The near-identical results for `vector_ref` and `vector_rvv` are expected
-and correct — they share the same keccak-relevant compilation properties.
 
 ### 7.5 Relationship to Thesis Sections
 
@@ -637,10 +629,9 @@ The script generates output files named by *keccak implementation*, not by
 polymul variant:
 - `hw_keccak_scalar-ref_latest.csv` — scalar_ref measurement
 - `hw_keccak_scalar-zb_latest.csv` — scalar_zb measurement
-- `hw_keccak_vector-ref_latest.csv` — vector_ref measurement
 - `hw_keccak_vector-rvv_latest.csv` — vector_rvv measurement
 
-**Note**: The file naming (`scalar-ref`, `vector-ref`, etc.) reflects the
+**Note**: The file naming (`scalar-ref`, `vector-rvv`, etc.) reflects the
 polymul variant under which keccak was compiled — it does NOT mean different
 keccak source implementations. The keccak source is always `fips202.c`; only
 the compilation flags differ. For thesis presentation, the relevant

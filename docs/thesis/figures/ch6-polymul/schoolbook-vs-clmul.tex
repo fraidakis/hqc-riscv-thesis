@@ -17,12 +17,12 @@
   \quad\quad mask = -(a[i]>>bit \& 1)\\
   \quad\quad for j in 0..n-1:\\
   \quad\quad\quad r[i+j] \^{}= (b[j]<<bit) \& mask\\
-  \quad\quad\quad r[i+j+1] \^{}= (b[j]>>inv) \& mask
+  \quad\quad\quad r[i+j+1] \^{}= (b[j]>>(64-bit)) \& mask
   \end{tabular}
 };
 \node[label] at (school.north) {Bit-serial schoolbook};
 \node[font=\sffamily\footnotesize, below=2pt] at (school.south)
-  {$64 \times n^2$ conditional shift-XOR};
+  {$64 \times n^2$ masked shift-XOR};
 
 % Right box: clmul leaf
 \node[box, fill=green!5] (clmul) at (7.5,0) {%

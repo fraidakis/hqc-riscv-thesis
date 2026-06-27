@@ -103,7 +103,7 @@
 * `docs/thesis-helper/notes/notes_detailed.md` (Discovery 6) - **Research Notes** - "polynomial multiplication was originally about 96% of decaps", pie chart data source
 * `src/hqc.c` - **Source Code** - Shows which kernels (vect_mul, hash_*, code_decode) are called in each KEM operation
 * `scripts/report/generate_charts.py` - **Script** - Generates PDF pie charts and bar charts from benchmark CSVs; produces the §2.2.3 cost distribution pie chart (absorbed former generate_pie_charts.py)
-* `results/simulation/profiling/traces/scalar_ref/` - **Data Report** - Trace hotspot CSVs consumed by the chart generator
+* `results/simulation/profiling/hotspots/scalar_ref/` - **Data Report** - Hotspot CSVs consumed by the chart generator
 * `results/reports/figures/pie_scalar-ref.pdf` - **Figure** - Pre-rendered pie chart of reference scalar HQC instruction breakdown (polymul ~96%, Keccak, decode, misc)
 * `results/reports/figures/pie_combined.pdf` - **Figure** - Combined pie chart comparison across variants
 * `docs/thesis/figures/ch2-background/hqc-dataflow.tex` - **Figure** - TikZ block diagram: dataflow Keygen/Encaps/Decaps with color-coded kernels (polymul=red, Keccak=orange, decode=yellow)
@@ -232,7 +232,7 @@
 
 * `cmake/options.cmake` (HQC_SCALAR_MARCH) - **Build Config** - Ablation ISA variable: set to rv64gc_zbc to strip Zbb and measure impact
 * `docs/thesis-helper/notes/notes_detailed.md` (Discovery 5) - **Research Notes** - "Zbb alone yields 37% Keccak reduction via native rori"
-* `docs/thesis-helper/notes/notes_detailed.md` (Discovery 4) - **Research Notes** - "ref_vector vs ref_full_crypto — negligible difference", compiler ceiling
+* `docs/thesis-helper/notes/notes_detailed.md` (Discovery 4) - **Research Notes** - Compiler ceiling analysis, negligible difference between ISA extensions without explicit intrinsics
 * `docs/proposals/RESULTS/zbb_ablation_study.md` - **Data Report** - Zbb ablation quantitative results per security level
 * `results/reports/figures/waterfall_ablation.pdf` - **Figure** - Waterfall chart: baseline → +Zbc → +Zbb → +RVV → +Zvbc → +Zvbb = final
 
@@ -487,24 +487,20 @@
 | Artifact Path | Σχετικές Ενότητες | Περιεχόμενο |
 |--------------|-------------------|-------------|
 | `results/simulation/benchmarks/kem/` | §8.2, §8.3 | Complete KEM suite: keypair/encaps/decaps/vect_mul CSVs |
-| `results/simulation/benchmarks/vlen_scaling/` | §8.4 | VLEN sweep data for karatsuba_rvv/zvbc/ref_vector |
+| `results/simulation/benchmarks/vlen_scaling/` | §8.4 | VLEN sweep data for karatsuba_rvv/zvbc |
 | `results/hardware/benchmarks/compiler_compare/` | §9.5 | GCC vs Clang cycles per variant on BPI-F3 hardware |
 | `results/simulation/benchmarks/components/keccak/` | §8.1.2 | Canonical Keccak benchmark CSVs (ref and opt) |
 | `results/simulation/benchmarks/components/decode/` | §8.1.3 | Canonical decode benchmark CSVs (ref, rvv, zvbc) |
 | `results/simulation/benchmarks/components/poly_mul/` | §8.1.1 | Canonical polymul benchmark CSVs (all variants) |
 | `results/simulation/profiling/histograms/` | §5.3, §9.2 | PC histogram data for instruction mix analysis (scalar/vector) |
-| `results/simulation/profiling/traces/` | §5.3 | Spike execution traces for hotspot identification (scalar/vector) |
+| `results/simulation/profiling/hotspots/` | §5.3 | Spike execution traces for hotspot identification (scalar/vector) |
 | `results/simulation/profiling/cpi/reports/` | §5.3, §9.1 | CPI model reports per security level |
 | `results/simulation/profiling/cpi/` | §5.3 | CPI model inputs (scalar + vector) |
-| `results/simulation/profiling/cache/` | §5.3 | Cache simulation data (scalar/vector) |
-| `results/simulation/profiling/mem_access/` | §5.3 | Memory access pattern profiles (scalar/vector) |
 | `results/hardware/benchmarks/kem/hw_kem_scalar-ref_latest.csv` | §8.5.2 | Hardware KEM cycles — scalar reference (canonical pointer) |
 | `results/hardware/benchmarks/kem/hw_kem_scalar-zb_latest.csv` | §8.5.2 | Hardware KEM cycles — Tier 1 karatsuba_zbc (canonical pointer) |
-| `results/hardware/benchmarks/kem/hw_kem_vector-ref_latest.csv` | §8.5.2 | Hardware KEM cycles — vector reference (canonical pointer) |
 | `results/hardware/benchmarks/kem/hw_kem_vector-rvv_latest.csv` | §8.5.2 | Hardware KEM cycles — Tier 2 karatsuba_rvv (canonical pointer) |
 | `results/hardware/benchmarks/components/poly_mul/hw_mul_scalar-ref_latest.csv` | §8.5.1 | Hardware polymul cycles — scalar reference (canonical pointer) |
 | `results/hardware/benchmarks/components/poly_mul/hw_mul_scalar-zb_latest.csv` | §8.5.1 | Hardware polymul cycles — Tier 1 (canonical pointer) |
-| `results/hardware/benchmarks/components/poly_mul/hw_mul_vector-ref_latest.csv` | §8.5.1 | Hardware polymul cycles — vector reference (canonical pointer) |
 | `results/hardware/benchmarks/components/poly_mul/hw_mul_vector-rvv_latest.csv` | §8.5.1 | Hardware polymul cycles — Tier 2 (canonical pointer) |
 | `results/hardware/benchmarks/components/keccak/hw_keccak_ref_latest.csv` | §8.5.1 | Hardware Keccak cycles — reference (canonical pointer) |
 | `results/hardware/benchmarks/components/decode/hw_decode_ref_latest.csv` | §8.5.1 | Hardware decode cycles — reference (canonical pointer) |

@@ -47,7 +47,7 @@ that should be reflected in the thesis narrative.
 
 **Anticipated resolution**: The Zvbb extension adds `vror.vv` and `vandn.vv`, which should eliminate the 3-for-1 rotation penalty. Keccak on Zvbb targets is expected to outperform scalar. This is tracked as a future experiment (see `experiments/EXP-fafft-zvbc-towerfield/`).
 
-**Hardware corollary (BPI-F3, 2026-05-31)**: On real hardware (SpacemiT K1 X60, GCC native), the auto-vectorization that Discovery 2 measures in Spike also manifests as a ~12% cycle reduction (359k → 314k cycles for HQC-128 Keccak). Crucially, `vector_ref` and `vector_rvv` produce *identical* Keccak results (~313.9k vs ~313.5k = noise) because the keccak binary (`bench_hw_keccak_hqc128`) compiles the same `fips202.c` source — only the `-march` and `-ftree-vectorize` flags differ, and both vector variants enable auto-vectorization. This is a correct and expected result: the keccak micro-bench measures "keccak cost under this variant's compilation environment," not "different keccak implementations." The ~12% benefit comes from GCC auto-vectorizing the θ/χ steps (XOR-parallel, no cross-lane deps) while leaving the ρ step scalar (irregular rotations without `vror.vv`). See `docs/thesis-helper/optimizations/miscellaneous.md` §7 for full analysis.
+**Hardware corollary (BPI-F3, 2026-05-31)**: On real hardware (SpacemiT K1 X60, GCC native), the auto-vectorization that Discovery 2 measures in Spike also manifests as a ~12% cycle reduction (359k → 314k cycles for HQC-128 Keccak). The `vector_rvv` keccak binary (`bench_hw_keccak_hqc128`) compiles the same `fips202.c` source with `-march=rv64gcv...` and auto-vectorization enabled. This is a correct and expected result: the keccak micro-bench measures "keccak cost under this variant's compilation environment," not "different keccak implementations." The ~12% benefit comes from GCC auto-vectorizing the θ/χ steps (XOR-parallel, no cross-lane deps) while leaving the ρ step scalar (irregular rotations without `vror.vv`). See `docs/thesis-helper/optimizations/miscellaneous.md` §7 for full analysis.
 
 **Key lesson**: ISA completeness matters more than ISA width for irregular permutations. Profile at the micro-operation level before committing to a vector Keccak implementation.
 
@@ -85,7 +85,7 @@ that should be reflected in the thesis narrative.
 `-march=rv64gcv_zbc_zbb_zbkb_zvbb_zvbc` and auto-vectorization enabled.
 
 **Result (HQC-128)**:
-- `ref_vector` (`-march=rv64gcv_zbc_zbb_zbkb`):
+- Baseline (`-march=rv64gcv_zbc_zbb_zbkb`):
 	- `vect_mul`: 18,527,412 instret
 	- `decaps`: 56,442,467 instret
 - `ref_full_crypto` (`+zvbb+zvbc`):
@@ -94,7 +94,7 @@ that should be reflected in the thesis narrative.
 
 The difference is statistically and practically negligible for deterministic Spike instret accounting (exactly identical for `vect_mul`; <0.001% drift for `decaps`).
 
-**Conclusion**: Compilers do not automatically synthesize Zvbc/Zvbb crypto-vector primitives from generic C in this workload. Therefore `ref_vector` is the practical compiler ceiling baseline, and explicit hand-written intrinsic kernels remain necessary to realize Tier 3 gains.
+**Conclusion**: Compilers do not automatically synthesize Zvbc/Zvbb crypto-vector primitives from generic C in this workload. The compiler auto-vectorization ceiling is the practical baseline, and explicit hand-written intrinsic kernels remain necessary to realize Tier 3 gains.
 
 ---
 
@@ -169,10 +169,10 @@ measured rather than inferred from a single hot function.
 
 **Concrete examples from this repo's workflow**:
 
-- `ref_vector` can show increasing KEM instret as VLEN grows (e.g., L128 run
-	often trends upward from VLEN=256 to 2048). This indicates that wider runtime
-	vector width does not map to fewer dynamic instructions for the current full
-	KEM path.
+- Auto-vectorized reference code can show increasing KEM instret as VLEN grows
+	(e.g., L128 run often trends upward from VLEN=256 to 2048). This indicates
+	that wider runtime vector width does not map to fewer dynamic instructions for
+	the current full KEM path.
 
 - `karatsuba_rvv` with RVV decoder (`decode=rvv`) can hang for larger VLEN in
 	the full-KEM sweep path. For stable VLEN polymul scaling comparison, the sweep

@@ -111,10 +111,6 @@ For quick local iteration outside the full wrapper:
 
 # Histogram
 ./scripts/bench/run_profile.sh --histogram --variant karatsuba_zbc --level 128
-
-# Cache and memory profiling
-./scripts/bench/run_profile.sh --cache --variant karatsuba_zbc --level all
-./scripts/bench/run_profile.sh --memory --variant karatsuba_zbc --level all
 ```
 
 ## 6. Reporting

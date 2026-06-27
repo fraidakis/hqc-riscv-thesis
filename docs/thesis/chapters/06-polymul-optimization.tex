@@ -74,7 +74,7 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
 διανυσματοποίηση των leaf kernels (\cref{sec:polymul-zvbc}, Tier~3).
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 1: Scalar (rv64gc + Zbc/Zbb)}
+\paragraph{Tier~1: Scalar πυρήνας με \Zbc.}
 \label{ssec:tier1}
 
 Το Tier~1 στοχεύει πλατφόρμες χωρίς διανυσματική μονάδα, που υλοποιούν μόνο
@@ -88,36 +88,33 @@ bit-serial schoolbook με word-level Karatsuba leaf, παράγει στατι�
 assign-on-first-write για την εξάλειψη του \code{memset}. Το ISA string \code{rv64gc\_zbc\_zbb} μεταγλωττίζεται με
 \code{-fno-tree-vectorize}, εξασφαλίζοντας ότι ο μεταγλωττιστής δεν εκπέμπει
 RVV εντολές και ότι η μέτρηση αντικατοπτρίζει αποκλειστικά scalar εκτέλεση.
-Η \gls{zbb} παρέχει \rori{} (native rotate) και \insn{andn} (AND-NOT) πο Η πλήρης ανάπτυξη
-ακολουθεί στην \cref{sec:polymul-scalar}.
+Η πλήρης ανάπτυξη ακολουθεί στην \cref{sec:polymul-scalar}.
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 2: Base-RVV (rv64gcv + Zbc/Zbb)}
+\paragraph{Tier~2: Διανυσματοποίηση της ανασύνθεσης (Base-RVV).}
 \label{ssec:tier2}
 
 Το Tier~2 στοχεύει application-class πλατφόρμες με διανυσματική μονάδα
 RVV~1.0. Ο κρίσιμος περιορισμός εδώ είναι η
 απουσία της \gls{zvbc}: χωρίς \vclmul{}, ο leaf kernel παραμένει scalar
 (ταυτόσημος με Tier~1) και η διανυσματική μονάδα αξιοποιείται αποκλειστικά
-στους βρόχους ανασύνθεσης, μέσω direct-write, overlap-save combine και
-inlined RVV με tuned \LMUL. Προκύπτει έτσι μια \defterm{υβριδική
+στους γραμμικού κόστους βρόχους ανασύνθεσης, οι οποίοι διανυσματοποιούνται με
+RVV (επιμέρους τεχνικές: direct-write, overlap-save combine, tuned \LMUL). Προκύπτει έτσι μια \defterm{υβριδική
 scalar/vector προσέγγιση}, με κέρδος φραγμένο από τον τετραγωνικό
 ($\BigO{n^2}$) scalar leaf. Αναλυτικά στην \cref{sec:polymul-base-rvv}.
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 3: Full Vector-Crypto (rv64gcv + Zbc/Zbb/Zvbc/Zvbb)}
+\paragraph{Tier~3: Διανυσματικός leaf με \Zvbc.}
 \label{ssec:tier3}
 
 Το Tier~3 αξιοποιεί τις vector-crypto επεκτάσεις. Η προσθήκη της
 \gls{zvbc} καθιστά διαθέσιμες τις \vclmul/\vclmulh, που υπολογίζουν πολλαπλά
 \num{64}$\times$\num{64}-bit carry-less γινόμενα παράλληλα. Έτσι η
 διανυσματοποίηση εισχωρεί στον ίδιο τον leaf kernel: ο \code{vclmul\_leaf}
-(\cref{ssec:vclmul-leaf}) εκτελεί ολόκληρο τον schoolbook πολλαπλασιασμό
-μεγέθους $n=16$ με vector εντολές, threshold-matched σε
-\VLEN = \num{256}/\LMUL = m4. Η \gls{zvbb} παρέχει τις εντολές \vror{}
-(vector rotate) και \insn{vandn.vv} (vector AND-NOT), οι οποίες αξιοποιούνται
-στον Keccak πυρήνα (\cref{ch:kernel-optimization}) αλλά δεν επηρεάζουν τον
-πολυωνυμικό πολλαπλασιασμό.
+(\cref{ssec:vclmul-leaf}) διανυσματοποιεί ολόκληρο τον schoolbook leaf
+μεγέθους $n=16$. Το κατώφλι $n=16$ επιλέγεται ώστε ο leaf να χωρά σε ένα
+vector register group: σε \VLEN = \num{256} με \LMUL = m4 το group καλύπτει
+\num{16} λωρίδες των \num{64} bit. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
 
 %% ============================================================================
 \section{Scalar Path: Karatsuba με \Zbc}
@@ -125,15 +122,12 @@ scalar/vector προσέγγιση}, με κέρδος φραγμένο από �
 
 Η scalar υλοποίηση αποτελεί τη θεμελιώδη βελτιστοποίηση του πολυωνυμικού
 πολλαπλασιασμού, εφαρμόσιμη σε κάθε RISC-V πλατφόρμα που υλοποιεί την επέκταση
-\gls{zbc}, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας. Η ενότητα αυτή
-παρουσιάζει τη μετάβαση από την υλοποίηση αναφοράς με bit-serial schoolbook 
-πολλαπλασιασμό σε μια πλήρως βελτιστοποιημένη υλοποίηση Karatsuba. 
-Η συνολική μείωση \instret στον πολυωνυμικό πολλαπλασιασμό HQC-128
-ανέρχεται σε \speedup{101.2} έναντι του \code{scalar\_ref}.
-Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των τριών
-διαδοχικών σταδίων: μετάβαση σε word-level \clmul{} leaf, στατικό δέντρο
-αναδρομής με εξειδικεύσεις leaf, και assign-on-first-write
-(εξάλειψη \code{memset}).
+\gls{zbc}, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας. Η scalar διαδρομή
+αντικαθιστά τον bit-serial schoolbook της υλοποίησης αναφοράς με word-level
+Karatsuba, μειώνοντας το \instret στον πολυωνυμικό πολλαπλασιασμό HQC-128 κατά
+\speedup{101.2} έναντι του \code{scalar\_ref}.
+Τα τρία στάδια αναπτύσσονται στη συνέχεια και η σωρευτική τους συνεισφορά
+συνοψίζεται στον \cref{tab:scalar-ablation}.
 
 \subsection{Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό}
 \label{ssec:bit-to-word}
@@ -142,16 +136,18 @@ scalar/vector προσέγγιση}, με κέρδος φραγμένο από �
 (\code{vendor/hqc-ref/src/ref/gf2x.c}, portable scalar μοντέλο χωρίς
 αρχιτεκτονικές intrinsics) χρησιμοποιεί αναδρομικό Karatsuba με schoolbook base case σε bit
 granularity. Για κάθε ζεύγος \num{64}-bit words $(a[i], b[j])$, ο
-εσωτερικός βρόχος εξετάζει τα \num{64} bits του $a[i]$ ένα προς ένα: για κάθε bit $k$ εκτελείται predicated (mask-based) shift-XOR
-του $b[j]$ στη θέση $r[i+j]$, όπου μια μάσκα παραγόμενη από το bit μηδενίζει
-τη συνεισφορά όταν το bit είναι ανενεργό (\cref{sec:schoolbook-algorithm}). Η πολυπλοκότητα ανά leaf call μεγέθους $n$ words
-ανέρχεται σε $64 \times n^2$ predicated shift-and-XOR πράξεις.
+εσωτερικός βρόχος εξετάζει τα \num{64} bits του $a[i]$ ένα προς ένα: για κάθε bit εκτελείται ένα predicated (μάσκα που μηδενίζει τη
+συνεισφορά όταν το bit είναι ανενεργό) shift-XOR του $b[j]$ στη θέση $r[i+j]$
+(\cref{sec:schoolbook-algorithm}).
 
 Η αντικατάσταση του bit-serial βρόχου με ένα ζεύγος \clmul/\clmulh
 μετασχηματίζει τον εσωτερικό βρόχο από $64n$ iterations σε $n$
 iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το κέρδος προέρχεται από 
 τη δραστική μείωση των iterations και την κατάργηση της per-bit μάσκας εξαγωγής 
-και της μεταβλητής ολίσθησης που κυριαρχούσαν στο baseline.
+και της μεταβλητής ολίσθησης που κυριαρχούσαν στο baseline. Διαισθητικά, η
+\clmul{} επεξεργάζεται ολόκληρη τη λέξη $a[i]$ με μία πράξη, αντί να εξετάζει
+τα \num{64} bits της ένα προς ένα, εξαλείφοντας τον μεσαίο βρόχο των \num{64}
+επαναλήψεων.
 
 Το \cref{fig:schoolbook-vs-clmul} συγκρίνει τον bit-serial schoolbook βρόχο με τον word-level \clmul{} leaf.
 
@@ -159,13 +155,23 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
   \centering
   \input{figures/ch6-polymul/schoolbook-vs-clmul.tex}
   \caption{Σύγκριση bit-serial schoolbook (αριστερά) με word-level
-    \clmul{} leaf (δεξιά).}
+    \clmul{} leaf (δεξιά). Αριστερά, κάθε bit~$k$ του $a[i]$ παράγει μια μάσκα
+    που υπό συνθήκη προσθέτει (XOR) το ολισθημένο $b[j]$ στο χαμηλό ($r[i+j]$)
+    και στο υψηλό ($r[i+j+1]$) μέρος. Δεξιά, ένα ζεύγος \clmul/\clmulh παράγει
+    απευθείας τα δύο μέρη, εξαλείφοντας τον βρόχο των \num{64} bits.}
   \label{fig:schoolbook-vs-clmul}
 \end{figure}
 
-Η μετάβαση σε word-level \clmul{} leaf αποδίδει \speedup{38.62} σε
-\instret έναντι του bit-serial baseline (HQC-128), το μεγαλύτερο
-μεμονωμένο κέρδος της scalar διαδρομής.
+Το \code{a[i] >> bit \& 1} απομονώνει ένα μόνο bit
+(τιμή $0$ ή $1$) και η αφαίρεση (two's complement) το επεκτείνει σε μάσκα
+πλήρους πλάτους: το $-(0)$ δίνει \code{0x0000...0} (όλο μηδενικά), ενώ το $-(1)$
+δίνει \code{0xFFFF...F} (όλο άσσοι). Έτσι το \code{\& mask} είτε περνά ολόκληρο
+το ολισθημένο $b[j]$ είτε το μηδενίζει, χωρίς διακλάδωση (branchless, ιδιότητα
+κρίσιμη για constant-time εκτέλεση).
+
+Η μετάβαση σε word-level \clmul{} leaf οδηγεί σε επιτάχυνση \speedup{38.62}
+του \instret έναντι του bit-serial baseline (HQC-128), το μεγαλύτερο κέρδος
+μεμονωμένου σταδίου κατά την scalar βελτιστοποίηση.
 
 \subsection{Δομή Αναδρομής και Compile-Time Specialized Generator}
 \label{ssec:specialized-tree}
@@ -176,9 +182,8 @@ $N \in \{277, 561, 901\}$ words αντίστοιχα για τα τρία securi
 ντετερμινιστικό: κάθε κόμβος γνωρίζει εκ των προτέρων τα μεγέθη
 εισόδου, τα offsets των buffers, και τα μεγέθη των child calls. Η
 παρατήρηση αυτή οδηγεί στη σχεδίαση ενός \defterm{compile-time specialized generator}: ένα
-Python script (\code{gen\_karatsuba\_specialized.py}) που διατρέχει το
-δέντρο αναδρομής και εκπέμπει εξειδικευμένες C συναρτήσεις με όλες τις
-αποφάσεις επιλυμένες σε compile-time.
+Python script που διατρέχει το δέντρο αναδρομής και εκπέμπει εξειδικευμένες C 
+συναρτήσεις με όλες τις αποφάσεις επιλυμένες σε compile-time.
 
 Ο κανόνας διαίρεσης ακολουθεί τη συμμετρική σύμβαση:
 $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$. Η αναδρομή
@@ -207,11 +212,7 @@ $n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$. Η αναδρομή
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/ap2-pipeline.tex}
-  \caption{Pipeline του compile-time specialized generator. Ένα Python script αναλύει το
-    δέντρο αναδρομής Karatsuba για κάθε HQC parameter size και εκπέμπει
-    εξειδικευμένο C header. Κάθε απόφαση (buffer offsets, loop bounds,
-    child dispatch) επιλύεται σε compile-time, μηδενικό runtime
-    overhead.}
+  \caption{Pipeline του compile-time specialized generator.}
   \label{fig:specialized-tree-pipeline}
 \end{figure}
 
@@ -225,16 +226,6 @@ spill/restore overhead υπερβαίνει την πραγματική αριθ
 register allocation, inline leaf operations, και ελεύθερο scheduling
 loads/stores.
 
-\paragraph{Υποστήριξη πολλαπλών backends.}
-Ο generator υποστηρίζει τέσσερις emission modes μέσω της παραμέτρου
-\code{-{}-mode}: \code{zbc} (scalar combine loops), \code{rvv} (RVV
-helper calls), \code{rvv\_opt} (inlined RVV direct-write), και
-\code{zvbc} (vector leaf dispatch). Η λογική διάσχισης του δέντρου
-αναδρομής είναι κοινή, μόνο ο κώδικας combine και leaf dispatch
-διαφοροποιείται ανά mode. Η αρχιτεκτονική αυτή εξασφαλίζει ότι
-αλλαγές στη δομή αναδρομής (threshold, split rule) εφαρμόζονται
-αυτόματα σε όλα τα tiers.
-
 \paragraph{Unrolling και βάθος αναδρομής.}
 Ο generator εκπέμπει πλήρως unrolled recursion tree, κάθε
 κόμβος αναδρομής αποτελεί ξεχωριστή \code{static} συνάρτηση με
@@ -243,6 +234,16 @@ threshold comparison, dynamic pointer arithmetic, και stack frame
 overhead σε βάρος αυξημένου \code{.text} footprint. Η ποσοτική
 αξιολόγηση αυτού του trade-off (recursion depth vs \instret vs
 \code{.text} size) παρουσιάζεται στην \cref{sec:polymul-codesize}.
+
+\paragraph{Υποστήριξη πολλαπλών backends.}
+Ο generator υποστηρίζει τέσσερις emission modes μέσω της παραμέτρου
+\code{-{}-mode}: \code{zbc} (scalar combine loops), \code{rvv} 
+(direct-write με inline RVV intrinsics) και \code{zvbc} (vector 
+leaf dispatch). Η λογική διάσχισης του δέντρου
+αναδρομής είναι κοινή, μόνο ο κώδικας combine και leaf dispatch
+διαφοροποιείται ανά mode. Η αρχιτεκτονική αυτή εξασφαλίζει ότι
+αλλαγές στη δομή αναδρομής (threshold, split rule) εφαρμόζονται
+αυτόματα σε όλα τα tiers.
 
 \paragraph{Worked example: πλήρης αναδρομή HQC-128.}
 Η κλήση \code{vect\_mul(o, a, b)} για HQC-128 ($N=277$ words,
@@ -307,23 +308,33 @@ HQC-192/256) δοκιμάστηκαν αλλά απορρίφθηκαν: προ�
 \code{clmul\_leaf}.
 
 Πέραν της μείωσης iterations, οι δύο πλήρως ξεδιπλωμένες εξειδικεύσεις
-εισάγουν δύο micro-optimizations. Πρώτον, \defterm{4-way ILP grouping}:
-εκδίδονται τέσσερις ανεξάρτητες κλήσεις \code{clmul64} προτού καταναλωθεί το
-αποτέλεσμα οποιασδήποτε. Επειδή οι τέσσερις κλήσεις είναι αμοιβαία
-ανεξάρτητες, ο in-order X60 pipeline τις εκτελεί
-επικαλυπτόμενα, αποκρύπτοντας τη latency της μονάδας carry-less αντί να σταματά
-(stall) περιμένοντας κάθε αποτέλεσμα. Δεύτερον, η \defterm{hi$\xorop$lo fusion}:
-γειτονικά γινόμενα μοιράζονται κοινή θέση εξόδου:
-$\text{hi}(a[i], b[j])$ και $\text{lo}(a[i], b[j{+}1])$ στοχεύουν
+εισάγουν δύο micro-optimizations. Πρώτον, \defterm{2-way pair scheduling}:
+εκδίδονται δύο ανεξάρτητες κλήσεις \code{clmul64} (ένα ζεύγος) προτού
+καταναλωθεί οποιοδήποτε αποτέλεσμα. Η τεχνική αυτή παρέχει ελάχιστη
+κάλυψη latency χωρίς υπερβολική αύξηση code footprint. Δεύτερον, η
+\defterm{hi$\xorop$lo fusion}: γειτονικά γινόμενα μοιράζονται κοινή θέση
+εξόδου: $\text{hi}(a[i], b[j])$ και $\text{lo}(a[i], b[j{+}1])$ στοχεύουν
 αμφότερα τη θέση $r[i{+}j{+}1]$. Η συγχώνευσή τους σε ένα μόνο
 XOR-and-store ($r[i{+}j{+}1] \mathrel{\xorop}= \text{hi}_0 \xorop
 \text{lo}_1$) εξαλείφει έναν κύκλο load-modify-store ανά ζεύγος.
 
+\paragraph{Εναλλακτική: 4-way ILP grouping (απορριφθείσα).}
+Αξιολογήθηκε εναλλακτική διαμόρφωση με εκπομπή τεσσάρων ανεξάρτητων κλήσεων
+\code{clmul64} πριν από οποιαδήποτε κατανάλωση αποτελεσμάτων (\defterm{4-way
+ILP grouping}), με στόχο τη μεγαλύτερη κάλυψη latency στον in-order X60
+pipeline. Η μέτρηση σε πραγματικό hardware (BPI-F3) απέδειξε ότι η τεχνική
+αυτή δεν αποδίδει μετρήσιμο κέρδος: στο \code{scalar\_zb}, η 4-way εκδοχή
+παρουσίασε $<\pct{0.5}$ διαφορά (\cycles{131551} έναντι \cycles{132266} στο
+HQC-128, εντός noise) ενώ στο \code{vector\_rvv} προκάλεσε regression
+\pct{1.6} (\cycles{123845} έναντι \cycles{121950}) λόγω αυξημένου
+\code{.text} footprint και I-cache pressure. Η 2-way pair δομή διατηρήθηκε
+ως champion σε αμφότερα τα variants.
+
 Για σειρές $i \geq 1$, το φύλλο διατηρεί το pairwise scheme, με την
-hi$\xorop$lo fusion να εκτείνεται σε όλα τα ζεύγη: τέσσερα διαδοχικά γινόμενα
-(δύο fused ζεύγη) μετατρέπουν οκτώ half-products σε πέντε output XORs,
-εξοικονομώντας τρεις εντολές \insn{xor} ανά τετράδα. Το four-way unrolling
-εφαρμόζεται χωριστά στους τρεις βρόχους ανασύνθεσης Karatsuba. Το 4-way ILP grouping και η hi$\xorop$lo fusion υλοποιούνται αποκλειστικά
+hi$\xorop$lo fusion να εκτείνεται σε όλα τα ζεύγη: δύο διαδοχικά γινόμενα
+(ένα fused ζεύγος) μετατρέπουν τέσσερα half-products σε τρία output XORs,
+εξοικονομώντας μία εντολή \insn{xor} ανά ζεύγος. Το 2-way pair scheduling
+εφαρμόζεται ομοιόμορφα σε ολόκληρο τον leaf. Η hi$\xorop$lo fusion υλοποιείται αποκλειστικά
 στις δύο πλήρως ξεδιπλωμένες εξειδικεύσεις. Ο generic \code{clmul\_leaf}
 αποτελεί την απλή, μη-fused εναλλακτική για τα μεγαλύτερα φύλλα
 ($n \in \{14, 15\}$) των HQC-192/256.
@@ -388,6 +399,11 @@ arithmetic από το φύλλο, παράγοντας μία ευθύγραμ�
 Εφαρμοσμένη πάνω στο ήδη εξειδικευμένο δέντρο, η εξάλειψη του \code{memset}
 αποδίδει επιπλέον \speedup{1.12} σε \instret (HQC-128), ανεβάζοντας τη
 σωρευτική scalar βελτίωση σε \speedup{101.2} έναντι του \code{scalar\_ref}.
+
+Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των τριών
+διαδοχικών σταδίων: μετάβαση σε word-level \clmul{} leaf, στατικό δέντρο
+αναδρομής με εξειδικεύσεις leaf, και assign-on-first-write (εξάλειψη
+\code{memset}).
 
 \begin{table}[htbp]
   \centering

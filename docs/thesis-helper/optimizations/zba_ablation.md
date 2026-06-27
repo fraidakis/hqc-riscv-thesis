@@ -8,15 +8,15 @@
 
 ## Summary
 
-| Extension | karatsuba_zvbc (keccak=zvbb, decode=zvbc) | karatsuba_rvv (keccak=ref, decode=rvv) | karatsuba_zbc (keccak=ref, decode=ref) | ref_vector | ref_scalar |
-|-----------|------------------------------------------|----------------------------------------|----------------------------------------|------------|------------|
-| **Zba**   | **−5.61% polymul, −3.27% KEM** ✓         | **−1.03% polymul, −0.67% KEM** ✓       | −0.004% ✗                              | +0.01% ✗   | 0.00% ✗    |
-| **Zicond**| 0.00% ✗                                  | —                                      | −0.38% ✗                               | —          | —          |
+| Extension | karatsuba_zvbc (keccak=zvbb, decode=zvbc) | karatsuba_rvv (keccak=ref, decode=rvv) | karatsuba_zbc (keccak=ref, decode=ref) | ref_scalar |
+|-----------|------------------------------------------|----------------------------------------|----------------------------------------|------------|
+| **Zba**   | **−5.61% polymul, −3.27% KEM** ✓         | **−1.03% polymul, −0.67% KEM** ✓       | −0.004% ✗                              | 0.00% ✗    |
+| **Zicond**| 0.00% ✗                                  | —                                      | −0.38% ✗                               | —          |
 
 **Verdict:**
 - **Zba promoted** for `karatsuba_zvbc` (−5.6% polymul, −3.3% full KEM) and `karatsuba_rvv` (−1.0% polymul).
 - **Zicond dropped** — zero dynamic `czero` instructions emitted; compiler uses other branchless idioms.
-- **No change** to scalar variants (karatsuba_zbc, ref_scalar) or vendor auto-vectorized (ref_vector).
+- **No change** to scalar variants (karatsuba_zbc, ref_scalar).
 
 ## Detailed Results — Production Configurations
 
@@ -27,7 +27,6 @@
 | karatsuba_zvbc  | keccak=zvbb_x2_soa, decode=zvbc | 66,244        | 62,526         | −3,718 | −5.61%  |
 | karatsuba_rvv   | keccak=ref, decode=rvv     | 154,811            | 153,213        | −1,598 | −1.03%  |
 | karatsuba_zbc   | keccak=ref, decode=ref     | 211,841            | 211,833        | −8     | −0.004% |
-| ref_vector      | keccak=ref, decode=ref     | 18,527,412         | 18,529,657     | +2,245 | +0.01%  |
 | ref_scalar      | keccak=ref, decode=ref     | 19,214,088         | 19,214,088     | 0      | 0.00%   |
 
 ### Full KEM (HQC-128) — Production pairings
@@ -114,9 +113,9 @@ as −2.65% — an artifact of the non-optimized decode path's higher baseline
 diluting less. With the production pairing (decode=rvv), the full-KEM effect
 is −0.67%: still positive, still free (Zba is in RVA22U64), but modest.
 
-### ref_vector and ref_scalar: No benefit
+### ref_scalar: No benefit
 
-These use the vendor schoolbook `gf2x.c` which is a doubly-nested loop over
+This uses the vendor schoolbook `gf2x.c` which is a doubly-nested loop over
 bit positions. The inner loop is bit-shift + conditional-XOR — no 8-byte
 pointer scaling patterns. Zba has nothing to target.
 

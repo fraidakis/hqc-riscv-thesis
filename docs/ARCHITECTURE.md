@@ -530,9 +530,9 @@ hqc-riscv/
 - **Where:** Used in profiling/reporting workflows to enhance trace analysis output.
 
 #### [scripts/bench/run_profile.sh](../scripts/bench/run_profile.sh)
-- **Usage:** Unified profiling dispatcher with `--cache`, `--memory`, `--trace`, and `--histogram` modes.
+- **Usage:** Unified profiling dispatcher with `--trace`, `--histogram`, and hardware modes (`--counters`, `--hotspots`, `--isa-mix`).
 - **Why:** Keeps profiling workflows under a single CLI while delegating simulator details to the appropriate backend.
-- **Where:** Used for cache profiling, memory traffic profiling, Spike tracing, and histogram generation.
+- **Where:** Used for Spike tracing, histogram generation, and hardware performance counter collection.
 
 #### [scripts/experiments/run_hybrid_depth_sweep.sh](../scripts/experiments/run_hybrid_depth_sweep.sh)
 - **Usage:** Parameter sweep driver running benchmarks for hybrid recursion depth values d ∈ {0,1,2,3,4}. Collects cycle counts for each depth across all security levels, identifying the empirical crossover point.
