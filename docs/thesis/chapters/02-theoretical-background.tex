@@ -385,13 +385,13 @@ $a_i = 1$, το $b(x)$ ολισθαίνεται κατά $i$ θέσεις και
 
 \paragraph{Υλοποίηση reference με bit-serial τρόπο.}
 Στην υλοποίηση αναφοράς του \gls{hqc}, ο schoolbook λειτουργεί με
-\defterm{bit-serial} τρόπο (bit-granularity): για κάθε λέξη $a[i]$, εξετάζονται και τα 64 bits
+\defterm{bit-serial} τρόπο (bit-granularity): για κάθε λέξη $a_i$, εξετάζονται και τα 64 bits
 ξεχωριστά.
-Κάθε bit $a_i[\beta]$ (bit $\beta$ της λέξης $i$) παράγει μια υπό-συνθήκη
+Κάθε bit $a_i[k]$ (bit $k$ της λέξης $a_i$) παράγει μια υπό-συνθήκη
 ολίσθηση-και-XOR ολόκληρου του πίνακα $b[]$:
 \begin{equation}
-  r[i+j] \mathrel{\oplus}= (b[j] \ll \beta) \cdot a_i[\beta], \quad
-  r[i+j+1] \mathrel{\oplus}= (b[j] \gg (64-\beta)) \cdot a_i[\beta].
+  r[i+j] \mathrel{\oplus}= (b[j] \ll k) \cdot a_i[k], \quad
+  r[i+j+1] \mathrel{\oplus}= (b[j] \gg (64-k)) \cdot a_i[k].
 \end{equation}
 Ο schoolbook εκτελεί τρεις εμφωλευμένους βρόχους: για καθεμία από τις $n$ λέξεις
 του \code{a[]} (\emph{εξωτερικός βρόχος}) και για καθένα από τα 64 bits της

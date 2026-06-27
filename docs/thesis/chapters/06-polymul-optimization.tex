@@ -7,19 +7,19 @@
 παρουσιάζει τη συστηματική βελτιστοποίηση αυτού του πυρήνα σε τρία tiers αυξανόμενης αρχιτεκτονικής πολυπλοκότητας.
 
 %% ============================================================================
-\section{Τα Τρία Tiers Βελτιστοποίησης}
+\section{Οργάνωση της Βελτιστοποίησης σε Τρία Tiers}
 \label{sec:polymul-tiers}
 
 Η modular φιλοσοφία του RISC-V \gls{isa}, όπου κάθε επέκταση είναι προαιρετική
-και ανεξάρτητα επικυρωμένη, δημιουργεί ένα φάσμα hardware capabilities στο
-οποίο κάθε πλατφόρμα υλοποιεί διαφορετικό υποσύνολο επεκτάσεων. Αντί μίας
-μονολιθικής υλοποίησης που απαιτεί όλες τις επεκτάσεις του \gls{isa}, η παρούσα εργασία
-οργανώνει τη βελτιστοποίηση σε τρία \defterm{tiers}, καθένα
-από τα οποία αξιοποιεί αποκλειστικά επικυρωμένες επεκτάσεις.
+και ανεξάρτητα επικυρωμένη, οδηγεί σε διαβαθμισμένες δυνατότητες υλικού, από
+minimal scalar cores έως πλήρεις vector-crypto πλατφόρμες. Αντί μίας
+μονολιθικής υλοποίησης που απαιτεί όλες τις επεκτάσεις του \gls{isa}, η παρούσα
+εργασία οργανώνει τη βελτιστοποίηση σε τρία \defterm{tiers}, αξιοποιώντας σε
+κάθε επίπεδο αποκλειστικά επικυρωμένες επεκτάσεις.
 
 Η οργάνωση αυτή σε tiers εξυπηρετεί δύο σκοπούς. Πρώτον, εξασφαλίζει
-portability: κάθε tier εκτελείται σε οποιονδήποτε επεξεργαστή υλοποιεί τις
-αντίστοιχες επεκτάσεις.
+φορητότητα (portability): κάθε tier εκτελείται σε οποιονδήποτε επεξεργαστή
+υλοποιεί τις αντίστοιχες επεκτάσεις.
 Δεύτερον, επιτρέπει την αξιολόγηση της οριακής συνεισφοράς κάθε επέκτασης:
 η διαφορά μεταξύ Tier~1 και Tier~2 απομονώνει το κέρδος της διανυσματικής
 μονάδας, ενώ η διαφορά μεταξύ Tier~2 και Tier~3 απομονώνει το κέρδος των
@@ -28,16 +28,16 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/polymul-tiers.tex}
-  \caption{Σχέση υπερσυνόλου των τριών tiers: κάθε ανώτερο tier προσθέτει επεκτάσεις στο αμέσως προηγούμενο, από scalar (Tier~1) έως full vector-crypto (Tier~3).}
+  \caption{Σχέση υπερσυνόλου των τριών tiers. Κάθε tier κληρονομεί το ISA του προηγουμένου και προσθέτει νέες επεκτάσεις. Η αρχιτεκτονική πολυπλοκότητα αυξάνεται από Tier~1 (scalar) προς Tier~3 (full vector-crypto).}
   \label{fig:polymul-tiers}
 \end{figure}
 
 Και τα τρία tiers μοιράζονται τον ίδιο αλγοριθμικό πυρήνα (Karatsuba).
 Η διαφοροποίηση εντοπίζεται σε δύο σημεία. Πρώτον, στον τρόπο υλοποίησης του
 \defterm{leaf kernel}, δηλαδή της βασικής πράξης πολλαπλασιασμού στα φύλλα του
-δέντρου αναδρομής. Δεύτερον, στον τρόπο εκτέλεσης των \defterm{βρόχων 
-ανασύνθεσης} γραμμικού κόστους, που συνθέτουν τα μερικά γινόμενα σε κάθε κόμβο.
-Ο \cref{tab:tier-differentiation} αποσαφηνίζει αυτή τη διαφοροποίηση.
+δέντρου αναδρομής. Δεύτερον, στον τρόπο εκτέλεσης των \defterm{βρόχων
+ανασύνθεσης} γραμμικού κόστους, που συνδυάζουν τα μερικά γινόμενα σε κάθε
+κόμβο. Ο \cref{tab:tier-differentiation} αποσαφηνίζει αυτή τη διαφοροποίηση.
 
 \begin{table}[htbp]
   \centering
@@ -47,6 +47,7 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
     \toprule
     \textbf{Tier} & \textbf{Leaf Kernel} & \textbf{Βρόχοι Ανασύνθεσης} \\
     \midrule
+    Ref. & Bit-serial schoolbook & Scalar XOR loops \\
     1 & Scalar \clmul/\clmulh (Zbc)
       & Scalar unrolled XOR \\
     2 & Scalar \clmul/\clmulh (Zbc)
@@ -59,122 +60,63 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
 
 Η αρχιτεκτονική αυτή παρατήρηση εξηγεί εκ των προτέρων τη σχετική
 αποτελεσματικότητα κάθε tier. Στο Tier~1, τόσο ο leaf kernel όσο και οι βρόχοι
-ανασύνθεσης εκτελούνται scalar. Στο Tier~2, η διανυσματοποίηση επιταχύνει
-μόνο τους γραμμικού κόστους $\BigO{n}$ βρόχους ανασύνθεσης, ενώ ο κυρίαρχος,
-τετραγωνικού κόστους $\BigO{n^2}$, leaf kernel παραμένει scalar. 
+ανασύνθεσης εκτελούνται με scalar εντολές. Στο Tier~2, η διανυσματοποίηση
+επιταχύνει μόνο τους γραμμικού κόστους $\BigO{n}$ βρόχους ανασύνθεσης, ενώ ο
+κυρίαρχος, τετραγωνικού κόστους $\BigO{n^2}$, leaf kernel παραμένει scalar.
 Στο Tier~3, η διανυσματοποίηση εισχωρεί στα ίδια
 τα leaf kernels: μία \vclmul{} εντολή υπολογίζει πολλαπλά \num{64}-bit carry-less
 γινόμενα ταυτόχρονα, εκμεταλλευόμενη τον data-level parallelism της διανυσματικής
 μονάδας και αποδίδοντας μεγαλύτερη επιτάχυνση.
 
-Οι επόμενες ενότητες παρουσιάζουν κάθε tier αναλυτικά: η
-\cref{sec:polymul-scalar} αναπτύσσει το scalar path (Tier~1), η
-\cref{sec:polymul-base-rvv} τη διανυσματοποίηση της ανασύνθεσης (Tier~2),
-και η \cref{sec:polymul-zvbc} τη διανυσματική υλοποίηση των leaf kernels με \gls{zvbc} (Tier~3).
+Οι ακόλουθες υποενότητες σκιαγραφούν συνοπτικά κάθε tier. Η αναλυτική
+ανάπτυξη ακολουθεί στο scalar path (\cref{sec:polymul-scalar}, Tier~1), στη
+διανυσματοποίηση της ανασύνθεσης (\cref{sec:polymul-base-rvv}, Tier~2) και στη
+διανυσματοποίηση των leaf kernels (\cref{sec:polymul-zvbc}, Tier~3).
 
 %% ----------------------------------------------------------------------------
 \subsection{Tier 1: Scalar (rv64gc + Zbc/Zbb)}
 \label{ssec:tier1}
 
-Το Tier~1 στοχεύει πλατφόρμες χωρίς διανυσματική μονάδα, δηλαδή RISC-V cores
-που υλοποιούν μόνο τις scalar bit-manipulation επεκτάσεις (Zbc/Zbb) χωρίς RVV.
-Καθοριστική είναι η υποστήριξη carry-less multiply της \gls{zbc}: ένα ζεύγος
-\clmul/\clmulh υπολογίζει το πλήρες \num{128}-bit carry-less γινόμενο δύο
-\num{64}-bit πολυωνύμων σε δύο εντολές.
-
-Η βελτιστοποίηση Tier~1 συνδυάζει τρεις τεχνικές:
-%
-\begin{enumerate}
-  \item \textbf{Word-level Karatsuba leaf:} Αντικατάσταση του bit-serial
-    schoolbook με word-level schoolbook βασισμένο σε \clmul/\clmulh
-    (\cref{ssec:bit-to-word}).
-
-  \item \textbf{Assign-on-first-write discipline:} Κάθε output word λαμβάνει
-    direct assignment στην πρώτη πρόσβαση, εξαλείφοντας το αρχικό \code{memset}
-    (\cref{ssec:memset-elimination}).
-
-  \item \textbf{Στατική παραγωγή δέντρου αναδρομής:} Compile-time
-    generation ολόκληρου του Karatsuba recursion tree, εξαλείφοντας runtime
-    dispatch και το ABI overhead (callee-saved register spill/restore) των
-    αναδρομικών κλήσεων (\cref{ssec:specialized-tree}).
-\end{enumerate}
-
-\noindent
-Το ISA string \code{rv64gc\_zbc\_zbb} μεταγλωττίζεται με
+Το Tier~1 στοχεύει πλατφόρμες χωρίς διανυσματική μονάδα, που υλοποιούν μόνο
+τις scalar bit-manipulation επεκτάσεις (Zbc/Zbb). Η \gls{zbc} παρέχει
+carry-less multiply: ένα ζεύγος \clmul/\clmulh υπολογίζει το πλήρες
+\num{128}-bit carry-less γινόμενο δύο \num{64}-bit πολυωνύμων σε δύο εντολές. 
+Πάνω σε αυτή τη βάση, το scalar path αντικαθιστά τον
+bit-serial schoolbook με word-level Karatsuba leaf, παράγει στατικά ολόκληρο
+το δέντρο αναδρομής (με εξειδικεύσεις leaf
+\code{clmul\_leaf\_n8}/\code{clmul\_leaf\_n9}) και εφαρμόζει
+assign-on-first-write για την εξάλειψη του \code{memset}. Το ISA string \code{rv64gc\_zbc\_zbb} μεταγλωττίζεται με
 \code{-fno-tree-vectorize}, εξασφαλίζοντας ότι ο μεταγλωττιστής δεν εκπέμπει
 RVV εντολές και ότι η μέτρηση αντικατοπτρίζει αποκλειστικά scalar εκτέλεση.
-Η \gls{zbb} παρέχει \rori{} (native rotate) και \insn{andn} (AND-NOT) που
-αξιοποιούνται αυτόματα μέσω compiler auto-lowering.
+Η \gls{zbb} παρέχει \rori{} (native rotate) και \insn{andn} (AND-NOT) πο Η πλήρης ανάπτυξη
+ακολουθεί στην \cref{sec:polymul-scalar}.
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 2: Base-RVV (rv64gcv χωρίς Zvbc/Zvbb)}
+\subsection{Tier 2: Base-RVV (rv64gcv + Zbc/Zbb)}
 \label{ssec:tier2}
 
 Το Tier~2 στοχεύει application-class πλατφόρμες με διανυσματική μονάδα
-RVV~1.0 που δεν διαθέτουν τις vector-crypto επεκτάσεις. Καθοριστικός
-περιορισμός είναι η απουσία της \gls{zvbc}: η εντολή
-\vclmul{} απουσιάζει, επομένως ο leaf kernel
-παραμένει scalar (\clmul/\clmulh, ταυτόσημος με Tier~1). Η διανυσματική
-μονάδα αξιοποιείται αποκλειστικά στους βρόχους ανασύνθεσης  που εκτελούνται σε κάθε
-κόμβο του δέντρου αναδρομής.
-
-Η βελτιστοποίηση Tier~2 εισάγει τρεις τεχνικές πέραν του Tier~1:
-%
-\begin{enumerate}
-  \item \textbf{Direct-write discipline:} Τα child multiplications γράφουν
-    απευθείας στο output buffer, εξαλείφοντας δύο πλήρεις RVV copy loops
-    ανά κόμβο αναδρομής (\cref{ssec:direct-write}).
-
-  \item \textbf{Overlap-save combine:} Επίλυση του aliasing hazard που
-    εισάγει η direct-write μέσω αποθήκευσης της overlap region σε scratch
-    buffer (\cref{ssec:overlap-save}).
-
-  \item \textbf{Inlined RVV operations με tuned LMUL:} Αντικατάσταση
-    shared helper functions με inline RVV intrinsic loops, με ρυθμισμένο 
-    \LMUL ανά operation βάσει register pressure (\cref{ssec:inlined-rvv}).
-\end{enumerate}
-
-\noindent
-Αυτός ο διαχωρισμός σε scalar leaf και διανυσματική ανασύνθεση αποτελεί
-\defterm{υβριδική scalar/vector προσέγγιση}: η αριθμητική πράξη (carry-less πολλαπλασιασμός)
-εκτελείται σειριακά, ενώ η μετακίνηση δεδομένων (XOR, copy, reduce)
-εκτελείται διανυσματικά. Η προσέγγιση αυτή αποδίδει μετρήσιμη βελτίωση, αλλά
-το κέρδος παραμένει φραγμένο: το κόστος του leaf kernel, που κλιμακώνεται
-τετραγωνικά ($\BigO{n^2}$), κυριαρχεί έναντι των γραμμικών ($\BigO{n}$) βρόχων
-ανασύνθεσης.
+RVV~1.0. Ο κρίσιμος περιορισμός εδώ είναι η
+απουσία της \gls{zvbc}: χωρίς \vclmul{}, ο leaf kernel παραμένει scalar
+(ταυτόσημος με Tier~1) και η διανυσματική μονάδα αξιοποιείται αποκλειστικά
+στους βρόχους ανασύνθεσης, μέσω direct-write, overlap-save combine και
+inlined RVV με tuned \LMUL. Προκύπτει έτσι μια \defterm{υβριδική
+scalar/vector προσέγγιση}, με κέρδος φραγμένο από τον τετραγωνικό
+($\BigO{n^2}$) scalar leaf. Αναλυτικά στην \cref{sec:polymul-base-rvv}.
 
 %% ----------------------------------------------------------------------------
-\subsection{Tier 3: Full Vector-Crypto (rv64gcv + Zvbc/Zvbb)}
+\subsection{Tier 3: Full Vector-Crypto (rv64gcv + Zbc/Zbb/Zvbc/Zvbb)}
 \label{ssec:tier3}
 
-Το Tier~3 αντιπροσωπεύει την πλήρη αξιοποίηση των vector-crypto επεκτάσεων.
-Η προσθήκη της επέκτασης \gls{zvbc} στο ISA string
-\code{rv64gcv\_zbc\_zbb\_zvbc\_zvbb} καθιστά διαθέσιμες τις εντολές
-\vclmul{} και \vclmulh{}: vector carry-less multiply που υπολογίζει πολλαπλά
-\num{64}$\times$\num{64}-bit carry-less γινόμενα παράλληλα σε ένα vector
-register group.
-
-Η βελτιστοποίηση Tier~3 εισάγει δύο επιπλέον τεχνικές σε σχέση με το Tier~2:
-%
-\begin{enumerate}
-  \item \textbf{Vectorized leaf kernel:} Οι scalar εντολές \clmul/\clmulh
-    αντικαθίστανται από τον διανυσματικό leaf kernel \code{vclmul\_leaf}, ο
-    οποίος εκτελεί ολόκληρο τον schoolbook πολλαπλασιασμό μεγέθους $n=16$
-    words μέσω vector instructions (\cref{sec:polymul-zvbc}).
-
-  \item \textbf{Threshold-matched vectorization:} Σε \VLEN=\num{256}
-    (\num{4} elements των \num{64}-bit ανά register) με \LMUL=m4, κάθε vector
-    register group περιέχει \num{16} elements (\num{4} elements/register
-    $\times$ \num{4} registers), ακριβώς το μέγεθος του Karatsuba threshold.
-    Έτσι ο εσωτερικός βρόχος πάνω στα \num{16} words του ενός operand
-    καλύπτεται από ένα μόνο vector register group, ώστε κάθε word του άλλου
-    operand να απαιτεί μία μόνο \vclmul{} πράξη αντί για \num{16} scalar \clmul.
-\end{enumerate}
-
-\noindent
-Η \gls{zvbb} παρέχει τις εντολές \vror{} (vector rotate) και
-\insn{vandn.vv} (vector AND-NOT), οι οποίες αξιοποιούνται στον Keccak
-πυρήνα (\cref{ch:kernel-optimization}) αλλά δεν επηρεάζουν τον
+Το Tier~3 αξιοποιεί τις vector-crypto επεκτάσεις. Η προσθήκη της
+\gls{zvbc} καθιστά διαθέσιμες τις \vclmul/\vclmulh, που υπολογίζουν πολλαπλά
+\num{64}$\times$\num{64}-bit carry-less γινόμενα παράλληλα. Έτσι η
+διανυσματοποίηση εισχωρεί στον ίδιο τον leaf kernel: ο \code{vclmul\_leaf}
+(\cref{ssec:vclmul-leaf}) εκτελεί ολόκληρο τον schoolbook πολλαπλασιασμό
+μεγέθους $n=16$ με vector εντολές, threshold-matched σε
+\VLEN = \num{256}/\LMUL = m4. Η \gls{zvbb} παρέχει τις εντολές \vror{}
+(vector rotate) και \insn{vandn.vv} (vector AND-NOT), οι οποίες αξιοποιούνται
+στον Keccak πυρήνα (\cref{ch:kernel-optimization}) αλλά δεν επηρεάζουν τον
 πολυωνυμικό πολλαπλασιασμό.
 
 %% ============================================================================
@@ -184,8 +126,8 @@ register group.
 Η scalar υλοποίηση αποτελεί τη θεμελιώδη βελτιστοποίηση του πολυωνυμικού
 πολλαπλασιασμού, εφαρμόσιμη σε κάθε RISC-V πλατφόρμα που υλοποιεί την επέκταση
 \gls{zbc}, ανεξαρτήτως ύπαρξης διανυσματικής μονάδας. Η ενότητα αυτή
-παρουσιάζει τη μετάβαση από τον bit-serial schoolbook του reference
-implementation σε έναν πλήρως βελτιστοποιημένο Karatsuba πυρήνα. 
+παρουσιάζει τη μετάβαση από την υλοποίηση αναφοράς με bit-serial schoolbook 
+πολλαπλασιασμό σε μια πλήρως βελτιστοποιημένη υλοποίηση Karatsuba. 
 Η συνολική μείωση \instret στον πολυωνυμικό πολλαπλασιασμό HQC-128
 ανέρχεται σε \speedup{101.2} έναντι του \code{scalar\_ref}.
 Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των τριών
@@ -200,35 +142,24 @@ implementation σε έναν πλήρως βελτιστοποιημένο Karat
 (\code{vendor/hqc-ref/src/ref/gf2x.c}, portable scalar μοντέλο χωρίς
 αρχιτεκτονικές intrinsics) χρησιμοποιεί αναδρομικό Karatsuba με schoolbook base case σε bit
 granularity. Για κάθε ζεύγος \num{64}-bit words $(a[i], b[j])$, ο
-εσωτερικός βρόχος εξετάζει τα \num{64} bits του $a[i]$ ένα-ένα: για κάθε bit $k$ εκτελείται predicated (mask-based) shift-XOR
+εσωτερικός βρόχος εξετάζει τα \num{64} bits του $a[i]$ ένα προς ένα: για κάθε bit $k$ εκτελείται predicated (mask-based) shift-XOR
 του $b[j]$ στη θέση $r[i+j]$, όπου μια μάσκα παραγόμενη από το bit μηδενίζει
 τη συνεισφορά όταν το bit είναι ανενεργό (\cref{sec:schoolbook-algorithm}). Η πολυπλοκότητα ανά leaf call μεγέθους $n$ words
 ανέρχεται σε $64 \times n^2$ predicated shift-and-XOR πράξεις.
 
-Η επέκταση \gls{zbc} παρέχει τις εντολές \clmul{} και \clmulh{}, οι οποίες
-υπολογίζουν το πλήρες \num{128}-bit carry-less γινόμενο δύο \num{64}-bit
-πολυωνύμων σε $\GFpoly$ χωρίς αναγωγή.
-
 Η αντικατάσταση του bit-serial βρόχου με ένα ζεύγος \clmul/\clmulh
 μετασχηματίζει τον εσωτερικό βρόχο από $64n$ iterations σε $n$
-iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το κέρδος δεν προέρχεται από εξάλειψη branch (ο
-reference leaf είναι ήδη branchless), αλλά από τη δραστική μείωση των
-iterations και την κατάργηση της per-bit μάσκας εξαγωγής και της μεταβλητής
-ολίσθησης που κυριαρχούσαν στο reference.
+iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το κέρδος προέρχεται από 
+τη δραστική μείωση των iterations και την κατάργηση της per-bit μάσκας εξαγωγής 
+και της μεταβλητής ολίσθησης που κυριαρχούσαν στο baseline.
 
-Η υλοποίηση χρησιμοποιεί compiler intrinsics αντί inline assembly,
-επιτρέποντας στον μεταγλωττιστή πλήρη ορατότητα για register allocation
-και instruction scheduling.
-
-Το \cref{fig:schoolbook-vs-clmul} αντιπαραβάλλει τον bit-serial schoolbook βρόχο με τον word-level \clmul{} leaf.
+Το \cref{fig:schoolbook-vs-clmul} συγκρίνει τον bit-serial schoolbook βρόχο με τον word-level \clmul{} leaf.
 
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/schoolbook-vs-clmul.tex}
   \caption{Σύγκριση bit-serial schoolbook (αριστερά) με word-level
-    \clmul{} leaf (δεξιά). Στην υλοποίηση, γειτονικά γινόμενα με κοινή θέση
-    εξόδου συγχωνεύονται σε ένα XOR-and-store, εξαλείφοντας έναν κύκλο
-    load-modify-store ανά ζεύγος.}
+    \clmul{} leaf (δεξιά).}
   \label{fig:schoolbook-vs-clmul}
 \end{figure}
 
@@ -1312,7 +1243,7 @@ thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτε
   \end{tabular}
 \end{table}
 
-Σε σχέση με το reference scalar baseline, η συνολική επιτάχυνση του
+Σε σχέση με την υλοποίηση αναφοράς, η συνολική επιτάχυνση του
 Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \code{scalar\_ref}
 (\cref{conv:baseline}) — από \num{18639752} σε \num{63804} εντολές. Η μείωση αυτή αντικατοπτρίζει τη
 σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
@@ -1383,7 +1314,7 @@ Tier~3 — μείωση \speedup{292.1}. Η μείωση αυτή
 \gls{kem}, αποκαλύπτοντας πυρήνες που στο baseline αποτελούσαν αμελητέο
 ποσοστό ως νέα, αναδυόμενα bottlenecks.
 
-Στο reference scalar HQC-128, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
+Στο reference HQC-128, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
 $\approx$\pct{97} του συνολικού \instret (βλ.~\cref{sec:baseline-profiling}).
 Μετά τη βελτιστοποίηση Tier~3, το ποσοστό αυτό συρρικνώνεται σε
 $\approx$\pct{51} — ο πυρήνας παραμένει ο μεγαλύτερος contributor, αλλά
@@ -1397,7 +1328,7 @@ $\approx$\pct{51} — ο πυρήνας παραμένει ο μεγαλύτερ
   \begin{subfigure}[b]{0.48\textwidth}
     \centering
     \resizebox{\linewidth}{!}{\input{figures/ch2-background/pie-scalar-ref}}
-    \caption{Baseline (reference scalar).}
+    \caption{Baseline (reference).}
     \label{fig:pie-baseline}
   \end{subfigure}
   \hfill

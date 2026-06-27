@@ -62,9 +62,9 @@
 % =============================================================================
 \usepackage{xspace}
 % Mathematical notation
-\newcommand{\GF}[1]{\mathrm{GF}(#1)}
-\newcommand{\GFpoly}{\GF{2}[x]}
-\newcommand{\GFquot}[1]{\GF{2}[x]/(x^{#1}-1)}
+\newcommand{\GF}[1]{\ensuremath{\mathrm{GF}(#1)}}
+\newcommand{\GFpoly}{\ensuremath{\mathrm{GF}(2)[x]}}
+\newcommand{\GFquot}[1]{\ensuremath{\mathrm{GF}(2)[x]/(x^{#1}-1)}}
 \newcommand{\xorop}{\oplus}
 % HQC-specific
 \newcommand{\HQC}{\textsc{HQC}\xspace}
@@ -99,7 +99,7 @@
 % Emphasis / code
 \newcommand{\defterm}[1]{\textbf{\textit{#1}}}
 \newcommand{\code}[1]{\texttt{#1}}
-\newcommand{\BigO}[1]{\mathcal{O}(#1)}
+\newcommand{\BigO}[1]{\ensuremath{\mathcal{O}(#1)}}
 % Results & measurements
 \newcommand{\speedup}[1]{$\times$#1}
 \newcommand{\pct}[1]{\SI{#1}{\percent}}
