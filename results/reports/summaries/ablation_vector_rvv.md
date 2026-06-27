@@ -1,53 +1,64 @@
 # Vector RVV Ablation Study (Tier 2)
 
-Generated: 2026-06-26 19:33
+Generated: 2026-06-26 21:10
+Platform: BPI-F3 (SpacemiT K1 X60)
+Quality: dev
 
-Baseline: `vector_rvv_ref` (scalar_zb champion + naive RVV combine with shared helper functions)
+Baseline: `scalar_zb` (Tier 1 champion — copy-loop recomposition, scalar reduce)
 
-Optimizations:
-- **A** — Direct-write discipline (children write to output buffer, eliminate copy loops)
-- **B** — Overlap-save combine (resolve aliasing hazard from direct-write)
-- **C** — Inlined RVV operations with per-operation LMUL tuning
-- **D** — Hybrid scalar/vector recursion (scalar loops at lower tree levels)
+Optimizations (layered incrementally on top of scalar_zb):
+- **D** — Direct-write discipline + overlap-save (children write directly to output, eliminate copy loops 1+2)
+- **V** — RVV-vectorized recomposition (inline LMUL-tuned XOR/copy at upper tree levels)
+- **R** — RVV-vectorized modular reduction (`reduce_rvv`)
 
 ## HQC-128
 
-| Variant | Optimizations | instret | vs ref | vs prev |
-|---------|---------------|--------:|-------:|--------:|
-| `vector_rvv_ref` | (none) | 167,576 | ×1.0 | — |
-| `vector_rvv_A` | A | 101,794 | ×1.6 | ×1.6 |
-| `vector_rvv_AB` | A+B | 101,794 | ×1.6 | ×1.0 |
-| `vector_rvv_ABC` | A+B+C | 101,794 | ×1.6 | ×1.0 |
-| `vector_rvv` | A+B+C+D | 140,487 | ×1.2 | ×0.7 |
+| Variant | Optimizations | median cycles | vs ref | vs prev | instret | vs ref | vs prev |
+|---------|---------------|-------------:|-------:|--------:|--------:|-------:|--------:|
+| `scalar_zb` | (none — Tier 1 champion) | 132,544 | ×1.0 | — | 180,508 | ×1.0 | — |
+| `vector_rvv_D` | D | 126,418 | ×1.0 | ×1.0 | 174,377 | ×1.0 | ×1.0 |
+| `vector_rvv_V` | ? | 132,131 | ×1.0 | — | 147,550 | ×1.2 | — |
+| `vector_rvv_VD` | ? | 123,015 | ×1.1 | — | 147,265 | ×1.2 | — |
+| `vector_rvv_DV` | D+V | 122,629 | ×1.1 | ×1.0 | 147,265 | ×1.2 | ×1.2 |
+| `vector_rvv` | D+V+R | 121,495 | ×1.1 | ×1.0 | 144,378 | ×1.3 | ×1.0 |
 
 ## HQC-192
 
-| Variant | Optimizations | instret | vs ref | vs prev |
-|---------|---------------|--------:|-------:|--------:|
-| `vector_rvv_ref` | (none) | 534,711 | ×1.0 | — |
-| `vector_rvv_A` | A | 309,985 | ×1.7 | ×1.7 |
-| `vector_rvv_AB` | A+B | 309,985 | ×1.7 | ×1.0 |
-| `vector_rvv_ABC` | A+B+C | 309,985 | ×1.7 | ×1.0 |
-| `vector_rvv` | A+B+C+D | 439,516 | ×1.2 | ×0.7 |
+| Variant | Optimizations | median cycles | vs ref | vs prev | instret | vs ref | vs prev |
+|---------|---------------|-------------:|-------:|--------:|--------:|-------:|--------:|
+| `scalar_zb` | (none — Tier 1 champion) | 402,034 | ×1.0 | — | 557,215 | ×1.0 | — |
+| `vector_rvv_D` | D | 383,314 | ×1.0 | ×1.0 | 540,132 | ×1.0 | ×1.0 |
+| `vector_rvv_V` | ? | 395,456 | ×1.0 | — | 444,577 | ×1.3 | — |
+| `vector_rvv_VD` | ? | 360,472 | ×1.1 | — | 437,042 | ×1.3 | — |
+| `vector_rvv_DV` | D+V | 360,494 | ×1.1 | ×1.1 | 437,042 | ×1.3 | ×1.2 |
+| `vector_rvv` | D+V+R | 358,802 | ×1.1 | ×1.0 | 431,193 | ×1.3 | ×1.0 |
 
 ## HQC-256
 
-| Variant | Optimizations | instret | vs ref | vs prev |
-|---------|---------------|--------:|-------:|--------:|
-| `vector_rvv_ref` | (none) | 1,296,605 | ×1.0 | — |
-| `vector_rvv_A` | A | 1,014,499 | ×1.3 | ×1.3 |
-| `vector_rvv_AB` | A+B | 1,014,499 | ×1.3 | ×1.0 |
-| `vector_rvv_ABC` | A+B+C | 1,014,499 | ×1.3 | ×1.0 |
-| `vector_rvv` | A+B+C+D | 1,014,499 | ×1.3 | ×1.0 |
+| Variant | Optimizations | median cycles | vs ref | vs prev | instret | vs ref | vs prev |
+|---------|---------------|-------------:|-------:|--------:|--------:|-------:|--------:|
+| `scalar_zb` | (none — Tier 1 champion) | 875,284 | ×1.0 | — | 1,397,486 | ×1.0 | — |
+| `vector_rvv_D` | D | 897,532 | ×1.0 | ×1.0 | 1,258,348 | ×1.1 | ×1.1 |
+| `vector_rvv_V` | ? | 894,510 | ×1.0 | — | 1,015,462 | ×1.4 | — |
+| `vector_rvv_VD` | ? | 848,113 | ×1.0 | — | 1,030,329 | ×1.4 | — |
+| `vector_rvv_DV` | D+V | 847,837 | ×1.0 | ×1.1 | 1,030,329 | ×1.4 | ×1.2 |
+| `vector_rvv` | D+V+R | 845,108 | ×1.0 | ×1.0 | 1,020,938 | ×1.4 | ×1.0 |
+
+## Incremental Optimization Contribution (cycles)
+
+| Transition | What changes | HQC-128 | HQC-192 | HQC-256 |
+|------------|--------------|--------:|--------:|--------:|
+| ref→D | +direct-write + overlap-save (eliminate copy loops) | ×1.05 | ×1.05 | ×0.98 |
+| D→DV | +RVV-vectorized recomposition (inline LMUL-tuned) | ×1.03 | ×1.06 | ×1.06 |
+| DV→DVR | +RVV-vectorized modular reduction | ×1.01 | ×1.00 | ×1.00 |
 
 ## Incremental Optimization Contribution (instret)
 
 | Transition | What changes | HQC-128 | HQC-192 | HQC-256 |
 |------------|--------------|--------:|--------:|--------:|
-| ref→A | +direct-write discipline | ×1.65 | ×1.72 | ×1.28 |
-| A→AB | +overlap-save combine | ×1.00 | ×1.00 | ×1.00 |
-| AB→ABC | +inlined RVV (tuned LMUL) | ×1.00 | ×1.00 | ×1.00 |
-| ABC→ABCD | +hybrid scalar/vector recursion | ×0.72 | ×0.71 | ×1.00 |
+| ref→D | +direct-write + overlap-save (eliminate copy loops) | ×1.04 | ×1.03 | ×1.11 |
+| D→DV | +RVV-vectorized recomposition (inline LMUL-tuned) | ×1.18 | ×1.24 | ×1.22 |
+| DV→DVR | +RVV-vectorized modular reduction | ×1.02 | ×1.01 | ×1.01 |
 
 ## Comparison: Tier 2 champion vs Tier 1 champion
 
