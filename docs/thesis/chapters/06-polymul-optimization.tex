@@ -34,7 +34,7 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
 
 Και τα τρία tiers μοιράζονται τον ίδιο αλγοριθμικό πυρήνα (Karatsuba).
 Η διαφοροποίηση εντοπίζεται σε δύο σημεία. Πρώτον, στον τρόπο υλοποίησης του
-\defterm{leaf kernel}, δηλαδή της βασικής πράξης πολλαπλασιασμού στα φύλλα του
+\defterm{leaf kernel}, δηλαδή της βασικής πράξης πολλαπλασιασμού στα leaves του
 δέντρου αναδρομής. Δεύτερον, στον τρόπο εκτέλεσης των \defterm{βρόχων
 ανασύνθεσης} γραμμικού κόστους, που συνδυάζουν τα μερικά γινόμενα σε κάθε
 κόμβο. Ο \cref{tab:tier-differentiation} αποσαφηνίζει αυτή τη διαφοροποίηση.
@@ -83,7 +83,7 @@ carry-less multiply: ένα ζεύγος \clmul/\clmulh υπολογίζει τ�
 \num{128}-bit carry-less γινόμενο δύο \num{64}-bit πολυωνύμων σε δύο εντολές. 
 Πάνω σε αυτή τη βάση, το scalar path αντικαθιστά τον
 bit-serial schoolbook με word-level Karatsuba leaf, παράγει στατικά ολόκληρο
-το δέντρο αναδρομής (με εξειδικεύσεις leaf
+το δέντρο αναδρομής (με branch-free leaves
 \code{clmul\_leaf\_n8}/\code{clmul\_leaf\_n9}) και εφαρμόζει
 assign-on-first-write για την εξάλειψη του \code{memset}. Το ISA string \code{rv64gc\_zbc\_zbb} μεταγλωττίζεται με
 \code{-fno-tree-vectorize}, εξασφαλίζοντας ότι ο μεταγλωττιστής δεν εκπέμπει
@@ -177,27 +177,27 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
 \label{ssec:specialized-tree}
 
 Οι παράμετροι του HQC είναι compile-time σταθερές, οπότε το μήκος
-$N$ των τελεστέων σε 64-bit words παίρνει μία γνωστή τιμή ανά security
-level ($N \in \{277, 561, 901\}$). Με το $N$ σταθερό, το δέντρο
-αναδρομής Karatsuba είναι εξ ολοκλήρου προκαθορισμένο, καθώς το πλήθος
-και η σειρά των βημάτων προκύπτουν αποκλειστικά από αυτό. Αξιοποιούμε
-αυτή τη γνώση μέσω ενός pre-build \emph{size-specialized code
-generator}, ενός Python script που διατρέχει το δέντρο και εκπέμπει C
-συναρτήσεις σταθερού μεγέθους. Έτσι η διάσπαση $n_0/n_1$, ο έλεγχος
-threshold και ο προορισμός κάθε child call αποτυπώνονται ως σταθερές
-μέσα στον παραγόμενο κώδικα, χωρίς κανέναν έλεγχο σε runtime.
+$N$ των πολυωνύμων εισόδου (μετρημένο σε \num{64}-bit words) παίρνει μία
+γνωστή τιμή ανά security level ($N \in \{277, 561, 901\}$). Με το $N$
+σταθερό, το δέντρο αναδρομής Karatsuba είναι εξ ολοκλήρου
+προκαθορισμένο, καθώς το πλήθος και η σειρά των βημάτων προκύπτουν
+αποκλειστικά από αυτό. Αξιοποιούμε αυτή τη γνώση μέσω ενός pre-build
+\emph{size-specialized code generator}, ενός Python script που διατρέχει
+το δέντρο αναδρομής και εκπέμπει μία διακριτή C συνάρτηση για κάθε κόμβο.
+Έτσι η διάσπαση $n_0/n_1$, ο έλεγχος threshold και ο προορισμός κάθε
+κλήσης επόμενου επιπέδου αποτυπώνονται ως σταθερές μέσα στον παραγόμενο
+κώδικα, χωρίς κανέναν έλεγχο σε runtime.
 
 Η πλήρης αλυσίδα αποσύνθεσης για το HQC-128 δίνεται στην
 \cref{sec:karatsuba-hqc-structure}. 
 Κάθε αυτόματα παραγόμενη συνάρτηση (\code{kmul\_277}, \code{kmul\_139},
 \ldots, \code{kmul\_17}) ενσωματώνει τρία χαρακτηριστικά της στατικής
-παραγωγής. Πρώτον, τα buffer offsets για τα ενδιάμεσα γινόμενα $z_0$,
-$z_2$, $z_\text{mid}$, τους XOR τελεστέους $t_a$, $t_b$ και τον child
-scratch buffer (τη scratch περιοχή των επόμενων, μικρότερων επιπέδων της
-αναδρομής) είναι σταθερές γνωστές σε compile time. Δεύτερον, κάθε child
-call απευθύνεται στατικά στην αντίστοιχη ονομαστική συνάρτηση
-(\code{kmul\_9} κ.ο.κ.), χωρίς runtime έλεγχο threshold. Τρίτον, τα όρια
-των βρόχων είναι integer literals, ώστε ο μεταγλωττιστής να εφαρμόζει
+παραγωγής. Πρώτον, τα buffer offsets για τα ενδιάμεσα γινόμενα και τους
+βοηθητικούς XOR buffers είναι σταθερές γνωστές σε compile time. Δεύτερον,
+κάθε κλήση επόμενου επιπέδου απευθύνεται στατικά στην αντίστοιχη
+ονομαστική συνάρτηση (\code{kmul\_9} κ.ο.κ.), χωρίς runtime έλεγχο
+threshold. Τρίτον, τα όρια των βρόχων είναι σταθερές γνωστές σε compile
+time και όχι runtime μεταβλητές, ώστε ο μεταγλωττιστής να εφαρμόζει
 πλήρες unrolling των μικρών βρόχων και constant propagation.
 
 Το \cref{fig:specialized-tree-pipeline} συνοψίζει το pipeline του generator.
@@ -214,18 +214,16 @@ dispatch. Σε βαθιά αναδρομικές δομές, η RISC-V calling c
 επιβάλλει spill/restore των callee-saved registers σε κάθε non-leaf
 κλήση. Για δέντρα βάθους 5–6 (αναλόγως security level), το αθροιστικό
 αυτό overhead κλιμακώνεται με το πλήθος των κόμβων του δέντρου
-($\approx (3^{d+1}-1)/2$). Απ' την άλλη, η στατική παραγωγή εξαλείφει
-το per-call prologue/epilogue και επιτρέπει στον μεταγλωττιστή να κάνει
-inline τις leaf operations σε ένα ενιαίο function body, με global
-register allocation και ελεύθερο scheduling των loads/stores.
-
-\paragraph{Unrolling και βάθος αναδρομής.}
-Ο generator εκπέμπει πλήρως unrolled recursion tree, όπου κάθε κόμβος
-αναδρομής αποτελεί ξεχωριστή \code{static} συνάρτηση. Το πλήρες
-unrolling ανταλλάσσει αυξημένο \code{.text} footprint με την εξάλειψη
-του dynamic pointer arithmetic και του per-call overhead. Η ποσοτική
-αξιολόγηση αυτού του trade-off (recursion depth vs \instret vs
-\code{.text} size) παρουσιάζεται στην \cref{sec:polymul-codesize}.
+($\approx (3^{d+1}-1)/2$). Εκπέμποντας κάθε κόμβο ως διακριτή
+\code{static} συνάρτηση, ο μεταγλωττιστής έχει τη δυνατότητα 
+να περιορίσει το per-call prologue/epilogue
+και να κάνει inlining των leaf operations
+εντός του κόμβου που τις καλεί, με τοπικό register allocation και
+ελεύθερο scheduling των loads/stores. Το πλήρες unrolling του δέντρου
+ανταλλάσσει αυξημένο \code{.text} footprint με την εξάλειψη του dynamic
+pointer arithmetic και του per-call overhead· η ποσοτική αξιολόγηση
+αυτού του trade-off (recursion depth vs \instret vs \code{.text} size)
+παρουσιάζεται στην \cref{sec:polymul-codesize}.
 
 \paragraph{Υποστήριξη πολλαπλών backends.}
 Ο generator υποστηρίζει τρεις modes μέσω της παραμέτρου
@@ -238,7 +236,7 @@ leaf dispatch). Μια επιπλέον λειτουργία \code{rvv\_noD} χ�
 αλλαγές στη δομή αναδρομής (threshold, split rule) εφαρμόζονται
 αυτόματα σε όλα τα tiers.
 
-\paragraph{Worked example: ο παραγόμενος leaf κόμβος \code{kmul\_17}.}
+\paragraph{Worked example: ο παραγόμενος κόμβος \code{kmul\_34}.}
 Η κλήση \code{vect\_mul(o, a, b)} για HQC-128 ($N = 277$ words,
 $n = \num{17669}$ bits) δεσμεύει τα stack buffers
 \code{unreduced[$2 \times 277 = 554$ words]} και
@@ -247,35 +245,33 @@ $n = \num{17669}$ bits) δεσμεύει τα stack buffers
 reduction \code{reduce(o, unreduced)}, δηλαδή
 $\text{unreduced} \bmod (x^{17669} - 1)$. Η αναδρομική αποσύνθεση που
 ακολουθεί το \code{kmul\_277} δίνεται αναλυτικά στο
-\cref{sec:karatsuba-hqc-structure}, με συνολικά $3^5 = 243$ leaf calls
-σε πέντε επίπεδα αναδρομής. Κάθε leaf εκτελεί $n^2$ ζεύγη
-\clmul/\clmulh, για $n=9$ αντιστοιχεί σε \num{81} ζεύγη ανά leaf.
+\cref{sec:karatsuba-hqc-structure}, με συνολικά $3^5 = \num{243}$ leaf
+calls σε πέντε επίπεδα αναδρομής.
 
-Για να γίνει συγκεκριμένη η δομή ενός παραγόμενου κόμβου, ο
-\cref{lst:kmul17} παραθέτει τον leaf \code{kmul\_17} ($n = 17$,
-$n_0 = 9$, $n_1 = 8$). Ο πίνακας \code{tmp} τεμαχίζεται σε σταθερά
-offsets, $z_0$ (μέγεθος $2n_0$), $z_2$ ($2n_1$), $z_\text{mid}$
-($2n_0$) και τους XOR τελεστέους $t_a$, $t_b$. Υπολογίζονται τα τρία
-υπο-γινόμενα $z_0 = a_L b_L$, $z_2 = a_H b_H$ και
-$z_\text{mid} = (a_L \oplus a_H)(b_L \oplus b_H)$, με zero-padding στο
-$t_a$ αφού το άνω μισό έχει μία λέξη λιγότερη. Η ανασύνθεση υλοποιεί την
-ταυτότητα
-$r = z_0 + (z_\text{mid} \oplus z_0 \oplus z_2)\,x^{n_0} + z_2\,x^{2n_0}$
-σε τρεις βρόχους, όπου ο τρίτος προστίθεται (XOR-accumulate) πάνω σε
-περιοχές που έχουν ήδη γραφτεί από τους δύο πρώτους.
+Για παράδειγμα, ο \cref{lst:kmul34} παραθέτει τη δομή του παραγόμενου
+κόμβου-συνάρτησης \code{kmul\_34} ($n = 34$, $n_0 = n_1 = 17$), ενός
+εσωτερικού κόμβου που καλεί τρεις φορές τον \code{kmul\_17}. Ο πίνακας
+\code{tmp} τεμαχίζεται σε σταθερά offsets, $z_0$, $z_2$, $z_\text{mid}$
+(μέγεθος $2n_0$ το καθένα), τους XOR τελεστέους $t_a$, $t_b$ και έναν
+\code{child\_buf}, δηλαδή το scratch buffer που δανείζεται στις τρεις
+κλήσεις επόμενου επιπέδου. Καθεμία απευθύνεται στατικά στον ονομαστικό
+κόμβο \code{kmul\_17}, υπολογίζοντας τα τρία υπο-γινόμενα
+$z_0 = a_L b_L$, $z_2 = a_H b_H$ και
+$z_\text{mid} = (a_L \oplus a_H)(b_L \oplus b_H)$. 
 
-\begin{lstlisting}[language=C,caption={Παραγόμενος leaf κόμβος \code{kmul\_17}: arena allocation στο \code{tmp} και ανασύνθεση Karatsuba σε τρεις βρόχους.},label={lst:kmul17}]
-static void kmul_17(uint64_t *r, const uint64_t *a,
+\begin{lstlisting}[language=C,caption={Παραγόμενος κόμβος \code{kmul\_34}: στατική δέσμευση offsets στο \code{tmp}, στατικές κλήσεις επόμενου επιπέδου προς \code{kmul\_17} με κοινό \code{child\_buf}, και ανασύνθεση Karatsuba σε τρεις βρόχους.},label={lst:kmul34}]
+static void kmul_34(uint64_t *r, const uint64_t *a,
                     const uint64_t *b, uint64_t *tmp) {
-    uint64_t *z0 = tmp, *z2 = z0 + 18u, *zmid = z2 + 16u;
-    uint64_t *ta = zmid + 18u, *tb = ta + 9u;   /* XOR-sum buffers */
-    LEAF_CALL_N9(z0, a, b);                       /* z0 = a_lo*b_lo */
-    LEAF_CALL_N8(z2, a + 9u, b + 9u);            /* z2 = a_hi*b_hi  */
-    for (size_t i = 0; i < 9u; i++) {            /* ta = a_lo ^ a_hi */
-        ta[i] = a[i] ^ (i < 8u ? a[9u + i] : 0u);
-        tb[i] = b[i] ^ (i < 8u ? b[9u + i] : 0u);
+    uint64_t *z0 = tmp, *z2 = z0 + 34u, *zmid = z2 + 34u;
+    uint64_t *ta = zmid + 34u, *tb = ta + 17u;
+    uint64_t *child_buf = tb + 17u;             /* scratch for child nodes */
+    kmul_17(z0, a,       b,       child_buf);   /* z0   = a_lo*b_lo */
+    kmul_17(z2, a + 17u, b + 17u, child_buf);   /* z2   = a_hi*b_hi */
+    for (size_t i = 0; i < 17u; i++) {
+        ta[i] = a[i] ^ a[17u + i];              /* ta = a_lo ^ a_hi */
+        tb[i] = b[i] ^ b[17u + i];
     }
-    LEAF_CALL_N9(zmid, ta, tb);                   /* zmid = ta*tb    */
+    kmul_17(zmid, ta, tb, child_buf);           /* zmid = ta*tb     */
     /* recompose: r = z0 + (zmid^z0^z2) x^{n0} + z2 x^{2 n0} */
 }
 \end{lstlisting}
@@ -284,31 +280,69 @@ static void kmul_17(uint64_t *r, const uint64_t *a,
 \speedup{1.99} σε \instret έναντι του word-level \clmul{} σταδίου
 (HQC-128), τη δεύτερη μεγαλύτερη συνεισφορά της scalar διαδρομής. 
 
-\subsection{Εξειδικεύσεις Leaf: \code{clmul\_leaf\_n8} και \code{clmul\_leaf\_n9}}
+\subsection{Unrolled Branch-Free Leaves για $n=8$ και $n=9$}
 \label{ssec:leaf-specialization}
 
-Στο threshold $T=16$, το δέντρο του HQC-128 παράγει αποκλειστικά φύλλα
-μεγέθους $n=8$ και $n=9$. Ο generic \code{clmul\_leaf} εξυπηρετεί κάθε
-μέγεθος μέσω ενός παραμετρικού βρόχου, με το συνεπαγόμενο runtime
-overhead (branch prediction, $j$-comparisons, tail handling). Αξιοποιώντας
-ότι μόνο δύο μεγέθη εμφανίζονται, ο generator εκπέμπει δύο πλήρως
-ξεδιπλωμένες, branch-free εξειδικεύσεις ακριβώς γι' αυτά.
+Στο threshold $T=16$, το δέντρο του HQC-128 παράγει αποκλειστικά leaves
+μεγέθους $n=8$ και $n=9$. Ο generic \code{clmul\_leaf} εξυπηρετεί κάθε μέγεθος
+μέσω ενός παραμετρικού βρόχου, με το συνεπαγόμενο runtime overhead
+(branch prediction, $j$-comparisons, tail handling) και ένα αρχικό
+\code{memset} του output buffer. Αξιοποιώντας ότι μόνο δύο μεγέθη
+εμφανίζονται, ο generator εκπέμπει δύο πλήρως unrolled, branch-free
+εκδοχές ακριβώς γι' αυτά. Κάθε leaf εκτελεί $n^2$ ζεύγη
+\clmul/\clmulh, οπότε για $n=9$ αντιστοιχεί σε \num{81} ζεύγη ανά leaf — οπότε
+στο σύνολο των \num{243} leaves του HQC-128 ο κώδικάς τους κυριαρχεί στο
+instruction profile
 
-\paragraph{Δύο εξειδικεύσεις: \code{clmul\_leaf\_n8} και \code{clmul\_leaf\_n9}.}
-Η \code{clmul\_leaf\_n8} ($n=8$, 37 από τα 243 φύλλα) είναι πλήρως
-unrolled $8\times8$ schoolbook product, \num{64} διαδοχικές \code{clmul64}
-χωρίς κανένα branch. Η \code{clmul\_leaf\_n9} ($n=9$, τα κυρίαρχα 206 από
-τα 243 φύλλα) είναι το αντίστοιχο $9\times9$ product με \num{81}
-\code{clmul64}. Επειδή το $n=9$ είναι περιττό, ο εξωτερικός βρόχος δεν
-διαιρείται σε ομοιόμορφα ζεύγη, οπότε κάθε σειρά τερματίζει με ρητή
-εκπομπή μονού \code{clmul64}. Ο generator αναγνωρίζει έτσι τρία leaf
-dispatches: $n=8$, $n=9$ και $n\in[10,16]$ (generic \code{clmul\_leaf}).
-Οι δύο εξειδικεύσεις καλύπτουν το \pct{100} των leaf calls του HQC-128 με
-branch-free κώδικα, εξαλείφοντας \num{206} branch misprediction
-opportunities ανά \code{vect\_mul}.
+Οι \cref{lst:clmul-leaf-generic,lst:clmul-leaf-n9} αντιπαραβάλλουν τις δύο προσεγγίσεις. Ο generic
+\code{clmul\_leaf} (\cref{lst:clmul-leaf-generic}) μηδενίζει πρώτα τον
+output buffer με \code{memset} και στη συνέχεια διατρέχει $n^2$
+επαναλήψεις με δείκτες και ελέγχους ορίων. Η unrolled
+\code{clmul\_leaf\_n9} (\cref{lst:clmul-leaf-n9}) εξαλείφει και τα δύο:
+γράφει κάθε θέση του $r$ με assign-on-first-write (χωρίς \code{memset})
+και εκπέμπει branch-free ακολουθία \code{clmul64}. Η
+γενική αρχή assign-on-first-write και η επέκτασή της στο tree recompose
+αναλύονται στην \cref{ssec:memset-elimination}.
+
+\begin{lstlisting}[language=C,caption={Generic \code{clmul\_leaf}: zero-then-accumulate schoolbook \& παραμετρικό διπλό βρόχο.},label={lst:clmul-leaf-generic}]
+void clmul_leaf(uint64_t *r, const uint64_t *a, const uint64_t *b, size_t n) {
+    uint64_t lo, hi;
+    memset(r, 0, 2 * n * sizeof(uint64_t));  /* zero-init */
+    for (size_t i = 0; i < n; i++)
+        for (size_t j = 0; j < n; j++) {     /* n^2 iters, index/branch overhead */
+            clmul64(a[i], b[j], &lo, &hi);
+            r[i+j]   ^= lo;
+            r[i+j+1] ^= hi;
+        }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=C,caption={Unrolled \code{clmul\_leaf\_n9} (απόσπασμα), χωρίς κανένα branch.},label={lst:clmul-leaf-n9}]
+void clmul_leaf_n9(uint64_t *r, const uint64_t *a, const uint64_t *b) {
+    uint64_t lo0, hi0, lo1, hi1;
+    /* Row i=0 -- assign-on-first-write, no memset */
+    clmul64(a[0], b[0], &lo0, &hi0);
+    clmul64(a[0], b[1], &lo1, &hi1);   /* 2-way pairing */
+    r[0] = lo0;
+    r[1] = hi0 ^ lo1;                  /* hi^lo fusion */
+    r[2] = hi1;
+    /* ... 3 more pairs + single tail (j=8); 9 rows total, branch-free ... */
+}
+\end{lstlisting}
+
+\paragraph{Δύο unrolled εκδοχές: \code{clmul\_leaf\_n8} και \code{clmul\_leaf\_n9}.}
+Η \code{clmul\_leaf\_n8} ($n=8$, \num{37} από τα \num{243} leaves) είναι
+πλήρως unrolled $8\times8$ schoolbook product, \num{64} διαδοχικές
+\code{clmul64} χωρίς κανένα branch. Η \code{clmul\_leaf\_n9} ($n=9$, τα
+κυρίαρχα \num{206} από τα \num{243} leaves) είναι το αντίστοιχο $9\times9$
+product με \num{81} \code{clmul64}. Ο generator αναγνωρίζει
+έτσι τρία leaf dispatches: $n=8$, $n=9$ και $n\in[10,16]$ (generic
+\code{clmul\_leaf}). Οι δύο εκδοχές καλύπτουν το \pct{100} των leaf calls
+του HQC-128 με branch-free κώδικα, εξαλείφοντας \num{206} branch
+misprediction opportunities ανά \code{vect\_mul}.
 
 \paragraph{Micro-optimizations: 2-way pairing και hi$\xorop$lo fusion.}
-Πέραν της μείωσης iterations, οι εξειδικεύσεις εισάγουν δύο τοπικές
+Πέραν της μείωσης iterations, οι unrolled leaves εισάγουν δύο τοπικές
 βελτιστοποιήσεις. Το \defterm{2-way pair scheduling} εκδίδει δύο
 ανεξάρτητες \code{clmul64} πριν καταναλωθεί οποιοδήποτε αποτέλεσμα,
 παρέχοντας latency coverage χωρίς υπέρμετρο code footprint. Η
@@ -319,42 +353,34 @@ $\text{lo}(a[i], b[j{+}1])$ στοχεύουν αμφότερα τη θέση $r
 ($r[i{+}j{+}1] \mathrel{\xorop}= \text{hi}_0 \xorop \text{lo}_1$),
 εξοικονομώντας έναν κύκλο load-modify-store ανά ζεύγος. Το 2-way pairing
 εφαρμόζεται ομοιόμορφα σε ολόκληρο τον leaf, ενώ η hi$\xorop$lo fusion
-μόνο στις δύο ξεδιπλωμένες εξειδικεύσεις. Ο generic \code{clmul\_leaf}
-παραμένει η απλή, μη-fused εναλλακτική.
+μόνο στις δύο unrolled εκδοχές.
 
-\paragraph{Εύρος εφαρμογής: dead code και μεγάλα φύλλα.}
-Ένα ablation επιβεβαίωσε ότι η εξειδίκευση $n=4$ ήταν dead code για το
-HQC-128 (κανένα leaf call δεν παράγει $n=4$ στο $T=16$) και αφαιρέθηκε
-μαζί με τον dispatch arm. Στο αντίθετο άκρο, εξειδικεύσεις για τα
-μεγαλύτερα φύλλα $n\in\{14,15\}$ των HQC-192/256 δοκιμάστηκαν αλλά
-απορρίφθηκαν: προκάλεσαν regression \pct{8.4} στο HQC-256 λόγω I-cache
-pressure στον in-order X60, καθώς το αυξημένο \code{.text} footprint
-υπερβαίνει το όφελος. Τα φύλλα αυτά εξυπηρετούνται από τον compact
-generic \code{clmul\_leaf}.
+\paragraph{Εύρος εφαρμογής: μεγάλα leaves.}
+Unrolled εκδοχές για τα μεγαλύτερα leaves $n\in\{14,15\}$ των 
+HQC-192/256 δοκιμάστηκαν αλλά απορρίφθηκαν: προκάλεσαν regression στο
+HQC-256 λόγω I-cache pressure στον in-order X60, καθώς το αυξημένο
+\code{.text} footprint υπερβαίνει το όφελος. Τα leaves αυτά
+εξυπηρετούνται από τον compact generic \code{clmul\_leaf}.
 
 \paragraph{Εναλλακτική: 4-way ILP grouping (απορριφθείσα).}
 Αξιολογήθηκε διαμόρφωση με τέσσερις ανεξάρτητες \code{clmul64} πριν από
 κάθε κατανάλωση (\defterm{4-way ILP grouping}), για μεγαλύτερη latency
-coverage. Σε πραγματικό hardware (BPI-F3) δεν απέδωσε μετρήσιμο κέρδος:
-στο \code{scalar\_zb} $<\pct{0.5}$ διαφορά (\cycles{131551} έναντι
-\cycles{132266}, εντός noise), ενώ στο \code{vector\_rvv} προκάλεσε
-regression \pct{1.6} (\cycles{123845} έναντι \cycles{121950}) λόγω
-I-cache pressure. Η 2-way δομή διατηρήθηκε ως champion.
+coverage. Σε πραγματικό hardware (BPI-F3) δεν απέδωσε μετρήσιμο κέρδος
+και έτσι διατηρήθηκε η 2-way δομή.
 
-Οι πλήρως ξεδιπλωμένες leaf εξειδικεύσεις, προσθέτουν επιπλέον \speedup{1.16}.
+Οι πλήρως unrolled, branch-free leaves προσθέτουν επιπλέον \speedup{1.16}.
 
 \subsection{Assign-on-First-Write: Εξάλειψη memset}
 \label{ssec:memset-elimination}
 
 Η υλοποίηση αναφοράς ακολουθεί zero-then-accumulate discipline: πριν
 από κάθε Karatsuba combine step, ο output buffer μηδενίζεται μέσω
-\code{memset(r, 0, 2*n*sizeof(uint64\_t))}, και στη συνέχεια τα τρία
+\code{memset}, και στη συνέχεια τα τρία
 μερικά γινόμενα ($z_0$, $z_2$, $z_\text{mid}$) XOR-accumulate στις
 αντίστοιχες θέσεις. Η ίδια πειθαρχία εφαρμόζεται και στον schoolbook
 leaf. Κάθε word του output buffer γράφεται δύο φορές, μία από το
 \code{memset} και μία από το XOR pass, και η αναδρομική δομή
-πολλαπλασιάζει αυτή την πλεονάζουσα κίνηση μνήμης σε όλα τα επίπεδα
-του δέντρου.
+πολλαπλασιάζει αυτή την πλεονάζουσα κίνηση μνήμης σε όλα τα επίπεδα.
 
 Η assign-on-first-write πειθαρχία αναδιαρθρώνει το combine
 step ώστε κανένα output word να μη διαβάζεται πριν γραφεί για πρώτη
@@ -372,12 +398,12 @@ step ώστε κανένα output word να μη διαβάζεται πριν �
 %
 Δεδομένου ότι τα Loops~1 και~2 καλύπτουν όλες τις θέσεις που το
 Loop~3 διαβάζει από τον $r$, το προηγούμενο \code{memset} είναι
-αποδεδειγμένα περιττό. Η ίδια πειθαρχία εκτείνεται στο φύλλο: η
+αποδεδειγμένα περιττό. Η ίδια πειθαρχία εκτείνεται στο leaf: η
 πρώτη εξωτερική σειρά ($i=0$) χρησιμοποιεί direct assignment, και οι
 επόμενες σειρές χρησιμοποιούν XOR-accumulation σε θέσεις ήδη
-αρχικοποιημένες από τη σειρά~0. Η εξάλειψη του \code{memset} στο φύλλο ισχύει ωστόσο μόνο για τις πλήρως
-ξεδιπλωμένες εξειδικεύσεις ($n \in \{8, 9\}$), που καλύπτουν το σύνολο των
-φύλλων των HQC-128 και HQC-192. Τα μεγαλύτερα φύλλα $n \in \{14, 15\}$ του
+αρχικοποιημένες από τη σειρά~0. Η εξάλειψη του \code{memset} στο leaf ισχύει ωστόσο μόνο για τις πλήρως
+unrolled εκδοχές ($n \in \{8, 9\}$), που καλύπτουν το σύνολο των
+leaves των HQC-128 και HQC-192. Τα μεγαλύτερα leaves $n \in \{14, 15\}$ του
 HQC-256 εξυπηρετούνται από τον generic \code{clmul\_leaf}, ο οποίος διατηρεί
 το αρχικό \code{memset} (\cref{ssec:leaf-specialization}).
 
@@ -389,7 +415,7 @@ hotspot. Η εξάλειψή της αφαιρεί
 η assign-on-first-write πειθαρχία εγγυάται ότι κάθε θέση εξόδου
 αρχικοποιείται ακριβώς μία φορά πριν από οποιαδήποτε ανάγνωση.
 
-\paragraph{Ορθότητα στο φύλλο.}
+\paragraph{Ορθότητα στο leaf.}
 Στον πλήρως unrolled \code{clmul\_leaf\_n8} ($n=8$), η πειθαρχία
 πρώτης εγγραφής εφαρμόζεται στατικά: η σειρά $i=0$ αρχικοποιεί τις
 θέσεις $r[0 \ldots 8]$ μέσω direct assignment, και κάθε επόμενη σειρά
@@ -397,16 +423,34 @@ $i$ εισάγει ακριβώς μία νέα θέση $r[i+8]$ ως fresh ass
 της σειράς. Οι υπόλοιπες εγγραφές ($r[i \ldots i+7]$ για $i \geq 1$)
 είναι XOR-accumulations σε θέσεις ήδη γραμμένες από προηγούμενες
 σειρές. Η δομή αυτή εξαλείφει κάθε branch instruction και counter
-arithmetic από το φύλλο, παράγοντας μία ευθύγραμμη ακολουθία \num{64}
+arithmetic από το leaf, παράγοντας μία ευθύγραμμη ακολουθία \num{64}
 κλήσεων \code{clmul64} χωρίς κανένα branch.
 
-Εφαρμοσμένη πάνω στο ήδη εξειδικευμένο δέντρο, η εξάλειψη του \code{memset}
+\paragraph{4-wide χειροκίνητο unrolling στους βρόχους ανασύνθεσης.}
+Οι τρεις βρόχοι ανασύνθεσης (Loops~1–3) εκπέμπονται από τον generator
+με χειροκίνητο 4-wide unrolling: κάθε iteration επεξεργάζεται τέσσερα
+\code{uint64\_t} words, με scalar tail για τα υπόλοιπα
+$(\text{trip count} \bmod 4)$ στοιχεία. Η τεχνική αυτή αμορτίζει τον
+overhead branch/increment κατά $4\times$ σε σχέση με
+word-at-a-time loop, χωρίς να εισάγει I-cache pressure (ο κώδικας
+παραμένει compact σε σχέση με πλήρες unrolling). Σε πειραματική
+αξιολόγηση στον in-order SpacemiT~X60 (BPI-F3), τόσο η αντικατάσταση
+του 4-wide pattern με \code{memcpy} (glibc) όσο και με plain indexed 
+loop (\code{for~(i=0;~i<N;~i++)}) προκάλεσε regression. Η αιτία είναι
+διττή: η \code{memcpy} της glibc εισάγει function-call overhead και
+alignment probing ακατάλληλο για μικρά σταθερά μεγέθη, ενώ το plain
+loop δεν ξεδιπλώνεται πλήρως από τον GCC υπό \code{-fno-tree-vectorize}
+(flag απαραίτητο για αποφυγή auto-vectorization στη scalar διαδρομή).
+Η 4-wide δομή αποτελεί τον βέλτιστο συμβιβασμό μεταξύ code density
+και loop overhead στην εν λόγω in-order αρχιτεκτονική.
+
+Εφαρμοσμένη πάνω στο ήδη specialized δέντρο, η εξάλειψη του \code{memset}
 αποδίδει επιπλέον \speedup{1.12} σε \instret (HQC-128), ανεβάζοντας τη
 σωρευτική scalar βελτίωση σε \speedup{100.2} έναντι του \code{scalar\_ref}.
 
 Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των
 τεσσάρων διαδοχικών σταδίων: μετάβαση σε word-level \clmul{} leaf,
-στατικό δέντρο αναδρομής, εξειδικεύσεις leaf, και assign-on-first-write
+στατικό δέντρο αναδρομής, branch-free leaves, και assign-on-first-write
 (εξάλειψη \code{memset}).
 
 \begin{table}[htbp]
@@ -513,7 +557,7 @@ multiply) παραμένει scalar, ενώ η data-movement πράξη εκτε
 %
 \begin{enumerate}
   \item \textbf{Direct-write discipline + overlap-save (D):} Αλγοριθμική
-    αναδιάρθρωση του data flow — τα child multiplications γράφουν
+    αναδιάρθρωση του data flow — τα γινόμενα επόμενου επιπέδου γράφουν
     απευθείας στον output buffer, εξαλείφοντας δύο πλήρεις copy loops
     ανά κόμβο αναδρομής (\cref{ssec:direct-write,ssec:overlap-save}).
     Η αναδιάρθρωση αυτή αποτελεί \defterm{enabling transformation}:
@@ -544,12 +588,12 @@ multiply) παραμένει scalar, ενώ η data-movement πράξη εκτε
 \subsection{Direct-Write Discipline: Εξάλειψη Αντιγραφών z0/z2}
 \label{ssec:direct-write}
 
-Στην αρχική Track~B υλοποίηση, τα τρία child multiplications ($z_0$, $z_2$,
+Στην αρχική Track~B υλοποίηση, τα τρία γινόμενα επόμενου επιπέδου ($z_0$, $z_2$,
 $z_\text{mid}$) υπολογίζονταν σε ενδιάμεσους buffers εντός του \code{tmp},
 και στη συνέχεια δύο RVV copy loops (\code{rvv\_copy\_u64}) μετέφεραν τα
 $z_0$ και $z_2$ στις τελικές θέσεις του output buffer $r$.
 Η direct-write discipline εξαλείφει αυτές τις δύο αντιγραφές
-κατευθύνοντας τα child calls να γράψουν απευθείας στο $r$:
+κατευθύνοντας τις κλήσεις επόμενου επιπέδου να γράψουν απευθείας στο $r$:
 %
 \begin{itemize}
   \item $z_0 = a_L \polymul b_L$ γράφεται απευθείας στο
@@ -589,7 +633,7 @@ $\sim\SI{42.2}{\kilo\byte}$ — πολύ κάτω από το bare-metal stack l
   \caption{Σύγκριση memory layout πριν (αριστερά) και μετά (δεξιά) τη
     direct-write discipline. Στο αρχικό σχήμα, τα $z_0$ και $z_2$
     γράφονται σε ενδιάμεσους buffers και αντιγράφονται στο $r$ μέσω δύο
-    RVV copy loops. Στο νέο σχήμα, τα child multiplications γράφουν
+    RVV copy loops. Στο νέο σχήμα, τα γινόμενα επόμενου επιπέδου γράφουν
     απευθείας στις τελικές θέσεις του $r$ — μόνο το $z_\text{mid}$
     παραμένει σε scratch buffer.}
   \label{fig:direct-write-layout}
@@ -646,7 +690,7 @@ $r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
 
 Η προσέγγιση αυτή διατηρεί ορθότητα χωρίς πρόσθετους temporary buffers
 πέραν του ήδη δεσμευμένου \code{ta} — ο οποίος επαναχρησιμοποιείται μετά
-την κατανάλωση της ta/tb XOR preparation από το $z_\text{mid}$ child call.
+την κατανάλωση της ta/tb XOR preparation από την $z_\text{mid}$ κλήση επόμενου επιπέδου.
 Η αποθήκευση overlap region κοστίζει μία μόνο RVV copy ($n_0$ words σε
 \LMUL=m4), αλλά εξαλείφει δύο πλήρεις copy loops ($2 \times n$ words
 η καθεμία) — καθαρό κέρδος $\sim 3n$ words data movement ανά κόμβο.
@@ -694,7 +738,7 @@ groups χωρούν στο \num{32}-register vector file χωρίς spilling.
 \insn{vxor.vv}, και αποθηκεύονται τα αποτελέσματα. Μόνο δύο register
 groups είναι ταυτόχρονα ενεργά (πηγή και αποτέλεσμα), επιτρέποντας
 \LMUL=m8 — \num{32} words ανά iteration σε \VLEN=\num{256}. Για κόμβους
-κοντά στα φύλλα ($n_1 < 28$), ο generator μειώνει σε \LMUL=m4 ώστε να
+κοντά στα leaves ($n_1 < 28$), ο generator μειώνει σε \LMUL=m4 ώστε να
 αποφευχθεί υπερβολικό tail overhead σε μικρά μεγέθη.
 
 \paragraph{Combine XOR (\LMUL=m2).}
@@ -888,7 +932,7 @@ reduction εκτελείται μία φορά ανά \code{vect\_mul} invocatio
 instruction-accurate εξομοίωσης (Spike). Η ενότητα αυτή παρουσιάζει μία
 υβριδική στρατηγική αναδρομής που χρησιμοποιεί scalar βρόχους στα κατώτερα
 επίπεδα του δέντρου αντί RVV intrinsics. Η στρατηγική συμπληρώνει την
-εξειδικευμένη scalar leaf \code{clmul\_leaf\_n9} (\cref{ssec:specialized-tree}),
+unrolled scalar leaf \code{clmul\_leaf\_n9} (\cref{ssec:specialized-tree}),
 η οποία ορίζεται στη scalar διαδρομή και αξιοποιείται και από το Tier~2.
 
 \paragraph{Υβριδική αναδρομή: scalar βρόχοι στα κατώτερα επίπεδα.}
@@ -965,7 +1009,7 @@ iterations) παραμένει σε RVV path.
 
 Τα αποτελέσματα HQC-128 και HQC-192 είναι ουσιαστικά: \pct{11.1} και
 \pct{13.4} μείωση κύκλων αντίστοιχα. Το HQC-256 παρουσιάζει αμελητέα
-αλλαγή, καθώς το δέντρο αναδρομής του παράγει κατώτερα φύλλα μεγέθους
+αλλαγή, καθώς το δέντρο αναδρομής του παράγει κατώτερα leaves μεγέθους
 $n \in \{14, 15\}$ (κόμβοι \code{kmul\_28}, \code{kmul\_29}) που δεν
 ωφελούνται από τη \code{clmul\_leaf\_n9} — εξυπηρετούνται από τον generic
 \code{clmul\_leaf} loop.
@@ -1277,14 +1321,14 @@ Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \cod
 \section{Code Size vs Performance Trade-off}
 \label{sec:polymul-codesize}
 
-Η πλήρως ξεδιπλωμένη δομή του specialized generator και η εξειδίκευση του leaf
+Η πλήρως unrolled δομή του specialized generator και η specialization του leaf
 (\cref{sec:polymul-scalar}) ανταλλάσσουν αυξημένο μέγεθος κώδικα με την
 απαλοιφή κάθε runtime dispatch. Η αποτίμηση του συμβιβασμού αυτού απαιτεί την
-ταυτόχρονη θεώρηση τριών αλληλεπιδρώντων αξόνων: του βάθους ξεδιπλώματος της
+ταυτόχρονη θεώρηση τριών αλληλεπιδρώντων αξόνων: του βάθους unrolling της
 αναδρομής, του πλήθους εντολών (\instret) και του στατικού αποτυπώματος κώδικα
 (\code{.text}).
 
-Το πλήρες ξεδίπλωμα μετατρέπει το βάθος της αναδρομής σε γραμμικό κώδικα,
+Το πλήρες unrolling μετατρέπει το βάθος της αναδρομής σε γραμμικό κώδικα,
 καθώς κάθε κόμβος του δέντρου εκπέμπεται ως ξεχωριστή \code{static} συνάρτηση
 χωρίς threshold comparison ή dynamic dispatch. Κανονικοποιημένο ως προς το
 \code{scalar\_ref} baseline (\SI{2292}{\byte},~\cref{tab:microbench-polymul}),
@@ -1295,19 +1339,19 @@ Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \cod
 επιτυγχάνεται έτσι εις βάρος ακριβώς αυτού του στατικού αποτυπώματος.
 
 Ο συμβιβασμός αυτός δεν είναι μονότονος ως προς την απόδοση. Το μέγεθος του κώδικα
-μεγιστοποιείται στο Tier~1 — το πλήρως ξεδιπλωμένο scalar Karatsuba δέντρο —
+μεγιστοποιείται στο Tier~1 — το πλήρως unrolled scalar Karatsuba δέντρο —
 και όχι στο ταχύτερο tier. Η αντιπαραβολή Tier~1 και Tier~3 είναι
 αποκαλυπτική: το Tier~3 εκτελεί τον πολλαπλασιασμό σε \num{63804} έναντι
 \num{186629} εντολών (ταχύτερο κατά \speedup{2.93}) ενώ ταυτόχρονα καταλαμβάνει
 \SI{5.8}{\kilo\byte} έναντι \SI{15.3}{\kilo\byte} (μικρότερο κατά $2.62\times$).
 Το Tier~3 κυριαρχεί επομένως κατά Pareto του Tier~1 και στους δύο άξονες. Η
 αιτία είναι δομική: η διανυσματοποίηση του leaf αντικαθιστά το ογκώδες
-ξεδιπλωμένο scalar schoolbook product με συμπαγείς \vclmul{} βρόχους,
+unrolled scalar schoolbook product με συμπαγείς \vclmul{} βρόχους,
 συμπιέζοντας το μέγεθος του κώδικα ενώ ενισχύει την απόδοση.
 
 Το μέγεθος κώδικα του Tier~1 ανάγεται ευθέως στις σχεδιαστικές αποφάσεις του scalar
 μονοπατιού (\cref{sec:polymul-scalar}). Ο unrolled specialized generator και η
-εξειδίκευση \code{clmul\_leaf\_n8} εκπέμπουν \num{64} διαδοχικές κλήσεις
+specialization \code{clmul\_leaf\_n8} εκπέμπουν \num{64} διαδοχικές κλήσεις
 \code{clmul64} ανά leaf χωρίς κανέναν βρόχο, προσθέτοντας περίπου
 \SI{13}{\kilo\byte} επιπλέον έναντι του \code{scalar\_ref}. Η ablation που αφαίρεσε το
 dead $n=4$ dispatch arm περιόρισε μέρος αυτού του κόστους χωρίς απώλεια
@@ -1317,7 +1361,7 @@ threshold $T=16$.
 Το μέγεθος του κώδικα παραμένει εντός στενής ζώνης μεταξύ των security levels για ένα
 δεδομένο variant (\code{vector\_zvk}: \SI{5830}{\byte}, \SI{8034}{\byte} και
 \SI{7274}{\byte} για HQC-128, HQC-192 και HQC-256 αντίστοιχα), διότι το βάθος
-ξεδιπλώματος καθορίζεται από τη μορφή του δέντρου αναδρομής στο επιλεγμένο
+unrolling καθορίζεται από τη μορφή του δέντρου αναδρομής στο επιλεγμένο
 threshold και όχι από το bit-length της παραμέτρου. Συνολικά, η μετάβαση στο
 Vector-Crypto leaf δεν συνιστά συμβιβασμό μεγέθους και απόδοσης αλλά ταυτόχρονη
 βελτίωση και των δύο· η ανακατανομή του υπολογιστικού προφίλ που προκύπτει από

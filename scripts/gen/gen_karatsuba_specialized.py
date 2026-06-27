@@ -122,6 +122,7 @@ def _manual_loop_recomposition(lines: list[str], n0: int, n1: int) -> None:
 
     Assign-on-first-write: Loop 1 and 2 use '=' (direct assign), Loop 3 uses '^='.
     No memset needed — every position in r[] is written before being read.
+    Uses 4-wide manual unrolling to minimize loop overhead on in-order cores.
     """
     two_n0 = 2 * n0
     two_n1 = 2 * n1
