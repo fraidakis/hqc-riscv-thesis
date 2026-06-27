@@ -37,10 +37,8 @@ bench_variant_slug() {
         scalar_zb_AB)   echo "scalar-zb-ab" ;;
         scalar_zb_AC)   echo "scalar-zb-ac" ;;
         vector_ref)     echo "vector-ref" ;;
-        vector_rvv_ref) echo "vector-rvv-ref" ;;
-        vector_rvv_A)   echo "vector-rvv-a" ;;
-        vector_rvv_AB)  echo "vector-rvv-ab" ;;
-        vector_rvv_ABC) echo "vector-rvv-abc" ;;
+        vector_rvv_D)   echo "vector-rvv-d" ;;
+        vector_rvv_DV)  echo "vector-rvv-dv" ;;
         vector_rvv)     echo "vector-rvv" ;;
         vector_zvk)     echo "vector-zvk" ;;
         # For non-variant identifiers (keccak/decode impl names like "ref", "rvv",
@@ -62,7 +60,7 @@ bench_variant_track() {
     local normalized="${variant,,}"
 
     case "$normalized" in
-        vector_ref|vector_rvv|vector_rvv_ref|vector_rvv_a|vector_rvv_ab|vector_rvv_abc|vector_zvk|*_rvv|*_zvbc) echo "vector" ;;
+        vector_ref|vector_rvv|vector_rvv_d|vector_rvv_dv|vector_zvk|*_rvv|*_zvbc) echo "vector" ;;
         *) echo "scalar" ;;
     esac
 }
@@ -120,7 +118,7 @@ bench_parse_track_args() {
         case "$MUL_VARIANT" in
             scalar_ref|scalar_zb|vector_ref) KECCAK_IMPL="ref" ;;
             vector_zvk)           KECCAK_IMPL="zvbb_x2_soa" ;;
-            vector_rvv|vector_rvv_ref|vector_rvv_A|vector_rvv_AB|vector_rvv_ABC)
+            vector_rvv|vector_rvv_D|vector_rvv_DV)
                                   KECCAK_IMPL="ref"         ;;
             *)                    KECCAK_IMPL="ref"          ;;
         esac
@@ -130,7 +128,7 @@ bench_parse_track_args() {
     if [[ "$_decode_explicit" -eq 0 ]]; then
         case "$MUL_VARIANT" in
             scalar_ref|scalar_zb|vector_ref) DECODE_IMPL="ref" ;;
-            vector_rvv|vector_rvv_ref|vector_rvv_A|vector_rvv_AB|vector_rvv_ABC)
+            vector_rvv|vector_rvv_D|vector_rvv_DV)
                                   DECODE_IMPL="rvv" ;;
             vector_zvk)           DECODE_IMPL="zvbc" ;;
             *)                    DECODE_IMPL="ref" ;;

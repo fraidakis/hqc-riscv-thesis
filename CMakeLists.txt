@@ -100,10 +100,10 @@ set(POLYMUL_VARIANTS
     scalar_zb_AB
     scalar_zb_AC
     scalar_zb_ABC_nosplit
-    vector_rvv_ref
-    vector_rvv_A
-    vector_rvv_AB
-    vector_rvv_ABC
+    vector_rvv_D
+    vector_rvv_V
+    vector_rvv_VD
+    vector_rvv_DV
     vector_rvv
     vector_zvk
 )
@@ -441,8 +441,10 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_NOINIT=1
                 -DABLATION_AP2=0
                 -DABLATION_SYMMETRIC_TREE=1)
-        elseif(POLYMUL STREQUAL "vector_rvv_ref")
-            # Ablation: no direct-write, scalar recomposition (compiled with RVV march)
+        elseif(POLYMUL STREQUAL "vector_rvv_D")
+            # Ablation: direct-write discipline + scalar recomposition loops + scalar reduce.
+            # Isolates the algorithmic gain of eliminating copy loops 1+2.
+            # Header: direct-write tree with all-scalar XOR/copy (no RVV intrinsics in tree).
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
@@ -450,11 +452,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize
-                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_ref_gen.h\"")
-        elseif(POLYMUL STREQUAL "vector_rvv_A")
-            # Ablation: direct-write + overlap-save, but shared helper calls (no inline)
-            # NOTE: A and B are inseparable — direct-write requires overlap-save for correctness.
-            # Uses the ABC header (inlined) as approximation — A-only requires new gen mode.
+                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_dw_scalar_gen.h\""
+                -DRVV_USE_SCALAR_REDUCE=1)
+        elseif(POLYMUL STREQUAL "vector_rvv_V")
+            # Ablation: ref layout + RVV-vectorized recomposition + scalar reduce.
+            # Isolates V (vectorized loops) without D (direct-write discipline).
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
@@ -462,9 +464,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize
-                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_abc_gen.h\"")
-        elseif(POLYMUL STREQUAL "vector_rvv_AB")
-            # Ablation: direct-write + overlap-save (same as A — B is inherent to A)
+                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_v_only_gen.h\""
+                -DRVV_USE_SCALAR_REDUCE=1)
+        elseif(POLYMUL STREQUAL "vector_rvv_VD")
+            # Ablation: V first, then D on top (alternate ordering: same binary as DV).
+            # Direct-write + RVV-vectorized recomposition + scalar reduce.
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
@@ -472,9 +476,11 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize
-                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_abc_gen.h\"")
-        elseif(POLYMUL STREQUAL "vector_rvv_ABC")
-            # Ablation: direct-write + overlap-save + inlined RVV (no hybrid recursion)
+                -DRVV_USE_SCALAR_REDUCE=1)
+        elseif(POLYMUL STREQUAL "vector_rvv_DV")
+            # Ablation: direct-write + RVV-vectorized recomposition + scalar reduce.
+            # Isolates the benefit of vectorized data movement in the Karatsuba tree.
+            # Header: the champion specialized gen with inline RVV (hybrid threshold).
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
@@ -482,7 +488,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize
-                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_abc_gen.h\"")
+                -DRVV_USE_SCALAR_REDUCE=1)
         elseif(POLYMUL STREQUAL "vector_rvv")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)

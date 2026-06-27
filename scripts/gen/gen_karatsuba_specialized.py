@@ -46,6 +46,11 @@ _MODE_CONFIG: dict[str, dict] = {
         "guard": "HQC_KARATSUBA_RVV_SPECIALIZED_GEN_H",
         "leaf_fn": "scalar",
     },
+    "rvv_noD": {
+        "out": REPO_ROOT / "src/mult/karatsuba_rvv/karatsuba_rvv_ablation_v_only_gen.h",
+        "guard": "HQC_KARATSUBA_RVV_ABLATION_V_ONLY_GEN_H",
+        "leaf_fn": "scalar",
+    },
     "zvbc": {
         "out": REPO_ROOT / "src/mult/karatsuba_zvbc/karatsuba_zvbc_specialized_gen.h",
         "guard": "HQC_KARATSUBA_ZVBC_SPECIALIZED_GEN_H",
@@ -259,6 +264,12 @@ def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int,
                 return f"clmul_leaf_n8({dst}, {xa}, {xb});"
             if n == 9:
                 return f"clmul_leaf_n9({dst}, {xa}, {xb});"
+        # rvv_noD uses same specialized leaves as rvv
+        if leaf_style == "noinit" and mode == "rvv_noD":
+            if n == 8:
+                return f"clmul_leaf_n8({dst}, {xa}, {xb});"
+            if n == 9:
+                return f"clmul_leaf_n9({dst}, {xa}, {xb});"
         # zbc noinit: use LEAF_CALL_N8/N9 macros for specialized leaves
         if leaf_style == "noinit" and mode == "zbc":
             if n == 8:
@@ -410,6 +421,87 @@ def _manual_loop_recomposition_memset(lines: list[str], n0: int, n1: int) -> Non
     lines.append(f"        for (size_t i = {two_n1}u; i < {two_n0}u; i++) {{")
     lines.append("            *rm_p++ ^= *zm_p++ ^ *z0_p++;")
     lines.append("        }")
+    lines.append("    }")
+
+
+def _rvv_recomposition_noD(lines: list[str], n0: int, n1: int) -> None:
+    """Emit RVV recomposition with ref (non-direct-write) layout.
+
+    In rvv_noD mode, z0 and z2 are in tmp (ref layout). We need:
+      - Loop 1: copy z0 → r[0..2*n0-1] using RVV
+      - Loop 2: copy z2 → r[2*n0..2*n0+2*n1-1] using RVV
+      - Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] using RVV
+
+    No aliasing issues: z0/z2/zmid are in tmp, dst is in r.
+    """
+    two_n0 = 2 * n0
+    two_n1 = 2 * n1
+
+    # --- Loop 1: RVV copy z0 → r[0..2*n0-1] ---
+    lines.append("    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */")
+    lines.append("    {")
+    lines.append(f"        size_t _rem = {two_n0}u;")
+    lines.append("        const uint64_t *_src = z0;")
+    lines.append("        uint64_t *_dst = r;")
+    lines.append("        while (_rem > 0) {")
+    lines.append("            size_t _vl = __riscv_vsetvl_e64m8(_rem);")
+    lines.append("            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);")
+    lines.append("            __riscv_vse64_v_u64m8(_dst, _v, _vl);")
+    lines.append("            _src += _vl; _dst += _vl; _rem -= _vl;")
+    lines.append("        }")
+    lines.append("    }")
+    lines.append("")
+
+    # --- Loop 2: RVV copy z2 → r[2*n0..2*n0+2*n1-1] ---
+    lines.append("    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */")
+    lines.append("    {")
+    lines.append(f"        size_t _rem = {two_n1}u;")
+    lines.append("        const uint64_t *_src = z2;")
+    lines.append(f"        uint64_t *_dst = r + {two_n0}u;")
+    lines.append("        while (_rem > 0) {")
+    lines.append("            size_t _vl = __riscv_vsetvl_e64m8(_rem);")
+    lines.append("            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);")
+    lines.append("            __riscv_vse64_v_u64m8(_dst, _v, _vl);")
+    lines.append("            _src += _vl; _dst += _vl; _rem -= _vl;")
+    lines.append("        }")
+    lines.append("    }")
+    lines.append("")
+
+    # --- Loop 3: RVV XOR accumulation r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] ---
+    lines.append("    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */")
+    lines.append("    {")
+    lines.append(f"        size_t _rem = {two_n1}u;")
+    lines.append(f"        uint64_t *_dst = r + {n0}u;")
+    lines.append("        const uint64_t *_zm = zmid;")
+    lines.append("        const uint64_t *_z0 = z0;")
+    lines.append("        const uint64_t *_z2 = z2;")
+    lines.append("        while (_rem > 0) {")
+    lines.append("            size_t _vl = __riscv_vsetvl_e64m4(_rem);")
+    lines.append("            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);")
+    lines.append("            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);")
+    lines.append("            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);")
+    lines.append("            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);")
+    lines.append("            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);")
+    lines.append("            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);")
+    lines.append("            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);")
+    lines.append("            __riscv_vse64_v_u64m4(_dst, _vd, _vl);")
+    lines.append("            _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;")
+    lines.append("        }")
+    if two_n0 > two_n1:
+        # Odd-n tail: zmid[i] ^ z0[i] (no z2)
+        rem = two_n0 - two_n1
+        lines.append(f"        /* Tail: {rem} elements where z2 is absent */")
+        lines.append(f"        _rem = {rem}u;")
+        lines.append("        while (_rem > 0) {")
+        lines.append("            size_t _vl = __riscv_vsetvl_e64m4(_rem);")
+        lines.append("            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);")
+        lines.append("            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);")
+        lines.append("            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);")
+        lines.append("            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);")
+        lines.append("            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);")
+        lines.append("            __riscv_vse64_v_u64m4(_dst, _vd, _vl);")
+        lines.append("            _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;")
+        lines.append("        }")
     lines.append("    }")
 
 
@@ -687,6 +779,12 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
             _scalar_inline_xor_prep(lines, n0, n1)
         else:
             _emit_inline_xor_prep(lines, n0, n1)
+    elif mode == "rvv_noD":
+        # Same hybrid as rvv: RVV ta/tb prep at upper levels, scalar at bottom
+        if n <= RVV_HYBRID_THRESHOLD:
+            _scalar_inline_xor_prep(lines, n0, n1)
+        else:
+            _emit_inline_xor_prep(lines, n0, n1)
     elif mode == "zvbc":
         lines.append(f"    rvv_xor_u64(ta, a, a + {n0}u, {n1}u);")
         lines.append(f"    rvv_xor_u64(tb, b, b + {n0}u, {n1}u);")
@@ -709,6 +807,12 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
             _scalar_recomposition_directwrite(lines, n0, n1)
         else:
             _rvv_recomposition(lines, n0, n1)
+    elif mode == "rvv_noD":
+        # Ref layout + RVV vectorized loops (V without D)
+        if n <= RVV_HYBRID_THRESHOLD:
+            _manual_loop_recomposition(lines, n0, n1)
+        else:
+            _rvv_recomposition_noD(lines, n0, n1)
     elif mode == "zvbc":
         _manual_loop_recomposition(lines, n0, n1)
     else:
@@ -1112,9 +1216,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["zbc", "rvv", "zvbc", "deferred"],
+        choices=["zbc", "rvv", "rvv_noD", "zvbc", "deferred"],
         required=True,
-        help="Backend mode: zbc (scalar clmul), rvv (RVV direct-write), zvbc (Zvbc vclmul), deferred (two-phase scalar+RVV)",
+        help="Backend mode: zbc (scalar clmul), rvv (RVV direct-write), rvv_noD (RVV vectorized recomposition without direct-write), zvbc (Zvbc vclmul), deferred (two-phase scalar+RVV)",
     )
     parser.add_argument(
         "--threshold",

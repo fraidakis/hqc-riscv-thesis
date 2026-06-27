@@ -97,6 +97,34 @@ else ifeq ($(POLYMUL),vector_ref)
   MARCH := rv64gcv_zbc_zbb_zbs
   POLYMUL_SRC := $(VENDOR)/src/ref/gf2x.c
   EXTRA_CFLAGS := -ftree-vectorize
+else ifeq ($(POLYMUL),vector_rvv_D)
+  # Ablation: direct-write discipline + scalar recomposition + scalar reduce.
+  MARCH := rv64gcv_zbc_zbb_zba_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
+  EXTRA_CFLAGS := -fno-tree-vectorize \
+    -DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_dw_scalar_gen.h\" \
+    -DRVV_USE_SCALAR_REDUCE=1
+else ifeq ($(POLYMUL),vector_rvv_V)
+  # Ablation: ref layout + RVV-vectorized recomposition + scalar reduce.
+  # Isolates V (vectorized loops) without D (direct-write discipline).
+  MARCH := rv64gcv_zbc_zbb_zba_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
+  EXTRA_CFLAGS := -fno-tree-vectorize \
+    -DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_v_only_gen.h\" \
+    -DRVV_USE_SCALAR_REDUCE=1
+else ifeq ($(POLYMUL),vector_rvv_VD)
+  # Ablation: V first, then D on top = same as DV but for alternate ordering story.
+  # Direct-write + RVV-vectorized recomposition + scalar reduce.
+  MARCH := rv64gcv_zbc_zbb_zba_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
+  EXTRA_CFLAGS := -fno-tree-vectorize \
+    -DRVV_USE_SCALAR_REDUCE=1
+else ifeq ($(POLYMUL),vector_rvv_DV)
+  # Ablation: direct-write + RVV-vectorized recomposition + scalar reduce.
+  MARCH := rv64gcv_zbc_zbb_zba_zbs
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
+  EXTRA_CFLAGS := -fno-tree-vectorize \
+    -DRVV_USE_SCALAR_REDUCE=1
 else ifeq ($(POLYMUL),vector_rvv)
   MARCH := rv64gcv_zbc_zbb_zba_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
@@ -106,7 +134,7 @@ else ifeq ($(POLYMUL),vector_zvk)
   POLYMUL_SRC := $(SRC)/mult/karatsuba_zvbc/gf2x_vclmul.c
   EXTRA_CFLAGS := -DHQC_POLYMUL_ZVBC=1
 else
-  $(error Unsupported POLYMUL=$(POLYMUL). Use scalar_ref, scalar_zb, scalar_zb_A, scalar_zb_AB, scalar_zb_AC, vector_ref, vector_rvv, or vector_zvk)
+  $(error Unsupported POLYMUL=$(POLYMUL). Use scalar_ref, scalar_zb, scalar_zb_A, scalar_zb_AB, scalar_zb_AC, vector_ref, vector_rvv_D, vector_rvv_V, vector_rvv_VD, vector_rvv_DV, vector_rvv, or vector_zvk)
 endif
 
 # ── Common include paths ─────────────────────────────────────────────────────

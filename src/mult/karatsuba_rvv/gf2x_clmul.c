@@ -837,6 +837,13 @@ static void clmul_leaf(uint64_t * __restrict__ r,
 #include "karatsuba_rvv_specialized_gen.h"
 #endif
 
+/* ── Reduce selection ─────────────────────────────────────────────────────
+ * RVV_USE_SCALAR_REDUCE=1 forces the scalar reduce() path for ablation.
+ * Default (0 or undefined): use reduce_rvv() (the champion path). */
+#ifndef RVV_USE_SCALAR_REDUCE
+#define RVV_USE_SCALAR_REDUCE 0
+#endif
+
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────*/
 static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
 {
@@ -908,5 +915,9 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
     default:
         __builtin_trap();
     }
+#if RVV_USE_SCALAR_REDUCE
+    reduce(o, unreduced);
+#else
     reduce_rvv(o, unreduced);
+#endif
 }

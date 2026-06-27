@@ -17,7 +17,7 @@
 #   run_ablation.sh --scalar_zb --sim --level 128   # Single level
 #   run_ablation.sh --vector_rvv --hw --quality publish  # Publication-quality
 #   run_ablation.sh --scalar_zb --sim --variant scalar_zb_A  # Single variant
-#   run_ablation.sh --vector_rvv --sim --variant vector_rvv_A  # Single variant
+#   run_ablation.sh --vector_rvv --sim --variant vector_rvv_D  # Single variant
 #
 # Study selection (at least one required):
 #   --scalar_zb         Run scalar Karatsuba ablation (Tier 1)
@@ -44,11 +44,10 @@
 #   scalar_zb     : + all three (champion)
 #
 # Vector RVV ablation variants (in order of optimization layering):
-#   vector_rvv_ref  : baseline (scalar_zb + naive RVV combine with shared helpers)
-#   vector_rvv_A    : + direct-write discipline (eliminate copy loops)
-#   vector_rvv_AB   : + direct-write + overlap-save combine
-#   vector_rvv_ABC  : + direct-write + overlap-save + inlined RVV (tuned LMUL)
-#   vector_rvv      : + all + hybrid scalar/vector recursion (champion)
+#   scalar_zb       : baseline (Tier 1 champion — copy-loop recomposition, scalar reduce)
+#   vector_rvv_D    : + direct-write discipline (eliminate copy loops 1+2, scalar loops)
+#   vector_rvv_DV   : + direct-write + RVV-vectorized recomposition (inline LMUL-tuned)
+#   vector_rvv      : + direct-write + RVV recomposition + RVV reduce (champion)
 
 set -euo pipefail
 
@@ -65,10 +64,11 @@ SCALAR_ABLATION_VARIANTS=(
 )
 
 VECTOR_RVV_ABLATION_VARIANTS=(
-    vector_rvv_ref
-    vector_rvv_A
-    vector_rvv_AB
-    vector_rvv_ABC
+    scalar_zb
+    vector_rvv_D
+    vector_rvv_V
+    vector_rvv_VD
+    vector_rvv_DV
     vector_rvv
 )
 
@@ -638,11 +638,11 @@ if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
     [[ $DO_SIM -eq 1 ]] && HAS_SIM=1
 
     if [[ $HAS_HW -eq 0 ]]; then
-        hw_probe="${HW_CSV_DIR}/hw_mul_vector-rvv-ref_latest.csv"
+        hw_probe="${HW_CSV_DIR}/hw_mul_scalar-zb_latest.csv"
         [[ -f "$hw_probe" ]] && HAS_HW=1
     fi
     if [[ $HAS_SIM -eq 0 ]]; then
-        sim_probe="${SIM_CSV_DIR}/sim_mul_vector-rvv-ref_latest.csv"
+        sim_probe="${SIM_CSV_DIR}/sim_mul_scalar-zb_latest.csv"
         [[ -f "$sim_probe" ]] && HAS_SIM=1
     fi
 
@@ -655,13 +655,12 @@ if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
             echo "Quality: ${QUALITY}"
         fi
         echo ""
-        echo "Baseline: \`vector_rvv_ref\` (scalar_zb champion + naive RVV combine with shared helper functions)"
+        echo "Baseline: \`scalar_zb\` (Tier 1 champion — copy-loop recomposition, scalar reduce)"
         echo ""
-        echo "Optimizations:"
-        echo "- **A** — Direct-write discipline (children write to output buffer, eliminate copy loops)"
-        echo "- **B** — Overlap-save combine (resolve aliasing hazard from direct-write)"
-        echo "- **C** — Inlined RVV operations with per-operation LMUL tuning"
-        echo "- **D** — Hybrid scalar/vector recursion (scalar loops at lower tree levels)"
+        echo "Optimizations (layered incrementally on top of scalar_zb):"
+        echo "- **D** — Direct-write discipline + overlap-save (children write directly to output, eliminate copy loops 1+2)"
+        echo "- **V** — RVV-vectorized recomposition (inline LMUL-tuned XOR/copy at upper tree levels)"
+        echo "- **R** — RVV-vectorized modular reduction (\`reduce_rvv\`)"
         echo ""
 
         # ── Per-level tables ─────────────────────────────────────────────
@@ -713,14 +712,12 @@ if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
             done
 
             # Reference values for speedup computation
-            ref_cycles="${VEC_CYCLES[vector_rvv_ref]:-}"
-            ref_instret="${VEC_INSTRET[vector_rvv_ref]:-}"
-            a_cycles="${VEC_CYCLES[vector_rvv_A]:-}"
-            a_instret="${VEC_INSTRET[vector_rvv_A]:-}"
-            ab_cycles="${VEC_CYCLES[vector_rvv_AB]:-}"
-            ab_instret="${VEC_INSTRET[vector_rvv_AB]:-}"
-            abc_cycles="${VEC_CYCLES[vector_rvv_ABC]:-}"
-            abc_instret="${VEC_INSTRET[vector_rvv_ABC]:-}"
+            ref_cycles="${VEC_CYCLES[scalar_zb]:-}"
+            ref_instret="${VEC_INSTRET[scalar_zb]:-}"
+            d_cycles="${VEC_CYCLES[vector_rvv_D]:-}"
+            d_instret="${VEC_INSTRET[vector_rvv_D]:-}"
+            dv_cycles="${VEC_CYCLES[vector_rvv_DV]:-}"
+            dv_instret="${VEC_INSTRET[vector_rvv_DV]:-}"
 
             # Emit rows
             for v in "${VARIANTS[@]}"; do
@@ -729,22 +726,20 @@ if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
 
                 # Optimization label
                 case "$v" in
-                    vector_rvv_ref)  opt_label="(none)" ;;
-                    vector_rvv_A)    opt_label="A" ;;
-                    vector_rvv_AB)   opt_label="A+B" ;;
-                    vector_rvv_ABC)  opt_label="A+B+C" ;;
-                    vector_rvv)      opt_label="A+B+C+D" ;;
+                    scalar_zb)       opt_label="(none — Tier 1 champion)" ;;
+                    vector_rvv_D)    opt_label="D" ;;
+                    vector_rvv_DV)   opt_label="D+V" ;;
+                    vector_rvv)      opt_label="D+V+R" ;;
                     *)               opt_label="?" ;;
                 esac
 
                 # Determine "prev" variant for vs-prev speedup
                 prev_cycles="" ; prev_instret=""
                 case "$v" in
-                    vector_rvv_ref)  prev_cycles=""; prev_instret="" ;;
-                    vector_rvv_A)    prev_cycles="$ref_cycles"; prev_instret="$ref_instret" ;;
-                    vector_rvv_AB)   prev_cycles="$a_cycles"; prev_instret="$a_instret" ;;
-                    vector_rvv_ABC)  prev_cycles="$ab_cycles"; prev_instret="$ab_instret" ;;
-                    vector_rvv)      prev_cycles="$abc_cycles"; prev_instret="$abc_instret" ;;
+                    scalar_zb)       prev_cycles=""; prev_instret="" ;;
+                    vector_rvv_D)    prev_cycles="$ref_cycles"; prev_instret="$ref_instret" ;;
+                    vector_rvv_DV)   prev_cycles="$d_cycles"; prev_instret="$d_instret" ;;
+                    vector_rvv)      prev_cycles="$dv_cycles"; prev_instret="$dv_instret" ;;
                 esac
 
                 # ── Cycles columns ───────────────────────────────────────
@@ -812,10 +807,9 @@ if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
             }
 
             vec_hw_transitions=(
-                "ref→A|+direct-write discipline|vector_rvv_ref|vector_rvv_A"
-                "A→AB|+overlap-save combine|vector_rvv_A|vector_rvv_AB"
-                "AB→ABC|+inlined RVV (tuned LMUL)|vector_rvv_AB|vector_rvv_ABC"
-                "ABC→ABCD|+hybrid scalar/vector recursion|vector_rvv_ABC|vector_rvv"
+                "ref→D|+direct-write + overlap-save (eliminate copy loops)|scalar_zb|vector_rvv_D"
+                "D→DV|+RVV-vectorized recomposition (inline LMUL-tuned)|vector_rvv_D|vector_rvv_DV"
+                "DV→DVR|+RVV-vectorized modular reduction|vector_rvv_DV|vector_rvv"
             )
 
             for t in "${vec_hw_transitions[@]}"; do
@@ -863,10 +857,9 @@ if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
             }
 
             vec_inst_transitions=(
-                "ref→A|+direct-write discipline|vector_rvv_ref|vector_rvv_A"
-                "A→AB|+overlap-save combine|vector_rvv_A|vector_rvv_AB"
-                "AB→ABC|+inlined RVV (tuned LMUL)|vector_rvv_AB|vector_rvv_ABC"
-                "ABC→ABCD|+hybrid scalar/vector recursion|vector_rvv_ABC|vector_rvv"
+                "ref→D|+direct-write + overlap-save (eliminate copy loops)|scalar_zb|vector_rvv_D"
+                "D→DV|+RVV-vectorized recomposition (inline LMUL-tuned)|vector_rvv_D|vector_rvv_DV"
+                "DV→DVR|+RVV-vectorized modular reduction|vector_rvv_DV|vector_rvv"
             )
 
             for t in "${vec_inst_transitions[@]}"; do
