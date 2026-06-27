@@ -19,7 +19,6 @@ bench_resolve_variant() {
     case "$raw" in
         ref_scalar)      echo "scalar_ref" ;;
         karatsuba_zbc)   echo "scalar_zb" ;;
-        ref_vector)      echo "vector_ref" ;;
         karatsuba_rvv)   echo "vector_rvv" ;;
         karatsuba_zvbc)  echo "vector_zvk" ;;
         *)               echo "$raw" ;;
@@ -36,7 +35,7 @@ bench_variant_slug() {
         scalar_zb_A)    echo "scalar-zb-a" ;;
         scalar_zb_AB)   echo "scalar-zb-ab" ;;
         scalar_zb_AC)   echo "scalar-zb-ac" ;;
-        vector_ref)     echo "vector-ref" ;;
+        scalar_zb_ACD)  echo "scalar-zb-acd" ;;
         vector_rvv_D)   echo "vector-rvv-d" ;;
         vector_rvv_DV)  echo "vector-rvv-dv" ;;
         vector_rvv)     echo "vector-rvv" ;;
@@ -60,7 +59,7 @@ bench_variant_track() {
     local normalized="${variant,,}"
 
     case "$normalized" in
-        vector_ref|vector_rvv|vector_rvv_d|vector_rvv_dv|vector_zvk|*_rvv|*_zvbc) echo "vector" ;;
+        vector_rvv|vector_rvv_d|vector_rvv_dv|vector_zvk|*_rvv|*_zvbc) echo "vector" ;;
         *) echo "scalar" ;;
     esac
 }
@@ -116,7 +115,7 @@ bench_parse_track_args() {
     # Auto-map KECCAK_IMPL from MUL_VARIANT suffix if not explicitly set.
     if [[ "$_keccak_explicit" -eq 0 ]] && [[ -n "$MUL_VARIANT" ]]; then
         case "$MUL_VARIANT" in
-            scalar_ref|scalar_zb|vector_ref) KECCAK_IMPL="ref" ;;
+            scalar_ref|scalar_zb) KECCAK_IMPL="ref" ;;
             vector_zvk)           KECCAK_IMPL="zvbb_x2_soa" ;;
             vector_rvv|vector_rvv_D|vector_rvv_DV)
                                   KECCAK_IMPL="ref"         ;;
@@ -127,7 +126,7 @@ bench_parse_track_args() {
     # Auto-map DECODE_IMPL from MUL_VARIANT suffix if not explicitly set.
     if [[ "$_decode_explicit" -eq 0 ]]; then
         case "$MUL_VARIANT" in
-            scalar_ref|scalar_zb|vector_ref) DECODE_IMPL="ref" ;;
+            scalar_ref|scalar_zb) DECODE_IMPL="ref" ;;
             vector_rvv|vector_rvv_D|vector_rvv_DV)
                                   DECODE_IMPL="rvv" ;;
             vector_zvk)           DECODE_IMPL="zvbc" ;;

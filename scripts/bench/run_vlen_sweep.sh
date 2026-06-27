@@ -53,7 +53,7 @@ Vector variants:
   all          Run both vector_rvv and vector_zvk
 
 Notes:
-  - Scalar variants (scalar_ref, scalar_zb, vector_ref) are not supported.
+  - Scalar variants (scalar_ref, scalar_zb) are not supported.
   - Each (variant, VLEN) pair gets its own build directory so ELFs compiled
     at different vector widths never collide:
       build/spike/bench_k<keccak>_d<decode>_vlen<VLEN>

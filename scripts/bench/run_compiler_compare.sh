@@ -25,7 +25,7 @@ Usage:
   run_compiler_compare.sh --variant <variant> [OPTIONS]
 
 Required:
-  --variant  <variant>    Variant name (scalar_ref, scalar_zb, vector_ref, vector_rvv, vector_zvk)
+  --variant  <variant>    Variant name (scalar_ref, scalar_zb, vector_rvv, vector_zvk)
 
 Options:
   --level 128|192|256     Security level (default: all three)

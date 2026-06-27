@@ -10,7 +10,6 @@ from __future__ import annotations
 VARIANT_SLUG_MAP: dict[str, str] = {
     "scalar_ref": "scalar-ref",
     "scalar_zb": "scalar-zb",
-    "vector_ref": "vector-ref",  # DEPRECATED: retained for CSV compatibility only
     "vector_rvv": "vector-rvv",
     "vector_zvk": "vector-zvk",
 }
@@ -19,7 +18,6 @@ VARIANT_SLUG_MAP: dict[str, str] = {
 LEGACY_VARIANT_MAP: dict[str, str] = {
     "ref_scalar": "scalar_ref",
     "karatsuba_zbc": "scalar_zb",
-    "ref_vector": "vector_ref",
     "karatsuba_rvv": "vector_rvv",
     "karatsuba_zvbc": "vector_zvk",
 }

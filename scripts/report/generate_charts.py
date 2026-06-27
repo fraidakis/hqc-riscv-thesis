@@ -168,7 +168,6 @@ def load_csv(path: Path) -> pd.DataFrame | None:
 _VARIANT_SLUG_MAP: dict[str, str] = {
     "scalar_ref": "scalar-ref",
     "scalar_zb": "scalar-zb",
-    "vector_ref": "vector-ref",
     "vector_rvv": "vector-rvv",
     "vector_zvk": "vector-zvk",
 }
@@ -194,7 +193,6 @@ class DataLoader:
     VARIANT_MAP: dict[str, str] = {
         "scalar_ref": "scalar_ref",
         "scalar_zb": "scalar_Zb",
-        "vector_ref": "vector_ref",
         "vector_rvv": "vector_rvv",
         "vector_zvk": "vector_Zvk",
     }
@@ -222,9 +220,9 @@ class DataLoader:
             / "results"
             / "simulation"
             / "profiling"
-            / "traces"
+            / "hotspots"
             / var_dir
-            / f"trace_kem_L{level}_{slug}_hotspots_latest.csv"
+            / f"hotspots_kem_L{level}_{slug}_latest.csv"
         )
         return load_csv(path)
 

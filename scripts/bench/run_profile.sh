@@ -3,13 +3,9 @@
 # Unified profiling entry point.
 #
 # Modes:
-#   --cache      Spike D$ profiling
-#   --memory     QEMU memory-traffic profiling
 #   --trace      Spike trace + hotspot mapping
 #
 # Examples:
-#   scripts/bench/run_profile.sh --cache --variant scalar_zb --level 128
-#   scripts/bench/run_profile.sh --memory --variant vector_rvv --level 192
 #   scripts/bench/run_profile.sh --trace --variant scalar_zb
 
 set -euo pipefail
@@ -24,7 +20,6 @@ variant_to_dir() {
     case "$1" in
         scalar_ref)      echo "scalar_ref" ;;
         scalar_zb)       echo "scalar_Zb" ;;
-        vector_ref)      echo "vector_ref" ;;
         vector_rvv)      echo "vector_rvv" ;;
         vector_zvk)      echo "vector_Zvk" ;;
         *)               echo "$1" ;;  # fallback
@@ -92,242 +87,6 @@ bench_print_level_branch() {
     echo " ${branch} L${level} ⋯ ${status}"
 }
 
-profile_cache_mode() {
-    local variant="${MUL_VARIANT:-scalar_zb}"
-    local variant_slug="$(bench_variant_slug "$variant")"
-    local dc_config="${DC_CONFIG:-512:8:64}"
-    local profile_kind="KEM"
-    local target_prefix="bench"
-    local out_prefix="kem"
-    if [[ "$PROFILE_POLYMUL" == "1" ]]; then
-        profile_kind="PolyMul"
-        target_prefix="bench_polymul"
-        out_prefix="poly"
-    fi
-
-    local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
-    local spike="${riscv}/bin/spike"
-    local isa="${ISA:-rv64gcv_zbc_zbb_zbs_zba_zbkb_zvbc_zvbb_zvl256b}"
-
-    if [[ ! -x "$spike" ]]; then
-        echo "[profile_cache_spike] ERROR: spike not found at $spike" >&2
-        exit 2
-    fi
-
-    local out_dir="$REPO_ROOT/results/simulation/profiling/cache/$(variant_to_dir "$variant")"
-    mkdir -p "$out_dir"
-
-    local BENCH_TIME
-    BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
-
-    local level_tag="Lall"
-    if [[ "$LEVEL" != "all" ]]; then
-        level_tag="L${LEVEL}"
-    fi
-    local csv_out="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
-    local csv_latest="$out_dir/cache_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
-
-    echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
-    echo "# commit: ${GIT_HASH}" >> "$csv_out"
-    echo "# variant: ${variant}" >> "$csv_out"
-    echo "# cache_config: ${dc_config}" >> "$csv_out"
-    echo "level,dc_misses,dc_read_misses,dc_write_misses,dc_writebacks,dc_bytes_read,dc_bytes_written,dc_read_accesses,dc_write_accesses" >> "$csv_out"
-
-    echo -e "\n📦 ${variant} (cache - ${profile_kind})"
-
-    extract_metric() {
-        local pattern="$1"
-        local file="$2"
-        awk -F':' -v p="$pattern" '$1 ~ p {gsub(/[[:space:]]/, "", $2); print $2; exit}' "$file"
-    }
-
-    local target_levels=()
-    if [[ "$LEVEL" == "all" ]]; then
-        target_levels=(128 192 256)
-    else
-        target_levels=("$LEVEL")
-    fi
-
-    # Isolated build dir per impl pairing — configure once, build per target.
-    local build_dir="$REPO_ROOT/build/spike/cacheprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
-    cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
-        -DRISCV="$riscv" \
-        -DHQC_SIM=spike >/dev/null 2>&1
-
-    local total_levels="${#target_levels[@]}"
-    local idx=0
-    for level in "${target_levels[@]}"; do
-        idx=$((idx + 1))
-        local target="${target_prefix}_hqc${level}_${variant}"
-        local elf="$build_dir/${target}.elf"
-
-        cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1
-
-        local raw_stdout="$out_dir/${out_prefix}_cache_spike_stdout_hqc${level}_${variant}_${BENCH_TIME}.log"
-        local raw_stderr="$out_dir/${out_prefix}_cache_spike_stderr_hqc${level}_${variant}_${BENCH_TIME}.log"
-
-        "$spike" --dc="$dc_config" --isa="$isa" "$elf" >"$raw_stdout" 2>"$raw_stderr"
-
-        local dc_read_misses dc_write_misses dc_writebacks dc_misses
-        local dc_bytes_read dc_bytes_written dc_read_accesses dc_write_accesses
-        
-        dc_read_misses="$(extract_metric 'D\\$ Read Misses' "$raw_stdout")"
-        dc_write_misses="$(extract_metric 'D\\$ Write Misses' "$raw_stdout")"
-        dc_writebacks="$(extract_metric 'D\\$ Writebacks' "$raw_stdout")"
-        dc_bytes_read="$(extract_metric 'D\\$ Bytes Read' "$raw_stdout")"
-        dc_bytes_written="$(extract_metric 'D\\$ Bytes Written' "$raw_stdout")"
-        dc_read_accesses="$(extract_metric 'D\\$ Read Accesses' "$raw_stdout")"
-        dc_write_accesses="$(extract_metric 'D\\$ Write Accesses' "$raw_stdout")"
-
-        if [[ -z "$dc_read_misses" || -z "$dc_write_misses" || -z "$dc_writebacks" ]]; then
-            echo "[profile_cache_spike] ERROR: failed to parse D$ cache metrics from $raw_stdout" >&2
-            echo "[profile_cache_spike] tail of output:" >&2
-            tail -n 40 "$raw_stdout" >&2 || true
-            exit 1
-        fi
-
-        dc_misses=$((dc_read_misses + dc_write_misses))
-
-        echo "${level},${dc_misses},${dc_read_misses},${dc_write_misses},${dc_writebacks},${dc_bytes_read},${dc_bytes_written},${dc_read_accesses},${dc_write_accesses}" >> "$csv_out"
-        local branch="├──"
-        if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
-        echo " ${branch} L${level} ⋯ $(format_int "$dc_misses") misses (R=$(format_int "$dc_read_misses"), W=$(format_int "$dc_write_misses")) | WB=$(format_int "$dc_writebacks")"
-
-        # Auto-delete raw log files
-        rm -f "$raw_stdout" "$raw_stderr"
-    done
-
-    bench_refresh_tracked_csv "$csv_out" "$csv_latest" || true
-    echo ""
-}
-
-profile_memory_mode() {
-    local variant="${MUL_VARIANT:-scalar_zb}"
-    local variant_slug="$(bench_variant_slug "$variant")"
-    local profile_kind="KEM"
-    local target_prefix="bench"
-    local out_prefix="kem"
-    if [[ "$PROFILE_POLYMUL" == "1" ]]; then
-        profile_kind="PolyMul"
-        target_prefix="bench_polymul"
-        out_prefix="poly"
-    fi
-
-    local riscv="${RISCV:-$HOME/Thesis/toolchains/installed-tools}"
-    local qemu="${riscv}/bin/qemu-system-riscv64"
-
-    if [[ ! -x "$qemu" ]]; then
-        echo "[profile_memory] ERROR: qemu-system-riscv64 not found at $qemu" >&2
-        exit 2
-    fi
-
-    local out_dir="$REPO_ROOT/results/simulation/profiling/mem_access/$(variant_to_dir "$variant")"
-    mkdir -p "$out_dir"
-
-    local BENCH_TIME
-    BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
-
-    local level_tag="Lall"
-    if [[ "$LEVEL" != "all" ]]; then
-        level_tag="L${LEVEL}"
-    fi
-    local csv_out="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_${BENCH_TIME}.csv"
-    local csv_latest="$out_dir/memory_${out_prefix}_${level_tag}_${variant_slug}_latest.csv"
-
-    echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$csv_out"
-    echo "# commit: ${GIT_HASH}" >> "$csv_out"
-    echo "# variant: ${variant}" >> "$csv_out"
-    echo "level,load_instructions,store_instructions,load_bytes,store_bytes,est_cache_lines_load,est_cache_lines_store" >> "$csv_out"
-
-    echo -e "\n📦 ${variant} (memory - ${profile_kind})"
-
-    local target_levels=()
-    if [[ "$LEVEL" == "all" ]]; then
-        target_levels=(128 192 256)
-    else
-        target_levels=("$LEVEL")
-    fi
-
-    # Isolated build dir per impl pairing — configure once, build per target.
-    # Pass impl flags so the correct keccak/decode sources are compiled.
-    local build_dir="$REPO_ROOT/build/qemu/memprof_k${KECCAK_IMPL:-ref}_d${DECODE_IMPL:-ref}"
-    cmake -S "$REPO_ROOT" -B "$build_dir" \
-        -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
-        -DRISCV="${riscv}" \
-        -DHQC_SIM=qemu \
-        -DHQC_KECCAK_IMPL="${KECCAK_IMPL:-ref}" \
-        -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" >/dev/null 2>&1
-
-    local total_levels="${#target_levels[@]}"
-    local idx=0
-    for level in "${target_levels[@]}"; do
-        idx=$((idx + 1))
-        local target="${target_prefix}_hqc${level}_${variant}"
-        local elf="$build_dir/${target}.elf"
-
-        cmake --build "$build_dir" --target "$target" -j"$(nproc)" >/dev/null 2>&1
-
-        local qemu_log="$out_dir/${out_prefix}_qemu_trace_hqc${level}_${variant}_${BENCH_TIME}.log"
-
-        "$qemu" \
-            -machine virt \
-            -cpu rv64,v=true,vlen=256,elen=64,vext_spec=v1.0,zbkb=true,zbc=true,zbs=true,zvbc=true,zvbb=true \
-            -m 128M \
-            -nographic \
-            -monitor none \
-            -bios none \
-            -kernel "$elf" \
-            -serial stdio \
-            -no-reboot \
-            -d in_asm,nochain \
-            -D "$qemu_log" >/dev/null 2>&1
-
-        local load_bytes store_bytes load_ins store_ins
-        read -r load_bytes store_bytes load_ins store_ins <<<"$(awk '
-function add_load(bytes){lb+=bytes;li++}
-function add_store(bytes){sb+=bytes;si++}
-{
-    line=tolower($0)
-    if (line ~ /\<vle8\./) { add_load(8); next }
-    if (line ~ /\<vle16\./) { add_load(16); next }
-    if (line ~ /\<vle32\./) { add_load(32); next }
-    if (line ~ /\<vle64\./) { add_load(64); next }
-    if (line ~ /\<vse8\./) { add_store(8); next }
-    if (line ~ /\<vse16\./) { add_store(16); next }
-    if (line ~ /\<vse32\./) { add_store(32); next }
-    if (line ~ /\<vse64\./) { add_store(64); next }
-
-    if (line ~ /\<lb\>/ || line ~ /\<lbu\>/) { add_load(1); next }
-    if (line ~ /\<lh\>/ || line ~ /\<lhu\>/) { add_load(2); next }
-    if (line ~ /\<lw\>/ || line ~ /\<lwu\>/ || line ~ /\<flw\>/) { add_load(4); next }
-    if (line ~ /\<ld\>/ || line ~ /\<fld\>/) { add_load(8); next }
-
-    if (line ~ /\<sb\>/) { add_store(1); next }
-    if (line ~ /\<sh\>/) { add_store(2); next }
-    if (line ~ /\<sw\>/ || line ~ /\<fsw\>/) { add_store(4); next }
-    if (line ~ /\<sd\>/ || line ~ /\<fsd\>/) { add_store(8); next }
-}
-END{printf "%d %d %d %d", lb, sb, li, si}
-' "$qemu_log")"
-
-        local load_lines store_lines
-        load_lines=$(( (load_bytes + 63) / 64 ))
-        store_lines=$(( (store_bytes + 63) / 64 ))
-
-        echo "${level},${load_ins},${store_ins},${load_bytes},${store_bytes},${load_lines},${store_lines}" >> "$csv_out"
-        local branch="├──"
-        if [[ "$idx" -eq "$total_levels" ]]; then branch="└──"; fi
-        echo " ${branch} L${level} ⋯ LdIns=$(format_int "$load_ins") StIns=$(format_int "$store_ins") | LdB=$(format_int "$load_bytes") StB=$(format_int "$store_bytes")"
-
-        # Auto-delete the massive trace file
-        rm -f "$qemu_log"
-    done
-
-    bench_refresh_tracked_csv "$csv_out" "$csv_latest" || true
-    echo ""
-}
-
 profile_trace_mode() {
     local variant="${MUL_VARIANT:-scalar_zb}"
     local variant_slug="$(bench_variant_slug "$variant")"
@@ -356,7 +115,7 @@ profile_trace_mode() {
         exit 2
     fi
 
-    local out_dir="$REPO_ROOT/results/simulation/profiling/traces/$(variant_to_dir "$variant")"
+    local out_dir="$REPO_ROOT/results/simulation/profiling/hotspots/$(variant_to_dir "$variant")"
     mkdir -p "$out_dir"
     mkdir -p "$PROFILE_TMP_ROOT"
     trace_tmp_dir="$PROFILE_TMP_ROOT/run_profile_trace_${variant}_$$"
@@ -364,10 +123,8 @@ profile_trace_mode() {
     trap cleanup_profile_trace_mode EXIT INT TERM
 
     local map_pcs_lines_arg=""
-    local trace_suffix="hotspots"
     if [[ "$PROFILE_LINES" == "1" ]]; then
         map_pcs_lines_arg="--lines"
-        trace_suffix="lines"
     fi
 
     cmake -S "$REPO_ROOT" -B "$build_dir" \
@@ -409,9 +166,9 @@ profile_trace_mode() {
             fi
         fi
 
-        local csv_filename="trace_${out_prefix}_L${level}_${variant_slug}_hotspots_${BENCH_TIME}.csv"
+        local csv_filename="hotspots_${out_prefix}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
         if [[ "$PROFILE_LINES" == "1" ]]; then
-            csv_filename="trace_${out_prefix}_L${level}_${variant_slug}_lines_${BENCH_TIME}.csv"
+            csv_filename="hotspots_lines_${out_prefix}_L${level}_${variant_slug}_${BENCH_TIME}.csv"
         fi
         local csv_out="$out_dir/$csv_filename"
 
@@ -442,7 +199,11 @@ profile_trace_mode() {
             echo " ${branch} L${level} ⋯ generated trace in ${elapsed}s"
         fi
 
-        if ! bench_refresh_tracked_csv_quiet "$csv_out" "${out_dir}/trace_${out_prefix}_L${level}_${variant_slug}_${trace_suffix}_latest.csv" >> "$latest_status_tmp"; then
+        local latest_suffix="hotspots_${out_prefix}_L${level}_${variant_slug}"
+        if [[ "$PROFILE_LINES" == "1" ]]; then
+            latest_suffix="hotspots_lines_${out_prefix}_L${level}_${variant_slug}"
+        fi
+        if ! bench_refresh_tracked_csv_quiet "$csv_out" "${out_dir}/${latest_suffix}_latest.csv" >> "$latest_status_tmp"; then
             true
         fi
 
@@ -1218,8 +979,6 @@ usage() {
     cat <<'EOF'
 Usage:
   Simulation modes (--platform sim, default):
-    run_profile.sh --cache [--variant V] [--level 128|192|256|all] [--polymul]
-    run_profile.sh --memory [--variant V] [--level 128|192|256|all] [--polymul]
     run_profile.sh --trace [--variant V] [--level 128|192|256|all] [--polymul] [--lines]
 
   Hardware modes (--platform hw):
@@ -1244,8 +1003,8 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --cache|--memory|--trace)
-            MODE="${1#--}"
+        --trace)
+            MODE="trace"
             shift
             ;;
         --counters)
@@ -1335,7 +1094,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$MODE" ]]; then
-    echo "ERROR: one of --cache|--memory|--trace|--counters|--hotspots|--isa-mix|--annotate is required" >&2
+    echo "ERROR: one of --trace|--counters|--hotspots|--isa-mix|--annotate is required" >&2
     usage >&2
     exit 2
 fi
@@ -1357,15 +1116,9 @@ if [[ "$PLATFORM" == "hw" && "$MODE" != "counters" && "$MODE" != "hotspots" && "
     exit 2
 fi
 
-if [[ "$LEVEL_SET" -eq 0 ]] && [[ "$MODE" == "cache" || "$MODE" == "memory" ]]; then
-    LEVEL="all"
-fi
-
 run_mode_for_variant() {
     MUL_VARIANT="$1"
     case "$MODE" in
-        cache)     profile_cache_mode ;;
-        memory)    profile_memory_mode ;;
         trace)     profile_trace_mode ;;
         counters)  profile_counters_hw_mode ;;
         hotspots)  profile_hotspots_hw_mode ;;
@@ -1414,34 +1167,27 @@ else
 fi
 
 if [[ "${#batch_variants[@]}" -gt 1 ]]; then
-    if [[ "$MODE" == "cache" || "$MODE" == "memory" ]]; then
-        for v in "${batch_variants[@]}"; do
-            MUL_VARIANT="$v"
-            run_mode_for_variant "$v"
-        done
-    else
-        profile_require_parallel
+    profile_require_parallel
 
-        local _parallel_jobs
-        _parallel_jobs="$(profile_select_parallel_jobs)"
-        declare -a cmds=()
-        v=""
-        l=""
-        cmd=""
+    local _parallel_jobs
+    _parallel_jobs="$(profile_select_parallel_jobs)"
+    declare -a cmds=()
+    v=""
+    l=""
+    cmd=""
 
-        for v in "${batch_variants[@]}"; do
-            cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --variant ${v} --level ${LEVEL}"
-            if [[ "$REPORT_FLAG" -eq 1 ]]; then cmd+=" --report"; fi
-            if [[ -n "$TOP_N" ]]; then cmd+=" --top ${TOP_N}"; fi
-            if [[ -n "$COMPARE_WITH" ]]; then cmd+=" --compare-with ${COMPARE_WITH}"; fi
-            if [[ "$CONTEXT_FLAG" -eq 1 ]]; then cmd+=" --context"; fi
-            if [[ "$PROFILE_POLYMUL" -eq 1 ]]; then cmd+=" --polymul"; fi
-            if [[ "$PROFILE_LINES" -eq 1 ]]; then cmd+=" --lines"; fi
-            cmds+=("$cmd")
-        done
+    for v in "${batch_variants[@]}"; do
+        cmd="${SCRIPT_DIR}/run_profile.sh --${MODE} --variant ${v} --level ${LEVEL}"
+        if [[ "$REPORT_FLAG" -eq 1 ]]; then cmd+=" --report"; fi
+        if [[ -n "$TOP_N" ]]; then cmd+=" --top ${TOP_N}"; fi
+        if [[ -n "$COMPARE_WITH" ]]; then cmd+=" --compare-with ${COMPARE_WITH}"; fi
+        if [[ "$CONTEXT_FLAG" -eq 1 ]]; then cmd+=" --context"; fi
+        if [[ "$PROFILE_POLYMUL" -eq 1 ]]; then cmd+=" --polymul"; fi
+        if [[ "$PROFILE_LINES" -eq 1 ]]; then cmd+=" --lines"; fi
+        cmds+=("$cmd")
+    done
 
-        printf '%s\n' "${cmds[@]}" | parallel --jobs "$_parallel_jobs"
-    fi
+    printf '%s\n' "${cmds[@]}" | parallel --jobs "$_parallel_jobs"
 else
     run_mode_for_variant "${batch_variants[0]}"
 fi
