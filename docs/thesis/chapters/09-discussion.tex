@@ -878,7 +878,7 @@ opacity στον compiler optimizer χωρίς πρόσθετο λειτουργ
 \code{rvv}, \code{zvbc}) — συνολικά \num{9} configurations — από μία μόνο
 πηγή αλήθειας. Η χειροκίνητη συγγραφή \num{9} εξειδικευμένων υλοποιήσεων
 θα εισήγαγε ασυνέπειες και maintenance burden. Κάθε
-αλγοριθμική βελτίωση (direct-write discipline, overlap-save strategy)
+αλγοριθμική βελτίωση (direct-write πολιτική, overlap-save strategy)
 εφαρμόζεται μία φορά στον generator και διαδίδεται αυτόματα σε όλα τα
 configurations.
 
@@ -890,7 +890,7 @@ constant propagation, dead-code elimination, και πλήρες loop unrolling
 σε μικρά μεγέθη. Η εξάλειψη αυτών των runtime decisions συνεισφέρει
 μετρήσιμη μείωση \instret, αν και η ακριβής ποσοτικοποίηση δεν
 απομονώνεται εύκολα από τις λοιπές αλγοριθμικές βελτιώσεις που
-εφαρμόζονται ταυτόχρονα (direct-write discipline, overlap-save).
+εφαρμόζονται ταυτόχρονα (direct-write πολιτική, overlap-save).
 
 \paragraph{Γενίκευση.}
 Η αρχή εφαρμόζεται σε κάθε αλγόριθμο με compile-time-deterministic

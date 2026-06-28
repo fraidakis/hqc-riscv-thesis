@@ -65,7 +65,7 @@ Karatsuba: ο λόγος \instret μεταξύ HQC-256 και HQC-128 είναι
 / \num{63804} = 4.28$ στο Tier~3 — χαμηλότερος από το pure-Karatsuba
 $(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκωση (πρακτικός εκθέτης $<\log_2 3$)
 οφείλεται στο σταθερό overhead και στη γραμμική \insn{vclmul} συνιστώσα
-που αμορτίζονται σε μικρά $N$. Δεύτερον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
+που μειώνονται σε μικρά $N$. Δεύτερον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
 \SI{15.3}{\kilo\byte} στο Tier~1) αντικατοπτρίζει το κόστος του πλήρως
 ξεδιπλωμένου Karatsuba tree — ένα trade-off που αναλύεται στην
 \cref{sec:polymul-codesize}.
@@ -965,7 +965,7 @@ pipeline εκτελεί παράλληλα. Ο \code{scalar\_zb} παρουσι�
     $\approx\num{28}$ κύκλοι ανά εμφάνιση (βλ.\ §9.6 του
     \texttt{multiplication.md}).}
     Στον \code{vector\_rvv}, η \q{direct-write
-    discipline} γράφει τα $z_0$ και $z_2$ απευθείας στον output buffer
+    πολιτική} γράφει τα $z_0$ και $z_2$ απευθείας στον output buffer
     μέσω scalar \insn{sd}, και στη συνέχεια τα Loop~3 vector operations
     τα διαβάζουν μέσω \insn{vle64} — δημιουργώντας forwarding failure
     σε κάθε επίπεδο αναδρομής.
