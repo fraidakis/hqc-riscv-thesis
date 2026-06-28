@@ -37,6 +37,11 @@ _MODE_CONFIG: dict[str, dict] = {
         "guard": "HQC_KARATSUBA_SPECIALIZED_GEN_H",
         "leaf_fn": "scalar",
     },
+    "zbc_dw": {
+        "out": REPO_ROOT / "src/mult/karatsuba_zbc/karatsuba_specialized_dw_gen.h",
+        "guard": "HQC_KARATSUBA_SPECIALIZED_DW_GEN_H",
+        "leaf_fn": "scalar",
+    },
     "rvv": {
         "out": REPO_ROOT / "src/mult/karatsuba_rvv/karatsuba_rvv_specialized_gen.h",
         "guard": "HQC_KARATSUBA_RVV_SPECIALIZED_GEN_H",
@@ -114,8 +119,8 @@ def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int,
                 return f"clmul_leaf_n14({dst}, {xa}, {xb});"
             if n == 15:
                 return f"clmul_leaf_n15({dst}, {xa}, {xb});"
-        # zbc noinit: use LEAF_CALL_N8/N9 macros for specialized leaves
-        if leaf_style == "noinit" and mode == "zbc":
+        # zbc / zbc_dw noinit: use LEAF_CALL_N8/N9 macros for specialized leaves
+        if leaf_style == "noinit" and mode in ("zbc", "zbc_dw"):
             if n == 8:
                 return f"LEAF_CALL_N8({dst}, {xa}, {xb});"
             if n == 9:
@@ -613,6 +618,17 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
         lines.append(f"    /* Direct-write: z0 → r[0..{two_n0-1}], z2 → r[{two_n0}..{two_n0+two_n1-1}] */")
         lines.append(f"    {child_call('r', 'a', 'b', n0, leaf_fn, threshold, leaf_style, mode)}")
         lines.append(f"    {child_call(f'r + {two_n0}u', f'a + {n0}u', f'b + {n0}u', n1, leaf_fn, threshold, leaf_style, mode)}")
+    elif mode == "zbc_dw":
+        # Direct-write discipline for scalar: z0 → r[0..], z2 → r[2*n0..]
+        # tmp layout: zmid + ta + tb + child_buf (no z0/z2 slots)
+        lines.append("    uint64_t *zmid      = tmp;")
+        lines.append(f"    uint64_t *ta        = zmid + {two_n0}u;")
+        lines.append(f"    uint64_t *tb        = ta + {n0}u;")
+        lines.append(f"    uint64_t *child_buf = tb + {n0}u;")
+        lines.append("")
+        lines.append(f"    /* Direct-write: z0 → r[0..{two_n0-1}], z2 → r[{two_n0}..{two_n0+two_n1-1}] */")
+        lines.append(f"    {child_call('r', 'a', 'b', n0, leaf_fn, threshold, leaf_style, mode)}")
+        lines.append(f"    {child_call(f'r + {two_n0}u', f'a + {n0}u', f'b + {n0}u', n1, leaf_fn, threshold, leaf_style, mode)}")
     else:
         # Original layout: z0 + z2 + zmid + ta + tb + child_buf in tmp
         lines.append("    uint64_t *z0        = tmp;")
@@ -641,6 +657,12 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
             _scalar_inline_xor_prep(lines, n0, n1)
         else:
             _emit_inline_xor_prep(lines, n0, n1)
+    elif mode == "zbc_dw":
+        # Scalar direct-write: always scalar ta/tb XOR prep
+        lines.append(f"    for (size_t i = 0; i < {n0}u; i++) {{")
+        lines.append(f"        ta[i] = a[i] ^ (i < {n1}u ? a[{n0}u + i] : 0u);")
+        lines.append(f"        tb[i] = b[i] ^ (i < {n1}u ? b[{n0}u + i] : 0u);")
+        lines.append("    }")
     elif mode == "zvbc":
         lines.append(f"    rvv_xor_u64(ta, a, a + {n0}u, {n1}u);")
         lines.append(f"    rvv_xor_u64(tb, b, b + {n0}u, {n1}u);")
@@ -669,6 +691,9 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
             _manual_loop_recomposition(lines, n0, n1)
         else:
             _rvv_recomposition_noD(lines, n0, n1)
+    elif mode == "zbc_dw":
+        # Scalar direct-write: always use scalar overlap-save recomposition
+        _scalar_recomposition_directwrite(lines, n0, n1)
     elif mode == "zvbc":
         _manual_loop_recomposition(lines, n0, n1)
     else:
@@ -719,8 +744,8 @@ def generate_header(mode: str, threshold: int, leaf_style: str = "noinit",
         out.append("/* Leaf specializations (clmul_leaf_n8/n9) use assign-on-first-write discipline. */")
     out.append("")
 
-    # Emit LEAF_CALL ablation dispatch macros for zbc mode (both noinit and memset)
-    if mode == "zbc":
+    # Emit LEAF_CALL ablation dispatch macros for zbc/zbc_dw mode (both noinit and memset)
+    if mode in ("zbc", "zbc_dw"):
         out.append("/* Leaf dispatch: when ABLATION_NOINIT=1 (or not in ablation mode),")
         out.append(" * use fixed-size specialized leaves (part of the B assign-on-first-write policy).")
         out.append(" * In ablation mode with NOINIT=0, fall back to generic clmul_leaf. */")
@@ -753,9 +778,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["zbc", "rvv", "rvv_noD", "zvbc"],
+        choices=["zbc", "zbc_dw", "rvv", "rvv_noD", "zvbc"],
         required=True,
-        help="Backend mode: zbc (scalar clmul), rvv (RVV direct-write), rvv_noD (RVV vectorized recomposition without direct-write), zvbc (Zvbc vclmul)",
+        help="Backend mode: zbc (scalar clmul), zbc_dw (scalar clmul with direct-write), rvv (RVV direct-write), rvv_noD (RVV vectorized recomposition without direct-write), zvbc (Zvbc vclmul)",
     )
     parser.add_argument(
         "--threshold",

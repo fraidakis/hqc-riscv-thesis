@@ -5,11 +5,12 @@
  * Optimisations (applied in order A → C → B):
  *   - A: Word-level carry-less multiply (Zbc clmul/clmulh)
  *   - C: Compile-time specialized recursion tree (gen_karatsuba_specialized.py)
- *   - B: Assign-on-first-write policy — both tree recomposition (noinit gen
- *        header) and fixed-size hybrid leaf specializations (clmul_leaf_n8,
- *        clmul_leaf_n9, clmul_leaf_n14, clmul_leaf_n15) eliminating memset
- *        via assign-on-first-write; compact inner loops for I-cache efficiency
- *        on in-order cores
+ *   - B: Assign-on-first-write policy — both tree recomposition (direct-write
+ *        discipline: z0/z2 written directly to output r[], overlap-save combine,
+ *        eliminating two copy loops per recursion node) and fixed-size hybrid
+ *        leaf specializations (clmul_leaf_n8, clmul_leaf_n9, clmul_leaf_n14,
+ *        clmul_leaf_n15) eliminating memset via assign-on-first-write; compact
+ *        inner loops for I-cache efficiency on in-order cores
  *
  * The recursion tree for HQC-128 (n=277, T=16) produces only n=9 and n=8
  * leaves; HQC-192 also produces n=8/n=9; HQC-256 (n=901, T=16) produces
@@ -45,8 +46,13 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 #define KARATSUBA_THRESHOLD HQC_KARATSUBA_THRESHOLD_DEFAULT
 #endif
 
-/* ── Temporary buffer sizing ─────────────────────────────────────────────*/
-#define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
+/* ── Temporary buffer sizing ─────────────────────────────────────────────
+ * With direct-write discipline, z0 and z2 are written directly to the
+ * output buffer r (not into tmp).  The tmp layout per recursion level is:
+ *   zmid (2*n0 words) + ta (n0 words) + tb (n0 words) + child_buf
+ * Per-level cost: ~4*n0. Summing geometric series: < 4*n total.
+ */
+#define TMP_BUFFER_WORDS (4u * VEC_N_SIZE_64)
 
 /* ── Fixed-size leaf specializations (B optimization — leaf level) ────────
  * Hybrid n=8, n=9, n=14, n=15 leaves: row-0 unrolled (assign-on-first-write)

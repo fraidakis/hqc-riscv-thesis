@@ -3,17 +3,17 @@
  * karatsuba_rvv ABLATION harness — Base-RVV reconstruction (Tier 2).
  *
  * Companion to src/mult/karatsuba_zbc/gf2x_clmul_ablation.c (scalar ablation).
- * This file isolates the three reconstruction optimizations described in
+ * This file isolates the two reconstruction optimizations described in
  *   docs/thesis/chapters/06-polymul-optimization.tex
  *   \section{Base-RVV Path: ...}  \label{sec:polymul-base-rvv}
  * so they can be toggled independently at compile time and benchmarked by
  * scripts/bench/run_ablation.sh --vector_rvv.
  *
- * To keep the three axes ORTHOGONAL and KAT-verifiable, every ablation
+ * To keep the two axes ORTHOGONAL and KAT-verifiable, every ablation
  * variant runs on the SAME fixed test bed: a generic n>>1 Karatsuba
  * recursion with the unchanged scalar clmul leaf (clmul_leaf).  Only the
- * reconstruction (recomposition + reduction) is varied.  The deployed
- * champion `vector_rvv` (specialized generated tree) is built from the
+ * reconstruction (recomposition) is varied.  The deployed champion
+ * `vector_rvv_V` (specialized generated tree) is built from the
  * production file gf2x_clmul.c and is intentionally separate — exactly as the
  * scalar champion `scalar_zb` is built from its production gf2x_clmul.c while
  * scalar_ref/A/AB/AC are built from gf2x_clmul_ablation.c.
@@ -27,15 +27,11 @@
  *   ABLATION_RVV_INLINE (I)       0/1  default 0
  *       Inlined RVV recomposition ops with per-operation tuned LMUL
  *       (ssec:inlined-rvv) vs. shared out-of-line helper functions.
- *   ABLATION_RVV_REDUCE (R)       0/1  default 0
- *       Vectorised modular reduction reduce_rvv() (ssec:reduce-rvv) vs the
- *       scalar reduce().
  *
  *   Variant -> flags (wired in the build, mirrors scalar A/B/C):
- *     vector_rvv_ref  : (none)             D=0 I=0 R=0
- *     vector_rvv_D    : D                   D=1 I=0 R=0
- *     vector_rvv_DI   : D + I               D=1 I=1 R=0
- *     vector_rvv_DIR  : D + I + R           D=1 I=1 R=1
+ *     vector_rvv_ref  : (none)             D=0 I=0
+ *     vector_rvv_D    : D                   D=1 I=0
+ *     vector_rvv_DI   : D + I               D=1 I=1
  *
  * HARD CONSTRAINT (unchanged from production): only base `V` (RVV 1.0).
  *   NO Zvbc / vector-crypto.  Scalar leaf multiply is unchanged.
@@ -57,9 +53,6 @@
 #endif
 #ifndef ABLATION_RVV_INLINE
 #define ABLATION_RVV_INLINE 0
-#endif
-#ifndef ABLATION_RVV_REDUCE
-#define ABLATION_RVV_REDUCE 0
 #endif
 
 /* I axis: shared out-of-line helpers (I=0) vs forced-inline tuned-LMUL ops
@@ -320,36 +313,6 @@ static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
     o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
 }
 
-#if ABLATION_RVV_REDUCE
-static void reduce_rvv(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
-{
-    const int shift = (int)HQC_PARAM_N_MOD_64;
-    const int inv   = 64 - shift;
-    size_t n = VEC_N_SIZE_64;
-    size_t i = 0;
-
-    while (n > 0) {
-        size_t vl = __riscv_vsetvl_e64m8(n);
-        vuint64m8_t va   = __riscv_vle64_v_u64m8(a + i, vl);
-        vuint64m8_t vhi  = __riscv_vle64_v_u64m8(a + i + VEC_N_SIZE_64 - 1, vl);
-        vuint64m8_t vnxt = __riscv_vle64_v_u64m8(a + i + VEC_N_SIZE_64, vl);
-
-        vuint64m8_t vr   = __riscv_vsrl_vx_u64m8(vhi, (size_t)shift, vl);
-        vuint64m8_t vc   = (shift == 0)
-                         ? __riscv_vmv_v_x_u64m8(0, vl)
-                         : __riscv_vsll_vx_u64m8(vnxt, (size_t)inv, vl);
-
-        vuint64m8_t vout = __riscv_vxor_vv_u64m8(va, vr, vl);
-        vout = __riscv_vxor_vv_u64m8(vout, vc, vl);
-
-        __riscv_vse64_v_u64m8(o + i, vout, vl);
-        i += vl;
-        n -= vl;
-    }
-    o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
-}
-#endif
-
 /* ── Public entry point ───────────────────────────────────────────────────*/
 void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
 {
@@ -358,9 +321,5 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
 
     karatsuba_mul_generic(unreduced, a, b, VEC_N_SIZE_64, tmp_buf);
 
-#if ABLATION_RVV_REDUCE
-    reduce_rvv(o, unreduced);
-#else
     reduce(o, unreduced);
-#endif
 }

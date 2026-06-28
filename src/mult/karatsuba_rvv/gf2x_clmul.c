@@ -209,13 +209,6 @@ static void clmul_leaf(uint64_t * __restrict__ r,
 #include "karatsuba_rvv_specialized_gen.h"
 #endif
 
-/* ── Reduce selection ─────────────────────────────────────────────────────
- * RVV_USE_SCALAR_REDUCE=1 forces the scalar reduce() path for ablation.
- * Default (0 or undefined): use reduce_rvv() (the champion path). */
-#ifndef RVV_USE_SCALAR_REDUCE
-#define RVV_USE_SCALAR_REDUCE 0
-#endif
-
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────*/
 static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
 {
@@ -226,44 +219,6 @@ static void reduce(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
         uint64_t r  = a[i + VEC_N_SIZE_64 - 1] >> shift;
         uint64_t carry = (shift == 0) ? 0 : (a[i + VEC_N_SIZE_64] << inv);
         o[i] = a[i] ^ r ^ carry;
-    }
-    o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
-}
-
-/* ── Vectorized modular reduction mod (x^PARAM_N - 1) ───────────────────
- *
- * Replaces the scalar reduce() with RVV vector operations:
- *   - vsrl.vx for the right-shift by (PARAM_N mod 64)
- *   - vsll.vx for the left-shift by (64 - PARAM_N mod 64)
- *   - vxor.vv for the XOR accumulation
- *
- * Uses LMUL=m8 for maximum throughput (8 elements per iteration at VLEN=256).
- * Tail elements are handled naturally by the VL-bounded vsetvl loop.
- */
-static void reduce_rvv(uint64_t * __restrict__ o, const uint64_t * __restrict__ a)
-{
-    const int shift = (int)HQC_PARAM_N_MOD_64;
-    const int inv   = 64 - shift;
-    size_t n = VEC_N_SIZE_64;
-    size_t i = 0;
-
-    while (n > 0) {
-        size_t vl = __riscv_vsetvl_e64m8(n);
-        vuint64m8_t va   = __riscv_vle64_v_u64m8(a + i, vl);
-        vuint64m8_t vhi  = __riscv_vle64_v_u64m8(a + i + VEC_N_SIZE_64 - 1, vl);
-        vuint64m8_t vnxt = __riscv_vle64_v_u64m8(a + i + VEC_N_SIZE_64, vl);
-
-        vuint64m8_t vr   = __riscv_vsrl_vx_u64m8(vhi, (size_t)shift, vl);
-        vuint64m8_t vc   = (shift == 0)
-                         ? __riscv_vmv_v_x_u64m8(0, vl)
-                         : __riscv_vsll_vx_u64m8(vnxt, (size_t)inv, vl);
-
-        vuint64m8_t vout = __riscv_vxor_vv_u64m8(va, vr, vl);
-        vout = __riscv_vxor_vv_u64m8(vout, vc, vl);
-
-        __riscv_vse64_v_u64m8(o + i, vout, vl);
-        i += vl;
-        n -= vl;
     }
     o[VEC_N_SIZE_64 - 1] &= HQC_PARAM_LAST_WORD_MASK_64;
 }
@@ -287,9 +242,5 @@ void vect_mul(uint64_t *o, const uint64_t *a, const uint64_t *b)
     default:
         __builtin_trap();
     }
-#if RVV_USE_SCALAR_REDUCE
     reduce(o, unreduced);
-#else
-    reduce_rvv(o, unreduced);
-#endif
 }
