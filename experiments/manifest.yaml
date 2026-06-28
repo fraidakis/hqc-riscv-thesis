@@ -293,12 +293,13 @@ experiments:
   - id: EXP-karatsuba-zbc-leaf-fixed
     date: 2026-05-15
     hypothesis: >
-      Fully-unrolled fixed-size leaf functions (clmul_leaf_n4: 16 clmul64,
-      clmul_leaf_n8: 64 clmul64, zero branches) eliminate inner-loop control
-      overhead (branch + addi per row) in the schoolbook leaf multiplier.
-      Combined with a threshold sweep T∈{4,8,16}, the best configuration
-      should reduce vect_mul HQC-128 instret below the champion baseline of
-      283,686.
+      Fixed-size leaf functions with assign-on-first-write discipline
+      (clmul_leaf_n8: 64 clmul64, clmul_leaf_n9: 81 clmul64) eliminate
+      memset overhead in the schoolbook leaf multiplier.  Combined with a
+      threshold sweep T∈{4,8,16}, the best configuration should reduce
+      vect_mul HQC-128 instret below the champion baseline of 283,686.
+      Later refined to hybrid form (row-0 unrolled + compact inner loops)
+      for I-cache efficiency on in-order cores (−3.5% HW cycles at L128).
     status: promoted_to_stable
     promoted_date: 2026-05-15
     verdict: >
@@ -308,6 +309,9 @@ experiments:
       natural T=16 base case captures all the branch-elimination gain without
       adding recursion depth. Promoted to src/mult/karatsuba_zbc/.
       Pre-promotion archive at experiments/archive_karatsuba_zbc_pre_leaffixed/.
+      Later: hybrid loop form (row-0 unrolled + compact loops for rows 1..n-1)
+      measured −3.5% HW cycles at L128, −6.6% at L192 vs full unroll despite
+      +8% instret — I-cache benefit dominates on the in-order X60.
     path: experiments/promoted/EXP-karatsuba-zbc-leaf-fixed
     promoted_to: src/mult/karatsuba_zbc/gf2x_clmul.c
     hardware_class: scalar_zbc

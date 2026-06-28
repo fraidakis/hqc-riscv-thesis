@@ -388,7 +388,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_NOINIT=1
                 -DABLATION_AP2=0)
         elseif(POLYMUL STREQUAL "scalar_zb_AC")
-            # Ablation: word-level + specialized tree only (no leaf unrolling, no noinit)
+            # Ablation: word-level + specialized tree only (no leaf spec, no noinit)
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -408,7 +408,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_AP2=1
                 -DABLATION_LEAF_SPEC=0)
         elseif(POLYMUL STREQUAL "scalar_zb_ACB")
-            # Ablation: word-level + specialized tree + noinit (no leaf unrolling)
+            # Ablation: word-level + specialized tree + noinit (no leaf spec)
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
@@ -428,7 +428,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_AP2=1
                 -DABLATION_LEAF_SPEC=0)
         elseif(POLYMUL STREQUAL "scalar_zb_ACD")
-            # Ablation: word-level + specialized tree + leaf unrolling (no noinit)
+            # Ablation: word-level + specialized tree + hybrid leaf spec (no noinit)
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
