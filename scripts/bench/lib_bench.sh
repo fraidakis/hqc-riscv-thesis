@@ -33,10 +33,8 @@ bench_variant_slug() {
         scalar_ref)     echo "scalar-ref" ;;
         scalar_zb)      echo "scalar-zb" ;;
         scalar_zb_A)    echo "scalar-zb-a" ;;
-        scalar_zb_AB)   echo "scalar-zb-ab" ;;
         scalar_zb_AC)   echo "scalar-zb-ac" ;;
         scalar_zb_ACB)  echo "scalar-zb-acb" ;;
-        scalar_zb_ACD)  echo "scalar-zb-acd" ;;
         vector_rvv_D)   echo "vector-rvv-d" ;;
         vector_rvv_DV)  echo "vector-rvv-dv" ;;
         vector_rvv)     echo "vector-rvv" ;;

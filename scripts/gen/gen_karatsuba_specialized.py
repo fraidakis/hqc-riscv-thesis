@@ -112,7 +112,18 @@ def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int,
                 return f"LEAF_CALL_N8({dst}, {xa}, {xb});"
             if n == 9:
                 return f"LEAF_CALL_N9({dst}, {xa}, {xb});"
-        # All other zbc + memset style: use generic clmul_leaf
+            if n == 14:
+                return f"LEAF_CALL_N14({dst}, {xa}, {xb});"
+            if n == 15:
+                return f"LEAF_CALL_N15({dst}, {xa}, {xb});"
+        # zbc memset: also use LEAF_CALL_N8/N9 macros (resolve to generic
+        # clmul_leaf when ABLATION_NOINIT=0, or to specialized leaves otherwise)
+        if leaf_style == "memset" and mode == "zbc":
+            if n == 8:
+                return f"LEAF_CALL_N8({dst}, {xa}, {xb});"
+            if n == 9:
+                return f"LEAF_CALL_N9({dst}, {xa}, {xb});"
+        # All other modes: use generic clmul_leaf
         return f"clmul_leaf({dst}, {xa}, {xb}, {n}u);"
     return f"kmul_{n}({dst}, {xa}, {xb}, child_buf);"
 
@@ -700,17 +711,23 @@ def generate_header(mode: str, threshold: int, leaf_style: str = "noinit",
         out.append("/* Leaf specializations (clmul_leaf_n8/n9) use assign-on-first-write discipline. */")
     out.append("")
 
-    # Emit LEAF_CALL ablation dispatch macros for zbc noinit mode
-    if mode == "zbc" and leaf_style == "noinit":
-        out.append("/* Leaf dispatch: when ABLATION_LEAF_SPEC=1 (or not in ablation mode),")
-        out.append(" * use fixed-size specialized leaves (part of the full C optimization).")
-        out.append(" * In ablation mode with LEAF_SPEC=0, fall back to generic clmul_leaf. */")
-        out.append("#if !defined(ABLATION_LEAF_SPEC) || ABLATION_LEAF_SPEC")
+    # Emit LEAF_CALL ablation dispatch macros for zbc mode (both noinit and memset)
+    if mode == "zbc":
+        out.append("/* Leaf dispatch: when ABLATION_NOINIT=1 (or not in ablation mode),")
+        out.append(" * use fixed-size specialized leaves (part of the B assign-on-first-write policy).")
+        out.append(" * In ablation mode with NOINIT=0, fall back to generic clmul_leaf. */")
+        out.append("#if !defined(ABLATION_NOINIT) || ABLATION_NOINIT")
         out.append("#define LEAF_CALL_N9(r, a, b)    clmul_leaf_n9((r), (a), (b))")
         out.append("#define LEAF_CALL_N8(r, a, b)    clmul_leaf_n8((r), (a), (b))")
+        if leaf_style == "noinit":
+            out.append("#define LEAF_CALL_N14(r, a, b)   clmul_leaf_n14((r), (a), (b))")
+            out.append("#define LEAF_CALL_N15(r, a, b)   clmul_leaf_n15((r), (a), (b))")
         out.append("#else")
         out.append("#define LEAF_CALL_N9(r, a, b)    clmul_leaf((r), (a), (b), 9u)")
         out.append("#define LEAF_CALL_N8(r, a, b)    clmul_leaf((r), (a), (b), 8u)")
+        if leaf_style == "noinit":
+            out.append("#define LEAF_CALL_N14(r, a, b)   clmul_leaf((r), (a), (b), 14u)")
+            out.append("#define LEAF_CALL_N15(r, a, b)   clmul_leaf((r), (a), (b), 15u)")
         out.append("#endif")
         out.append("")
 

@@ -1,10 +1,8 @@
 scalar_ref
 scalar_zb
 scalar_zb_A
-scalar_zb_AB
 scalar_zb_AC
 scalar_zb_ACB
-scalar_zb_ACD
 scalar_zb_ABC_nosplit
 vector_rvv_D
 vector_rvv_V
