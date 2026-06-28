@@ -12,80 +12,62 @@ static void kmul_17(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 18u;
-    uint64_t *zmid      = z2 + 16u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 18u;
     uint64_t *tb        = ta + 9u;
     uint64_t *child_buf = tb + 9u;
 
-    vclmul_leaf(z0, a, b, 9u);
-    vclmul_leaf(z2, a + 9u, b + 9u, 8u);
+    /* Direct-write: z0 → r[0..17], z2 → r[18..33] */
+    vclmul_leaf(r, a, b, 9u);
+    vclmul_leaf(r + 18u, a + 9u, b + 9u, 8u);
 
-    rvv_xor_u64(ta, a, a + 9u, 8u);
-    rvv_xor_u64(tb, b, b + 9u, 8u);
-    ta[8u] = a[8u];
-    tb[8u] = b[8u];
+    /* ta/tb preparation: scalar XOR (n1=8) */
+    {
+        for (size_t i = 0; i < 8u; i++) {
+            ta[i] = a[i] ^ a[9u + i];
+            tb[i] = b[i] ^ b[9u + i];
+        }
+        ta[8u] = a[8u];
+        tb[8u] = b[8u];
+    }
 
     vclmul_leaf(zmid, ta, tb, 9u);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
+    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */
     {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 18u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (18u & ~3u); i < 18u; i++) {
-            *r_p++ = *z0_p++;
-        }
+        const uint64_t *cp_src = r + 9u;
+        uint64_t *cp_dst = ta;
+        for (size_t i = 0; i < 9u; i++)
+            cp_dst[i] = cp_src[i];
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
+    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */
     {
-        uint64_t *rh_p = r + 18u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 16u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (16u & ~3u); i < 16u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
-
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 9u;
+        uint64_t *dst = r + 9u;
         const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+        const uint64_t *z0_p = r;
+        const uint64_t *z2_p = r + 18u;
+        for (size_t i = 0; i < 9u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+    }
 
-        for (size_t i = 0; i + 4u <= 16u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (16u & ~3u); i < 16u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 16u; i < 18u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
+    /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */
+    {
+        uint64_t *dst = r + 18u;
+        const uint64_t *zm_p = zmid + 9u;
+        const uint64_t *z0_p = ta;
+        const uint64_t *z2_p = r + 27u;
+        for (size_t i = 0; i < 7u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+    }
+
+    /* Loop 3B: odd-n tail where z2 is absent, z0 from saved ta */
+    {
+        uint64_t *dst = r + 25u;
+        const uint64_t *zm_p = zmid + 16u;
+        const uint64_t *z0_p = ta + 7u;
+        for (size_t i = 0; i < 2u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i];
     }
 }
 
@@ -94,78 +76,51 @@ static void kmul_18(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 18u;
-    uint64_t *zmid      = z2 + 18u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 18u;
     uint64_t *tb        = ta + 9u;
     uint64_t *child_buf = tb + 9u;
 
-    vclmul_leaf(z0, a, b, 9u);
-    vclmul_leaf(z2, a + 9u, b + 9u, 9u);
+    /* Direct-write: z0 → r[0..17], z2 → r[18..35] */
+    vclmul_leaf(r, a, b, 9u);
+    vclmul_leaf(r + 18u, a + 9u, b + 9u, 9u);
 
-    rvv_xor_u64(ta, a, a + 9u, 9u);
-    rvv_xor_u64(tb, b, b + 9u, 9u);
+    /* ta/tb preparation: scalar XOR (n1=9) */
+    {
+        for (size_t i = 0; i < 9u; i++) {
+            ta[i] = a[i] ^ a[9u + i];
+            tb[i] = b[i] ^ b[9u + i];
+        }
+    }
 
     vclmul_leaf(zmid, ta, tb, 9u);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
+    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */
     {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 18u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (18u & ~3u); i < 18u; i++) {
-            *r_p++ = *z0_p++;
-        }
+        const uint64_t *cp_src = r + 9u;
+        uint64_t *cp_dst = ta;
+        for (size_t i = 0; i < 9u; i++)
+            cp_dst[i] = cp_src[i];
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
+    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */
     {
-        uint64_t *rh_p = r + 18u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 18u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (18u & ~3u); i < 18u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
-
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 9u;
+        uint64_t *dst = r + 9u;
         const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+        const uint64_t *z0_p = r;
+        const uint64_t *z2_p = r + 18u;
+        for (size_t i = 0; i < 9u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+    }
 
-        for (size_t i = 0; i + 4u <= 18u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (18u & ~3u); i < 18u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 18u; i < 18u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
+    /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */
+    {
+        uint64_t *dst = r + 18u;
+        const uint64_t *zm_p = zmid + 9u;
+        const uint64_t *z0_p = ta;
+        const uint64_t *z2_p = r + 27u;
+        for (size_t i = 0; i < 9u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
     }
 }
 
@@ -174,79 +129,28 @@ static void kmul_28(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 28u;
-    uint64_t *zmid      = z2 + 28u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 28u;
     uint64_t *tb        = ta + 14u;
     uint64_t *child_buf = tb + 14u;
 
-    vclmul_leaf(z0, a, b, 14u);
-    vclmul_leaf(z2, a + 14u, b + 14u, 14u);
+    /* Direct-write: z0 → r[0..27], z2 → r[28..55] */
+    vclmul_leaf(r, a, b, 14u);
+    vclmul_leaf(r + 28u, a + 14u, b + 14u, 14u);
 
     rvv_xor_u64(ta, a, a + 14u, 14u);
     rvv_xor_u64(tb, b, b + 14u, 14u);
 
     vclmul_leaf(zmid, ta, tb, 14u);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 28u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (28u & ~3u); i < 28u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 14u, 14u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 28u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 28u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (28u & ~3u); i < 28u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 14u, zmid, r, r + 28u, 14u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 14u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 28u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (28u & ~3u); i < 28u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 28u; i < 28u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 28u, zmid + 14u, ta, r + 42u, 14u);
 }
 
 static void kmul_29(uint64_t * __restrict__ r,
@@ -254,15 +158,14 @@ static void kmul_29(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 30u;
-    uint64_t *zmid      = z2 + 28u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 30u;
     uint64_t *tb        = ta + 15u;
     uint64_t *child_buf = tb + 15u;
 
-    vclmul_leaf(z0, a, b, 15u);
-    vclmul_leaf(z2, a + 15u, b + 15u, 14u);
+    /* Direct-write: z0 → r[0..29], z2 → r[30..57] */
+    vclmul_leaf(r, a, b, 15u);
+    vclmul_leaf(r + 30u, a + 15u, b + 15u, 14u);
 
     rvv_xor_u64(ta, a, a + 15u, 14u);
     rvv_xor_u64(tb, b, b + 15u, 14u);
@@ -271,64 +174,17 @@ static void kmul_29(uint64_t * __restrict__ r,
 
     vclmul_leaf(zmid, ta, tb, 15u);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 30u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (30u & ~3u); i < 30u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 15u, 15u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 30u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 28u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (28u & ~3u); i < 28u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 15u, zmid, r, r + 30u, 15u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 15u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 30u, zmid + 15u, ta, r + 45u, 13u);
 
-        for (size_t i = 0; i + 4u <= 28u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (28u & ~3u); i < 28u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 28u; i < 30u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 43u, zmid + 28u, ta + 13u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_34(uint64_t * __restrict__ r,
@@ -336,79 +192,28 @@ static void kmul_34(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 34u;
-    uint64_t *zmid      = z2 + 34u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 34u;
     uint64_t *tb        = ta + 17u;
     uint64_t *child_buf = tb + 17u;
 
-    kmul_17(z0, a, b, child_buf);
-    kmul_17(z2, a + 17u, b + 17u, child_buf);
+    /* Direct-write: z0 → r[0..33], z2 → r[34..67] */
+    kmul_17(r, a, b, child_buf);
+    kmul_17(r + 34u, a + 17u, b + 17u, child_buf);
 
     rvv_xor_u64(ta, a, a + 17u, 17u);
     rvv_xor_u64(tb, b, b + 17u, 17u);
 
     kmul_17(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 34u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (34u & ~3u); i < 34u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 17u, 17u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 34u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 34u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (34u & ~3u); i < 34u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 17u, zmid, r, r + 34u, 17u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 17u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 34u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (34u & ~3u); i < 34u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 34u; i < 34u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 34u, zmid + 17u, ta, r + 51u, 17u);
 }
 
 static void kmul_35(uint64_t * __restrict__ r,
@@ -416,15 +221,14 @@ static void kmul_35(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 36u;
-    uint64_t *zmid      = z2 + 34u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 36u;
     uint64_t *tb        = ta + 18u;
     uint64_t *child_buf = tb + 18u;
 
-    kmul_18(z0, a, b, child_buf);
-    kmul_17(z2, a + 18u, b + 18u, child_buf);
+    /* Direct-write: z0 → r[0..35], z2 → r[36..69] */
+    kmul_18(r, a, b, child_buf);
+    kmul_17(r + 36u, a + 18u, b + 18u, child_buf);
 
     rvv_xor_u64(ta, a, a + 18u, 17u);
     rvv_xor_u64(tb, b, b + 18u, 17u);
@@ -433,64 +237,17 @@ static void kmul_35(uint64_t * __restrict__ r,
 
     kmul_18(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 36u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (36u & ~3u); i < 36u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 18u, 18u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 36u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 34u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (34u & ~3u); i < 34u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 18u, zmid, r, r + 36u, 18u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 18u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 36u, zmid + 18u, ta, r + 54u, 16u);
 
-        for (size_t i = 0; i + 4u <= 34u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (34u & ~3u); i < 34u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 34u; i < 36u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 52u, zmid + 34u, ta + 16u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_36(uint64_t * __restrict__ r,
@@ -498,79 +255,28 @@ static void kmul_36(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 36u;
-    uint64_t *zmid      = z2 + 36u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 36u;
     uint64_t *tb        = ta + 18u;
     uint64_t *child_buf = tb + 18u;
 
-    kmul_18(z0, a, b, child_buf);
-    kmul_18(z2, a + 18u, b + 18u, child_buf);
+    /* Direct-write: z0 → r[0..35], z2 → r[36..71] */
+    kmul_18(r, a, b, child_buf);
+    kmul_18(r + 36u, a + 18u, b + 18u, child_buf);
 
     rvv_xor_u64(ta, a, a + 18u, 18u);
     rvv_xor_u64(tb, b, b + 18u, 18u);
 
     kmul_18(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 36u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (36u & ~3u); i < 36u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 18u, 18u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 36u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 36u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (36u & ~3u); i < 36u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 18u, zmid, r, r + 36u, 18u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 18u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 36u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (36u & ~3u); i < 36u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 36u; i < 36u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 36u, zmid + 18u, ta, r + 54u, 18u);
 }
 
 static void kmul_56(uint64_t * __restrict__ r,
@@ -578,79 +284,28 @@ static void kmul_56(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 56u;
-    uint64_t *zmid      = z2 + 56u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 56u;
     uint64_t *tb        = ta + 28u;
     uint64_t *child_buf = tb + 28u;
 
-    kmul_28(z0, a, b, child_buf);
-    kmul_28(z2, a + 28u, b + 28u, child_buf);
+    /* Direct-write: z0 → r[0..55], z2 → r[56..111] */
+    kmul_28(r, a, b, child_buf);
+    kmul_28(r + 56u, a + 28u, b + 28u, child_buf);
 
     rvv_xor_u64(ta, a, a + 28u, 28u);
     rvv_xor_u64(tb, b, b + 28u, 28u);
 
     kmul_28(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 56u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (56u & ~3u); i < 56u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 28u, 28u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 56u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 56u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (56u & ~3u); i < 56u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 28u, zmid, r, r + 56u, 28u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 28u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 56u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (56u & ~3u); i < 56u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 56u; i < 56u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 56u, zmid + 28u, ta, r + 84u, 28u);
 }
 
 static void kmul_57(uint64_t * __restrict__ r,
@@ -658,15 +313,14 @@ static void kmul_57(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 58u;
-    uint64_t *zmid      = z2 + 56u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 58u;
     uint64_t *tb        = ta + 29u;
     uint64_t *child_buf = tb + 29u;
 
-    kmul_29(z0, a, b, child_buf);
-    kmul_28(z2, a + 29u, b + 29u, child_buf);
+    /* Direct-write: z0 → r[0..57], z2 → r[58..113] */
+    kmul_29(r, a, b, child_buf);
+    kmul_28(r + 58u, a + 29u, b + 29u, child_buf);
 
     rvv_xor_u64(ta, a, a + 29u, 28u);
     rvv_xor_u64(tb, b, b + 29u, 28u);
@@ -675,64 +329,17 @@ static void kmul_57(uint64_t * __restrict__ r,
 
     kmul_29(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 58u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (58u & ~3u); i < 58u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 29u, 29u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 58u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 56u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (56u & ~3u); i < 56u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 29u, zmid, r, r + 58u, 29u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 29u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 58u, zmid + 29u, ta, r + 87u, 27u);
 
-        for (size_t i = 0; i + 4u <= 56u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (56u & ~3u); i < 56u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 56u; i < 58u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 85u, zmid + 56u, ta + 27u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_69(uint64_t * __restrict__ r,
@@ -740,15 +347,14 @@ static void kmul_69(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 70u;
-    uint64_t *zmid      = z2 + 68u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 70u;
     uint64_t *tb        = ta + 35u;
     uint64_t *child_buf = tb + 35u;
 
-    kmul_35(z0, a, b, child_buf);
-    kmul_34(z2, a + 35u, b + 35u, child_buf);
+    /* Direct-write: z0 → r[0..69], z2 → r[70..137] */
+    kmul_35(r, a, b, child_buf);
+    kmul_34(r + 70u, a + 35u, b + 35u, child_buf);
 
     rvv_xor_u64(ta, a, a + 35u, 34u);
     rvv_xor_u64(tb, b, b + 35u, 34u);
@@ -757,64 +363,17 @@ static void kmul_69(uint64_t * __restrict__ r,
 
     kmul_35(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 70u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (70u & ~3u); i < 70u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 35u, 35u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 70u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 68u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (68u & ~3u); i < 68u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 35u, zmid, r, r + 70u, 35u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 35u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 70u, zmid + 35u, ta, r + 105u, 33u);
 
-        for (size_t i = 0; i + 4u <= 68u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (68u & ~3u); i < 68u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 68u; i < 70u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 103u, zmid + 68u, ta + 33u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_70(uint64_t * __restrict__ r,
@@ -822,79 +381,28 @@ static void kmul_70(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 70u;
-    uint64_t *zmid      = z2 + 70u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 70u;
     uint64_t *tb        = ta + 35u;
     uint64_t *child_buf = tb + 35u;
 
-    kmul_35(z0, a, b, child_buf);
-    kmul_35(z2, a + 35u, b + 35u, child_buf);
+    /* Direct-write: z0 → r[0..69], z2 → r[70..139] */
+    kmul_35(r, a, b, child_buf);
+    kmul_35(r + 70u, a + 35u, b + 35u, child_buf);
 
     rvv_xor_u64(ta, a, a + 35u, 35u);
     rvv_xor_u64(tb, b, b + 35u, 35u);
 
     kmul_35(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 70u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (70u & ~3u); i < 70u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 35u, 35u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 70u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 70u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (70u & ~3u); i < 70u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 35u, zmid, r, r + 70u, 35u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 35u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 70u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (70u & ~3u); i < 70u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 70u; i < 70u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 70u, zmid + 35u, ta, r + 105u, 35u);
 }
 
 static void kmul_71(uint64_t * __restrict__ r,
@@ -902,15 +410,14 @@ static void kmul_71(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 72u;
-    uint64_t *zmid      = z2 + 70u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 72u;
     uint64_t *tb        = ta + 36u;
     uint64_t *child_buf = tb + 36u;
 
-    kmul_36(z0, a, b, child_buf);
-    kmul_35(z2, a + 36u, b + 36u, child_buf);
+    /* Direct-write: z0 → r[0..71], z2 → r[72..141] */
+    kmul_36(r, a, b, child_buf);
+    kmul_35(r + 72u, a + 36u, b + 36u, child_buf);
 
     rvv_xor_u64(ta, a, a + 36u, 35u);
     rvv_xor_u64(tb, b, b + 36u, 35u);
@@ -919,64 +426,17 @@ static void kmul_71(uint64_t * __restrict__ r,
 
     kmul_36(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 72u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (72u & ~3u); i < 72u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 36u, 36u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 72u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 70u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (70u & ~3u); i < 70u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 36u, zmid, r, r + 72u, 36u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 36u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 72u, zmid + 36u, ta, r + 108u, 34u);
 
-        for (size_t i = 0; i + 4u <= 70u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (70u & ~3u); i < 70u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 70u; i < 72u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 106u, zmid + 70u, ta + 34u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_112(uint64_t * __restrict__ r,
@@ -984,79 +444,28 @@ static void kmul_112(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 112u;
-    uint64_t *zmid      = z2 + 112u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 112u;
     uint64_t *tb        = ta + 56u;
     uint64_t *child_buf = tb + 56u;
 
-    kmul_56(z0, a, b, child_buf);
-    kmul_56(z2, a + 56u, b + 56u, child_buf);
+    /* Direct-write: z0 → r[0..111], z2 → r[112..223] */
+    kmul_56(r, a, b, child_buf);
+    kmul_56(r + 112u, a + 56u, b + 56u, child_buf);
 
     rvv_xor_u64(ta, a, a + 56u, 56u);
     rvv_xor_u64(tb, b, b + 56u, 56u);
 
     kmul_56(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 112u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (112u & ~3u); i < 112u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 56u, 56u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 112u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 112u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (112u & ~3u); i < 112u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 56u, zmid, r, r + 112u, 56u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 56u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 112u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (112u & ~3u); i < 112u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 112u; i < 112u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 112u, zmid + 56u, ta, r + 168u, 56u);
 }
 
 static void kmul_113(uint64_t * __restrict__ r,
@@ -1064,15 +473,14 @@ static void kmul_113(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 114u;
-    uint64_t *zmid      = z2 + 112u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 114u;
     uint64_t *tb        = ta + 57u;
     uint64_t *child_buf = tb + 57u;
 
-    kmul_57(z0, a, b, child_buf);
-    kmul_56(z2, a + 57u, b + 57u, child_buf);
+    /* Direct-write: z0 → r[0..113], z2 → r[114..225] */
+    kmul_57(r, a, b, child_buf);
+    kmul_56(r + 114u, a + 57u, b + 57u, child_buf);
 
     rvv_xor_u64(ta, a, a + 57u, 56u);
     rvv_xor_u64(tb, b, b + 57u, 56u);
@@ -1081,64 +489,17 @@ static void kmul_113(uint64_t * __restrict__ r,
 
     kmul_57(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 114u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (114u & ~3u); i < 114u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 57u, 57u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 114u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 112u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (112u & ~3u); i < 112u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 57u, zmid, r, r + 114u, 57u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 57u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 114u, zmid + 57u, ta, r + 171u, 55u);
 
-        for (size_t i = 0; i + 4u <= 112u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (112u & ~3u); i < 112u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 112u; i < 114u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 169u, zmid + 112u, ta + 55u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_138(uint64_t * __restrict__ r,
@@ -1146,79 +507,28 @@ static void kmul_138(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 138u;
-    uint64_t *zmid      = z2 + 138u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 138u;
     uint64_t *tb        = ta + 69u;
     uint64_t *child_buf = tb + 69u;
 
-    kmul_69(z0, a, b, child_buf);
-    kmul_69(z2, a + 69u, b + 69u, child_buf);
+    /* Direct-write: z0 → r[0..137], z2 → r[138..275] */
+    kmul_69(r, a, b, child_buf);
+    kmul_69(r + 138u, a + 69u, b + 69u, child_buf);
 
     rvv_xor_u64(ta, a, a + 69u, 69u);
     rvv_xor_u64(tb, b, b + 69u, 69u);
 
     kmul_69(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 138u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (138u & ~3u); i < 138u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 69u, 69u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 138u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 138u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (138u & ~3u); i < 138u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 69u, zmid, r, r + 138u, 69u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 69u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 138u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (138u & ~3u); i < 138u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 138u; i < 138u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 138u, zmid + 69u, ta, r + 207u, 69u);
 }
 
 static void kmul_139(uint64_t * __restrict__ r,
@@ -1226,15 +536,14 @@ static void kmul_139(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 140u;
-    uint64_t *zmid      = z2 + 138u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 140u;
     uint64_t *tb        = ta + 70u;
     uint64_t *child_buf = tb + 70u;
 
-    kmul_70(z0, a, b, child_buf);
-    kmul_69(z2, a + 70u, b + 70u, child_buf);
+    /* Direct-write: z0 → r[0..139], z2 → r[140..277] */
+    kmul_70(r, a, b, child_buf);
+    kmul_69(r + 140u, a + 70u, b + 70u, child_buf);
 
     rvv_xor_u64(ta, a, a + 70u, 69u);
     rvv_xor_u64(tb, b, b + 70u, 69u);
@@ -1243,64 +552,17 @@ static void kmul_139(uint64_t * __restrict__ r,
 
     kmul_70(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 140u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (140u & ~3u); i < 140u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 70u, 70u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 140u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 138u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (138u & ~3u); i < 138u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 70u, zmid, r, r + 140u, 70u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 70u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 140u, zmid + 70u, ta, r + 210u, 68u);
 
-        for (size_t i = 0; i + 4u <= 138u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (138u & ~3u); i < 138u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 138u; i < 140u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 208u, zmid + 138u, ta + 68u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_140(uint64_t * __restrict__ r,
@@ -1308,79 +570,28 @@ static void kmul_140(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 140u;
-    uint64_t *zmid      = z2 + 140u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 140u;
     uint64_t *tb        = ta + 70u;
     uint64_t *child_buf = tb + 70u;
 
-    kmul_70(z0, a, b, child_buf);
-    kmul_70(z2, a + 70u, b + 70u, child_buf);
+    /* Direct-write: z0 → r[0..139], z2 → r[140..279] */
+    kmul_70(r, a, b, child_buf);
+    kmul_70(r + 140u, a + 70u, b + 70u, child_buf);
 
     rvv_xor_u64(ta, a, a + 70u, 70u);
     rvv_xor_u64(tb, b, b + 70u, 70u);
 
     kmul_70(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 140u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (140u & ~3u); i < 140u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 70u, 70u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 140u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 140u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (140u & ~3u); i < 140u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 70u, zmid, r, r + 140u, 70u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 70u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 140u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (140u & ~3u); i < 140u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 140u; i < 140u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 140u, zmid + 70u, ta, r + 210u, 70u);
 }
 
 static void kmul_141(uint64_t * __restrict__ r,
@@ -1388,15 +599,14 @@ static void kmul_141(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 142u;
-    uint64_t *zmid      = z2 + 140u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 142u;
     uint64_t *tb        = ta + 71u;
     uint64_t *child_buf = tb + 71u;
 
-    kmul_71(z0, a, b, child_buf);
-    kmul_70(z2, a + 71u, b + 71u, child_buf);
+    /* Direct-write: z0 → r[0..141], z2 → r[142..281] */
+    kmul_71(r, a, b, child_buf);
+    kmul_70(r + 142u, a + 71u, b + 71u, child_buf);
 
     rvv_xor_u64(ta, a, a + 71u, 70u);
     rvv_xor_u64(tb, b, b + 71u, 70u);
@@ -1405,64 +615,17 @@ static void kmul_141(uint64_t * __restrict__ r,
 
     kmul_71(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 142u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (142u & ~3u); i < 142u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 71u, 71u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 142u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 140u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (140u & ~3u); i < 140u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 71u, zmid, r, r + 142u, 71u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 71u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 142u, zmid + 71u, ta, r + 213u, 69u);
 
-        for (size_t i = 0; i + 4u <= 140u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (140u & ~3u); i < 140u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 140u; i < 142u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 211u, zmid + 140u, ta + 69u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_225(uint64_t * __restrict__ r,
@@ -1470,15 +633,14 @@ static void kmul_225(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 226u;
-    uint64_t *zmid      = z2 + 224u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 226u;
     uint64_t *tb        = ta + 113u;
     uint64_t *child_buf = tb + 113u;
 
-    kmul_113(z0, a, b, child_buf);
-    kmul_112(z2, a + 113u, b + 113u, child_buf);
+    /* Direct-write: z0 → r[0..225], z2 → r[226..449] */
+    kmul_113(r, a, b, child_buf);
+    kmul_112(r + 226u, a + 113u, b + 113u, child_buf);
 
     rvv_xor_u64(ta, a, a + 113u, 112u);
     rvv_xor_u64(tb, b, b + 113u, 112u);
@@ -1487,64 +649,17 @@ static void kmul_225(uint64_t * __restrict__ r,
 
     kmul_113(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 226u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (226u & ~3u); i < 226u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 113u, 113u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 226u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 224u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (224u & ~3u); i < 224u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 113u, zmid, r, r + 226u, 113u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 113u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 226u, zmid + 113u, ta, r + 339u, 111u);
 
-        for (size_t i = 0; i + 4u <= 224u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (224u & ~3u); i < 224u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 224u; i < 226u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 337u, zmid + 224u, ta + 111u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_226(uint64_t * __restrict__ r,
@@ -1552,79 +667,28 @@ static void kmul_226(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 226u;
-    uint64_t *zmid      = z2 + 226u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 226u;
     uint64_t *tb        = ta + 113u;
     uint64_t *child_buf = tb + 113u;
 
-    kmul_113(z0, a, b, child_buf);
-    kmul_113(z2, a + 113u, b + 113u, child_buf);
+    /* Direct-write: z0 → r[0..225], z2 → r[226..451] */
+    kmul_113(r, a, b, child_buf);
+    kmul_113(r + 226u, a + 113u, b + 113u, child_buf);
 
     rvv_xor_u64(ta, a, a + 113u, 113u);
     rvv_xor_u64(tb, b, b + 113u, 113u);
 
     kmul_113(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 226u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (226u & ~3u); i < 226u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 113u, 113u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 226u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 226u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (226u & ~3u); i < 226u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 113u, zmid, r, r + 226u, 113u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 113u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 226u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (226u & ~3u); i < 226u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 226u; i < 226u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 226u, zmid + 113u, ta, r + 339u, 113u);
 }
 
 static void kmul_277(uint64_t * __restrict__ r,
@@ -1632,15 +696,14 @@ static void kmul_277(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 278u;
-    uint64_t *zmid      = z2 + 276u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 278u;
     uint64_t *tb        = ta + 139u;
     uint64_t *child_buf = tb + 139u;
 
-    kmul_139(z0, a, b, child_buf);
-    kmul_138(z2, a + 139u, b + 139u, child_buf);
+    /* Direct-write: z0 → r[0..277], z2 → r[278..553] */
+    kmul_139(r, a, b, child_buf);
+    kmul_138(r + 278u, a + 139u, b + 139u, child_buf);
 
     rvv_xor_u64(ta, a, a + 139u, 138u);
     rvv_xor_u64(tb, b, b + 139u, 138u);
@@ -1649,64 +712,17 @@ static void kmul_277(uint64_t * __restrict__ r,
 
     kmul_139(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 278u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (278u & ~3u); i < 278u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 139u, 139u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 278u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 276u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (276u & ~3u); i < 276u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 139u, zmid, r, r + 278u, 139u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 139u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 278u, zmid + 139u, ta, r + 417u, 137u);
 
-        for (size_t i = 0; i + 4u <= 276u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (276u & ~3u); i < 276u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 276u; i < 278u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 415u, zmid + 276u, ta + 137u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_280(uint64_t * __restrict__ r,
@@ -1714,79 +730,28 @@ static void kmul_280(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 280u;
-    uint64_t *zmid      = z2 + 280u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 280u;
     uint64_t *tb        = ta + 140u;
     uint64_t *child_buf = tb + 140u;
 
-    kmul_140(z0, a, b, child_buf);
-    kmul_140(z2, a + 140u, b + 140u, child_buf);
+    /* Direct-write: z0 → r[0..279], z2 → r[280..559] */
+    kmul_140(r, a, b, child_buf);
+    kmul_140(r + 280u, a + 140u, b + 140u, child_buf);
 
     rvv_xor_u64(ta, a, a + 140u, 140u);
     rvv_xor_u64(tb, b, b + 140u, 140u);
 
     kmul_140(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 280u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (280u & ~3u); i < 280u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 140u, 140u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 280u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 280u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (280u & ~3u); i < 280u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 140u, zmid, r, r + 280u, 140u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 140u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 280u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (280u & ~3u); i < 280u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 280u; i < 280u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 280u, zmid + 140u, ta, r + 420u, 140u);
 }
 
 static void kmul_281(uint64_t * __restrict__ r,
@@ -1794,15 +759,14 @@ static void kmul_281(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 282u;
-    uint64_t *zmid      = z2 + 280u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 282u;
     uint64_t *tb        = ta + 141u;
     uint64_t *child_buf = tb + 141u;
 
-    kmul_141(z0, a, b, child_buf);
-    kmul_140(z2, a + 141u, b + 141u, child_buf);
+    /* Direct-write: z0 → r[0..281], z2 → r[282..561] */
+    kmul_141(r, a, b, child_buf);
+    kmul_140(r + 282u, a + 141u, b + 141u, child_buf);
 
     rvv_xor_u64(ta, a, a + 141u, 140u);
     rvv_xor_u64(tb, b, b + 141u, 140u);
@@ -1811,64 +775,17 @@ static void kmul_281(uint64_t * __restrict__ r,
 
     kmul_141(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 282u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (282u & ~3u); i < 282u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 141u, 141u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 282u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 280u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (280u & ~3u); i < 280u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 141u, zmid, r, r + 282u, 141u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 141u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 282u, zmid + 141u, ta, r + 423u, 139u);
 
-        for (size_t i = 0; i + 4u <= 280u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (280u & ~3u); i < 280u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 280u; i < 282u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 421u, zmid + 280u, ta + 139u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_450(uint64_t * __restrict__ r,
@@ -1876,79 +793,28 @@ static void kmul_450(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 450u;
-    uint64_t *zmid      = z2 + 450u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 450u;
     uint64_t *tb        = ta + 225u;
     uint64_t *child_buf = tb + 225u;
 
-    kmul_225(z0, a, b, child_buf);
-    kmul_225(z2, a + 225u, b + 225u, child_buf);
+    /* Direct-write: z0 → r[0..449], z2 → r[450..899] */
+    kmul_225(r, a, b, child_buf);
+    kmul_225(r + 450u, a + 225u, b + 225u, child_buf);
 
     rvv_xor_u64(ta, a, a + 225u, 225u);
     rvv_xor_u64(tb, b, b + 225u, 225u);
 
     kmul_225(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 450u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (450u & ~3u); i < 450u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 225u, 225u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 450u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 450u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (450u & ~3u); i < 450u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 225u, zmid, r, r + 450u, 225u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 225u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
-
-        for (size_t i = 0; i + 4u <= 450u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (450u & ~3u); i < 450u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 450u; i < 450u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 450u, zmid + 225u, ta, r + 675u, 225u);
 }
 
 static void kmul_451(uint64_t * __restrict__ r,
@@ -1956,15 +822,14 @@ static void kmul_451(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 452u;
-    uint64_t *zmid      = z2 + 450u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 452u;
     uint64_t *tb        = ta + 226u;
     uint64_t *child_buf = tb + 226u;
 
-    kmul_226(z0, a, b, child_buf);
-    kmul_225(z2, a + 226u, b + 226u, child_buf);
+    /* Direct-write: z0 → r[0..451], z2 → r[452..901] */
+    kmul_226(r, a, b, child_buf);
+    kmul_225(r + 452u, a + 226u, b + 226u, child_buf);
 
     rvv_xor_u64(ta, a, a + 226u, 225u);
     rvv_xor_u64(tb, b, b + 226u, 225u);
@@ -1973,64 +838,17 @@ static void kmul_451(uint64_t * __restrict__ r,
 
     kmul_226(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 452u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (452u & ~3u); i < 452u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 226u, 226u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 452u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 450u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (450u & ~3u); i < 450u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 226u, zmid, r, r + 452u, 226u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 226u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 452u, zmid + 226u, ta, r + 678u, 224u);
 
-        for (size_t i = 0; i + 4u <= 450u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (450u & ~3u); i < 450u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 450u; i < 452u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 676u, zmid + 450u, ta + 224u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_561(uint64_t * __restrict__ r,
@@ -2038,15 +856,14 @@ static void kmul_561(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 562u;
-    uint64_t *zmid      = z2 + 560u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 562u;
     uint64_t *tb        = ta + 281u;
     uint64_t *child_buf = tb + 281u;
 
-    kmul_281(z0, a, b, child_buf);
-    kmul_280(z2, a + 281u, b + 281u, child_buf);
+    /* Direct-write: z0 → r[0..561], z2 → r[562..1121] */
+    kmul_281(r, a, b, child_buf);
+    kmul_280(r + 562u, a + 281u, b + 281u, child_buf);
 
     rvv_xor_u64(ta, a, a + 281u, 280u);
     rvv_xor_u64(tb, b, b + 281u, 280u);
@@ -2055,64 +872,17 @@ static void kmul_561(uint64_t * __restrict__ r,
 
     kmul_281(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 562u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (562u & ~3u); i < 562u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 281u, 281u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 562u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 560u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (560u & ~3u); i < 560u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 281u, zmid, r, r + 562u, 281u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 281u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 562u, zmid + 281u, ta, r + 843u, 279u);
 
-        for (size_t i = 0; i + 4u <= 560u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (560u & ~3u); i < 560u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 560u; i < 562u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 841u, zmid + 560u, ta + 279u, (const uint64_t *)0, 2u);
 }
 
 static void kmul_901(uint64_t * __restrict__ r,
@@ -2120,15 +890,14 @@ static void kmul_901(uint64_t * __restrict__ r,
                     const uint64_t * __restrict__ b,
                     uint64_t * __restrict__ tmp)
 {
-    uint64_t *z0        = tmp;
-    uint64_t *z2        = z0 + 902u;
-    uint64_t *zmid      = z2 + 900u;
+    uint64_t *zmid      = tmp;
     uint64_t *ta        = zmid + 902u;
     uint64_t *tb        = ta + 451u;
     uint64_t *child_buf = tb + 451u;
 
-    kmul_451(z0, a, b, child_buf);
-    kmul_450(z2, a + 451u, b + 451u, child_buf);
+    /* Direct-write: z0 → r[0..901], z2 → r[902..1801] */
+    kmul_451(r, a, b, child_buf);
+    kmul_450(r + 902u, a + 451u, b + 451u, child_buf);
 
     rvv_xor_u64(ta, a, a + 451u, 450u);
     rvv_xor_u64(tb, b, b + 451u, 450u);
@@ -2137,64 +906,17 @@ static void kmul_901(uint64_t * __restrict__ r,
 
     kmul_451(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 */
-    {
-        uint64_t *r_p = r;
-        const uint64_t *z0_p = z0;
-        for (size_t i = 0; i + 4u <= 902u; i += 4u) {
-            r_p[0] = z0_p[0];
-            r_p[1] = z0_p[1];
-            r_p[2] = z0_p[2];
-            r_p[3] = z0_p[3];
-            r_p += 4;
-            z0_p += 4;
-        }
-        for (size_t i = (902u & ~3u); i < 902u; i++) {
-            *r_p++ = *z0_p++;
-        }
-    }
+    /* Save overlap region r[n0..2*n0-1] to ta */
+    rvv_copy_u64(ta, r + 451u, 451u);
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 */
-    {
-        uint64_t *rh_p = r + 902u;
-        const uint64_t *z2_p = z2;
-        for (size_t i = 0; i + 4u <= 900u; i += 4u) {
-            rh_p[0] = z2_p[0];
-            rh_p[1] = z2_p[1];
-            rh_p[2] = z2_p[2];
-            rh_p[3] = z2_p[3];
-            rh_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (900u & ~3u); i < 900u; i++) {
-            *rh_p++ = *z2_p++;
-        }
-    }
+    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
+    rvv_xor3_u64(r + 451u, zmid, r, r + 902u, 451u);
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] (where z2 exists) */
-    {
-        uint64_t *rm_p = r + 451u;
-        const uint64_t *zm_p = zmid;
-        const uint64_t *z0_p = z0;
-        const uint64_t *z2_p = z2;
+    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+    rvv_xor3_u64(r + 902u, zmid + 451u, ta, r + 1353u, 449u);
 
-        for (size_t i = 0; i + 4u <= 900u; i += 4u) {
-            rm_p[0] ^= zm_p[0] ^ z0_p[0] ^ z2_p[0];
-            rm_p[1] ^= zm_p[1] ^ z0_p[1] ^ z2_p[1];
-            rm_p[2] ^= zm_p[2] ^ z0_p[2] ^ z2_p[2];
-            rm_p[3] ^= zm_p[3] ^ z0_p[3] ^ z2_p[3];
-            rm_p += 4;
-            zm_p += 4;
-            z0_p += 4;
-            z2_p += 4;
-        }
-        for (size_t i = (900u & ~3u); i < 900u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++ ^ *z2_p++;
-        }
-        for (size_t i = 900u; i < 902u; i++) {
-            *rm_p++ ^= *zm_p++ ^ *z0_p++;
-        }
-    }
+    /* Loop 3B: odd-n tail where z2 is absent */
+    rvv_xor3_u64(r + 1351u, zmid + 900u, ta + 449u, (const uint64_t *)0, 2u);
 }
 
 #endif

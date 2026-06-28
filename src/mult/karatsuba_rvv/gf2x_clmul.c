@@ -84,23 +84,7 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 
 /* ── RVV helpers ──────────────────────────────────────────────────────────
  *
- * rvv_zero_u64: Zero n_words uint64_t elements using LMUL=m8 VMV + VSE.
- *   Replaces scalar memset() for bulk zeroing of tmp buffers.
- *   Spike instret: ceil(n/8) vs n scalar stores — ~8× cheaper per element.
- */
-static inline void rvv_zero_u64(uint64_t *dst, size_t n_words)
-{
-    size_t n = n_words;
-    while (n > 0) {
-        size_t vl = __riscv_vsetvl_e64m8(n);
-        vuint64m8_t zero = __riscv_vmv_v_x_u64m8(0, vl);
-        __riscv_vse64_v_u64m8(dst, zero, vl);
-        dst += vl;
-        n   -= vl;
-    }
-}
-
-/* rvv_copy_u64: Copy n_words uint64_t elements using LMUL=m4 VLE + VSE.
+ * rvv_copy_u64: Copy n_words uint64_t elements using LMUL=m4 VLE + VSE.
  *   Used for the direct-assign loops (Loop 1 and Loop 2) in Karatsuba assembly.
  */
 static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
@@ -183,25 +167,6 @@ static inline void rvv_xor3_u64(uint64_t       * __restrict__ dst,
  * with assign-on-first-write discipline.
  */
 #include "../karatsuba_zbc/clmul_leaf_specialized.h"
-
-/* ── Leaf multiply: generic fallback for sizes not covered above ─────────
- * Used for n ∉ {8, 9}.  Simple memset + XOR-accumulate schoolbook.
- */
-static void clmul_leaf(uint64_t * __restrict__ r,
-                       const uint64_t * __restrict__ a,
-                       const uint64_t * __restrict__ b,
-                       size_t n)
-{
-    uint64_t lo, hi;
-    memset(r, 0, 2 * n * sizeof(uint64_t));
-    for (size_t i = 0; i < n; i++) {
-        for (size_t j = 0; j < n; j++) {
-            clmul64(a[i], b[j], &lo, &hi);
-            r[i+j]   ^= lo;
-            r[i+j+1] ^= hi;
-        }
-    }
-}
 
 #ifdef RVV_ABLATION_HEADER
 #include RVV_ABLATION_HEADER

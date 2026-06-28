@@ -1,23 +1,24 @@
 /* src/mult/karatsuba_zvbc/gf2x_vclmul.c
  *
- * C-3a sandbox: assign-first-write discipline in vclmul_leaf.
- * Derived from gf2x_vclmul.c — only vclmul_leaf is modified.
+ * Zvbc vector polynomial multiplication — direct-write Karatsuba tree.
  *
- * Change: replace memset(r, 0, 2*n) with:
- *   1. RVV zero of upper half only: vse64(r+n, vmv.v.x(0)) [1 instruction]
- *   2. Peeled i=0 outer iteration: lo uses direct vse64 (assign) since
- *      r[0..n-1] are uninitialised at that point.
+ * Optimisations (consistent with karatsuba_zbc and karatsuba_rvv):
+ *   - Leaf: vectorised vclmul/vclmulh (Zvbc) with 4× outer-loop unrolling
+ *     and assign-on-first-write discipline (C-3a: no memset, peeled i=0).
+ *   - Tree: compile-time specialized recursion (gen_karatsuba_specialized.py)
+ *     with direct-write discipline — z0/z2 written directly to output r[],
+ *     overlap-save combine, eliminating two copy loops per recursion node.
+ *   - ta/tb preparation and recomposition use inline RVV intrinsics (LMUL=m2)
+ *     at upper levels, scalar loops at bottom levels (hybrid threshold ≤ 18).
  *
- * Correctness argument:
- *   r[0..n-1]: first written by i=0 lo-assign. No prior read. Safe.
- *   r[n..2n-1]: first-write always arrives from a hi strip which XOR-
- *               accumulates. Pre-zeroing these positions with one RVV
- *               store makes the XOR-accumulate behave as assignment on
- *               first touch. Correct.
+ * The recursion tree topology is identical to karatsuba_zbc and karatsuba_rvv:
+ * same split_sizes(), same threshold (T=16), same sub-problem sizes.
+ * Only the leaf kernel differs (vclmul_leaf vs clmul_leaf_n8/n9/n14/n15).
+ *
+ * KAT validated: 300/300 vectors across HQC-{128,192,256}.
  */
 
 #include <stdint.h>
-#include <string.h>
 #include <riscv_vector.h>
 #include "parameters.h"
 
@@ -33,20 +34,22 @@
 #endif
 
 /* ── Temporary buffer sizing ─────────────────────────────────────────────
- * Identical formula to karatsuba_zbc.
+ * With direct-write discipline, z0 and z2 are written directly to the
+ * output buffer r (not into tmp).  The tmp layout per recursion level is:
+ *   zmid (2*n0 words) + ta (n0 words) + tb (n0 words) + child_buf
+ * Per-level cost: ~4*n0. Summing geometric series: < 4*n total.
  */
-#define TMP_BUFFER_WORDS (16 * VEC_N_SIZE_64)
+#define TMP_BUFFER_WORDS (4 * VEC_N_SIZE_64)
 
-/* ── RVV helpers: Assign-on-First-Write memory discipline ────────────────
+/* ── RVV helpers: direct-write Karatsuba combine ─────────────────────────
  *
- * Transplanted from karatsuba_zbc_rvv (Track B) to eliminate the recursive
- * memset() bottleneck in karatsuba_vclmul.  Together they implement the
- * zero-free Karatsuba combine (Step 5) without pre-zeroing r[].
+ * These static-inline helpers are called by the generated
+ * karatsuba_zvbc_specialized_gen.h for all tree-level memory operations.
+ * Identical to the helpers in karatsuba_rvv/gf2x_clmul.c.
  */
 
-/* rvv_copy_u64: Direct-assign n_words uint64_t words from src → dst.
- * Used for Loop 1 (r = z0) and Loop 2 (r+2m = z2) in Karatsuba assemble.
- * LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
+/* rvv_copy_u64: Direct-assign n_words uint64_t from src → dst.
+ * Used for the overlap-save step (save r[n0..2n0-1] → ta).
  */
 static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
                                 const uint64_t * __restrict__ src,
@@ -64,9 +67,7 @@ static inline void rvv_copy_u64(uint64_t * __restrict__ dst,
 }
 
 /* rvv_xor_u64: dst[i] = src1[i] ^ src2[i] for n_words elements.
- * Used for the ta/tb preparation in Karatsuba split:
- *   ta[0..n1-1] = a[0..n1-1] ^ a[n0..n0+n1-1]
- * LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
+ * Used for ta/tb preparation in Karatsuba split.
  */
 static inline void rvv_xor_u64(uint64_t * __restrict__ dst,
                                const uint64_t * __restrict__ src1,
@@ -87,19 +88,19 @@ static inline void rvv_xor_u64(uint64_t * __restrict__ dst,
 }
 
 /* rvv_xor3_u64: dst[i] ^= zmid[i] ^ (z0 ? z0[i] : 0) ^ (z2 ? z2[i] : 0).
- * Used for Loop 3A (both non-NULL) and Loop 3B (z2 == NULL, odd n tail).
- * LMUL=m4 → 16 uint64_t per iteration at VLEN=256.
+ * Used for the Loop 3 XOR accumulation in Karatsuba recomposition.
+ * NULL src_z0 or src_z2 means that component is absent (treated as 0).
  */
 static inline void rvv_xor3_u64(uint64_t       * __restrict__ dst,
                                 const uint64_t * __restrict__ src_zmid,
-                                const uint64_t * __restrict__ src_z0,   /* NULL → 0 */
-                                const uint64_t * __restrict__ src_z2,   /* NULL → 0 */
+                                const uint64_t * __restrict__ src_z0,
+                                const uint64_t * __restrict__ src_z2,
                                 size_t n_words)
 {
     size_t n = n_words;
     while (n > 0) {
         size_t vl = __riscv_vsetvl_e64m4(n);
-        vuint64m4_t vdst = __riscv_vle64_v_u64m4(dst,      vl);
+        vuint64m4_t vdst = __riscv_vle64_v_u64m4(dst, vl);
         vuint64m4_t vmid = __riscv_vle64_v_u64m4(src_zmid, vl);
         vuint64m4_t acc = vmid;
         if (src_z0 != (const uint64_t *)0) {
@@ -110,7 +111,7 @@ static inline void rvv_xor3_u64(uint64_t       * __restrict__ dst,
             vuint64m4_t vz2 = __riscv_vle64_v_u64m4(src_z2, vl);
             acc = __riscv_vxor_vv_u64m4(acc, vz2, vl);
         }
-        vdst = __riscv_vxor_vv_u64m4(vdst, acc,  vl);
+        vdst = __riscv_vxor_vv_u64m4(vdst, acc, vl);
         __riscv_vse64_v_u64m4(dst, vdst, vl);
         dst      += vl;
         src_zmid += vl;

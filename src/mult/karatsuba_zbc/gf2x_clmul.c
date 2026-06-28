@@ -62,6 +62,55 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
  */
 #include "clmul_leaf_specialized.h"
 
+/* ── Scalar helpers: direct-write Karatsuba combine ──────────────────────
+ *
+ * Called by the generated karatsuba_specialized_gen.h for tree-level
+ * copy/XOR operations.  Plain scalar loops — no vector instructions.
+ */
+
+/* scalar_copy_u64: dst[i] = src[i] for n_words elements. */
+static __attribute__((always_inline)) inline
+void scalar_copy_u64(uint64_t * __restrict__ dst,
+                     const uint64_t * __restrict__ src,
+                     size_t n_words)
+{
+    for (size_t i = 0; i < n_words; i++)
+        dst[i] = src[i];
+}
+
+/* scalar_xor_u64: dst[i] = src1[i] ^ src2[i] for n_words elements. */
+static __attribute__((always_inline)) inline
+void scalar_xor_u64(uint64_t * __restrict__ dst,
+                    const uint64_t * __restrict__ src1,
+                    const uint64_t * __restrict__ src2,
+                    size_t n_words)
+{
+    for (size_t i = 0; i < n_words; i++)
+        dst[i] = src1[i] ^ src2[i];
+}
+
+/* scalar_xor3_u64: dst[i] ^= zmid[i] ^ (z0 ? z0[i] : 0) ^ (z2 ? z2[i] : 0).
+ * NULL z0 or z2 means that component is absent (treated as 0).
+ */
+static __attribute__((always_inline)) inline
+void scalar_xor3_u64(uint64_t       * __restrict__ dst,
+                     const uint64_t * __restrict__ src_zmid,
+                     const uint64_t * __restrict__ src_z0,
+                     const uint64_t * __restrict__ src_z2,
+                     size_t n_words)
+{
+    if (src_z0 && src_z2) {
+        for (size_t i = 0; i < n_words; i++)
+            dst[i] ^= src_zmid[i] ^ src_z0[i] ^ src_z2[i];
+    } else if (src_z0) {
+        for (size_t i = 0; i < n_words; i++)
+            dst[i] ^= src_zmid[i] ^ src_z0[i];
+    } else {
+        for (size_t i = 0; i < n_words; i++)
+            dst[i] ^= src_zmid[i];
+    }
+}
+
 #include "karatsuba_specialized_gen.h"
 
 /* ── Modular reduction mod (x^PARAM_N - 1) ──────────────────────────────*/
