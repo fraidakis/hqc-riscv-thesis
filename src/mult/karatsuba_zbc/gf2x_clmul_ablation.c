@@ -16,9 +16,9 @@
  *   ABLATION_AP2        (C) : 1 = compile-time specialized recursion tree
  *                             0 = generic recursive Karatsuba with n>>1 split
  *
- *   ABLATION_LEAF_SPEC  (D) : 1 = fixed-size fully-unrolled leaf specializations
- *                                 (clmul_leaf_n8, clmul_leaf_n9) with 4-way ILP
- *                                 and assign-on-first-write discipline
+ *   ABLATION_LEAF_SPEC  (D) : 1 = fixed-size hybrid leaf specializations
+ *                                 (clmul_leaf_n8, clmul_leaf_n9) with
+ *                                 assign-on-first-write + compact inner loops
  *                             0 = generic memset + XOR-accumulate leaf loop
  *                             NOTE: requires A=1 and C=1 (word-level clmul and
  *                             known fixed leaf sizes from the specialized tree).
@@ -28,7 +28,7 @@
  *   scalar_zb_AB  : A=1, B=1, C=0, D=0  (word-level + noinit recomposition)
  *   scalar_zb_AC  : A=1, B=0, C=1, D=0  (word-level + specialized tree, generic leaves)
  *   scalar_zb_ACB : A=1, B=1, C=1, D=0  (word-level + specialized tree + noinit)
- *   scalar_zb_ACD : A=1, B=0, C=1, D=1  (word-level + specialized tree + leaf unrolling)
+ *   scalar_zb_ACD : A=1, B=0, C=1, D=1  (word-level + specialized tree + hybrid leaves)
  *   scalar_zb     : A=1, B=1, C=1, D=1  (all four — champion)
  *
  * Orthogonality guarantee:
@@ -36,8 +36,8 @@
  *   - B controls tree-level recomposition style (direct-write vs memset+XOR)
  *   - C controls tree structure (specialized compile-time tree with known
  *     fixed leaf sizes vs generic runtime recursion with n>>1 split)
- *   - D controls leaf specialization (fully-unrolled fixed-size leaves with
- *     4-way ILP vs generic loop-based leaves). Requires C=1.
+ *   - D controls leaf specialization (hybrid fixed-size leaves with compact
+ *     loops vs generic loop-based leaves). Requires C=1.
  *   Each axis (A, B, C) is independent; D depends on C.
  *
  * KAT validated by running all ablation variants against known-answer vectors.
@@ -89,9 +89,9 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 
 #if ABLATION_LEAF_SPEC
 /* ── Fixed-size leaf specializations (D optimization) ────────────────────
- * Fully unrolled, assign-on-first-write leaves for the hot-path sizes
- * (n=8, n=9) that the specialized recursion tree (C) produces.
- * Uses 4-way ILP grouping to hide clmul latency on in-order pipelines.
+ * Hybrid leaves for the hot-path sizes (n=8, n=9) that the specialized
+ * recursion tree (C) produces.  Row 0 unrolled (assign-on-first-write),
+ * remaining rows use compact inner loops for I-cache efficiency.
  * Requires A=1 (word-level clmul) and C=1 (specialized tree for fixed sizes).
  */
 #include "clmul_leaf_specialized.h"
@@ -156,7 +156,7 @@ static void schoolbook_mul(uint64_t *r, const uint64_t *a, const uint64_t *b, si
  *   B=1 (noinit) → gen header with direct-write recomposition
  *   B=0 (memset) → gen header with memset + XOR-accumulate recomposition
  * D selects leaf dispatch (via LEAF_CALL_N8/N9 macros in gen header):
- *   D=1 → fixed-size unrolled clmul_leaf_n8/n9 (from clmul_leaf_specialized.h)
+ *   D=1 → hybrid clmul_leaf_n8/n9 (from clmul_leaf_specialized.h)
  *   D=0 → generic clmul_leaf(..., 8u/9u)
  * Both call clmul_leaf() for sizes not covered by specializations (n=14, 15).
  */

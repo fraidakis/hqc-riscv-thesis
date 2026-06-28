@@ -6,12 +6,13 @@
  *   - A: Word-level carry-less multiply (Zbc clmul/clmulh)
  *   - B: Assign-on-first-write tree recomposition (noinit gen header)
  *   - C: Compile-time specialized recursion tree (gen_karatsuba_specialized.py)
- *   - D: Fixed-size leaf specializations (clmul_leaf_n9, clmul_leaf_n8)
- *        eliminating memset + branch overhead for the hot-path leaf sizes
+ *   - D: Fixed-size hybrid leaf specializations (clmul_leaf_n9, clmul_leaf_n8)
+ *        eliminating memset via assign-on-first-write; compact inner loops
+ *        for I-cache efficiency on in-order cores
  *
  * The recursion tree for HQC-128 (n=277, T=16) produces only n=9 and n=8
- * leaves.  Specialized leaves use assign-on-first-write discipline and
- * 4-way ILP grouping to hide clmul latency on the in-order X60 pipeline.
+ * leaves.  Specialized leaves use assign-on-first-write discipline with
+ * compact inner loops for I-cache-friendly execution on in-order cores.
  *
  * KAT validated: 300/300 vectors across HQC-{128,192,256}.
  */
@@ -48,7 +49,8 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 #define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
 /* ── Fixed-size leaf specializations (D optimization) ────────────────────
- * Fully unrolled n=8 and n=9 leaves with 4-way ILP and assign-on-first-write.
+ * Hybrid n=8 and n=9 leaves: row-0 unrolled (assign-on-first-write) +
+ * compact inner loops for remaining rows (I-cache friendly).
  */
 #include "clmul_leaf_specialized.h"
 
