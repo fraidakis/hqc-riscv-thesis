@@ -2,24 +2,24 @@
  *
  * Official karatsuba_zbc implementation — the "scalar_zb" champion.
  *
- * Optimisations:
+ * Optimisations (applied in order A → C → B):
  *   - A: Word-level carry-less multiply (Zbc clmul/clmulh)
- *   - B: Assign-on-first-write tree recomposition (noinit gen header)
  *   - C: Compile-time specialized recursion tree (gen_karatsuba_specialized.py)
- *   - D: Fixed-size hybrid leaf specializations (clmul_leaf_n9, clmul_leaf_n8)
- *        eliminating memset via assign-on-first-write; compact inner loops
- *        for I-cache efficiency on in-order cores
+ *   - B: Assign-on-first-write policy — both tree recomposition (noinit gen
+ *        header) and fixed-size hybrid leaf specializations (clmul_leaf_n8,
+ *        clmul_leaf_n9, clmul_leaf_n14, clmul_leaf_n15) eliminating memset
+ *        via assign-on-first-write; compact inner loops for I-cache efficiency
+ *        on in-order cores
  *
  * The recursion tree for HQC-128 (n=277, T=16) produces only n=9 and n=8
- * leaves.  Specialized leaves use assign-on-first-write discipline with
- * compact inner loops for I-cache-friendly execution on in-order cores.
+ * leaves; HQC-192 also produces n=8/n=9; HQC-256 (n=901, T=16) produces
+ * n=14 and n=15 leaves.  All sizes have dedicated specializations.
  *
  * KAT validated: 300/300 vectors across HQC-{128,192,256}.
  */
 
 #include <stdint.h>
 #include <stddef.h>
-#include <string.h>
 #include <riscv_bitmanip.h>
 #include "parameters.h"
 #include "hqc_parameters.h"
@@ -48,36 +48,13 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
 /* ── Temporary buffer sizing ─────────────────────────────────────────────*/
 #define TMP_BUFFER_WORDS (HQC_POLY_TMP_BUFFER_MULTIPLIER * VEC_N_SIZE_64)
 
-/* ── Fixed-size leaf specializations (D optimization) ────────────────────
- * Hybrid n=8 and n=9 leaves: row-0 unrolled (assign-on-first-write) +
- * compact inner loops for remaining rows (I-cache friendly).
+/* ── Fixed-size leaf specializations (B optimization — leaf level) ────────
+ * Hybrid n=8, n=9, n=14, n=15 leaves: row-0 unrolled (assign-on-first-write)
+ * + compact inner loops for remaining rows (I-cache friendly).
+ * Covers ALL leaf sizes produced by the T=16 recursion tree for HQC-{128,192,256}.
+ * Part of the assign-on-first-write (B) policy applied at the leaf level.
  */
 #include "clmul_leaf_specialized.h"
-
-/* ── Generic leaf multiply: memset + XOR-accumulate schoolbook ────────────
- * Fallback for leaf sizes not covered by fixed specializations (n=14, 15).
- * Uses memset to zero the output buffer, then XOR-accumulates products.
- *
- * Despite higher instruction count vs the 4-way pipelined variant, the
- * compact loop body (~6 instructions) stays resident in I-cache across all
- * 729 leaf calls at L256.  On the in-order X60 with its small I-cache this
- * yields ~6% fewer cycles than the unrolled alternative (empirical).
- */
-static void clmul_leaf(uint64_t * __restrict__ r,
-                       const uint64_t * __restrict__ a,
-                       const uint64_t * __restrict__ b,
-                       size_t n)
-{
-    uint64_t lo, hi;
-    memset(r, 0, 2 * n * sizeof(uint64_t));
-    for (size_t i = 0; i < n; i++) {
-        for (size_t j = 0; j < n; j++) {
-            clmul64(a[i], b[j], &lo, &hi);
-            r[i+j]   ^= lo;
-            r[i+j+1] ^= hi;
-        }
-    }
-}
 
 #include "karatsuba_specialized_gen.h"
 

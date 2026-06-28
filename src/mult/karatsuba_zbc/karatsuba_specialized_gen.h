@@ -8,15 +8,19 @@
 /* Fixed-size recursion roots: 277, 561, 901. */
 /* Leaf specializations (clmul_leaf_n8/n9) use assign-on-first-write discipline. */
 
-/* Leaf dispatch: when ABLATION_LEAF_SPEC=1 (or not in ablation mode),
- * use fixed-size specialized leaves (part of the full C optimization).
- * In ablation mode with LEAF_SPEC=0, fall back to generic clmul_leaf. */
-#if !defined(ABLATION_LEAF_SPEC) || ABLATION_LEAF_SPEC
+/* Leaf dispatch: when ABLATION_NOINIT=1 (or not in ablation mode),
+ * use fixed-size specialized leaves (part of the B assign-on-first-write policy).
+ * In ablation mode with NOINIT=0, fall back to generic clmul_leaf. */
+#if !defined(ABLATION_NOINIT) || ABLATION_NOINIT
 #define LEAF_CALL_N9(r, a, b)    clmul_leaf_n9((r), (a), (b))
 #define LEAF_CALL_N8(r, a, b)    clmul_leaf_n8((r), (a), (b))
+#define LEAF_CALL_N14(r, a, b)   clmul_leaf_n14((r), (a), (b))
+#define LEAF_CALL_N15(r, a, b)   clmul_leaf_n15((r), (a), (b))
 #else
 #define LEAF_CALL_N9(r, a, b)    clmul_leaf((r), (a), (b), 9u)
 #define LEAF_CALL_N8(r, a, b)    clmul_leaf((r), (a), (b), 8u)
+#define LEAF_CALL_N14(r, a, b)   clmul_leaf((r), (a), (b), 14u)
+#define LEAF_CALL_N15(r, a, b)   clmul_leaf((r), (a), (b), 15u)
 #endif
 
 static void kmul_17(uint64_t * __restrict__ r,
@@ -195,15 +199,15 @@ static void kmul_28(uint64_t * __restrict__ r,
     uint64_t *tb        = ta + 14u;
     uint64_t *child_buf = tb + 14u;
 
-    clmul_leaf(z0, a, b, 14u);
-    clmul_leaf(z2, a + 14u, b + 14u, 14u);
+    LEAF_CALL_N14(z0, a, b);
+    LEAF_CALL_N14(z2, a + 14u, b + 14u);
 
     for (size_t i = 0; i < 14u; i++) {
         ta[i] = a[i] ^ (i < 14u ? a[14u + i] : 0u);
         tb[i] = b[i] ^ (i < 14u ? b[14u + i] : 0u);
     }
 
-    clmul_leaf(zmid, ta, tb, 14u);
+    LEAF_CALL_N14(zmid, ta, tb);
 
     /* Loop 1: r[0..2*n0-1] = z0 */
     {
@@ -277,15 +281,15 @@ static void kmul_29(uint64_t * __restrict__ r,
     uint64_t *tb        = ta + 15u;
     uint64_t *child_buf = tb + 15u;
 
-    clmul_leaf(z0, a, b, 15u);
-    clmul_leaf(z2, a + 15u, b + 15u, 14u);
+    LEAF_CALL_N15(z0, a, b);
+    LEAF_CALL_N14(z2, a + 15u, b + 15u);
 
     for (size_t i = 0; i < 15u; i++) {
         ta[i] = a[i] ^ (i < 14u ? a[15u + i] : 0u);
         tb[i] = b[i] ^ (i < 14u ? b[15u + i] : 0u);
     }
 
-    clmul_leaf(zmid, ta, tb, 15u);
+    LEAF_CALL_N15(zmid, ta, tb);
 
     /* Loop 1: r[0..2*n0-1] = z0 */
     {

@@ -7,38 +7,33 @@
  *   ABLATION_WORDLEVEL  (A) : 1 = clmul64 word-level leaves
  *                             0 = bit-serial schoolbook (reference behaviour)
  *
- *   ABLATION_NOINIT     (B) : 1 = assign-on-first-write at tree recomposition
- *                             0 = memset(r, 0, ...) + XOR-accumulate recomposition
- *                             NOTE: applies to tree-level only; leaf always uses
- *                             the simple memset + XOR-accumulate pattern unless
- *                             leaf specialization is enabled.
- *
  *   ABLATION_AP2        (C) : 1 = compile-time specialized recursion tree
  *                             0 = generic recursive Karatsuba with n>>1 split
  *
- *   ABLATION_LEAF_SPEC  (D) : 1 = fixed-size hybrid leaf specializations
- *                                 (clmul_leaf_n8, clmul_leaf_n9) with
- *                                 assign-on-first-write + compact inner loops
- *                             0 = generic memset + XOR-accumulate leaf loop
- *                             NOTE: requires A=1 and C=1 (word-level clmul and
- *                             known fixed leaf sizes from the specialized tree).
+ *   ABLATION_NOINIT     (B) : 1 = assign-on-first-write policy (both tree
+ *                                 recomposition AND leaf specializations).
+ *                                 When C=1, this also enables fixed-size hybrid
+ *                                 leaves (clmul_leaf_n8/n9/n14/n15) that apply
+ *                                 the same assign-on-first-write discipline at
+ *                                 the leaf level with compact inner loops for
+ *                                 I-cache efficiency.
+ *                             0 = memset(r, 0, ...) + XOR-accumulate everywhere
  *
- * Intended variant matrix (orthogonal axes A, B, C, D):
- *   scalar_zb_A   : A=1, B=0, C=0, D=0  (word-level only)
- *   scalar_zb_AB  : A=1, B=1, C=0, D=0  (word-level + noinit recomposition)
- *   scalar_zb_AC  : A=1, B=0, C=1, D=0  (word-level + specialized tree, generic leaves)
- *   scalar_zb_ACB : A=1, B=1, C=1, D=0  (word-level + specialized tree + noinit)
- *   scalar_zb_ACD : A=1, B=0, C=1, D=1  (word-level + specialized tree + hybrid leaves)
- *   scalar_zb     : A=1, B=1, C=1, D=1  (all four — champion)
+ * Intended variant matrix (orthogonal axes A, C, B):
+ *   scalar_zb_A   : A=1, C=0, B=0  (word-level only)
+ *   scalar_zb_AC  : A=1, C=1, B=0  (word-level + specialized tree, generic leaves)
+ *   scalar_zb_ACB : A=1, C=1, B=1  (word-level + specialized tree + noinit — champion)
  *
  * Orthogonality guarantee:
  *   - A controls the leaf multiply primitive (clmul vs bit-serial)
- *   - B controls tree-level recomposition style (direct-write vs memset+XOR)
  *   - C controls tree structure (specialized compile-time tree with known
  *     fixed leaf sizes vs generic runtime recursion with n>>1 split)
- *   - D controls leaf specialization (hybrid fixed-size leaves with compact
- *     loops vs generic loop-based leaves). Requires C=1.
- *   Each axis (A, B, C) is independent; D depends on C.
+ *   - B controls the assign-on-first-write policy: tree-level recomposition
+ *     style (direct-write vs memset+XOR) and, when C=1, also activates
+ *     fixed-size leaf specializations (hybrid leaves eliminating memset via
+ *     row-0 unrolling + compact inner loops).  The leaf specializations are
+ *     a natural prerequisite for the noinit tree recomposition since they
+ *     must produce their output via the same direct-write discipline.
  *
  * KAT validated by running all ablation variants against known-answer vectors.
  */
@@ -58,9 +53,6 @@
 #endif
 #ifndef ABLATION_AP2
 #define ABLATION_AP2 0
-#endif
-#ifndef ABLATION_LEAF_SPEC
-#define ABLATION_LEAF_SPEC 0
 #endif
 #ifndef ABLATION_SYMMETRIC_TREE
 #define ABLATION_SYMMETRIC_TREE 0
@@ -87,19 +79,25 @@ void clmul64(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi)
     *hi = __riscv_clmulh_64(a, b);
 }
 
-#if ABLATION_LEAF_SPEC
-/* ── Fixed-size leaf specializations (D optimization) ────────────────────
- * Hybrid leaves for the hot-path sizes (n=8, n=9) that the specialized
- * recursion tree (C) produces.  Row 0 unrolled (assign-on-first-write),
- * remaining rows use compact inner loops for I-cache efficiency.
+#if ABLATION_NOINIT
+/* ── Fixed-size leaf specializations (B optimization — leaf level) ────────
+ * Hybrid leaves for the hot-path sizes (n=8, n=9, n=14, n=15) that the
+ * specialized recursion tree (C) produces.  Row 0 unrolled
+ * (assign-on-first-write), remaining rows use compact inner loops for
+ * I-cache efficiency.
  * Requires A=1 (word-level clmul) and C=1 (specialized tree for fixed sizes).
+ * Activated as part of the B (assign-on-first-write) policy.
  */
 #include "clmul_leaf_specialized.h"
-#endif /* ABLATION_LEAF_SPEC */
+#endif /* ABLATION_NOINIT */
 
-/* Simple memset + XOR-accumulate leaf — used as generic fallback.
- * When D=1, this is only called for leaf sizes not covered by specializations
- * (n=14, n=15 in HQC-192/256 recursion trees).
+/* ── Generic leaf multiply ───────────────────────────────────────────────
+ * When B=0: used for ALL leaf calls via LEAF_CALL_N* macros.
+ * When B=1: dead code (all sizes covered by specializations), but kept
+ *           for compilation compatibility.
+ *
+ * Uses memset + XOR-accumulate (the unoptimized baseline for ablation
+ * comparison against the assign-on-first-write specialized leaves).
  */
 static void clmul_leaf(uint64_t * __restrict__ r,
                        const uint64_t * __restrict__ a,
@@ -152,13 +150,9 @@ static void schoolbook_mul(uint64_t *r, const uint64_t *a, const uint64_t *b, si
 #if ABLATION_AP2
 
 /* Compile-time specialized recursion tree.
- * B selects the recomposition style:
- *   B=1 (noinit) → gen header with direct-write recomposition
- *   B=0 (memset) → gen header with memset + XOR-accumulate recomposition
- * D selects leaf dispatch (via LEAF_CALL_N8/N9 macros in gen header):
- *   D=1 → hybrid clmul_leaf_n8/n9 (from clmul_leaf_specialized.h)
- *   D=0 → generic clmul_leaf(..., 8u/9u)
- * Both call clmul_leaf() for sizes not covered by specializations (n=14, 15).
+ * B selects both the recomposition style AND leaf dispatch:
+ *   B=1 (noinit) → gen header with direct-write recomposition + specialized leaves
+ *   B=0 (memset) → gen header with memset + XOR-accumulate recomposition + generic leaves
  */
 
 #if ABLATION_NOINIT
