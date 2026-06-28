@@ -191,58 +191,58 @@ static void kmul_28(uint64_t * __restrict__ r,
     uint64_t *tb        = ta + 14u;
     uint64_t *child_buf = tb + 14u;
 
-    clmul_leaf(z0, a, b, 14u);
-    clmul_leaf(z2, a + 14u, b + 14u, 14u);
+    clmul_leaf_n14(z0, a, b);
+    clmul_leaf_n14(z2, a + 14u, b + 14u);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m4, n1=14) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=14) */
     {
         size_t rem = 14u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 14u, *sb2 = b + 14u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
-            vuint64m4_t va1 = __riscv_vle64_v_u64m4(sa, vl);
-            vuint64m4_t va2 = __riscv_vle64_v_u64m4(sa2, vl);
-            __riscv_vse64_v_u64m4(da, __riscv_vxor_vv_u64m4(va1, va2, vl), vl);
-            vuint64m4_t vb1 = __riscv_vle64_v_u64m4(sb, vl);
-            vuint64m4_t vb2 = __riscv_vle64_v_u64m4(sb2, vl);
-            __riscv_vse64_v_u64m4(db, __riscv_vxor_vv_u64m4(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
         }
     }
 
-    clmul_leaf(zmid, ta, tb, 14u);
+    clmul_leaf_n14(zmid, ta, tb);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 28u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 28u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 28u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 28u;
         uint64_t *_dst = r + 14u;
@@ -250,15 +250,15 @@ static void kmul_28(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -276,23 +276,23 @@ static void kmul_29(uint64_t * __restrict__ r,
     uint64_t *tb        = ta + 15u;
     uint64_t *child_buf = tb + 15u;
 
-    clmul_leaf(z0, a, b, 15u);
-    clmul_leaf(z2, a + 15u, b + 15u, 14u);
+    clmul_leaf_n15(z0, a, b);
+    clmul_leaf_n14(z2, a + 15u, b + 15u);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m4, n1=14) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=14) */
     {
         size_t rem = 14u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 15u, *sb2 = b + 15u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
-            vuint64m4_t va1 = __riscv_vle64_v_u64m4(sa, vl);
-            vuint64m4_t va2 = __riscv_vle64_v_u64m4(sa2, vl);
-            __riscv_vse64_v_u64m4(da, __riscv_vxor_vv_u64m4(va1, va2, vl), vl);
-            vuint64m4_t vb1 = __riscv_vle64_v_u64m4(sb, vl);
-            vuint64m4_t vb2 = __riscv_vle64_v_u64m4(sb2, vl);
-            __riscv_vse64_v_u64m4(db, __riscv_vxor_vv_u64m4(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -301,35 +301,35 @@ static void kmul_29(uint64_t * __restrict__ r,
         tb[14u] = b[14u];
     }
 
-    clmul_leaf(zmid, ta, tb, 15u);
+    clmul_leaf_n15(zmid, ta, tb);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 30u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 28u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 30u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 28u;
         uint64_t *_dst = r + 15u;
@@ -337,27 +337,27 @@ static void kmul_29(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -378,20 +378,20 @@ static void kmul_34(uint64_t * __restrict__ r,
     kmul_17(z0, a, b, child_buf);
     kmul_17(z2, a + 17u, b + 17u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m4, n1=17) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=17) */
     {
         size_t rem = 17u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 17u, *sb2 = b + 17u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
-            vuint64m4_t va1 = __riscv_vle64_v_u64m4(sa, vl);
-            vuint64m4_t va2 = __riscv_vle64_v_u64m4(sa2, vl);
-            __riscv_vse64_v_u64m4(da, __riscv_vxor_vv_u64m4(va1, va2, vl), vl);
-            vuint64m4_t vb1 = __riscv_vle64_v_u64m4(sb, vl);
-            vuint64m4_t vb2 = __riscv_vle64_v_u64m4(sb2, vl);
-            __riscv_vse64_v_u64m4(db, __riscv_vxor_vv_u64m4(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -400,33 +400,33 @@ static void kmul_34(uint64_t * __restrict__ r,
 
     kmul_17(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 34u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 34u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 34u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 34u;
         uint64_t *_dst = r + 17u;
@@ -434,15 +434,15 @@ static void kmul_34(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -463,20 +463,20 @@ static void kmul_35(uint64_t * __restrict__ r,
     kmul_18(z0, a, b, child_buf);
     kmul_17(z2, a + 18u, b + 18u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m4, n1=17) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=17) */
     {
         size_t rem = 17u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 18u, *sb2 = b + 18u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
-            vuint64m4_t va1 = __riscv_vle64_v_u64m4(sa, vl);
-            vuint64m4_t va2 = __riscv_vle64_v_u64m4(sa2, vl);
-            __riscv_vse64_v_u64m4(da, __riscv_vxor_vv_u64m4(va1, va2, vl), vl);
-            vuint64m4_t vb1 = __riscv_vle64_v_u64m4(sb, vl);
-            vuint64m4_t vb2 = __riscv_vle64_v_u64m4(sb2, vl);
-            __riscv_vse64_v_u64m4(db, __riscv_vxor_vv_u64m4(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -487,33 +487,33 @@ static void kmul_35(uint64_t * __restrict__ r,
 
     kmul_18(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 36u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 34u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 36u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 34u;
         uint64_t *_dst = r + 18u;
@@ -521,27 +521,27 @@ static void kmul_35(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -562,20 +562,20 @@ static void kmul_36(uint64_t * __restrict__ r,
     kmul_18(z0, a, b, child_buf);
     kmul_18(z2, a + 18u, b + 18u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m4, n1=18) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=18) */
     {
         size_t rem = 18u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 18u, *sb2 = b + 18u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m4(rem);
-            vuint64m4_t va1 = __riscv_vle64_v_u64m4(sa, vl);
-            vuint64m4_t va2 = __riscv_vle64_v_u64m4(sa2, vl);
-            __riscv_vse64_v_u64m4(da, __riscv_vxor_vv_u64m4(va1, va2, vl), vl);
-            vuint64m4_t vb1 = __riscv_vle64_v_u64m4(sb, vl);
-            vuint64m4_t vb2 = __riscv_vle64_v_u64m4(sb2, vl);
-            __riscv_vse64_v_u64m4(db, __riscv_vxor_vv_u64m4(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -584,33 +584,33 @@ static void kmul_36(uint64_t * __restrict__ r,
 
     kmul_18(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 36u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 36u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 36u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 36u;
         uint64_t *_dst = r + 18u;
@@ -618,15 +618,15 @@ static void kmul_36(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -647,20 +647,20 @@ static void kmul_56(uint64_t * __restrict__ r,
     kmul_28(z0, a, b, child_buf);
     kmul_28(z2, a + 28u, b + 28u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=28) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=28) */
     {
         size_t rem = 28u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 28u, *sb2 = b + 28u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -669,33 +669,33 @@ static void kmul_56(uint64_t * __restrict__ r,
 
     kmul_28(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 56u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 56u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 56u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 56u;
         uint64_t *_dst = r + 28u;
@@ -703,15 +703,15 @@ static void kmul_56(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -732,20 +732,20 @@ static void kmul_57(uint64_t * __restrict__ r,
     kmul_29(z0, a, b, child_buf);
     kmul_28(z2, a + 29u, b + 29u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=28) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=28) */
     {
         size_t rem = 28u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 29u, *sb2 = b + 29u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -756,33 +756,33 @@ static void kmul_57(uint64_t * __restrict__ r,
 
     kmul_29(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 58u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 56u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 58u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 56u;
         uint64_t *_dst = r + 29u;
@@ -790,27 +790,27 @@ static void kmul_57(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -831,20 +831,20 @@ static void kmul_69(uint64_t * __restrict__ r,
     kmul_35(z0, a, b, child_buf);
     kmul_34(z2, a + 35u, b + 35u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=34) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=34) */
     {
         size_t rem = 34u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 35u, *sb2 = b + 35u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -855,33 +855,33 @@ static void kmul_69(uint64_t * __restrict__ r,
 
     kmul_35(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 70u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 68u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 70u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 68u;
         uint64_t *_dst = r + 35u;
@@ -889,27 +889,27 @@ static void kmul_69(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -930,20 +930,20 @@ static void kmul_70(uint64_t * __restrict__ r,
     kmul_35(z0, a, b, child_buf);
     kmul_35(z2, a + 35u, b + 35u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=35) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=35) */
     {
         size_t rem = 35u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 35u, *sb2 = b + 35u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -952,33 +952,33 @@ static void kmul_70(uint64_t * __restrict__ r,
 
     kmul_35(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 70u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 70u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 70u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 70u;
         uint64_t *_dst = r + 35u;
@@ -986,15 +986,15 @@ static void kmul_70(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -1015,20 +1015,20 @@ static void kmul_71(uint64_t * __restrict__ r,
     kmul_36(z0, a, b, child_buf);
     kmul_35(z2, a + 36u, b + 36u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=35) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=35) */
     {
         size_t rem = 35u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 36u, *sb2 = b + 36u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1039,33 +1039,33 @@ static void kmul_71(uint64_t * __restrict__ r,
 
     kmul_36(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 72u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 70u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 72u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 70u;
         uint64_t *_dst = r + 36u;
@@ -1073,27 +1073,27 @@ static void kmul_71(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -1114,20 +1114,20 @@ static void kmul_112(uint64_t * __restrict__ r,
     kmul_56(z0, a, b, child_buf);
     kmul_56(z2, a + 56u, b + 56u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=56) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=56) */
     {
         size_t rem = 56u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 56u, *sb2 = b + 56u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1136,33 +1136,33 @@ static void kmul_112(uint64_t * __restrict__ r,
 
     kmul_56(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 112u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 112u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 112u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 112u;
         uint64_t *_dst = r + 56u;
@@ -1170,15 +1170,15 @@ static void kmul_112(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -1199,20 +1199,20 @@ static void kmul_113(uint64_t * __restrict__ r,
     kmul_57(z0, a, b, child_buf);
     kmul_56(z2, a + 57u, b + 57u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=56) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=56) */
     {
         size_t rem = 56u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 57u, *sb2 = b + 57u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1223,33 +1223,33 @@ static void kmul_113(uint64_t * __restrict__ r,
 
     kmul_57(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 114u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 112u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 114u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 112u;
         uint64_t *_dst = r + 57u;
@@ -1257,27 +1257,27 @@ static void kmul_113(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -1298,20 +1298,20 @@ static void kmul_138(uint64_t * __restrict__ r,
     kmul_69(z0, a, b, child_buf);
     kmul_69(z2, a + 69u, b + 69u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=69) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=69) */
     {
         size_t rem = 69u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 69u, *sb2 = b + 69u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1320,33 +1320,33 @@ static void kmul_138(uint64_t * __restrict__ r,
 
     kmul_69(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 138u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 138u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 138u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 138u;
         uint64_t *_dst = r + 69u;
@@ -1354,15 +1354,15 @@ static void kmul_138(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -1383,20 +1383,20 @@ static void kmul_139(uint64_t * __restrict__ r,
     kmul_70(z0, a, b, child_buf);
     kmul_69(z2, a + 70u, b + 70u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=69) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=69) */
     {
         size_t rem = 69u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 70u, *sb2 = b + 70u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1407,33 +1407,33 @@ static void kmul_139(uint64_t * __restrict__ r,
 
     kmul_70(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 140u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 138u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 140u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 138u;
         uint64_t *_dst = r + 70u;
@@ -1441,27 +1441,27 @@ static void kmul_139(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -1482,20 +1482,20 @@ static void kmul_140(uint64_t * __restrict__ r,
     kmul_70(z0, a, b, child_buf);
     kmul_70(z2, a + 70u, b + 70u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=70) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=70) */
     {
         size_t rem = 70u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 70u, *sb2 = b + 70u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1504,33 +1504,33 @@ static void kmul_140(uint64_t * __restrict__ r,
 
     kmul_70(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 140u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 140u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 140u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 140u;
         uint64_t *_dst = r + 70u;
@@ -1538,15 +1538,15 @@ static void kmul_140(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -1567,20 +1567,20 @@ static void kmul_141(uint64_t * __restrict__ r,
     kmul_71(z0, a, b, child_buf);
     kmul_70(z2, a + 71u, b + 71u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=70) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=70) */
     {
         size_t rem = 70u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 71u, *sb2 = b + 71u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1591,33 +1591,33 @@ static void kmul_141(uint64_t * __restrict__ r,
 
     kmul_71(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 142u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 140u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 142u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 140u;
         uint64_t *_dst = r + 71u;
@@ -1625,27 +1625,27 @@ static void kmul_141(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -1666,20 +1666,20 @@ static void kmul_225(uint64_t * __restrict__ r,
     kmul_113(z0, a, b, child_buf);
     kmul_112(z2, a + 113u, b + 113u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=112) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=112) */
     {
         size_t rem = 112u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 113u, *sb2 = b + 113u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1690,33 +1690,33 @@ static void kmul_225(uint64_t * __restrict__ r,
 
     kmul_113(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 226u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 224u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 226u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 224u;
         uint64_t *_dst = r + 113u;
@@ -1724,27 +1724,27 @@ static void kmul_225(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -1765,20 +1765,20 @@ static void kmul_226(uint64_t * __restrict__ r,
     kmul_113(z0, a, b, child_buf);
     kmul_113(z2, a + 113u, b + 113u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=113) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=113) */
     {
         size_t rem = 113u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 113u, *sb2 = b + 113u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1787,33 +1787,33 @@ static void kmul_226(uint64_t * __restrict__ r,
 
     kmul_113(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 226u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 226u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 226u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 226u;
         uint64_t *_dst = r + 113u;
@@ -1821,15 +1821,15 @@ static void kmul_226(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -1850,20 +1850,20 @@ static void kmul_277(uint64_t * __restrict__ r,
     kmul_139(z0, a, b, child_buf);
     kmul_138(z2, a + 139u, b + 139u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=138) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=138) */
     {
         size_t rem = 138u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 139u, *sb2 = b + 139u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1874,33 +1874,33 @@ static void kmul_277(uint64_t * __restrict__ r,
 
     kmul_139(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 278u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 276u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 278u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 276u;
         uint64_t *_dst = r + 139u;
@@ -1908,27 +1908,27 @@ static void kmul_277(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -1949,20 +1949,20 @@ static void kmul_280(uint64_t * __restrict__ r,
     kmul_140(z0, a, b, child_buf);
     kmul_140(z2, a + 140u, b + 140u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=140) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=140) */
     {
         size_t rem = 140u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 140u, *sb2 = b + 140u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -1971,33 +1971,33 @@ static void kmul_280(uint64_t * __restrict__ r,
 
     kmul_140(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 280u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 280u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 280u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 280u;
         uint64_t *_dst = r + 140u;
@@ -2005,15 +2005,15 @@ static void kmul_280(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -2034,20 +2034,20 @@ static void kmul_281(uint64_t * __restrict__ r,
     kmul_141(z0, a, b, child_buf);
     kmul_140(z2, a + 141u, b + 141u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=140) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=140) */
     {
         size_t rem = 140u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 141u, *sb2 = b + 141u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -2058,33 +2058,33 @@ static void kmul_281(uint64_t * __restrict__ r,
 
     kmul_141(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 282u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 280u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 282u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 280u;
         uint64_t *_dst = r + 141u;
@@ -2092,27 +2092,27 @@ static void kmul_281(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -2133,20 +2133,20 @@ static void kmul_450(uint64_t * __restrict__ r,
     kmul_225(z0, a, b, child_buf);
     kmul_225(z2, a + 225u, b + 225u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=225) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=225) */
     {
         size_t rem = 225u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 225u, *sb2 = b + 225u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -2155,33 +2155,33 @@ static void kmul_450(uint64_t * __restrict__ r,
 
     kmul_225(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 450u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 450u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 450u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 450u;
         uint64_t *_dst = r + 225u;
@@ -2189,15 +2189,15 @@ static void kmul_450(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
     }
@@ -2218,20 +2218,20 @@ static void kmul_451(uint64_t * __restrict__ r,
     kmul_226(z0, a, b, child_buf);
     kmul_225(z2, a + 226u, b + 226u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=225) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=225) */
     {
         size_t rem = 225u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 226u, *sb2 = b + 226u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -2242,33 +2242,33 @@ static void kmul_451(uint64_t * __restrict__ r,
 
     kmul_226(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 452u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 450u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 452u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 450u;
         uint64_t *_dst = r + 226u;
@@ -2276,27 +2276,27 @@ static void kmul_451(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -2317,20 +2317,20 @@ static void kmul_561(uint64_t * __restrict__ r,
     kmul_281(z0, a, b, child_buf);
     kmul_280(z2, a + 281u, b + 281u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=280) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=280) */
     {
         size_t rem = 280u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 281u, *sb2 = b + 281u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -2341,33 +2341,33 @@ static void kmul_561(uint64_t * __restrict__ r,
 
     kmul_281(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 562u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 560u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 562u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 560u;
         uint64_t *_dst = r + 281u;
@@ -2375,27 +2375,27 @@ static void kmul_561(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }
@@ -2416,20 +2416,20 @@ static void kmul_901(uint64_t * __restrict__ r,
     kmul_451(z0, a, b, child_buf);
     kmul_450(z2, a + 451u, b + 451u, child_buf);
 
-    /* ta/tb preparation: inline RVV XOR (LMUL=m8, n1=450) */
+    /* ta/tb preparation: inline RVV XOR (LMUL=m2, n1=450) */
     {
         size_t rem = 450u;
         const uint64_t *sa = a, *sb = b;
         const uint64_t *sa2 = a + 451u, *sb2 = b + 451u;
         uint64_t *da = ta, *db = tb;
         while (rem > 0) {
-            size_t vl = __riscv_vsetvl_e64m8(rem);
-            vuint64m8_t va1 = __riscv_vle64_v_u64m8(sa, vl);
-            vuint64m8_t va2 = __riscv_vle64_v_u64m8(sa2, vl);
-            __riscv_vse64_v_u64m8(da, __riscv_vxor_vv_u64m8(va1, va2, vl), vl);
-            vuint64m8_t vb1 = __riscv_vle64_v_u64m8(sb, vl);
-            vuint64m8_t vb2 = __riscv_vle64_v_u64m8(sb2, vl);
-            __riscv_vse64_v_u64m8(db, __riscv_vxor_vv_u64m8(vb1, vb2, vl), vl);
+            size_t vl = __riscv_vsetvl_e64m2(rem);
+            vuint64m2_t va1 = __riscv_vle64_v_u64m2(sa, vl);
+            vuint64m2_t va2 = __riscv_vle64_v_u64m2(sa2, vl);
+            __riscv_vse64_v_u64m2(da, __riscv_vxor_vv_u64m2(va1, va2, vl), vl);
+            vuint64m2_t vb1 = __riscv_vle64_v_u64m2(sb, vl);
+            vuint64m2_t vb2 = __riscv_vle64_v_u64m2(sb2, vl);
+            __riscv_vse64_v_u64m2(db, __riscv_vxor_vv_u64m2(vb1, vb2, vl), vl);
             sa += vl; sa2 += vl; da += vl;
             sb += vl; sb2 += vl; db += vl;
             rem -= vl;
@@ -2440,33 +2440,33 @@ static void kmul_901(uint64_t * __restrict__ r,
 
     kmul_451(zmid, ta, tb, child_buf);
 
-    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */
+    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 902u;
         const uint64_t *_src = z0;
         uint64_t *_dst = r;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */
+    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m2) */
     {
         size_t _rem = 900u;
         const uint64_t *_src = z2;
         uint64_t *_dst = r + 902u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m8(_rem);
-            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);
-            __riscv_vse64_v_u64m8(_dst, _v, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _v = __riscv_vle64_v_u64m2(_src, _vl);
+            __riscv_vse64_v_u64m2(_dst, _v, _vl);
             _src += _vl; _dst += _vl; _rem -= _vl;
         }
     }
 
-    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */
+    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m2) */
     {
         size_t _rem = 900u;
         uint64_t *_dst = r + 451u;
@@ -2474,27 +2474,27 @@ static void kmul_901(uint64_t * __restrict__ r,
         const uint64_t *_z0 = z0;
         const uint64_t *_z2 = z2;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_z2, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;
         }
         /* Tail: 2 elements where z2 is absent */
         _rem = 2u;
         while (_rem > 0) {
-            size_t _vl = __riscv_vsetvl_e64m4(_rem);
-            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);
-            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);
-            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);
-            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);
-            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);
-            __riscv_vse64_v_u64m4(_dst, _vd, _vl);
+            size_t _vl = __riscv_vsetvl_e64m2(_rem);
+            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
+            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_zm, _vl);
+            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_z0, _vl);
+            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
+            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
+            __riscv_vse64_v_u64m2(_dst, _vd, _vl);
             _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;
         }
     }

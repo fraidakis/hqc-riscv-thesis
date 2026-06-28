@@ -29,6 +29,11 @@ ROOT_NS = [277, 561, 901]
 # At these sizes the RVV loops process ≤2 iterations and transition overhead dominates.
 RVV_HYBRID_THRESHOLD = 18
 
+# RVV LMUL: flat m2 everywhere. Empirically validated on SpacemiT X60 (VLEN=256)
+# to be optimal or within 1% of optimal at all HQC security levels. Lower LMUL
+# avoids register pressure on in-order cores and reduces pipeline stalls.
+_RVV_LMUL = "m2"
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _MODE_CONFIG: dict[str, dict] = {
@@ -299,37 +304,37 @@ def _rvv_recomposition_noD(lines: list[str], n0: int, n1: int) -> None:
     two_n1 = 2 * n1
 
     # --- Loop 1: RVV copy z0 → r[0..2*n0-1] ---
-    lines.append("    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL=m8) */")
+    lines.append(f"    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
     lines.append(f"        size_t _rem = {two_n0}u;")
     lines.append("        const uint64_t *_src = z0;")
     lines.append("        uint64_t *_dst = r;")
     lines.append("        while (_rem > 0) {")
-    lines.append("            size_t _vl = __riscv_vsetvl_e64m8(_rem);")
-    lines.append("            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);")
-    lines.append("            __riscv_vse64_v_u64m8(_dst, _v, _vl);")
+    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _v = __riscv_vle64_v_u64{_RVV_LMUL}(_src, _vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _v, _vl);")
     lines.append("            _src += _vl; _dst += _vl; _rem -= _vl;")
     lines.append("        }")
     lines.append("    }")
     lines.append("")
 
     # --- Loop 2: RVV copy z2 → r[2*n0..2*n0+2*n1-1] ---
-    lines.append("    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL=m8) */")
+    lines.append(f"    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
     lines.append(f"        size_t _rem = {two_n1}u;")
     lines.append("        const uint64_t *_src = z2;")
     lines.append(f"        uint64_t *_dst = r + {two_n0}u;")
     lines.append("        while (_rem > 0) {")
-    lines.append("            size_t _vl = __riscv_vsetvl_e64m8(_rem);")
-    lines.append("            vuint64m8_t _v = __riscv_vle64_v_u64m8(_src, _vl);")
-    lines.append("            __riscv_vse64_v_u64m8(_dst, _v, _vl);")
+    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _v = __riscv_vle64_v_u64{_RVV_LMUL}(_src, _vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _v, _vl);")
     lines.append("            _src += _vl; _dst += _vl; _rem -= _vl;")
     lines.append("        }")
     lines.append("    }")
     lines.append("")
 
     # --- Loop 3: RVV XOR accumulation r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] ---
-    lines.append("    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL=m4) */")
+    lines.append(f"    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
     lines.append(f"        size_t _rem = {two_n1}u;")
     lines.append(f"        uint64_t *_dst = r + {n0}u;")
@@ -337,15 +342,15 @@ def _rvv_recomposition_noD(lines: list[str], n0: int, n1: int) -> None:
     lines.append("        const uint64_t *_z0 = z0;")
     lines.append("        const uint64_t *_z2 = z2;")
     lines.append("        while (_rem > 0) {")
-    lines.append("            size_t _vl = __riscv_vsetvl_e64m4(_rem);")
-    lines.append("            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);")
-    lines.append("            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);")
-    lines.append("            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);")
-    lines.append("            vuint64m4_t _v2 = __riscv_vle64_v_u64m4(_z2, _vl);")
-    lines.append("            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);")
-    lines.append("            _acc = __riscv_vxor_vv_u64m4(_acc, _v2, _vl);")
-    lines.append("            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);")
-    lines.append("            __riscv_vse64_v_u64m4(_dst, _vd, _vl);")
+    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_zm, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_z0, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _v2 = __riscv_vle64_v_u64{_RVV_LMUL}(_z2, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
+    lines.append(f"            _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_acc, _v2, _vl);")
+    lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
     lines.append("            _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;")
     lines.append("        }")
     if two_n0 > two_n1:
@@ -354,13 +359,13 @@ def _rvv_recomposition_noD(lines: list[str], n0: int, n1: int) -> None:
         lines.append(f"        /* Tail: {rem} elements where z2 is absent */")
         lines.append(f"        _rem = {rem}u;")
         lines.append("        while (_rem > 0) {")
-        lines.append("            size_t _vl = __riscv_vsetvl_e64m4(_rem);")
-        lines.append("            vuint64m4_t _vd = __riscv_vle64_v_u64m4(_dst, _vl);")
-        lines.append("            vuint64m4_t _vm = __riscv_vle64_v_u64m4(_zm, _vl);")
-        lines.append("            vuint64m4_t _v0 = __riscv_vle64_v_u64m4(_z0, _vl);")
-        lines.append("            vuint64m4_t _acc = __riscv_vxor_vv_u64m4(_vm, _v0, _vl);")
-        lines.append("            _vd = __riscv_vxor_vv_u64m4(_vd, _acc, _vl);")
-        lines.append("            __riscv_vse64_v_u64m4(_dst, _vd, _vl);")
+        lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_zm, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_z0, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
+        lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
+        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
         lines.append("            _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;")
         lines.append("        }")
     lines.append("    }")
@@ -394,15 +399,15 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
     second_half_count = two_n1 - n0  # elements in second half of Loop 3A
 
     # --- Save overlap region r[n0..2*n0-1] to ta using inline RVV (LMUL=m4) ---
-    lines.append(f"    /* Save overlap region r[n0..2*n0-1] to ta — inline RVV copy (LMUL=m4) */")
+    lines.append(f"    /* Save overlap region r[n0..2*n0-1] to ta — inline RVV copy (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
     lines.append(f"        size_t _cp_rem = {n0}u;")
     lines.append(f"        const uint64_t *_cp_src = r + {n0}u;")
     lines.append(f"        uint64_t *_cp_dst = ta;")
     lines.append("        while (_cp_rem > 0) {")
-    lines.append("            size_t _cp_vl = __riscv_vsetvl_e64m4(_cp_rem);")
-    lines.append("            vuint64m4_t _cp_v = __riscv_vle64_v_u64m4(_cp_src, _cp_vl);")
-    lines.append("            __riscv_vse64_v_u64m4(_cp_dst, _cp_v, _cp_vl);")
+    lines.append(f"            size_t _cp_vl = __riscv_vsetvl_e64{_RVV_LMUL}(_cp_rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _cp_v = __riscv_vle64_v_u64{_RVV_LMUL}(_cp_src, _cp_vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_cp_dst, _cp_v, _cp_vl);")
     lines.append("            _cp_src += _cp_vl; _cp_dst += _cp_vl; _cp_rem -= _cp_vl;")
     lines.append("        }")
     lines.append("    }")
@@ -417,15 +422,15 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
     lines.append(f"        const uint64_t *_s0 = r;")
     lines.append(f"        const uint64_t *_s2 = r + {two_n0}u;")
     lines.append("        while (_rem > 0) {")
-    lines.append("            size_t _vl = __riscv_vsetvl_e64m2(_rem);")
-    lines.append("            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);")
-    lines.append("            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);")
-    lines.append("            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);")
-    lines.append("            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);")
-    lines.append("            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);")
-    lines.append("            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);")
-    lines.append("            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);")
-    lines.append("            __riscv_vse64_v_u64m2(_dst, _vd, _vl);")
+    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_sm, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_s0, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _v2 = __riscv_vle64_v_u64{_RVV_LMUL}(_s2, _vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
+    lines.append(f"            _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_acc, _v2, _vl);")
+    lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
     lines.append("            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;")
     lines.append("        }")
     lines.append("    }")
@@ -440,15 +445,15 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
         lines.append(f"        const uint64_t *_s0 = ta;")
         lines.append(f"        const uint64_t *_s2 = r + {3 * n0}u;")
         lines.append("        while (_rem > 0) {")
-        lines.append("            size_t _vl = __riscv_vsetvl_e64m2(_rem);")
-        lines.append("            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);")
-        lines.append("            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);")
-        lines.append("            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);")
-        lines.append("            vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);")
-        lines.append("            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);")
-        lines.append("            _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);")
-        lines.append("            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);")
-        lines.append("            __riscv_vse64_v_u64m2(_dst, _vd, _vl);")
+        lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_sm, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_s0, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _v2 = __riscv_vle64_v_u64{_RVV_LMUL}(_s2, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
+        lines.append(f"            _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_acc, _v2, _vl);")
+        lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
+        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
         lines.append("            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;")
         lines.append("        }")
         lines.append("    }")
@@ -466,13 +471,13 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
         lines.append(f"        const uint64_t *_sm = zmid + {two_n1}u;")
         lines.append(f"        const uint64_t *_s0 = ta + {ta_off}u;")
         lines.append("        while (_rem > 0) {")
-        lines.append("            size_t _vl = __riscv_vsetvl_e64m2(_rem);")
-        lines.append("            vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);")
-        lines.append("            vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);")
-        lines.append("            vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);")
-        lines.append("            vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);")
-        lines.append("            _vd = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);")
-        lines.append("            __riscv_vse64_v_u64m2(_dst, _vd, _vl);")
+        lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_sm, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_s0, _vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
+        lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
+        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
         lines.append("            _dst += _vl; _sm += _vl; _s0 += _vl; _rem -= _vl;")
         lines.append("        }")
         lines.append("    }")
@@ -561,14 +566,11 @@ def _emit_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
     """Emit inline RVV intrinsics for ta/tb XOR preparation (rvv mode).
 
     Replaces rvv_xor_u64(ta, a, a+n0, n1) / rvv_xor_u64(tb, b, b+n0, n1)
-    with inline vle64/vxor/vse64 loop. Uses LMUL=m8 for n1 >= 28, LMUL=m4 otherwise.
+    with inline vle64/vxor/vse64 loop. Uses LMUL policy function.
     Handles the scalar tail element when n0 > n1 (odd-n case).
     """
-    # Select LMUL based on operand size
-    if n1 >= 28:
-        lmul = "m8"
-    else:
-        lmul = "m4"
+    # Use flat LMUL
+    lmul = _RVV_LMUL
 
     lines.append(f"    /* ta/tb preparation: inline RVV XOR (LMUL={lmul}, n1={n1}) */")
     lines.append("    {")
