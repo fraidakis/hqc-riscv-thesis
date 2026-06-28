@@ -116,7 +116,7 @@ vector register group: σε \VLEN = \num{256} με \LMUL = m4 το group καλ�
 \num{16} λωρίδες των \num{64} bit. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
 
 %% ============================================================================
-\section{Scalar Path: Karatsuba με \Zbc}
+\section{Scalar Path: Word-Level Karatsuba με \Zbc}
 \label{sec:polymul-scalar}
 
 Η scalar υλοποίηση αποτελεί τη θεμελιώδη βελτιστοποίηση του πολυωνυμικού
@@ -427,17 +427,10 @@ assign-on-first-write (tree + leaf).
 \section{Base-RVV Path: Διανυσματοποίηση Ανασύνθεσης}
 \label{sec:polymul-base-rvv}
 
-Το Tier~2 εφαρμόζει υβριδική scalar/vector στρατηγική: οι γραμμικού κόστους $\BigO{n}$ βρόχοι ανασύνθεσης κάθε
-κόμβου του δέντρου αναδρομής εκτελούνται με inline RVV intrinsics
+Το Tier~2 εφαρμόζει υβριδική scalar/vector στρατηγική: οι γραμμικού κόστους $\BigO{n}$ 
+βρόχοι ανασύνθεσης του δέντρου αναδρομής εκτελούνται με inline RVV intrinsics
 αντί για scalar element-wise C loops, ενώ ο carry-less multiply leaf
 διατηρείται scalar.
-
-Οι RVV βρόχοι χρησιμοποιούν ομοιόμορφα \LMUL=m2 (κάθε vector register group
-καταλαμβάνει \num{2} registers, \num{8} words των \num{64}-bit ανά iteration
-σε \VLEN=\num{256}): η επιλογή κρατά χαμηλή την πίεση στο register file ώστε
-ο compiler να αποφεύγει spills στον in-order X60 core. Μεγαλύτερα LMUL (m4,
-m8) εξετάστηκαν χωρίς επιπλέον κέρδος, με την m8 να εμφανίζει regression
-λόγω register-file pressure.
 
 Ο specialized generator σε \code{rvv} mode εκπέμπει inline RVV intrinsic
 loops απευθείας εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης. Ο κρίσιμος
@@ -470,21 +463,23 @@ while (rem > 0) {
 }
 \end{lstlisting}
 
+Οι RVV βρόχοι χρησιμοποιούν ομοιόμορφα \LMUL=m2 (κάθε vector register group
+καταλαμβάνει \num{2} registers, \num{8} words των \num{64}-bit ανά iteration
+σε \VLEN=\num{256}): η επιλογή κρατά χαμηλό register file pressure ώστε
+ο compiler να αποφεύγει spills στον in-order X60 core. Εξετάστηκαν και μεγαλύτερα LMUL (m4,
+m8) χωρίς επιπλέον κέρδος, με την m8 μάλιστα να εμφανίζει regression λόγω register-file pressure.
+
 Η διανυσματοποίηση δεν εφαρμόζεται ομοιόμορφα σε όλα τα επίπεδα του δέντρου.
 Στους κατώτερους κόμβους οι RVV βρόχοι εκτελούν μόλις \num{1}–\num{2}
 iterations, όπου η ποινή μετάβασης scalar↔vector (\insn{vsetvl} stall και
 store-buffer drain) ακυρώνει το data-parallel κέρδος. Για τον λόγο αυτό η
-υλοποίηση εισάγει ένα \code{RVV\_HYBRID\_THRESHOLD}$=18$: κόμβοι με
-$n \leq 18$ παραμένουν scalar, ενώ κόμβοι με $n > 18$ διατηρούν τα inline
-RVV intrinsics.
+υλοποίηση εισάγει ένα threshold, ώστε κόμβοι με $n \leq 18$ να παραμένουν scalar, 
+ενώ κόμβοι με $n > 18$ να διατηρούν τα inline RVV intrinsics.
 
-Συνολικά, σε σχέση με το \code{scalar\_zb} baseline, η inlined RVV ανασύνθεση
-μειώνει τα \instret κατά \pct{21}–\pct{24}, αλλά το πραγματικό κέρδος κύκλων
-περιορίζεται σε \speedup{1.02}–\speedup{1.04} (BPI-F3, \VLEN=\num{256}): ο
-scalar \clmul/\clmulh leaf παραμένει το \defterm{binding constraint}, με
-κόστος $\BigO{n^2}$ ανά κλήση έναντι $\BigO{n}$ της ανασύνθεσης. Η παρατήρηση
-αυτή τεκμηριώνει τη μετάβαση στο Tier~3 (\cref{sec:polymul-zvbc}), όπου η
-διανυσματοποίηση εισχωρεί στον ίδιο τον leaf μέσω \vclmul/\vclmulh.
+Συνολικά, σε σχέση με την τελική βελτιστοποιημένη υλοποίηση του Tier~1, ενώ η inlined 
+RVV ανασύνθεση μειώνει τα \instret κατά \pct{21}–\pct{24}, το πραγματικό κέρδος κύκλων
+περιορίζεται σε \speedup{1.02}–\speedup{1.04}. O scalar \clmul/\clmulh leaf παραμένει 
+το \defterm{binding constraint}, με κόστος $\BigO{n^2}$ ανά κλήση έναντι $\BigO{n}$ της ανασύνθεσης.
 
 %% ============================================================================
 \section{Vector-Crypto Path: \Zvbc Leaf Kernels}
@@ -492,19 +487,19 @@ scalar \clmul/\clmulh leaf παραμένει το \defterm{binding constraint},
 
 Η μετάβαση από Tier~2 σε Tier~3 αντιπροσωπεύει τη θεμελιώδη αρχιτεκτονική
 αλλαγή στον πολυωνυμικό πολλαπλασιασμό: η διανυσματοποίηση εισχωρεί στον
-ίδιο τον leaf kernel, τον τετραγωνικού κόστους $\BigO{n^2}$ πυρήνα που
-αποτελούσε το binding constraint στο Tier~2. Η εντολή \vclmul{} της \gls{zvbc}
+ίδιο τον leaf kernel, τον τετραγωνικού κόστους $\BigO{n^2}$ πυρήνα. Η εντολή \vclmul{} της \gls{zvbc}
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
 παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
-\clmul/\clmulh βρόχο με μία μόνο vector iteration ανά εξωτερικό index.
+\clmul/\clmulh βρόχο με ένα μόνο vector iteration.
 
-\subsection{Splat-and-Sweep: Διανυσματοποίηση του Schoolbook Leaf}
+\subsection{Διανυσματοποίηση του Schoolbook Leaf μέσω \vclmul}
 \label{ssec:vclmul-leaf}
 
-Ο \code{vclmul\_leaf} υλοποιεί ένα splat-and-sweep pattern: για
-κάθε εξωτερικό index $i$, η scalar τιμή $a[i]$ εκπέμπεται (splat) σε
-ολόκληρο ένα vector register μέσω \insn{vmv.v.x}, και ο πλήρης εσωτερικός
-πίνακας $b[0 \ldots n{-}1]$ φορτώνεται ως vector μέσω \insn{vle64.v}.
+Ο \code{vclmul\_leaf} υλοποιεί ένα scalar-vector pattern: για
+κάθε εξωτερικό index $i$, η scalar τιμή $a[i]$ περνά ως scalar τελεστέος
+(\code{rs1}) απευθείας στη \vclmul/\vclmulh μέσω της \code{.vx} μορφής
+(\code{\_\_riscv\_vclmul\_vx\_u64m4}). Ο πλήρης εσωτερικός πίνακας 
+$b[0 \ldots n{-}1]$ φορτώνεται ως vector μέσω \insn{vle64.v}.
 Ένα μόνο ζεύγος \vclmul/\vclmulh υπολογίζει ταυτόχρονα όλα τα $n$
 carry-less γινόμενα — χαμηλά και υψηλά μισά αντίστοιχα:
 %
@@ -526,98 +521,20 @@ load-XOR-store: το lo-vector XOR-accumulate στο $r[i \ldots i{+}n{-}1]$
 Το \cref{fig:vclmul-leaf-dataflow} απεικονίζει τη ροή δεδομένων μίας
 iteration του \code{vclmul\_leaf}. Η κρίσιμη παρατήρηση είναι ότι η
 φόρτωση του $b$-vector εκτελείται μία φορά ανά εξωτερικό index — κάθε
-$a[i]$ splat επαναχρησιμοποιεί τον ίδιο φορτωμένο $b$-vector, μειώνοντας
+$a[i]$ (scalar \code{rs1}) επαναχρησιμοποιεί τον ίδιο φορτωμένο $b$-vector, μειώνοντας
 το κόστος μνήμης σε $n$ γινόμενα.
 
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/vclmul-leaf-dataflow.tex}
   \caption{Ροή δεδομένων του \code{vclmul\_leaf} για $n=16$ elements.
-    Η τιμή $a[i]$ εκπέμπεται (splat) σε vector register, ο πίνακας
-    $b[0 \ldots 15]$ φορτώνεται ως vector, και ένα ζεύγος
+    Η τιμή $a[i]$ περνά ως scalar τελεστέος (\code{rs1}) απευθείας στη
+    \vclmul/\vclmulh, ο πίνακας $b[0 \ldots 15]$ φορτώνεται ως vector, και ένα ζεύγος
     \vclmul/\vclmulh υπολογίζει ταυτόχρονα \num{16} carry-less γινόμενα.
     Σε \VLEN=\num{256} με \LMUL=m4, ο εσωτερικός βρόχος εκτελείται σε
     μία μόνο vector iteration.}
   \label{fig:vclmul-leaf-dataflow}
 \end{figure}
-
-\paragraph{Assign-on-first-write στον vector leaf.}
-Η ίδια πολιτική πρώτης εγγραφής που εφαρμόστηκε στον scalar leaf
-(\cref{ssec:memset-elimination}) προσαρμόζεται στο vector context. Η
-υλοποίηση διαιρεί τον leaf σε δύο φάσεις:
-%
-\begin{enumerate}
-  \item \textbf{Peeled $i=0$ iteration:} Τα lo-products αποθηκεύονται
-    μέσω direct \insn{vse64.v} (assignment, χωρίς προηγούμενη φόρτωση)
-    στο $r[0 \ldots n{-}1]$, καθώς αυτές οι θέσεις δεν έχουν
-    αρχικοποιηθεί. Τα hi-products XOR-accumulate στο
-    $r[1 \ldots n]$ — θέσεις ήδη γραμμένες από το lo-store (εκτός
-    $r[n]$, που pre-zero).
-
-  \item \textbf{Upper-half pre-zero:} Ένα μόνο RVV store
-    (\insn{vmv.v.x}(0) + \insn{vse64.v}) μηδενίζει τις θέσεις
-    $r[n \ldots 2n{-}1]$. Αυτό είναι αναγκαίο διότι οι hi-accumulations
-    για $i \geq 1$ εκτελούν read-modify-write σε αυτές τις θέσεις πριν
-    οποιοσδήποτε άλλος writer τις προσεγγίσει.
-\end{enumerate}
-%
-Η αναδιάρθρωση αυτή αντικαθιστά το πλήρες \code{memset(r, 0, 2*n*8)}
-— που στο bare-metal περιβάλλον εκτελούνταν ως scalar byte-loop κοστίζοντας
-$3 \times 2n \times 8 = 48n$ εντολές ανά leaf call — με ένα μόνο RVV
-zero-store μεγέθους $n$ words. Δεδομένου ότι το δέντρο αναδρομής HQC-128
-περιέχει \num{243} leaf calls ανά \code{vect\_mul}, η αθροιστική
-εξοικονόμηση ανέρχεται σε εκατοντάδες χιλιάδες εντολές.
-
-\paragraph{Four-way outer-loop unroll.}
-Ο εξωτερικός βρόχος ($i = 1, 2, \ldots, n{-}1$) εκτυλίσσεται κατά
-παράγοντα τέσσερα. Κάθε iteration φορτώνει τέσσερις scalar τιμές
-$a[i], a[i{+}1], a[i{+}2], a[i{+}3]$ και τα χρησιμοποιεί ως scalar τελεστέους (\code{rs1}), εκδίδοντας $4 \times 2 = 8$ εντολές \vclmul/\vclmulh
-εναντίον του ίδιου φορτωμένου $b$-vector. Η τεχνική αυτή μειώνει
-το κόστος φόρτωσης $b$ σε τέσσερις εξωτερικές iterations και επιτρέπει
-στον μεταγλωττιστή να interleave την accumulation κάθε strip αμέσως μετά τον
-υπολογισμό του — τα lo/hi αποτελέσματα ενός strip καταναλώνονται μέσω
-XOR-accumulate και store πριν ξεκινήσει ο επόμενος \vclmul/\vclmulh
-κύκλος, διατηρώντας μικρή register pressure παρά τον υψηλό instruction
-throughput. Ένας scalar tail loop χειρίζεται τις εναπομείνασες
-$n \bmod 4$ iterations.
-
-Ο \cref{lst:vclmul-leaf-core} παρουσιάζει τον πυρήνα του 4$\times$
-unrolled βρόχου — τη φόρτωση $b$ και τα οκτώ ζεύγη carry-less πολλαπλασιασμού με scalar τελεστέους:
-
-\begin{lstlisting}[language=C,
-  caption={Πυρήνας 4$\times$ unrolled \code{vclmul\_leaf} — φόρτωση
-    $b$-vector και τέσσερα ζεύγη \vclmul/\vclmulh.},
-  label={lst:vclmul-leaf-core}]
-vuint64m4_t vb = __riscv_vle64_v_u64m4(b + j, vl);
-/* Strip 0: a[i] */
-vuint64m4_t vlo0 = __riscv_vclmul_vx_u64m4(vb, a0, vl);
-vuint64m4_t vhi0 = __riscv_vclmulh_vx_u64m4(vb, a0, vl);
-/* Strip 1: a[i+1] */
-vuint64m4_t vlo1 = __riscv_vclmul_vx_u64m4(vb, a1, vl);
-vuint64m4_t vhi1 = __riscv_vclmulh_vx_u64m4(vb, a1, vl);
-/* Strip 2: a[i+2] */
-vuint64m4_t vlo2 = __riscv_vclmul_vx_u64m4(vb, a2, vl);
-vuint64m4_t vhi2 = __riscv_vclmulh_vx_u64m4(vb, a2, vl);
-/* Strip 3: a[i+3] */
-vuint64m4_t vlo3 = __riscv_vclmul_vx_u64m4(vb, a3, vl);
-vuint64m4_t vhi3 = __riscv_vclmulh_vx_u64m4(vb, a3, vl);
-\end{lstlisting}
-
-\paragraph{LMUL selection.}
-Ο leaf χρησιμοποιεί \LMUL=m4 για τις πράξεις carry-less πολλαπλασιασμού. Σε
-\VLEN=\num{256}, κάθε m4 group καταλαμβάνει \num{4} physical registers.
-Στο 4$\times$ unrolled loop, τα ταυτόχρονα ζωντανά groups ανά strip είναι:
-$b$-vector (\num{4} registers), splat (\num{4}), lo-result (\num{4}),
-hi-result (\num{4}) — δηλαδή \num{16} registers ανά strip. Δεδομένου
-ότι η accumulation (XOR-load / XOR / store) κάθε strip εκτελείται
-αμέσως μετά τον υπολογισμό του (interleaved), τα lo/hi registers
-επαναχρησιμοποιούνται μεταξύ strips από τον μεταγλωττιστή — η μέγιστη ταυτόχρονη
-πίεση στο register file δεν υπερβαίνει τα \num{20} registers
-(splat + $b$ + lo + hi + accumulator). Η επιλογή m4 αφήνει επαρκές
-headroom για τον accumulator (\insn{vle64}/\insn{vxor}/\insn{vse64} sequence)
-χωρίς spilling. Μεγαλύτερο \LMUL (m8) θα υπερέβαινε τη χωρητικότητα
-register file κατά τη φάση accumulation, ενώ μικρότερο \LMUL (m2) θα
-διπλασίαζε τον αριθμό inner-loop iterations χωρίς αντίστοιχο κέρδος.
 
 \subsection{Schoolbook Leaf Trade-offs: Γιατί ο Leaf δεν Κλιμακώνει με VLEN}
 \label{ssec:leaf-vlen-tradeoff}
@@ -669,56 +586,6 @@ Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \cod
 (assign-on-first-write), και διανυσματοποίηση του binding constraint
 (\vclmul{} leaf). Η ποσοτική αποτίμηση κάθε στρώματος ξεχωριστά
 παρουσιάζεται στο \cref{ch:results}.
-
-%% ============================================================================
-\section{Code Size vs Performance Trade-off}
-\label{sec:polymul-codesize}
-
-Η πλήρως unrolled δομή του specialized generator (μία συνάρτηση ανά κόμβο αναδρομής) και η specialization του leaf
-(\cref{sec:polymul-scalar}) ανταλλάσσουν αυξημένο μέγεθος κώδικα με την
-απαλοιφή κάθε runtime dispatch. Η αποτίμηση του συμβιβασμού αυτού απαιτεί την
-ταυτόχρονη θεώρηση τριών αλληλεπιδρώντων αξόνων: του βάθους unrolling της
-αναδρομής, του πλήθους εντολών (\instret) και του στατικού αποτυπώματος κώδικα
-(\code{.text}).
-
-Το πλήρες unrolling μετατρέπει το βάθος της αναδρομής σε γραμμικό κώδικα,
-καθώς κάθε κόμβος του δέντρου εκπέμπεται ως ξεχωριστή \code{static} συνάρτηση
-χωρίς threshold comparison ή dynamic dispatch. Κανονικοποιημένο ως προς το
-\code{scalar\_ref} baseline (\SI{5062}{\byte},~\cref{tab:microbench-polymul}),
-το αποτύπωμα στο HQC-128 ανέρχεται σε $2.76\times$ στο Tier~1
-(\code{scalar\_zb}, \SI{14.0}{\kilo\byte}), $1.77\times$ στο Tier~2
-(\code{vector\_rvv}, \SI{9.0}{\kilo\byte}) και $1.16\times$ στο Tier~3
-(\code{vector\_zvk}, \SI{5.9}{\kilo\byte}). Η μείωση του \instret
-επιτυγχάνεται έτσι εις βάρος ακριβώς αυτού του στατικού αποτυπώματος.
-
-Ο συμβιβασμός αυτός δεν είναι μονότονος ως προς την απόδοση. Το μέγεθος του κώδικα
-μεγιστοποιείται στο Tier~1 — το πλήρως unrolled scalar Karatsuba δέντρο —
-και όχι στο ταχύτερο tier. Η αντιπαραβολή Tier~1 και Tier~3 είναι
-αποκαλυπτική: το Tier~3 εκτελεί τον πολλαπλασιασμό σε \num{63804} έναντι
-\num{184108} εντολών (ταχύτερο κατά \speedup{2.89}) ενώ ταυτόχρονα καταλαμβάνει
-\SI{5.9}{\kilo\byte} έναντι \SI{14.0}{\kilo\byte} (μικρότερο κατά $2.38\times$).
-Το Tier~3 κυριαρχεί επομένως κατά Pareto του Tier~1 και στους δύο άξονες. Η
-αιτία είναι δομική: η διανυσματοποίηση του leaf αντικαθιστά το ογκώδες
-unrolled scalar schoolbook product με συμπαγείς \vclmul{} βρόχους,
-συμπιέζοντας το μέγεθος του κώδικα ενώ ενισχύει την απόδοση.
-
-Το μέγεθος κώδικα του Tier~1 ανάγεται ευθέως στις σχεδιαστικές αποφάσεις του scalar
-μονοπατιού (\cref{sec:polymul-scalar}). Ο unrolled specialized generator εκπέμπει
-μία διακριτή συνάρτηση ανά μέγεθος κόμβου, ενώ οι τέσσερις leaf specializations
-(\code{clmul\_leaf\_n8}/\code{n9}/\code{n14}/\code{n15}) προσθέτουν σταθερό
-αποτύπωμα ανά security level. Η compact-loop δομή των leaves περιορίζει
-το per-leaf footprint σε σχέση με πλήρες unrolling — ωστόσο, η πολλαπλότητα
-κόμβων και leaves στο δέντρο αθροίζει σε $\sim$\SI{9}{\kilo\byte} επιπλέον
-έναντι του \code{scalar\_ref}.
-
-Το μέγεθος του κώδικα παραμένει εντός στενής ζώνης μεταξύ των security levels για ένα
-δεδομένο variant (\code{vector\_zvk}: \SI{5882}{\byte}, \SI{6894}{\byte} και
-\SI{7082}{\byte} για HQC-128, HQC-192 και HQC-256 αντίστοιχα), διότι το βάθος
-unrolling καθορίζεται από τη μορφή του δέντρου αναδρομής στο επιλεγμένο
-threshold και όχι από το bit-length της παραμέτρου. Συνολικά, η μετάβαση στο
-Vector-Crypto leaf δεν συνιστά συμβιβασμό μεγέθους και απόδοσης αλλά ταυτόχρονη
-βελτίωση και των δύο· η ανακατανομή του υπολογιστικού προφίλ που προκύπτει από
-τις επιλογές αυτές αναλύεται στην~\cref{sec:polymul-assessment}.
 
 %% ============================================================================
 \section{Αποτίμηση: Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση}
