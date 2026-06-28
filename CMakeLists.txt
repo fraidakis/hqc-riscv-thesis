@@ -87,7 +87,7 @@ set(HQC_REF ${CMAKE_SOURCE_DIR}/vendor/hqc-ref)
 #
 #   scalar_ref  : vendor scalar baseline, no RVV
 #   scalar_zb   : scalar optimized champion (Zbc carry-less multiply)
-#   vector_rvv  : RVV hybrid champion
+#   vector_rvv  : RVV hybrid champion (same as vector_rvv_V)
 #   vector_zvk  : full vector-crypto champion (Zvbc)
 #   vector_rvv_ref  : RVV ablation baseline (no direct-write, helper calls)
 #   vector_rvv_A    : RVV ablation + direct-write discipline
@@ -103,7 +103,6 @@ set(POLYMUL_VARIANTS
     vector_rvv_D
     vector_rvv_V
     vector_rvv_VD
-    vector_rvv_DV
     vector_rvv
     vector_zvk
 )
@@ -425,7 +424,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -DABLATION_AP2=0
                 -DABLATION_SYMMETRIC_TREE=1)
         elseif(POLYMUL STREQUAL "vector_rvv_D")
-            # Ablation: direct-write discipline + scalar recomposition loops + scalar reduce.
+            # Ablation: direct-write discipline + scalar recomposition loops.
             # Isolates the algorithmic gain of eliminating copy loops 1+2.
             # Header: direct-write tree with all-scalar XOR/copy (no RVV intrinsics in tree).
             set(POLYMUL_SOURCES
@@ -435,43 +434,27 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize
-                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_dw_scalar_gen.h\""
-                -DRVV_USE_SCALAR_REDUCE=1)
+                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_dw_scalar_gen.h\"")
         elseif(POLYMUL STREQUAL "vector_rvv_V")
-            # Ablation: ref layout + RVV-vectorized recomposition + scalar reduce.
-            # Isolates V (vectorized loops) without D (direct-write discipline).
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
-            list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zba
-                -mabi=lp64d
-                -O3
-                -fno-tree-vectorize
-                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_v_only_gen.h\""
-                -DRVV_USE_SCALAR_REDUCE=1)
-        elseif(POLYMUL STREQUAL "vector_rvv_VD")
-            # Ablation: V first, then D on top (alternate ordering: same binary as DV).
-            # Direct-write + RVV-vectorized recomposition + scalar reduce.
-            set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
-            list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zba
-                -mabi=lp64d
-                -O3
-                -fno-tree-vectorize
-                -DRVV_USE_SCALAR_REDUCE=1)
-        elseif(POLYMUL STREQUAL "vector_rvv_DV")
-            # Ablation: direct-write + RVV-vectorized recomposition + scalar reduce.
+            # Ablation: direct-write + RVV-vectorized recomposition.
             # Isolates the benefit of vectorized data movement in the Karatsuba tree.
-            # Header: the champion specialized gen with inline RVV (hybrid threshold).
+            # (D is now part of the scalar_zb baseline; this variant adds V on top.)
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
                 -march=rv64gcv_zbc_zbb_zba
                 -mabi=lp64d
                 -O3
-                -fno-tree-vectorize
-                -DRVV_USE_SCALAR_REDUCE=1)
+                -fno-tree-vectorize)
+        elseif(POLYMUL STREQUAL "vector_rvv_VD")
+            # Legacy alias (same binary as vector_rvv_V).
+            set(POLYMUL_SOURCES
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
+            list(APPEND VARIANT_COMPILE_OPTIONS
+                -march=rv64gcv_zbc_zbb_zba
+                -mabi=lp64d
+                -O3
+                -fno-tree-vectorize)
         elseif(POLYMUL STREQUAL "vector_rvv")
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)

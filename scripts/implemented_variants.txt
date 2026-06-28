@@ -7,6 +7,5 @@ scalar_zb_ABC_nosplit
 vector_rvv_D
 vector_rvv_V
 vector_rvv_VD
-vector_rvv_DV
 vector_rvv
 vector_zvk

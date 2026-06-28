@@ -36,7 +36,7 @@ bench_variant_slug() {
         scalar_zb_AC)   echo "scalar-zb-ac" ;;
         scalar_zb_ACB)  echo "scalar-zb-acb" ;;
         vector_rvv_D)   echo "vector-rvv-d" ;;
-        vector_rvv_DV)  echo "vector-rvv-dv" ;;
+        vector_rvv_V)   echo "vector-rvv-v" ;;
         vector_rvv)     echo "vector-rvv" ;;
         vector_zvk)     echo "vector-zvk" ;;
         # For non-variant identifiers (keccak/decode impl names like "ref", "rvv",
@@ -58,7 +58,7 @@ bench_variant_track() {
     local normalized="${variant,,}"
 
     case "$normalized" in
-        vector_rvv|vector_rvv_d|vector_rvv_dv|vector_zvk|*_rvv|*_zvbc) echo "vector" ;;
+        vector_rvv|vector_rvv_d|vector_rvv_v|vector_zvk|*_rvv|*_zvbc) echo "vector" ;;
         *) echo "scalar" ;;
     esac
 }
@@ -116,7 +116,7 @@ bench_parse_track_args() {
         case "$MUL_VARIANT" in
             scalar_ref|scalar_zb) KECCAK_IMPL="ref" ;;
             vector_zvk)           KECCAK_IMPL="zvbb_x2_soa" ;;
-            vector_rvv|vector_rvv_D|vector_rvv_DV)
+            vector_rvv|vector_rvv_D|vector_rvv_V)
                                   KECCAK_IMPL="ref"         ;;
             *)                    KECCAK_IMPL="ref"          ;;
         esac
@@ -126,7 +126,7 @@ bench_parse_track_args() {
     if [[ "$_decode_explicit" -eq 0 ]]; then
         case "$MUL_VARIANT" in
             scalar_ref|scalar_zb) DECODE_IMPL="ref" ;;
-            vector_rvv|vector_rvv_D|vector_rvv_DV)
+            vector_rvv|vector_rvv_D|vector_rvv_V)
                                   DECODE_IMPL="rvv" ;;
             vector_zvk)           DECODE_IMPL="zvbc" ;;
             *)                    DECODE_IMPL="ref" ;;
