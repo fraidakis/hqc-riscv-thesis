@@ -40,8 +40,7 @@
 #   scalar_ref    : baseline (bit-serial + memset + n>>1 split)
 #   scalar_zb_A   : + word-level clmul
 #   scalar_zb_AC  : + word-level + specialized recursion tree (generic leaves)
-#   scalar_zb_ACB : + word-level + specialized tree + assign-on-first-write (champion)
-#   scalar_zb     : same as ACB (official champion binary)
+#   scalar_zb     : + word-level + specialized tree + assign-on-first-write (champion)
 #
 # Vector RVV ablation variants (in order of optimization layering):
 #   scalar_zb       : baseline (Tier 1 champion — copy-loop recomposition, scalar reduce)
@@ -59,7 +58,6 @@ SCALAR_ABLATION_VARIANTS=(
     scalar_ref
     scalar_zb_A
     scalar_zb_AC
-    scalar_zb_ACB
     scalar_zb
 )
 
@@ -403,9 +401,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
             a_cycles="${LVL_CYCLES[scalar_zb_A]:-}"
             a_instret="${LVL_INSTRET[scalar_zb_A]:-}"
             ac_cycles="${LVL_CYCLES[scalar_zb_AC]:-}"
-            acb_cycles="${LVL_CYCLES[scalar_zb_ACB]:-}"
             ac_instret="${LVL_INSTRET[scalar_zb_AC]:-}"
-            acb_instret="${LVL_INSTRET[scalar_zb_ACB]:-}"
 
             for v in "${VARIANTS[@]}"; do
                 cycles="${LVL_CYCLES[$v]:-}"
@@ -415,7 +411,6 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                     scalar_ref)    opt_label="(none)" ;;
                     scalar_zb_A)   opt_label="A" ;;
                     scalar_zb_AC)  opt_label="A+C" ;;
-                    scalar_zb_ACB) opt_label="A+C+B" ;;
                     scalar_zb)     opt_label="A+C+B" ;;
                     *)             opt_label="?" ;;
                 esac
@@ -439,7 +434,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                                 [[ -n "$a_cycles" && "$a_cycles" -gt 0 && "$cycles" -gt 0 ]] \
                                     && col_cyc_prev=$(awk "BEGIN{printf \"×%.1f\",${a_cycles}/${cycles}}") \
                                     || col_cyc_prev="—" ;;
-                            scalar_zb_ACB|scalar_zb)
+                            scalar_zb)
                                 [[ -n "$ac_cycles" && "$ac_cycles" -gt 0 && "$cycles" -gt 0 ]] \
                                     && col_cyc_prev=$(awk "BEGIN{printf \"×%.1f\",${ac_cycles}/${cycles}}") \
                                     || col_cyc_prev="—" ;;
@@ -466,7 +461,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
                             [[ -n "$a_instret" && "$a_instret" -gt 0 && "$instret" -gt 0 ]] \
                                 && col_inst_prev=$(awk "BEGIN{printf \"×%.1f\",${a_instret}/${instret}}") \
                                 || col_inst_prev="—" ;;
-                        scalar_zb_ACB|scalar_zb)
+                        scalar_zb)
                             [[ -n "$ac_instret" && "$ac_instret" -gt 0 && "$instret" -gt 0 ]] \
                                 && col_inst_prev=$(awk "BEGIN{printf \"×%.1f\",${ac_instret}/${instret}}") \
                                 || col_inst_prev="—" ;;
@@ -506,7 +501,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
             hw_transitions=(
                 "ref→A|+word-level clmul|scalar_ref|scalar_zb_A"
                 "A→AC|+specialized recursion tree|scalar_zb_A|scalar_zb_AC"
-                "AC→ACB|+assign-on-first-write (tree + leaf)|scalar_zb_AC|scalar_zb_ACB"
+                "AC→ACB|+assign-on-first-write (tree + leaf)|scalar_zb_AC|scalar_zb"
             )
 
             for t in "${hw_transitions[@]}"; do
@@ -556,7 +551,7 @@ if [[ $DO_SCALAR -eq 1 && $DRY_RUN -eq 0 ]]; then
             inst_transitions=(
                 "ref→A|+word-level clmul|scalar_ref|scalar_zb_A"
                 "A→AC|+specialized recursion tree|scalar_zb_A|scalar_zb_AC"
-                "AC→ACB|+assign-on-first-write (tree + leaf)|scalar_zb_AC|scalar_zb_ACB"
+                "AC→ACB|+assign-on-first-write (tree + leaf)|scalar_zb_AC|scalar_zb"
             )
 
             for t in "${inst_transitions[@]}"; do

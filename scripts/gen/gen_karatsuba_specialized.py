@@ -100,12 +100,20 @@ def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int,
                 return f"clmul_leaf_n8({dst}, {xa}, {xb});"
             if n == 9:
                 return f"clmul_leaf_n9({dst}, {xa}, {xb});"
+            if n == 14:
+                return f"clmul_leaf_n14({dst}, {xa}, {xb});"
+            if n == 15:
+                return f"clmul_leaf_n15({dst}, {xa}, {xb});"
         # rvv_noD uses same specialized leaves as rvv
         if leaf_style == "noinit" and mode == "rvv_noD":
             if n == 8:
                 return f"clmul_leaf_n8({dst}, {xa}, {xb});"
             if n == 9:
                 return f"clmul_leaf_n9({dst}, {xa}, {xb});"
+            if n == 14:
+                return f"clmul_leaf_n14({dst}, {xa}, {xb});"
+            if n == 15:
+                return f"clmul_leaf_n15({dst}, {xa}, {xb});"
         # zbc noinit: use LEAF_CALL_N8/N9 macros for specialized leaves
         if leaf_style == "noinit" and mode == "zbc":
             if n == 8:

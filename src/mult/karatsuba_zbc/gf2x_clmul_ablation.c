@@ -164,14 +164,10 @@ static void schoolbook_mul(uint64_t *r, const uint64_t *a, const uint64_t *b, si
 #elif ABLATION_SYMMETRIC_TREE
 
 /* Symmetric (n>>1) specialized recursion tree — compile-time unrolled.
- * Same B-conditional header selection as ABLATION_AP2.
+ * Requires ABLATION_NOINIT=1 (assign-on-first-write discipline).
  */
 
-#if ABLATION_NOINIT
 #include "karatsuba_specialized_symmetric_gen.h"
-#else
-#include "karatsuba_specialized_symmetric_memset_gen.h"
-#endif
 
 #else /* !ABLATION_AP2 && !ABLATION_SYMMETRIC_TREE — generic recursion */
 
