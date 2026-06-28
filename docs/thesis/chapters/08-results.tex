@@ -255,12 +255,12 @@ transform) αλλά επιπλέον φέρει το κόστος αποκωδι
 resources. Στο HQC-128:
 \begin{itemize}
   \item \textbf{Tier~1 $\to$ Tier~2} (Total \gls{kem}: $\num{3449795} \to \num{1956787}$ \instret, $+\pct{76}$): η vectorization της ανασύνθεσης του Karatsuba (\cref{sec:polymul-base-rvv}) μειώνει τις εντολές
-    polymul κατά \pct{24.7} ($\num{186629} \to \num{140487}$), ενώ η
+    polymul κατά \pct{20.6} ($\num{184108} \to \num{146267}$), ενώ η
     vectorization του decode (\cref{sec:decode-optimization}) επιταχύνει
     την αποκωδικοποίηση κατά \speedup{3.15}. Ο Keccak παραμένει scalar σε αυτό το tier.
   \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{702755}$ \instret, $+\pct{178}$): η αντικατάσταση των scalar
     \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
-    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{54.6}$, $\num{140487} \to \num{63804}$), ενώ η \gls{soa} δύο ροών Keccak
+    (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{56.4}$, $\num{146267} \to \num{63804}$), ενώ η \gls{soa} δύο ροών Keccak
     με \gls{zvbb} (\cref{ssec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
     \speedup{3.7}. Η σύνθεση αυτών των βελτιώσεων παράγει τη
     μεγαλύτερη σχετική βελτίωση μεταξύ διαδοχικών tiers.
@@ -457,11 +457,11 @@ levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασ
 tier. Στο Tier~3, ο isolated polymul αυξάνεται ως $\num{63804} \to
 \num{189388} \to \num{272896}$ (λόγοι $2.97\times$ και $4.28\times$) —
 ο εκθέτης $\log(4.28)/\log(3.26) = 1.23$ επιβεβαιώνει τη sub-Karatsuba
-συμπεριφορά. Στο Tier~1, ο isolated polymul αυξάνεται ως $\num{186629} \to
-\num{591557} \to \num{1306068}$ (λόγοι $3.17\times$ και $7.00\times$) — ο
-εκθέτης εξαρτάται από το εύρος σύγκρισης: $\log(3.17)/\log(2.03) = 1.63$
+συμπεριφορά. Στο Tier~1, ο isolated polymul αυξάνεται ως $\num{184108} \to
+\num{571251} \to \num{1273112}$ (λόγοι $3.10\times$ και $6.92\times$) — ο
+εκθέτης εξαρτάται από το εύρος σύγκρισης: $\log(3.10)/\log(2.03) = 1.60$
 (192/128, κοντά στον θεωρητικό Karatsuba $1.585$) αλλά
-$\log(7.00)/\log(3.26) = 1.65$ για το πλήρες εύρος 256/128.
+$\log(6.92)/\log(3.26) = 1.64$ για το πλήρες εύρος 256/128.
 Η επιδείνωση στα υψηλότερα levels οφείλεται στο γεγονός ότι τα scalar
 \insn{clmul} leaves δεν ωφελούνται από τη διανυσματοποιημένη ανασύνθεση: καθώς
 βαθαίνει το recursion tree (από $d=9$ σε $d=10$ και $d=11$), το

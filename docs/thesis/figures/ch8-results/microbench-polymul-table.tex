@@ -1,25 +1,27 @@
 % Table: Polymul micro-benchmark results (all tiers, all security levels)
 % All speedups computed vs scalar_ref baseline
+% Data source: results/simulation/benchmarks/components/poly_mul/sim_mul_*_latest.csv
+% Updated: 2026-06-28 (commits 131b14c, 2464b5e, d38ed14)
 \begin{tabular}{l l S[table-format=9.0] S[table-format=6.0] S[table-format=3.1]}
   \toprule
   \textbf{Security Level} & \textbf{Variant} & {\textbf{\instret}} & {\textbf{Code size (B)}} & {\textbf{Speedup}} \\
   \midrule
   \multirow{4}{*}{HQC-128}
-    & \code{scalar\_ref}     & 18639752 &  2292 & {—} \\
-    & \code{scalar\_zb}  &   186629 & 15270 & {99.9} \\
-    & \code{vector\_rvv}  &   140487 &  7992 & {132.7} \\
-    & \code{vector\_zvk} &    63804 &  5830 & {292.1} \\
+    & \code{scalar\_ref}     & 18639752 &  5062 & {—} \\
+    & \code{scalar\_zb}  &   184108 & 13986 & {101.2} \\
+    & \code{vector\_rvv}  &   146267 &  8968 & {127.5} \\
+    & \code{vector\_zvk} &    63804 &  5882 & {292.1} \\
   \midrule
   \multirow{4}{*}{HQC-192}
-    & \code{scalar\_ref}     & 56702057 &  2316 & {—} \\
-    & \code{scalar\_zb}  &   591557 & 17258 & {95.9} \\
-    & \code{vector\_rvv}  &   439516 & 10560 & {129.0} \\
-    & \code{vector\_zvk} &   189388 &  8034 & {299.4} \\
+    & \code{scalar\_ref}     & 56702057 &  5098 & {—} \\
+    & \code{scalar\_zb}  &   571251 & 13460 & {99.3} \\
+    & \code{vector\_rvv}  &   446658 & 10074 & {127.0} \\
+    & \code{vector\_zvk} &   189388 &  6894 & {299.4} \\
   \midrule
   \multirow{4}{*}{HQC-256}
-    & \code{scalar\_ref}     & 139877019 & 2314 & {—} \\
-    & \code{scalar\_zb}  &  1306068 & 15090 & {107.1} \\
-    & \code{vector\_rvv}  &   1014499 & 7648 & {137.9} \\
-    & \code{vector\_zvk} &    272896 & 7274 & {512.6} \\
+    & \code{scalar\_ref}     & 139877019 & 4312 & {—} \\
+    & \code{scalar\_zb}  &  1273112 & 15646 & {109.9} \\
+    & \code{vector\_rvv}  &   989721 & 11302 & {141.3} \\
+    & \code{vector\_zvk} &    272896 & 7082 & {512.6} \\
   \bottomrule
 \end{tabular}

@@ -211,7 +211,7 @@ set during any single phase is much smaller (25.2 KB peak).
 
 ## Reduction Phase Working Set
 
-After the Karatsuba tree completes, `reduce_rvv` processes:
+After the Karatsuba tree completes, `reduce` processes:
 - Input: `unreduced[0..2*VEC_N_SIZE_64-1]` (read)
 - Output: `o[0..VEC_N_SIZE_64-1]` (write)
 

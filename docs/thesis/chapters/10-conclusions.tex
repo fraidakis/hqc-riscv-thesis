@@ -17,14 +17,14 @@
 
 \paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
 Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{18639752} σε
-\num{186629} \instret (HQC-128), επιτυγχάνοντας \speedup{99.9} μέσω
+\num{184108} \instret (HQC-128), επιτυγχάνοντας \speedup{101.2} μέσω
 Karatsuba compile-time specialized tree generation και εγγενούς \clmul/\clmulh. Το πλήρες
 \gls{kem} (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{34} στο HQC-128 και
 \speedup{49} στο HQC-256.
 
 \paragraph{Tier~2 — Base-RVV (\RVV + \Zbc/\Zbb)}
 Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
-speedup σε \speedup{132.7} (HQC-128) και το πλήρες \gls{kem} σε \speedup{60}.
+speedup σε \speedup{127.5} (HQC-128) και το πλήρες \gls{kem} σε \speedup{60}.
 Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το Base-RVV
 rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
 

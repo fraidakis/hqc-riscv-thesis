@@ -99,8 +99,7 @@ the resulting aliasing hazard by saving the overlap region to scratch before
 the combine XOR. All RVV operations are inlined directly into the generated
 `kmul_N` functions (via `--mode rvv`) with per-operation LMUL tuning
 (LMUL=m8 for ta/tb preparation, LMUL=m4 for overlap save, LMUL=m2 for the
-four-source combine XOR). A vectorised modular reduction (`reduce_rvv`) at
-LMUL=m8 replaces the scalar `reduce()` loop.
+four-source combine XOR).
 
 **Phase 7 — Vector Carry-Less Multiply Leaf (Track C divergence).**
 Track C replaced the scalar `clmul_leaf` with a `vclmul_leaf` function that
@@ -419,28 +418,7 @@ The inlining eliminates function-call overhead (argument setup, stack frame,
 return) at every recursion node and enables the compiler to perform
 cross-operation register allocation within each `kmul_N` body.
 
-#### 4.2.2 Vectorised Modular Reduction — `reduce_rvv` (Low Expected Impact)
-
-**Extensions used:** V (RVV 1.0) — `vsetvl`, `vle64.v`, `vse64.v`, `vsrl.vx`, `vsll.vx`, `vxor.vv`, `vmv.v.x`. No Zvbc or Zvbb.
-
-The final modular reduction $\text{unreduced}[0 \ldots 2N{-}1] \bmod (x^n - 1)$
-was previously performed by a scalar loop. The `reduce_rvv` function replaces
-it with an RVV strip-mining loop at LMUL=m8:
-
-For each strip of $\text{vl}$ words starting at position $i$:
-1. Load $a[i]$ (low half of unreduced product).
-2. Load $a[i + N - 1]$ and right-shift by $(n \bmod 64)$ bits → carries from
-   the high half.
-3. Load $a[i + N]$ and left-shift by $(64 - n \bmod 64)$ bits → continuation
-   carries.
-4. XOR all three vectors together and store to $o[i]$.
-5. Mask the final word: $o[N{-}1] \mathrel{\&}= \text{LAST\_WORD\_MASK}$.
-
-At VLEN=256 with LMUL=m8, each iteration processes 32 words, reducing the
-$N=277$ output in $\lceil 277/32 \rceil = 9$ iterations versus 277 scalar
-iterations.
-
-#### 4.2.3 Scalar Leaf Unchanged
+#### 4.2.2 Scalar Leaf Unchanged
 
 **Extensions used:** Zbc (`clmul`, `clmulh`) — identical to Track A; no vector instructions in the leaf path.
 
@@ -632,7 +610,6 @@ intuition based on hotspot proximity and algorithmic scope.
 |---|---|---|---|
 | Dead-code ablation (§3.3.4) | A, B | None (source cleanup) | Removes one comparison per leaf call; marginal |
 | Four-way unrolled combine loops in generated tree (§3.4.2) | A | None (loop unrolling) | Reduces branch count in linear-cost loops; dominated by leaf |
-| Vectorised modular reduction — `reduce_rvv` (§4.2.2) | B | V | Replaces scalar reduction loop with LMUL=m8 vector strip-mining; bounded by single invocation per `vect_mul` call |
 | Aligned buffer declarations (§4.2.4) | B | None (alignment attribute) | Ensures naturally-aligned vector accesses; marginal on implementations with efficient unaligned support |
 | Upper-half initialisation validation (§5.3.2) | C | V | Confirmed existing pattern is optimal; no change applied |
 
