@@ -1,7 +1,5 @@
-# date: 2026-06-27 18:42
-# commit: bce1dde
+# date: 2026-06-28 10:52
+# commit: 133fe02
 # Multiplication variant: scalar_zb_ACD
 level,op,instructions,codesize
-128,vect_mul,373389,20062
-192,vect_mul,1177355,20334
-256,vect_mul,2807420,15964
+128,vect_mul,364997,20192

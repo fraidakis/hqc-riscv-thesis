@@ -41,8 +41,9 @@ per Amdahl's law analysis in docs/PLAN.md).
 A 2-wide dispatch variant of `clmul_leaf` was benchmarked (two independent clmul pairs
 per inner iteration, with the shared r[i+j+1] ^= hi0 ^ lo1 merge). On Spike (instret
 metric) it showed +9% regression vs. the sequential loop due to extra loop-bound instructions.
-The sequential form is retained; on real OoO hardware the 2-wide variant would win via ILP.
-This is documented in `gf2x_clmul.c` with a comment for future reference.
+Hardware measurement on BPI-F3 (X60 in-order) confirmed no benefit: −0.67% at L128,
++4.3% regression at L192. The optimization was removed entirely (2026-06-28).
+The simple sequential scheduling is the champion.
 
 ## Threshold Sweep (HQC-128)
 
