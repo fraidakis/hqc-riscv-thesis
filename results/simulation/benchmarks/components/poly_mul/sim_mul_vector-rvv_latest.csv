@@ -1,7 +1,7 @@
-# date: 2026-06-26 19:33
-# commit: f359339
+# date: 2026-06-28 13:21
+# commit: 2464b5e
 # Multiplication variant: vector_rvv
 level,op,instructions,codesize
-128,vect_mul,140487,14514
-192,vect_mul,439516,16430
-256,vect_mul,1014499,6904
+128,vect_mul,146267,8968
+192,vect_mul,446658,10074
+256,vect_mul,989721,11302
