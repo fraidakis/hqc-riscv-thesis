@@ -169,6 +169,7 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
 το ολισθημένο $b[j]$ είτε το μηδενίζει, χωρίς διακλάδωση (branchless, ιδιότητα
 κρίσιμη για constant-time εκτέλεση).
 
+\paragraph{Συνεισφορά στην επίδοση.}
 Η μετάβαση σε word-level \clmul{} leaf οδηγεί σε επιτάχυνση \speedup{38.62}
 του \instret έναντι του bit-serial baseline (HQC-128), το μεγαλύτερο κέρδος
 μεμονωμένου σταδίου κατά την scalar βελτιστοποίηση.
@@ -265,33 +266,40 @@ static void kmul_34(uint64_t *r, const uint64_t *a, const uint64_t *b, uint64_t 
 }
 \end{lstlisting}
 
+\paragraph{Συνεισφορά στην επίδοση.}
 Η στατική παραγωγή του δέντρου αναδρομής αποδίδει
-\speedup{1.99} έναντι του word-level \clmul{} σταδίου
-(HQC-128), τη δεύτερη μεγαλύτερη συνεισφορά της scalar διαδρομής. 
+\speedup{1.99} έναντι του word-level \clmul{} σταδίου (HQC-128),
+αποτελώντας τη δεύτερη μεγαλύτερη συνεισφορά της scalar διαδρομής.
+Σωρευτικά, η επιτάχυνση σε σχέση με τον κώδικα αναφοράς
+ανέρχεται πλέον στο \speedup{76.7}.
 
 \subsection{Η Πολιτική Assign-on-First-Write}
-\label{ssec:leaf-specialization}
 \label{ssec:memset-elimination}
 
-Η τελική scalar βελτιστοποίηση εφαρμόζει μία ενιαία \defterm{assign-on-first-write}
-πολιτική σε δύο επίπεδα, τόσο στους βρόχους ανασύνθεσης Karatsuba (tree recomposition)
-όσο και στα leaf kernels. Με direct assignment στην πρώτη εγγραφή κάθε θέσης,
-ο μηδενισμός που προηγείτο (\code{memset}) καθίσταται περιττός και αφαιρείται εντελώς.
+Η τελική scalar βελτιστοποίηση εκμεταλλεύεται μια αλγεβρική ταυτότητα: το XOR
+σε μηδενισμένη θέση ισοδυναμεί με απευθείας ανάθεση, $0 \xorop x = x$.
+Εφαρμόζοντας αυτή την παρατήρηση ως ενιαία \defterm{assign-on-first-write}
+πολιτική, κάθε θέση του output buffer αρχικοποιείται κατά την πρώτη εγγραφή της.
+Η πολιτική εφαρμόζεται σε δύο επίπεδα, στους βρόχους ανασύνθεσης Karatsuba
+(tree recomposition) και στα leaf kernels.
 
-\paragraph{Εξάλειψη memset στο tree recompose — direct-write discipline.}
+\paragraph{Εξάλειψη \code{memset} στο tree recompose: direct-write discipline.}
 Στην αρχική υλοποίηση, το combine step κάθε κόμβου ξεκινά με
-\code{memset(r, 0, 2n)} και στη συνέχεια XOR-accumulate όλα τα μερικά
-γινόμενα στον μηδενισμένο buffer. Η βασική παρατήρηση είναι ότι XOR σε
-μηδενισμένο buffer ισοδυναμεί με απλή ανάθεση, $0 \xorop x = x$. Η
-αρχική εφαρμογή αυτής της αρχής (assign-on-first-write) αντικαθιστά τα
-δύο πρώτα accumulation βήματα με direct assignment σε ενδιάμεσους buffers
-$z_0$, $z_2$ εντός του \code{tmp}, και στη συνέχεια αντιγράφει τα
-αποτελέσματα στον output buffer $r$ μέσω δύο copy loops.
+\code{memset(r, 0, 2n)} και στη συνέχεια συσσωρεύει μέσω XOR όλα τα μερικά
+γινόμενα στον μηδενισμένο buffer (\cref{lst:tree-recompose-naive}).
 
-Η τελική υλοποίηση (\defterm{direct-write discipline}) πηγαίνει ένα βήμα
-παραπέρα: αντί να γράφει τα $z_0$ και $z_2$ σε ενδιάμεσους buffers και
-να τα αντιγράφει, κατευθύνει τις κλήσεις επόμενου επιπέδου να γράψουν
-απευθείας στις τελικές θέσεις του output buffer $r$:
+\begin{lstlisting}[language=C,caption={Generic tree recompose: zero-then-accumulate, μηδενισμός με \code{memset}.},label={lst:tree-recompose-naive}]
+/* --- Naive: zero-then-accumulate --- */
+memset(r, 0, 2 * n * sizeof(uint64_t));
+for (i = 0; i < 2*n0; i++)  r[i]       ^= z0[i];
+for (i = 0; i < 2*n1; i++)  r[2*m + i] ^= z2[i];
+for (i = 0; i < 2*n0; i++)  r[m + i]   ^= zmid[i] ^ z0[i] ^ z2[i];
+\end{lstlisting}
+
+Αξιοποιώντας την ταυτότητα $0 \xorop x = x$, η direct-write υλοποίηση
+κατευθύνει τις κλήσεις επόμενου επιπέδου να γράψουν τα $z_0$ και $z_2$
+απευθείας στις τελικές θέσεις του output buffer $r$, χωρίς ενδιάμεσους
+buffers ούτε copy loops:
 %
 \begin{itemize}
   \item $z_0 = a_L \polymul b_L$ γράφεται απευθείας στο
@@ -302,30 +310,25 @@ $z_0$, $z_2$ εντός του \code{tmp}, και στη συνέχεια αντ
     καταναλώνεται destructively κατά το combine step.
 \end{itemize}
 %
-Η αναδιάρθρωση αυτή εξαλείφει δύο πλήρεις copy loops ανά κόμβο
-αναδρομής σε ολόκληρο το δέντρο, μειώνοντας τον temporary buffer
-από $16 \times N$ σε $4 \times N$ words.
+Σε σχέση με τη naive zero-then-accumulate εκδοχή, η αναδιάρθρωση εξαλείφει
+τόσο το \code{memset} όσο και τα ενδιάμεσα $z_0$/$z_2$ buffers μαζί με τα
+copy loops τους, μειώνοντας τον temporary buffer από $16{\times}N$ σε
+$4{\times}N$ words (το direct-write layout απαιτεί $\sim 4 n_0$ words ανά
+επίπεδο, με γεωμετρικό άθροισμα $< 4N$ συνολικά).
 
-Η direct-write εισάγει ένα \defterm{aliasing hazard}: η XOR-accumulation
+Η direct-write εισάγει ένα \defterm{aliasing hazard}: η συσσώρευση μέσω XOR
 $r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
-διαβάζει $z_0[i]$ από $r[i]$, αλλά γράφει στο $r[n_0{+}i]$ — θέση που
-επικαλύπτεται με τη $z_0$ πηγή όταν $i \geq n_0$. Η
-\defterm{overlap-save strategy} επιλύει αυτό αποθηκεύοντας τα $n_0$ words
-στο $r[n_0 \ldots 2n_0{-}1]$ στον scratch buffer \code{ta} πριν από το
-combine step, και στη συνέχεια διαιρεί τον combine loop σε δύο μισά:
-πρώτο μισό ($i < n_0$) που διαβάζει $z_0$ ασφαλώς από $r[i]$ (κάτω από
-τη destination), και δεύτερο μισό ($i \geq n_0$) που διαβάζει $z_0$ από
-το αποθηκευμένο \code{ta}.
+διαβάζει $z_0[i]$ από $r[i]$, αλλά γράφει στο $r[n_0{+}i]$, θέση που
+επικαλύπτεται με τη $z_0$ πηγή όταν $i \geq n_0$.
 
-Ο \cref{lst:tree-recompose-noinit} συγκρίνει τις τρεις εκδοχές.
+Η \defterm{overlap-save strategy} επιλύει το πρόβλημα αποθηκεύοντας τα $n_0$
+words στο $r[n_0 \ldots 2n_0{-}1]$ στον scratch buffer \code{ta} πριν από το
+combine step, και στη συνέχεια διαιρεί τον combine loop σε δύο μισά: πρώτο
+μισό ($i < n_0$) που διαβάζει $z_0$ ασφαλώς από $r[i]$ (κάτω από τη
+destination), και δεύτερο μισό ($i \geq n_0$) που διαβάζει $z_0$ από το
+αποθηκευμένο \code{ta} (\cref{lst:tree-recompose-direct}).
 
-\begin{lstlisting}[language=C,caption={Tree recompose: από \code{memset}+XOR (naive), σε assign-on-first-write σε tmp (ενδιάμεση), σε direct-write στο output (τελική).},label={lst:tree-recompose-noinit}]
-/* --- Naive: zero-then-accumulate --- */
-memset(r, 0, 2 * n * sizeof(uint64_t));
-for (i = 0; i < 2*n0; i++)  r[i]       ^= z0[i];
-for (i = 0; i < 2*n1; i++)  r[2*m + i] ^= z2[i];
-for (i = 0; i < 2*n0; i++)  r[m + i]   ^= zmid[i] ^ z0[i] ^ z2[i];
-
+\begin{lstlisting}[language=C,caption={Direct-write tree recompose: τα παιδιά γράφουν $z_0$/$z_2$ απευθείας στο $r$, με overlap-save combine σε δύο μισά.},label={lst:tree-recompose-direct}]
 /* --- Direct-write: child calls write z0/z2 directly to r --- */
 kmul_n0(r,        a_lo, b_lo, child_buf);  /* z0 -> r[0..] */
 kmul_n1(r + 2*n0, a_hi, b_hi, child_buf);  /* z2 -> r[2n0..] */
@@ -338,13 +341,18 @@ for (i = 0; i < n0; i++)  r[n0+i] ^= zmid[i] ^ r[i] ^ r[2*n0+i];
 for (i = n0; i < 2*n1; i++)  r[n0+i] ^= zmid[i] ^ ta[i-n0] ^ r[2*n0+i];
 \end{lstlisting}
 
+Η ίδια αρχή εφαρμόζεται και στους leaf kernels, όπου
+ωστόσο απαιτεί διαφορετική δομική αναδιάρθρωση του schoolbook loop.
+
 \paragraph{Specialized leaf kernels.}
-Στο threshold $T=16$, τα δέντρα αναδρομής παράγουν leaves σταθερού
+Όταν η αναδρομή φτάσει στο threshold $T=16$ τερματίζει, και σε κάθε
+επίπεδο ασφαλείας τα φύλλα του δέντρου παίρνουν αποκλειστικά δύο τιμές
 μεγέθους: $n \in \{8, 9\}$ για HQC-128/192 και $n \in \{14, 15\}$ για
-HQC-256. Η γενική υλοποίηση (\code{clmul\_leaf},
-\cref{lst:clmul-leaf-generic}) εξυπηρετεί κάθε μέγεθος μέσω ενός
-παραμετρικού βρόχου: μηδενίζει τον output buffer με \code{memset} και
-στη συνέχεια XOR-accumulate σε $n^2$ iterations.
+HQC-256. Επειδή κανένα άλλο μέγεθος δεν εμφανίζεται ποτέ, ο παραμετρικός
+leaf μπορεί να αντικατασταθεί από λίγες εξειδικευμένες εκδοχές, μία ανά
+μέγεθος. Η γενική υλοποίηση (\cref{lst:clmul-leaf-generic}) εξυπηρετεί 
+κάθε μέγεθος μέσω ενός παραμετρικού βρόχου: μηδενίζει τον output buffer 
+με \code{memset} και στη συνέχεια εκτελεί $n^2$ επαναλήψεις συσσώρευσης μέσω XOR.
 
 \begin{lstlisting}[language=C,caption={Generic \code{clmul\_leaf}: zero-then-accumulate schoolbook με παραμετρικό διπλό βρόχο.},label={lst:clmul-leaf-generic}]
 void clmul_leaf(uint64_t *r, const uint64_t *a, const uint64_t *b, size_t n) {
@@ -401,9 +409,9 @@ void clmul_leaf_n9(uint64_t *r, const uint64_t *a, const uint64_t *b) {
 \end{lstlisting}
 
 \paragraph{Συνεισφορά στην επίδοση.}
-Η συνδυασμένη εφαρμογή assign-on-first-write στο leaf και στο tree recompose
-αποδίδει \speedup{1.25} σε \instret πάνω από το στάδιο του στατικού δέντρου
-αναδρομής (HQC-128), αυξάνοντας τη σωρευτική scalar επιτάχυνση σε
+Η εφαρμογή assign-on-first-write στο leaf και στο tree recompose
+δίνει επιτάχυνση \speedup{1.25} σε \instret σε σχέση με το στάδιο του στατικού 
+δέντρου αναδρομής (HQC-128), αυξάνοντας τη σωρευτική scalar επιτάχυνση σε
 \speedup{96.0}.
 
 Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των
@@ -433,54 +441,59 @@ void clmul_leaf_n9(uint64_t *r, const uint64_t *a, const uint64_t *b) {
 \label{sec:polymul-base-rvv}
 
 Η μετάβαση από Tier~1 σε Tier~2 εισάγει τη διανυσματική μονάδα RVV~1.0 στον
-πολυωνυμικό πολλαπλασιασμό, χωρίς ωστόσο να αλλάζει τον leaf kernel — η
-εντολή \vclmul{} δεν είναι διαθέσιμη χωρίς \gls{zvbc}. Η αρχιτεκτονική
-αυτή αποτελεί υβριδική scalar/vector προσέγγιση: η αριθμητική πράξη
+πολυωνυμικό πολλαπλασιασμό, χωρίς ωστόσο να αλλάζει τον leaf kernel. Δηλαδή 
+πρόκειται για υβριδική scalar/vector προσέγγιση: η αριθμητική πράξη
 (carry-less multiply) παραμένει scalar, ενώ οι γραμμικού κόστους $\BigO{n}$
 βρόχοι ανασύνθεσης σε κάθε κόμβο του δέντρου αναδρομής εκτελούνται με
 inline RVV intrinsics.
 
-Η βελτιστοποίηση αξιοποιεί τη direct-write δομή που κληρονομείται από το
-Tier~1 (\cref{ssec:memset-elimination}): οι κλήσεις επόμενου επιπέδου
-γράφουν $z_0$, $z_2$ απευθείας στο output $r$, μόνο το $z_\text{mid}$
-παραμένει στο \code{tmp}, και το combine step χρησιμοποιεί overlap-save.
 Η διαφοροποίηση του Tier~2 έγκειται αποκλειστικά στον τρόπο εκτέλεσης
-αυτών των βρόχων: αντί scalar 4-wide unrolled loops, χρησιμοποιούνται
-inline RVV intrinsics με tuned \LMUL. Η συνδυασμένη επίδραση μειώνει
-το polymul \instret κατά \pct{20.6} σε σχέση με το Tier~1 — από
-\num{183738} σε \num{146267} εντολές για HQC-128.
+των βρόχων ανασύνθεσης: αντί scalar element-wise C loops, χρησιμοποιούνται
+inline RVV intrinsics με flat \LMUL=m2. Η συνδυασμένη επίδραση μειώνει
+το polymul \instret κατά \pct{17.8} σε σχέση με το Tier~1 — από
+\num{183738} σε \num{151037} εντολές για HQC-128.
 
-\subsection{Inlined RVV Operations με Tuned LMUL}
+\subsection{Inlined RVV Operations με \LMUL=m2}
 \label{ssec:inlined-rvv}
-\label{ssec:direct-write}
-\label{ssec:overlap-save}
 
 Ο specialized generator σε \code{rvv} mode εκπέμπει inline RVV intrinsic
-loops απευθείας εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης. Η
-στρατηγική \LMUL tuning ακολουθεί τον κανόνα: μεγιστοποίηση throughput
-(μέγιστο \LMUL) υπό τον περιορισμό ότι όλα τα ταυτόχρονα ενεργά register
-groups χωρούν στο \num{32}-register vector file χωρίς spilling.
-Ο \cref{tab:lmul-tuning} συνοψίζει τις ρυθμίσεις ανά operation.
+loops απευθείας εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης. Όλοι
+οι RVV βρόχοι χρησιμοποιούν ομοιόμορφα \LMUL=m2, δηλαδή κάθε vector
+register group καταλαμβάνει \num{2} registers και επεξεργάζεται \num{8}
+words (\num{64}-bit) ανά iteration σε \VLEN=\num{256}.
+
+Η επιλογή flat m2 στηρίζεται σε εμπειρική σύγκριση τεσσάρων πολιτικών
+(m2, m4, m8, και per-operation tuned) σε πραγματικό hardware (BPI-F3,
+SpacemiT X60). Ο \cref{tab:lmul-hw-comparison} συνοψίζει τα αποτελέσματα.
 
 \begin{table}[htbp]
   \centering
-  \caption{Ρύθμιση \LMUL ανά operation στο Tier~2 combine step. Η στήλη
-    \q{Live Groups} αναφέρει τον αριθμό ταυτόχρονα ενεργών vector register
-    groups. Σε \VLEN=\num{256}, κάθε \code{e64m$k$} group επεξεργάζεται
-    $4k$ words ανά iteration.}
-  \label{tab:lmul-tuning}
+  \caption{Επίδραση \LMUL policy στον πολυωνυμικό πολλαπλασιασμό (median
+    κύκλοι, BPI-F3, N=\num{10000}, isolated core). Η flat m2 επιλέχθηκε ως
+    βέλτιστη στα δύο βασικά security levels (HQC-128, HQC-192) και ανταγωνιστική
+    στο HQC-256.}
+  \label{tab:lmul-hw-comparison}
   \small
-  \begin{tabular}{lccl}
+  \begin{tabular}{lccc}
     \toprule
-    \textbf{Operation} & \textbf{\LMUL} & \textbf{Live Groups}
-      & \textbf{Words/iter (\VLEN=256)} \\
+    \textbf{Policy}
+      & \textbf{HQC-128} & \textbf{HQC-192} & \textbf{HQC-256} \\
     \midrule
-    ta/tb XOR preparation & m8 (ή m4) & 2 & 32 (ή 16) \\
-    Overlap save (copy)   & m4         & 2 & 16 \\
-    Combine XOR (Loop 3)  & m2         & 4 & 8 \\
+    \textbf{flat m2} & \textbf{\num{120854}} & \textbf{\num{353467}} & \num{764456} \\
+    flat m4          & \num{122718}           & \num{358253}           & \textbf{\num{755339}} \\
+    flat m8          & \num{125590}           & \num{367546}           & \num{793091} \\
     \bottomrule
   \end{tabular}
 \end{table}
+
+Η flat m8 υστερεί σε όλα τα security levels (\pct{+2.3} έως \pct{+5.0}
+σε σχέση με m2) παρά τον χαμηλότερο αριθμό εντολών, καθώς η πίεση στο
+register file (4 live groups $\times$ m8 = 32 registers στον combine XOR
+βρόχο) προκαλεί pipeline stalls στο in-order X60 core. Αντιθέτως, η m2
+αφήνει αρκετούς ελεύθερους registers ώστε ο compiler να διατηρεί
+ενδιάμεσα αποτελέσματα χωρίς spills, ενώ ο αριθμός loop iterations
+παραμένει χαμηλός (οι τυπικές sub-problem sizes \num{9}–\num{139} words
+απαιτούν \num{1}–\num{9} iterations σε \LMUL=m2).
 
 Ο κρίσιμος combine XOR βρόχος φορτώνει ταυτόχρονα τέσσερις πηγές —
 destination $r[n_0{+}i]$, $z_\text{mid}[i]$, $z_0[i]$ (από $r$ ή
@@ -491,7 +504,7 @@ calls ανά \code{vect\_mul} invocation (HQC-128, τρεις helpers $\times$
 allocation εντός κάθε \code{kmul\_N} body.
 
 \begin{lstlisting}[language=C,
-  caption={Inline combine XOR — \LMUL=m2, τέσσερις πηγές.},
+  caption={Inline combine XOR — flat \LMUL=m2, τέσσερις πηγές.},
   label={lst:combine-xor}]
 while (_rem > 0) {
     size_t _vl = __riscv_vsetvl_e64m2(_rem);
