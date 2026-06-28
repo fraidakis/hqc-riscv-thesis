@@ -964,11 +964,10 @@ pipeline εκτελεί παράλληλα. Ο \code{scalar\_zb} παρουσι�
     forwarding εμφανίσεων στο recursion tree, αποδίδοντας
     $\approx\num{28}$ κύκλοι ανά εμφάνιση (βλ.\ §9.6 του
     \texttt{multiplication.md}).}
-    Στον \code{vector\_rvv}, η \q{direct-write
-    πολιτική} γράφει τα $z_0$ και $z_2$ απευθείας στον output buffer
-    μέσω scalar \insn{sd}, και στη συνέχεια τα Loop~3 vector operations
-    τα διαβάζουν μέσω \insn{vle64} — δημιουργώντας forwarding failure
-    σε κάθε επίπεδο αναδρομής.
+    Στον \code{vector\_rvv}, οι κλήσεις επόμενου επιπέδου γράφουν τα $z_0$
+    και $z_2$ απευθείας στον output buffer μέσω scalar \insn{sd}, και στη
+    συνέχεια τα Loop~3 vector operations τα διαβάζουν μέσω \insn{vle64},
+    δημιουργώντας forwarding failure σε κάθε επίπεδο αναδρομής.
 
   \item \textbf{Scalar↔vector transition cost:} Κάθε μετάβαση μεταξύ
     scalar \insn{clmul\_leaf} και vector XOR operations κοστίζει

@@ -98,8 +98,7 @@ RVV~1.0. Ο κρίσιμος περιορισμός εδώ είναι η
 απουσία της \gls{zvbc}: χωρίς \vclmul{}, ο leaf kernel παραμένει scalar
 (ταυτόσημος με Tier~1) και η διανυσματική μονάδα αξιοποιείται αποκλειστικά
 στους γραμμικού κόστους βρόχους ανασύνθεσης, οι οποίοι διανυσματοποιούνται με
-RVV (inline intrinsics, tuned \LMUL), αξιοποιώντας τη direct-write δομή
-που κληρονομείται από το Tier~1. Προκύπτει έτσι μια \defterm{υβριδική
+RVV (inline intrinsics, tuned \LMUL). Προκύπτει έτσι μια \defterm{υβριδική
 scalar/vector προσέγγιση}, με κέρδος φραγμένο από τον τετραγωνικό
 ($\BigO{n^2}$) scalar leaf. Αναλυτικά στην \cref{sec:polymul-base-rvv}.
 
@@ -169,7 +168,7 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
 το ολισθημένο $b[j]$ είτε το μηδενίζει, χωρίς διακλάδωση (branchless, ιδιότητα
 κρίσιμη για constant-time εκτέλεση).
 
-\paragraph{Συνεισφορά στην επίδοση.}
+\paragraph{Κέρδος της μετάβασης σε word-level.}
 Η μετάβαση σε word-level \clmul{} leaf οδηγεί σε επιτάχυνση \speedup{38.62}
 του \instret έναντι του bit-serial baseline (HQC-128), το μεγαλύτερο κέρδος
 μεμονωμένου σταδίου κατά την scalar βελτιστοποίηση.
@@ -228,9 +227,8 @@ dispatch. Σε βαθιά αναδρομικές δομές, η RISC-V calling c
 \paragraph{Υποστήριξη πολλαπλών backends.}
 Ο generator υποστηρίζει τρεις modes μέσω της παραμέτρου
 \code{-{}-mode}: \code{zbc} (scalar combine loops), \code{rvv}
-(direct-write με inline RVV intrinsics) και \code{zvbc} (vector
-leaf dispatch). Μια επιπλέον λειτουργία \code{rvv\_noD} χρησιμοποιείται
-αποκλειστικά για το ablation study. Η λογική διάσχισης του δέντρου
+(inline RVV intrinsics στους combine loops) και \code{zvbc} (vector
+leaf dispatch). Η λογική διάσχισης του δέντρου
 αναδρομής είναι κοινή, μόνο ο κώδικας combine και leaf dispatch
 διαφοροποιείται ανά mode. Η αρχιτεκτονική αυτή εξασφαλίζει ότι
 αλλαγές στη δομή αναδρομής (threshold, split rule) εφαρμόζονται
@@ -241,7 +239,9 @@ leaf dispatch). Μια επιπλέον λειτουργία \code{rvv\_noD} χ�
 $3^5 = \num{243}$ leaf calls σε πέντε επίπεδα) δίνεται αναλυτικά
 στο \cref{sec:karatsuba-hqc-structure}. Για παράδειγμα, ο \cref{lst:kmul34} παραθέτει τη δομή του παραγόμενου
 κόμβου-συνάρτησης \code{kmul\_34} ($n = 34$, $n_0 = n_1 = 17$), ενός
-εσωτερικού κόμβου που καλεί τρεις φορές τον \code{kmul\_17}. Ο πίνακας
+εσωτερικού κόμβου που καλεί τρεις φορές τον \code{kmul\_17}. Το πρώτο όρισμα
+$r$ κάθε \code{kmul\_*} είναι ο buffer εξόδου, στον οποίο γράφεται το γινόμενο.
+Ο πίνακας
 \code{tmp} τεμαχίζεται σε σταθερά offsets, $z_0$, $z_2$, $z_\text{mid}$
 (μέγεθος $2n_0 = \num{34}$ words το καθένα), τους XOR τελεστέους $t_a$, $t_b$ και έναν
 \code{child\_buf}, δηλαδή το scratch buffer που δανείζεται στις τρεις
@@ -266,7 +266,7 @@ static void kmul_34(uint64_t *r, const uint64_t *a, const uint64_t *b, uint64_t 
 }
 \end{lstlisting}
 
-\paragraph{Συνεισφορά στην επίδοση.}
+\paragraph{Κέρδος του στατικού δέντρου.}
 Η στατική παραγωγή του δέντρου αναδρομής αποδίδει
 \speedup{1.99} έναντι του word-level \clmul{} σταδίου (HQC-128),
 αποτελώντας τη δεύτερη μεγαλύτερη συνεισφορά της scalar διαδρομής.
@@ -276,19 +276,24 @@ static void kmul_34(uint64_t *r, const uint64_t *a, const uint64_t *b, uint64_t 
 \subsection{Η Πολιτική Assign-on-First-Write}
 \label{ssec:memset-elimination}
 
-Η τελική scalar βελτιστοποίηση εκμεταλλεύεται μια αλγεβρική ταυτότητα: το XOR
-σε μηδενισμένη θέση ισοδυναμεί με απευθείας ανάθεση, $0 \xorop x = x$.
+Ακόμη και μετά τη στατική παραγωγή του δέντρου, κάθε κόμβος ανασύνθεσης, όπως
+και κάθε leaf kernel, ξεκινά μηδενίζοντας τον buffer εξόδου του με \code{memset}
+και κατόπιν συσσωρεύει εκεί τα μερικά γινόμενα μέσω XOR. 
+Η τελική scalar βελτιστοποίηση εξαλείφει
+αυτόν τον μηδενισμό αξιοποιώντας μια απλή αλγεβρική ταυτότητα: το πρώτο XOR σε
+μια μηδενισμένη θέση μνήμης ισοδυναμεί με ανάθεση τιμής, αφού $0 \xorop x = x$.
 Εφαρμόζοντας αυτή την παρατήρηση ως ενιαία \defterm{assign-on-first-write}
-πολιτική, κάθε θέση του output buffer αρχικοποιείται κατά την πρώτη εγγραφή της.
-Η πολιτική εφαρμόζεται σε δύο επίπεδα, στους βρόχους ανασύνθεσης Karatsuba
-(tree recomposition) και στα leaf kernels.
+πολιτική, κάθε θέση του buffer εξόδου $r$ αρχικοποιείται κατά την πρώτη εγγραφή της.
+Η πολιτική εφαρμόζεται τόσο στους βρόχους ανασύνθεσης Karatsuba
+(tree recomposition) όσο και στα leaf kernels.
 
-\paragraph{Εξάλειψη \code{memset} στο tree recompose: direct-write discipline.}
-Στην αρχική υλοποίηση, το combine step κάθε κόμβου ξεκινά με
+\paragraph{Εξάλειψη \code{memset} στο tree recompose.}
+Ο κώδικας ανασύνθεσης που αποσιωπήθηκε στο \cref{lst:kmul34} λαμβάνει αρχικά
+τη μορφή zero-then-accumulate: το combine step κάθε κόμβου ξεκινά με
 \code{memset(r, 0, 2n)} και στη συνέχεια συσσωρεύει μέσω XOR όλα τα μερικά
 γινόμενα στον μηδενισμένο buffer (\cref{lst:tree-recompose-naive}).
 
-\begin{lstlisting}[language=C,caption={Generic tree recompose: zero-then-accumulate, μηδενισμός με \code{memset}.},label={lst:tree-recompose-naive}]
+\begin{lstlisting}[language=C,caption={Naive tree recompose: zero-then-accumulate, μηδενισμός με \code{memset}.},label={lst:tree-recompose-naive}]
 /* --- Naive: zero-then-accumulate --- */
 memset(r, 0, 2 * n * sizeof(uint64_t));
 for (i = 0; i < 2*n0; i++)  r[i]       ^= z0[i];
@@ -313,8 +318,7 @@ buffers ούτε copy loops:
 Σε σχέση με τη naive zero-then-accumulate εκδοχή, η αναδιάρθρωση εξαλείφει
 τόσο το \code{memset} όσο και τα ενδιάμεσα $z_0$/$z_2$ buffers μαζί με τα
 copy loops τους, μειώνοντας τον temporary buffer από $16{\times}N$ σε
-$4{\times}N$ words (το direct-write layout απαιτεί $\sim 4 n_0$ words ανά
-επίπεδο, με γεωμετρικό άθροισμα $< 4N$ συνολικά).
+$4{\times}N$ words.
 
 Η direct-write εισάγει ένα \defterm{aliasing hazard}: η συσσώρευση μέσω XOR
 $r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
@@ -341,15 +345,14 @@ for (i = 0; i < n0; i++)  r[n0+i] ^= zmid[i] ^ r[i] ^ r[2*n0+i];
 for (i = n0; i < 2*n1; i++)  r[n0+i] ^= zmid[i] ^ ta[i-n0] ^ r[2*n0+i];
 \end{lstlisting}
 
-Η ίδια αρχή εφαρμόζεται και στους leaf kernels, όπου
-ωστόσο απαιτεί διαφορετική δομική αναδιάρθρωση του schoolbook loop.
+Η ίδια ταυτότητα αξιοποιείται και στους leaf kernels, αν και εκεί η εφαρμογή
+της απαιτεί αναδόμηση του διπλού βρόχου schoolbook.
 
 \paragraph{Specialized leaf kernels.}
 Όταν η αναδρομή φτάσει στο threshold $T=16$ τερματίζει, και σε κάθε
 επίπεδο ασφαλείας τα φύλλα του δέντρου παίρνουν αποκλειστικά δύο τιμές
 μεγέθους: $n \in \{8, 9\}$ για HQC-128/192 και $n \in \{14, 15\}$ για
-HQC-256. Επειδή κανένα άλλο μέγεθος δεν εμφανίζεται ποτέ, ο παραμετρικός
-leaf μπορεί να αντικατασταθεί από λίγες εξειδικευμένες εκδοχές, μία ανά
+HQC-256. Έτσι, ο παραμετρικός leaf μπορεί να αντικατασταθεί από εξειδικευμένες εκδοχές, μία ανά
 μέγεθος. Η γενική υλοποίηση (\cref{lst:clmul-leaf-generic}) εξυπηρετεί 
 κάθε μέγεθος μέσω ενός παραμετρικού βρόχου: μηδενίζει τον output buffer 
 με \code{memset} και στη συνέχεια εκτελεί $n^2$ επαναλήψεις συσσώρευσης μέσω XOR.
@@ -408,15 +411,17 @@ void clmul_leaf_n9(uint64_t *r, const uint64_t *a, const uint64_t *b) {
 }
 \end{lstlisting}
 
-\paragraph{Συνεισφορά στην επίδοση.}
+\paragraph{Κέρδος της assign-on-first-write.}
 Η εφαρμογή assign-on-first-write στο leaf και στο tree recompose
 δίνει επιτάχυνση \speedup{1.25} σε \instret σε σχέση με το στάδιο του στατικού 
 δέντρου αναδρομής (HQC-128), αυξάνοντας τη σωρευτική scalar επιτάχυνση σε
 \speedup{96.0}.
 
-Ο \cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά των
-τριών διαδοχικών σταδίων: μετάβαση σε word-level \clmul{} leaf,
-στατικό δέντρο αναδρομής, και assign-on-first-write (tree + leaf).
+\paragraph{Σύνοψη της scalar διαδρομής.}
+Συνολικά, η scalar βελτιστοποίηση συνδυάζει τρία διαδοχικά στάδια. Ο
+\cref{tab:scalar-ablation} συνοψίζει τη σωρευτική συνεισφορά τους:
+μετάβαση σε word-level \clmul{} leaf, στατικό δέντρο αναδρομής, και
+assign-on-first-write (tree + leaf).
 
 \begin{table}[htbp]
   \centering
@@ -449,11 +454,9 @@ inline RVV intrinsics.
 
 Η διαφοροποίηση του Tier~2 έγκειται αποκλειστικά στον τρόπο εκτέλεσης
 των βρόχων ανασύνθεσης: αντί scalar element-wise C loops, χρησιμοποιούνται
-inline RVV intrinsics με flat \LMUL=m2. Η συνδυασμένη επίδραση μειώνει
-το polymul \instret κατά \pct{17.8} σε σχέση με το Tier~1 — από
-\num{183738} σε \num{151037} εντολές για HQC-128.
+inline RVV intrinsics με flat \LMUL=m2.
 
-\subsection{Inlined RVV Operations με \LMUL=m2}
+\subsection{Inlined RVV Operations}
 \label{ssec:inlined-rvv}
 
 Ο specialized generator σε \code{rvv} mode εκπέμπει inline RVV intrinsic
@@ -623,8 +626,6 @@ $\BigO{n^2}$ ανά κλήση. Στα μεγέθη HQC, ο τετραγωνικ
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
 παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
 \clmul/\clmulh βρόχο με μία μόνο vector iteration ανά εξωτερικό index.
-Η συνδυασμένη επίδραση μειώνει το polymul \instret κατά \pct{56.4} σε σχέση
-με το Tier~2 — από \num{146267} σε \num{63804} εντολές για HQC-128.
 
 \subsection{Splat-and-Sweep: Διανυσματοποίηση του Schoolbook Leaf}
 \label{ssec:vclmul-leaf}
