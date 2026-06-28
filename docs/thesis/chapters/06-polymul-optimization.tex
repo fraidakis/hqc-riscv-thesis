@@ -111,9 +111,7 @@ scalar/vector προσέγγιση}, με κέρδος φραγμένο από �
 \num{64}$\times$\num{64}-bit carry-less γινόμενα παράλληλα. Έτσι η
 διανυσματοποίηση εισχωρεί στον ίδιο τον leaf kernel: ο \code{vclmul\_leaf}
 (\cref{ssec:vclmul-leaf}) διανυσματοποιεί ολόκληρο τον schoolbook leaf
-μεγέθους $n=16$. Το κατώφλι $n=16$ επιλέγεται ώστε ο leaf να χωρά σε ένα
-vector register group: σε \VLEN = \num{256} με \LMUL = m4 το group καλύπτει
-\num{16} λωρίδες των \num{64} bit. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
+μεγέθους $n=16$. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
 
 %% ============================================================================
 \section{Scalar Path: Karatsuba με \Zbc}
@@ -287,62 +285,44 @@ static void kmul_34(uint64_t *r, const uint64_t *a, const uint64_t *b, uint64_t 
 Η πολιτική εφαρμόζεται τόσο στους βρόχους ανασύνθεσης Karatsuba
 (tree recomposition) όσο και στα leaf kernels.
 
-\paragraph{Εξάλειψη \code{memset} στο tree recompose.}
+\paragraph{Εξάλειψη \code{memset} στην ανασύνθεση δέντρου.}
 Ο κώδικας ανασύνθεσης που αποσιωπήθηκε στο \cref{lst:kmul34} λαμβάνει αρχικά
 τη μορφή zero-then-accumulate: το combine step κάθε κόμβου ξεκινά με
 \code{memset(r, 0, 2n)} και στη συνέχεια συσσωρεύει μέσω XOR όλα τα μερικά
 γινόμενα στον μηδενισμένο buffer (\cref{lst:tree-recompose-naive}).
 
-\begin{lstlisting}[language=C,caption={Naive tree recompose: zero-then-accumulate, μηδενισμός με \code{memset}.},label={lst:tree-recompose-naive}]
-/* --- Naive: zero-then-accumulate --- */
+\begin{lstlisting}[language=C,caption={Naive ανασύνθεση δέντρου: zero-then-accumulate σε προσωρινά buffers, μηδενισμός με \code{memset}.},label={lst:tree-recompose-naive}]
+/* Naive: compute into temp buffers, then memset + accumulate into r */
+kmul_n0(z0,   a_lo, b_lo, child_buf);  /* z0   -> tmp */
+kmul_n1(z2,   a_hi, b_hi, child_buf);  /* z2   -> tmp */
+kmul_n0(zmid, ta,   tb,   child_buf);  /* zmid -> tmp (ta=a_lo^a_hi, tb=b_lo^b_hi) */
 memset(r, 0, 2 * n * sizeof(uint64_t));
 for (i = 0; i < 2*n0; i++)  r[i]       ^= z0[i];
-for (i = 0; i < 2*n1; i++)  r[2*m + i] ^= z2[i];
-for (i = 0; i < 2*n0; i++)  r[m + i]   ^= zmid[i] ^ z0[i] ^ z2[i];
+for (i = 0; i < 2*n1; i++)  r[2*n0 + i] ^= z2[i];
+for (i = 0; i < 2*n0; i++)  r[n0 + i]  ^= zmid[i] ^ z0[i] ^ z2[i];
 \end{lstlisting}
 
 Αξιοποιώντας την ταυτότητα $0 \xorop x = x$, η direct-write υλοποίηση
 κατευθύνει τις κλήσεις επόμενου επιπέδου να γράψουν τα $z_0$ και $z_2$
-απευθείας στις τελικές θέσεις του output buffer $r$, χωρίς ενδιάμεσους
-buffers ούτε copy loops:
-%
-\begin{itemize}
-  \item $z_0 = a_L \polymul b_L$ γράφεται απευθείας στο
-    $r[0 \ldots 2n_0{-}1]$.
-  \item $z_2 = a_H \polymul b_H$ γράφεται απευθείας στο
-    $r[2n_0 \ldots 2n_0{+}2n_1{-}1]$.
-  \item Μόνο το $z_\text{mid}$ παραμένει στο \code{tmp}, καθώς
-    καταναλώνεται destructively κατά το combine step.
-\end{itemize}
-%
-Σε σχέση με τη naive zero-then-accumulate εκδοχή, η αναδιάρθρωση εξαλείφει
-τόσο το \code{memset} όσο και τα ενδιάμεσα $z_0$/$z_2$ buffers μαζί με τα
-copy loops τους, μειώνοντας τον temporary buffer από $16{\times}N$ σε
-$4{\times}N$ words.
+απευθείας στις τελικές τους θέσεις στον buffer εξόδου $r$, χωρίς
+ενδιάμεσους buffers ούτε copy loops. Μόνο το $z_\text{mid}$ υπολογίζεται
+σε προσωρινό buffer, καθώς η θέση του στο $r$ ($r[n_0 \ldots]$)
+επικαλύπτεται με τα ήδη γραμμένα $z_0$/$z_2$.
 
-Η direct-write εισάγει ένα \defterm{aliasing hazard}: η συσσώρευση μέσω XOR
-$r[n_0{+}i] \mathrel{\xorop}= z_\text{mid}[i] \xorop z_0[i] \xorop z_2[i]$
-διαβάζει $z_0[i]$ από $r[i]$, αλλά γράφει στο $r[n_0{+}i]$, θέση που
-επικαλύπτεται με τη $z_0$ πηγή όταν $i \geq n_0$.
+Σε σχέση με τη naive zero-then-accumulate εκδοχή, η direct-write
+αναδιάρθρωση προσφέρει δύο οφέλη. Πρώτον, εξαλείφει τον αρχικό μηδενισμό
+(\code{memset}), αφού κάθε θέση του $r$ αρχικοποιείται κατά την πρώτη
+εγγραφή της. Δεύτερον, καταργεί τα ενδιάμεσα $z_0$/$z_2$ buffers και τους
+copy loops, καθώς οι κλήσεις επόμενου επιπέδου γράφουν τα υπο-γινόμενα
+απευθείας στις τελικές τους θέσεις. Συνολικά, ο προσωρινός χώρος εργασίας
+μειώνεται από $16{\times}N$ σε $4{\times}N$ words.
 
-Η \defterm{overlap-save strategy} επιλύει το πρόβλημα αποθηκεύοντας τα $n_0$
-words στο $r[n_0 \ldots 2n_0{-}1]$ στον scratch buffer \code{ta} πριν από το
-combine step, και στη συνέχεια διαιρεί τον combine loop σε δύο μισά: πρώτο
-μισό ($i < n_0$) που διαβάζει $z_0$ ασφαλώς από $r[i]$ (κάτω από τη
-destination), και δεύτερο μισό ($i \geq n_0$) που διαβάζει $z_0$ από το
-αποθηκευμένο \code{ta} (\cref{lst:tree-recompose-direct}).
-
-\begin{lstlisting}[language=C,caption={Direct-write tree recompose: τα παιδιά γράφουν $z_0$/$z_2$ απευθείας στο $r$, με overlap-save combine σε δύο μισά.},label={lst:tree-recompose-direct}]
-/* --- Direct-write: child calls write z0/z2 directly to r --- */
-kmul_n0(r,        a_lo, b_lo, child_buf);  /* z0 -> r[0..] */
+\begin{lstlisting}[language=C,caption={Direct-write ανασύνθεση δέντρου: οι κλήσεις επόμενου επιπέδου γράφουν $z_0$/$z_2$ απευθείας στο $r$.},label={lst:tree-recompose-direct}]
+/* Direct-write: next-level calls write z0/z2 straight into r */
+kmul_n0(r,        a_lo, b_lo, child_buf);  /* z0 -> r[0..]   */
 kmul_n1(r + 2*n0, a_hi, b_hi, child_buf);  /* z2 -> r[2n0..] */
-kmul_n0(zmid,     ta,   tb,   child_buf);  /* zmid -> tmp */
-/* overlap-save: save r[n0..2n0-1] to ta */
-for (i = 0; i < n0; i++)  ta[i] = r[n0 + i];
-/* combine first half: z0[i] = r[i] (safe) */
-for (i = 0; i < n0; i++)  r[n0+i] ^= zmid[i] ^ r[i] ^ r[2*n0+i];
-/* combine second half: z0[i] = ta[i-n0] (saved) */
-for (i = n0; i < 2*n1; i++)  r[n0+i] ^= zmid[i] ^ ta[i-n0] ^ r[2*n0+i];
+kmul_n0(zmid,     ta,   tb,   child_buf);  /* zmid -> tmp    */
+for (i = 0; i < 2*n0; i++)  r[n0+i] ^= zmid[i] ^ r[i] ^ r[2*n0+i];
 \end{lstlisting}
 
 Η ίδια ταυτότητα αξιοποιείται και στους leaf kernels, αν και εκεί η εφαρμογή
@@ -412,7 +392,7 @@ void clmul_leaf_n9(uint64_t *r, const uint64_t *a, const uint64_t *b) {
 \end{lstlisting}
 
 \paragraph{Κέρδος της assign-on-first-write.}
-Η εφαρμογή assign-on-first-write στο leaf και στο tree recompose
+Η εφαρμογή assign-on-first-write στο leaf και στην ανασύνθεση δέντρου
 δίνει επιτάχυνση \speedup{1.25} σε \instret σε σχέση με το στάδιο του στατικού 
 δέντρου αναδρομής (HQC-128), αυξάνοντας τη σωρευτική scalar επιτάχυνση σε
 \speedup{96.0}.
@@ -785,35 +765,14 @@ thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτε
 το recursion overhead.
 
 \paragraph{Ποσοτική σύγκριση Tier~2 $\to$ Tier~3.}
-Ο \cref{tab:tier2-vs-tier3} συνοψίζει τη μείωση \instret στον πολυωνυμικό
-πολλαπλασιασμό κατά τη μετάβαση από scalar leaf (Tier~2) σε vector leaf
-(Tier~3). Η επιτάχυνση κυμαίνεται από \speedup{2.20} (HQC-128) έως
+ Η επιτάχυνση κυμαίνεται από \speedup{2.20} (HQC-128) έως
 \speedup{3.72} (HQC-256) — η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
 στο βαθύτερο δέντρο αναδρομής, όπου περισσότεροι leaf calls ωφελούνται
 από τη διανυσματοποίηση.
 
-\begin{table}[htbp]
-  \centering
-  \caption{Σύγκριση polymul \instret μεταξύ Tier~2 (scalar leaf + RVV
-    combine) και Tier~3 (vector leaf + RVV combine). Η στήλη
-    \q{Speedup} αναφέρει τη μείωση εντολών κατά τη μετάβαση
-    Tier~2~$\to$~Tier~3.}
-  \label{tab:tier2-vs-tier3}
-  \begin{tabular}{lccc}
-    \toprule
-    \textbf{Level} & \textbf{Tier~2 (instret)}
-      & \textbf{Tier~3 (instret)} & \textbf{Speedup} \\
-    \midrule
-    HQC-128 & \num{146267} & \num{63804}   & \speedup{2.29} \\
-    HQC-192 & \num{446658} & \num{189388}  & \speedup{2.36} \\
-    HQC-256 & \num{989721} & \num{272896} & \speedup{3.63} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 Σε σχέση με την υλοποίηση αναφοράς, η συνολική επιτάχυνση του
 Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \code{scalar\_ref}
-(\cref{conv:baseline}) — από \num{18639752} σε \num{63804} εντολές. Η μείωση αυτή αντικατοπτρίζει τη
+(\cref{conv:baseline}). Η μείωση αυτή αντικατοπτρίζει τη
 σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
 αναδιάρθρωση (Karatsuba + compile-time specialized tree), εξάλειψη πλεονάζουσας μνήμης
 (assign-on-first-write), και διανυσματοποίηση του binding constraint

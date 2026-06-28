@@ -490,10 +490,10 @@ $2^M = 256$ σημεία του $\GF{2^8}$ μέσω αναδρομικής radix
 \begin{itemize}
   \item \textbf{Pass 1 (top-down)}: για κάθε επίπεδο δέντρου από ρίζα
         προς φύλλα, εφαρμογή vectorized beta-scaling σε κάθε segment,
-        ακολουθούμενη από radix αποσύνθεση σε δύο παιδιά.
+        ακολουθούμενη από radix αποσύνθεση σε δύο κόμβους επόμενου επιπέδου.
   \item \textbf{Leaf base case}: vectorized XOR-broadcast για παραγωγή
         των $2^{m_{\text{leaf}}}$ εξόδων ανά φύλλο.
-  \item \textbf{Pass 2 (bottom-up)}: butterfly combination παιδιών μέσω
+  \item \textbf{Pass 2 (bottom-up)}: butterfly combination κόμβων επόμενου επιπέδου μέσω
         vectorized gammas-sums πολλαπλασιασμό.
 \end{itemize}
 
