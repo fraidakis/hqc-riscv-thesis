@@ -111,9 +111,8 @@ scalar/vector προσέγγιση}, με κέρδος φραγμένο από �
 \num{64}$\times$\num{64}-bit carry-less γινόμενα παράλληλα. Έτσι η
 διανυσματοποίηση εισχωρεί στον ίδιο τον leaf kernel: ο \code{vclmul\_leaf}
 (\cref{ssec:vclmul-leaf}) διανυσματοποιεί ολόκληρο τον schoolbook leaf
-μεγέθους $n=16$. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
-vector register group: σε \VLEN = \num{256} με \LMUL = m4 το group καλύπτει
-\num{16} λωρίδες των \num{64} bit. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
+μεγέθους $n=16$: σε \VLEN = \num{256} με \LMUL = m4 το vector register group
+καλύπτει \num{16} λωρίδες των \num{64} bit. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
 
 %% ============================================================================
 \section{Scalar Path: Word-Level Karatsuba με \Zbc}
@@ -250,7 +249,7 @@ $r$ κάθε \code{kmul\_*} είναι ο buffer εξόδου, στον οποί
 $z_0 = a_L b_L$, $z_2 = a_H b_H$ και
 $z_\text{mid} = (a_L \oplus a_H)(b_L \oplus b_H)$. 
 
-\begin{lstlisting}[language=C,caption={Παραγόμενος κόμβος \code{kmul\_34}: στατική δέσμευση offsets στο \code{tmp}, στατικές κλήσεις επόμενου επιπέδου προς \code{kmul\_17} με κοινό \code{child\_buf}, και ανασύνθεση Karatsuba σε τρεις βρόχους.},label={lst:kmul34}]
+\begin{lstlisting}[language=C,caption={Παραγόμενος κόμβος \code{kmul\_34}.},label={lst:kmul34}]
 static void kmul_34(uint64_t *r, const uint64_t *a, const uint64_t *b, uint64_t *tmp) {
     uint64_t *z0 = tmp, *z2 = z0 + 34u, *zmid = z2 + 34u;
     uint64_t *ta = zmid + 34u, *tb = ta + 17u;
@@ -293,7 +292,7 @@ static void kmul_34(uint64_t *r, const uint64_t *a, const uint64_t *b, uint64_t 
 \code{memset(r, 0, 2n)} και στη συνέχεια συσσωρεύει μέσω XOR όλα τα μερικά
 γινόμενα στον μηδενισμένο buffer (\cref{lst:tree-recompose-naive}).
 
-\begin{lstlisting}[language=C,caption={Naive ανασύνθεση δέντρου: zero-then-accumulate σε προσωρινά buffers, μηδενισμός με \code{memset}.},label={lst:tree-recompose-naive}]
+\begin{lstlisting}[language=C,caption={Naive ανασύνθεση: zero-then-accumulate σε temp buffers, μηδενισμός με \code{memset}.},label={lst:tree-recompose-naive}]
 /* Naive: compute into temp buffers, then memset + accumulate into r */
 kmul_n0(z0,   a_lo, b_lo, child_buf);  /* z0   -> tmp */
 kmul_n1(z2,   a_hi, b_hi, child_buf);  /* z2   -> tmp */
@@ -319,7 +318,7 @@ copy loops, καθώς οι κλήσεις επόμενου επιπέδου γ�
 απευθείας στις τελικές τους θέσεις. Συνολικά, ο προσωρινός χώρος εργασίας
 μειώνεται από $16{\times}N$ σε $4{\times}N$ words.
 
-\begin{lstlisting}[language=C,caption={Direct-write ανασύνθεση δέντρου: οι κλήσεις επόμενου επιπέδου γράφουν $z_0$/$z_2$ απευθείας στο $r$.},label={lst:tree-recompose-direct}]
+\begin{lstlisting}[language=C,caption={Direct-write ανασύνθεση: οι κλήσεις επόμενου επιπέδου γράφουν απευθείας στο $r$.},label={lst:tree-recompose-direct}]
 /* Direct-write: next-level calls write z0/z2 straight into r */
 kmul_n0(r,        a_lo, b_lo, child_buf);  /* z0 -> r[0..]   */
 kmul_n1(r + 2*n0, a_hi, b_hi, child_buf);  /* z2 -> r[2n0..] */
@@ -434,19 +433,18 @@ assign-on-first-write (tree + leaf).
 
 Ο specialized generator σε \code{rvv} mode εκπέμπει inline RVV intrinsic
 loops απευθείας εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης. Ο κρίσιμος
-combine βρόχος αντικαθιστά την scalar αλυσίδα XOR τεσσάρων πηγών
-(\cref{lst:combine-scalar}) με στοιχειοπαράλληλα \insn{vxor.vv}
-(\cref{lst:combine-xor}).
+βρόχος ανασύνθεσης αντικαθιστά τον scalar βρόχο XOR (\cref{lst:combine-scalar}) 
+με διανυσματικά \insn{vxor.vv} (\cref{lst:combine-xor}).
 
 \begin{lstlisting}[language=C,
-  caption={Scalar combine XOR (πριν): element-wise, τέσσερις πηγές.},
+  caption={Scalar combine XOR (πριν).},
   label={lst:combine-scalar}]
 for (size_t i = 0; i < rem; i++)
     dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
 \end{lstlisting}
 
 \begin{lstlisting}[language=C,
-  caption={Inline RVV combine XOR (μετά): \LMUL=m2, τέσσερις πηγές.},
+  caption={Inline RVV combine XOR (μετά).},
   label={lst:combine-xor}]
 while (rem > 0) {
     size_t vl = __riscv_vsetvl_e64m2(rem);
@@ -471,15 +469,16 @@ m8) χωρίς επιπλέον κέρδος, με την m8 μάλιστα να
 
 Η διανυσματοποίηση δεν εφαρμόζεται ομοιόμορφα σε όλα τα επίπεδα του δέντρου.
 Στους κατώτερους κόμβους οι RVV βρόχοι εκτελούν μόλις \num{1}–\num{2}
-iterations, όπου η ποινή μετάβασης scalar↔vector (\insn{vsetvl} stall και
-store-buffer drain) ακυρώνει το data-parallel κέρδος. Για τον λόγο αυτό η
+iterations, όπου το σταθερό κόστος στησίματος του διανυσματικού βρόχου
+(\insn{vsetvl} και μετάβαση scalar↔vector) δεν αποσβένεται και ακυρώνει
+το data-parallel κέρδος. Για τον λόγο αυτό η
 υλοποίηση εισάγει ένα threshold, ώστε κόμβοι με $n \leq 18$ να παραμένουν scalar, 
 ενώ κόμβοι με $n > 18$ να διατηρούν τα inline RVV intrinsics.
 
 Συνολικά, σε σχέση με την τελική βελτιστοποιημένη υλοποίηση του Tier~1, ενώ η inlined 
 RVV ανασύνθεση μειώνει τα \instret κατά \pct{21}–\pct{24}, το πραγματικό κέρδος κύκλων
 περιορίζεται σε \speedup{1.02}–\speedup{1.04}. O scalar \clmul/\clmulh leaf παραμένει 
-το \defterm{binding constraint}, με κόστος $\BigO{n^2}$ ανά κλήση έναντι $\BigO{n}$ της ανασύνθεσης.
+ο \defterm{κυρίαρχος περιορισμός} (binding constraint), με κόστος $\BigO{n^2}$ ανά κλήση έναντι $\BigO{n}$ της ανασύνθεσης.
 
 %% ============================================================================
 \section{Vector-Crypto Path: \Zvbc Leaf Kernels}
@@ -499,30 +498,36 @@ RVV ανασύνθεση μειώνει τα \instret κατά \pct{21}–\pct{2
 κάθε εξωτερικό index $i$, η scalar τιμή $a[i]$ περνά ως scalar τελεστέος
 (\code{rs1}) απευθείας στη \vclmul/\vclmulh μέσω της \code{.vx} μορφής
 (\code{\_\_riscv\_vclmul\_vx\_u64m4}). Ο πλήρης εσωτερικός πίνακας 
-$b[0 \ldots n{-}1]$ φορτώνεται ως vector μέσω \insn{vle64.v}.
-Ένα μόνο ζεύγος \vclmul/\vclmulh υπολογίζει ταυτόχρονα όλα τα $n$
-carry-less γινόμενα — χαμηλά και υψηλά μισά αντίστοιχα:
-%
-\begin{align*}
-  \text{lo}[j] &= a[i] \polymul b[j] \bmod x^{64},
-    \quad j \in [0, n), \\
-  \text{hi}[j] &= \lfloor a[i] \polymul b[j] / x^{64} \rfloor,
-    \quad j \in [0, n).
-\end{align*}
-%
+$b[0 \ldots n{-}1]$ φορτώνεται ως vector μέσω \insn{vle64.v}. 
 Τα αποτελέσματα συσσωρεύονται στον output buffer μέσω vector
 load-XOR-store: το lo-vector XOR-accumulate στο $r[i \ldots i{+}n{-}1]$
 και το hi-vector στο $r[i{+}1 \ldots i{+}n]$. Σε \VLEN=\num{256} με
 \LMUL=m4, κάθε vector register group περιέχει $\VLMAX = (256/64) \times 4
-= 16$ elements — ακριβώς ίσο με το Karatsuba threshold $T=16$. Κατά
+= 16$ elements, ακριβώς ίσο με το Karatsuba threshold $T=16$. Κατά
 συνέπεια, ο εσωτερικός βρόχος συμπτύσσεται σε μία μόνο vector iteration
 ανά εξωτερικό index $i$, εξαλείφοντας πλήρως τον scalar $j$-loop.
+Ο \cref{lst:leaf-scalar} και ο \cref{lst:leaf-vclmul} αντιπαραβάλλουν τη
+δομή πριν και μετά.
+
+\begin{lstlisting}[language=C,caption={Tier~1 \& 2 scalar leaf: εμφωλευμένος $i,j$ βρόχος.},label={lst:leaf-scalar}]
+for (i = 0; i < n; i++)
+  for (j = 0; j < n; j++) {           /* inner loop: n scalar clmul */
+    r[i+j]   ^= clmul (a[i], b[j]);
+    r[i+j+1] ^= clmulh(a[i], b[j]);
+  }
+\end{lstlisting}
+
+\begin{lstlisting}[language=C,caption={Tier~3 \vclmul{} leaf: ο inner $j$-βρόχος συμπτύσσεται σε μία vector iteration.},label={lst:leaf-vclmul}]
+vb = vle64(b, n);                      /* load b once */
+for (i = 0; i < n; i++) {
+  vlo = vclmul_vx (vb, a[i]);          /* n carry-less products at once */
+  vhi = vclmulh_vx(vb, a[i]);
+  /* XOR-accumulate: vlo into r[i..], vhi into r[i+1..] */
+}
+\end{lstlisting}
 
 Το \cref{fig:vclmul-leaf-dataflow} απεικονίζει τη ροή δεδομένων μίας
-iteration του \code{vclmul\_leaf}. Η κρίσιμη παρατήρηση είναι ότι η
-φόρτωση του $b$-vector εκτελείται μία φορά ανά εξωτερικό index — κάθε
-$a[i]$ (scalar \code{rs1}) επαναχρησιμοποιεί τον ίδιο φορτωμένο $b$-vector, μειώνοντας
-το κόστος μνήμης σε $n$ γινόμενα.
+iteration του \code{vclmul\_leaf}. 
 
 \begin{figure}[htbp]
   \centering
@@ -536,56 +541,51 @@ $a[i]$ (scalar \code{rs1}) επαναχρησιμοποιεί τον ίδιο φ
   \label{fig:vclmul-leaf-dataflow}
 \end{figure}
 
-\subsection{Schoolbook Leaf Trade-offs: Γιατί ο Leaf δεν Κλιμακώνει με VLEN}
+\subsection{Όρια Κλιμάκωσης του Leaf με το VLEN}
 \label{ssec:leaf-vlen-tradeoff}
 
-Ο \code{vclmul\_leaf} διατηρεί τη δομή schoolbook $\BigO{n^2}$ — κάθε
+Ο \code{vclmul\_leaf} διατηρεί τη δομή schoolbook $\BigO{n^2}$, κάθε
 ζεύγος $(a[i], b[j])$ παράγει ένα carry-less γινόμενο, και ο συνολικός
 αριθμός γινομένων ανά leaf call ανέρχεται σε $n^2$. Η διανυσματοποίηση
 μειώνει τον αριθμό \emph{εντολών} ανά γινόμενο (ένα \vclmul{} υπολογίζει
 \VLMAX γινόμενα ταυτόχρονα), αλλά δεν αλλάζει τον αριθμό γινομένων.
 
 Η κρίσιμη αρχιτεκτονική παρατήρηση είναι ότι το μέγεθος leaf $n$ καθορίζεται
-από το Karatsuba threshold $T=16$ — σταθερά ανεξάρτητη του \VLEN. Σε
+από το Karatsuba threshold $T=16$. Σε
 \VLEN=\num{256} με \LMUL=m4, $\VLMAX = 16 = T$: ο εσωτερικός βρόχος
-εκτελείται σε ακριβώς μία iteration. Αύξηση του \VLEN σε \num{512} ή
-\num{1024} δεν μειώνει περαιτέρω τον αριθμό iterations — ο βρόχος είναι
-ήδη μονοβηματικός. Τα επιπλέον vector lanes παραμένουν αχρησιμοποίητα
+εκτελείται σε ακριβώς ένα iteration, οπότε αύξηση του \VLEN σε \num{512} ή
+\num{1024} δεν μειώνει περαιτέρω τον αριθμό iterations. 
+Τα επιπλέον vector lanes παραμένουν αχρησιμοποίητα
 (tail elements), καθώς $n \leq T = 16$ σε κάθε leaf call.
 
-Η παρατήρηση αυτή συνάδει με τη VLEN sweep (\cref{sec:vlen-scaling}), η
-οποία δείχνει ότι η συνολική επίδοση σταθεροποιείται (plateau) στο εύρος
-\VLEN=\num{256}–\num{512}, με οριακό μόνο κέρδος πέραν του \num{512}: η
-μοναδική πηγή πρόσθετου κέρδους σε μεγαλύτερο \VLEN προέρχεται από τους
-βρόχους ανασύνθεσης (γραμμικού κόστους, $\BigO{n}$ ανά κόμβο), οι οποίοι
-αποτελούν μικρό κλάσμα του συνολικού polymul \instret μετά τη
-διανυσματοποίηση του leaf.
+Η εμπειρική επιβεβαίωση αυτής της ανάλυσης, δηλαδή η σταθεροποίηση
+(plateau) της επίδοσης πέρα από ένα όριο \VLEN, παρουσιάζεται στη VLEN
+sweep (\cref{sec:vlen-scaling}). Η μοναδική πηγή πρόσθετου κέρδους σε
+μεγαλύτερο \VLEN προέρχεται από τους βρόχους ανασύνθεσης (γραμμικού
+κόστους, $\BigO{n}$ ανά κόμβο), οι οποίοι όμως αποτελούν μικρό κλάσμα του
+συνολικού polymul \instret.
 
 \paragraph{Εναλλακτική: αύξηση threshold.}
 Μία θεωρητική εναλλακτική θα ήταν η αύξηση του threshold σε $T=32$ ή
 $T=64$ ώστε να αξιοποιηθούν ευρύτερα \VLEN. Η προσέγγιση αυτή
-απορρίφθηκε για δύο λόγους. Πρώτον, η αύξηση $T$ αυξάνει τετραγωνικά
+απορρίφθηκε για τον εξής λόγο: η αύξηση $T$ αυξάνει τετραγωνικά
 τον αριθμό γινομένων ανά leaf ($T^2$ αντί $(T/2)^2 \times 3$), ακυρώνοντας
-το κέρδος του Karatsuba σε ένα επίπεδο αναδρομής. Δεύτερον, η threshold
-sweep (\cref{sec:polymul-scalar}) επιβεβαίωσε ότι $T=16$ ελαχιστοποιεί
-το συνολικό \instret στο instruction-accurate μοντέλο — μεγαλύτερα
-thresholds αυξάνουν τον τετραγωνικό leaf cost ταχύτερα από ό,τι μειώνουν
-το recursion overhead.
+το κέρδος του Karatsuba σε ένα επίπεδο αναδρομής.
 
 \paragraph{Ποσοτική σύγκριση Tier~2 $\to$ Tier~3.}
- Η επιτάχυνση κυμαίνεται από \speedup{2.20} (HQC-128) έως
-\speedup{3.72} (HQC-256) — η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
+Η επιτάχυνση κυμαίνεται από \speedup{2.20} (HQC-128) έως
+\speedup{3.72} (HQC-256): η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
 στο βαθύτερο δέντρο αναδρομής, όπου περισσότεροι leaf calls ωφελούνται
 από τη διανυσματοποίηση.
 
+\paragraph{Σωρευτική επιτάχυνση Tier~3 ως προς την αναφορά.}
 Σε σχέση με την υλοποίηση αναφοράς, η συνολική επιτάχυνση του
-Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \code{scalar\_ref}
-(\cref{conv:baseline}). Η μείωση αυτή αντικατοπτρίζει τη
+Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \code{scalar\_ref}. 
+Η μείωση αυτή αντικατοπτρίζει τη
 σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
 αναδιάρθρωση (Karatsuba + compile-time specialized tree), εξάλειψη πλεονάζουσας μνήμης
 (assign-on-first-write), και διανυσματοποίηση του binding constraint
-(\vclmul{} leaf). Η ποσοτική αποτίμηση κάθε στρώματος ξεχωριστά
-παρουσιάζεται στο \cref{ch:results}.
+(\vclmul{} leaf).
 
 %% ============================================================================
 \section{Αποτίμηση: Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση}
