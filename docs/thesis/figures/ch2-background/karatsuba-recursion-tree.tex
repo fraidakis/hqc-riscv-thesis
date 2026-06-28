@@ -31,11 +31,23 @@
   \draw[figedge] (n70) -- (l2);
   \draw[figedge] (n69) -- (l3);
   \draw[figedge] (n69) -- (l4);
-  \node[ann] at (-4.8, -5.9) {$70 \to 35,35$ (άρτιο)};
-  \node[ann] at (-1.8, -5.9) {$69 \to 35,34$ (περιττό)};
+
+  % Level 4-5: anaptyxi enos kladou wste na fainontai ta termatika megethi 8-9
+  \node[box] (n18) at (-3.6, -6.9) {$18$};
+  \node[box] (n17) at (-1.0, -6.9) {$17$};
+  \draw[figedge] (l3) -- (n18);
+  \draw[figedge] (l3) -- (n17);
+  \node[box, figbox/emph] (f9a) at (-4.2, -8.4) {$9$};
+  \node[box]              (f9b) at (-3.0, -8.4) {$9$};
+  \node[box]              (f9c) at (-1.6, -8.4) {$9$};
+  \node[box, figbox/emph] (f8)  at (-0.4, -8.4) {$8$};
+  \draw[figedge] (n18) -- (f9a);
+  \draw[figedge] (n18) -- (f9b);
+  \draw[figedge] (n17) -- (f9c);
+  \draw[figedge] (n17) -- (f8);
 
   % Brace summarising remaining levels
-  \draw[figbrace] (-5.9, -6.6) -- node[below=6pt, ann]
+  \draw[figbrace] (-5.9, -9.8) -- node[below=6pt, ann]
     {μετά από $d = 5$ επίπεδα: $3^5 = 243$ φύλλα μεγέθους 8–9 λέξεων}
-    (5.2, -6.6);
+    (5.2, -9.8);
 \end{tikzpicture}

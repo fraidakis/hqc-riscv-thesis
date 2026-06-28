@@ -232,28 +232,18 @@ quadratic schoolbook work without sufficient recursion savings.
 
 ### 3.3 Micro-Level Optimizations
 
-#### 3.3.1 Two-Way Software Pipeline with hi⊕lo Fusion (Medium Expected Impact)
+#### 3.3.1 Two-Way Software Pipeline with hi⊕lo Fusion — REMOVED
 
-**Extensions used:** Zbc (`clmul`, `clmulh`); base integer (`xor`, `ld`, `sd`). No additional extensions beyond Track A baseline.
+**Status:** Evaluated and removed. Hardware measurement on the BPI-F3 (SpacemiT
+K1 X60, in-order pipeline) showed no measurable benefit (−0.67% at L128, +4.3%
+regression at L192). The technique increases register pressure without
+exploiting ILP on the X60's simple pipeline. The naive one-at-a-time scheduling
+produces fewer instructions and equal or better cycle counts.
 
-The inner loop of the schoolbook leaf processes pairs of consecutive $b[j]$
-values per iteration. Two independent `clmul64` calls are issued before
-consuming either result, creating an instruction-level parallelism window that
-hides the load-use latency of the carry-less multiply unit. The adjacent
-products share a common output position: $\text{hi}(a[i], b[j])$ and
-$\text{lo}(a[i], b[j{+}1])$ both target $r[i{+}j{+}1]$. Fusing them into a
-single XOR-and-store ($r[i{+}j{+}1] \mathrel{\oplus}= \text{hi}_0 \oplus \text{lo}_1$)
-eliminates one load-modify-store cycle per pair.
+#### 3.3.2 Four-Way Inner-Loop Unroll — REMOVED
 
-#### 3.3.2 Four-Way Inner-Loop Unroll — V2-A4 (Medium Expected Impact)
-
-**Extensions used:** None beyond Zbc (pure loop-scheduling technique; compiler emits base integer instructions).
-
-For rows $i \geq 1$, the inner $j$-loop was extended to a four-way unroll:
-four consecutive `clmul64` calls are issued, and the hi⊕lo fusion extends
-across all four pairs, converting eight half-products into five output XORs
-(saving three `xor` instructions per four-pair group). A two-way tail handles
-the remainder, and a scalar epilogue covers the final element for odd-$n$ leaves.
+**Status:** Removed together with §3.3.1. The four-way extension was part of the
+same hi⊕lo fusion scheduling strategy that proved ineffective on the X60.
 
 #### 3.3.3 Fixed-Size Leaf Specialisation — V2-A3 (Medium Expected Impact)
 
@@ -627,8 +617,8 @@ intuition based on hotspot proximity and algorithmic scope.
 
 | Optimization | Track(s) | Extensions Used | Rationale |
 |---|---|---|---|
-| Two-way software pipeline + hi⊕lo fusion (§3.3.1) | A, B | Zbc | Hides load-use latency; reduces store count per pair |
-| Four-way inner-loop unroll (§3.3.2) | A, B | None (scheduling) | Halves branch count in the leaf's hottest loop |
+| Two-way software pipeline + hi⊕lo fusion (§3.3.1) | A, B | Zbc | **REMOVED** — no benefit on in-order X60 |
+| Four-way inner-loop unroll (§3.3.2) | A, B | None (scheduling) | **REMOVED** — part of the above |
 | Fixed-size leaf specialisation — `clmul_leaf_n8` (§3.3.3) | A, B | Zbc | Eliminates all loop control from the dominant leaf size |
 | Inlined RVV combine with tuned LMUL (§4.2.1) | B | V | Eliminates function-call overhead; per-operation LMUL tuning maximises throughput within register budget |
 | Four-way outer-loop unroll in `vclmul_leaf` (§5.3.1) | C | Zvbc, V | Amortises $b$-vector load; saturates vector multiply pipeline |

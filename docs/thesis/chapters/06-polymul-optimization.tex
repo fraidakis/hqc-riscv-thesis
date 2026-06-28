@@ -220,8 +220,7 @@ dispatch. Σε βαθιά αναδρομικές δομές, η RISC-V calling c
 και να κάνει inlining των leaf operations
 εντός του κόμβου που τις καλεί, με τοπικό register allocation και
 ελεύθερο scheduling των loads/stores. Το πλήρες unrolling του δέντρου
-ανταλλάσσει αυξημένο \code{.text} footprint με την εξάλειψη του dynamic
-pointer arithmetic και του per-call overhead· η ποσοτική αξιολόγηση
+έχει ως αποτέλεσμα αυξημένο \code{.text} footprint και η ποσοτική αξιολόγηση
 αυτού του trade-off (recursion depth vs \instret vs \code{.text} size)
 παρουσιάζεται στην \cref{sec:polymul-codesize}.
 
@@ -237,25 +236,16 @@ leaf dispatch). Μια επιπλέον λειτουργία \code{rvv\_noD} χ�
 αυτόματα σε όλα τα tiers.
 
 \paragraph{Worked example: ο παραγόμενος κόμβος \code{kmul\_34}.}
-Η κλήση \code{vect\_mul(o, a, b)} για HQC-128 ($N = 277$ words,
-$n = \num{17669}$ bits) δεσμεύει τα stack buffers
-\code{unreduced[$2 \times 277 = 554$ words]} και
-\code{tmp\_buf[$16 \times 277 = \num{4432}$ words]}, καλεί το
-\code{kmul\_277(unreduced, a, b, tmp\_buf)} και ολοκληρώνει με modular
-reduction \code{reduce(o, unreduced)}, δηλαδή
-$\text{unreduced} \bmod (x^{17669} - 1)$. Η αναδρομική αποσύνθεση που
-ακολουθεί το \code{kmul\_277} δίνεται αναλυτικά στο
-\cref{sec:karatsuba-hqc-structure}, με συνολικά $3^5 = \num{243}$ leaf
-calls σε πέντε επίπεδα αναδρομής.
-
-Για παράδειγμα, ο \cref{lst:kmul34} παραθέτει τη δομή του παραγόμενου
+Η αναδρομική αποσύνθεση που ακολουθεί το \code{kmul\_277} (συνολικά
+$3^5 = \num{243}$ leaf calls σε πέντε επίπεδα) δίνεται αναλυτικά
+στο \cref{sec:karatsuba-hqc-structure}. Για παράδειγμα, ο \cref{lst:kmul34} παραθέτει τη δομή του παραγόμενου
 κόμβου-συνάρτησης \code{kmul\_34} ($n = 34$, $n_0 = n_1 = 17$), ενός
 εσωτερικού κόμβου που καλεί τρεις φορές τον \code{kmul\_17}. Ο πίνακας
 \code{tmp} τεμαχίζεται σε σταθερά offsets, $z_0$, $z_2$, $z_\text{mid}$
-(μέγεθος $2n_0$ το καθένα), τους XOR τελεστέους $t_a$, $t_b$ και έναν
+(μέγεθος $2n_0 = \num{34}$ words το καθένα), τους XOR τελεστέους $t_a$, $t_b$ και έναν
 \code{child\_buf}, δηλαδή το scratch buffer που δανείζεται στις τρεις
-κλήσεις επόμενου επιπέδου. Καθεμία απευθύνεται στατικά στον ονομαστικό
-κόμβο \code{kmul\_17}, υπολογίζοντας τα τρία υπο-γινόμενα
+κλήσεις επόμενου επιπέδου. Και οι τρεις κλήσεις καλούν απευθείας τον
+\code{kmul\_17} (χωρίς runtime επιλογή), υπολογίζοντας τα τρία υπο-γινόμενα
 $z_0 = a_L b_L$, $z_2 = a_H b_H$ και
 $z_\text{mid} = (a_L \oplus a_H)(b_L \oplus b_H)$. 
 
@@ -277,22 +267,21 @@ static void kmul_34(uint64_t *r, const uint64_t *a,
 \end{lstlisting}
 
 Η στατική παραγωγή του δέντρου αναδρομής αποδίδει
-\speedup{1.99} σε \instret έναντι του word-level \clmul{} σταδίου
+\speedup{1.99} έναντι του word-level \clmul{} σταδίου
 (HQC-128), τη δεύτερη μεγαλύτερη συνεισφορά της scalar διαδρομής. 
 
 \subsection{Unrolled Branch-Free Leaves για $n=8$ και $n=9$}
 \label{ssec:leaf-specialization}
 
-Στο threshold $T=16$, το δέντρο του HQC-128 παράγει αποκλειστικά leaves
-μεγέθους $n=8$ και $n=9$. Ο generic \code{clmul\_leaf} εξυπηρετεί κάθε μέγεθος
+Στο threshold $T=16$, τα δέντρα των HQC-128 και HQC-192 παράγουν
+αποκλειστικά leaves μεγέθους $n=8$ και $n=9$, ενώ το HQC-256
+παράγει αποκλειστικά μεγαλύτερα leaves ($n\in\{14,15\}$). 
+Η απλή υλοποίηση (\code{clmul\_leaf}) εξυπηρετεί κάθε μέγεθος
 μέσω ενός παραμετρικού βρόχου, με το συνεπαγόμενο runtime overhead
-(branch prediction, $j$-comparisons, tail handling) και ένα αρχικό
-\code{memset} του output buffer. Αξιοποιώντας ότι μόνο δύο μεγέθη
-εμφανίζονται, ο generator εκπέμπει δύο πλήρως unrolled, branch-free
-εκδοχές ακριβώς γι' αυτά. Κάθε leaf εκτελεί $n^2$ ζεύγη
-\clmul/\clmulh, οπότε για $n=9$ αντιστοιχεί σε \num{81} ζεύγη ανά leaf — οπότε
-στο σύνολο των \num{243} leaves του HQC-128 ο κώδικάς τους κυριαρχεί στο
-instruction profile
+(branch prediction και έλεγχοι ορίου του εσωτερικού βρόχου $j<n$). 
+Αξιοποιώντας ότι εμφανίζονται μόνο δύο μεγέθη, ο generator
+επεκτείνεται ώστε να εκπέμπει δύο πλήρως unrolled, branch-free
+εκδοχές ακριβώς γι' αυτά.
 
 Οι \cref{lst:clmul-leaf-generic,lst:clmul-leaf-n9} αντιπαραβάλλουν τις δύο προσεγγίσεις. Ο generic
 \code{clmul\_leaf} (\cref{lst:clmul-leaf-generic}) μηδενίζει πρώτα τον
@@ -300,7 +289,7 @@ output buffer με \code{memset} και στη συνέχεια διατρέχε
 επαναλήψεις με δείκτες και ελέγχους ορίων. Η unrolled
 \code{clmul\_leaf\_n9} (\cref{lst:clmul-leaf-n9}) εξαλείφει και τα δύο:
 γράφει κάθε θέση του $r$ με assign-on-first-write (χωρίς \code{memset})
-και εκπέμπει branch-free ακολουθία \code{clmul64}. Η
+και εκτελεί branch-free ακολουθία \code{clmul64}. Η
 γενική αρχή assign-on-first-write και η επέκτασή της στο tree recompose
 αναλύονται στην \cref{ssec:memset-elimination}.
 
@@ -319,56 +308,28 @@ void clmul_leaf(uint64_t *r, const uint64_t *a, const uint64_t *b, size_t n) {
 
 \begin{lstlisting}[language=C,caption={Unrolled \code{clmul\_leaf\_n9} (απόσπασμα), χωρίς κανένα branch.},label={lst:clmul-leaf-n9}]
 void clmul_leaf_n9(uint64_t *r, const uint64_t *a, const uint64_t *b) {
-    uint64_t lo0, hi0, lo1, hi1;
+    uint64_t lo, hi;
     /* Row i=0 -- assign-on-first-write, no memset */
-    clmul64(a[0], b[0], &lo0, &hi0);
-    clmul64(a[0], b[1], &lo1, &hi1);   /* 2-way pairing */
-    r[0] = lo0;
-    r[1] = hi0 ^ lo1;                  /* hi^lo fusion */
-    r[2] = hi1;
-    /* ... 3 more pairs + single tail (j=8); 9 rows total, branch-free ... */
+    clmul64(a[0], b[0], &lo, &hi);
+    r[0] = lo;
+    r[1] = hi;
+    clmul64(a[0], b[1], &lo, &hi);
+    r[1] ^= lo;
+    r[2]  = hi;
+    /* ... 7 more elements per row; 9 rows total, branch-free ... */
 }
 \end{lstlisting}
 
-\paragraph{Δύο unrolled εκδοχές: \code{clmul\_leaf\_n8} και \code{clmul\_leaf\_n9}.}
-Η \code{clmul\_leaf\_n8} ($n=8$, \num{37} από τα \num{243} leaves) είναι
-πλήρως unrolled $8\times8$ schoolbook product, \num{64} διαδοχικές
-\code{clmul64} χωρίς κανένα branch. Η \code{clmul\_leaf\_n9} ($n=9$, τα
-κυρίαρχα \num{206} από τα \num{243} leaves) είναι το αντίστοιχο $9\times9$
-product με \num{81} \code{clmul64}. Ο generator αναγνωρίζει
-έτσι τρία leaf dispatches: $n=8$, $n=9$ και $n\in[10,16]$ (generic
-\code{clmul\_leaf}). Οι δύο εκδοχές καλύπτουν το \pct{100} των leaf calls
-του HQC-128 με branch-free κώδικα, εξαλείφοντας \num{206} branch
-misprediction opportunities ανά \code{vect\_mul}.
-
-\paragraph{Micro-optimizations: 2-way pairing και hi$\xorop$lo fusion.}
-Πέραν της μείωσης iterations, οι unrolled leaves εισάγουν δύο τοπικές
-βελτιστοποιήσεις. Το \defterm{2-way pair scheduling} εκδίδει δύο
-ανεξάρτητες \code{clmul64} πριν καταναλωθεί οποιοδήποτε αποτέλεσμα,
-παρέχοντας latency coverage χωρίς υπέρμετρο code footprint. Η
-\defterm{hi$\xorop$lo fusion} εκμεταλλεύεται ότι γειτονικά γινόμενα
-μοιράζονται θέση εξόδου: $\text{hi}(a[i], b[j])$ και
-$\text{lo}(a[i], b[j{+}1])$ στοχεύουν αμφότερα τη θέση $r[i{+}j{+}1]$,
-οπότε συγχωνεύονται σε ένα XOR-and-store
-($r[i{+}j{+}1] \mathrel{\xorop}= \text{hi}_0 \xorop \text{lo}_1$),
-εξοικονομώντας έναν κύκλο load-modify-store ανά ζεύγος. Το 2-way pairing
-εφαρμόζεται ομοιόμορφα σε ολόκληρο τον leaf, ενώ η hi$\xorop$lo fusion
-μόνο στις δύο unrolled εκδοχές.
-
-\paragraph{Εύρος εφαρμογής: μεγάλα leaves.}
-Unrolled εκδοχές για τα μεγαλύτερα leaves $n\in\{14,15\}$ των 
-HQC-192/256 δοκιμάστηκαν αλλά απορρίφθηκαν: προκάλεσαν regression στο
-HQC-256 λόγω I-cache pressure στον in-order X60, καθώς το αυξημένο
-\code{.text} footprint υπερβαίνει το όφελος. Τα leaves αυτά
+\paragraph{Επέκταση σε μεγάλα leaves (απορριφθείσα).}
+Δοκιμάστηκαν unrolled εκδοχές για τα μεγαλύτερα leaves $n\in\{14,15\}$ που εμφανίζονται
+στο HQC-256  αλλά απορρίφθηκαν, καθώς το αυξημένο
+\code{.text} footprint αυξάνει το  I-cache pressure της in-order μικροαρχιτεκτονικής
+X60 και προκαλεί regression στο HQC-256. Έτσι αυτά τα leaves αυτά
 εξυπηρετούνται από τον compact generic \code{clmul\_leaf}.
 
-\paragraph{Εναλλακτική: 4-way ILP grouping (απορριφθείσα).}
-Αξιολογήθηκε διαμόρφωση με τέσσερις ανεξάρτητες \code{clmul64} πριν από
-κάθε κατανάλωση (\defterm{4-way ILP grouping}), για μεγαλύτερη latency
-coverage. Σε πραγματικό hardware (BPI-F3) δεν απέδωσε μετρήσιμο κέρδος
-και έτσι διατηρήθηκε η 2-way δομή.
-
-Οι πλήρως unrolled, branch-free leaves προσθέτουν επιπλέον \speedup{1.16}.
+Η πλήρως unrolled, branch-free μορφή των leaves συνεισφέρει επιπλέον \speedup{1.16} 
+σε \instret πάνω από το στάδιο του στατικού δέντρου αναδρομής (HQC-128), ολοκληρώνοντας 
+τη scalar διαδρομή σε σωρευτικό \speedup{89.3}.
 
 \subsection{Assign-on-First-Write: Εξάλειψη memset}
 \label{ssec:memset-elimination}
@@ -406,14 +367,6 @@ unrolled εκδοχές ($n \in \{8, 9\}$), που καλύπτουν το σύ�
 leaves των HQC-128 και HQC-192. Τα μεγαλύτερα leaves $n \in \{14, 15\}$ του
 HQC-256 εξυπηρετούνται από τον generic \code{clmul\_leaf}, ο οποίος διατηρεί
 το αρχικό \code{memset} (\cref{ssec:leaf-specialization}).
-
-Η επίδραση αυτής της αναδιάρθρωσης είναι δραματική. Στο αρχικό Zbc
-profile (μετά τη μετάβαση σε word-level leaf αλλά πριν την εξάλειψη
-\code{memset}), η συνάρτηση \code{memset} αποτελούσε τον κυρίαρχο
-hotspot. Η εξάλειψή της αφαιρεί
-αυτό το overhead χωρίς καμία αλλαγή στην αλγοριθμική ορθότητα, καθώς
-η assign-on-first-write πειθαρχία εγγυάται ότι κάθε θέση εξόδου
-αρχικοποιείται ακριβώς μία φορά πριν από οποιαδήποτε ανάγνωση.
 
 \paragraph{Ορθότητα στο leaf.}
 Στον πλήρως unrolled \code{clmul\_leaf\_n8} ($n=8$), η πειθαρχία
@@ -457,7 +410,7 @@ loop δεν ξεδιπλώνεται πλήρως από τον GCC υπό \code
   \centering
   \caption{Σωρευτική συνεισφορά των scalar βελτιστοποιήσεων στον
     πολυωνυμικό πολλαπλασιασμό (HQC-128, \instret, median), σε φθίνουσα
-    συνεισφορά. Πηγή: \code{results/reports/summaries/ablation.md}.}
+    συνεισφορά}
   \label{tab:scalar-ablation}
   \small
   \begin{tabular}{llcc}
@@ -471,73 +424,6 @@ loop δεν ξεδιπλώνεται πλήρως από τον GCC υπό \code
     \bottomrule
   \end{tabular}
 \end{table}
-
-\subsection{Απορριφθείσες Εναλλακτικές (Toom-Cook, FAFFT)}
-\label{ssec:rejected-alternatives}
-
-Η ασυμπτωτική πολυπλοκότητα $\BigO{n^{1.585}}$ του Karatsuba δεν είναι
-η βέλτιστη θεωρητικά, ο Toom-Cook-3 επιτυγχάνει $\BigO{n^{1.465}}$ και
-ο αλγόριθμος FAFFT (Gao-Mateer)~\cite{GaoMateer2010} $\BigO{n \log^2 n}$. Η
-ενότητα αυτή τεκμηριώνει γιατί κανένας εναλλακτικός αλγόριθμος δεν
-υπερτερεί πρακτικά στα μεγέθη πολυωνύμων του HQC.
-
-\paragraph{Toom-Cook-3 (TC3).}
-Ο TC3 διαιρεί κάθε πολυώνυμο σε τρία τμήματα μεγέθους
-$\lceil n/3 \rceil$, αποτιμά σε \num{5} σημεία του $\GFpoly$
-(π.χ.\ $\{0, 1, x, x{+}1, \infty\}$), εκτελεί \num{5}
-sub-multiplications, και παρεμβάλλει μέσω explicit XOR/shift formulas.
-Μία πλήρης υλοποίηση TC3 βάθους~2 κατασκευάστηκε, επαληθεύτηκε μέσω
-KAT (\num{300} vectors, τρία security levels), και μετρήθηκε στο
-Spike ISS.
-
-Τα αποτελέσματα ήταν αρνητικά: ο TC3 παρουσίασε regression
-\speedup{4}–\speedup{5} σε σχέση με τον Karatsuba champion.
-Συγκεκριμένα, για HQC-128 ο TC3 απαίτησε \num{344973} \instret
-έναντι \num{63804} του Karatsuba Zvbc, αύξηση \pct{441}. Η
-αιτία εντοπίζεται στο overhead evaluation/interpolation: οι
-carry-propagating shifts για αποτίμηση στα σημεία $x$ και $x{+}1$
-είναι sequential (μη vectorizable), η interpolation απαιτεί \num{12}
-shifted terms, και η διαίρεση με $(x^2+1)$ εισάγει per-word carry
-dependency. Σε βάθος~2, αυτό το overhead πολλαπλασιάζεται $5\times$.
-
-Η θεμελιώδης αιτία είναι ότι στα μεγέθη HQC ($N = 277$–$901$ words,
-4–5 επίπεδα αναδρομής), η ασυμπτωτική βελτίωση του TC3 μόλις
-εκδηλώνεται. Ο αριθμός carry-less πολλαπλασιασμών μειώνεται μόνο κατά
-\pct{1.3} ($5 \times \text{Karatsuba}(93) = \num{18865}$ ζεύγη έναντι
-$3 \times \text{Karatsuba}(139) = \num{19122}$ ζεύγη), ανεπαρκής
-εξοικονόμηση για να αντισταθμίσει το evaluation/interpolation overhead.
-
-\paragraph{Fast Additive FFT (FAFFT).}
-Ο αλγόριθμος FAFFT μετασχηματίζει τον πολυωνυμικό πολλαπλασιασμό σε
-pointwise multiplications σε extension field $\GF{2^m}$ μέσω additive
-FFT~\cite{Chen2018-Frobenius-AFFT}. Η θεμελιώδης δυσκολία στο HQC είναι ότι οι βαθμοί πολυωνύμων
-($n = \num{17669}$, $\num{35851}$, $\num{57637}$ bits) βρίσκονται
-ελαφρώς πάνω από δυνάμεις του~2. Για HQC-128, $n \approx 2^{14} +
-\num{1285}$, επομένως το απαιτούμενο μέγεθος FFT είναι $2^{16} =
-\num{65536}$, περίπου $4\times$ padding overhead.
-
-Η εκτίμηση κόστους για HQC-128 σε Zvbc ανέρχεται σε
-$\sim\num{68800000}$ \instret, έναντι \num{63804} του Karatsuba
-champion. Η διαφορά αυτή ($\sim\speedup{1100}$ regression) καθιστά
-τον FAFFT μη βιώσιμο στα μεγέθη HQC. Μία πειραματική υλοποίηση FAFFT
-με tower-field αριθμητική επιβεβαίωσε ασυμβατότητα με τη \vclmul{} (η
-εντολή λειτουργεί σε $\GFpoly$, όχι σε tower-field representations)
-και μετρήθηκε \speedup{8.97} πιο αργή από τον Karatsuba.
-
-\paragraph{Sparse $\times$ Dense.}
-Η εκμετάλλευση της αραιής δομής των μυστικών κλειδιών HQC ($\omega$
-μη-μηδενικά bits σε $n$-bit πολυώνυμο, $\omega \ll n$) αποτελεί
-ευπάθεια πλευρικού καναλιού: ο δείκτης word της θέσης accumulation
-εξαρτάται από τη μυστική θέση bit, δημιουργώντας data-dependent memory
-access pattern. Η constant-time αντιμετώπιση (full-width scan ανά
-iteration) εξαλείφει το πλεονέκτημα απόδοσης. Η ομάδα σχεδιασμού
-HQC απέρριψε τη sparse multiplication στην τελική spec (2024) ακριβώς
-για αυτούς τους λόγους, μεταβαίνοντας σε dense Karatsuba.
-
-Η λεπτομερής σύγκριση αλγοριθμικών εναλλακτικών, συμπεριλαμβανομένων
-πρόσφατων SIMD υλοποιήσεων Toom-Cook/Karatsuba~\cite{Jang2026-gf2x-SIMD,RobertVeron2023-avx512-gf2x} και
-της ανάλυσης FAFFT με CRT splitting~\cite{Chen2026-TCHES-HQC-FFT,Jang2025-CortexM4-HQC} ως μελλοντικής
-κατεύθυνσης, παρουσιάζεται στο \cref{ch:discussion}.
 
 %% ============================================================================
 \section{Base-RVV Path: Διανυσματοποίηση Ανασύνθεσης}
