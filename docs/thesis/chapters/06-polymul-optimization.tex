@@ -112,6 +112,8 @@ scalar/vector προσέγγιση}, με κέρδος φραγμένο από �
 διανυσματοποίηση εισχωρεί στον ίδιο τον leaf kernel: ο \code{vclmul\_leaf}
 (\cref{ssec:vclmul-leaf}) διανυσματοποιεί ολόκληρο τον schoolbook leaf
 μεγέθους $n=16$. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
+vector register group: σε \VLEN = \num{256} με \LMUL = m4 το group καλύπτει
+\num{16} λωρίδες των \num{64} bit. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
 
 %% ============================================================================
 \section{Scalar Path: Karatsuba με \Zbc}
@@ -295,11 +297,11 @@ static void kmul_34(uint64_t *r, const uint64_t *a, const uint64_t *b, uint64_t 
 /* Naive: compute into temp buffers, then memset + accumulate into r */
 kmul_n0(z0,   a_lo, b_lo, child_buf);  /* z0   -> tmp */
 kmul_n1(z2,   a_hi, b_hi, child_buf);  /* z2   -> tmp */
-kmul_n0(zmid, ta,   tb,   child_buf);  /* zmid -> tmp (ta=a_lo^a_hi, tb=b_lo^b_hi) */
+kmul_n0(zmid, ta,   tb,   child_buf);  /* zmid -> tmp (ta=a_lo^a_hi,tb=b_lo^b_hi) */
 memset(r, 0, 2 * n * sizeof(uint64_t));
-for (i = 0; i < 2*n0; i++)  r[i]       ^= z0[i];
+for (i = 0; i < 2*n0; i++)  r[i]        ^= z0[i];
 for (i = 0; i < 2*n1; i++)  r[2*n0 + i] ^= z2[i];
-for (i = 0; i < 2*n0; i++)  r[n0 + i]  ^= zmid[i] ^ z0[i] ^ z2[i];
+for (i = 0; i < 2*n0; i++)  r[n0 + i]   ^= zmid[i] ^ z0[i] ^ z2[i];
 \end{lstlisting}
 
 Αξιοποιώντας την ταυτότητα $0 \xorop x = x$, η direct-write υλοποίηση
@@ -425,174 +427,63 @@ assign-on-first-write (tree + leaf).
 \section{Base-RVV Path: Διανυσματοποίηση Ανασύνθεσης}
 \label{sec:polymul-base-rvv}
 
-Η μετάβαση από Tier~1 σε Tier~2 εισάγει τη διανυσματική μονάδα RVV~1.0 στον
-πολυωνυμικό πολλαπλασιασμό, χωρίς ωστόσο να αλλάζει τον leaf kernel. Δηλαδή 
-πρόκειται για υβριδική scalar/vector προσέγγιση: η αριθμητική πράξη
-(carry-less multiply) παραμένει scalar, ενώ οι γραμμικού κόστους $\BigO{n}$
-βρόχοι ανασύνθεσης σε κάθε κόμβο του δέντρου αναδρομής εκτελούνται με
-inline RVV intrinsics.
+Το Tier~2 εφαρμόζει υβριδική scalar/vector στρατηγική: οι γραμμικού κόστους $\BigO{n}$ βρόχοι ανασύνθεσης κάθε
+κόμβου του δέντρου αναδρομής εκτελούνται με inline RVV intrinsics
+αντί για scalar element-wise C loops, ενώ ο carry-less multiply leaf
+διατηρείται scalar.
 
-Η διαφοροποίηση του Tier~2 έγκειται αποκλειστικά στον τρόπο εκτέλεσης
-των βρόχων ανασύνθεσης: αντί scalar element-wise C loops, χρησιμοποιούνται
-inline RVV intrinsics με flat \LMUL=m2.
-
-\subsection{Inlined RVV Operations}
-\label{ssec:inlined-rvv}
+Οι RVV βρόχοι χρησιμοποιούν ομοιόμορφα \LMUL=m2 (κάθε vector register group
+καταλαμβάνει \num{2} registers, \num{8} words των \num{64}-bit ανά iteration
+σε \VLEN=\num{256}): η επιλογή κρατά χαμηλή την πίεση στο register file ώστε
+ο compiler να αποφεύγει spills στον in-order X60 core. Μεγαλύτερα LMUL (m4,
+m8) εξετάστηκαν χωρίς επιπλέον κέρδος, με την m8 να εμφανίζει regression
+λόγω register-file pressure.
 
 Ο specialized generator σε \code{rvv} mode εκπέμπει inline RVV intrinsic
-loops απευθείας εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης. Όλοι
-οι RVV βρόχοι χρησιμοποιούν ομοιόμορφα \LMUL=m2, δηλαδή κάθε vector
-register group καταλαμβάνει \num{2} registers και επεξεργάζεται \num{8}
-words (\num{64}-bit) ανά iteration σε \VLEN=\num{256}.
-
-Η επιλογή flat m2 στηρίζεται σε εμπειρική σύγκριση τεσσάρων πολιτικών
-(m2, m4, m8, και per-operation tuned) σε πραγματικό hardware (BPI-F3,
-SpacemiT X60). Ο \cref{tab:lmul-hw-comparison} συνοψίζει τα αποτελέσματα.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Επίδραση \LMUL policy στον πολυωνυμικό πολλαπλασιασμό (median
-    κύκλοι, BPI-F3, N=\num{10000}, isolated core). Η flat m2 επιλέχθηκε ως
-    βέλτιστη στα δύο βασικά security levels (HQC-128, HQC-192) και ανταγωνιστική
-    στο HQC-256.}
-  \label{tab:lmul-hw-comparison}
-  \small
-  \begin{tabular}{lccc}
-    \toprule
-    \textbf{Policy}
-      & \textbf{HQC-128} & \textbf{HQC-192} & \textbf{HQC-256} \\
-    \midrule
-    \textbf{flat m2} & \textbf{\num{120854}} & \textbf{\num{353467}} & \num{764456} \\
-    flat m4          & \num{122718}           & \num{358253}           & \textbf{\num{755339}} \\
-    flat m8          & \num{125590}           & \num{367546}           & \num{793091} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Η flat m8 υστερεί σε όλα τα security levels (\pct{+2.3} έως \pct{+5.0}
-σε σχέση με m2) παρά τον χαμηλότερο αριθμό εντολών, καθώς η πίεση στο
-register file (4 live groups $\times$ m8 = 32 registers στον combine XOR
-βρόχο) προκαλεί pipeline stalls στο in-order X60 core. Αντιθέτως, η m2
-αφήνει αρκετούς ελεύθερους registers ώστε ο compiler να διατηρεί
-ενδιάμεσα αποτελέσματα χωρίς spills, ενώ ο αριθμός loop iterations
-παραμένει χαμηλός (οι τυπικές sub-problem sizes \num{9}–\num{139} words
-απαιτούν \num{1}–\num{9} iterations σε \LMUL=m2).
-
-Ο κρίσιμος combine XOR βρόχος φορτώνει ταυτόχρονα τέσσερις πηγές —
-destination $r[n_0{+}i]$, $z_\text{mid}[i]$, $z_0[i]$ (από $r$ ή
-\code{ta}), $z_2[i]$ — και εκτελεί αλυσίδα τριών \insn{vxor.vv}
-(\cref{lst:combine-xor}). Η inlining εξαλείφει \num{363} helper-function
-calls ανά \code{vect\_mul} invocation (HQC-128, τρεις helpers $\times$
-\num{121} non-leaf κόμβους), επιτρέποντας cross-operation register
-allocation εντός κάθε \code{kmul\_N} body.
+loops απευθείας εντός κάθε παραγόμενης \code{kmul\_N} συνάρτησης. Ο κρίσιμος
+combine βρόχος αντικαθιστά την scalar αλυσίδα XOR τεσσάρων πηγών
+(\cref{lst:combine-scalar}) με στοιχειοπαράλληλα \insn{vxor.vv}
+(\cref{lst:combine-xor}).
 
 \begin{lstlisting}[language=C,
-  caption={Inline combine XOR — flat \LMUL=m2, τέσσερις πηγές.},
+  caption={Scalar combine XOR (πριν): element-wise, τέσσερις πηγές.},
+  label={lst:combine-scalar}]
+for (size_t i = 0; i < rem; i++)
+    dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+\end{lstlisting}
+
+\begin{lstlisting}[language=C,
+  caption={Inline RVV combine XOR (μετά): \LMUL=m2, τέσσερις πηγές.},
   label={lst:combine-xor}]
-while (_rem > 0) {
-    size_t _vl = __riscv_vsetvl_e64m2(_rem);
-    vuint64m2_t _vd = __riscv_vle64_v_u64m2(_dst, _vl);
-    vuint64m2_t _vm = __riscv_vle64_v_u64m2(_sm, _vl);
-    vuint64m2_t _v0 = __riscv_vle64_v_u64m2(_s0, _vl);
-    vuint64m2_t _v2 = __riscv_vle64_v_u64m2(_s2, _vl);
-    vuint64m2_t _acc = __riscv_vxor_vv_u64m2(_vm, _v0, _vl);
-    _acc = __riscv_vxor_vv_u64m2(_acc, _v2, _vl);
-    _vd  = __riscv_vxor_vv_u64m2(_vd, _acc, _vl);
-    __riscv_vse64_v_u64m2(_dst, _vd, _vl);
-    _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl;
-    _rem -= _vl;
+while (rem > 0) {
+    size_t vl = __riscv_vsetvl_e64m2(rem);
+    vuint64m2_t v_dst = __riscv_vle64_v_u64m2(dst, vl);
+    vuint64m2_t v_zm = __riscv_vle64_v_u64m2(zm_p, vl);
+    vuint64m2_t v_z0 = __riscv_vle64_v_u64m2(z0_p, vl);
+    vuint64m2_t v_z2 = __riscv_vle64_v_u64m2(z2_p, vl);
+    vuint64m2_t v_acc = __riscv_vxor_vv_u64m2(v_zm, v_z0, vl);
+    v_acc = __riscv_vxor_vv_u64m2(v_acc, v_z2, vl);
+    v_dst  = __riscv_vxor_vv_u64m2(v_dst, v_acc, vl);
+    __riscv_vse64_v_u64m2(dst, v_dst, vl);
+    dst += vl; zm_p += vl; z0_p += vl; z2_p += vl;
+    rem -= vl;
 }
 \end{lstlisting}
 
-\subsection{Ablation Study: Συνεισφορά V σε Κύκλους και \instret}
-\label{ssec:rvv-ablation-summary}
+Η διανυσματοποίηση δεν εφαρμόζεται ομοιόμορφα σε όλα τα επίπεδα του δέντρου.
+Στους κατώτερους κόμβους οι RVV βρόχοι εκτελούν μόλις \num{1}–\num{2}
+iterations, όπου η ποινή μετάβασης scalar↔vector (\insn{vsetvl} stall και
+store-buffer drain) ακυρώνει το data-parallel κέρδος. Για τον λόγο αυτό η
+υλοποίηση εισάγει ένα \code{RVV\_HYBRID\_THRESHOLD}$=18$: κόμβοι με
+$n \leq 18$ παραμένουν scalar, ενώ κόμβοι με $n > 18$ διατηρούν τα inline
+RVV intrinsics.
 
-Ο \cref{tab:rvv-ablation-instret} παρουσιάζει τη συνεισφορά
-της RVV-vectorized ανασύνθεσης (V) σε \instret
-(instruction-accurate, Spike ISS).
-
-\begin{table}[htbp]
-  \centering
-  \caption{Συνεισφορά V σε \instret (instruction-accurate, Spike ISS).
-    Baseline: \code{scalar\_zb} (Tier~1, περιλαμβάνει direct-write).}
-  \label{tab:rvv-ablation-instret}
-  \small
-  \begin{tabular}{llccc}
-    \toprule
-    \textbf{Στάδιο} & \textbf{Βελτιστοποίηση}
-      & \textbf{HQC-128} & \textbf{HQC-192} & \textbf{HQC-256} \\
-    \midrule
-    V & inlined RVV recomposition
-      & \speedup{1.21} & \speedup{1.25} & \speedup{1.24} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\paragraph{Αναντιστοιχία \instret–κύκλων.}
-Παρά τη σημαντική μείωση \instret (\pct{21}–\pct{24} μέσω V), η μετάφραση
-σε πραγματικούς κύκλους hardware είναι πολύ μικρότερη: \speedup{1.02}–\speedup{1.04}
-στο BPI-F3 (SpacemiT K1 X60, \VLEN=\num{256}). Η αιτία εντοπίζεται στη
-φύση του bottleneck: οι βρόχοι ανασύνθεσης εκτελούνται σε γραμμικό χρόνο
-$\BigO{n}$ ανά κόμβο, ενώ ο scalar leaf κυριαρχεί σε τετραγωνικό χρόνο
-$\BigO{n^2}$. Η διανυσματοποίηση βρόχων που αποτελούν μικρό κλάσμα
-του wallclock time αποδίδει αναλόγως μικρή βελτίωση κύκλων — η μείωση
-\instret αντανακλά instruction throughput, όχι κρίσιμο μονοπάτι.
-
-\paragraph{Υβριδική αναδρομή: RVV threshold $T=18$.}
-\label{ssec:rvv-hybrid-recursion}
-Η διανυσματοποίηση δεν εφαρμόζεται ομοιόμορφα σε όλα τα επίπεδα του
-δέντρου. Στα κατώτερα δύο επίπεδα αναδρομής (κόμβοι \code{kmul\_17},
-\code{kmul\_18}), οι RVV strip-mining βρόχοι εκτελούν μόλις \num{1}–\num{2}
-iterations σε \VLEN=\num{256}. Σε τόσο μικρά μεγέθη, η ποινή μετάβασης
-scalar↔vector (pipeline stall κατά \insn{vsetvl} + store-buffer drain
-μεταξύ scalar stores και vector loads) ακυρώνει κάθε data-parallel κέρδος.
-Η τελική υλοποίηση εισάγει ένα \code{RVV\_HYBRID\_THRESHOLD}$=18$: κόμβοι
-με $n \leq 18$ χρησιμοποιούν scalar C loops, ενώ κόμβοι με $n > 18$
-διατηρούν τα inline RVV intrinsics. Ο \cref{tab:rvv-hybrid-threshold}
-τεκμηριώνει ποσοτικά τη σχεδιαστική αυτή απόφαση.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Σύγκριση τριών configurations σε πραγματικό hardware (BPI-F3,
-    median κύκλοι \code{vect\_mul}). Η υβριδική αναδρομή ($T=18$)
-    υπερτερεί της πλήρους RVV ($T=0$) σε HQC-128/192, ενώ στο HQC-256
-    (κατώτεροι κόμβοι $n \geq 28$) η επίδραση είναι αμελητέα.}
-  \label{tab:rvv-hybrid-threshold}
-  \small
-  \begin{tabular}{lccc}
-    \toprule
-    \textbf{Level} & \textbf{\code{scalar\_zb}}
-      & \textbf{\code{vector\_rvv} ($T{=}18$)}
-      & \textbf{\code{vector\_rvv} ($T{=}0$, all-RVV)} \\
-    \midrule
-    HQC-128 & \cycles{123630} & \cycles{121931} & \cycles{127417} \\
-    HQC-192 & \cycles{368193} & \cycles{355891} & \cycles{375469} \\
-    HQC-256 & \cycles{755402} & \cycles{755402} & \cycles{755060} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Στο HQC-128, η πλήρης RVV configuration ($T=0$) δεν μόνο αποτυγχάνει
-να βελτιώσει τον scalar baseline αλλά εμφανίζει regression (\cycles{127417}
-vs \cycles{123630}), ενώ η υβριδική ($T=18$) αποδίδει μικρό αλλά
-μετρήσιμο κέρδος (\cycles{121931}). Η αναντιστοιχία οφείλεται στο
-αθροιστικό transition overhead: στο δέντρο HQC-128, $81 \times 3 = 243$
-μεταβάσεις scalar↔vector στα κατώτερα επίπεδα, καθεμία με $\sim\num{10}$
-κύκλους ποινή. Στο HQC-256, τα κατώτερα leaves έχουν $n \geq 28$ (πάνω
-από $T$), οπότε η υβριδική δεν ενεργοποιείται και οι δύο configurations
-συγκλίνουν.
-
-\subsection{Ο Scalar Leaf ως Binding Constraint}
-\label{ssec:rvv-binding-constraint}
-
-Ο θεμελιώδης αρχιτεκτονικός περιορισμός του Tier~2 παραμένει: ο scalar
-\clmul/\clmulh leaf αποτελεί το \defterm{binding constraint}. Οι βρόχοι
-ανασύνθεσης είναι $\BigO{n}$ ανά επίπεδο αναδρομής, ενώ ο leaf είναι
-$\BigO{n^2}$ ανά κλήση. Στα μεγέθη HQC, ο τετραγωνικός leaf κυριαρχεί
-ανεξαρτήτως του πόσο αποδοτικά εκτελούνται τα combines — η συνολική
-μείωση κύκλων παραμένει φραγμένη σε \pct{2}–\pct{4} ακόμη και μετά τη
-βελτιστοποίηση threshold. Η παρατήρηση αυτή τεκμηριώνει ποσοτικά τη
-μετάβαση στο Tier~3 (\cref{sec:polymul-zvbc}), όπου η
+Συνολικά, σε σχέση με το \code{scalar\_zb} baseline, η inlined RVV ανασύνθεση
+μειώνει τα \instret κατά \pct{21}–\pct{24}, αλλά το πραγματικό κέρδος κύκλων
+περιορίζεται σε \speedup{1.02}–\speedup{1.04} (BPI-F3, \VLEN=\num{256}): ο
+scalar \clmul/\clmulh leaf παραμένει το \defterm{binding constraint}, με
+κόστος $\BigO{n^2}$ ανά κλήση έναντι $\BigO{n}$ της ανασύνθεσης. Η παρατήρηση
+αυτή τεκμηριώνει τη μετάβαση στο Tier~3 (\cref{sec:polymul-zvbc}), όπου η
 διανυσματοποίηση εισχωρεί στον ίδιο τον leaf μέσω \vclmul/\vclmulh.
 
 %% ============================================================================
@@ -601,7 +492,7 @@ $\BigO{n^2}$ ανά κλήση. Στα μεγέθη HQC, ο τετραγωνικ
 
 Η μετάβαση από Tier~2 σε Tier~3 αντιπροσωπεύει τη θεμελιώδη αρχιτεκτονική
 αλλαγή στον πολυωνυμικό πολλαπλασιασμό: η διανυσματοποίηση εισχωρεί στον
-ίδιο τον leaf kernel — τον τετραγωνικού κόστους $\BigO{n^2}$ πυρήνα που
+ίδιο τον leaf kernel, τον τετραγωνικού κόστους $\BigO{n^2}$ πυρήνα που
 αποτελούσε το binding constraint στο Tier~2. Η εντολή \vclmul{} της \gls{zvbc}
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
 παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
