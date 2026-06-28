@@ -1,7 +1,7 @@
-# date: 2026-06-26 14:18
-# commit: 683734f
+# date: 2026-06-28 22:15
+# commit: 6f0aa51
 # Multiplication variant: scalar_ref
 level,op,instructions,codesize
-128,vect_mul,18639752,5062
-192,vect_mul,56702057,5098
-256,vect_mul,139877019,4312
+128,vect_mul,18639752,5216
+192,vect_mul,56702057,5252
+256,vect_mul,139877019,4466
