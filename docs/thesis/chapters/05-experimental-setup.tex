@@ -687,10 +687,12 @@ early-termination βελτιστοποίηση βασισμένη σε leading z
 Η αναδρομική δομή Karatsuba διαιρεί πολυώνυμα βάσει βαθμού (compile-time
 σταθερά), ποτέ βάσει τιμών συντελεστών. Το βάθος αναδρομής είναι σταθερό
 για δεδομένο security level, δεν υπάρχει data-dependent early exit, και
-κάθε leaf κλήση εκτελεί ταυτόσημη ακολουθία εντολών. Ο πλήρως
-ξεδιπλωμένος leaf (\code{clmul\_leaf\_n8}) εκτελεί \num{64} κλήσεις
-\clmul/\clmulh με ντετερμινιστικό XOR assembly, με μηδέν branches εντός
-του hot path.
+κάθε leaf κλήση εκτελεί ταυτόσημη ακολουθία εντολών. Ο specialized
+leaf (\code{clmul\_leaf\_n8}) χρησιμοποιεί compact inner loops με σταθερά
+bounds, εκτελώντας \num{64} κλήσεις \clmul/\clmulh ανά leaf με
+ντετερμινιστικό XOR assembly — ο αριθμός iterations είναι σταθερός
+ανεξαρτήτως τιμών εισόδου, χωρίς data-dependent branches εντός του loop
+body.
 
 \paragraph{Vector carry-less πολλαπλασιασμός (\RVV + \Zvbc).}
 Η υλοποίηση \code{vector\_rvv} χρησιμοποιεί \vclmul/\vclmulh vector

@@ -941,10 +941,9 @@ reference baselines. Η ερμηνεία βρίσκεται στη δομή το
         γινόμενα ταυτόχρονα), η pointer αριθμητική αποτελεί σημαντικό
         κλάσμα του loop body.
   \item Στο \code{scalar\_zb}, η scalar leaf \code{clmul\_leaf\_n8}
-        είναι πλήρως unrolled με \emph{compile-time constant offsets}:
-        \code{r[0] = lo0; r[1] = hi0 \^{} lo1; \ldots}. Ο μεταγλωττιστής
-        επιλύει τις διευθύνσεις κατά τη μεταγλώττιση — δεν υπάρχει
-        κανένα dynamic \code{slli+add} ζεύγος στον hot loop. Τα \num{128}
+        χρησιμοποιεί compact inner loops με \emph{compile-time constant bounds}:
+        τα σταθερά loop bounds ($n=8$) επιτρέπουν στον μεταγλωττιστή πλήρη
+        register allocation χωρίς dynamic index scaling. Τα \num{128}
         \clmul/\clmulh{} instructions ανά leaf κυριαρχούν απόλυτα, και η
         pointer αριθμητική στον outer recursion αραιώνεται σε θόρυβο.
 \end{itemize}

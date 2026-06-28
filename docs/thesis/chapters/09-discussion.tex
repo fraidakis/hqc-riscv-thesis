@@ -365,11 +365,12 @@ $\approx 70$ αναδρομικές κλήσεις (εκτίμηση βάσει 
 \insn{sh3add} εντολών στο ELF, βλ.\ \cref{tab:ablation-summary}), καθεμία με 3–5 pointer υπολογισμούς — συνολικά 210–350 ζεύγη \code{slli+add} που συγχωνεύονται.
 
 Αντίθετα, στην \code{scalar\_zb} ο scalar leaf (\code{clmul\_leaf\_n8})
-είναι πλήρως ξεδιπλωμένος με σταθερές μετατοπίσεις: κάθε πρόσβαση
-\code{r[7]} επιλύεται σε compile-time σε σταθερό offset από τον base
-register. Η \gls{zba} δεν έχει τίποτα να συγχωνεύσει στο hot loop —
-η εξοικονόμηση περιορίζεται στον εξωτερικό αναδρομικό κώδικα, ο οποίος
-αποτελεί αμελητέο ποσοστό του συνολικού \instret.
+χρησιμοποιεί compact inner loops με σταθερά loop bounds: κάθε πρόσβαση
+αντιστοιχεί σε \code{r[i+j]} με $i$, $j$ γνωστά στον μεταγλωττιστή ως
+μικρά σταθερά, ώστε ο base-plus-offset addressing mode να εφαρμόζεται
+χωρίς dynamic scaling. Η \gls{zba} δεν έχει τίποτα να συγχωνεύσει στο
+hot loop — η εξοικονόμηση περιορίζεται στον εξωτερικό αναδρομικό κώδικα,
+ο οποίος αποτελεί αμελητέο ποσοστό του συνολικού \instret.
 
 Η \code{vector\_rvv} παρουσιάζει ενδιάμεση βελτίωση ($-\pct{1.03}$
 polymul, $-\pct{0.67}$ \gls{kem}) διότι χρησιμοποιεί scalar \clmul leaves
@@ -1112,8 +1113,9 @@ security level, και tier. Η στήλη \q{Δ\%} αντιπροσωπεύει
 Στα Tier~0 και Tier~1 variants, ο GCC παράγει σταθερά λιγότερες δυναμικές
 εντολές — η υπεροχή κυμαίνεται από \pct{6.0} (\code{scalar\_zb}, L192)
 έως \pct{26.8} (\code{scalar\_zb}, L256). Η εξήγηση βρίσκεται στη
-δομή του hot path: ο πλήρως ξεδιπλωμένος scalar leaf (\code{clmul\_leaf\_n8})
-αποτελεί ακολουθία \num{64} εντολών \clmul/\clmulh χωρίς control flow.
+δομή του hot path: ο scalar leaf (\code{clmul\_leaf\_n8}) χρησιμοποιεί
+compact inner loops με σταθερά bounds, παράγοντας ακολουθίες
+\clmul/\clmulh χωρίς control flow overhead στο εσωτερικό τους.
 Ο GCC εκμεταλλεύεται αποδοτικότερα τους \num{31} διαθέσιμους GPRs μέσω
 aggressive register coalescing, μειώνοντας τα stack spills στο αναδρομικό
 Karatsuba tree. Η διαφορά εντείνεται στο L256 ($N = \num{901}$ words)
