@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Generate fixed-size Karatsuba kernel headers for HQC poly-mul variants.
 
-Supports three backends via --mode:
-  --mode zbc      Scalar zbc: clmul_leaf / clmul_leaf_n8, manual-loop recomposition
+Supports backends via --mode:
+  --mode zbc      Scalar zbc: direct-write (noinit) or memset recomposition
   --mode rvv      RVV: direct-write z0/z2 to r, inline RVV intrinsics, tuned LMUL
-  --mode zvbc     Zvbc vector: vclmul_leaf, manual-loop recomposition
+  --mode rvv_noD  RVV vectorized recomposition without direct-write (ablation)
+  --mode zvbc     Zvbc vector: vclmul_leaf, direct-write recomposition (same as rvv)
 
 Split rule:
   n0 = ceil(n/2), n1 = floor(n/2)
@@ -12,6 +13,7 @@ Stop recursion at n <= 16.
 
 Usage:
   python3 scripts/gen/gen_karatsuba_specialized.py --mode zbc
+  python3 scripts/gen/gen_karatsuba_specialized.py --mode zbc --leaf-style memset
   python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv
   python3 scripts/gen/gen_karatsuba_specialized.py --mode zvbc
 """
@@ -40,11 +42,6 @@ _MODE_CONFIG: dict[str, dict] = {
     "zbc": {
         "out": REPO_ROOT / "src/mult/karatsuba_zbc/karatsuba_specialized_gen.h",
         "guard": "HQC_KARATSUBA_SPECIALIZED_GEN_H",
-        "leaf_fn": "scalar",
-    },
-    "zbc_dw": {
-        "out": REPO_ROOT / "src/mult/karatsuba_zbc/karatsuba_specialized_dw_gen.h",
-        "guard": "HQC_KARATSUBA_SPECIALIZED_DW_GEN_H",
         "leaf_fn": "scalar",
     },
     "rvv": {
@@ -124,8 +121,8 @@ def child_call(dst: str, xa: str, xb: str, n: int, leaf_fn: str, threshold: int,
                 return f"clmul_leaf_n14({dst}, {xa}, {xb});"
             if n == 15:
                 return f"clmul_leaf_n15({dst}, {xa}, {xb});"
-        # zbc / zbc_dw noinit: use LEAF_CALL_N8/N9 macros for specialized leaves
-        if leaf_style == "noinit" and mode in ("zbc", "zbc_dw"):
+        # zbc noinit: use LEAF_CALL_N8/N9 macros for specialized leaves
+        if leaf_style == "noinit" and mode == "zbc":
             if n == 8:
                 return f"LEAF_CALL_N8({dst}, {xa}, {xb});"
             if n == 9:
@@ -306,14 +303,14 @@ def _rvv_recomposition_noD(lines: list[str], n0: int, n1: int) -> None:
     # --- Loop 1: RVV copy z0 → r[0..2*n0-1] ---
     lines.append(f"    /* Loop 1: r[0..2*n0-1] = z0 — inline RVV copy (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
-    lines.append(f"        size_t _rem = {two_n0}u;")
-    lines.append("        const uint64_t *_src = z0;")
-    lines.append("        uint64_t *_dst = r;")
-    lines.append("        while (_rem > 0) {")
-    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _v = __riscv_vle64_v_u64{_RVV_LMUL}(_src, _vl);")
-    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _v, _vl);")
-    lines.append("            _src += _vl; _dst += _vl; _rem -= _vl;")
+    lines.append(f"        size_t rem = {two_n0}u;")
+    lines.append("        const uint64_t *src = z0;")
+    lines.append("        uint64_t *dst = r;")
+    lines.append("        while (rem > 0) {")
+    lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v = __riscv_vle64_v_u64{_RVV_LMUL}(src, vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(dst, v, vl);")
+    lines.append("            src += vl; dst += vl; rem -= vl;")
     lines.append("        }")
     lines.append("    }")
     lines.append("")
@@ -321,14 +318,14 @@ def _rvv_recomposition_noD(lines: list[str], n0: int, n1: int) -> None:
     # --- Loop 2: RVV copy z2 → r[2*n0..2*n0+2*n1-1] ---
     lines.append(f"    /* Loop 2: r[2*n0..2*n0+2*n1-1] = z2 — inline RVV copy (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
-    lines.append(f"        size_t _rem = {two_n1}u;")
-    lines.append("        const uint64_t *_src = z2;")
-    lines.append(f"        uint64_t *_dst = r + {two_n0}u;")
-    lines.append("        while (_rem > 0) {")
-    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _v = __riscv_vle64_v_u64{_RVV_LMUL}(_src, _vl);")
-    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _v, _vl);")
-    lines.append("            _src += _vl; _dst += _vl; _rem -= _vl;")
+    lines.append(f"        size_t rem = {two_n1}u;")
+    lines.append("        const uint64_t *src = z2;")
+    lines.append(f"        uint64_t *dst = r + {two_n0}u;")
+    lines.append("        while (rem > 0) {")
+    lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v = __riscv_vle64_v_u64{_RVV_LMUL}(src, vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(dst, v, vl);")
+    lines.append("            src += vl; dst += vl; rem -= vl;")
     lines.append("        }")
     lines.append("    }")
     lines.append("")
@@ -336,37 +333,37 @@ def _rvv_recomposition_noD(lines: list[str], n0: int, n1: int) -> None:
     # --- Loop 3: RVV XOR accumulation r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] ---
     lines.append(f"    /* Loop 3: r[n0+i] ^= zmid[i] ^ z0[i] ^ z2[i] — inline RVV (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
-    lines.append(f"        size_t _rem = {two_n1}u;")
-    lines.append(f"        uint64_t *_dst = r + {n0}u;")
-    lines.append("        const uint64_t *_zm = zmid;")
-    lines.append("        const uint64_t *_z0 = z0;")
-    lines.append("        const uint64_t *_z2 = z2;")
-    lines.append("        while (_rem > 0) {")
-    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_zm, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_z0, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _v2 = __riscv_vle64_v_u64{_RVV_LMUL}(_z2, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
-    lines.append(f"            _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_acc, _v2, _vl);")
-    lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
-    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
-    lines.append("            _dst += _vl; _zm += _vl; _z0 += _vl; _z2 += _vl; _rem -= _vl;")
+    lines.append(f"        size_t rem = {two_n1}u;")
+    lines.append(f"        uint64_t *dst = r + {n0}u;")
+    lines.append("        const uint64_t *zm_p = zmid;")
+    lines.append("        const uint64_t *z0_p = z0;")
+    lines.append("        const uint64_t *z2_p = z2;")
+    lines.append("        while (rem > 0) {")
+    lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_dst = __riscv_vle64_v_u64{_RVV_LMUL}(dst, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_zm = __riscv_vle64_v_u64{_RVV_LMUL}(zm_p, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_z0 = __riscv_vle64_v_u64{_RVV_LMUL}(z0_p, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_z2 = __riscv_vle64_v_u64{_RVV_LMUL}(z2_p, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_zm, v_z0, vl);")
+    lines.append(f"            v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_acc, v_z2, vl);")
+    lines.append(f"            v_dst = __riscv_vxor_vv_u64{_RVV_LMUL}(v_dst, v_acc, vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(dst, v_dst, vl);")
+    lines.append("            dst += vl; zm_p += vl; z0_p += vl; z2_p += vl; rem -= vl;")
     lines.append("        }")
     if two_n0 > two_n1:
         # Odd-n tail: zmid[i] ^ z0[i] (no z2)
         rem = two_n0 - two_n1
         lines.append(f"        /* Tail: {rem} elements where z2 is absent */")
-        lines.append(f"        _rem = {rem}u;")
-        lines.append("        while (_rem > 0) {")
-        lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_zm, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_z0, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
-        lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
-        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
-        lines.append("            _dst += _vl; _zm += _vl; _z0 += _vl; _rem -= _vl;")
+        lines.append(f"        rem = {rem}u;")
+        lines.append("        while (rem > 0) {")
+        lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_dst = __riscv_vle64_v_u64{_RVV_LMUL}(dst, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_zm = __riscv_vle64_v_u64{_RVV_LMUL}(zm_p, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_z0 = __riscv_vle64_v_u64{_RVV_LMUL}(z0_p, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_zm, v_z0, vl);")
+        lines.append(f"            v_dst = __riscv_vxor_vv_u64{_RVV_LMUL}(v_dst, v_acc, vl);")
+        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(dst, v_dst, vl);")
+        lines.append("            dst += vl; zm_p += vl; z0_p += vl; rem -= vl;")
         lines.append("        }")
     lines.append("    }")
 
@@ -401,14 +398,14 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
     # --- Save overlap region r[n0..2*n0-1] to ta using inline RVV (LMUL=m4) ---
     lines.append(f"    /* Save overlap region r[n0..2*n0-1] to ta — inline RVV copy (LMUL={_RVV_LMUL}) */")
     lines.append("    {")
-    lines.append(f"        size_t _cp_rem = {n0}u;")
-    lines.append(f"        const uint64_t *_cp_src = r + {n0}u;")
-    lines.append(f"        uint64_t *_cp_dst = ta;")
-    lines.append("        while (_cp_rem > 0) {")
-    lines.append(f"            size_t _cp_vl = __riscv_vsetvl_e64{_RVV_LMUL}(_cp_rem);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _cp_v = __riscv_vle64_v_u64{_RVV_LMUL}(_cp_src, _cp_vl);")
-    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_cp_dst, _cp_v, _cp_vl);")
-    lines.append("            _cp_src += _cp_vl; _cp_dst += _cp_vl; _cp_rem -= _cp_vl;")
+    lines.append(f"        size_t rem = {n0}u;")
+    lines.append(f"        const uint64_t *cp_src = r + {n0}u;")
+    lines.append(f"        uint64_t *cp_dst = ta;")
+    lines.append("        while (rem > 0) {")
+    lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v = __riscv_vle64_v_u64{_RVV_LMUL}(cp_src, vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(cp_dst, v, vl);")
+    lines.append("            cp_src += vl; cp_dst += vl; rem -= vl;")
     lines.append("        }")
     lines.append("    }")
     lines.append("")
@@ -416,22 +413,22 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
     # --- Loop 3A first half: inline XOR3 with LMUL=m2 ---
     lines.append("    /* Loop 3A first half: i in [0, n0) — z0[i]=r[i] is safe (below dst) */")
     lines.append("    {")
-    lines.append(f"        size_t _rem = {n0}u;")
-    lines.append(f"        uint64_t *_dst = r + {n0}u;")
-    lines.append(f"        const uint64_t *_sm = zmid;")
-    lines.append(f"        const uint64_t *_s0 = r;")
-    lines.append(f"        const uint64_t *_s2 = r + {two_n0}u;")
-    lines.append("        while (_rem > 0) {")
-    lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_sm, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_s0, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _v2 = __riscv_vle64_v_u64{_RVV_LMUL}(_s2, _vl);")
-    lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
-    lines.append(f"            _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_acc, _v2, _vl);")
-    lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
-    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
-    lines.append("            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;")
+    lines.append(f"        size_t rem = {n0}u;")
+    lines.append(f"        uint64_t *dst = r + {n0}u;")
+    lines.append(f"        const uint64_t *zm_p = zmid;")
+    lines.append(f"        const uint64_t *z0_p = r;")
+    lines.append(f"        const uint64_t *z2_p = r + {two_n0}u;")
+    lines.append("        while (rem > 0) {")
+    lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_dst = __riscv_vle64_v_u64{_RVV_LMUL}(dst, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_zm = __riscv_vle64_v_u64{_RVV_LMUL}(zm_p, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_z0 = __riscv_vle64_v_u64{_RVV_LMUL}(z0_p, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_z2 = __riscv_vle64_v_u64{_RVV_LMUL}(z2_p, vl);")
+    lines.append(f"            vuint64{_RVV_LMUL}_t v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_zm, v_z0, vl);")
+    lines.append(f"            v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_acc, v_z2, vl);")
+    lines.append(f"            v_dst = __riscv_vxor_vv_u64{_RVV_LMUL}(v_dst, v_acc, vl);")
+    lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(dst, v_dst, vl);")
+    lines.append("            dst += vl; zm_p += vl; z0_p += vl; z2_p += vl; rem -= vl;")
     lines.append("        }")
     lines.append("    }")
 
@@ -439,22 +436,22 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
         lines.append("")
         lines.append(f"    /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */")
         lines.append("    {")
-        lines.append(f"        size_t _rem = {second_half_count}u;")
-        lines.append(f"        uint64_t *_dst = r + {two_n0}u;")
-        lines.append(f"        const uint64_t *_sm = zmid + {n0}u;")
-        lines.append(f"        const uint64_t *_s0 = ta;")
-        lines.append(f"        const uint64_t *_s2 = r + {3 * n0}u;")
-        lines.append("        while (_rem > 0) {")
-        lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_sm, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_s0, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _v2 = __riscv_vle64_v_u64{_RVV_LMUL}(_s2, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
-        lines.append(f"            _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_acc, _v2, _vl);")
-        lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
-        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
-        lines.append("            _dst += _vl; _sm += _vl; _s0 += _vl; _s2 += _vl; _rem -= _vl;")
+        lines.append(f"        size_t rem = {second_half_count}u;")
+        lines.append(f"        uint64_t *dst = r + {two_n0}u;")
+        lines.append(f"        const uint64_t *zm_p = zmid + {n0}u;")
+        lines.append(f"        const uint64_t *z0_p = ta;")
+        lines.append(f"        const uint64_t *z2_p = r + {3 * n0}u;")
+        lines.append("        while (rem > 0) {")
+        lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_dst = __riscv_vle64_v_u64{_RVV_LMUL}(dst, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_zm = __riscv_vle64_v_u64{_RVV_LMUL}(zm_p, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_z0 = __riscv_vle64_v_u64{_RVV_LMUL}(z0_p, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_z2 = __riscv_vle64_v_u64{_RVV_LMUL}(z2_p, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_zm, v_z0, vl);")
+        lines.append(f"            v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_acc, v_z2, vl);")
+        lines.append(f"            v_dst = __riscv_vxor_vv_u64{_RVV_LMUL}(v_dst, v_acc, vl);")
+        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(dst, v_dst, vl);")
+        lines.append("            dst += vl; zm_p += vl; z0_p += vl; z2_p += vl; rem -= vl;")
         lines.append("        }")
         lines.append("    }")
 
@@ -466,19 +463,19 @@ def _rvv_recomposition(lines: list[str], n0: int, n1: int) -> None:
         lines.append("")
         lines.append("    /* Loop 3B: odd-n tail where z2 is absent, z0 from saved ta */")
         lines.append("    {")
-        lines.append(f"        size_t _rem = {rem}u;")
-        lines.append(f"        uint64_t *_dst = r + {rm_off}u;")
-        lines.append(f"        const uint64_t *_sm = zmid + {two_n1}u;")
-        lines.append(f"        const uint64_t *_s0 = ta + {ta_off}u;")
-        lines.append("        while (_rem > 0) {")
-        lines.append(f"            size_t _vl = __riscv_vsetvl_e64{_RVV_LMUL}(_rem);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _vd = __riscv_vle64_v_u64{_RVV_LMUL}(_dst, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _vm = __riscv_vle64_v_u64{_RVV_LMUL}(_sm, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _v0 = __riscv_vle64_v_u64{_RVV_LMUL}(_s0, _vl);")
-        lines.append(f"            vuint64{_RVV_LMUL}_t _acc = __riscv_vxor_vv_u64{_RVV_LMUL}(_vm, _v0, _vl);")
-        lines.append(f"            _vd = __riscv_vxor_vv_u64{_RVV_LMUL}(_vd, _acc, _vl);")
-        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(_dst, _vd, _vl);")
-        lines.append("            _dst += _vl; _sm += _vl; _s0 += _vl; _rem -= _vl;")
+        lines.append(f"        size_t rem = {rem}u;")
+        lines.append(f"        uint64_t *dst = r + {rm_off}u;")
+        lines.append(f"        const uint64_t *zm_p = zmid + {two_n1}u;")
+        lines.append(f"        const uint64_t *z0_p = ta + {ta_off}u;")
+        lines.append("        while (rem > 0) {")
+        lines.append(f"            size_t vl = __riscv_vsetvl_e64{_RVV_LMUL}(rem);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_dst = __riscv_vle64_v_u64{_RVV_LMUL}(dst, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_zm = __riscv_vle64_v_u64{_RVV_LMUL}(zm_p, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_z0 = __riscv_vle64_v_u64{_RVV_LMUL}(z0_p, vl);")
+        lines.append(f"            vuint64{_RVV_LMUL}_t v_acc = __riscv_vxor_vv_u64{_RVV_LMUL}(v_zm, v_z0, vl);")
+        lines.append(f"            v_dst = __riscv_vxor_vv_u64{_RVV_LMUL}(v_dst, v_acc, vl);")
+        lines.append(f"            __riscv_vse64_v_u64{_RVV_LMUL}(dst, v_dst, vl);")
+        lines.append("            dst += vl; zm_p += vl; z0_p += vl; rem -= vl;")
         lines.append("        }")
         lines.append("    }")
 
@@ -500,34 +497,34 @@ def _scalar_recomposition_directwrite(lines: list[str], n0: int, n1: int) -> Non
     # --- Save overlap region r[n0..2*n0-1] to ta (scalar copy) ---
     lines.append(f"    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */")
     lines.append("    {")
-    lines.append(f"        const uint64_t *_cp_src = r + {n0}u;")
-    lines.append(f"        uint64_t *_cp_dst = ta;")
-    lines.append(f"        for (size_t _i = 0; _i < {n0}u; _i++)")
-    lines.append("            _cp_dst[_i] = _cp_src[_i];")
+    lines.append(f"        const uint64_t *cp_src = r + {n0}u;")
+    lines.append(f"        uint64_t *cp_dst = ta;")
+    lines.append(f"        for (size_t i = 0; i < {n0}u; i++)")
+    lines.append("            cp_dst[i] = cp_src[i];")
     lines.append("    }")
     lines.append("")
 
     # --- Loop 3A first half: i in [0, n0) — z0[i]=r[i] is safe (below dst) ---
     lines.append("    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */")
     lines.append("    {")
-    lines.append(f"        uint64_t *_dst = r + {n0}u;")
-    lines.append(f"        const uint64_t *_sm = zmid;")
-    lines.append(f"        const uint64_t *_s0 = r;")
-    lines.append(f"        const uint64_t *_s2 = r + {two_n0}u;")
-    lines.append(f"        for (size_t _i = 0; _i < {n0}u; _i++)")
-    lines.append("            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];")
+    lines.append(f"        uint64_t *dst = r + {n0}u;")
+    lines.append(f"        const uint64_t *zm_p = zmid;")
+    lines.append(f"        const uint64_t *z0_p = r;")
+    lines.append(f"        const uint64_t *z2_p = r + {two_n0}u;")
+    lines.append(f"        for (size_t i = 0; i < {n0}u; i++)")
+    lines.append("            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];")
     lines.append("    }")
 
     if second_half_count > 0:
         lines.append("")
         lines.append(f"    /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */")
         lines.append("    {")
-        lines.append(f"        uint64_t *_dst = r + {two_n0}u;")
-        lines.append(f"        const uint64_t *_sm = zmid + {n0}u;")
-        lines.append(f"        const uint64_t *_s0 = ta;")
-        lines.append(f"        const uint64_t *_s2 = r + {3 * n0}u;")
-        lines.append(f"        for (size_t _i = 0; _i < {second_half_count}u; _i++)")
-        lines.append("            _dst[_i] ^= _sm[_i] ^ _s0[_i] ^ _s2[_i];")
+        lines.append(f"        uint64_t *dst = r + {two_n0}u;")
+        lines.append(f"        const uint64_t *zm_p = zmid + {n0}u;")
+        lines.append(f"        const uint64_t *z0_p = ta;")
+        lines.append(f"        const uint64_t *z2_p = r + {3 * n0}u;")
+        lines.append(f"        for (size_t i = 0; i < {second_half_count}u; i++)")
+        lines.append("            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];")
         lines.append("    }")
 
     if two_n0 > two_n1:
@@ -537,12 +534,84 @@ def _scalar_recomposition_directwrite(lines: list[str], n0: int, n1: int) -> Non
         lines.append("")
         lines.append("    /* Loop 3B: odd-n tail where z2 is absent, z0 from saved ta */")
         lines.append("    {")
-        lines.append(f"        uint64_t *_dst = r + {rm_off}u;")
-        lines.append(f"        const uint64_t *_sm = zmid + {two_n1}u;")
-        lines.append(f"        const uint64_t *_s0 = ta + {ta_off}u;")
-        lines.append(f"        for (size_t _i = 0; _i < {rem}u; _i++)")
-        lines.append("            _dst[_i] ^= _sm[_i] ^ _s0[_i];")
+        lines.append(f"        uint64_t *dst = r + {rm_off}u;")
+        lines.append(f"        const uint64_t *zm_p = zmid + {two_n1}u;")
+        lines.append(f"        const uint64_t *z0_p = ta + {ta_off}u;")
+        lines.append(f"        for (size_t i = 0; i < {rem}u; i++)")
+        lines.append("            dst[i] ^= zm_p[i] ^ z0_p[i];")
         lines.append("    }")
+
+
+def _helper_recomposition_directwrite(lines: list[str], n0: int, n1: int) -> None:
+    """Emit direct-write recomposition using rvv_copy_u64 / rvv_xor3_u64 helper calls.
+
+    Same logic as _rvv_recomposition but emits clean function calls instead of
+    inline intrinsic loops. Identical performance (helpers are static inline).
+    Much more readable generated code.
+
+    z0 is at r[0..2*n0-1], z2 is at r[2*n0..].
+    Steps:
+      1. Save overlap region r[n0..2*n0-1] to ta (via rvv_copy_u64)
+      2. Loop 3A first half: r[n0+i] ^= zmid[i] ^ r[i] ^ r[2*n0+i]
+      3. Loop 3A second half: r[2*n0+i] ^= zmid[n0+i] ^ ta[i] ^ r[3*n0+i]
+      4. Loop 3B tail (odd-n): r[n0+2*n1+i] ^= zmid[2*n1+i] ^ ta[2*n1-n0+i]
+    """
+    two_n0 = 2 * n0
+    two_n1 = 2 * n1
+    second_half_count = two_n1 - n0  # elements in second half of Loop 3A
+
+    # --- Save overlap region r[n0..2*n0-1] to ta ---
+    lines.append(f"    /* Save overlap region r[n0..2*n0-1] to ta */")
+    lines.append(f"    rvv_copy_u64(ta, r + {n0}u, {n0}u);")
+    lines.append("")
+
+    # --- Loop 3A first half: i in [0, n0) ---
+    lines.append(f"    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */")
+    lines.append(f"    rvv_xor3_u64(r + {n0}u, zmid, r, r + {two_n0}u, {n0}u);")
+
+    if second_half_count > 0:
+        lines.append("")
+        lines.append(f"    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */")
+        lines.append(f"    rvv_xor3_u64(r + {two_n0}u, zmid + {n0}u, ta, r + {3 * n0}u, {second_half_count}u);")
+
+    if two_n0 > two_n1:
+        rem = two_n0 - two_n1
+        rm_off = n0 + two_n1
+        ta_off = two_n1 - n0
+        lines.append("")
+        lines.append(f"    /* Loop 3B: odd-n tail where z2 is absent */")
+        lines.append(f"    rvv_xor3_u64(r + {rm_off}u, zmid + {two_n1}u, ta + {ta_off}u, (const uint64_t *)0, {rem}u);")
+
+
+def _scalar_helper_recomposition_directwrite(lines: list[str], n0: int, n1: int) -> None:
+    """Emit direct-write recomposition using scalar_copy_u64 / scalar_xor3_u64 helper calls.
+
+    Same logic as _helper_recomposition_directwrite but using scalar helpers.
+    For the pure-scalar (zbc) variant — no vector instructions.
+    """
+    two_n0 = 2 * n0
+    two_n1 = 2 * n1
+    second_half_count = two_n1 - n0
+
+    lines.append(f"    /* Save overlap region r[n0..2*n0-1] to ta */")
+    lines.append(f"    scalar_copy_u64(ta, r + {n0}u, {n0}u);")
+    lines.append("")
+
+    lines.append(f"    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */")
+    lines.append(f"    scalar_xor3_u64(r + {n0}u, zmid, r, r + {two_n0}u, {n0}u);")
+
+    if second_half_count > 0:
+        lines.append("")
+        lines.append(f"    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */")
+        lines.append(f"    scalar_xor3_u64(r + {two_n0}u, zmid + {n0}u, ta, r + {3 * n0}u, {second_half_count}u);")
+
+    if two_n0 > two_n1:
+        rem = two_n0 - two_n1
+        rm_off = n0 + two_n1
+        ta_off = two_n1 - n0
+        lines.append("")
+        lines.append(f"    /* Loop 3B: odd-n tail where z2 is absent */")
+        lines.append(f"    scalar_xor3_u64(r + {rm_off}u, zmid + {two_n1}u, ta + {ta_off}u, (const uint64_t *)0, {rem}u);")
 
 
 def _scalar_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
@@ -552,14 +621,39 @@ def _scalar_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
     """
     lines.append(f"    /* ta/tb preparation: scalar XOR (n1={n1}) */")
     lines.append("    {")
-    lines.append(f"        for (size_t _i = 0; _i < {n1}u; _i++) {{")
-    lines.append(f"            ta[_i] = a[_i] ^ a[{n0}u + _i];")
-    lines.append(f"            tb[_i] = b[_i] ^ b[{n0}u + _i];")
+    lines.append(f"        for (size_t i = 0; i < {n1}u; i++) {{")
+    lines.append(f"            ta[i] = a[i] ^ a[{n0}u + i];")
+    lines.append(f"            tb[i] = b[i] ^ b[{n0}u + i];")
     lines.append("        }")
     if n0 > n1:
         lines.append(f"        ta[{n1}u] = a[{n1}u];")
         lines.append(f"        tb[{n1}u] = b[{n1}u];")
     lines.append("    }")
+
+
+def _helper_xor_prep(lines: list[str], n0: int, n1: int) -> None:
+    """Emit ta/tb XOR preparation using rvv_xor_u64 helper function call.
+
+    Cleaner than inline intrinsics — same performance (static inline).
+    Handles the odd-tail element (n0 > n1) with a scalar assignment.
+    """
+    lines.append(f"    rvv_xor_u64(ta, a, a + {n0}u, {n1}u);")
+    lines.append(f"    rvv_xor_u64(tb, b, b + {n0}u, {n1}u);")
+    if n0 > n1:
+        lines.append(f"    ta[{n1}u] = a[{n1}u];")
+        lines.append(f"    tb[{n1}u] = b[{n1}u];")
+
+
+def _scalar_helper_xor_prep(lines: list[str], n0: int, n1: int) -> None:
+    """Emit ta/tb XOR preparation using scalar_xor_u64 helper function call.
+
+    Clean single-line calls. Handles the odd-tail element with scalar assignment.
+    """
+    lines.append(f"    scalar_xor_u64(ta, a, a + {n0}u, {n1}u);")
+    lines.append(f"    scalar_xor_u64(tb, b, b + {n0}u, {n1}u);")
+    if n0 > n1:
+        lines.append(f"    ta[{n1}u] = a[{n1}u];")
+        lines.append(f"    tb[{n1}u] = b[{n1}u];")
 
 
 def _emit_inline_xor_prep(lines: list[str], n0: int, n1: int) -> None:
@@ -609,7 +703,7 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
     lines.append("                    uint64_t * __restrict__ tmp)")
     lines.append("{")
 
-    if mode == "rvv":
+    if mode in ("rvv", "zvbc"):
         # Direct-write discipline: z0 → r[0..], z2 → r[2*n0..]
         # tmp layout: zmid + ta + tb + child_buf (no z0/z2 slots)
         lines.append("    uint64_t *zmid      = tmp;")
@@ -620,7 +714,7 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
         lines.append(f"    /* Direct-write: z0 → r[0..{two_n0-1}], z2 → r[{two_n0}..{two_n0+two_n1-1}] */")
         lines.append(f"    {child_call('r', 'a', 'b', n0, leaf_fn, threshold, leaf_style, mode)}")
         lines.append(f"    {child_call(f'r + {two_n0}u', f'a + {n0}u', f'b + {n0}u', n1, leaf_fn, threshold, leaf_style, mode)}")
-    elif mode == "zbc_dw":
+    elif mode == "zbc" and leaf_style == "noinit":
         # Direct-write discipline for scalar: z0 → r[0..], z2 → r[2*n0..]
         # tmp layout: zmid + ta + tb + child_buf (no z0/z2 slots)
         lines.append("    uint64_t *zmid      = tmp;")
@@ -645,33 +739,20 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
     lines.append("")
 
     # ta/tb preparation: ta[i] = a[i] ^ a[n0+i], tb[i] = b[i] ^ b[n0+i]
-    # For the common part (0..n1-1), use inline intrinsics (rvv) or rvv_xor_u64 (zvbc).
-    # For the odd tail (n1..n0-1), use scalar copy (at most 1 element).
-    if mode == "rvv":
+    if mode in ("rvv", "zvbc"):
         # Hybrid: use scalar loops at bottom levels to avoid pipeline transitions
         if n <= RVV_HYBRID_THRESHOLD:
             _scalar_inline_xor_prep(lines, n0, n1)
         else:
-            _emit_inline_xor_prep(lines, n0, n1)
+            _helper_xor_prep(lines, n0, n1)
     elif mode == "rvv_noD":
         # Same hybrid as rvv: RVV ta/tb prep at upper levels, scalar at bottom
         if n <= RVV_HYBRID_THRESHOLD:
             _scalar_inline_xor_prep(lines, n0, n1)
         else:
             _emit_inline_xor_prep(lines, n0, n1)
-    elif mode == "zbc_dw":
-        # Scalar direct-write: always scalar ta/tb XOR prep
-        lines.append(f"    for (size_t i = 0; i < {n0}u; i++) {{")
-        lines.append(f"        ta[i] = a[i] ^ (i < {n1}u ? a[{n0}u + i] : 0u);")
-        lines.append(f"        tb[i] = b[i] ^ (i < {n1}u ? b[{n0}u + i] : 0u);")
-        lines.append("    }")
-    elif mode == "zvbc":
-        lines.append(f"    rvv_xor_u64(ta, a, a + {n0}u, {n1}u);")
-        lines.append(f"    rvv_xor_u64(tb, b, b + {n0}u, {n1}u);")
-        if n0 > n1:
-            # Odd split: copy the remaining element(s) from a[n1..n0-1]
-            lines.append(f"    ta[{n1}u] = a[{n1}u];")
-            lines.append(f"    tb[{n1}u] = b[{n1}u];")
+    elif mode == "zbc" and leaf_style == "noinit":
+        _scalar_helper_xor_prep(lines, n0, n1)
     else:
         lines.append(f"    for (size_t i = 0; i < {n0}u; i++) {{")
         lines.append(f"        ta[i] = a[i] ^ (i < {n1}u ? a[{n0}u + i] : 0u);")
@@ -681,31 +762,26 @@ def emit_function(n: int, mode: str, threshold: int, leaf_style: str = "noinit")
     lines.append(f"    {child_call('zmid', 'ta', 'tb', n0, leaf_fn, threshold, leaf_style, mode)}")
     lines.append("")
 
-    if mode == "rvv":
-        # Hybrid: use scalar recomposition at bottom levels
+    if mode in ("rvv", "zvbc"):
+        # Hybrid: use scalar recomposition at bottom levels, helper calls at upper
         if n <= RVV_HYBRID_THRESHOLD:
             _scalar_recomposition_directwrite(lines, n0, n1)
         else:
-            _rvv_recomposition(lines, n0, n1)
+            _helper_recomposition_directwrite(lines, n0, n1)
     elif mode == "rvv_noD":
         # Ref layout + RVV vectorized loops (V without D)
         if n <= RVV_HYBRID_THRESHOLD:
             _manual_loop_recomposition(lines, n0, n1)
         else:
             _rvv_recomposition_noD(lines, n0, n1)
-    elif mode == "zbc_dw":
-        # Scalar direct-write: always use scalar overlap-save recomposition
-        _scalar_recomposition_directwrite(lines, n0, n1)
-    elif mode == "zvbc":
-        _manual_loop_recomposition(lines, n0, n1)
     else:
         # zbc mode: select recomposition style based on leaf_style flag.
-        # leaf_style="noinit" → direct-write (B optimization active)
+        # leaf_style="noinit" → direct-write via scalar helper calls
         # leaf_style="memset" → memset + XOR-accumulate (B off, reference style)
         if leaf_style == "memset":
             _manual_loop_recomposition_memset(lines, n0, n1)
         else:
-            _manual_loop_recomposition(lines, n0, n1)
+            _scalar_helper_recomposition_directwrite(lines, n0, n1)
 
     lines.append("}")
     lines.append("")
@@ -746,8 +822,8 @@ def generate_header(mode: str, threshold: int, leaf_style: str = "noinit",
         out.append("/* Leaf specializations (clmul_leaf_n8/n9) use assign-on-first-write discipline. */")
     out.append("")
 
-    # Emit LEAF_CALL ablation dispatch macros for zbc/zbc_dw mode (both noinit and memset)
-    if mode in ("zbc", "zbc_dw"):
+    # Emit LEAF_CALL ablation dispatch macros for zbc mode (both noinit and memset)
+    if mode == "zbc":
         out.append("/* Leaf dispatch: when ABLATION_NOINIT=1 (or not in ablation mode),")
         out.append(" * use fixed-size specialized leaves (part of the B assign-on-first-write policy).")
         out.append(" * In ablation mode with NOINIT=0, fall back to generic clmul_leaf. */")
@@ -780,9 +856,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["zbc", "zbc_dw", "rvv", "rvv_noD", "zvbc"],
+        choices=["zbc", "rvv", "rvv_noD", "zvbc"],
         required=True,
-        help="Backend mode: zbc (scalar clmul), zbc_dw (scalar clmul with direct-write), rvv (RVV direct-write), rvv_noD (RVV vectorized recomposition without direct-write), zvbc (Zvbc vclmul)",
+        help="Backend mode: zbc (scalar clmul), rvv (RVV direct-write), rvv_noD (RVV vectorized recomposition without direct-write), zvbc (Zvbc vclmul)",
     )
     parser.add_argument(
         "--threshold",
