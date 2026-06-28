@@ -1,15 +1,15 @@
-# date: 2026-06-28 16:02
-# commit: 171a4e4
+# date: 2026-06-28 18:46
+# commit: d4b80cf
 # variant: vector_rvv
 # platform: bpi-f3
-# n_iter: 100
-# n_warmup: 10
-# mode: dev
+# n_iter: 10000
+# n_warmup: 100
+# mode: publish
 # isolation_irq: off
 # isolation_aslr: off
 # isolation_isolcpus: off
 # isolation_core: 7
 level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-128,vect_mul,100,126516,127146,127417,127763,617,170345,145740
-192,vect_mul,100,373502,374653,375469,376227,1574,431834,431860
-256,vect_mul,100,751909,754271,755060,756578,2307,801832,999244
+128,vect_mul,10000,119765,120396,120583,120859,463,202063,157174
+192,vect_mul,10000,349427,352105,352723,353445,1340,443519,463384
+256,vect_mul,10000,756391,760773,761711,762919,2146,892033,1027062

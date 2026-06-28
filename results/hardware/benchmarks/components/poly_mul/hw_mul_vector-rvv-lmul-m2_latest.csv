@@ -1,0 +1,15 @@
+# date: 2026-06-28 18:03
+# commit: d4b80cf
+# variant: vector_rvv_lmul_m2
+# platform: bpi-f3
+# n_iter: 10000
+# n_warmup: 100
+# mode: publish
+# isolation_irq: off
+# isolation_aslr: off
+# isolation_isolcpus: off
+# isolation_core: 7
+level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
+128,vect_mul,10000,119950,120639,120854,121146,507,247300,157176
+192,vect_mul,10000,349925,352818,353467,354178,1360,488546,463384
+256,vect_mul,10000,759396,763428,764456,765731,2303,861584,1027062
