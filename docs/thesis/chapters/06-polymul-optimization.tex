@@ -65,7 +65,7 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
 κυρίαρχος, τετραγωνικού κόστους $\BigO{n^2}$, leaf kernel παραμένει scalar.
 Στο Tier~3, η διανυσματοποίηση εισχωρεί στα ίδια
 τα leaf kernels: μία \vclmul{} εντολή υπολογίζει πολλαπλά \num{64}-bit carry-less
-γινόμενα ταυτόχρονα, εκμεταλλευόμενη τον data-level parallelism της διανυσματικής
+γινόμενα ταυτόχρονα, εκμεταλλευόμενη τον \gls{dlp} της διανυσματικής
 μονάδας και αποδίδοντας μεγαλύτερη επιτάχυνση.
 
 Οι ακόλουθες υποενότητες σκιαγραφούν συνοπτικά κάθε tier. Η αναλυτική
@@ -100,17 +100,17 @@ RVV~1.0. Ο κρίσιμος περιορισμός εδώ είναι η
 στους γραμμικού κόστους βρόχους ανασύνθεσης, οι οποίοι διανυσματοποιούνται με
 RVV (inline intrinsics, tuned \LMUL). Προκύπτει έτσι μια \defterm{υβριδική
 scalar/vector προσέγγιση}, με κέρδος φραγμένο από τον τετραγωνικό
-($\BigO{n^2}$) scalar leaf. Αναλυτικά στην \cref{sec:polymul-base-rvv}.
+($\BigO{n^2}$) scalar leaf kernel. Αναλυτικά στην \cref{sec:polymul-base-rvv}.
 
 %% ----------------------------------------------------------------------------
-\paragraph{Tier~3: Διανυσματικός leaf με \Zvbc.}
+\paragraph{Tier~3: Διανυσματικός leaf kernel με \Zvbc.}
 \label{ssec:tier3}
 
 Το Tier~3 αξιοποιεί τις vector-crypto επεκτάσεις. Η προσθήκη της
 \gls{zvbc} καθιστά διαθέσιμες τις \vclmul/\vclmulh, που υπολογίζουν πολλαπλά
 \num{64}$\times$\num{64}-bit carry-less γινόμενα παράλληλα. Έτσι η
 διανυσματοποίηση εισχωρεί στον ίδιο τον leaf kernel: ο \code{vclmul\_leaf}
-(\cref{ssec:vclmul-leaf}) διανυσματοποιεί ολόκληρο τον schoolbook leaf
+(\cref{ssec:vclmul-leaf}) διανυσματοποιεί ολόκληρο τον schoolbook leaf kernel
 μεγέθους $n=16$: σε \VLEN = \num{256} με \LMUL = m4 το vector register group
 καλύπτει \num{16} λωρίδες των \num{64} bit. Εκτενέστερη ανάλυση στην \cref{sec:polymul-zvbc}.
 
@@ -168,7 +168,7 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
 κρίσιμη για constant-time εκτέλεση).
 
 \paragraph{Κέρδος της μετάβασης σε word-level.}
-Η μετάβαση σε word-level \clmul{} leaf οδηγεί σε επιτάχυνση \speedup{38.62}
+Η μετάβαση σε word-level \clmul{} leaf kernel οδηγεί σε επιτάχυνση \speedup{38.62}
 του \instret έναντι του bit-serial baseline (HQC-128), το μεγαλύτερο κέρδος
 μεμονωμένου σταδίου κατά την scalar βελτιστοποίηση.
 
@@ -333,7 +333,7 @@ for (i = 0; i < 2*n0; i++)  r[n0+i] ^= zmid[i] ^ r[i] ^ r[2*n0+i];
 Όταν η αναδρομή φτάσει στο threshold $T=16$ τερματίζει, και σε κάθε
 επίπεδο ασφαλείας τα φύλλα του δέντρου παίρνουν αποκλειστικά δύο τιμές
 μεγέθους: $n \in \{8, 9\}$ για HQC-128/192 και $n \in \{14, 15\}$ για
-HQC-256. Έτσι, ο παραμετρικός leaf μπορεί να αντικατασταθεί από εξειδικευμένες εκδοχές, μία ανά
+HQC-256. Έτσι, ο παραμετρικός leaf kernel μπορεί να αντικατασταθεί από εξειδικευμένες εκδοχές, μία ανά
 μέγεθος. Η γενική υλοποίηση (\cref{lst:clmul-leaf-generic}) εξυπηρετεί 
 κάθε μέγεθος μέσω ενός παραμετρικού βρόχου: μηδενίζει τον output buffer 
 με \code{memset} και στη συνέχεια εκτελεί $n^2$ επαναλήψεις συσσώρευσης μέσω XOR.
@@ -351,7 +351,7 @@ void clmul_leaf(uint64_t *r, const uint64_t *a, const uint64_t *b, size_t n) {
 }
 \end{lstlisting}
 
-Η βελτιστοποίηση αντικαθιστά τον generic leaf με τέσσερις εξειδικευμένες
+Η βελτιστοποίηση αντικαθιστά τον generic leaf kernel με τέσσερις εξειδικευμένες
 εκδοχές (\code{clmul\_leaf\_n8}, \code{clmul\_leaf\_n9},
 \code{clmul\_leaf\_n14}, \code{clmul\_leaf\_n15}) που εφαρμόζουν
 assign-on-first-write πολιτική: κάθε θέση του output buffer $r$
@@ -415,7 +415,7 @@ assign-on-first-write (tree + leaf).
     \toprule
     \textbf{Στάδιο} & \textbf{Βελτιστοποίηση} & \textbf{vs prev} & \textbf{vs ref} \\
     \midrule
-    1 & word-level \clmul{} leaf   & \speedup{38.62} & \speedup{38.62} \\
+    1 & word-level \clmul{} leaf kernel  & \speedup{38.62} & \speedup{38.62} \\
     2 & στατικό δέντρο αναδρομής   & \speedup{1.99}  & \speedup{76.7}  \\
     3 & assign-on-first-write      & \speedup{1.25}  & \speedup{96.0} \\
     \bottomrule
@@ -428,7 +428,7 @@ assign-on-first-write (tree + leaf).
 
 Το Tier~2 εφαρμόζει υβριδική scalar/vector στρατηγική: οι γραμμικού κόστους $\BigO{n}$ 
 βρόχοι ανασύνθεσης του δέντρου αναδρομής εκτελούνται με inline RVV intrinsics
-αντί για scalar element-wise C loops, ενώ ο carry-less multiply leaf
+αντί για scalar element-wise C loops, ενώ ο carry-less multiply leaf kernel
 διατηρείται scalar.
 
 Ο specialized generator σε \code{rvv} mode εκπέμπει inline RVV intrinsic
@@ -466,18 +466,22 @@ while (rem > 0) {
 σε \VLEN=\num{256}): η επιλογή μεγιστοποιεί τα elements ανά iteration χωρίς
 να προκαλεί spills στον in-order X60 core.
 
-Η διανυσματοποίηση δεν εφαρμόζεται ομοιόμορφα σε όλα τα επίπεδα του δέντρου.
-Στους κατώτερους κόμβους οι RVV βρόχοι εκτελούν μόλις \num{1}–\num{2}
-iterations, όπου το σταθερό κόστος στησίματος του διανυσματικού βρόχου
-(\insn{vsetvl} και μετάβαση scalar↔vector) δεν αποσβένεται και ακυρώνει
-το data-parallel κέρδος. Για τον λόγο αυτό η υλοποίηση εισάγει ένα
-\defterm{hybrid threshold} $H$: κόμβοι με $n \leq H$ χρησιμοποιούν scalar
-recomposition, ενώ κόμβοι με $n > H$ διατηρούν τα inline RVV intrinsics.
+Η διανυσματοποίηση των βρόχων ανασύνθεσης δεν εφαρμόζεται ομοιόμορφα σε όλα τα επίπεδα του δέντρου.
+Αυτό γίνεται διότι αν επεκτεινόταν σε όλους τους κόμβους Karatsuba, οι
+κόμβοι με $n \leq 29$ θα εκτελούσαν αυτούς τους βρόχους (μήκους
+$\lceil n/2 \rceil \leq 16$ words) σε ένα μόνο vector iteration. Σε αυτό
+το όριο το σταθερό κόστος εκκίνησης του διανυσματικού βρόχου δεν
+αποσβένεται και έτσι ακυρώνει το κέρδος του παραλληλισμού δεδομένων. Για τον
+λόγο αυτό η υλοποίηση εισάγει ένα \defterm{hybrid threshold} $H=29$:
+κόμβοι με $n \leq H$ χρησιμοποιούν scalar recomposition, ενώ κόμβοι με
+$n > H$ διατηρούν τα inline RVV intrinsics.
 
 Συνολικά, σε σχέση με την τελική βελτιστοποιημένη υλοποίηση του Tier~1, ενώ η inlined 
-RVV ανασύνθεση μειώνει το \instret κατά \speedup{1.20}, το πραγματικό κέρδος κύκλων
-περιορίζεται σε \speedup{1.03}. O scalar \clmul/\clmulh leaf παραμένει 
-ο \defterm{κυρίαρχος περιορισμός} (binding constraint), με κόστος $\BigO{n^2}$ ανά κλήση έναντι $\BigO{n}$ της ανασύνθεσης.
+RVV ανασύνθεση μειώνει το \instret κατά \speedup{1.21}, το πραγματικό κέρδος κύκλων
+περιορίζεται σε \speedup{1.03} (η απόκλιση μεταξύ \instret και πραγματικών κύκλων 
+αναλύεται στο \cref{ssec:hw-spike-vs-hw}). O scalar \clmul/\clmulh leaf kernel παραμένει 
+ο \defterm{κυρίαρχος περιορισμός} (binding constraint), με κόστος $\BigO{n^2}$ 
+ανά κλήση έναντι $\BigO{n}$ της ανασύνθεσης.
 
 %% ============================================================================
 \section{Vector-Crypto Path: \Zvbc Leaf Kernels}
@@ -489,7 +493,7 @@ RVV ανασύνθεση μειώνει το \instret κατά \speedup{1.20}, �
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
 παράλληλα σε ένα vector register group.
 
-\subsection{Διανυσματοποίηση του Schoolbook Leaf μέσω \vclmul}
+\subsection{Διανυσματοποίηση Schoolbook Leaf Kernel μέσω \vclmul}
 \label{ssec:vclmul-leaf}
 
 Ο \code{vclmul\_leaf} ακολουθεί ένα scalar-vector pattern μέσω της \code{.vx}
@@ -501,12 +505,12 @@ threshold $T=16$. Συνεπώς ο εσωτερικός $j$-βρόχος συμ
 iteration ανά $i$, εξαλείφοντας πλήρως τον scalar inner loop, ενώ τα lo/hi
 αποτελέσματα συσσωρεύονται με vector load-XOR-store στον output buffer.
 Ο \cref{lst:leaf-scalar} και ο \cref{lst:leaf-vclmul} αντιπαραβάλλουν τις δύο
-δομές: τον scalar \gls{zbc} leaf των Tier~1/2, όπου ο εμφωλευμένος $i,j$ βρόχος
-εκτελεί $n^2$ διαδοχικές \clmul/\clmulh, έναντι του \gls{zvbc} leaf του Tier~3,
+δομές: τον scalar \gls{zbc} leaf kernel των Tier~1/2, όπου ο εμφωλευμένος $i,j$ βρόχος
+εκτελεί $n^2$ διαδοχικές \clmul/\clmulh, έναντι του \gls{zvbc} leaf kernel του Tier~3,
 όπου ο inner βρόχος αντικαθίσταται από ένα ζεύγος \vclmul/\vclmulh επί ολόκληρου
 του $b$.
 
-\begin{lstlisting}[language=C,caption={Scalar \Zbc{} leaf (Tier~1/2): εμφωλευμένος $i,j$ βρόχος, $n^2$ scalar \clmul/\clmulh.},label={lst:leaf-scalar}]
+\begin{lstlisting}[language=C,caption={Scalar \Zbc{} leaf kernel (Tier~1/2): εμφωλευμένος $i,j$ βρόχος, $n^2$ scalar \clmul/\clmulh.},label={lst:leaf-scalar}]
 for (i = 0; i < n; i++)
   for (j = 0; j < n; j++) {           /* inner loop: n scalar clmul */
     r[i+j]   ^= clmul (a[i], b[j]);
@@ -514,7 +518,7 @@ for (i = 0; i < n; i++)
   }
 \end{lstlisting}
 
-\begin{lstlisting}[language=C,caption={Vector \Zvbc{} leaf (Tier~3): ο inner $j$-βρόχος συμπτύσσεται σε ένα ζεύγος \vclmul/\vclmulh ανά $i$.},label={lst:leaf-vclmul}]
+\begin{lstlisting}[language=C,caption={Vector \Zvbc{} leaf kernel (Tier~3): ο inner $j$-βρόχος συμπτύσσεται σε ένα ζεύγος \vclmul/\vclmulh ανά $i$.},label={lst:leaf-vclmul}]
 vb = vle64(b, n);                      /* load b once */
 for (i = 0; i < n; i++) {
   vlo = vclmul_vx (vb, a[i]);          /* n carry-less products at once */
@@ -523,7 +527,14 @@ for (i = 0; i < n; i++) {
 }
 \end{lstlisting}
 
-\subsection{Όρια Κλιμάκωσης του Leaf με το VLEN}
+\paragraph{Κέρδος του \vclmul{} leaf kernel.}
+Η διανυσματοποίηση του leaf kernel αποδίδει επιτάχυνση \speedup{2.20} σε σχέση με
+το Tier~2 (HQC-128), ανεβάζοντας τη σωρευτική επιτάχυνση ως προς
+\code{scalar\_ref} σε \speedup{292.1}. Το κέρδος κλιμακώνεται με το
+security level (έως \speedup{3.72} στο HQC-256, λόγω βαθύτερου δέντρου
+αναδρομής με περισσότερα leaf calls).
+
+\subsection{Όρια Κλιμάκωσης του Leaf Kernel με το VLEN}
 \label{ssec:leaf-vlen-tradeoff}
 
 Ο \code{vclmul\_leaf} διατηρεί τη δομή schoolbook $\BigO{n^2}$, κάθε
@@ -553,119 +564,58 @@ $T=64$ ώστε να αξιοποιηθούν ευρύτερα \VLEN. Η προ�
 τον αριθμό γινομένων ανά leaf ($T^2$ αντί $(T/2)^2 \times 3$), ακυρώνοντας
 το κέρδος του Karatsuba σε ένα επίπεδο αναδρομής.
 
-\paragraph{Ποσοτική σύγκριση Tier~2 $\to$ Tier~3.}
-Η επιτάχυνση κυμαίνεται από \speedup{2.20} (HQC-128) έως
-\speedup{3.72} (HQC-256): η υπεργραμμική κλιμάκωση στο HQC-256 οφείλεται
-στο βαθύτερο δέντρο αναδρομής, όπου περισσότεροι leaf calls ωφελούνται
-από τη διανυσματοποίηση.
-
-\paragraph{Σωρευτική επιτάχυνση Tier~3 ως προς την αναφορά.}
-Σε σχέση με την υλοποίηση αναφοράς, η συνολική επιτάχυνση του
-Tier~3 ανέρχεται σε \speedup{292.1} για HQC-128 ως προς \code{scalar\_ref}. 
-Η μείωση αυτή αντικατοπτρίζει τη
-σωρευτική επίδραση τριών στρωμάτων βελτιστοποίησης: αλγοριθμική
-αναδιάρθρωση (Karatsuba + compile-time specialized tree), εξάλειψη πλεονάζουσας μνήμης
-(assign-on-first-write), και διανυσματοποίηση του binding constraint
-(\vclmul{} leaf).
-
 %% ============================================================================
 \section{Αποτίμηση: Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση}
 \label{sec:polymul-assessment}
 
 Οι βελτιστοποιήσεις στις~\cref{sec:polymul-scalar,sec:polymul-base-rvv,sec:polymul-zvbc}
-μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 από \num{18639752}
-(\code{scalar\_ref}, \cref{conv:baseline}) σε \num{70070} εντολές στο
-Tier~3 — μείωση \speedup{266}. Η μείωση αυτή
-μετασχηματίζει ριζικά την κατανομή υπολογιστικού κόστους ολόκληρου του
-\gls{kem}, αποκαλύπτοντας πυρήνες που στο baseline αποτελούσαν αμελητέο
-ποσοστό ως νέα, αναδυόμενα bottlenecks.
+μειώνουν τον πολυωνυμικό πολλαπλασιασμό HQC-128 κατά \speedup{266} ως
+προς την αναφορά \code{scalar\_ref} στο Tier~3. Η μείωση αυτή μετασχηματίζει ριζικά 
+την κατανομή υπολογιστικού κόστους ολόκληρου του \gls{kem}, αποκαλύπτοντας νέα 
+bottlenecks που στο baseline αποτελούσαν αμελητέο ποσοστό.
 
 Στο reference HQC-128, ο πολυωνυμικός πολλαπλασιασμός καταναλώνει
 $\approx$\pct{97} του συνολικού \instret (βλ.~\cref{sec:baseline-profiling}).
 Ήδη από το Tier~1 (\code{scalar\_zb}), το ποσοστό αυτό συρρικνώνεται σε
-$\approx$\pct{37} — ο πυρήνας παραμένει ο μεγαλύτερος contributor, αλλά
-δεν κυριαρχεί πλέον μονοπωλιακά. Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
+$\approx$\pct{37} και ενώ παραμένει το μεγαλύτερο bottleneck, πλέον δεν κυριαρχεί
+μονοπωλιακά. Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
 από $<$\pct{1} σε $\approx$\pct{26} του συνόλου, ενώ η αποκωδικοποίηση
 (\gls{rm} + \gls{rs}) από $<$\pct{0.5} σε $\approx$\pct{16}.
 Στο Tier~3 (\code{vector\_zvk}) η ανακατανομή γίνεται ακόμη εντονότερη:
 ο polymul συρρικνώνεται σε $\approx$\pct{26}, ο Keccak κυριαρχεί πλέον
-με $\approx$\pct{42} και η decode ανέρχεται σε $\approx$\pct{27} —
-αντιστρέφοντας πλήρως τη σχέση κυριαρχίας του baseline.
-
-Το \cref{fig:pie-redistribution} απεικονίζει αυτή τη μετατόπιση,
-αντιπαραβάλλοντας το Tier~1 (\cref{fig:pie-post-polymul-t1}) με το
-Tier~3 (\cref{fig:pie-post-polymul-t3}). Η σύγκριση αποκαλύπτει ότι
-η πρόοδος από Tier~1 σε Tier~3 μεταφέρει τον binding constraint από τον
-polymul στον Keccak.
+με $\approx$\pct{42} και η decode ανέρχεται σε $\approx$\pct{27},
+αντιστρέφοντας πλήρως τη σχέση κυριαρχίας. Το \cref{fig:pie-redistribution} 
+απεικονίζει αυτή τη μετατόπιση, αντιπαραβάλλοντας το Tier~1 με το Tier~3.
 
 \begin{figure}[htbp]
   \centering
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \resizebox{\linewidth}{!}{\input{figures/ch6-polymul/pie-scalar-zb}}
-    \caption{Tier~1 (\code{scalar\_zb}).}
-    \label{fig:pie-post-polymul-t1}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.48\textwidth}
-    \centering
-    \resizebox{\linewidth}{!}{\input{figures/ch6-polymul/pie-vector-zvk}}
-    \caption{Tier~3 (\code{vector\_zvk}).}
-    \label{fig:pie-post-polymul-t3}
-  \end{subfigure}
-  \caption{Ανακατανομή \instret στο HQC-128 KEM μετά τη βελτιστοποίηση
-    πολυωνυμικού πολλαπλασιασμού.
-    Tier~1: ο polymul πέφτει από \pct{97} σε \pct{37} αλλά παραμένει
-    κυρίαρχος. Tier~3: ο Keccak (\pct{42}) υπερβαίνει τον polymul
-    (\pct{26}) — ο νόμος του Amdahl αποκαλύπτει νέα bottlenecks.}
+  \makebox[\textwidth][c]{%
+    \begin{subfigure}[b]{0.40\textwidth}
+      \centering
+      \resizebox{\linewidth}{!}{\input{figures/ch6-polymul/pie-scalar-zb}}
+      \caption{Tier~1 (\code{scalar\_zb}).}
+      \label{fig:pie-post-polymul-t1}
+    \end{subfigure}
+    \hspace{0.06\textwidth}%
+    \begin{subfigure}[b]{0.40\textwidth}
+      \centering
+      \resizebox{\linewidth}{!}{\input{figures/ch6-polymul/pie-vector-zvk}}
+      \caption{Tier~3 (\code{vector\_zvk}).}
+      \label{fig:pie-post-polymul-t3}
+    \end{subfigure}
+  }%
+  \caption{Ανακατανομή \instret στο HQC-128 KEM μετά τη βελτιστοποίηση του polymul.}
   \label{fig:pie-redistribution}
 \end{figure}
 
-Ο~\cref{tab:polymul-tier-summary} συνοψίζει την πρόοδο ανά tier. Όλες οι
-μετρήσεις αφορούν αποκλειστικά τη βελτιστοποίηση polymul: ο Keccak και η
-decode παραμένουν στην reference υλοποίηση, ώστε να απομονωθεί η
-συνεισφορά του πολυωνυμικού πολλαπλασιασμού.
+\enlargethispage{\baselineskip}   % +1 γραμμή σε αυτή τη σελίδα μόνο
+\paragraph{Σύνοψη κεφαλαίου.}
+Στο παρόν κεφάλαιο ο πολυωνυμικός πολλαπλασιασμός βελτιστοποιήθηκε σε τρία
+διαδοχικά tiers: scalar \clmul{}, διανυσματική ανασύνθεση και \vclmul{} leaf. Το βασικό εύρημα
+είναι η σωρευτική επιτάχυνση \speedup{266} ως προς το \code{scalar\_ref}
+(HQC-128), η οποία ανακατανέμει πλήρως το προφίλ εκτέλεσης του \gls{kem}: ο
+polymul παύει να κυριαρχεί, ενώ ο Keccak και η αποκωδικοποίηση αναδεικνύονται
+σε νέα bottlenecks. Κατά συνέπεια, το \cref{ch:kernel-optimization}
+εστιάζει στη βελτιστοποίηση αυτών των δύο πυρήνων.
 
-\begin{table}[htbp]
-  \centering
-  \caption{Σύνοψη βελτιστοποίησης polymul ανά tier (HQC-128).
-    Η στήλη \q{KEM Speedup} αναφέρει τη συνολική επιτάχυνση πλήρους \KEM
-    (\KeyGen + \Encaps + \Decaps). Όλα τα speedups υπολογίζονται ως προς
-    \code{scalar\_ref} (\cref{conv:baseline}).}
-  \label{tab:polymul-tier-summary}
-  \small
-  \begin{tabular}{clrrrl}
-    \toprule
-    \textbf{Tier} & \textbf{Variant}
-      & \textbf{polymul} & \textbf{Polymul}
-      & \textbf{KEM} & \textbf{Μεγαλύτερο non-polymul} \\
-    & & \textbf{(\instret)} & \textbf{Speedup}
-      & \textbf{Speedup} & \textbf{hotspot} \\
-    \midrule
-    — & \code{scalar\_ref}
-      & \num{18639752} & — & — & polymul (\pct{97}) \\
-    1 & \code{scalar\_zb}
-      & \num{182726} & $\times$102.0 & $\times$35.0 & Keccak (\pct{26}) \\
-    2 & \code{vector\_rvv}
-      & \num{150855} & $\times$123.6 & $\times$45.5 & Keccak (\pct{34}) \\
-    3 & \code{vector\_zvk}
-      & \num{70070} & $\times$266.0 & $\times$56.4 & Keccak (\pct{42}) \\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
-Ο πίνακας αποκαλύπτει ένα χαρακτηριστικό pattern: σε κάθε tier, ο Keccak
-αναδεικνύεται ως ο μεγαλύτερος non-polymul hotspot, και η αναλογία του
-αυξάνεται μονοτονικά καθώς ο polymul βελτιώνεται. Στο Tier~1 ο Keccak
-καταλαμβάνει \pct{26} του KEM \instret — ήδη σημαντικό μερίδιο. Στο
-Tier~2, η περαιτέρω μείωση του polymul ανεβάζει τον Keccak σε \pct{34}.
-Στο Tier~3, η αναλογία φθάνει \pct{42}: ο Keccak αποτελεί πλέον τον
-κυρίαρχο πυρήνα, υπερβαίνοντας ακόμη και τον polymul ($\approx$\pct{26}).
-Η decode ακολουθεί ανάλογη ανοδική πορεία (από \pct{16} σε \pct{27}),
-ενώ ο λοιπός overhead (memset, sampling) συρρικνώνεται αντιστρόφως ανάλογα.
-
-Η ανακατανομή αυτή τεκμηριώνει ποσοτικά τη στόχευση του
-\cref{ch:kernel-optimization}: η βελτιστοποίηση Keccak και decode αποτελεί
-αναγκαία συνέχεια για τη μεγιστοποίηση του system-level κέρδους. Χωρίς
-αυτή, η επιτάχυνση σε επίπεδο συστήματος παραμένει δομικά περιορισμένη ανεξαρτήτως
-περαιτέρω βελτιώσεων στον πολυωνυμικό πολλαπλασιασμό.
