@@ -1,7 +1,7 @@
-# date: 2026-06-23 14:21
-# commit: d38ed14
+# date: 2026-06-29 10:24
+# commit: 5972956
 # Multiplication variant: vector_zvk
 level,op,instructions,codesize
-128,vect_mul,63804,5882
-192,vect_mul,189388,6894
-256,vect_mul,272896,7082
+128,vect_mul,70070,6978
+192,vect_mul,207443,8074
+256,vect_mul,259081,7498
