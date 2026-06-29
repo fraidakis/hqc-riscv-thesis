@@ -88,9 +88,9 @@ $O(N)$ bits, μετατρέποντας τα code-based σχήματα από θ
 \begin{figure}[htbp]
   \centering
   \input{figures/ch2-background/code-based-genealogy}
-  \caption{Γενεαλογία code-based κρυπτοσυστημάτων: από τον McEliece (1978) στα
-    σύγχρονα σχήματα του \gls{nist}. Η κεντρική γραμμή εξέλιξης (μπλε) δείχνει
-    τη σταδιακή μείωση μεγέθους κλειδιών μέσω quasi-cyclic δομών.}
+  \caption[Γενεαλογία code-based κρυπτοσυστημάτων]{Γενεαλογία code-based κρυπτοσυστημάτων: από τον McEliece (1978) στα
+  σύγχρονα σχήματα του \gls{nist}. Η κεντρική γραμμή εξέλιξης (μπλε) δείχνει
+  τη σταδιακή μείωση μεγέθους κλειδιών μέσω quasi-cyclic δομών.}
   \label{fig:code-based-genealogy}
 \end{figure}
 
@@ -131,8 +131,8 @@ non-constant-time --- αντικαταστάθηκε προληπτικά από
 \begin{figure}[htbp]
   \centering
   \input{figures/ch2-background/hqc-timeline}
-  \caption{Πορεία τυποποίησης του \HQC μέσα από τους γύρους αξιολόγησης του
-    \gls{nist}.}
+  \caption[Πορεία τυποποίησης του HQC]{Πορεία τυποποίησης του \HQC μέσα από τους γύρους αξιολόγησης του
+  \gls{nist}.}
   \label{fig:hqc-timeline}
 \end{figure}
 
@@ -148,10 +148,10 @@ non-constant-time --- αντικαταστάθηκε προληπτικά από
 \begin{figure}[htbp]
   \centering
   \input{figures/ch2-background/hqc-kem-sequence}
-  \caption{Ροή ανταλλαγής κλειδιών μέσω \HQC \KEM. Ο παραλήπτης (Bob) εκτελεί
-    \KeyGen και δημοσιεύει το $ek$. Ο αποστολέας (Alice) εκτελεί \Encaps για
-    παραγωγή κοινού μυστικού $ss$ και κρυπτογραφήματος $ct$. Ο παραλήπτης
-    ανακτά το $ss$ μέσω \Decaps.}
+  \caption[Πρωτόκολλο HQC KEM]{Ροή ανταλλαγής κλειδιών μέσω \HQC \KEM. Ο παραλήπτης (Bob) εκτελεί
+  \KeyGen και δημοσιεύει το $ek$. Ο αποστολέας (Alice) εκτελεί \Encaps για
+  παραγωγή κοινού μυστικού $ss$ και κρυπτογραφήματος $ct$. Ο παραλήπτης
+  ανακτά το $ss$ μέσω \Decaps.}
   \label{fig:hqc-kem-sequence}
 \end{figure}
 
@@ -472,9 +472,9 @@ $a_L \cdot b_L$, $a_L \cdot b_H$, $a_H \cdot b_L$, $a_H \cdot b_H$.
 \begin{figure}[htbp]
   \centering
   \resizebox{\linewidth}{!}{\input{figures/ch2-background/karatsuba-tree-schematic}}
-  \caption{Σχηματικό δέντρο αναδρομής Karatsuba (δύο επίπεδα). Κάθε κόμβος παράγει
-    τρία υπο-προβλήματα μισού μεγέθους ($z_0$, $z_2$, $z_{\text{mid}}$)· στα φύλλα
-    (μπλε) η αναδρομή τερματίζεται και το γινόμενο υπολογίζεται με τον schoolbook.}
+  \caption[Δέντρο αναδρομής Karatsuba]{Σχηματικό δέντρο αναδρομής Karatsuba (δύο επίπεδα). Κάθε κόμβος παράγει
+  τρία υπο-προβλήματα μισού μεγέθους ($z_0$, $z_2$, $z_{\text{mid}}$)· στα φύλλα
+  (μπλε) η αναδρομή τερματίζεται και το γινόμενο υπολογίζεται με τον schoolbook.}
   \label{fig:karatsuba-tree-schematic}
 \end{figure}
 
@@ -639,9 +639,9 @@ bits της \defterm{χωρητικότητας} (capacity). Η επεξεργα
 \begin{figure}[htbp]
   \centering
   \input{figures/ch2-background/keccak-sponge}
-  \caption{Κατασκευή σπόγγου: οι φάσεις απορρόφησης (absorb) και εξαγωγής
-    (squeeze) γύρω από τη μετάθεση $f$· τα $c$ bits χωρητικότητας παραμένουν
-    εσωτερικά, εξασφαλίζοντας ασφάλεια $c/2$ bits.}
+  \caption[Sponge construction: absorb και squeeze]{Κατασκευή σπόγγου: οι φάσεις απορρόφησης (absorb) και εξαγωγής
+  (squeeze) γύρω από τη μετάθεση $f$· τα $c$ bits χωρητικότητας παραμένουν
+  εσωτερικά, εξασφαλίζοντας ασφάλεια $c/2$ bits.}
   \label{fig:keccak-sponge}
 \end{figure}
 
@@ -684,9 +684,9 @@ $A[x, y, z]$ με $x, y \in \{0, 1, 2, 3, 4\}$ και $z \in \{0, \ldots, 63\}$,
 \begin{figure}[htbp]
   \centering
   \input{figures/ch2-background/keccak-state-3d}
-  \caption{Τρισδιάστατη αναπαράσταση της κατάστασης Keccak-f[1600]:
-    $5 \times 5$ lanes.
-    Το πορτοκαλί τμήμα δείχνει ένα lane, ενώ το πράσινο δείχνει ένα column.}
+  \caption[Κατάσταση Keccak-f[1600]]{Τρισδιάστατη αναπαράσταση της κατάστασης Keccak-f[1600]:
+  $5 \times 5$ lanes.
+  Το πορτοκαλί τμήμα δείχνει ένα lane, ενώ το πράσινο δείχνει ένα column.}
   \label{fig:keccak-state-3d}
 \end{figure}
 

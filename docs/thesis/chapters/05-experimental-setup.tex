@@ -198,9 +198,9 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
 \begin{figure}[htbp]
   \centering
   \resizebox{\textwidth}{!}{\input{figures/ch5-setup/build-pipeline}}
-  \caption{Ροή μεταγλώττισης και εκτέλεσης: ο πηγαίος κώδικας μεταγλωττίζεται
-    μέσω CMake και GCC~15.2 σε bare-metal ELF, το οποίο εκτελείται στο Spike
-    για εξαγωγή \instret.}
+  \caption[Ροή μεταγλώττισης και εκτέλεσης]{Ροή μεταγλώττισης και εκτέλεσης: ο πηγαίος κώδικας μεταγλωττίζεται
+  μέσω CMake και GCC~15.2 σε bare-metal ELF, το οποίο εκτελείται στο Spike
+  για εξαγωγή \instret.}
   \label{fig:build-pipeline}
 \end{figure}
 
@@ -350,8 +350,8 @@ memory-mapped θέση μνήμης που αποτελεί το βασικό κ
 \begin{figure}[htbp]
   \centering
   \resizebox{0.65\textwidth}{!}{\input{figures/ch5-setup/boot-sequence}}
-  \caption{Ακολουθία εκκίνησης bare-metal: από το reset vector έως τον
-    τερματισμό μέσω \gls{htif}.}
+  \caption[Bare-metal boot sequence]{Ακολουθία εκκίνησης bare-metal: από το reset vector έως τον
+  τερματισμό μέσω \gls{htif}.}
   \label{fig:boot-sequence}
 \end{figure}
 
@@ -612,7 +612,7 @@ bit-exact σωστά αποτελέσματα.
 %% ==========================================================================
 %% §5.5 Μεθοδολογία Επαλήθευσης Σταθερού Χρόνου Εκτέλεσης
 %% ==========================================================================
-\ifincludeCT
+\ifTODO
 \section{Μεθοδολογία Επαλήθευσης Σταθερού Χρόνου Εκτέλεσης}
 \label{sec:ct-methodology}
 
@@ -887,7 +887,7 @@ HQC-128 (πλήρες \KEM):
 
 \begin{table}[htbp]
   \centering
-  \caption{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM).\protect\footnotemark}
+  \caption[Function-level hotspots στο reference scalar HQC-128]{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM).\protect\footnotemark}
   \label{tab:baseline-hotspots}
   \begin{tabular}{l S[table-format=9.0] S[table-format=2.2]}
     \toprule

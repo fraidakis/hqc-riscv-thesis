@@ -7,9 +7,7 @@
 δευτερεύοντα bottlenecks που προηγουμένως ήταν αμελητέα: τον Keccak-f[1600]
 (SHA-3/SHAKE), την αποκωδικοποίηση \gls{rs}/\gls{rm}, και βοηθητικές
 πράξεις bit-scatter. Το παρόν κεφάλαιο παρουσιάζει τη συστηματική
-βελτιστοποίηση αυτών των πυρήνων — εφαρμόζοντας τον νόμο του Amdahl
-διαδοχικά, ώστε κανένας μεμονωμένος πυρήνας να μην κυριαρχεί στο τελικό
-προφίλ εκτέλεσης.
+βελτιστοποίηση αυτών των πυρήνων.
 
 %% ============================================================================
 \section{Επανασχεδιασμός Keccak / SHA-3}
@@ -50,26 +48,6 @@ patterns: περιστροφή μέσω \code{ROL(a, n)}, λογική πράξ�
         loop-idiom recogniser.
 \end{enumerate}
 
-Μία μελέτη αφαίρεσης (ablation study) επιβεβαίωσε ότι η χρήση ρητών
-compiler builtins (\code{\_\_builtin\_rotateleft64}) παράγει δυαδικά
-ταυτόσημο κώδικα — \num{58} εντολές \rori ανά ELF — με μηδενική διαφορά
-\instret. Ο μεταγλωττιστής επιτυγχάνει ήδη βέλτιστο scalar Keccak χωρίς
-χειροκίνητη παρέμβαση στον πηγαίο κώδικα.
-
-Η ποσοτική επίπτωση της \gls{zbb} εξαρτάται από το tier. Στο
-reference baseline (schoolbook polymul), η αφαίρεση της \gls{zbb} προσθέτει μόλις
-\pct{0.12}–\pct{0.30} στο συνολικό \gls{kem} \instret — αμελητέα, διότι ο
-πολυωνυμικός πολλαπλασιασμός κυριαρχεί. Στο Tier~1 champion
-(\code{scalar\_zb}), όπου ο polymul έχει επιταχυνθεί κατά
-$\approx\speedup{34}$, η αφαίρεση της \gls{zbb} επιβάλλει ποινή \pct{10.5}
-(HQC-128), \pct{8.7} (HQC-192) και \pct{6.0} (HQC-256) στο συνολικό \gls{kem}
-\instret. Η φθίνουσα τάση επιβεβαιώνει τον μηχανισμό Amdahl: ο αριθμός
-περιστροφών Keccak (\num{58} \rori εντολές στατικά στο ELF) παραμένει σταθερός, ενώ το
-κόστος Karatsuba αυξάνεται υπεργραμμικά με το security level.
-
-Η \gls{zbb} αποτελεί συνεπώς υποχρεωτική αρχιτεκτονική απαίτηση για το Tier~1
-profile. Η αναθεωρημένη ελάχιστη ISA ορίζεται ως \code{rv64gc\_zbc\_zbb}.
-
 %% --------------------------------------------------------------------------
 \subsection{Base-RVV Path και το \q{RVV Paradox}}
 \label{ssec:keccak-rvv-paradox}
@@ -98,28 +76,6 @@ $\text{vl}=25$ στο \VLEN{}=\num{256}), και τα βήματα $\rho$/$\pi$ 
 κρυπτογραφικές εντολές, η μεταφορά ενός αλγορίθμου σε vector registers δεν
 εγγυάται επιτάχυνση — ιδιαίτερα όταν η κατάσταση (\num{1600} bits) χωράει
 ήδη στο scalar register file (\num{32} $\times$ \num{64} = \num{2048} bits).
-
-Η σύγκριση με την αρχιτεκτονική ARM ενισχύει το επιχείρημα. Η ARMv8.2-SHA3 (FEAT\_SHA3)
-παρέχει τέσσερις αφιερωμένες εντολές: \insn{eor3} (3-way XOR για $\theta$),
-\insn{rax1} (rotate-accumulate XOR), \insn{xar} (XOR + rotate για
-$\rho$/$\pi$), και \insn{bcax} (bit-clear-and-XOR για $\chi$). Κάθε μία
-αντικαθιστά \num{2}–\num{3} γενικές εντολές, παρέχοντας έως \speedup{1.89}~\cite{becker2022keccak}
-έναντι scalar σε πυρήνες με ARMv8.2-SHA3/ARMv8.4-A SHA-3 (οι Cortex-A55/A72 δεν υλοποιούν τις εντολές αυτές). Στο RISC-V, η πλησιέστερη αντιστοιχία
-απαιτεί \gls{zvbb} (\insn{vror.vv} + \insn{vandn.vv}) — χωρίς αυτήν, η
-αρχιτεκτονική υστερεί δομικά.
-
-Ο \cref{tab:keccak-rotation-cost} συνοψίζει το εντολικό κόστος ανά
-περιστροφή σε τρεις ISA configurations, τεκμηριώνοντας ποσοτικά τη δομική
-υπεροχή των εξειδικευμένων εντολών.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Εντολικό κόστος περιστροφής Keccak ανά ISA configuration. Η στήλη
-           \q{instret/perm} αναφέρεται σε απομονωμένη Keccak-f[1600]
-           μετάθεση μετρημένη σε Spike (\VLEN{}=\num{256}).}
-  \label{tab:keccak-rotation-cost}
-  \input{figures/ch7-kernels/keccak-rotation-comparison}
-\end{table}
 
 Κατά συνέπεια, η Base-\RVV υλοποίηση Keccak απορρίφθηκε. Τα Tier~1 και
 Tier~2 χρησιμοποιούν τον scalar \gls{zbb} πυρήνα, ενώ η διανυσματοποίηση
@@ -201,12 +157,7 @@ SHAKE contexts εντός μίας \gls{kem} κλήσης είναι $N=2$ (στ
 \paragraph{Ποσοτικά αποτελέσματα.}
 Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2}) επιτυγχάνει
 \cycles{2114} \instret ανά απομονωμένη μετάθεση Keccak-f[1600] — μείωση
-\pct{55} έναντι του scalar reference (\cycles{4680}) και \pct{70} έναντι
-της Base-\RVV (\cycles{7100}). Σε επίπεδο πλήρους \gls{kem} (Tier~3,
-\code{vector\_zvk}), η ενσωμάτωση του 2-way \gls{soa} στο \KeyGen
-μειώνει το συνολικό \instret κατά \pct{3.9} (HQC-128), \pct{3.3} (HQC-192)
-και \pct{3.1} (HQC-256) σε σχέση με τον single-instance Zvbb gather
-πυρήνα.
+\pct{55} έναντι του scalar reference (\cycles{4680}). 
 
 %% --------------------------------------------------------------------------
 \subsection{Βελτιστοποιήσεις Absorb/Squeeze I/O}
@@ -469,7 +420,7 @@ LMUL=8 ($\text{vl}=128$) για σάρωση ολόκληρου του μετα�
 %
 μέσω πέντε vectorized βημάτων ανά iteration: (1)~indexed gather στον
 \code{gf\_log[]} πίνακα μέσω \insn{vluxei16}, (2)~modular πρόσθεση
-λογαρίθμων με branchless conditional subtract ($\geq 255 \Rightarrow -255$)\ifincludeCT~(\cref{sec:ct-verification}, χωρίς εξάρτηση από \ext{Zkt})\fi,
+λογαρίθμων με branchless conditional subtract ($\geq 255 \Rightarrow -255$)\ifTODO~(\cref{sec:ct-verification}, χωρίς εξάρτηση από \ext{Zkt})\fi,
 (3)~indexed gather στον \code{gf\_exp[]} πίνακα, (4)~zero-masking μέσω
 \insn{vmsne} + \insn{vmand} + \insn{vmerge} για τη συνθήκη $0 \cdot x = 0$,
 και (5)~XOR-reduction μέσω \insn{vredxor}.
@@ -523,7 +474,7 @@ Barrett reduction — εξαλείφοντας πλήρως τις scalar \code{
         — \insn{vclmul.vx} με τον $dd$ ως άμεσο scalar τελεστέο
         επί των zero-extended $X_{\sigma_p}$ στοιχείων, Barrett reduction, και
         XOR με τα τρέχοντα $\sigma$ values.
-  \item \textbf{Blend}: constant-time conditional copy\ifincludeCT~(\cref{sec:ct-verification})\fi μέσω bitwise select
+  \item \textbf{Blend}: constant-time conditional copy\ifTODO~(\cref{sec:ct-verification})\fi μέσω bitwise select
         pattern (\insn{vand} + \insn{vxor}) σε SEW=16, LMUL=4 — χωρίς
         $\GF{2^8}$ πολλαπλασιασμό.
   \item \textbf{Discrepancy dot-product}: φόρτωση $\sigma[1..n]$ contiguously
@@ -629,7 +580,7 @@ allocation.
         \insn{vzext} u16→u64 → \insn{vclmul.vv} → Barrett reduction →
         narrowing u64→u16 → \insn{vse16}. Η περίπτωση $\beta = 1$
         (identity) εκτελείται χωρίς branch — η \code{gf\_mul}(1, x) = x
-        αποτελεί fixed-latency vector no-op\ifincludeCT~(\cref{sec:ct-verification})\fi.
+        αποτελεί fixed-latency vector no-op\ifTODO~(\cref{sec:ct-verification})\fi.
   \item \textbf{\code{xor\_broadcast\_zvbc}$(dst, src, len, val)$}: υπολογίζει
         $dst[k] = src[k] \oplus val$ μέσω \gls{vla} loop:
         \insn{vle16}/\insn{vxor.vx}/\insn{vse16} σε SEW=16, LMUL=4
@@ -877,7 +828,7 @@ index), \insn{andi} (εξαγωγή bit position), και \insn{sll}~+~\insn{or}
 σε \num{988672} (μείωση \pct{15.2}). Η συνάρτηση εξέπεσε από \pct{20.99}
 του συνολικού \gls{kem} σε θέση εκτός των \num{20} κορυφαίων hotspots.
 
-\ifincludeCT
+\ifTODO
 \paragraph{Side-channel σκέψεις.}
 Η πρόσβαση \code{v[support[i] >> 6]} εξαρτάται από τα δεδομένα: η
 διεύθυνση εγγραφής αποκαλύπτει τη θέση support μέσω cache access
@@ -977,6 +928,7 @@ I/O/μνήμη λειτουργίες). Η μείωση του \Encaps \instret 
 \end{table}
 
 %% ============================================================================
+\ifTODO
 \section{Βελτιστοποιήσεις μέσω Compiler Auto-Lowering}
 \label{sec:auto-lowering-hqc}
 
@@ -1205,6 +1157,7 @@ target pattern εντός του hot path — μια extension με εκατον
 και security level παρουσιάζεται στην~\cref{sec:isa-ablation}.
 
 %% ============================================================================
+\fi
 \section{Αποτίμηση: Τελικό Προφίλ μετά Βελτιστοποίηση Όλων των Πυρήνων}
 \label{sec:kernel-assessment}
 
@@ -1212,8 +1165,8 @@ target pattern εντός του hot path — μια extension με εκατον
 νόμο του Amdahl σε τρεις οικογένειες πυρήνων: Keccak/SHA-3
 (\cref{sec:keccak-optimization}), αποκωδικοποίηση \gls{rs}/\gls{rm}
 (\cref{sec:decode-optimization}), βοηθητικούς πυρήνες
-(\cref{sec:auxiliary-kernels}) και compiler auto-lowering
-(\cref{sec:auto-lowering-hqc}). Η ενότητα αυτή παρουσιάζει τη
+(\cref{sec:auxiliary-kernels})\ifTODO και compiler auto-lowering
+(\cref{sec:auto-lowering-hqc})\fi. Η ενότητα αυτή παρουσιάζει τη
 συνολική μεταμόρφωση του υπολογιστικού προφίλ — από τη μονοδιάστατη
 κυριαρχία ενός πυρήνα στο baseline, σε ένα κατανεμημένο τελικό σχήμα
 όπου κανένα μεμονωμένο component δεν υπερβαίνει \pct{51} του συνολικού

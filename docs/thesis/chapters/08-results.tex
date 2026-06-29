@@ -67,8 +67,8 @@ $(57637/17669)^{1.585} \approx 6.5$. Η υπο-Karatsuba αυτή κλιμάκω
 οφείλεται στο σταθερό overhead και στη γραμμική \insn{vclmul} συνιστώσα
 που μειώνονται σε μικρά $N$. Δεύτερον, η αύξηση code size (από \SI{2.3}{\kilo\byte} σε
 \SI{15.3}{\kilo\byte} στο Tier~1) αντικατοπτρίζει το κόστος του πλήρως
-ξεδιπλωμένου Karatsuba tree — ένα trade-off που αναλύεται στην
-\cref{sec:polymul-codesize}.
+ξεδιπλωμένου Karatsuba tree\ifTODO, ένα trade-off που αναλύεται στην
+\cref{sec:polymul-codesize}\fi.
 
 %% --------------------------------------------------------------------------
 \subsection{\code{bench\_keccak} — Πλήρες Decaps Keccak Call Pattern}
@@ -126,7 +126,7 @@ bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχ�
 με σωστά μεγέθη buffers (\code{VEC\_N1N2\_SIZE\_64} $\to$
 \code{VEC\_N1\_SIZE\_64} $\to$ \code{PARAM\_K} bytes). Τα δεδομένα εισόδου
 είναι μηδενικά — αντιπροσωπευτικό λόγω της data-independent δομής βρόχων
-και των δύο αποκωδικοποιητών (βλ.\ \cref{sec:decode-optimization})\ifincludeCT· η
+και των δύο αποκωδικοποιητών (βλ.\ \cref{sec:decode-optimization})\ifTODO· η
 data-independent δομή τους επιβεβαιώνεται πειραματικά από την constant-time
 ανάλυση στην~\cref{sec:ct-verification}\fi.
 

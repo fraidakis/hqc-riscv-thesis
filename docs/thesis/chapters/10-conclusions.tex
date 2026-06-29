@@ -2,7 +2,7 @@
 \label{ch:conclusions}
 
 Στο \cref{ch:discussion} αναλύθηκαν τα αποτελέσματα υπό το πρίσμα ετερογενών
-αρχιτεκτονικών, ISA ablation\ifincludeCT, και constant-time ασφάλειας\fi. Το παρόν κεφάλαιο
+αρχιτεκτονικών\ifTODO, ISA ablation, και constant-time ασφάλειας\fi. Το παρόν κεφάλαιο
 συνοψίζει τη συνεισφορά της εργασίας, αναγνωρίζει τους περιορισμούς της, και
 χαρτογραφεί τις κατευθύνσεις μελλοντικής έρευνας.
 
@@ -44,7 +44,7 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 αποκωδικοποίηση \gls{rm}/\gls{rs} (\speedup{6.8}–\speedup{7.8} μέσω
 \RVV vectorization και \gls{zvbc} $\GF{2^8}$ acceleration).
 
-\ifincludeCT
+\ifTODO
 \paragraph{Constant-time ασφάλεια}
 Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής:
 αρχιτεκτονική ανάλυση Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο
@@ -105,7 +105,7 @@ cache effects.
 και median statistic, residual OS noise (timer interrupts $\sim$κάθε
 \SI{4}{\milli\second}) εισάγει μικρή αβεβαιότητα στις μετρήσεις.
 
-\ifincludeCT
+\ifTODO
 \paragraph{Εμπειρική CT verification μόνο για Tier~1/2}
 Η dudect εμπειρική επαλήθευση καλύπτει τα variants \code{scalar\_ref}, \code{scalar\_zb}
 (Tier~1) και \code{vector\_rvv} (Tier~2). Το \code{vector\_zvk}
@@ -143,7 +143,7 @@ vector pipeline) μπορεί να μεταβάλει τον IPC και άρα �
 μακροπρόθεσμες (απαιτούν νέο hardware ή ISA extensions).
 
 %% --------------------------------------------------------------------------
-\ifincludeCT
+\ifTODO
 \subsection{Constant-Time Υλοποίηση}
 \label{sec:future-ct}
 
@@ -251,7 +251,7 @@ decoder όσο και γενικότερα AES-GCM/GHASH workloads.
 Συνοψίζοντας, η παρούσα εργασία τεκμηρίωσε ότι οι επικυρωμένες κρυπτογραφικές
 επεκτάσεις του RISC-V επαρκούν για να φέρουν μια υλοποίηση σε καθαρό λογισμικό
 code-based \gls{pqc} σε επίπεδο απόδοσης συγκρίσιμο με εξειδικευμένες SIMD
-αρχιτεκτονικές — χωρίς custom hardware, χωρίς vendor lock-in\ifincludeCT, και χωρίς
+αρχιτεκτονικές — χωρίς custom hardware, χωρίς vendor lock-in\ifTODO, και χωρίς
 υποχώρηση στην ασφάλεια timing side-channels\fi. Η cryptographic agility που
 παρέχει η modular ISA φιλοσοφία του RISC-V αποδεικνύεται πρακτικά εφικτή:
 υψηλή απόδοση και αλγοριθμική ευελιξία δεν αποτελούν αντικρουόμενους στόχους.

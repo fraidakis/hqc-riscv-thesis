@@ -28,7 +28,7 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/polymul-tiers.tex}
-  \caption{Σχέση υπερσυνόλου των τριών tiers. Κάθε tier κληρονομεί το ISA του προηγουμένου και προσθέτει νέες επεκτάσεις. Η αρχιτεκτονική πολυπλοκότητα αυξάνεται από Tier~1 (scalar) προς Tier~3 (full vector-crypto).}
+  \caption[Ιεραρχία ISA tiers]{Σχέση υπερσυνόλου των τριών tiers. Κάθε tier κληρονομεί το ISA του προηγουμένου και προσθέτει νέες επεκτάσεις. Η αρχιτεκτονική πολυπλοκότητα αυξάνεται από Tier~1 (scalar) προς Tier~3 (full vector-crypto).}
   \label{fig:polymul-tiers}
 \end{figure}
 
@@ -41,7 +41,7 @@ vector-crypto επεκτάσεων (\gls{zvbc}/\gls{zvbb}).
 
 \begin{table}[htbp]
   \centering
-  \caption{Διαφοροποίηση υλοποίησης ανά tier: ο leaf kernel διανυσματοποιείται μόνο στο Tier~3, ενώ οι βρόχοι ανασύνθεσης ήδη από το Tier~2.}
+  \caption[Στρατηγική διανυσματοποίησης ανά tier]{Διαφοροποίηση υλοποίησης ανά tier: ο leaf kernel διανυσματοποιείται μόνο στο Tier~3, ενώ οι βρόχοι ανασύνθεσης ήδη από το Tier~2.}
   \label{tab:tier-differentiation}
   \begin{tabular}{lll}
     \toprule
@@ -152,11 +152,11 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
 \begin{figure}[htbp]
   \centering
   \input{figures/ch6-polymul/schoolbook-vs-clmul.tex}
-  \caption{Σύγκριση bit-serial schoolbook (αριστερά) με word-level
-    \clmul{} leaf (δεξιά). Αριστερά, κάθε bit~$k$ του $a[i]$ παράγει μια μάσκα
-    που υπό συνθήκη προσθέτει (XOR) το ολισθημένο $b[j]$ στο χαμηλό ($r[i+j]$)
-    και στο υψηλό ($r[i+j+1]$) μέρος. Δεξιά, ένα ζεύγος \clmul/\clmulh παράγει
-    απευθείας τα δύο μέρη, εξαλείφοντας τον βρόχο των \num{64} bits.}
+  \caption[Bit-serial schoolbook vs.\ clmul leaf]{Σύγκριση bit-serial schoolbook (αριστερά) με word-level
+  \clmul{} leaf (δεξιά). Αριστερά, κάθε bit~$k$ του $a[i]$ παράγει μια μάσκα
+  που υπό συνθήκη προσθέτει (XOR) το ολισθημένο $b[j]$ στο χαμηλό ($r[i+j]$)
+  και στο υψηλό ($r[i+j+1]$) μέρος. Δεξιά, ένα ζεύγος \clmul/\clmulh παράγει
+  απευθείας τα δύο μέρη, εξαλείφοντας τον βρόχο των \num{64} bits.}
   \label{fig:schoolbook-vs-clmul}
 \end{figure}
 
@@ -218,10 +218,10 @@ dispatch. Σε βαθιά αναδρομικές δομές, η RISC-V calling c
 να περιορίσει το per-call prologue/epilogue
 και να κάνει inlining των leaf operations
 εντός του κόμβου που τις καλεί, με τοπικό register allocation και
-ελεύθερο scheduling των loads/stores. Το πλήρες unrolling του δέντρου
-έχει ως αποτέλεσμα αυξημένο \code{.text} footprint και η ποσοτική αξιολόγηση
+ελεύθερο scheduling των loads/stores.\ifTODOΤο πλήρες unrolling του δέντρου
+έχει ως αποτέλεσμα αυξημένο \code{.text} footprint, και η ποσοτική αξιολόγηση
 αυτού του trade-off (recursion depth vs \instret vs \code{.text} size)
-παρουσιάζεται στην \cref{sec:polymul-codesize}.
+παρουσιάζεται στην \cref{sec:polymul-codesize}\fi.
 
 \paragraph{Υποστήριξη πολλαπλών backends.}
 Ο generator υποστηρίζει τρεις modes μέσω της παραμέτρου
@@ -406,9 +406,9 @@ assign-on-first-write (tree + leaf).
 
 \begin{table}[htbp]
   \centering
-  \caption{Σωρευτική συνεισφορά των scalar βελτιστοποιήσεων στον
-    πολυωνυμικό πολλαπλασιασμό (HQC-128, \instret, median), σε φθίνουσα
-    συνεισφορά.}
+  \caption[Σωρευτική συνεισφορά scalar βελτιστοποιήσεων]{Σωρευτική συνεισφορά των scalar βελτιστοποιήσεων στον
+  πολυωνυμικό πολλαπλασιασμό (HQC-128, \instret, median), σε φθίνουσα
+  συνεισφορά.}
   \label{tab:scalar-ablation}
   \small
   \begin{tabular}{llcc}
@@ -604,7 +604,7 @@ $\approx$\pct{37} και ενώ παραμένει το μεγαλύτερο bot
       \label{fig:pie-post-polymul-t3}
     \end{subfigure}
   }%
-  \caption{Ανακατανομή \instret στο HQC-128 KEM μετά τη βελτιστοποίηση του polymul.}
+  \caption[Ανακατανομή instret μετά βελτιστοποίηση polymul]{Ανακατανομή \instret στο HQC-128 KEM μετά τη βελτιστοποίηση του polymul.}
   \label{fig:pie-redistribution}
 \end{figure}
 

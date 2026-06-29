@@ -361,7 +361,7 @@ BPI-F3, SpacemiT K1 (πυρήνας X60)~\cite{SpacemiT-K1-datasheet}, \VLEN $= 
 μετρήσεις πραγματικών κύκλων με pipeline effects (dual-issue
 in-order, cache hierarchy). Το Spike εξαλείφει τον μικροαρχιτεκτονικό θόρυβο
 και απομονώνει την αλγοριθμική βελτίωση, ενώ το BPI-F3 επικυρώνει ότι τα
-speedups μεταφέρονται σε πραγματικό silicon. \ifincludeCT
+speedups μεταφέρονται σε πραγματικό silicon. \ifTODO
 Η ανθεκτικότητα σε επιθέσεις
 πλευρικού καναλιού (side-channel resistance) αξιολογείται για τα Tier~1 και
 Tier~2 variants μέσω δύο συμπληρωματικών πυλώνων: αρχιτεκτονική ανάλυση Zkt
@@ -406,7 +406,7 @@ Vector-Crypto επεκτάσεις \gls{zvbc} και \gls{zvbb}. Παρουσι�
 προσομοιωτής Spike \gls{iss} και το πραγματικό hardware Banana Pi BPI-F3), τα
 cross-compilation toolchains, η μεθοδολογία benchmarking μέσω \instret και
 μετρήσεων πραγματικών κύκλων, το bare-metal πλαίσιο εκτέλεσης, και η επαλήθευση
-ορθότητας μέσω Known Answer Tests
+ορθότητας μέσω Known Answer Tests.
 
 \paragraph{Βελτιστοποιήσεις (Κεφάλαια~6–7).}
 Ακολουθούν τα δύο κεφάλαια βελτιστοποίησης. Στο~\cref{ch:polymul-optimization}
@@ -419,10 +419,10 @@ cross-compilation toolchains, η μεθοδολογία benchmarking μέσω \i
 μικρο-αξιολογήσεις ανά πυρήνα, μετρήσεις πλήρους \gls{kem}, ανάλυση κλιμάκωσης
 ως προς security level και \VLEN, και αξιολόγηση σε πραγματικό hardware (Banana
 Pi BPI-F3). Η ερμηνεία τους σε ευρύτερο πλαίσιο ακολουθεί
-στο~\cref{ch:discussion}: σύγκριση με ετερογενείς αρχιτεκτονικές (x86, ARM),
-μελέτη ISA ablation, ανάλυση του συμβιβασμού μεγέθους κώδικα έναντι απόδοσης,
-σχεδιαστικές αρχές που γενικεύονται, συγκριτική αξιολόγηση μεταγλωττιστών (Clang
-έναντι GCC)\ifincludeCT, και τα αποτελέσματα επαλήθευσης σταθερού χρόνου\fi.
+στο~\cref{ch:discussion}: σύγκριση με ετερογενείς αρχιτεκτονικές (x86, ARM)\ifTODO,
+μελέτη ISA ablation, ανάλυση του συμβιβασμού μεγέθους κώδικα έναντι απόδοσης\fi, 
+και συγκριτική αξιολόγηση μεταγλωττιστών (Clang έναντι GCC)\ifTODO, και τα 
+αποτελέσματα επαλήθευσης σταθερού χρόνου\fi.
 
 \paragraph{Συμπεράσματα (Κεφάλαιο~10).}
 Τέλος, στο~\cref{ch:conclusions} συνοψίζεται η συνεισφορά, αποτιμώνται οι

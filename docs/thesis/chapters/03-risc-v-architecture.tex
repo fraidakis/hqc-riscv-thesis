@@ -111,7 +111,7 @@ J-type (jump). Το~\cref{fig:rv64-formats} παρουσιάζει τη δομή
 \begin{figure}[htbp]
   \centering
   \input{figures/ch3-riscv/rv64-instruction-formats.tex}
-  \caption{Οι έξι βασικές μορφές εντολών του RV64I. Το πεδίο \code{opcode} (bits 6:0) καθορίζει τη μορφή και τη λειτουργία.}
+  \caption[Βασικές μορφές εντολών RISC-V]{Οι έξι βασικές μορφές εντολών του RV64I. Το πεδίο \code{opcode} (bits 6:0) καθορίζει τη μορφή και τη λειτουργία.}
   \label{fig:rv64-formats}
 \end{figure}
 
@@ -159,9 +159,9 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
 
 \begin{table}[htbp]
   \centering
-  \caption{Επικυρωμένες επεκτάσεις RISC-V που αξιοποιούνται στην παρούσα
-    εργασία. Η στήλη \q{Tier} υποδεικνύει το ελάχιστο tier στο
-    οποίο απαιτείται η επέκταση.}
+  \caption[Επικυρωμένες επεκτάσεις RISC-V]{Επικυρωμένες επεκτάσεις RISC-V που αξιοποιούνται στην παρούσα
+  εργασία. Η στήλη \q{Tier} υποδεικνύει το ελάχιστο tier στο
+  οποίο απαιτείται η επέκταση.}
   \label{tab:extensions-used}
   \small
   \begin{tabular}{llll}
@@ -604,8 +604,8 @@ vector register file.
 \begin{figure}[htbp]
   \centering
   \input{figures/ch3-riscv/rvv-xor-example.tex}
-  \caption{Σύγκριση scalar C loop (αριστερά) και \RVV intrinsics (δεξιά)
-    για element-wise XOR.}
+  \caption[Scalar loop vs.\ RVV intrinsics (XOR)]{Σύγκριση scalar C loop (αριστερά) και \RVV intrinsics (δεξιά)
+  για element-wise XOR.}
   \label{fig:rvv-xor-comparison}
 \end{figure}
 
