@@ -2,8 +2,9 @@
 \label{ch:kernel-optimization}
 
 Στο \cref{ch:polymul-optimization} παρουσιάστηκε η βελτιστοποίηση του
-πολυωνυμικού πολλαπλασιασμού, η οποία μείωσε τον κυρίαρχο πυρήνα από
-\pct{97} σε μικρό κλάσμα του συνολικού \instret. Η μείωση αυτή αποκάλυψε
+πολυωνυμικού πολλαπλασιασμού, η οποία περιόρισε τον έως τότε κυρίαρχο
+πυρήνα από \pct{97} σε \pct{26}–\pct{37} του συνολικού \instret ανάλογα
+με το tier. Η μείωση αυτή αποκάλυψε
 δευτερεύοντα bottlenecks που προηγουμένως ήταν αμελητέα: τον Keccak-f[1600]
 (SHA-3/SHAKE), την αποκωδικοποίηση \gls{rs}/\gls{rm}, και βοηθητικές
 πράξεις bit-scatter. Το παρόν κεφάλαιο παρουσιάζει τη συστηματική
@@ -16,111 +17,100 @@
 Η μετάθεση Keccak-f[1600] αποτελεί τον υπολογιστικό πυρήνα κάθε κλήσης
 SHAKE-256 και SHA3 εντός του \gls{hqc}. Μετά τη βελτιστοποίηση του πολυωνυμικού
 πολλαπλασιασμού, το ποσοστό του Keccak στο συνολικό \gls{kem} \instret αυξήθηκε
-από $<\pct{1}$ σε \pct{17}–\pct{33} ανάλογα
-με το tier — αποτέλεσμα του νόμου Amdahl. Η ενότητα αυτή
-παρουσιάζει τρεις εναλλακτικές υλοποιήσεις αυξανόμενης πολυπλοκότητας:
-scalar με \gls{zbb} auto-lowering, Base-\RVV (απορριφθείσα), και Vector-Crypto
-\gls{zvbb} με αρχιτεκτονική \gls{soa} δύο ροών.
+από $<\pct{1}$ σε \pct{26}–\pct{42} ανάλογα με το tier, ως άμεση συνέπεια
+του νόμου του Amdahl. Η ενότητα αυτή
+παρουσιάζει δύο υλοποιήσεις παραγωγής: scalar με \gls{zbb} auto-lowering
+(Tier~1/2) και Vector-Crypto \gls{zvbb} με αρχιτεκτονική \gls{soa} δύο ροών
+(Tier~3).
 
 %% --------------------------------------------------------------------------
 \subsection{Scalar Path: Αξιοποίηση \Zbb}
 \label{ssec:keccak-scalar-zbb}
 
-Ο scalar πυρήνας Keccak αποτελεί τη βάση αναφοράς για τα Tier~1 και Tier~2
-profiles. Η υλοποίηση αναφοράς (προερχόμενη από το PQClean~\cite{pqclean2022})
-εφαρμόζει \num{24} γύρους της πεντάβηθμης απεικόνισης
-$\theta \to \rho \to \pi \to \chi \to \iota$ σε μία κατάσταση \num{25}
-lanes $\times$ \num{64} bits. Κάθε γύρος χρησιμοποιεί τρία κρίσιμα
-patterns: περιστροφή μέσω \code{ROL(a, n)}, λογική πράξη
-\code{(\textasciitilde b) \& c} στο βήμα $\chi$, και XOR σταθεράς γύρου
-στο $\iota$.
+Η φθηνότερη βελτιστοποίηση του Keccak δεν απαιτεί καμία αλλαγή στον
+πηγαίο κώδικα: αρκεί η ενεργοποίηση της \gls{zbb} στο \code{-march}, ώστε
+ο μεταγλωττιστής να εφαρμόσει auto-lowering των hot patterns σε
+εξειδικευμένες εντολές. Ο πυρήνας αυτός εξυπηρετεί τα Tier~1 και Tier~2,
+καθώς η διανυσματοποίηση επιφυλάσσεται για το Tier~3.
 
-Κατά τη μεταγλώττιση με \gls{zbb} ενεργή στο \code{-march}, ο Clang εκτελεί
-αυτόματα τρεις μετασχηματισμούς:
+Η υλοποίηση αναφοράς (προερχόμενη από το PQClean~\cite{pqclean2022})
+εκτελεί τους \num{24} γύρους της μετάθεσης Keccak-f[1600], όπως αναλύεται
+στο \cref{sec:keccak-permutation}. Σε επίπεδο υλοποίησης, κάθε γύρος
+ανάγεται σε τρία κρίσιμα patterns: περιστροφή lane μέσω \code{ROL(a, n)},
+τη μη-γραμμική πράξη \code{(\textasciitilde b) \& c} στο βήμα $\chi$, και
+XOR σταθεράς γύρου στο $\iota$. Τα patterns αυτά καθορίζουν τις ευκαιρίες
+βελτιστοποίησης σε επίπεδο ISA.
+
+Με ενεργή \gls{zbb}, ο Clang εφαρμόζει auto-lowering τριών patterns:
 %
 \begin{enumerate}
   \item Το macro \code{ROL(a, n)} αναγνωρίζεται ως rotation idiom και
-        εκπέμπεται ως μία εντολή \rori (αντί δύο ολισθήσεων και ενός OR).
-  \item Το pattern \code{(\textasciitilde b) \& c} εκπέμπεται ως
-        \insn{andn} (αντί NOT + AND).
-  \item Οι βοηθητικές συναρτήσεις \code{load64}/\code{store64} (βρόχοι
-        \num{8} byte-shift iterations) βελτιστοποιούνται μερικώς από τον
-        loop-idiom recogniser.
+        εκπέμπεται ως μία εντολή \rori, αντί ακολουθίας ολίσθησης,
+        ολίσθησης και OR του base ISA.
+  \item Το pattern \code{(\textasciitilde b) \& c} του βήματος $\chi$
+        εκπέμπεται ως \insn{andn}, αντί ζεύγους NOT και AND.
+  \item Οι βοηθητικές \code{load64}/\code{store64} βελτιστοποιούνται
+        μερικώς από τον loop-idiom recogniser.
 \end{enumerate}
 
-%% --------------------------------------------------------------------------
-\subsection{Base-RVV Path και το \q{RVV Paradox}}
-\label{ssec:keccak-rvv-paradox}
+Καθοριστικός είναι ο πρώτος μετασχηματισμός, αφού η μετάθεση εκτελεί
+\num{25} περιστροφές ανά γύρο επί \num{24} γύρους. Η ενεργοποίηση της
+\gls{zbb} αποδίδει ${\approx}\speedup{1.5}$ στον απομονωμένο πυρήνα
+Keccak, χωρίς καμία αλλαγή στον πηγαίο κώδικα.
 
-Η πρώτη προσπάθεια διανυσματοποίησης του Keccak χρησιμοποίησε αποκλειστικά
-τη βασική \RVV 1.0 extension (χωρίς \gls{zvbb}). Η κατάσταση \num{25} lanes
-αναπαραστάθηκε ως ένα LMUL=8 vector register group (\code{vuint64m8\_t},
-$\text{vl}=25$ στο \VLEN{}=\num{256}), και τα βήματα $\rho$/$\pi$ υλοποιήθηκαν μέσω
-\insn{vrgather.vv}.
-
-Η κρίσιμη αδυναμία εντοπίζεται στο βήμα $\rho$: χωρίς την εντολή
-\insn{vror.vv} (η οποία απαιτεί \gls{zvbb}), κάθε lane περιστροφή αναλύεται σε
-τρεις εντολές — \insn{vsll.vv} + \insn{vsrl.vv} + \insn{vor.vv}. Δεδομένου
-ότι κάθε γύρος εκτελεί \num{25} περιστροφές, η τριπλασιασμένη εντολική
-δαπάνη ($25 \times 2 \times 24 = \num{1200}$ επιπλέον εντολές ανά
-μετάθεση) υπερκαλύπτει κάθε κέρδος παραλληλισμού.
-
-Η μέτρηση σε Spike επιβεβαίωσε την υπόθεση: η Base-\RVV υλοποίηση απαιτεί
-\cycles{7100} \instret ανά απομονωμένη μετάθεση Keccak-f[1600], έναντι
-\cycles{4680} του scalar reference — αύξηση \pct{52}. Η
-\emph{διανυσματοποίηση επιδεινώνει} την απόδοση αντί να τη βελτιώνει.
-
-Το φαινόμενο αυτό ονομάζεται εδώ \defterm{RVV Paradox}: για ακανόνιστες
-μεταθέσεις (irregular permutations) όπως ο Keccak, η πληρότητα του ISA
-(ISA completeness) υπερτερεί του εύρους (ISA width). Χωρίς εξειδικευμένες
-κρυπτογραφικές εντολές, η μεταφορά ενός αλγορίθμου σε vector registers δεν
-εγγυάται επιτάχυνση — ιδιαίτερα όταν η κατάσταση (\num{1600} bits) χωράει
-ήδη στο scalar register file (\num{32} $\times$ \num{64} = \num{2048} bits).
-
-Κατά συνέπεια, η Base-\RVV υλοποίηση Keccak απορρίφθηκε. Τα Tier~1 και
-Tier~2 χρησιμοποιούν τον scalar \gls{zbb} πυρήνα, ενώ η διανυσματοποίηση
-εφαρμόζεται αποκλειστικά στο Tier~3 μέσω \gls{zvbb}.
+Πέρα από αυτό το auto-lowering, ο scalar πυρήνας δεν προσφέρει περιθώριο
+περαιτέρω βελτιστοποίησης με χειροκίνητα intrinsics ή assembly: τα δύο hot
+patterns (rotation, AND-NOT) χαμηλώνουν ήδη σε μεμονωμένες εντολές, η
+κατάσταση των \num{1600} bits χωρά εξ ολοκλήρου στο scalar register file
+χωρίς memory bottleneck, και δεν υπάρχει scalar παραλληλισμός προς
+εκμετάλλευση. Κάθε ουσιαστικό επιπλέον κέρδος απαιτεί αλλαγή διάστασης
+ISA, δηλαδή διανυσματοποίηση (\cref{ssec:keccak-zvbb-soa}), όχι
+micro-optimization της scalar διαδρομής.
 
 %% --------------------------------------------------------------------------
 \subsection{Vector-Crypto Path: Δικαναλική SoA Αρχιτεκτονική με \Zvbb}
 \label{ssec:keccak-zvbb-soa}
+\phantomsection
+\label{ssec:keccak-rvv-paradox}
 
-Η \gls{zvbb} extension προσθέτει δύο κρίσιμες εντολές: \insn{vror.vv}/\insn{vror.vi}
-(vector rotate-right) και \insn{vandn.vv} (vector AND-NOT). Αυτές εξαλείφουν
-τον τριπλασιασμό εντολών του \q{RVV Paradox} και καθιστούν εφικτή τη
-διανυσματοποίηση του Keccak. Η πορεία προς την τελική αρχιτεκτονική
-περιελάμβανε τρεις φάσεις σχεδιασμού.
+\paragraph{Από το αδιέξοδο της base-\RVV.}
+Πριν την \gls{zvbb} δοκιμάστηκε διανυσματοποίηση με μόνο τη βασική
+\RVV~1.0 (στόχος Tier~2). Χωρίς την εντολή \insn{vror.vv}, κάθε
+lane-περιστροφή του βήματος $\rho$ τριπλασιάζεται σε
+\insn{vsll.vv}+\insn{vsrl.vv}+\insn{vor.vv}, καθιστώντας τη base-\RVV
+υλοποίηση αισθητά πιο αργή από τον scalar reference αντί ταχύτερη. Το
+φαινόμενο, που ονομάζεται εδώ \defterm{RVV Paradox}, δείχνει ότι για
+ακανόνιστες μεταθέσεις (irregular permutations) η πληρότητα του ISA
+(ISA completeness) υπερτερεί του εύρους (ISA width): η μεταφορά ενός
+αλγορίθμου σε vector registers δεν εγγυάται επιτάχυνση όταν η κατάσταση
+(\num{1600} bits) χωρά ήδη στο scalar register file. Συνεπώς η base-\RVV
+απορρίφθηκε και η διανυσματοποίηση επιφυλάχθηκε για το Tier~3 μέσω
+\gls{zvbb}. Η ποσοτική σύγκριση δίνεται στο \cref{ch:results}.
 
-\paragraph{Φάση 1: LMUL=8 Gather-Based Variant.}
-Η αρχική υλοποίηση αναπαράστησε τα \num{25} lanes ως ένα LMUL=8 register
-group και χρησιμοποίησε \insn{vrgather.vv} για το $\pi$ step, \insn{vror.vv}
-για το $\rho$, και \insn{vandn.vv} για το $\chi$. Τέσσερις πίνακες
-σταθερών δεικτών (\code{pi\_src[25]}, \code{ror\_amounts[25]},
-\code{chi\_x1[25]}, \code{chi\_x2[25]}) επαναφορτώνονταν από μνήμη σε κάθε
-γύρο — $4 \times 24 = 96$ εντολές \insn{vle64.v} ανά μετάθεση. Η
-προφόρτωση (hoisting) εκτός βρόχου μείωσε τις φορτώσεις, αλλά αποκάλυψε
-ένα δομικό αρχιτεκτονικό εμπόδιο.
+Η \gls{zvbb} extension προσθέτει δύο κρίσιμες εντολές:
+\insn{vror.vv}/\insn{vror.vi} (vector rotate-right) και \insn{vandn.vv}
+(vector AND-NOT), που εξαλείφουν τον τριπλασιασμό εντολών του
+\q{RVV Paradox} και καθιστούν εφικτή τη διανυσματοποίηση του Keccak. Η
+τελική αρχιτεκτονική προέκυψε αφού πρώτα αποκλείστηκε η προφανής LMUL=8
+προσέγγιση.
 
-\paragraph{Φάση 2: Ανακάλυψη του Register Wall.}
-Στο \VLEN{}=\num{256} με LMUL=8, το vector register file διαιρείται σε ακριβώς
-\num{4} groups. Η ταυτόχρονη διατήρηση του state vector, ενός scratch
-group, και τεσσάρων hoisted index vectors απαιτεί \num{5} groups — ένα
-περισσότερο από τα διαθέσιμα. Ο μεταγλωττιστής αντέδρασε εκχύνοντας
-(spilling) τον state vector στο stack σε κάθε γύρο, προσθέτοντας
-$48 \times \insn{vse64.v} + 48 \times \insn{vle64.v}$ — κόστος που
-υπερέβαινε τις \num{96} φορτώσεις δεικτών που υποτίθεται ότι εξαλείφθηκαν.
-Η μετρούμενη παλινδρόμηση ήταν $+\num{47663}$ \instret στο \Decaps path.
+\paragraph{Γιατί αποτυγχάνει η προφανής LMUL=8 προσέγγιση.}
+Η αρχική υλοποίηση αναπαρέστησε τα \num{25} lanes ως ένα LMUL=8 register
+group, με \insn{vrgather.vv} για το $\pi$, \insn{vror.vv} για το $\rho$
+και \insn{vandn.vv} για το $\chi$. Στο \VLEN{}=\num{256} με LMUL=8 το
+vector register file διαιρείται σε μόλις \num{4} groups, ενώ η ταυτόχρονη
+διατήρηση του state vector, ενός scratch group και των hoisted index
+vectors απαιτεί περισσότερους. Ο μεταγλωττιστής αντέδρασε εκχύνοντας
+(spilling) τον state vector στο stack σε κάθε γύρο, με κόστος μεγαλύτερο
+από τις φορτώσεις δεικτών που υποτίθεται ότι εξάλειφε. Το συμπέρασμα είναι
+αρχιτεκτονικό: σε LMUL=8 στο \VLEN{}=\num{256}, η loop-invariant code
+motion για vector σταθερές είναι αντιπαραγωγική, αφού οι \num{4} διαθέσιμοι
+groups καταναλώνονται πλήρως από το ζεύγος (state, scratch).
 
-Η παρατήρηση αυτή εδραίωσε μία θεμελιώδη αρχιτεκτονική αρχή: σε LMUL=8
-στο \VLEN{}=\num{256}, η loop-invariant code motion για vector σταθερές είναι
-αντιπαραγωγική. Οι \num{4} διαθέσιμοι groups καταναλώνονται πλήρως από
-(state + scratch), και κάθε πρόσθετη live σταθερά επιβάλλει spill
-μεγαλύτερου κόστους από τον υπολογισμό που αντικαθιστά.
-
-\paragraph{Φάση 3: Αρχιτεκτονικός Pivot — 2-way \gls{soa} σε LMUL=1.}
+\paragraph{Αρχιτεκτονική λύση: 2-way \gls{soa} σε LMUL=1.}
 Η λύση στο register wall ήταν μία ριζική αναδιάρθρωση. Αντί ενός
 μονολιθικού LMUL=8 vector, η κατάσταση αναπαρίσταται ως
-\code{vuint64m1\_t state[25]} — κάθε LMUL=1 register περιέχει το ίδιο lane
+\code{vuint64m1\_t state[25]}: κάθε LMUL=1 register περιέχει το ίδιο lane
 από δύο ανεξάρτητες Keccak instances, σε σταθερό $\text{vl}=2$. Η
 αρχιτεκτονική αυτή εξαλείφει κάθε runtime index load μέσω τριών μηχανισμών:
 %
@@ -131,8 +121,8 @@ $48 \times \insn{vse64.v} + 48 \times \insn{vle64.v}$ — κόστος που
         \code{B[dst] = vror\_vx(state[src], amount, vl)} με compile-time
         σταθερές \code{src}, \code{dst}, \code{amount}.
   \item Το βήμα $\chi$ λειτουργεί απευθείας σε γειτονικά στοιχεία πίνακα
-        (\code{B[base+0]} έως \code{B[base+4]}) μέσω row-local macro —
-        χωρίς καμία εντολή μετάθεσης.
+        (\code{B[base+0]} έως \code{B[base+4]}) μέσω row-local macro, χωρίς
+        καμία εντολή μετάθεσης.
   \item Η εφαρμογή $\theta$ (D-application) αναπτύσσεται πλήρως σε \num{25}
         ρητές \insn{vxor} προτάσεις, εξαλείφοντας τη φόρτωση δεικτών
         column ανά γύρο.
@@ -140,24 +130,33 @@ $48 \times \insn{vse64.v} + 48 \times \insn{vle64.v}$ — κόστος που
 
 Τα \num{25} LMUL=1 state registers καταναλώνουν \num{25} από τους \num{32}
 φυσικούς vector registers, αφήνοντας \num{7} ελεύθερους για τα ενδιάμεσα
-\code{B[25]}, \code{C[5]}, \code{D[5]} — επαρκείς χωρίς spilling.
+\code{B[25]}, \code{C[5]}, \code{D[5]}, επαρκείς χωρίς spilling.
 
 Η στατική ανάπτυξη επιτρέπει επιπλέον στον μεταγλωττιστή να εκπέμψει
 \insn{vror.vi} (immediate $\leq 31$) για τα μικρά ποσά περιστροφής και
-\insn{vror.vx} με pre-loaded scalar για ποσά \num{32}–\num{63}, εξαλείφοντας
-πλήρως την εντολή \insn{vror.vv} και τον αντίστοιχο index vector.
+\insn{vror.vx} με pre-loaded scalar για ποσά \num{32}–\num{63},
+εξαλείφοντας πλήρως την εντολή \insn{vror.vv} και τον αντίστοιχο index
+vector.
 
 \paragraph{Γιατί 2-way και όχι 4-way.}
-Η επιλογή $N=2$ instances ανά vector δεν είναι αυθαίρετη. Ένας έλεγχος
-του call graph του \gls{hqc} αποκάλυψε ότι η μέγιστη ταυτόχρονη ανεξαρτησία
-SHAKE contexts εντός μίας \gls{kem} κλήσης είναι $N=2$ (στο \KeyGen, όπου
-δύο XOF contexts — \code{dk\_xof\_ctx} και \code{ek\_xof\_ctx} — εξελίσσονται
-ανεξάρτητα μετά την κοινή seed derivation). Μία 4-way υλοποίηση δεν θα απέδιδε επιπλέον όφελος: το \gls{hqc} δεν εκθέτει περισσότερα από \num{2} ανεξάρτητα SHAKE contexts ταυτόχρονα, οπότε δύο από τις τέσσερις λωρίδες θα έμεναν ανεκμετάλλευτες, με πρόσθετο κόστος packing/interleaving. Η οροφή είναι αλγοριθμική (συντρέχουσα ανεξαρτησία $N=2$), όχι περιορισμός register pressure: στο \VLEN{}=\num{256} ένας LMUL=1 καταχωρητής χωρά \num{4} λωρίδες των \num{64} bit, άρα ακόμη και μια 4-way διάταξη ($\text{vl}=4$) θα χρησιμοποιούσε μόνο \num{25} καταχωρητές.
+Η επιλογή $N=2$ instances ανά vector δεν είναι αυθαίρετη, αλλά αλγοριθμική.
+Ένας έλεγχος του call graph του \gls{hqc} αποκάλυψε ότι η μέγιστη
+ταυτόχρονη ανεξαρτησία SHAKE contexts εντός μίας \gls{kem} κλήσης είναι
+$N=2$, στο \KeyGen, όπου δύο XOF contexts (\code{dk\_xof\_ctx} και
+\code{ek\_xof\_ctx}) εξελίσσονται ανεξάρτητα μετά την κοινή seed derivation.
+
+Η οροφή αυτή δεν οφείλεται σε register pressure. Στο \VLEN{}=\num{256}
+ένας LMUL=1 καταχωρητής χωρά \num{4} λωρίδες των \num{64} bit, άρα ακόμη
+και μια 4-way διάταξη ($\text{vl}=4$) θα χρησιμοποιούσε μόνο \num{25}
+καταχωρητές. Μία 4-way υλοποίηση όμως δεν θα απέδιδε επιπλέον όφελος: το
+\gls{hqc} δεν εκθέτει περισσότερα από \num{2} ανεξάρτητα SHAKE contexts
+ταυτόχρονα, οπότε δύο από τις τέσσερις λωρίδες θα έμεναν ανεκμετάλλευτες,
+με πρόσθετο κόστος packing/interleaving.
 
 \paragraph{Ποσοτικά αποτελέσματα.}
-Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2}) επιτυγχάνει
-\cycles{2114} \instret ανά απομονωμένη μετάθεση Keccak-f[1600] — μείωση
-\pct{55} έναντι του scalar reference (\cycles{4680}). 
+Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2})
+επιτυγχάνει μείωση \pct{55} στο \instret ανά απομονωμένη μετάθεση
+Keccak-f[1600] έναντι του scalar reference.
 
 %% --------------------------------------------------------------------------
 \subsection{Βελτιστοποιήσεις Absorb/Squeeze I/O}
@@ -213,7 +212,7 @@ security levels.
 
 \paragraph{Η εντολή \insn{vrgather.vv}: $\BigO{\text{VLMAX}^2}$ hardware κόστος.}
 Η single-stream μετάθεση (\code{KeccakF1600\_StatePermute},
-\cref{ssec:keccak-zvbb-soa} Φάση~1) χρησιμοποιεί \insn{vrgather.vv} σε
+\cref{ssec:keccak-zvbb-soa}, η LMUL=8 single-stream παραλλαγή) χρησιμοποιεί \insn{vrgather.vv} σε
 LMUL=8 για τα βήματα $\pi$ και $\chi$ — τρεις εκτελέσεις ανά γύρο,
 σύνολο $3 \times 24 = 72$ \insn{vrgather.vv} ανά μετάθεση. Στο Spike
 \gls{iss}, κάθε \insn{vrgather.vv} μετράται ως μία retired instruction
@@ -231,13 +230,13 @@ gathers — ισοδύναμο με $\approx\pct{85}$ του συνολικού 
 Η single-stream διαδρομή απαιτεί ταυτόχρονη διατήρηση του state vector,
 πέντε preloaded index tables, και ενός scratch group — σύνολο $\geq 6$
 LMUL=8 groups σε register file \num{4} groups. Όπως τεκμηριώθηκε στην
-\cref{ssec:keccak-zvbb-soa} (Φάση~2: Register Wall), ο μεταγλωττιστής
+\cref{ssec:keccak-zvbb-soa} (register wall), ο μεταγλωττιστής
 εκχύνει (spills) vector registers στο stack, εισάγοντας vector
 load/store traffic αόρατο στο \instret αλλά κοστοβόρο σε κύκλους.
 
 \paragraph{Η 2-way \gls{soa} διαδρομή: αρχιτεκτονικά ευνοϊκή.}
 Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2},
-\cref{ssec:keccak-zvbb-soa} Φάση~3) αποφεύγει πλήρως τα παραπάνω
+\cref{ssec:keccak-zvbb-soa}, η 2-way \gls{soa} λύση) αποφεύγει πλήρως τα παραπάνω
 προβλήματα μέσω τριών δομικών αποφάσεων:
 \begin{itemize}
   \item \textbf{Zero \insn{vrgather.vv}:} Η στατική ανάπτυξη $\pi$ σε
