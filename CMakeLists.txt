@@ -341,7 +341,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "scalar_zb_A")
             # Ablation: word-level only (no noinit, no specialized tree)
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
@@ -360,7 +360,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "scalar_zb_AC")
             # Ablation: word-level + specialized tree (no noinit)
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
@@ -379,7 +379,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "scalar_zb_ACB")
             # Ablation: word-level + specialized tree + assign-on-first-write (champion)
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
@@ -398,7 +398,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
         elseif(POLYMUL STREQUAL "scalar_zb_ABC_nosplit")
             # Ablation: word-level + noinit + symmetric-split specialized tree
             set(POLYMUL_SOURCES
-                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/gf2x_clmul_ablation.c)
+                ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c)
             set(VARIANT_KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
             set(VARIANT_DECODE_SOURCES
                 ${HQC_REF}/src/ref/reed_muller.c
@@ -426,7 +426,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize
-                "-DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_dw_scalar_gen.h\"")
+                "-DRVV_ABLATION_HEADER=\"ablation/karatsuba_rvv_ablation_dw_scalar_gen.h\"")
         elseif(POLYMUL STREQUAL "vector_rvv_V")
             # Ablation: direct-write + RVV-vectorized recomposition.
             # Isolates the benefit of vectorized data movement in the Karatsuba tree.

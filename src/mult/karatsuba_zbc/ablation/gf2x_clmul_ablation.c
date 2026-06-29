@@ -1,4 +1,4 @@
-/* src/mult/karatsuba_zbc/gf2x_clmul_ablation.c
+/* src/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c
  *
  * Parametric ablation file for the scalar Karatsuba Zbc path.
  *

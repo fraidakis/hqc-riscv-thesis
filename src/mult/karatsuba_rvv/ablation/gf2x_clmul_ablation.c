@@ -1,13 +1,13 @@
-/* src/mult/karatsuba_rvv/gf2x_clmul_ablation.c
+/* src/mult/karatsuba_rvv/ablation/gf2x_clmul_ablation.c
  *
  * karatsuba_rvv ABLATION harness — Base-RVV reconstruction (Tier 2).
  *
- * Companion to src/mult/karatsuba_zbc/gf2x_clmul_ablation.c (scalar ablation).
+ * Companion to src/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c (scalar ablation).
  * This file isolates the two reconstruction optimizations described in
  *   docs/thesis/chapters/06-polymul-optimization.tex
  *   \section{Base-RVV Path: ...}  \label{sec:polymul-base-rvv}
  * so they can be toggled independently at compile time and benchmarked by
- * scripts/bench/run_ablation.sh --vector_rvv.
+ * scripts/bench/run_ablation.sh --mode mul --vector_rvv.
  *
  * To keep the two axes ORTHOGONAL and KAT-verifiable, every ablation
  * variant runs on the SAME fixed test bed: a generic n>>1 Karatsuba

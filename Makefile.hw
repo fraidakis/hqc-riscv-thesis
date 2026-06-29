@@ -82,22 +82,22 @@ else ifeq ($(POLYMUL),scalar_zb)
   EXTRA_CFLAGS := -fno-tree-vectorize
 else ifeq ($(POLYMUL),scalar_zb_A)
   MARCH := rv64gc_zbc_zbb_zbs
-  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul_ablation.c
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c
   EXTRA_CFLAGS := -fno-tree-vectorize -DABLATION_WORDLEVEL=1 -DABLATION_NOINIT=0 -DABLATION_AP2=0
 else ifeq ($(POLYMUL),scalar_zb_AC)
   MARCH := rv64gc_zbc_zbb_zbs
-  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul_ablation.c
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c
   EXTRA_CFLAGS := -fno-tree-vectorize -DABLATION_WORDLEVEL=1 -DABLATION_NOINIT=0 -DABLATION_AP2=1
 else ifeq ($(POLYMUL),scalar_zb_ACB)
   MARCH := rv64gc_zbc_zbb_zbs
-  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/gf2x_clmul_ablation.c
+  POLYMUL_SRC := $(SRC)/mult/karatsuba_zbc/ablation/gf2x_clmul_ablation.c
   EXTRA_CFLAGS := -fno-tree-vectorize -DABLATION_WORDLEVEL=1 -DABLATION_NOINIT=1 -DABLATION_AP2=1
 else ifeq ($(POLYMUL),vector_rvv_D)
   # Legacy ablation: direct-write discipline + scalar recomposition.
   MARCH := rv64gcv_zbc_zbb_zba_zbs
   POLYMUL_SRC := $(SRC)/mult/karatsuba_rvv/gf2x_clmul.c
   EXTRA_CFLAGS := -fno-tree-vectorize \
-    -DRVV_ABLATION_HEADER=\"karatsuba_rvv_ablation_dw_scalar_gen.h\"
+    -DRVV_ABLATION_HEADER=\"ablation/karatsuba_rvv_ablation_dw_scalar_gen.h\"
 else ifeq ($(POLYMUL),vector_rvv_V)
   # Ablation: direct-write + RVV-vectorized recomposition.
   # D is now part of scalar_zb baseline; this variant adds V on top.
