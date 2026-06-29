@@ -450,27 +450,27 @@ strings δεν δικαιολογείται: η σχετική βελτίωση 
 αμελητέα και δεν επιβάλλει πρόσθετη ISA δήλωση.
 
 %% --------------------------------------------------------------------------
-\subsection{Compiler Auto-Lowering — Όρια και Ευρήματα}
-\label{ssec:ablation-auto-lowering}
+\subsection{Idiom Recognition — Όρια και Ευρήματα}
+\label{ssec:ablation-idiom-recognition}
 
 Η ανάλυση ablation αποκαλύπτει ένα θεμελιώδες όριο στη δυνατότητα του
 μεταγλωττιστή να αξιοποιεί αυτόματα τις διαθέσιμες extensions. Ο
-\cref{tab:auto-lowering} κατηγοριοποιεί τις extensions σε δύο ομάδες:
-αυτές που εκπέμπονται αυτόματα μέσω pattern recognition (auto-lowering)
+\cref{tab:idiom-recognition} κατηγοριοποιεί τις extensions σε δύο ομάδες:
+αυτές που εκπέμπονται αυτόματα μέσω idiom recognition
 και αυτές που απαιτούν ρητή χρήση intrinsics.
 
 \begin{table}[htbp]
   \centering
-  \caption{Όριο auto-lowering: ο μεταγλωττιστής (Clang~21.1.1, \code{-O3})
+  \caption{Όριο idiom recognition: ο μεταγλωττιστής (Clang~21.1.1, \code{-O3})
     αναγνωρίζει αυτόματα scalar idioms αλλά δεν συνθέτει vector crypto
     primitives από generic C. Η στήλη \q{Auto} δηλώνει εάν η εντολή
     εκπέμπεται χωρίς ρητή παρέμβαση του προγραμματιστή.}
-  \label{tab:auto-lowering}
+  \label{tab:idiom-recognition}
   \small
-  \input{figures/ch9-discussion/auto-lowering-boundary}
+  \input{figures/ch9-discussion/idiom-recognition-boundary}
 \end{table}
 
-\paragraph{Scalar auto-lowering.}
+\paragraph{Scalar idiom recognition.}
 Ο Clang αναγνωρίζει αξιόπιστα τα ακόλουθα C idioms και εκπέμπει τις
 αντίστοιχες εντολές χωρίς manual intervention, αρκεί η extension να
 είναι ενεργή στο \code{-march} flag:
@@ -485,7 +485,7 @@ strings δεν δικαιολογείται: η σχετική βελτίωση 
 Η αξιοπιστία αυτή επιβεβαιώθηκε πειραματικά: η μεταγλώττιση του vendor
 Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
 ακριβώς \num{58} εντολές \rori — ταυτόσημο αποτέλεσμα με τη ρητή χρήση
-\code{\_\_builtin\_rotateleft64}. Η διαφορά \instret μεταξύ auto-lowered
+\code{\_\_builtin\_rotateleft64}. Η διαφορά \instret μεταξύ idiom-recognized
 και explicit builtin ανέρχεται σε $-\num{546}$ εντολές ($-\pct{0.0005}$),
 εντός θορύβου μέτρησης.
 
@@ -522,7 +522,7 @@ shift-and-XOR loop υλοποιεί carry-less πολλαπλασιασμό, δ�
 
 \paragraph{Αρχιτεκτονική συνέπεια.}
 Η παρατήρηση αυτή τεκμηριώνει τη σχεδιαστική επιλογή των Κεφαλαίων~6–7:
-τα scalar paths χρησιμοποιούν plain C με auto-lowering (ο μεταγλωττιστής
+τα scalar paths χρησιμοποιούν plain C με idiom recognition (ο μεταγλωττιστής
 αξιοποιεί αυτόματα \gls{zbb}/\gls{zba}/\gls{zbs}), ενώ τα vector paths
 απαιτούν ρητά intrinsics (\code{\_\_riscv\_vclmul\_vv\_u64m1()},
 \code{\_\_riscv\_vror\_vv\_u64m1()}). Η διαφοροποίηση δεν είναι

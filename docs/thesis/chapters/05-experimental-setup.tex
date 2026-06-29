@@ -213,7 +213,7 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
 (\cref{sec:polymul-tiers}). Αυτή η πρακτική εξυπηρετεί διπλό σκοπό: αφενός εξασφαλίζει ότι ο assembler
 απορρίπτει κάθε εντολή εκτός tier (ένα \vclmul{} σε scalar target προκαλεί
 σφάλμα μεταγλώττισης), αφετέρου επιτρέπει στον μεταγλωττιστή να αξιοποιήσει
-αυτόματα τις δηλωμένες επεκτάσεις μέσω auto-lowering (βλ.\
+αυτόματα τις δηλωμένες επεκτάσεις μέσω idiom recognition (βλ.\
 \cref{ssec:c-intrinsics}). Ο \cref{tab:march-per-variant} παρουσιάζει τις συμβολοσειρές \code{-march} ανά
 variant:
 

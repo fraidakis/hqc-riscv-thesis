@@ -14,7 +14,7 @@
   \node[box]                              (asm)    {Pure Assembly\\[-2pt]\footnotesize (\texttt{.S})};
   \node[box, right=0.8cm of asm]          (inline) {Inline Assembly\\[-2pt]\footnotesize (\texttt{\_\_asm\_\_})};
   \node[highlight, right=0.8cm of inline] (intr)   {C Intrinsics\\[-2pt]\footnotesize (\texttt{\_\_riscv\_*})};
-  \node[box, right=0.8cm of intr]         (auto)   {Auto-Lowering\\[-2pt]\footnotesize (Plain C)};
+  \node[box, right=0.8cm of intr]         (auto)   {Idiom Recognition\\[-2pt]\footnotesize (Plain C)};
 
   % Gradient spectrum bar: control[vermillion] -> optimisation[green]
   \shade[left color=figthreat!42, right color=figsolution!35, rounded corners=2pt]

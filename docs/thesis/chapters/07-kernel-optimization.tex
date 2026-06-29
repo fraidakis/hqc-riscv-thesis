@@ -19,7 +19,7 @@ SHAKE-256 και SHA3 εντός του \gls{hqc}. Μετά τη βελτιστ�
 πολλαπλασιασμού, το ποσοστό του Keccak στο συνολικό \gls{kem} \instret αυξήθηκε
 από $<\pct{1}$ σε \pct{26}–\pct{42} ανάλογα με το tier, ως άμεση συνέπεια
 του νόμου του Amdahl. Η ενότητα αυτή
-παρουσιάζει δύο υλοποιήσεις παραγωγής: scalar με \gls{zbb} auto-lowering
+παρουσιάζει δύο υλοποιήσεις παραγωγής: scalar με \gls{zbb} idiom recognition
 (Tier~1/2) και Vector-Crypto \gls{zvbb} με αρχιτεκτονική \gls{soa} δύο ροών
 (Tier~3).
 
@@ -29,19 +29,17 @@ SHAKE-256 και SHA3 εντός του \gls{hqc}. Μετά τη βελτιστ�
 
 Η φθηνότερη βελτιστοποίηση του Keccak δεν απαιτεί καμία αλλαγή στον
 πηγαίο κώδικα: αρκεί η ενεργοποίηση της \gls{zbb} στο \code{-march}, ώστε
-ο μεταγλωττιστής να εφαρμόσει auto-lowering των hot patterns σε
-εξειδικευμένες εντολές. Ο πυρήνας αυτός εξυπηρετεί τα Tier~1 και Tier~2,
-καθώς η διανυσματοποίηση επιφυλάσσεται για το Tier~3.
+ο μεταγλωττιστής να εφαρμόσει idiom recognition των hot patterns σε
+εξειδικευμένες εντολές.
 
 Η υλοποίηση αναφοράς (προερχόμενη από το PQClean~\cite{pqclean2022})
 εκτελεί τους \num{24} γύρους της μετάθεσης Keccak-f[1600], όπως αναλύεται
-στο \cref{sec:keccak-permutation}. Σε επίπεδο υλοποίησης, κάθε γύρος
+στην \cref{sec:keccak-permutation}. Σε επίπεδο υλοποίησης, κάθε γύρος
 ανάγεται σε τρία κρίσιμα patterns: περιστροφή lane μέσω \code{ROL(a, n)},
 τη μη-γραμμική πράξη \code{(\textasciitilde b) \& c} στο βήμα $\chi$, και
-XOR σταθεράς γύρου στο $\iota$. Τα patterns αυτά καθορίζουν τις ευκαιρίες
-βελτιστοποίησης σε επίπεδο ISA.
+XOR σταθεράς γύρου στο $\iota$. 
+Με ενεργή την επέκταση \gls{zbb}, ο GCC εφαρμόζει idiom recognition τριών patterns:
 
-Με ενεργή \gls{zbb}, ο Clang εφαρμόζει auto-lowering τριών patterns:
 %
 \begin{enumerate}
   \item Το macro \code{ROL(a, n)} αναγνωρίζεται ως rotation idiom και
@@ -58,15 +56,6 @@ XOR σταθεράς γύρου στο $\iota$. Τα patterns αυτά καθο�
 \gls{zbb} αποδίδει ${\approx}\speedup{1.5}$ στον απομονωμένο πυρήνα
 Keccak, χωρίς καμία αλλαγή στον πηγαίο κώδικα.
 
-Πέρα από αυτό το auto-lowering, ο scalar πυρήνας δεν προσφέρει περιθώριο
-περαιτέρω βελτιστοποίησης με χειροκίνητα intrinsics ή assembly: τα δύο hot
-patterns (rotation, AND-NOT) χαμηλώνουν ήδη σε μεμονωμένες εντολές, η
-κατάσταση των \num{1600} bits χωρά εξ ολοκλήρου στο scalar register file
-χωρίς memory bottleneck, και δεν υπάρχει scalar παραλληλισμός προς
-εκμετάλλευση. Κάθε ουσιαστικό επιπλέον κέρδος απαιτεί αλλαγή διάστασης
-ISA, δηλαδή διανυσματοποίηση (\cref{ssec:keccak-zvbb-soa}), όχι
-micro-optimization της scalar διαδρομής.
-
 %% --------------------------------------------------------------------------
 \subsection{Vector-Crypto Path: Δικαναλική SoA Αρχιτεκτονική με \Zvbb}
 \label{ssec:keccak-zvbb-soa}
@@ -78,14 +67,9 @@ micro-optimization της scalar διαδρομής.
 \RVV~1.0 (στόχος Tier~2). Χωρίς την εντολή \insn{vror.vv}, κάθε
 lane-περιστροφή του βήματος $\rho$ τριπλασιάζεται σε
 \insn{vsll.vv}+\insn{vsrl.vv}+\insn{vor.vv}, καθιστώντας τη base-\RVV
-υλοποίηση αισθητά πιο αργή από τον scalar reference αντί ταχύτερη. Το
-φαινόμενο, που ονομάζεται εδώ \defterm{RVV Paradox}, δείχνει ότι για
-ακανόνιστες μεταθέσεις (irregular permutations) η πληρότητα του ISA
-(ISA completeness) υπερτερεί του εύρους (ISA width): η μεταφορά ενός
+υλοποίηση αισθητά πιο αργή από τον scalar reference αντί ταχύτερη. Η μεταφορά ενός
 αλγορίθμου σε vector registers δεν εγγυάται επιτάχυνση όταν η κατάσταση
-(\num{1600} bits) χωρά ήδη στο scalar register file. Συνεπώς η base-\RVV
-απορρίφθηκε και η διανυσματοποίηση επιφυλάχθηκε για το Tier~3 μέσω
-\gls{zvbb}. Η ποσοτική σύγκριση δίνεται στο \cref{ch:results}.
+(\num{1600} bits) χωρά ήδη στο scalar register file.
 
 Η \gls{zvbb} extension προσθέτει δύο κρίσιμες εντολές:
 \insn{vror.vv}/\insn{vror.vi} (vector rotate-right) και \insn{vandn.vv}
@@ -928,12 +912,12 @@ I/O/μνήμη λειτουργίες). Η μείωση του \Encaps \instret 
 
 %% ============================================================================
 \ifTODO
-\section{Βελτιστοποιήσεις μέσω Compiler Auto-Lowering}
-\label{sec:auto-lowering-hqc}
+\section{Βελτιστοποιήσεις μέσω Idiom Recognition}
+\label{sec:idiom-recognition-hqc}
 
 Οι προηγούμενες ενότητες αξιοποίησαν ρητά intrinsics για κρυπτογραφικούς
 πυρήνες. Η παρούσα ενότητα αξιολογεί τον συμπληρωματικό μηχανισμό
-auto-lowering (\cf \cref{ssec:auto-lowering}): ο μεταγλωττιστής
+idiom recognition (\cf \cref{ssec:idiom-recognition}): ο μεταγλωττιστής
 αναγνωρίζει αυτόματα C idioms και εκπέμπει εξειδικευμένες εντολές χωρίς
 αλλαγή πηγαίου κώδικα — αρκεί η αντίστοιχη extension να είναι δηλωμένη
 στο \code{-march} flag. Δύο extensions αξιολογήθηκαν συστηματικά μέσω
@@ -1164,8 +1148,8 @@ target pattern εντός του hot path — μια extension με εκατον
 νόμο του Amdahl σε τρεις οικογένειες πυρήνων: Keccak/SHA-3
 (\cref{sec:keccak-optimization}), αποκωδικοποίηση \gls{rs}/\gls{rm}
 (\cref{sec:decode-optimization}), βοηθητικούς πυρήνες
-(\cref{sec:auxiliary-kernels})\ifTODO και compiler auto-lowering
-(\cref{sec:auto-lowering-hqc})\fi. Η ενότητα αυτή παρουσιάζει τη
+(\cref{sec:auxiliary-kernels})\ifTODO και idiom recognition
+(\cref{sec:idiom-recognition-hqc})\fi. Η ενότητα αυτή παρουσιάζει τη
 συνολική μεταμόρφωση του υπολογιστικού προφίλ — από τη μονοδιάστατη
 κυριαρχία ενός πυρήνα στο baseline, σε ένα κατανεμημένο τελικό σχήμα
 όπου κανένα μεμονωμένο component δεν υπερβαίνει \pct{51} του συνολικού

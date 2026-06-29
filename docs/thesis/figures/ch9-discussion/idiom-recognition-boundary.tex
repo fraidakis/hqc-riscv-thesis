@@ -1,11 +1,11 @@
-% Auto-lowering boundary: what the compiler emits automatically vs what requires intrinsics
+% Idiom-recognition boundary: what the compiler emits automatically vs what requires intrinsics
 % §9.2.4
 \begin{tabular}{l l l c l}
 \toprule
 \textbf{Extension} & \textbf{Εντολή} & \textbf{C Pattern} &
   \textbf{Auto} & \textbf{Μέθοδος} \\
 \midrule
-\multicolumn{5}{l}{\textit{Scalar — αυτόματη εκπομπή (compiler auto-lowering)}} \\
+\multicolumn{5}{l}{\textit{Scalar — αυτόματη εκπομπή (idiom recognition)}} \\
 \addlinespace[3pt]
 \Zbb & \rori & \code{(x << n) | (x >> (64-n))} & \ding{51} & \code{-march} flag \\
 \Zbb & \insn{andn} & \code{\textasciitilde a \& b} & \ding{51} & \code{-march} flag \\
