@@ -1,0 +1,89 @@
+\tikzsetnextfilename{ch6-polymul-pie-scalar-zb}
+\begin{tikzpicture}[
+    every node/.style={font=\sffamily},
+]
+
+% --- Palette via canonical component tokens (cross-figure consistency) ---
+\colorlet{colMul}{figkPolymul}
+\colorlet{colKeccak}{figkKeccak}
+\colorlet{colDecode}{figkDecode}
+\colorlet{colMem}{figkMisc}
+\colorlet{textmain}{black!75}
+\colorlet{textsub}{figneutral}
+
+% --- Parameters ---
+\def\mainCX{0}
+\def\mainCY{0}
+\def\outerR{2.8}
+\def\innerR{1.7}
+
+% Helper: ring sector (cx, cy, innerR, outerR, startAngle, endAngle, color)
+\newcommand{\ringsectorB}[7]{%
+    \fill[#7, draw=white, line width=1.2pt]
+        ([shift={(#1,#2)}] #5:#3) arc (#5:#6:#3)
+        -- ([shift={(#1,#2)}] #6:#4) arc (#6:#5:#4) -- cycle;
+}
+
+% MAIN DONUT — scalar_zb (Tier 1) L128 profile (keccak=ref, decode=ref)
+% Polymul = 36.8%  → 132.5°
+% Keccak  = 26.5%  →  95.4°
+% Decode  = 16.2%  →  58.3°
+% Other   = 20.5%  →  73.8°
+%
+% Angles: start=90, clockwise (90 -> -270)
+% Polymul:  90.0  -> -42.5
+% Keccak: -42.5  -> -137.9
+% Decode: -137.9 -> -196.2
+% Other:  -196.2 -> -270.0
+
+\ringsectorB{\mainCX}{\mainCY}{\innerR}{\outerR}{90}{-42.5}{colMul}
+\ringsectorB{\mainCX}{\mainCY}{\innerR}{\outerR}{-42.5}{-137.9}{colKeccak}
+\ringsectorB{\mainCX}{\mainCY}{\innerR}{\outerR}{-137.9}{-196.2}{colDecode}
+\ringsectorB{\mainCX}{\mainCY}{\innerR}{\outerR}{-196.2}{-270}{colMem}
+
+% Labels inside sectors
+\pgfmathsetmacro{\labelR}{(\innerR + \outerR)/2}
+
+% Polymul label (mid-angle = (90 + (-42.5))/2 = 23.7)
+\node[font=\sffamily\bfseries\small, text=white] at
+    ([shift={(\mainCX,\mainCY)}] 23.7:\labelR) {36.8\%};
+
+% Keccak label (mid-angle = (-42.5 + (-137.9))/2 = -90.2)
+\node[font=\sffamily\bfseries\small, text=white] at
+    ([shift={(\mainCX,\mainCY)}] -90.2:\labelR) {26.5\%};
+
+% Decode label (mid-angle = (-137.9 + (-196.2))/2 = -167.1)
+\node[font=\sffamily\bfseries\small, text=white] at
+    ([shift={(\mainCX,\mainCY)}] -167.1:\labelR) {16.2\%};
+
+% Other label (mid-angle = (-196.2 + (-270))/2 = -233.1)
+\node[font=\sffamily\bfseries\small, text=white] at
+    ([shift={(\mainCX,\mainCY)}] -233.1:\labelR) {20.5\%};
+
+% Center text
+\node[font=\sffamily\bfseries\large, text=textmain] at (\mainCX, \mainCY+0.15)
+    {HQC-128};
+\node[font=\sffamily\small, text=textsub] at (\mainCX, \mainCY-0.25)
+    {Scalar Zb (Tier~1)};
+
+% LEGEND (bottom)
+\def\legY{-\outerR-0.9}
+\def\legBoxSize{0.25}
+
+\fill[colMul] (-3.0, \legY) rectangle +(\legBoxSize, \legBoxSize);
+\node[font=\sffamily\scriptsize, text=textmain, anchor=west] at (-3.0+\legBoxSize+0.1, \legY+0.12)
+    {Polymul};
+
+\fill[colKeccak] (-1.2, \legY) rectangle +(\legBoxSize, \legBoxSize);
+\node[font=\sffamily\scriptsize, text=textmain, anchor=west] at (-1.2+\legBoxSize+0.1, \legY+0.12)
+    {Keccak/Hashing};
+
+\fill[colDecode] (1.2, \legY) rectangle +(\legBoxSize, \legBoxSize);
+\node[font=\sffamily\scriptsize, text=textmain, anchor=west] at (1.2+\legBoxSize+0.1, \legY+0.12)
+    {Decode};
+
+\fill[colMem] (3.0, \legY) rectangle +(\legBoxSize, \legBoxSize);
+\node[font=\sffamily\scriptsize, text=textmain, anchor=west] at (3.0+\legBoxSize+0.1, \legY+0.12)
+    {Other};
+
+\end{tikzpicture}
