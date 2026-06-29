@@ -447,33 +447,32 @@ for (size_t i = 0; i < rem; i++)
   caption={Inline RVV combine XOR (μετά).},
   label={lst:combine-xor}]
 while (rem > 0) {
-    size_t vl = __riscv_vsetvl_e64m2(rem);
-    vuint64m2_t v_dst = __riscv_vle64_v_u64m2(dst, vl);
-    vuint64m2_t v_zm = __riscv_vle64_v_u64m2(zm_p, vl);
-    vuint64m2_t v_z0 = __riscv_vle64_v_u64m2(z0_p, vl);
-    vuint64m2_t v_z2 = __riscv_vle64_v_u64m2(z2_p, vl);
-    vuint64m2_t v_acc = __riscv_vxor_vv_u64m2(v_zm, v_z0, vl);
-    v_acc = __riscv_vxor_vv_u64m2(v_acc, v_z2, vl);
-    v_dst  = __riscv_vxor_vv_u64m2(v_dst, v_acc, vl);
-    __riscv_vse64_v_u64m2(dst, v_dst, vl);
+    size_t vl = __riscv_vsetvl_e64m4(rem);
+    vuint64m4_t v_dst = __riscv_vle64_v_u64m4(dst, vl);
+    vuint64m4_t v_zm = __riscv_vle64_v_u64m4(zm_p, vl);
+    vuint64m4_t v_z0 = __riscv_vle64_v_u64m4(z0_p, vl);
+    vuint64m4_t v_z2 = __riscv_vle64_v_u64m4(z2_p, vl);
+    vuint64m4_t v_acc = __riscv_vxor_vv_u64m4(v_zm, v_z0, vl);
+    v_acc = __riscv_vxor_vv_u64m4(v_acc, v_z2, vl);
+    v_dst  = __riscv_vxor_vv_u64m4(v_dst, v_acc, vl);
+    __riscv_vse64_v_u64m4(dst, v_dst, vl);
     dst += vl; zm_p += vl; z0_p += vl; z2_p += vl;
     rem -= vl;
 }
 \end{lstlisting}
 
-Οι RVV βρόχοι χρησιμοποιούν ομοιόμορφα \LMUL=m2 (κάθε vector register group
-καταλαμβάνει \num{2} registers, \num{8} words των \num{64}-bit ανά iteration
-σε \VLEN=\num{256}): η επιλογή κρατά χαμηλό register file pressure ώστε
-ο compiler να αποφεύγει spills στον in-order X60 core. Εξετάστηκαν και μεγαλύτερα LMUL (m4,
-m8) χωρίς επιπλέον κέρδος, με την m8 μάλιστα να εμφανίζει regression λόγω register-file pressure.
+Οι RVV βρόχοι χρησιμοποιούν ομοιόμορφα \LMUL=m4 (κάθε vector register group
+καταλαμβάνει \num{4} registers, \num{16} words των \num{64}-bit ανά iteration
+σε \VLEN=\num{256}): η επιλογή μεγιστοποιεί τα elements ανά iteration χωρίς
+να προκαλεί spills στον in-order X60 core.
 
 Η διανυσματοποίηση δεν εφαρμόζεται ομοιόμορφα σε όλα τα επίπεδα του δέντρου.
 Στους κατώτερους κόμβους οι RVV βρόχοι εκτελούν μόλις \num{1}–\num{2}
 iterations, όπου το σταθερό κόστος στησίματος του διανυσματικού βρόχου
 (\insn{vsetvl} και μετάβαση scalar↔vector) δεν αποσβένεται και ακυρώνει
-το data-parallel κέρδος. Για τον λόγο αυτό η
-υλοποίηση εισάγει ένα threshold, ώστε κόμβοι με $n \leq 18$ να παραμένουν scalar, 
-ενώ κόμβοι με $n > 18$ να διατηρούν τα inline RVV intrinsics. 
+το data-parallel κέρδος. Για τον λόγο αυτό η υλοποίηση εισάγει ένα
+\defterm{hybrid threshold} $H$: κόμβοι με $n \leq H$ χρησιμοποιούν scalar
+recomposition, ενώ κόμβοι με $n > H$ διατηρούν τα inline RVV intrinsics.
 
 Συνολικά, σε σχέση με την τελική βελτιστοποιημένη υλοποίηση του Tier~1, ενώ η inlined 
 RVV ανασύνθεση μειώνει το \instret κατά \speedup{1.20}, το πραγματικό κέρδος κύκλων
@@ -488,8 +487,7 @@ RVV ανασύνθεση μειώνει το \instret κατά \speedup{1.20}, �
 αλλαγή στον πολυωνυμικό πολλαπλασιασμό: η διανυσματοποίηση εισχωρεί στον
 ίδιο τον leaf kernel, τον τετραγωνικού κόστους $\BigO{n^2}$ πυρήνα. Η εντολή \vclmul{} της \gls{zvbc}
 υπολογίζει πολλαπλά \num{64}$\times$\num{64}-bit carry-less γινόμενα
-παράλληλα σε ένα vector register group, αντικαθιστώντας τον scalar
-\clmul/\clmulh βρόχο με ένα μόνο vector iteration.
+παράλληλα σε ένα vector register group.
 
 \subsection{Διανυσματοποίηση του Schoolbook Leaf μέσω \vclmul}
 \label{ssec:vclmul-leaf}
@@ -497,8 +495,8 @@ RVV ανασύνθεση μειώνει το \instret κατά \speedup{1.20}, �
 Ο \code{vclmul\_leaf} ακολουθεί ένα scalar-vector pattern μέσω της \code{.vx}
 μορφής της \vclmul/\vclmulh: για κάθε εξωτερικό index $i$, η scalar τιμή $a[i]$
 πολλαπλασιάζεται carry-less με ολόκληρο τον εσωτερικό πίνακα $b[0 \ldots n{-}1]$,
-ο οποίος έχει φορτωθεί ως ένα vector register group. Σε \VLEN=\num{256} με
-\LMUL=m4 ισχύει $\VLMAX = (256/64) \times 4 = 16$, ακριβώς ίσο με το Karatsuba
+ο οποίος έχει φορτωθεί ως ένα vector register group. Σε \VLEN = \num{256} με
+\LMUL = m4 ισχύει $\VLMAX = (256/64) \times 4 = 16$, ακριβώς ίσο με το Karatsuba
 threshold $T=16$. Συνεπώς ο εσωτερικός $j$-βρόχος συμπτύσσεται σε μία μόνο vector
 iteration ανά $i$, εξαλείφοντας πλήρως τον scalar inner loop, ενώ τα lo/hi
 αποτελέσματα συσσωρεύονται με vector load-XOR-store στον output buffer.
@@ -534,16 +532,15 @@ for (i = 0; i < n; i++) {
 μειώνει τον αριθμό \emph{εντολών} ανά γινόμενο (ένα \vclmul{} υπολογίζει
 \VLMAX γινόμενα ταυτόχρονα), αλλά δεν αλλάζει τον αριθμό γινομένων.
 
-Η κρίσιμη αρχιτεκτονική παρατήρηση είναι ότι το μέγεθος leaf $n$ καθορίζεται
-από το Karatsuba threshold $T=16$. Σε
-\VLEN=\num{256} με \LMUL=m4, $\VLMAX = 16 = T$: ο εσωτερικός βρόχος
-εκτελείται σε ακριβώς ένα iteration, οπότε αύξηση του \VLEN σε \num{512} ή
-\num{1024} δεν μειώνει περαιτέρω τον αριθμό iterations. 
-Τα επιπλέον vector lanes παραμένουν αχρησιμοποίητα
-(tail elements), καθώς $n \leq T = 16$ σε κάθε leaf call.
+Η κρίσιμη αρχιτεκτονική παρατήρηση είναι ότι το μέγεθος leaf 
+$n$ καθορίζεται από το Karatsuba threshold $T=16$. Σε \VLEN=\num{256} 
+με \LMUL=m4, $\VLMAX = 16 = T$, δηλαδή ο εσωτερικός βρόχος
+εκτελείται σε ακριβώς ένα iteration. Επομένως η αύξηση του \VLEN σε \num{512} ή
+\num{1024} δεν μειώνει περαιτέρω τον αριθμό iterations, αφού τα επιπλέον vector 
+lanes παραμένουν αχρησιμοποίητα (tail elements).
 
 Η εμπειρική επιβεβαίωση αυτής της ανάλυσης, δηλαδή η σταθεροποίηση
-(plateau) της επίδοσης πέρα από ένα όριο \VLEN, παρουσιάζεται στη VLEN
+(plateau) της επίδοσης πέρα από ένα όριο \VLEN, παρουσιάζεται στο VLEN
 sweep (\cref{sec:vlen-scaling}). Η μοναδική πηγή πρόσθετου κέρδους σε
 μεγαλύτερο \VLEN προέρχεται από τους βρόχους ανασύνθεσης (γραμμικού
 κόστους, $\BigO{n}$ ανά κόμβο), οι οποίοι όμως αποτελούν μικρό κλάσμα του
@@ -588,10 +585,8 @@ $\approx$\pct{97} του συνολικού \instret (βλ.~\cref{sec:baseline-p
 Ήδη από το Tier~1 (\code{scalar\_zb}), το ποσοστό αυτό συρρικνώνεται σε
 $\approx$\pct{37} — ο πυρήνας παραμένει ο μεγαλύτερος contributor, αλλά
 δεν κυριαρχεί πλέον μονοπωλιακά. Ταυτόχρονα, ο Keccak/SHA-3 ανέρχεται
-από $<$\pct{1} σε $\approx$\pct{26} του συνόλου, η αποκωδικοποίηση
-(\gls{rm} + \gls{rs}) από $<$\pct{0.5} σε $\approx$\pct{16}, και οι
-λοιπές λειτουργίες (δειγματοληψία, \code{memset}/\code{memcpy}) σε
-$\approx$\pct{21}.
+από $<$\pct{1} σε $\approx$\pct{26} του συνόλου, ενώ η αποκωδικοποίηση
+(\gls{rm} + \gls{rs}) από $<$\pct{0.5} σε $\approx$\pct{16}.
 Στο Tier~3 (\code{vector\_zvk}) η ανακατανομή γίνεται ακόμη εντονότερη:
 ο polymul συρρικνώνεται σε $\approx$\pct{26}, ο Keccak κυριαρχεί πλέον
 με $\approx$\pct{42} και η decode ανέρχεται σε $\approx$\pct{27} —
@@ -625,27 +620,6 @@ polymul στον Keccak.
     (\pct{26}) — ο νόμος του Amdahl αποκαλύπτει νέα bottlenecks.}
   \label{fig:pie-redistribution}
 \end{figure}
-
-Η ποσοτική αυτή ανακατανομή αποτελεί άμεση εκδήλωση του νόμου του Amdahl.
-Έστω $f = 0.97$ το αρχικό ποσοστό του polymul και $S_\text{local} = 102$
-η τοπική επιτάχυνση στο Tier~1. Η μέγιστη θεωρητική system-level
-επιτάχυνση περιορίζεται σε:
-%
-\begin{equation}
-  S_\text{system} \leq \frac{1}{(1 - f) + f / S_\text{local}}
-  = \frac{1}{0.03 + 0.97/102}
-  \approx 23.5.
-\end{equation}
-%
-Η πραγματική μέτρηση — \speedup{35} speedup πλήρους \gls{kem} στο
-Tier~1 — υπερβαίνει αυτό το θεωρητικό όριο. Η υπέρβαση οφείλεται στο
-ότι η βελτιστοποίηση polymul μειώνει έμμεσα και το non-polymul τμήμα:
-η εξάλειψη των μεγάλων ενδιάμεσων buffers του schoolbook μειώνει το
-\code{memset} από \num{1994589} σε \num{307101} εντολές, συρρικνώνοντας
-το non-polymul κόστος κατά \speedup{1.85}. Στο Tier~3 η τοπική επιτάχυνση
-polymul φθάνει \speedup{266}, και η system-level επιτάχυνση (\speedup{56.4})
-αποκαλύπτει ότι τα μη-βελτιστοποιημένα components (Keccak, decode)
-αποτελούν τον binding constraint.
 
 Ο~\cref{tab:polymul-tier-summary} συνοψίζει την πρόοδο ανά tier. Όλες οι
 μετρήσεις αφορούν αποκλειστικά τη βελτιστοποίηση polymul: ο Keccak και η
@@ -694,7 +668,4 @@ Tier~2, η περαιτέρω μείωση του polymul ανεβάζει το�
 \cref{ch:kernel-optimization}: η βελτιστοποίηση Keccak και decode αποτελεί
 αναγκαία συνέχεια για τη μεγιστοποίηση του system-level κέρδους. Χωρίς
 αυτή, η επιτάχυνση σε επίπεδο συστήματος παραμένει δομικά περιορισμένη ανεξαρτήτως
-περαιτέρω βελτιώσεων στον πολυωνυμικό πολλαπλασιασμό. Τα αναλυτικά
-αποτελέσματα ανά security level και tier — συμπεριλαμβανομένων των
-μετρήσεων HQC-192 και HQC-256 — παρουσιάζονται στο
-\cref{ch:results}.
+περαιτέρω βελτιώσεων στον πολυωνυμικό πολλαπλασιασμό.

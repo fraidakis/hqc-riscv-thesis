@@ -177,6 +177,13 @@ bench_auto_configure_and_build() {
     local config_reason=""
     local lock_fd=""
 
+    # zvbb_x2_soa Keccak requires Clang (riscv_rvv_vector_bits attribute).
+    # Override toolchain automatically and inform the user.
+    if [[ "$_keccak" == "zvbb_x2_soa" && "$_toolchain_file" == *"gcc"* ]]; then
+        _toolchain_file="toolchain/riscv-clang.cmake"
+        echo " ├── ⚠️  Keccak zvbb_x2_soa requires Clang → switching toolchain to riscv-clang.cmake"
+    fi
+
     mkdir -p "$build_dir"
     if command -v flock >/dev/null 2>&1; then
         exec {lock_fd}>"${build_dir}.lock"

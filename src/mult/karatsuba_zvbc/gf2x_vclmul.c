@@ -8,8 +8,8 @@
  *   - Tree: compile-time specialized recursion (gen_karatsuba_specialized.py)
  *     with direct-write discipline — z0/z2 written directly to output r[],
  *     overlap-save combine, eliminating two copy loops per recursion node.
- *   - ta/tb preparation and recomposition use inline RVV intrinsics (LMUL=m2)
- *     at upper levels, scalar loops at bottom levels (hybrid threshold ≤ 18).
+ *   - ta/tb preparation and recomposition use inline RVV intrinsics (LMUL=m4)
+ *     at upper levels, scalar loops at bottom levels (hybrid threshold ≤ 29).
  *
  * The recursion tree topology is identical to karatsuba_zbc and karatsuba_rvv:
  * same split_sizes(), same threshold (T=16), same sub-problem sizes.

@@ -28,15 +28,16 @@ Usage:
   run_sweep.sh --type threshold|lmul --variant VARIANT --values "V1 V2 V3" [OPTIONS]
 
 Required:
-  --type TYPE         Sweep type: threshold or lmul
-  --variant VARIANT   Variant to sweep (e.g. vector_rvv)
+  --type TYPE         Sweep type: threshold, hybrid, or lmul
+  --variant VARIANT   Variant to sweep (e.g. vector_rvv, vector_zvk)
   --values "V1 V2…"  Space-separated values to sweep over
 
 Options:
-  --level LEVEL       Security level: 128, 192, 256 (default: 128)
+  --level LEVEL       Security level: 128, 192, 256, or all (default: 128)
   --local             Run directly on this machine (auto-detected on riscv64)
   --remote HOST       Deploy and run via SSH on HOST
   --core N            CPU core to pin to (default: 7)
+  --mode MODE         Generator mode: rvv or zvbc (default: auto from variant)
   -h, --help          Show this help and exit
 
 Sweep types:
@@ -44,6 +45,13 @@ Sweep types:
               Values are integer thresholds (e.g. "8 16 32 64").
               Calls gen_karatsuba_specialized.py --threshold T for each value,
               rebuilds, and runs the benchmark.
+
+  hybrid      Vary the RVV hybrid threshold (scalar/vector transition point).
+              Values are integer node sizes (e.g. "16 18 29 36 57").
+              Nodes with n <= value use scalar recomposition loops;
+              nodes with n > value use RVV intrinsics.
+              Calls gen_karatsuba_specialized.py --rvv-hybrid-threshold H
+              for each value, rebuilds, and runs the benchmark.
 
   lmul        Vary the LMUL (vector register grouping) setting.
               Values are LMUL identifiers (e.g. "m1 m2 m4 m8").
@@ -56,6 +64,8 @@ Notes:
 
 Examples:
   run_sweep.sh --type threshold --variant vector_rvv --values "8 16 32"
+  run_sweep.sh --type hybrid --variant vector_zvk --values "16 18 29 36 57"
+  run_sweep.sh --type hybrid --variant vector_rvv --level all --values "16 18 29 36"
   run_sweep.sh --type lmul --variant vector_rvv --values "m1 m2 m4 m8"
   run_sweep.sh --type threshold --variant vector_rvv --level 256 --values "16 32 64"
 EOF
@@ -69,6 +79,7 @@ LEVEL="128"
 REMOTE_HOST=""
 LOCAL_MODE=0
 CORE=7
+GEN_MODE=""  # auto-detected from variant if empty
 
 BENCH_DIR="${REPO_ROOT}/tests/bench"
 GEN_SCRIPT="${REPO_ROOT}/scripts/gen/gen_karatsuba_specialized.py"
@@ -141,6 +152,15 @@ while [[ $# -gt 0 ]]; do
             CORE="$2"
             shift 2
             ;;
+        --mode)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --mode requires a value (rvv or zvbc)" >&2
+                usage >&2
+                exit 1
+            fi
+            GEN_MODE="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             exit 0
@@ -157,14 +177,14 @@ done
 
 # --type is required
 if [[ -z "$SWEEP_TYPE" ]]; then
-    echo "ERROR: --type is required (threshold or lmul)" >&2
+    echo "ERROR: --type is required (threshold, hybrid, or lmul)" >&2
     usage >&2
     exit 1
 fi
 
 # Validate sweep type
-if [[ "$SWEEP_TYPE" != "threshold" && "$SWEEP_TYPE" != "lmul" ]]; then
-    echo "ERROR: --type must be 'threshold' or 'lmul', got: '$SWEEP_TYPE'" >&2
+if [[ "$SWEEP_TYPE" != "threshold" && "$SWEEP_TYPE" != "hybrid" && "$SWEEP_TYPE" != "lmul" ]]; then
+    echo "ERROR: --type must be 'threshold', 'hybrid', or 'lmul', got: '$SWEEP_TYPE'" >&2
     usage >&2
     exit 1
 fi
@@ -183,10 +203,31 @@ if [[ -z "$VALUES" ]]; then
     exit 1
 fi
 
-# Validate level
-if [[ "$LEVEL" != "128" && "$LEVEL" != "192" && "$LEVEL" != "256" ]]; then
-    echo "ERROR: --level must be one of: 128, 192, 256; got: '$LEVEL'" >&2
+# Validate level (support "all")
+if [[ "$LEVEL" != "128" && "$LEVEL" != "192" && "$LEVEL" != "256" && "$LEVEL" != "all" ]]; then
+    echo "ERROR: --level must be one of: 128, 192, 256, all; got: '$LEVEL'" >&2
     exit 1
+fi
+
+# ── Auto-detect generator mode from variant ──────────────────────────────────
+if [[ -z "$GEN_MODE" ]]; then
+    case "$VARIANT" in
+        *zvk*|*zvbc*)  GEN_MODE="zvbc" ;;
+        *)             GEN_MODE="rvv" ;;
+    esac
+fi
+
+# Validate GEN_MODE
+if [[ "$GEN_MODE" != "rvv" && "$GEN_MODE" != "zvbc" ]]; then
+    echo "ERROR: --mode must be 'rvv' or 'zvbc', got: '$GEN_MODE'" >&2
+    exit 1
+fi
+
+# ── Expand level ─────────────────────────────────────────────────────────────
+if [[ "$LEVEL" == "all" ]]; then
+    LEVELS="128 192 256"
+else
+    LEVELS="$LEVEL"
 fi
 
 # Hardware-only: must have a way to execute
@@ -289,7 +330,7 @@ case "$SWEEP_TYPE" in
         #   1. Regenerate specialized code via gen_karatsuba_specialized.py
         #   2. Rebuild the benchmark binary
         #   3. Run and collect results
-        echo "━━━ Threshold Sweep: ${VARIANT}, HQC-${LEVEL} ━━━"
+        echo "━━━ Threshold Sweep: ${VARIANT}, HQC-${LEVEL} (mode=${GEN_MODE}) ━━━"
         echo "  Values: ${VALUES}"
         echo ""
 
@@ -301,45 +342,113 @@ case "$SWEEP_TYPE" in
         echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$SWEEP_CSV"
         echo "# variant: ${VARIANT}" >> "$SWEEP_CSV"
         echo "# level: ${LEVEL}" >> "$SWEEP_CSV"
+        echo "# mode: ${GEN_MODE}" >> "$SWEEP_CSV"
         echo "# sweep_type: threshold" >> "$SWEEP_CSV"
-        echo "threshold,median_cycles,median_instret,ipc" >> "$SWEEP_CSV"
+        echo "threshold,level,median_cycles,median_instret,ipc" >> "$SWEEP_CSV"
 
         for T in $VALUES; do
             echo "━━━ T=${T} ━━━"
 
             if [[ "$LOCAL_MODE" -eq 0 ]]; then
                 # Remote: generate + build + run on the board
-                run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv --threshold $T"
-                hw_build_sweep "$LEVEL" "$VARIANT"
-                output="$(hw_run_sweep "$LEVEL" "$VARIANT")"
+                run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode ${GEN_MODE} --threshold $T"
             else
                 # Local: generate + build + run directly
-                python3 "$GEN_SCRIPT" --mode rvv --threshold "$T"
-                hw_build_sweep "$LEVEL" "$VARIANT"
-                output="$(hw_run_sweep "$LEVEL" "$VARIANT")"
+                python3 "$GEN_SCRIPT" --mode "$GEN_MODE" --threshold "$T"
             fi
 
-            print_sweep_result "T=${T}" "$output"
+            for lvl in $LEVELS; do
+                hw_build_sweep "$lvl" "$VARIANT"
+                output="$(hw_run_sweep "$lvl" "$VARIANT")"
 
-            # Record to CSV
-            cyc="$(extract_median_cycles "$output")"
-            ins="$(extract_median_instret "$output")"
-            if [[ -n "$cyc" && -n "$ins" ]]; then
-                ipc=$(awk "BEGIN {printf \"%.3f\", $ins / $cyc}")
-            else
-                cyc="${cyc:-0}"; ins="${ins:-0}"; ipc="0.000"
-            fi
-            echo "${T},${cyc},${ins},${ipc}" >> "$SWEEP_CSV"
+                print_sweep_result "T=${T} L${lvl}" "$output"
+
+                # Record to CSV
+                cyc="$(extract_median_cycles "$output")"
+                ins="$(extract_median_instret "$output")"
+                if [[ -n "$cyc" && -n "$ins" ]]; then
+                    ipc=$(awk "BEGIN {printf \"%.3f\", $ins / $cyc}")
+                else
+                    cyc="${cyc:-0}"; ins="${ins:-0}"; ipc="0.000"
+                fi
+                echo "${T},${lvl},${cyc},${ins},${ipc}" >> "$SWEEP_CSV"
+            done
             echo ""
         done
 
         # Restore default threshold (T=16)
         if [[ "$LOCAL_MODE" -eq 0 ]]; then
-            run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode rvv --threshold 16"
+            run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode ${GEN_MODE} --threshold 16"
         else
-            python3 "$GEN_SCRIPT" --mode rvv --threshold 16
+            python3 "$GEN_SCRIPT" --mode "$GEN_MODE" --threshold 16
         fi
         echo "[sweep] Restored default T=16."
+        echo ""
+        echo "Results saved to: ${SWEEP_CSV}"
+        ;;
+
+    hybrid)
+        # ── Hybrid threshold sweep ───────────────────────────────────────
+        # Vary the RVV hybrid threshold: nodes with n <= H use scalar
+        # recomposition loops, nodes with n > H use RVV intrinsics.
+        # The leaf threshold (T=16) remains fixed.
+        #
+        # For each hybrid threshold value H:
+        #   1. Regenerate specialized code with --rvv-hybrid-threshold H
+        #   2. Rebuild the benchmark binary
+        #   3. Run and collect results for all requested levels
+        echo "━━━ Hybrid Threshold Sweep: ${VARIANT}, HQC-${LEVEL} (mode=${GEN_MODE}) ━━━"
+        echo "  Values: ${VALUES}"
+        echo "  (Leaf threshold T=16 fixed; varying scalar/RVV transition point)"
+        echo ""
+
+        deploy
+        set_governor
+
+        # CSV output for sweep results (one row per H×level)
+        SWEEP_CSV="${SWEEP_OUT_DIR}/sweep_hybrid_$(bench_variant_slug "$VARIANT")_hqc${LEVEL}.csv"
+        echo "# date: $(date +'%Y-%m-%d %H:%M')" > "$SWEEP_CSV"
+        echo "# variant: ${VARIANT}" >> "$SWEEP_CSV"
+        echo "# level: ${LEVEL}" >> "$SWEEP_CSV"
+        echo "# mode: ${GEN_MODE}" >> "$SWEEP_CSV"
+        echo "# sweep_type: hybrid (rvv_hybrid_threshold)" >> "$SWEEP_CSV"
+        echo "hybrid_threshold,level,median_cycles,median_instret,ipc" >> "$SWEEP_CSV"
+
+        for H in $VALUES; do
+            echo "━━━ H=${H} (nodes ≤ ${H} → scalar recomp) ━━━"
+
+            if [[ "$LOCAL_MODE" -eq 0 ]]; then
+                run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode ${GEN_MODE} --threshold 16 --rvv-hybrid-threshold $H"
+            else
+                python3 "$GEN_SCRIPT" --mode "$GEN_MODE" --threshold 16 --rvv-hybrid-threshold "$H"
+            fi
+
+            for lvl in $LEVELS; do
+                hw_build_sweep "$lvl" "$VARIANT"
+                output="$(hw_run_sweep "$lvl" "$VARIANT")"
+
+                print_sweep_result "H=${H} L${lvl}" "$output"
+
+                # Record to CSV
+                cyc="$(extract_median_cycles "$output")"
+                ins="$(extract_median_instret "$output")"
+                if [[ -n "$cyc" && -n "$ins" ]]; then
+                    ipc=$(awk "BEGIN {printf \"%.3f\", $ins / $cyc}")
+                else
+                    cyc="${cyc:-0}"; ins="${ins:-0}"; ipc="0.000"
+                fi
+                echo "${H},${lvl},${cyc},${ins},${ipc}" >> "$SWEEP_CSV"
+            done
+            echo ""
+        done
+
+        # Restore default hybrid threshold (H=29)
+        if [[ "$LOCAL_MODE" -eq 0 ]]; then
+            run_cmd "cd ${REMOTE_DIR} && python3 scripts/gen/gen_karatsuba_specialized.py --mode ${GEN_MODE} --threshold 16 --rvv-hybrid-threshold 29"
+        else
+            python3 "$GEN_SCRIPT" --mode "$GEN_MODE" --threshold 16 --rvv-hybrid-threshold 29
+        fi
+        echo "[sweep] Restored default H=29."
         echo ""
         echo "Results saved to: ${SWEEP_CSV}"
         ;;

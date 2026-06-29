@@ -138,19 +138,43 @@ static void kmul_28(uint64_t * __restrict__ r,
     clmul_leaf_n14(r, a, b);
     clmul_leaf_n14(r + 28u, a + 14u, b + 14u);
 
-    rvv_xor_u64(ta, a, a + 14u, 14u);
-    rvv_xor_u64(tb, b, b + 14u, 14u);
+    /* ta/tb preparation: scalar XOR (n1=14) */
+    {
+        for (size_t i = 0; i < 14u; i++) {
+            ta[i] = a[i] ^ a[14u + i];
+            tb[i] = b[i] ^ b[14u + i];
+        }
+    }
 
     clmul_leaf_n14(zmid, ta, tb);
 
-    /* Save overlap region r[n0..2*n0-1] to ta */
-    rvv_copy_u64(ta, r + 14u, 14u);
+    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */
+    {
+        const uint64_t *cp_src = r + 14u;
+        uint64_t *cp_dst = ta;
+        for (size_t i = 0; i < 14u; i++)
+            cp_dst[i] = cp_src[i];
+    }
 
-    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
-    rvv_xor3_u64(r + 14u, zmid, r, r + 28u, 14u);
+    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */
+    {
+        uint64_t *dst = r + 14u;
+        const uint64_t *zm_p = zmid;
+        const uint64_t *z0_p = r;
+        const uint64_t *z2_p = r + 28u;
+        for (size_t i = 0; i < 14u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+    }
 
-    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
-    rvv_xor3_u64(r + 28u, zmid + 14u, ta, r + 42u, 14u);
+    /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */
+    {
+        uint64_t *dst = r + 28u;
+        const uint64_t *zm_p = zmid + 14u;
+        const uint64_t *z0_p = ta;
+        const uint64_t *z2_p = r + 42u;
+        for (size_t i = 0; i < 14u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+    }
 }
 
 static void kmul_29(uint64_t * __restrict__ r,
@@ -167,24 +191,54 @@ static void kmul_29(uint64_t * __restrict__ r,
     clmul_leaf_n15(r, a, b);
     clmul_leaf_n14(r + 30u, a + 15u, b + 15u);
 
-    rvv_xor_u64(ta, a, a + 15u, 14u);
-    rvv_xor_u64(tb, b, b + 15u, 14u);
-    ta[14u] = a[14u];
-    tb[14u] = b[14u];
+    /* ta/tb preparation: scalar XOR (n1=14) */
+    {
+        for (size_t i = 0; i < 14u; i++) {
+            ta[i] = a[i] ^ a[15u + i];
+            tb[i] = b[i] ^ b[15u + i];
+        }
+        ta[14u] = a[14u];
+        tb[14u] = b[14u];
+    }
 
     clmul_leaf_n15(zmid, ta, tb);
 
-    /* Save overlap region r[n0..2*n0-1] to ta */
-    rvv_copy_u64(ta, r + 15u, 15u);
+    /* Save overlap region r[n0..2*n0-1] to ta — scalar copy */
+    {
+        const uint64_t *cp_src = r + 15u;
+        uint64_t *cp_dst = ta;
+        for (size_t i = 0; i < 15u; i++)
+            cp_dst[i] = cp_src[i];
+    }
 
-    /* Loop 3A: r[n0..2*n0-1] ^= zmid[0..n0-1] ^ z0[0..n0-1] ^ z2[0..n0-1] */
-    rvv_xor3_u64(r + 15u, zmid, r, r + 30u, 15u);
+    /* Loop 3A first half: i in [0, n0) — scalar XOR3 */
+    {
+        uint64_t *dst = r + 15u;
+        const uint64_t *zm_p = zmid;
+        const uint64_t *z0_p = r;
+        const uint64_t *z2_p = r + 30u;
+        for (size_t i = 0; i < 15u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+    }
 
-    /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
-    rvv_xor3_u64(r + 30u, zmid + 15u, ta, r + 45u, 13u);
+    /* Loop 3A second half: i in [n0, 2*n1) — z0[i]=ta[i-n0] (saved copy) */
+    {
+        uint64_t *dst = r + 30u;
+        const uint64_t *zm_p = zmid + 15u;
+        const uint64_t *z0_p = ta;
+        const uint64_t *z2_p = r + 45u;
+        for (size_t i = 0; i < 13u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i] ^ z2_p[i];
+    }
 
-    /* Loop 3B: odd-n tail where z2 is absent */
-    rvv_xor3_u64(r + 43u, zmid + 28u, ta + 13u, (const uint64_t *)0, 2u);
+    /* Loop 3B: odd-n tail where z2 is absent, z0 from saved ta */
+    {
+        uint64_t *dst = r + 43u;
+        const uint64_t *zm_p = zmid + 28u;
+        const uint64_t *z0_p = ta + 13u;
+        for (size_t i = 0; i < 2u; i++)
+            dst[i] ^= zm_p[i] ^ z0_p[i];
+    }
 }
 
 static void kmul_34(uint64_t * __restrict__ r,

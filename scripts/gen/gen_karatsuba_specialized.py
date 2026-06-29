@@ -29,7 +29,9 @@ ROOT_NS = [277, 561, 901]
 # Hybrid RVV threshold: functions with n <= this use scalar recomposition loops
 # to avoid scalar↔vector pipeline transitions at the bottom recursion levels.
 # At these sizes the RVV loops process ≤2 iterations and transition overhead dominates.
-RVV_HYBRID_THRESHOLD = 18
+# Empirically validated via hardware sweep on BPI-F3 (SpacemiT X60, VLEN=256):
+#   H=29 is optimal for HQC-256 (−2.1% vs H=18) and within noise for HQC-128/192.
+RVV_HYBRID_THRESHOLD = 29
 
 # RVV LMUL: flat m2 everywhere. Empirically validated on SpacemiT X60 (VLEN=256)
 # to be optimal or within 1% of optimal at all HQC security levels. Lower LMUL
@@ -883,7 +885,7 @@ def main() -> None:
         "--rvv-hybrid-threshold",
         type=int,
         default=None,
-        help="RVV hybrid threshold: functions with n <= this use scalar loops (default: 18)",
+        help="RVV hybrid threshold: functions with n <= this use scalar loops (default: 29)",
     )
     parser.add_argument(
         "--split",

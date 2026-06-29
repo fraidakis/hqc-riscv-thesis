@@ -9,7 +9,7 @@
  *
  *   RVV-1: Replace the 4-way unrolled Karatsuba assembly loops (step 5) with
  *           standard RVV `vle64.v` / `vse64.v` / `vxor.vv` loops.
- *           Extensions: V (RVV 1.0), LMUL=m4 for XOR accumulation.
+ *           Extensions: V (RVV 1.0), uniform LMUL=m4 for all vector loops.
  *
  *   RVV-2: (No residual memset calls remain — Target 1 Track A already
  *           eliminated all memset() calls via the direct-assign write
@@ -124,10 +124,10 @@ static inline void rvv_xor_u64(uint64_t * __restrict__ dst,
     }
 }
 
-/* rvv_xor3_u64: Compute dst[i] ^= src0[i] ^ src1[i] ^ src2[i] using LMUL=m2.
+/* rvv_xor3_u64: Compute dst[i] ^= src0[i] ^ src1[i] ^ src2[i] using LMUL=m4.
  *   Used for the middle XOR accumulation loop (Loop 3) in Karatsuba assembly.
- *   LMUL=m2 allows loading three source groups (m2 each = 6 registers) plus
- *   one destination group (m2 = 2 registers) within the 32-register file.
+ *   LMUL=m4 uniform with copy/xor helpers — benchmarked with no regression
+ *   vs m2 on BPI-F3 X60 (the scalar clmul leaf dominates cycle budget).
  *
  *   For sub-range B (i >= 2*n0, z0i = 0), src0 pointer is NULL and we skip
  *   loading it (replaced with zero).
@@ -140,20 +140,20 @@ static inline void rvv_xor3_u64(uint64_t       * __restrict__ dst,
 {
     size_t n = n_words;
     while (n > 0) {
-        size_t vl = __riscv_vsetvl_e64m2(n);
-        vuint64m2_t vdst  = __riscv_vle64_v_u64m2(dst,      vl);
-        vuint64m2_t vmid  = __riscv_vle64_v_u64m2(src_zmid, vl);
-        vuint64m2_t acc = vmid;
+        size_t vl = __riscv_vsetvl_e64m4(n);
+        vuint64m4_t vdst  = __riscv_vle64_v_u64m4(dst,      vl);
+        vuint64m4_t vmid  = __riscv_vle64_v_u64m4(src_zmid, vl);
+        vuint64m4_t acc = vmid;
         if (src_z0 != (const uint64_t *)0) {
-            vuint64m2_t vz0 = __riscv_vle64_v_u64m2(src_z0, vl);
-            acc = __riscv_vxor_vv_u64m2(acc, vz0, vl);
+            vuint64m4_t vz0 = __riscv_vle64_v_u64m4(src_z0, vl);
+            acc = __riscv_vxor_vv_u64m4(acc, vz0, vl);
         }
         if (src_z2 != (const uint64_t *)0) {
-            vuint64m2_t vz2 = __riscv_vle64_v_u64m2(src_z2, vl);
-            acc = __riscv_vxor_vv_u64m2(acc, vz2, vl);
+            vuint64m4_t vz2 = __riscv_vle64_v_u64m4(src_z2, vl);
+            acc = __riscv_vxor_vv_u64m4(acc, vz2, vl);
         }
-        vdst = __riscv_vxor_vv_u64m2(vdst, acc,  vl);
-        __riscv_vse64_v_u64m2(dst, vdst, vl);
+        vdst = __riscv_vxor_vv_u64m4(vdst, acc,  vl);
+        __riscv_vse64_v_u64m4(dst, vdst, vl);
         dst      += vl;
         src_zmid += vl;
         if (src_z0 != (const uint64_t *)0) src_z0 += vl;

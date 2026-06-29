@@ -129,31 +129,23 @@ set(KECCAK_INCLUDE_DIRS "")
 set(KECCAK_COMPILE_DEFINES "")
 
 if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
-    # GCC 15 cannot compile the Zvbb x2 SoA backend due to two issues:
-    #   1) __attribute__((riscv_rvv_vector_bits(N))) is Clang-only — GCC rejects
-    #      arrays of sizeless vector types (vu64m1_fixed_t state[25]).
-    #   2) LMUL=8 register pressure in KeccakF1600_StatePermute triggers an
-    #      infinite-loop / ICE in GCC's register allocator.
-    # Workaround: fall back to the scalar reference Keccak when compiling with GCC.
-    # The Zvbc polynomial multiplier (gf2x_vclmul.c, LMUL=4) is unaffected.
+    # Track C2: top-performing consolidated Zvbb backend (single TU).
+    # Contains both single-stream fips202 API and paired-stream x2 wrappers.
+    # REQUIRES Clang: uses __attribute__((riscv_rvv_vector_bits(N))) which is
+    # a Clang-only extension.  GCC cannot compile this file.
     if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-        message(WARNING
-            "GCC cannot compile zvbb_x2_soa Keccak (sizeless array / LMUL=8 regalloc). "
-            "Falling back to ref Keccak.  Zvbc polymul remains fully vectorized.")
-        set(KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
-        set(KECCAK_COMPILE_DEFINES "")
-    else()
-        # Track C2: top-performing consolidated Zvbb backend (single TU).
-        # Contains both single-stream fips202 API and paired-stream x2 wrappers.
-        set(KECCAK_SOURCES
-            ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
-        set_source_files_properties(
-            ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
-            PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;-mrvv-vector-bits=${HQC_VECTOR_BITS}"
-                       COMPILE_DEFINITIONS "HQC_VECTOR_BITS=${HQC_VECTOR_BITS}"
-        )
-        set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
+        message(FATAL_ERROR
+            "zvbb_x2_soa Keccak requires Clang (uses riscv_rvv_vector_bits attribute). "
+            "Set HQC_KECCAK_IMPL=ref or use toolchain/riscv-clang.cmake for keccak opt builds.")
     endif()
+    set(KECCAK_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;-mrvv-vector-bits=${HQC_VECTOR_BITS}"
+                   COMPILE_DEFINITIONS "HQC_VECTOR_BITS=${HQC_VECTOR_BITS}"
+    )
+    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
 
 else()
     # Default (ref): vendor scalar fips202
