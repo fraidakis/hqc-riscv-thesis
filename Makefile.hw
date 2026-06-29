@@ -48,6 +48,15 @@ OPT      ?= O3
 #   zvbb_x2_soa  — Zvbb×2 SoA vectorized keccak (requires Zvbb)
 KECCAK   ?= ref
 
+# KECCAK_MARCH: override -march for the keccak micro-benchmark target.
+#   When unset, inherits $(MARCH) from the POLYMUL variant.
+#   Set to e.g. "rv64gc_zbc_zbs" to compile keccak without Zbb (ablation).
+KECCAK_MARCH ?=
+
+# KECCAK_LABEL: label string embedded in the binary via -DKECCAK_NAME.
+#   Defaults to "ref"; set to "ref_nozbb" for Zbb ablation builds.
+KECCAK_LABEL ?= ref
+
 # DECODE: decode implementation for the decode micro-benchmark
 #   ref   — vendor scalar reed_muller + reed_solomon (default)
 #   rvv   — RVV vectorized reed_muller + reed_solomon
@@ -314,8 +323,16 @@ $(MUL_BIN): $(MUL_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
 	@echo "Built: $@ ($(POLYMUL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
 $(KECCAK_BIN): $(KECCAK_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
-	$(CC) $(CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"ref\" $(KECCAK_SOURCES) -lm -o $@
-	@echo "Built: $@ (HQC-$(LEVEL), N_ITER=$(N_ITER))"
+ifneq ($(KECCAK_MARCH),)
+	$(CC) -$(OPT) -static -march=$(KECCAK_MARCH) -mabi=lp64d \
+	    -DSECURITY_LEVEL=$(LEVEL) -DHQC_$(LEVEL) \
+	    -DHQC_PLATFORM_HW=1 -DHQC_BENCH_MODE=1 \
+	    -DN_ITER=$(N_ITER) -DN_WARMUP=$(N_WARMUP) \
+	    $(EXTRA_CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"$(KECCAK_LABEL)\" $(KECCAK_SOURCES) -lm -o $@
+else
+	$(CC) $(CFLAGS) $(INCLUDES) -DKECCAK_NAME=\"$(KECCAK_LABEL)\" $(KECCAK_SOURCES) -lm -o $@
+endif
+	@echo "Built: $@ (KECCAK=$(KECCAK_LABEL), HQC-$(LEVEL), N_ITER=$(N_ITER))"
 
 $(DECODE_BIN): $(DECODE_SOURCES) $(BENCH_DIR)/bench_common.h $(BENCH_DIR)/perf_hw.h
 ifneq ($(DECODE_MARCH),)
