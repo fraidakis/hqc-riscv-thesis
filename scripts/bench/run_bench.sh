@@ -373,6 +373,7 @@ case "$PLATFORM" in
                 local impl_flag="ref"
                 case "$KECCAK_IMPL" in
                     opt|zvbb_*) impl_flag="opt" ;;
+                    ref_nozbb)  impl_flag="ref-nozbb" ;;
                 esac
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_header="# Keccak variant: ${KECCAK_IMPL}"
@@ -652,7 +653,15 @@ case "$PLATFORM" in
                         extra_args="DECODE=$DECODE_IMPL"
                     fi
                     ;;
-                mul|keccak)
+                keccak)
+                    # Pass KECCAK_MARCH override for Zbb ablation (ref_nozbb)
+                    if [[ "$KECCAK_IMPL" == "ref_nozbb" ]]; then
+                        extra_args="KECCAK_MARCH=rv64gc_zbc_zbs KECCAK_LABEL=ref_nozbb"
+                    elif [[ -n "$KECCAK_IMPL" && "$KECCAK_IMPL" != "ref" ]]; then
+                        extra_args="KECCAK_LABEL=$KECCAK_IMPL"
+                    fi
+                    ;;
+                mul)
                     # No extra component args needed
                     ;;
             esac
@@ -786,6 +795,7 @@ ${output}"
                 local impl_flag="ref"
                 case "$keccak_effective" in
                     opt|zvbb_*) impl_flag="opt" ;;
+                    ref_nozbb)  impl_flag="ref-nozbb" ;;
                 esac
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_label="keccak_${keccak_effective}"

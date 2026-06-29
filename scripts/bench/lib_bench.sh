@@ -58,6 +58,13 @@ bench_is_ablation_variant() {
                 *) return 1 ;;
             esac
             ;;
+        keccak)
+            # ref_nozbb is a Zbb ablation variant (keccak compiled without _zbb)
+            case "$KECCAK_IMPL" in
+                ref_nozbb) return 0 ;;
+                *) return 1 ;;
+            esac
+            ;;
         *) return 1 ;;
     esac
 }
