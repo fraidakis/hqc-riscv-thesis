@@ -55,7 +55,7 @@
 % ---------- 3. The problem ---------------------------------------------------
 \begin{frame}{Η κβαντική απειλή και η απάντηση του NIST}
   \begin{itemize}
-    \item \con{Αλγόριθμος Shor}: σπάει RSA/ECC — \HL{harvest-now, decrypt-later}.
+    \item \con{Αλγόριθμος Shor}: σπάει RSA/ECC, \HL{harvest-now, decrypt-later}.
     \item Απάντηση: standardization μετα-κβαντικής κρυπτογραφίας (PQC).
   \end{itemize}
   \vspace{0.4em}
@@ -128,7 +128,7 @@
   \end{tikzpicture}
   \end{center}
   \begin{itemize}
-    \item Κύρια μετρική: \instret\ (deterministic) — αρχιτεκτονικά αμερόληπτη σύγκριση· επικύρωση σε πραγματικό silicon (cycles).
+    \item Κύρια μετρική: \instret\ (deterministic), αρχιτεκτονικά αμερόληπτη σύγκριση, επικύρωση σε πραγματικό silicon (cycles).
   \end{itemize}
   \cite{HQC-spec2024}
 \end{frame}
@@ -176,7 +176,7 @@
     \end{axis}
   \end{tikzpicture}
   \end{center}
-  \centering\footnotesize\textcolor{neutral}{HQC-128, \instret\ vs reference — πρόοδος ανά tier.}
+  \centering\footnotesize\textcolor{neutral}{HQC-128, \instret\ vs reference, πρόοδος ανά tier.}
 \end{frame}
 
 % ---------- 9. Keccak + Decode -----------------------------------------------
@@ -196,7 +196,7 @@
     \end{axis}
   \end{tikzpicture}
   \end{center}
-  \centering\footnotesize\textcolor{neutral}{\instret\ vs reference. Keccak: \Zbb\ + vectorized permutation· Decode: vectorized RM/RS.} \cite{Bertoni2013-Keccak}
+  \centering\footnotesize\textcolor{neutral}{\instret\ vs reference. Keccak: \Zbb\ + vectorized permutation. Decode: vectorized RM/RS.} \cite{Bertoni2013-Keccak}
 \end{frame}
 
 % ---------- 10. Full-KEM results per security level --------------------------
@@ -233,13 +233,13 @@
           \addplot[mark=*,oiGreen,thick] coordinates {(256,702.8)(512,677.1)(1024,679.5)(2048,703.9)};
         \end{axis}
       \end{tikzpicture}
-      \par\footnotesize\textcolor{neutral}{HQC-128, vector\_zvk (Spike). Βέλτιστο ∼512· μικρό όφελος πέραν 256.}
+      \par\footnotesize\textcolor{neutral}{HQC-128, vector\_zvk (Spike). Βέλτιστο ∼512, μικρό όφελος πέραν 256.}
     \column{0.42\textwidth}
       \begin{block}{Real silicon (BPI-F3, K1 X60)}
         \VLEN $=256$, GCC native.\\[0.3em]
         Scalar (\Zbc/\Zbb) full \KEM:\\ \pos{\speedup{34.3}} (HQC-128).
       \end{block}
-      \footnotesize \con{HW με \Zvbc/\Zvbb μη διαθέσιμο} — στο silicon τρέχει η scalar έκδοση.
+      \footnotesize \con{HW με \Zvbc/\Zvbb μη διαθέσιμο}, στο silicon τρέχει η scalar έκδοση.
   \end{columns}
 \end{frame}
 

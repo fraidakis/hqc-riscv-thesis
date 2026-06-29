@@ -33,7 +33,7 @@ rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimiza
 polymul (HQC-128) και \speedup{512.6} στο HQC-256. Το πλήρες \gls{kem} φτάνει
 \speedup{167} (HQC-128) και \speedup{339} (HQC-256), τοποθετώντας τον
 \instret σε \num{702755}. Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
-της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion· σε εκτιμώμενους κύκλους
+της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion. Σε εκτιμώμενους κύκλους
 ρολογιού το χάσμα είναι μεγαλύτερο ($\approx 2.7\times$, \cref{ssec:avx2-gap}), και
 τόσο η άμεση σύγκριση \instret-έναντι-κύκλων όσο και η επικύρωση σε πραγματικό
 silicon παραμένουν μελλοντική εργασία (\cref{sec:future-work}).
@@ -50,7 +50,7 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 αρχιτεκτονική ανάλυση Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο
 data-independent timing subset) και εμπειρική στατιστική ανίχνευση dudect
 σε πραγματικό hardware (BPI-F3 / SpacemiT K1 X60) για τα Tier~1 και Tier~2
-variants (\cref{sec:ct-verification})· η εμπειρική dudect κάλυψη του Tier~2
+variants (\cref{sec:ct-verification}). Η εμπειρική dudect κάλυψη του Tier~2
 περιορίζεται σε επίπεδο polymul. Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
 θεωρητική CT συμμόρφωση για το Tier~3.
 \fi
@@ -58,7 +58,7 @@ variants (\cref{sec:ct-verification})· η εμπειρική dudect κάλυψ�
 \paragraph{Hardware validation}
 Τα Tier~1 και Tier~2 επικυρώθηκαν σε πραγματικό RISC-V hardware (BPI-F3,
 SpacemiT K1 X60, VLEN $= \num{256}$), παρέχοντας μετρήσεις κύκλων με pipeline
-effects (\cref{sec:hw-evaluation}). Ο scalar path επιτυγχάνει IPC $\approx 1.49$· συνεπώς ο \instret δεν αποτελεί
+effects (\cref{sec:hw-evaluation}). Ο scalar path επιτυγχάνει IPC $\approx 1.49$. Συνεπώς ο \instret δεν αποτελεί
 απόλυτο cycle predictor (υπερεκτιμά τους κύκλους κατά περίπου \pct{50}), αλλά παρέχει
 συνεπή, αναλογικό εκτιμητή κύκλων για in-order scalar κώδικα, όπου ο
 σταθερός IPC δίνει κύκλους $\approx \instret/\text{IPC}$.
@@ -70,7 +70,7 @@ effects (\cref{sec:hw-evaluation}). Ο scalar path επιτυγχάνει IPC $\
 (3)~τα όρια auto-vectorization σε crypto kernels, και (4)~η υπεροχή
 metaprogramming (code generation) έναντι hand-tuning για βαθιά αναδρομικούς
 αλγορίθμους. Η σύνθεση αυτών οδηγεί στο συμπέρασμα ότι η ISA completeness
-υπερτερεί του ISA width — η ύπαρξη της κατάλληλης εντολής (\eg \clmul, \vror)
+υπερτερεί του ISA width. Η ύπαρξη της κατάλληλης εντολής (\eg \clmul, \vror)
 αποδίδει περισσότερο από ευρύτερα vector registers χωρίς εξειδικευμένες
 λειτουργίες.
 
@@ -83,9 +83,9 @@ metaprogramming (code generation) έναντι hand-tuning για βαθιά α�
 
 \paragraph{Απουσία Tier~3 hardware validation}
 Το Tier~3 (\gls{zvbc}/\gls{zvbb}) αξιολογήθηκε αποκλειστικά σε εξομοίωση (Spike ISS)
-λόγω μη διαθεσιμότητας, κατά την εκπόνηση, εμπορικού silicon με \gls{zvbc} υποστήριξη· το πρώτο τέτοιο SoC (SpacemiT K3) κυκλοφόρησε μόλις το 2026 και επομένως δεν ήταν διαθέσιμο κατά τη διεξαγωγή της εργασίας. Τα
+λόγω μη διαθεσιμότητας, κατά την εκπόνηση, εμπορικού silicon με \gls{zvbc} υποστήριξη. Το πρώτο τέτοιο SoC (SpacemiT K3) κυκλοφόρησε μόλις το 2026 και επομένως δεν ήταν διαθέσιμο κατά τη διεξαγωγή της εργασίας. Τα
 αποτελέσματα αντιπροσωπεύουν \instret (αριθμό δυναμικά αποσυρθεισών εντολών)
-υπό ιδανικές pipeline συνθήκες — χωρίς cache misses, branch mispredictions, ή
+υπό ιδανικές pipeline συνθήκες, χωρίς cache misses, branch mispredictions, ή
 vector pipeline stalls. Η πραγματική απόδοση σε silicon αναμένεται να
 διαφοροποιηθεί ανάλογα με τη μικροαρχιτεκτονική υλοποίηση του \gls{zvbc} execution
 unit.
@@ -94,9 +94,9 @@ unit.
 Η σύγκριση με x86-64 (AVX2+PCLMULQDQ+GFNI), AMD Zen~4, και ARM Cortex-M4
 (\cref{sec:cross-architecture}) αντιπαραθέτει \instret (Spike) με κύκλους
 ρολογιού (πραγματικό hardware). Η άμεση αριθμητική σύγκριση δεν επιτρέπεται
-χωρίς επιφυλάξεις — ο \instret αποτελεί κάτω φράγμα κύκλων σε in-order pipelines, αλλά σε
+χωρίς επιφυλάξεις. Ο \instret αποτελεί κάτω φράγμα κύκλων σε in-order pipelines, αλλά σε
 superscalar/dual-issue πυρήνες (όπως ο SpacemiT X60 με IPC $\approx 1.49$)
-γίνεται άνω φράγμα· σε κάθε περίπτωση δεν ενσωματώνει ILP, OoO execution, ή
+γίνεται άνω φράγμα. Σε κάθε περίπτωση δεν ενσωματώνει ILP, OoO execution, ή
 cache effects.
 
 \paragraph{Residual OS noise στις hardware μετρήσεις}
@@ -122,14 +122,14 @@ cache effects.
 από cache contention, memory bandwidth, και NUMA effects που δεν εξετάστηκαν.
 
 \paragraph{Απουσία energy/power χαρακτηρισμού}
-Όλες οι μετρικές αφορούν performance proxies (\instret/κύκλοι)· δεν πραγματοποιήθηκαν
+Όλες οι μετρικές αφορούν performance proxies (\instret/κύκλοι). Δεν πραγματοποιήθηκαν
 μετρήσεις energy-per-operation ή power envelope. Για embedded/edge στόχευση, όπου η
 ενεργειακή κατανάλωση αποτελεί ουσιώδη διάσταση (ιδίως για τα Tier~3 vector paths),
 η ενεργειακή αποδοτικότητα παραμένει αχαρτογράφητη.
 
 \paragraph{Μονή μικροαρχιτεκτονική στην hardware validation}
 Η hardware validation των Tier~1/2 στηρίζεται σε έναν μόνο in-order πυρήνα
-(SpacemiT K1 X60)· δεν δοκιμάστηκε out-of-order RISC-V silicon. Η μεταφορά των
+(SpacemiT K1 X60). Δεν δοκιμάστηκε out-of-order RISC-V silicon. Η μεταφορά των
 cycle-based συμπερασμάτων σε άλλες μικροαρχιτεκτονικές (OoO execution, διαφορετικό
 vector pipeline) μπορεί να μεταβάλει τον IPC και άρα τη σχέση
 \instret$\leftrightarrow$κύκλων.
@@ -152,8 +152,8 @@ vector pipeline) μπορεί να μεταβάλει τον IPC και άρα �
 ανοιχτό ερευνητικό πρόβλημα. Τα υπάρχοντα εργαλεία (Binsec/Rel, ct-verif,
 HolBA) δεν υποστηρίζουν τη RISC-V vector ISA
 (\cref{ssec:ct-formal-gap}). Η ανάπτυξη formal verification
-framework για RVV θα επέτρεπε μαθηματική απόδειξη — αντί εμπειρικής
-τεκμηρίωσης — της CT ιδιότητας.
+framework για RVV θα επέτρεπε μαθηματική απόδειξη, αντί εμπειρικής
+τεκμηρίωσης, της CT ιδιότητας.
 
 \paragraph{Εμπειρική dudect validation του Tier~3}
 Με τη διαθεσιμότητα RVA23-compliant hardware (\eg ο SpacemiT K3 ή μεταγενέστερα SoCs με πλήρη
@@ -214,7 +214,7 @@ amortization του Keccak overhead μέσω $N$-way batched SHAKE. Η 2-way \gl
 βρίσκεται ακόμη σε πρώιμο στάδιο ανάπτυξης και το χρονοδιάγραμμα παραμένει
 ενδεικτικό. Η εντολή στοχεύει εφαρμογές σε επεξεργαστές κλάσης εφαρμογών (Application-class) με
 vector unit, αξιοποιώντας register group αρκετά μεγάλο ώστε να χωρά την 1600-bit
-κατάσταση Keccak ($25\times64$-bit words) — λ.χ. LMUL=8 σε \VLEN${}=256$ (group 2048 bits) —
+κατάσταση Keccak ($25\times64$-bit words), λ.χ. LMUL=8 σε \VLEN${}=256$ (group 2048 bits),
 αποθηκευμένη σε ομαδοποιημένους διανυσματικούς καταχωρητές. Εφόσον
 τυποποιηθεί, θα εξαλείψει τον Keccak πυρήνα που αποτελεί τον επόμενο Amdahl's Law
 floor στην τρέχουσα υλοποίηση (\pct{27.4} του Tier~3 \gls{kem} \instret,
@@ -223,8 +223,8 @@ floor στην τρέχουσα υλοποίηση (\pct{27.4} του Tier~3 \gl
 μειώνει το κόστος μίας μετάθεσης Keccak από $\sim$\num{2000} σε $\sim$\num{30}
 κύκλους, αποφέροντας βελτίωση \speedup{12.74} σε scheme-level Kyber-768
 (NTT + \code{vkeccak.vi}). Δεδομένου του \pct{27.4} μεριδίου του Keccak στον
-Tier~3 \gls{hqc} \gls{kem} \instret, μια προκαταρκτική προβολή — βασισμένη σε
-Spike, χωρίς hardware proof-of-concept — υποδεικνύει αναλογική βελτίωση της τάξης
+Tier~3 \gls{hqc} \gls{kem} \instret, μια προκαταρκτική προβολή, βασισμένη σε
+Spike, χωρίς hardware proof-of-concept, υποδεικνύει αναλογική βελτίωση της τάξης
 $10$–$13\times$ σε επίπεδο σχήματος για τον \gls{hqc}. Η ποσοτικοποίηση αυτή
 παραμένει εκτίμηση έως την τυποποίηση (RVS-2360) και την εμπειρική επικύρωση σε
 silicon.
@@ -241,7 +241,7 @@ decoder όσο και γενικότερα AES-GCM/GHASH workloads.
 \paragraph{Ευρύτερη εφαρμογή σε code-based PQC}
 Οι τεχνικές που αναπτύχθηκαν (compile-time specialized Karatsuba, \gls{zvbc} vectorized leaves, 2-way
 \gls{soa} Keccak) εφαρμόζονται άμεσα σε άλλα code-based σχήματα που
-χρησιμοποιούν πολυωνυμικό πολλαπλασιασμό στο $\GFpoly$ — ιδίως στο BIKE, το
+χρησιμοποιούν πολυωνυμικό πολλαπλασιασμό στο $\GFpoly$, ιδίως στο BIKE, το
 οποίο μοιράζεται τον ίδιο αλγεβρικό πυρήνα με τον \gls{hqc}. Η επέκταση της
 υλοποίησης σε BIKE θα τεκμηρίωνε τη γενικευσιμότητα της προσέγγισης.
 
@@ -251,7 +251,7 @@ decoder όσο και γενικότερα AES-GCM/GHASH workloads.
 Συνοψίζοντας, η παρούσα εργασία τεκμηρίωσε ότι οι επικυρωμένες κρυπτογραφικές
 επεκτάσεις του RISC-V επαρκούν για να φέρουν μια υλοποίηση σε καθαρό λογισμικό
 code-based \gls{pqc} σε επίπεδο απόδοσης συγκρίσιμο με εξειδικευμένες SIMD
-αρχιτεκτονικές — χωρίς custom hardware, χωρίς vendor lock-in\ifTODO, και χωρίς
+αρχιτεκτονικές, χωρίς custom hardware, χωρίς vendor lock-in\ifTODO, και χωρίς
 υποχώρηση στην ασφάλεια timing side-channels\fi. Η cryptographic agility που
 παρέχει η modular ISA φιλοσοφία του RISC-V αποδεικνύεται πρακτικά εφικτή:
 υψηλή απόδοση και αλγοριθμική ευελιξία δεν αποτελούν αντικρουόμενους στόχους.

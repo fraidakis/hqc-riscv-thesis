@@ -43,12 +43,12 @@
 
 Τρεις βασικές παρατηρήσεις αναδεικνύονται από τον πίνακα. Πρώτον, το
 Tier~3 (\code{vector\_zvk}) επιτυγχάνει \instret της ίδιας τάξης
-μεγέθους με τον x86-64 champion — ο λόγος \Decaps ανέρχεται σε
-$\num{386447}$ \instret έναντι \num{245000} κύκλων ($1.58\times$ σε δυναμικές εντολές· σε εκτιμώμενους κύκλους ρολογιού, μετά από CPI adjustment, το ρεαλιστικό χάσμα ανέρχεται σε $\approx 2.7\times$, βλ.\ \cref{ssec:methodology-caveat}). Δεύτερον, η απόσταση από τον Cortex-M4 champion
-ανέρχεται σε $\num{7502580} / \num{386447} = 19.4\times$ — αντικατοπτρίζοντας
+μεγέθους με τον x86-64 champion. Ο λόγος \Decaps ανέρχεται σε
+$\num{386447}$ \instret έναντι \num{245000} κύκλων ($1.58\times$ σε δυναμικές εντολές, σε εκτιμώμενους κύκλους ρολογιού, μετά από CPI adjustment, το ρεαλιστικό χάσμα ανέρχεται σε $\approx 2.7\times$, βλ.\ \cref{ssec:methodology-caveat}). Δεύτερον, η απόσταση από τον Cortex-M4 champion
+ανέρχεται σε $\num{7502580} / \num{386447} = 19.4\times$, αντικατοπτρίζοντας
 άμεσα την αξία του hardware carry-less πολλαπλασιασμού. Τρίτον, η παρούσα
 υλοποίηση υπερτερεί κατά $\num{38099269} / \num{386447} = 98.6\times$ έναντι
-της FAFFT σε καθαρό λογισμικό, σε scalar RISC-V — τεκμηριώνοντας ότι η αλγοριθμική
+της FAFFT σε καθαρό λογισμικό, σε scalar RISC-V, τεκμηριώνοντας ότι η αλγοριθμική
 ανωτερότητα $\BigO{n \log n}$ δεν εκδηλώνεται χωρίς κατάλληλη hardware
 υποστήριξη.
 
@@ -59,7 +59,7 @@ $\num{386447}$ \instret έναντι \num{245000} κύκλων ($1.58\times$ σ�
 Η άμεση αριθμητική σύγκριση μεταξύ \instret και κύκλων ρολογιού δεν
 επιτρέπεται χωρίς ρητές επιφυλάξεις. Οι μετρήσεις αναφοράς ενσωματώνουν
 παραλληλισμό επιπέδου εντολών (ILP), out-of-order εκτέλεση, ιεραρχία cache
-και branch prediction — παράγοντες που το Spike ISS δεν μοντελοποιεί.
+και branch prediction, παράγοντες που το Spike ISS δεν μοντελοποιεί.
 Αντίστροφα, ο \instret αποτελεί \defterm{κάτω φράγμα κύκλων} σε κάθε
 ρεαλιστικό pipeline: ένας αλγόριθμος δεν μπορεί να εκτελεστεί σε λιγότερους
 κύκλους από τις δυναμικές εντολές του, εκτός εάν ο επεξεργαστής εκμεταλλεύεται
@@ -68,11 +68,11 @@ $\num{386447}$ \instret έναντι \num{245000} κύκλων ($1.58\times$ σ�
 Η εκτίμηση CPI (Cycles Per Instruction) μέσω ανάλυσης instruction mix
 (\cref{tab:cpi-estimate}) παρέχει μια ενδεικτική γέφυρα μεταξύ \instret και
 αναμενόμενων κύκλων. Για το Tier~3, η εκτιμώμενη CPI ανέρχεται σε $1.69$
-(λόγω υψηλού ποσοστού vector memory operations, \pct{32.7} loads) — τιμή που
+(λόγω υψηλού ποσοστού vector memory operations, \pct{32.7} loads), τιμή που
 προέρχεται από ανάλυση του πλήρους \gls{kem} instruction mix και χρησιμοποιείται
 ως proxy για τη \Decaps, δεδομένου ότι η \Decaps κυριαρχείται από τον ίδιο
 polymul/Keccak πυρήνα. Η εφαρμογή του proxy CPI οδηγεί σε εκτιμώμενους
-$\num{386447} \times 1.69 \approx \num{653095}$ κύκλους για \Decaps — τιμή
+$\num{386447} \times 1.69 \approx \num{653095}$ κύκλους για \Decaps, τιμή
 που παραμένει $\num{653095} / \num{245000} = 2.7\times$ υψηλότερη από τον
 x86-64 champion.
 
@@ -80,7 +80,7 @@ x86-64 champion.
   \centering
   \caption{Εκτίμηση CPI ανά tier μέσω ανάλυσης instruction mix (HQC-128,
     πλήρες \KEM). Η στήλη \q{Εκτ.\ κύκλοι} αντιπροσωπεύει το γινόμενο
-    $\text{instret} \times \text{CPI}$ — ενδεικτική εκτίμηση, όχι μέτρηση.}
+    $\text{instret} \times \text{CPI}$, ενδεικτική εκτίμηση, όχι μέτρηση.}
   \label{tab:cpi-estimate}
   \begin{tabular}{l S[table-format=7.0] c S[table-format=7.0] S[table-format=2.1]}
     \toprule
@@ -124,13 +124,13 @@ look-up tables), μεταφράζοντας κάθε λογικό βήμα σε 
 
 Η ποσοτική διαφορά είναι εντυπωσιακή: η \Decaps στον Cortex-M4 απαιτεί
 \cycles{7502580} κύκλους, ενώ το Tier~3 της παρούσας εργασίας εκτελεί
-\cycles{386447} δυναμικές εντολές — λόγος $19.4\times$. Ακόμη και υπό τη
+\cycles{386447} δυναμικές εντολές, λόγος $19.4\times$. Ακόμη και υπό τη
 συντηρητική υπόθεση CPI $= 2.0$ για τον RISC-V pipeline (σημαντικά
 υψηλότερη από την εκτιμώμενη $1.69$), οι αναμενόμενοι κύκλοι
 ($\approx\num{772894}$) παραμένουν $9.7\times$ χαμηλότεροι.
 
-Η παρατήρηση αυτή δεν αποτελεί κριτική της αρχιτεκτονικής Cortex-M4 —
-αντικατοπτρίζει τη θεμελιώδη αρχιτεκτονική αναγκαιότητα εξειδικευμένων
+Η παρατήρηση αυτή δεν αποτελεί κριτική της αρχιτεκτονικής Cortex-M4.
+Αντικατοπτρίζει τη θεμελιώδη αρχιτεκτονική αναγκαιότητα εξειδικευμένων
 εντολών για αποδοτική μετα-κβαντική κρυπτογραφία βασισμένη σε κώδικες.
 Η ενσωμάτωση \gls{zbc}/\gls{zvbc} στο RISC-V ISA δεν αποτελεί αισθητική σχεδιαστική
 επιλογή αλλά προϋπόθεση ανταγωνιστικής απόδοσης σε code-based \gls{pqc}.
@@ -145,7 +145,7 @@ look-up tables), μεταφράζοντας κάθε λογικό βήμα σε 
 $\GFpoly$, θεωρητικά ανώτερη από τον Karatsuba ($\BigO{n^{\log_2 3}}
 \approx \BigO{n^{1.585}}$). Παρ' όλα αυτά, η FAFFT σε καθαρό λογισμικό
 υλοποίηση σε scalar RISC-V (CV32E40P)~\cite{ras-nist2025} απαιτεί
-\cycles{38099269} κύκλους για \Decaps HQC-128 — $98.6\times$ περισσότερους
+\cycles{38099269} κύκλους για \Decaps HQC-128, $98.6\times$ περισσότερους
 από τους \cycles{386447} \instret του Tier~3 Karatsuba.
 
 Τρεις δομικοί παράγοντες εξηγούν αυτό το παράδοξο.
@@ -170,7 +170,7 @@ hardware επιτάχυνση των inner-loop primitives. Ο σταθερός
 \paragraph{Ασυμβατότητα tower-field με \vclmul.}
 Ο FAFFT λειτουργεί σε extension fields $\GF{2^m}$ μέσω tower-field
 αναπαράστασης. Η εντολή \vclmul εκτελεί carry-less πολλαπλασιασμό σε
-$\GF{2}[x]$ (πολυωνυμική αναπαράσταση) — δεν υποστηρίζει απευθείας
+$\GF{2}[x]$ (πολυωνυμική αναπαράσταση), δεν υποστηρίζει απευθείας
 αριθμητική σε tower-field βάσεις. Η μετατροπή μεταξύ αναπαραστάσεων
 (change-of-basis) εισάγει πρόσθετο κόστος που εξουδετερώνει το
 ασυμπτωτικό πλεονέκτημα \cite{Chen2026-TCHES-HQC-FFT}.
@@ -178,7 +178,7 @@ $\GF{2}[x]$ (πολυωνυμική αναπαράσταση) — δεν υπο�
 Η ανάλυση αυτή δικαιώνει την επιλογή Karatsuba με compile-time specialized tree ως champion αλγορίθμου
 σε όλα τα tiers. Η FAFFT αποκτά πρακτική αξία μόνο σε αρχιτεκτονικές με
 ευρείς SIMD registers (AVX2/AVX-512 YMM/ZMM) ή με εξειδικευμένο hardware accelerator
-(ANDROMEDA~\cite{ras-nist2025}) — σενάρια εκτός του πεδίου εφαρμογής
+(ANDROMEDA~\cite{ras-nist2025}), σενάρια εκτός του πεδίου εφαρμογής
 της παρούσας υλοποίησης σε καθαρό λογισμικό.
 
 %% --------------------------------------------------------------------------
@@ -197,7 +197,7 @@ GFNI (Galois Field New Instructions) στον AMD EPYC 9754 (x86-64).
 Η εντολή \code{PCLMULQDQ} εκτελεί $1 \times 64$-bit carry-less γινόμενο ανά
 εντολή σε 128-bit XMM registers, ενώ ο AVX2 encoding επιτρέπει λειτουργία
 σε 256-bit YMM registers. Η αντίστοιχη \vclmul στο
-\VLEN$= \num{256}$ επεξεργάζεται $4 \times 64$-bit products σε LMUL$=$m1 —
+\VLEN$= \num{256}$ επεξεργάζεται $4 \times 64$-bit products σε LMUL$=$m1,
 υψηλότερο arithmetic throughput ανά εντολή. Η κρίσιμη διαφορά βρίσκεται
 στη register file: οι x86-64 processors διαθέτουν 16 YMM registers
 ($= \SI{512}{\byte}$ register file) στο AVX2 mode, ενώ ο RISC-V παρέχει
@@ -209,13 +209,13 @@ GFNI (Galois Field New Instructions) στον AMD EPYC 9754 (x86-64).
 Οι σύγχρονοι high-performance desktop cores (Intel Golden Cove, AMD Zen~4) εκτελούν 5–6 micro-ops ανά
 κύκλο μέσω out-of-order scheduling, εκμεταλλευόμενοι τον παραλληλισμό
 μεταξύ ανεξάρτητων Karatsuba sub-problems. Ο SpacemiT K1 X60 (dual-issue,
-in-order) δεν μπορεί να αξιοποιήσει αυτόν τον παραλληλισμό — κάθε εντολή
+in-order) δεν μπορεί να αξιοποιήσει αυτόν τον παραλληλισμό. Κάθε εντολή
 εκτελείται σειριακά εκτός εάν ο μεταγλωττιστής εκθέτει ρητά ILP μέσω instruction
 scheduling.
 
 \paragraph{Αλγοριθμική ωριμότητα: FFT+CRT έναντι Karatsuba.}
 Η υλοποίηση \cite{Chen2026-TCHES-HQC-FFT} αξιοποιεί additive FFT σε
-συνδυασμό με CRT decomposition — αλγοριθμική προσέγγιση που μειώνει τον
+συνδυασμό με CRT decomposition, αλγοριθμική προσέγγιση που μειώνει τον
 αριθμό carry-less πολλαπλασιασμών στο asymptotic regime. Η παρούσα εργασία
 χρησιμοποιεί Karatsuba με compile-time specialized tree ($\BigO{n^{1.585}}$), ο οποίος υπερτερεί σε
 πρακτικά μεγέθη χωρίς GFNI αλλά παράγει περισσότερες XOR operations στα
@@ -226,7 +226,7 @@ RISC-V vector crypto υποστήριξη στον LLVM βρίσκεται ακ�
 
 Παρά τους παράγοντες αυτούς, η σύγκλιση σε $1.58\times$ \instret
 τεκμηριώνει ότι η αλγοριθμική αποδοτικότητα της RISC-V υλοποίησης είναι
-ανταγωνιστική — το εναπομένον χάσμα αποδίδεται κυρίως σε
+ανταγωνιστική. Το εναπομένον χάσμα αποδίδεται κυρίως σε
 μικροαρχιτεκτονικούς παράγοντες (issue width, OoO scheduling) και αλγοριθμική
 διαφοροποίηση (FFT+CRT έναντι Karatsuba) παρά σε εγγενή ISA υστέρηση.
 Η γεφύρωση αναμένεται μέσω: (α)~εκτέλεσης σε out-of-order RISC-V cores
@@ -239,12 +239,12 @@ RISC-V vector crypto υποστήριξη στον LLVM βρίσκεται ακ�
 
 Η ετερογενής σύγκριση αποκαλύπτει τρία θεμελιώδη ευρήματα. Πρώτον, η
 παρουσία hardware carry-less πολλαπλασιασμού αποτελεί τον κυρίαρχο παράγοντα
-απόδοσης σε code-based \gls{pqc} — η διαφορά μεταξύ αρχιτεκτονικών με
+απόδοσης σε code-based \gls{pqc}. Η διαφορά μεταξύ αρχιτεκτονικών με
 (\gls{zbc}, \code{PCLMULQDQ}, \code{PMULL}) και χωρίς (Cortex-M4) τέτοια
 υποστήριξη υπερβαίνει μία τάξη μεγέθους. Δεύτερον, η ασυμπτωτική
 πολυπλοκότητα αλγορίθμου (FAFFT $\BigO{n \log n}$ έναντι Karatsuba
 $\BigO{n^{1.585}}$) δεν μεταφράζεται σε πρακτικό πλεονέκτημα χωρίς
-κατάλληλη hardware υποστήριξη — η επιλογή αλγορίθμου πρέπει να
+κατάλληλη hardware υποστήριξη. Η επιλογή αλγορίθμου πρέπει να
 συν-σχεδιάζεται με την αρχιτεκτονική στόχο. Τρίτον, η RISC-V υλοποίηση
 με ratified extensions επιτυγχάνει αλγοριθμική αποδοτικότητα ανταγωνιστική
 του x86-64 FFT+CRT champion ($1.58\times$ σε \instret), τεκμηριώνοντας ότι η
@@ -260,7 +260,7 @@ modular ISA φιλοσοφία του RISC-V παρέχει επαρκή εργ�
 αφαιρείται μεμονωμένα από τη \code{-march} σημαία μεταγλώττισης και
 μετράται η επίπτωση στο \instret μέσω ντετερμινιστικής εκτέλεσης στον
 Spike \gls{iss}. Όλες οι vector ablation μετρήσεις αναφέρονται σε \VLEN $= \num{256}$ bit (Spike \code{zvl256b}). Η μεθοδολογία αυτή παρέχει αιτιώδη αντιστοίχιση μεταξύ
-hardware δυνατοτήτων και αλγοριθμικής απόδοσης — πληροφορία κρίσιμη τόσο
+hardware δυνατοτήτων και αλγοριθμικής απόδοσης, πληροφορία κρίσιμη τόσο
 για σχεδιαστές hardware (ποιες extensions αξίζει να υλοποιηθούν) όσο και
 για προγραμματιστές (ποιες extensions πρέπει να στοχεύσουν).
 
@@ -273,8 +273,8 @@ hardware δυνατοτήτων και αλγοριθμικής απόδοσης
 στη μέγιστη μετρηθείσα βελτίωση σε οποιοδήποτε variant και security level.
 Μόνο τέσσερις scalar extensions (\gls{zbc}, \gls{zbb}, \gls{zba}, \gls{zbs}) και
 τρεις vector extensions (\RVV, \gls{zvbc}, \gls{zvbb}) παρουσιάζουν μετρήσιμη
-συνεισφορά· οι υπόλοιπες απορρίφθηκαν λόγω μηδενικής ή αμελητέας
-επίδρασης. Σημειώνεται ότι οι \ext{Zicond} και \ext{Zcb} απορρίπτονται εδώ αποκλειστικά για λόγους απόδοσης (αμελητέα επίδραση στο \gls{hqc})· παραμένουν ωστόσο υποχρεωτικές στο RVA23U64 profile, οπότε είναι ούτως ή άλλως παρούσες στο hardware-στόχο του vector path, απλώς χωρίς όφελος για το \gls{hqc}.
+συνεισφορά. Οι υπόλοιπες απορρίφθηκαν λόγω μηδενικής ή αμελητέας
+επίδρασης. Σημειώνεται ότι οι \ext{Zicond} και \ext{Zcb} απορρίπτονται εδώ αποκλειστικά για λόγους απόδοσης (αμελητέα επίδραση στο \gls{hqc}). Παραμένουν ωστόσο υποχρεωτικές στο RVA23U64 profile, οπότε είναι ούτως ή άλλως παρούσες στο hardware-στόχο του vector path, απλώς χωρίς όφελος για το \gls{hqc}.
 
 \begin{table}[htbp]
   \centering
@@ -282,15 +282,15 @@ hardware δυνατοτήτων και αλγοριθμικής απόδοσης
     Η στήλη \q{Στατικές} αναφέρεται στον αριθμό εντολών της extension που
     εντοπίζονται στο ELF μέσω \code{llvm-objdump}. Η στήλη \q{Δ\%}
     αντιπροσωπεύει τη μέγιστη μετρηθείσα μείωση \instret σε οποιοδήποτε
-    variant. Για \gls{zvbc}/\gls{zvbb} η μέτρηση είναι συνδυαστική (commit \code{20def7e})
-    — βλ.\ \cref{fig:waterfall-ablation}.}
+    variant. Για \gls{zvbc}/\gls{zvbb} η μέτρηση είναι συνδυαστική (commit \code{20def7e}),
+    βλ.\ \cref{fig:waterfall-ablation}.}
   \label{tab:ablation-summary}
   \small
   \input{figures/ch9-discussion/ablation-summary-table}
 \end{table}
 
 Η ιεραρχία συνεισφοράς αποκαλύπτει σαφή δομή. Η \gls{zbc} αποτελεί τη
-θεμελιώδη extension — η εντολή \clmul μετασχηματίζει τον πολυωνυμικό
+θεμελιώδη extension. Η εντολή \clmul μετασχηματίζει τον πολυωνυμικό
 πολλαπλασιασμό από $\BigO{n^2}$ bit-serial πράξεις σε $\BigO{n}$
 word-level carry-less γινόμενα, παρέχοντας μείωση \pct{99} στο \instret
 του \code{vect\_mul} (από \cycles{18639752} σε \cycles{184108}, HQC-128) και
@@ -302,8 +302,8 @@ register file, εξαλείφοντας τον scalar loop overhead και πα�
 πυρήνα μέσω native rotations (\rori, \insn{vror.vv}), ενώ η \gls{zba}
 βελτιστοποιεί τη pointer αριθμητική στα vector paths.
 
-Η σειρά εφαρμογής στο \cref{fig:waterfall-ablation} δεν είναι τυχαία —
-αντικατοπτρίζει τη σειρά tiers (Tier~1 → Tier~2 → Tier~3) και
+Η σειρά εφαρμογής στο \cref{fig:waterfall-ablation} δεν είναι τυχαία.
+Αντικατοπτρίζει τη σειρά tiers (Tier~1 → Tier~2 → Tier~3) και
 αποκαλύπτει ένα φαινόμενο Amdahl: κάθε extension επιταχύνει ένα
 διαφορετικό bottleneck, και η σχετική συνεισφορά εξαρτάται από το ποσοστό
 χρόνου που καταλαμβάνει ο στοχευόμενος πυρήνας μετά τις προηγούμενες
@@ -339,7 +339,7 @@ register file, εξαλείφοντας τον scalar loop overhead και πα�
 Η επέκταση \gls{zba} παρέχει εντολές address generation (\insn{sh1add},
 \insn{sh2add}, \insn{sh3add}) που συγχωνεύουν ένα shift-left με πρόσθεση
 σε μία μόνο εντολή. Ο μηχανισμός βελτιστοποίησης περιγράφεται στο
-\cref{ssec:zba-address-gen} — η παρούσα ενότητα παρουσιάζει τα ποσοτικά
+\cref{ssec:zba-address-gen}. Η παρούσα ενότητα παρουσιάζει τα ποσοτικά
 αποτελέσματα.
 
 Ο \cref{fig:zba-ablation} αποκαλύπτει έντονη ασυμμετρία μεταξύ variants.
@@ -358,19 +358,19 @@ register file, εξαλείφοντας τον scalar loop overhead και πα�
 
 Η ερμηνεία της ασυμμετρίας βρίσκεται στη δομή του hot path. Στην
 \code{vector\_zvk}, οι vector leaf κλήσεις (\code{vclmul\_leaf})
-λειτουργούν σε pointer-addressed array slices — κάθε αναδρομικό επίπεδο
+λειτουργούν σε pointer-addressed array slices. Κάθε αναδρομικό επίπεδο
 υπολογίζει \code{a + half} για \code{uint64\_t*} δείκτες, εκπέμποντας
 \code{slli reg, half, 3} + \code{add reg, base, reg}. Με \gls{zba}, αυτό
 γίνεται μία εντολή \insn{sh3add}. Ο Karatsuba tree για HQC-128 εκτελεί
 $\approx 70$ αναδρομικές κλήσεις (εκτίμηση βάσει των \num{211} στατικών
-\insn{sh3add} εντολών στο ELF, βλ.\ \cref{tab:ablation-summary}), καθεμία με 3–5 pointer υπολογισμούς — συνολικά 210–350 ζεύγη \code{slli+add} που συγχωνεύονται.
+\insn{sh3add} εντολών στο ELF, βλ.\ \cref{tab:ablation-summary}), καθεμία με 3–5 pointer υπολογισμούς, συνολικά 210–350 ζεύγη \code{slli+add} που συγχωνεύονται.
 
 Αντίθετα, στην \code{scalar\_zb} ο scalar leaf (\code{clmul\_leaf\_n8})
 χρησιμοποιεί compact inner loops με σταθερά loop bounds: κάθε πρόσβαση
 αντιστοιχεί σε \code{r[i+j]} με $i$, $j$ γνωστά στον μεταγλωττιστή ως
 μικρά σταθερά, ώστε ο base-plus-offset addressing mode να εφαρμόζεται
 χωρίς dynamic scaling. Η \gls{zba} δεν έχει τίποτα να συγχωνεύσει στο
-hot loop — η εξοικονόμηση περιορίζεται στον εξωτερικό αναδρομικό κώδικα,
+hot loop. Η εξοικονόμηση περιορίζεται στον εξωτερικό αναδρομικό κώδικα,
 ο οποίος αποτελεί αμελητέο ποσοστό του συνολικού \instret.
 
 Η \code{vector\_rvv} παρουσιάζει ενδιάμεση βελτίωση ($-\pct{1.03}$
@@ -379,7 +379,7 @@ polymul, $-\pct{0.67}$ \gls{kem}) διότι χρησιμοποιεί scalar \cl
 ωφελούνται μερικώς.
 
 Η \gls{zba} ενεργοποιήθηκε στα \code{-march} strings των Tier~2 και
-Tier~3 variants. Η επέκταση ανήκει στο RVA22U64 profile — κάθε
+Tier~3 variants. Η επέκταση ανήκει στο RVA22U64 profile. Κάθε
 standards-conformant application processor που υλοποιεί \RVV παρέχει
 ήδη \gls{zba}, επομένως η ενεργοποίηση δεν εισάγει πρόσθετη hardware
 απαίτηση.
@@ -401,7 +401,7 @@ standards-conformant application processor που υλοποιεί \RVV παρέ
 
 Η επέκταση \gls{zbs} παρέχει εντολές single-bit manipulation
 (\insn{bset}, \insn{bclr}, \insn{bext}, \insn{binv}). Ο μηχανισμός
-βελτιστοποίησης περιγράφεται στην~\cref{ssec:zbs-single-bit} — η παρούσα
+βελτιστοποίησης περιγράφεται στην~\cref{ssec:zbs-single-bit}. Η παρούσα
 ενότητα παρουσιάζει τα ποσοτικά αποτελέσματα.
 
 Ο \cref{fig:zbs-ablation} δείχνει ότι η \gls{zbs} ωφελεί αποκλειστικά
@@ -426,11 +426,11 @@ bit-scatter: \code{v[word] |= (1ULL << bit\_pos)}. Με \gls{zbs}, το
   \item \code{scalar\_zb} \Decaps: $-\num{14684}$ \instret ($-\pct{0.71}$)
   \item \code{scalar\_ref} \Decaps: $-\num{14684}$ \instret ($-\pct{0.025}$)
   \item \code{vector\_rvv} / \code{vector\_zvk}: $-\num{881}$ \instret
-        ($-\pct{0.12}$ επί συνολικού \KEM· $-\pct{0.22}$ επί \Decaps) — αμελητέο
+        ($-\pct{0.12}$ επί συνολικού \KEM, $-\pct{0.22}$ επί \Decaps), αμελητέο
 \end{itemize}
 
 Η απόλυτη εξοικονόμηση είναι \emph{ταυτόσημη} μεταξύ \code{scalar\_ref}
-και \code{scalar\_zb} ($-\num{14684}$ \instret) — η διαφορά στο σχετικό
+και \code{scalar\_zb} ($-\num{14684}$ \instret). Η διαφορά στο σχετικό
 ποσοστό ($\pct{0.025}$ έναντι $\pct{0.71}$) αντικατοπτρίζει αποκλειστικά
 τη διαφορά στο συνολικό \instret (παρονομαστής). Η παρατήρηση αυτή
 επιβεβαιώνει ότι η βελτίωση προέρχεται από τη shared \code{vector.c}
@@ -438,8 +438,8 @@ bit-scatter: \code{v[word] |= (1ULL << bit\_pos)}. Με \gls{zbs}, το
 
 Τα vector variants παρουσιάζουν σημαντικά μικρότερο απόλυτο κέρδος
 ($-\num{881}$ \instret) διότι το συνολικό τους \instret
-(\cycles{702755} για \code{vector\_zvk}, σε βάση συνολικού \KEM) είναι $4.8\times$ μικρότερο
-— η συνάρτηση \code{vect\_write\_support\_to\_vector} αποτελεί μικρότερο
+(\cycles{702755} για \code{vector\_zvk}, σε βάση συνολικού \KEM) είναι $4.8\times$ μικρότερο.
+Η συνάρτηση \code{vect\_write\_support\_to\_vector} αποτελεί μικρότερο
 κλάσμα του συνολικού φόρτου. Η \gls{zbs} δεν έχει vector αντίστοιχο και
 ο scalar bit-scatter παραμένει στο shared code path, οπότε η εξοικονόμηση
 ($-\pct{0.12}$ επί συνολικού \KEM, ισοδύναμη με $-\pct{0.22}$ επί \Decaps) είναι πραγματική αλλά αμελητέα.
@@ -484,7 +484,7 @@ strings δεν δικαιολογείται: η σχετική βελτίωση 
 
 Η αξιοπιστία αυτή επιβεβαιώθηκε πειραματικά: η μεταγλώττιση του vendor
 Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
-ακριβώς \num{58} εντολές \rori — ταυτόσημο αποτέλεσμα με τη ρητή χρήση
+ακριβώς \num{58} εντολές \rori, ταυτόσημο αποτέλεσμα με τη ρητή χρήση
 \code{\_\_builtin\_rotateleft64}. Η διαφορά \instret μεταξύ idiom-recognized
 και explicit builtin ανέρχεται σε $-\num{546}$ εντολές ($-\pct{0.0005}$),
 εντός θορύβου μέτρησης.
@@ -506,16 +506,16 @@ Keccak (\code{fips202.c}) με \code{-march=rv64gc\_zbc\_zbb} παράγει
 
   \item \textbf{CI opcode verification:} Το script
     \code{check\_opcodes.sh} επαληθεύει σε κάθε push ότι τα vector
-    variant ELFs περιέχουν \vclmul/\vclmulh — εντολές που εμφανίζονται
+    variant ELFs περιέχουν \vclmul/\vclmulh, εντολές που εμφανίζονται
     \emph{αποκλειστικά} λόγω ρητών intrinsics στον πηγαίο κώδικα.
     Χωρίς τα hand-written intrinsic kernels, κανένα \vclmul δεν θα
     υπήρχε στο binary.
 \end{enumerate}
 
-Η αδυναμία αυτή δεν αποτελεί σφάλμα του μεταγλωττιστή — αντικατοπτρίζει τη
+Η αδυναμία αυτή δεν αποτελεί σφάλμα του μεταγλωττιστή. Αντικατοπτρίζει τη
 σημασιολογική πολυπλοκότητα των vector crypto operations. Η εντολή
 \vclmul εκτελεί carry-less πολλαπλασιασμό (XOR αντί ADD στα partial
-products) — μια σημασιολογία που δεν αντιστοιχεί σε κανένα standard C
+products), μια σημασιολογία που δεν αντιστοιχεί σε κανένα standard C
 operator. Ο μεταγλωττιστής δεν μπορεί να αναγνωρίσει ότι ένας generic
 shift-and-XOR loop υλοποιεί carry-less πολλαπλασιασμό, διότι η
 αντιστοίχιση απαιτεί αλγοριθμική γνώση πέρα από pattern matching.
@@ -526,7 +526,7 @@ shift-and-XOR loop υλοποιεί carry-less πολλαπλασιασμό, δ�
 αξιοποιεί αυτόματα \gls{zbb}/\gls{zba}/\gls{zbs}), ενώ τα vector paths
 απαιτούν ρητά intrinsics (\code{\_\_riscv\_vclmul\_vv\_u64m1()},
 \code{\_\_riscv\_vror\_vv\_u64m1()}). Η διαφοροποίηση δεν είναι
-αυθαίρετη — αντικατοπτρίζει ένα θεμελιώδες όριο στη δυνατότητα
+αυθαίρετη. Αντικατοπτρίζει ένα θεμελιώδες όριο στη δυνατότητα
 αυτόματης βελτιστοποίησης: ο μεταγλωττιστής μπορεί να αναγνωρίσει
 \emph{αριθμητικά} patterns (περιστροφή, shift-add) αλλά όχι
 \emph{αλγεβρικά} patterns (carry-less πολλαπλασιασμός σε $\GFpoly$).
@@ -536,7 +536,7 @@ shift-and-XOR loop υλοποιεί carry-less πολλαπλασιασμό, δ�
 ότι η αφαίρεση \gls{zbb} εισάγει $+\pct{10.31}$ επιβάρυνση (επί συνολικού \gls{kem}) στο HQC-128 \gls{kem}
 (βλ.\ \cref{tab:zbb-ablation-tier1}). Η επιβάρυνση προέρχεται
 αποκλειστικά από τον Keccak πυρήνα: καθένα από τα \num{58} \emph{στατικά} \rori sites (ανά ELF) εκτείνεται από μία εντολή \rori σε τρεις εντολές
-(\code{slli + srli + or}), δηλαδή $+\num{116}$ στατικές εντολές· το δυναμικό κόστος ($+\num{355789}$ \instret στο HQC-128) προκύπτει από τις πολλές κλήσεις μετάθεσης κατά τη \Decaps. Η φθίνουσα τάση ($\pct{10.31}$ στο L128 →
+(\code{slli + srli + or}), δηλαδή $+\num{116}$ στατικές εντολές. Το δυναμικό κόστος ($+\num{355789}$ \instret στο HQC-128) προκύπτει από τις πολλές κλήσεις μετάθεσης κατά τη \Decaps. Η φθίνουσα τάση ($\pct{10.31}$ στο L128 →
 $\pct{5.99}$ στο L256) επιβεβαιώνει φαινόμενο Amdahl: ο Karatsuba
 πολυωνυμικός πολλαπλασιασμός κλιμακώνεται υπεργραμμικά με το security
 level, ενώ ο αριθμός περιστροφών Keccak παραμένει σταθερός.
@@ -545,7 +545,7 @@ level, ενώ ο αριθμός περιστροφών Keccak παραμένει
   \centering
   \caption{Ablation \Zbb στο Tier~1 champion (\code{scalar\_zb}).
     Η αφαίρεση \Zbb εκτείνει κάθε \rori σε τρεις εντολές, εισάγοντας
-    \num{116} πρόσθετες \emph{στατικές} εντολές (\num{58} sites $\times 2$)· το δυναμικό κόστος προκύπτει από τις πολλές κλήσεις μετάθεσης.
+    \num{116} πρόσθετες \emph{στατικές} εντολές (\num{58} sites $\times 2$). Το δυναμικό κόστος προκύπτει από τις πολλές κλήσεις μετάθεσης.
     Η στήλη \q{Με \gls{zbb}} προέρχεται από τα τρέχοντα variant reports
     (commit \code{20def7e}). Η στήλη \q{Χωρίς \gls{zbb}} υπολογίζεται
     ως $\text{Με Zbb} + \Delta$, όπου $\Delta$ αντλείται από το
@@ -571,8 +571,8 @@ level, ενώ ο αριθμός περιστροφών Keccak παραμένει
 Η \gls{zbb} αποτελεί υποχρεωτική hard ISA constraint για το Tier~1 profile.
 Η επιβάρυνση $\pct{6}$–$\pct{10}$ δεν αντισταθμίζεται από κανένα
 πλεονέκτημα portability: κάθε RISC-V processor που υλοποιεί \gls{zbc} (η
-θεμελιώδης απαίτηση για carry-less multiply) παρέχει ταυτόχρονα \gls{zbb} —
-silicon με \gls{zbc} χωρίς \gls{zbb} δεν απαντάται στα γνωστά production RVA22/RVA23 cores. Η
+θεμελιώδης απαίτηση για carry-less multiply) παρέχει ταυτόχρονα \gls{zbb}.
+Silicon με \gls{zbc} χωρίς \gls{zbb} δεν απαντάται στα γνωστά production RVA22/RVA23 cores. Η
 τελική ISA baseline του Tier~1 ορίζεται ως \code{rv64gc\_zbc\_zbb}.
 
 \paragraph{Zbkb: λειτουργική ισοδυναμία με Zbb.}
@@ -585,7 +585,7 @@ Spike). Η \ext{Zbkb} απορρίφθηκε υπέρ της \gls{zbb} λόγω 
 διαθεσιμότητας: κάθε processor με \ext{Zbkb} υλοποιεί και \gls{zbb}, αλλά
 το αντίστροφο δεν ισχύει.
 
-Συνοψίζοντας, το ablation αποκαλύπτει σαφή ιεραρχία συνεισφοράς: \gls{zbc} $\gg$ \RVV/\gls{zvbc} $\gg$ \gls{zbb} $\gg$ \gls{zba}/\gls{zbs}. Η carry-less πολλαπλασιαστική υποστήριξη (\gls{zbc}/\gls{zvbc}) είναι ο καθοριστικός παράγοντας, ενώ οι bit-manipulation extensions προσφέρουν οριακά οφέλη. Πέρα όμως από την απόδοση, κάθε extension επιφέρει και κόστος σε μέγεθος κώδικα — ζήτημα που εξετάζεται στην επόμενη ενότητα.
+Συνοψίζοντας, το ablation αποκαλύπτει σαφή ιεραρχία συνεισφοράς: \gls{zbc} $\gg$ \RVV/\gls{zvbc} $\gg$ \gls{zbb} $\gg$ \gls{zba}/\gls{zbs}. Η carry-less πολλαπλασιαστική υποστήριξη (\gls{zbc}/\gls{zvbc}) είναι ο καθοριστικός παράγοντας, ενώ οι bit-manipulation extensions προσφέρουν οριακά οφέλη. Πέρα όμως από την απόδοση, κάθε extension επιφέρει και κόστος σε μέγεθος κώδικα, ζήτημα που εξετάζεται στην επόμενη ενότητα.
 
 \section{Συνολικός Συμβιβασμός Μεγέθους Κώδικα έναντι Απόδοσης}
 \label{sec:code-size-tradeoff}
@@ -620,7 +620,7 @@ Spike). Η \ext{Zbkb} απορρίφθηκε υπέρ της \gls{zbb} λόγω 
 επιτυγχάνεται έτσι εις βάρος ακριβώς αυτού του στατικού αποτυπώματος.
 
 Ο συμβιβασμός αυτός δεν είναι μονότονος ως προς την απόδοση. Το μέγεθος του κώδικα
-μεγιστοποιείται στο Tier~1 — το πλήρως unrolled scalar Karatsuba δέντρο —
+μεγιστοποιείται στο Tier~1, το πλήρως unrolled scalar Karatsuba δέντρο,
 και όχι στο ταχύτερο tier. Η αντιπαραβολή Tier~1 και Tier~3 είναι
 αποκαλυπτική: το Tier~3 εκτελεί τον πολλαπλασιασμό σε \num{63804} έναντι
 \num{184108} εντολών (ταχύτερο κατά \speedup{2.89}) ενώ ταυτόχρονα καταλαμβάνει
@@ -635,7 +635,7 @@ unrolled scalar schoolbook product με συμπαγείς \vclmul{} βρόχο�
 μία διακριτή συνάρτηση ανά μέγεθος κόμβου, ενώ οι τέσσερις leaf specializations
 (\code{clmul\_leaf\_n8}/\code{n9}/\code{n14}/\code{n15}) προσθέτουν σταθερό
 αποτύπωμα ανά security level. Η compact-loop δομή των leaves περιορίζει
-το per-leaf footprint σε σχέση με πλήρες unrolling — ωστόσο, η πολλαπλότητα
+το per-leaf footprint σε σχέση με πλήρες unrolling. Ωστόσο, η πολλαπλότητα
 κόμβων και leaves στο δέντρο αθροίζει σε $\sim$\SI{9}{\kilo\byte} επιπλέον
 έναντι του \code{scalar\_ref}.
 
@@ -645,7 +645,7 @@ unrolled scalar schoolbook product με συμπαγείς \vclmul{} βρόχο�
 unrolling καθορίζεται από τη μορφή του δέντρου αναδρομής στο επιλεγμένο
 threshold και όχι από το bit-length της παραμέτρου. Συνολικά, η μετάβαση στο
 Vector-Crypto leaf δεν συνιστά συμβιβασμό μεγέθους και απόδοσης αλλά ταυτόχρονη
-βελτίωση και των δύο· η ανακατανομή του υπολογιστικού προφίλ που προκύπτει από
+βελτίωση και των δύο. Η ανακατανομή του υπολογιστικού προφίλ που προκύπτει από
 τις επιλογές αυτές αναλύθηκε στην~\cref{sec:polymul-assessment}.
 
 %% --------------------------------------------------------------------------
@@ -716,7 +716,7 @@ $6.66\times$ μεγαλύτερο μέγεθος κώδικα από τη refere
   \end{tabular}
 \end{table}
 
-Ο \cref{tab:instret-per-kb} αποκαλύπτει τεράστια διακύμανση. Η μετρική ορίζεται ρητά ως ο λόγος του \Decaps \instret (HQC-128) προς το μέγεθος \code{.text} του πλήρους \KEM binary σε kilobytes, και προκύπτει απευθείας από τις δύο πρώτες στήλες του πίνακα: το Tier~3 επιτυγχάνει $\num{386447} / 44.9 = \num{8607}$ instret/KB — $\num{44720} / \num{8607} = 5.2\times$ αποδοτικότερο από το Tier~1 και $\num{1879545} / \num{8607} = 218\times$ αποδοτικότερο από τη reference. Πρόκειται για λόγους αποδοτικότητας (\instret ανά \code{.text} KB), όχι για speedup ratios. Η βελτίωση αυτή αντικατοπτρίζει τον συνδυασμό
+Ο \cref{tab:instret-per-kb} αποκαλύπτει τεράστια διακύμανση. Η μετρική ορίζεται ρητά ως ο λόγος του \Decaps \instret (HQC-128) προς το μέγεθος \code{.text} του πλήρους \KEM binary σε kilobytes, και προκύπτει απευθείας από τις δύο πρώτες στήλες του πίνακα: το Tier~3 επιτυγχάνει $\num{386447} / 44.9 = \num{8607}$ instret/KB, $\num{44720} / \num{8607} = 5.2\times$ αποδοτικότερο από το Tier~1 και $\num{1879545} / \num{8607} = 218\times$ αποδοτικότερο από τη reference. Πρόκειται για λόγους αποδοτικότητας (\instret ανά \code{.text} KB), όχι για speedup ratios. Η βελτίωση αυτή αντικατοπτρίζει τον συνδυασμό
 δραματικής μείωσης δυναμικών εντολών (ISA completeness,
 \cref{ssec:principle-completeness}) με ελάχιστη αύξηση στατικού κώδικα
 (VLA strip-mining, \cref{ssec:principle-vla}).
@@ -733,10 +733,10 @@ $6.66\times$ μεγαλύτερο μέγεθος κώδικα από τη refere
 \paragraph{I-cache budget.}
 Ο SpacemiT K1 X60 διαθέτει \SI{32}{\kilo\byte} L1 I-cache ανά πυρήνα.
 Το μεγαλύτερο πλήρες \gls{kem} binary (Tier~3, HQC-256) ανέρχεται σε
-\SI{56.1}{\kilo\byte} — υπερβαίνει την L1i αλλά χωρά πλήρως στην L2
+\SI{56.1}{\kilo\byte}, υπερβαίνει την L1i αλλά χωρά πλήρως στην L2
 (\SI{512}{\kilo\byte} ανά cluster). Η working-set ανάλυση
 αποκαλύπτει ότι ο hot path κατά τη \Decaps (polymul leaf + Keccak
-μετάθεση + combine loops) δεν υπερβαίνει τα \SI{12}{\kilo\byte} —
+μετάθεση + combine loops) δεν υπερβαίνει τα \SI{12}{\kilo\byte},
 πολύ εντός της L1i. Η I-cache pressure αφορά μόνο cold-start transitions
 μεταξύ πυρήνων (polymul → Keccak → decode), οι οποίες συμβαίνουν
 σπάνια εντός μίας \Decaps κλήσης ($< 10$ transitions).
@@ -758,7 +758,7 @@ $6.66\times$ μεγαλύτερο μέγεθος κώδικα από τη refere
 polymul \code{.text} και \instret ανά tier. Η κρίσιμη παρατήρηση
 είναι η \emph{αρνητική} συσχέτιση μεταξύ Tier~1 και Tier~3: η
 μετάβαση σε vector-crypto leaf μειώνει ταυτόχρονα μέγεθος κώδικα
-\emph{και} εντολές — αντίθετα από τον κλασικό συμβιβασμό
+\emph{και} εντολές, αντίθετα από τον κλασικό συμβιβασμό
 \q{αύξηση κώδικα για μείωση εντολών} που ισχύει εντός του scalar
 path. Η δομική αιτία αναλύθηκε στην \cref{sec:polymul-codesize}:
 η VLA vectorization αντικαθιστά $\BigO{n^2}$ ξεδιπλωμένες scalar
@@ -772,7 +772,7 @@ path. Η δομική αιτία αναλύθηκε στην \cref{sec:polymul-c
     \code{scalar\_ref} εντολές ($\num{18639752}$) παραλείπονται λόγω
     κλίμακας. Η αρνητική συσχέτιση μεταξύ Tier~1 και Tier~3
     τεκμηριώνει ότι η vectorization αποτελεί ταυτόχρονη βελτίωση
-    και στους δύο άξονες σε επίπεδο polymul kernel· αντιθέτως, η σύγκλιση μεγεθών που τεκμηριώνεται στην \cref{ssec:codesize-summary} αφορά το πλήρες \KEM binary. Πηγή: \cref{tab:microbench-polymul}.}
+    και στους δύο άξονες σε επίπεδο polymul kernel. Αντιθέτως, η σύγκλιση μεγεθών που τεκμηριώνεται στην \cref{ssec:codesize-summary} αφορά το πλήρες \KEM binary. Πηγή: \cref{tab:microbench-polymul}.}
   \label{fig:code-size-dual-axis}
 \end{figure}
 
@@ -784,8 +784,8 @@ path. Η δομική αιτία αναλύθηκε στην \cref{sec:polymul-c
 έναντι απόδοσης} εκδηλώνεται \emph{μόνο εντός} ενός δεδομένου tier
 (βάθος ξεδιπλώματος στο scalar path) και \emph{όχι μεταξύ} tiers. Η παρατήρηση εντός-tier παραμένει ποιοτική, καθώς δεν υπάρχουν per-unroll-depth μετρήσεις στο παρόν dataset (πρβλ.\ \cref{sec:polymul-codesize}).
 Η μετάβαση σε ευρύτερο ISA (Tier~1 → Tier~2 → Tier~3) βελτιώνει
-ταυτόχρονα αποδοτικότητα \emph{και} compactness στον polymul πυρήνα —
-ενώ τα πλήρη \gls{kem} binaries των τριών optimized tiers (\code{-O2}) συγκλίνουν σε \SIrange{40}{57}{\kilo\byte}, εντός των ορίων κάθε ρεαλιστικού deployment target· το \code{scalar\_ref} ($\approx\SI{23}{\kilo\byte}$ στο \code{-O2}) βρίσκεται \emph{κάτω} από αυτή τη ζώνη παρά το τεράστιο \instret του, και εξαιρείται ρητά από τη σύγκλιση.
+ταυτόχρονα αποδοτικότητα \emph{και} compactness στον polymul πυρήνα,
+ενώ τα πλήρη \gls{kem} binaries των τριών optimized tiers (\code{-O2}) συγκλίνουν σε \SIrange{40}{57}{\kilo\byte}, εντός των ορίων κάθε ρεαλιστικού deployment target. Το \code{scalar\_ref} ($\approx\SI{23}{\kilo\byte}$ στο \code{-O2}) βρίσκεται \emph{κάτω} από αυτή τη ζώνη παρά το τεράστιο \instret του, και εξαιρείται ρητά από τη σύγκλιση.
 Η επιλογή tier δεν πρέπει να βασίζεται σε code-size ανησυχίες αλλά
 αποκλειστικά στη διαθεσιμότητα ISA extensions στο hardware target.
 
@@ -796,8 +796,8 @@ path. Η δομική αιτία αναλύθηκε στην \cref{sec:polymul-c
 Η ποιότητα του παραγόμενου κώδικα εξαρτάται κρίσιμα από τον μεταγλωττιστή,
 ιδιαίτερα σε αρχιτεκτονικές με πρόσφατες extensions όπου τα compiler backends
 βρίσκονται ακόμη σε ωρίμανση. Η ενότητα αυτή αξιολογεί συστηματικά τους
-δύο μεταγλωττιστές που χρησιμοποιήθηκαν στην παρούσα εργασία — Clang~20.1.2
-(LLVM)~\cite{LLVM-20} και GCC~14.2.0~\cite{GCC-14} — μέσω μετρήσεων κύκλων σε
+δύο μεταγλωττιστές που χρησιμοποιήθηκαν στην παρούσα εργασία, Clang~20.1.2
+(LLVM)~\cite{LLVM-20} και GCC~14.2.0~\cite{GCC-14}, μέσω μετρήσεων κύκλων σε
 πραγματικό υλικό BPI-F3 (SpacemiT K1). Η σύγκριση αναδεικνύει ότι ο GCC υπερτερεί σταθερά στον
 integer/bit-manipulation κρίσιμο δρόμο του HQC (polymul, Keccak, decode), ενώ
 το πλεονέκτημα του Clang περιορίζεται σε floating-point φόρτους που δεν
@@ -811,7 +811,7 @@ integer/bit-manipulation κρίσιμο δρόμο του HQC (polymul, Keccak, 
 Κάθε variant μεταγλωττίστηκε με αμφότερους τους μεταγλωττιστές σε τρία
 επίπεδα βελτιστοποίησης (\code{-O2}, \code{-O3}, \code{-Os}) και
 εκτελέστηκε στο πραγματικό υλικό BPI-F3 (SpacemiT K1). Η μετρική σύγκρισης είναι ο ελάχιστος
-αριθμός κύκλων μεταξύ των τριών optimization levels — δηλαδή ο βέλτιστος
+αριθμός κύκλων μεταξύ των τριών optimization levels, δηλαδή ο βέλτιστος
 δυνατός κώδικας που παράγει κάθε μεταγλωττιστής. Η μεθοδολογία αυτή
 εξαλείφει τον παράγοντα \q{λάθος flag} και εστιάζει στην εγγενή
 ποιότητα codegen.
@@ -820,7 +820,7 @@ integer/bit-manipulation κρίσιμο δρόμο του HQC (polymul, Keccak, 
 \Decaps) και όχι σε μεμονωμένους πυρήνες, ώστε να αποτυπωθεί η
 αλληλεπίδραση μεταξύ inlining decisions, register allocation pressure,
 και interprocedural optimization. Τα αποτελέσματα αφορούν ταυτόσημο
-πηγαίο κώδικα — η μόνη μεταβλητή είναι ο μεταγλωττιστής.
+πηγαίο κώδικα. Η μόνη μεταβλητή είναι ο μεταγλωττιστής.
 
 %% --------------------------------------------------------------------------
 \subsection{Ποσοτικά Αποτελέσματα}
@@ -847,7 +847,7 @@ security level, και tier. Η στήλη \q{Δ\%} αντιπροσωπεύει
 
 \paragraph{Εύρημα 1: Ο GCC υπερτερεί στον scalar κώδικα.}
 Στα Tier~0 και Tier~1 variants, ο GCC παράγει σταθερά λιγότερες δυναμικές
-εντολές — η υπεροχή κυμαίνεται από \pct{6.0} (\code{scalar\_zb}, L192)
+εντολές. Η υπεροχή κυμαίνεται από \pct{6.0} (\code{scalar\_zb}, L192)
 έως \pct{26.8} (\code{scalar\_zb}, L256). Η εξήγηση βρίσκεται στη
 δομή του hot path: ο scalar leaf (\code{clmul\_leaf\_n8}) χρησιμοποιεί
 compact inner loops με σταθερά bounds, παράγοντας ακολουθίες
@@ -872,7 +872,7 @@ Karatsuba tree. Η διαφορά εντείνεται στο L256 ($N = \num{90
 βρίσκεται στη δομή του πηγαίου κώδικα: ο code generator
 (\code{gen\_karatsuba\_specialized.py}) εκπέμπει πλήρως εξειδικευμένες
 συναρτήσεις με σταθερά loop bounds και compile-time-resolved offsets.
-Ο μεταγλωττιστής δεν έχει αποφάσεις βελτιστοποίησης να λάβει — ο κώδικας
+Ο μεταγλωττιστής δεν έχει αποφάσεις βελτιστοποίησης να λάβει. Ο κώδικας
 είναι ήδη \q{pre-optimized} σε source level. Η παρατήρηση αυτή
 επιβεβαιώνει την αξία του metaprogramming
 (βλ.\ \cref{ssec:principle-metaprogramming}): η εξειδίκευση σε source
@@ -882,7 +882,7 @@ level εξαλείφει την εξάρτηση από τον optimization leve
 GCC παρουσιάζει σημαντική διακύμανση: \code{-O3} παράγει \cycles{113958344}
 \instret (βέλτιστο), ενώ \code{-Os} παράγει \cycles{122366611} ($+\pct{7.4}$).
 Η διαφορά αποδίδεται στο aggressive loop unrolling που εφαρμόζει ο
-\code{-O3} στον bit-serial schoolbook πολλαπλασιασμό — ένα pattern που
+\code{-O3} στον bit-serial schoolbook πολλαπλασιασμό, ένα pattern που
 δεν υπάρχει στα optimized variants λόγω της πλήρους εξειδίκευσης.
 
 %% --------------------------------------------------------------------------
@@ -920,8 +920,8 @@ crypto extensions είναι τριπλή:
 \section{Επαλήθευση Σταθερού Χρόνου: Αποτελέσματα και Ερμηνεία}
 \label{sec:ct-verification}
 
-Η μεθοδολογία επαλήθευσης σταθερού χρόνου εκτέλεσης — το μοντέλο απειλής, τα
-σχεδιαστικά πρότυπα και η εμπειρική dudect μεθοδολογία — παρουσιάστηκε στο
+Η μεθοδολογία επαλήθευσης σταθερού χρόνου εκτέλεσης, το μοντέλο απειλής, τα
+σχεδιαστικά πρότυπα και η εμπειρική dudect μεθοδολογία, παρουσιάστηκε στο
 \cref{sec:ct-methodology}. Η ενότητα αυτή παρουσιάζει και ερμηνεύει τα
 εμπειρικά αποτελέσματα, ξεκινώντας από ένα μεθοδολογικό εύρημα που επηρέασε
 τον σχεδιασμό των μετρήσεων.
@@ -931,12 +931,12 @@ crypto extensions είναι τριπλή:
 \label{ssec:ct-cache-bias}
 
 Κατά την αρχική ανάπτυξη, ο dudect harness παρήγαγε false positives στη
-vendor υλοποίηση αναφοράς (\code{scalar\_ref}) — κώδικα γνωστό ως
+vendor υλοποίηση αναφοράς (\code{scalar\_ref}), κώδικα γνωστό ως
 constant-time. Η ανάλυση αιτίας αποκάλυψε συστηματική ασυμμετρία
 κατάστασης cache μεταξύ των δύο κλάσεων.
 
 Στη naive interleaved προσέγγιση, τα Class~B operands γράφονται από τον
-\gls{prng} αμέσως πριν τη μέτρηση — θερμαίνοντας τις αντίστοιχες cache
+\gls{prng} αμέσως πριν τη μέτρηση, θερμαίνοντας τις αντίστοιχες cache
 lines στην L1d. Τα Class~A operands (pre-generated, επαναχρησιμοποιούμενα)
 ενδέχεται να είναι cold λόγω ενδιάμεσων evictions. Ο t-test ανιχνεύει
 ορθά μια χρονική διαφορά, η οποία όμως αντικατοπτρίζει cache miss patterns
@@ -968,7 +968,7 @@ wall-clock κόστους ανά \Decaps κλήση.
   \centering
   \caption{Αποτελέσματα dudect: t-statistics ανά variant, security level,
     και target.  Threshold: $|t| < 4.5$. Η στήλη $N$ αναφέρει τον
-    αριθμό μετρήσεων που συλλέχθηκαν — τα polymul targets εξαντλούν το
+    αριθμό μετρήσεων που συλλέχθηκαν. Τα polymul targets εξαντλούν το
     πλήρες budget (\num{100000}), ενώ το \gls{kem} target σταμάτησε στις
     \num{26000} λόγω wall-clock κόστους. Όλα τα optimized variants
     περνούν με t-statistics πολύ κάτω από το threshold.}
@@ -988,7 +988,7 @@ wall-clock κόστους ανά \Decaps κλήση.
 \end{table}
 
 Τρεις παρατηρήσεις αναδεικνύονται. Πρώτον, όλες οι βελτιστοποιημένες
-υλοποιήσεις περνούν με t-statistics πολύ κάτω από το threshold $4.5$ —
+υλοποιήσεις περνούν με t-statistics πολύ κάτω από το threshold $4.5$,
 τεκμηριώνοντας ότι οι βελτιστοποιήσεις (Karatsuba recursion, \gls{zbc}
 carry-less πολλαπλασιασμός, \RVV vectorization) δεν εισάγουν timing
 side-channels. Δεύτερον, ο first-order test ($t_1$) αποτυπώνει raw
@@ -996,7 +996,7 @@ timing distribution differences, ενώ ο second-order ($t_2$, percentile-cropp
 αποτυπώνει λεπτότερη διαρροή μετά την αφαίρεση OS/interrupt θορύβου.
 Τρίτον, οι τιμές $t_1$ του \code{vector\_rvv} ($\approx -2.0$) είναι
 ελαφρώς υψηλότερες από τις αντίστοιχες του \code{scalar\_zb}
-($\approx -0.5$) — αναμενόμενο λόγω vector unit pipeline variability —
+($\approx -0.5$), αναμενόμενο λόγω vector unit pipeline variability,
 αλλά παραμένουν στατιστικά μη σημαντικές.
 
 %% --------------------------------------------------------------------------
@@ -1033,14 +1033,14 @@ timing distribution differences, ενώ ο second-order ($t_2$, percentile-cropp
 Κανένα υπάρχον binary analysis framework δεν ερμηνεύει τις εντολές
 \vclmul, \vclmulh, ή το vector-length-agnostic execution model
 (strip-mining, \insn{vsetvli} state machine) που διέπει τη λειτουργία
-αυτών των εντολών. Το HolBA έχει επιδείξει αξιόπιστη \emph{επαλήθευση ορθότητας} (functional correctness) RISC-V binaries — συμπεριλαμβανομένου του ChaCha20 σε base ISA — μέσω symbolic execution
+αυτών των εντολών. Το HolBA έχει επιδείξει αξιόπιστη \emph{επαλήθευση ορθότητας} (functional correctness) RISC-V binaries, συμπεριλαμβανομένου του ChaCha20 σε base ISA, μέσω symbolic execution
 στο HOL4 theorem prover~\cite{Palmskog2025-HolBA-RISCV}, ενώ το Bedrock2 παρέχει correct-by-construction
 compilation με αποδεδειγμένες constant-time εγγυήσεις σε RISC-V machine code~\cite{Conoly2025-Bedrock2CT}. Ωστόσο, κανένα από τα δύο δεν διαθέτει
-μοντέλα για τη σημασιολογία VLA εκτέλεσης — τον \code{vtype} CSR, το
+μοντέλα για τη σημασιολογία VLA εκτέλεσης, τον \code{vtype} CSR, το
 δυναμικό \VLMAX, και τις tail/mask agnostic πολιτικές.
 
 Η εμπειρική dudect μεθοδολογία αποτελεί state-of-the-art για αυτές τις
-νέες ISA extensions. Η προσέγγιση αυτή ακολουθεί την πρακτική των mupq/pqm4 frameworks \cite{pqm4} (Valgrind on host σε συνδυασμό με timing μετρήσεις στο target) —
+νέες ISA extensions. Η προσέγγιση αυτή ακολουθεί την πρακτική των mupq/pqm4 frameworks \cite{pqm4} (Valgrind on host σε συνδυασμό με timing μετρήσεις στο target),
 αναγνωρισμένη πρακτική στην κοινότητα \gls{pqc} benchmarking.
 
 %% --------------------------------------------------------------------------
@@ -1073,7 +1073,7 @@ compilation με αποδεδειγμένες constant-time εγγυήσεις �
 \end{table}
 
 Η αρχιτεκτονική ανάλυση Zkt παρέχει ντετερμινιστική τεκμηρίωση ότι κάθε
-εντολή στα critical paths ανήκει στο data-independent timing subset — ισχύει
+εντολή στα critical paths ανήκει στο data-independent timing subset, ισχύει
 για όλα τα variants ανεξαρτήτως hardware διαθεσιμότητας.
 Η dudect παρέχει ground-truth εμπειρική τεκμηρίωση στο πραγματικό
 deployment target, επαληθεύοντας ότι η μικροαρχιτεκτονική συμπεριφορά
@@ -1100,10 +1100,10 @@ caveats πρέπει να αναγνωριστούν ρητά:
 \end{itemize}
 
 Αντίστροφα, ένα failing αποτέλεσμα ($|t| > 4.5$) αποτελεί ισχυρό θετικό
-δείκτη — false positives με $|t| > 4.5$ είναι αστρονομικά απίθανα υπό
+δείκτη. False positives με $|t| > 4.5$ είναι αστρονομικά απίθανα υπό
 τη μηδενική υπόθεση ($p < 6.8 \times 10^{-6}$). Η ασυμμετρία αυτή
-καθιστά τη dudect ιδιαίτερα αξιόπιστη ως εργαλείο ανίχνευσης (detection)
-— λιγότερο ως εργαλείο απόδειξης απουσίας (proof of absence).
+καθιστά τη dudect ιδιαίτερα αξιόπιστη ως εργαλείο ανίχνευσης (detection),
+λιγότερο ως εργαλείο απόδειξης απουσίας (proof of absence).
 
 Η υποδομή multi-run (\code{run\_multi.sh}, N$=$10 ανεξάρτητα trials με
 διαφορετικά seeds) σχεδιάστηκε για να ενισχύσει την τεκμηρίωση
@@ -1111,7 +1111,7 @@ caveats πρέπει να αναγνωριστούν ρητά:
 συγγραφής, δεν εκτελέστηκε πλήρης publish-mode multi-run campaign
 ($N = \num{10000000}$ ανά trial) λόγω του υπερβολικού wall-clock κόστους
 στο BPI-F3. Ο \cref{tab:dudect-results} περιλαμβάνει αποκλειστικά
-μεμονωμένα dev-mode runs — η εξαγωγή ισχυρότερων στατιστικών
+μεμονωμένα dev-mode runs. Η εξαγωγή ισχυρότερων στατιστικών
 συμπερασμάτων μέσω πολλαπλών ανεξάρτητων trials αποτελεί μελλοντική
 εργασία. Παρ' όλα αυτά, η σύγκλιση αμφοτέρων των t-statistics ($t_1$,
 $t_2$) σε χαμηλά απόλυτα επίπεδα παρέχει ενδεικτική βεβαιότητα ότι δεν
@@ -1127,10 +1127,10 @@ extensions παραμένει ανοιχτό ερευνητικό πρόβλημ
 Η βελτιστοποιημένη υλοποίηση \gls{hqc} διατηρεί constant-time συμπεριφορά σε
 όλα τα optimized variants (\code{scalar\_zb}, \code{vector\_rvv})
 και σε όλα τα security levels (128, 192, 256), όπως τεκμηριώνεται μέσω:
-(α)~αρχιτεκτονικής ανάλυσης — όλες οι εντολές ανήκουν στο Zkt-compliant
+(α)~αρχιτεκτονικής ανάλυσης. Όλες οι εντολές ανήκουν στο Zkt-compliant
 subset χωρίς secret-dependent control flow ή memory addressing,
-και (β)~εμπειρικής hardware επαλήθευσης στα μετρημένα σημεία — dudect περνά στο BPI-F3 με
-t-statistics πολύ κάτω από το detection threshold για τα μετρηθέντα κελιά (\code{scalar\_zb}: L128/L192 polymul και L128 \gls{kem}· \code{vector\_rvv}: L128 polymul). Η εμπειρική επαλήθευση (β) καλύπτει ρητά μόνο αυτά τα (variant, level, target) σημεία· η γενίκευση σε όλα τα levels και variants στηρίζεται στον πυλώνα (α) — δηλαδή στην αρχιτεκτονική ισοδυναμία των instruction paths (η αλλαγή security level μεταβάλλει μόνο μήκη δεδομένων, όχι control flow ή memory addressing) εντός του Zkt-compliant subset. Για το Tier~3 variant (\code{vector\_zvk}) η constant-time τεκμηρίωση είναι αρχιτεκτονική μόνο: οι \vclmul, \vclmulh και \vror εντολές ανήκουν στη vector data-independent execution latency λίστα (Zvkt, το vector ανάλογο του scalar Zkt)~\cite{RISCV-crypto-spec}, ενώ η εμπειρική dudect επαλήθευσή τους σε silicon δεν είναι ακόμη εφικτή (απουσία \gls{zvbc}/\gls{zvbb} hardware) και παραμένει μελλοντική εργασία (\cref{sec:future-work}). Τα performance gains
+και (β)~εμπειρικής hardware επαλήθευσης στα μετρημένα σημεία, dudect περνά στο BPI-F3 με
+t-statistics πολύ κάτω από το detection threshold για τα μετρηθέντα κελιά (\code{scalar\_zb}: L128/L192 polymul και L128 \gls{kem}, \code{vector\_rvv}: L128 polymul). Η εμπειρική επαλήθευση (β) καλύπτει ρητά μόνο αυτά τα (variant, level, target) σημεία. Η γενίκευση σε όλα τα levels και variants στηρίζεται στον πυλώνα (α), δηλαδή στην αρχιτεκτονική ισοδυναμία των instruction paths (η αλλαγή security level μεταβάλλει μόνο μήκη δεδομένων, όχι control flow ή memory addressing) εντός του Zkt-compliant subset. Για το Tier~3 variant (\code{vector\_zvk}) η constant-time τεκμηρίωση είναι αρχιτεκτονική μόνο: οι \vclmul, \vclmulh και \vror εντολές ανήκουν στη vector data-independent execution latency λίστα (Zvkt, το vector ανάλογο του scalar Zkt)~\cite{RISCV-crypto-spec}, ενώ η εμπειρική dudect επαλήθευσή τους σε silicon δεν είναι ακόμη εφικτή (απουσία \gls{zvbc}/\gls{zvbb} hardware) και παραμένει μελλοντική εργασία (\cref{sec:future-work}). Τα performance gains
 μέσω Karatsuba recursion, \gls{zbc} carry-less multiply, και \RVV vectorization
 δεν παραβιάζουν την timing-side-channel αντοχή που απαιτείται για
 μετα-κβαντικές \gls{kem} deployments.

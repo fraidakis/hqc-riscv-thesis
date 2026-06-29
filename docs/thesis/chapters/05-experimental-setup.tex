@@ -185,8 +185,8 @@ auto-vectorization του LLVM εντοπίζεται σε floating-point worklo
 δηλαδή ακριβώς στην κατηγορία που \emph{δεν} βρίσκεται στον κρίσιμο δρόμο
 του HQC. Επιπλέον, σε ταυτόσημο υλικό (BananaPi-F3) και ταυτόσημες εκδόσεις
 (GCC~15 vs Clang~21), ο GCC παράγει πιο σταθερό και αποδοτικό RVV codegen,
-υπερτερώντας στην πλειονότητα των μετρημένων RVV workloads~\cite{CloserInTheGap2026}·
-η σταθερότητα (low variance) είναι κρίσιμη για αξιόπιστα benchmarks. Η επιλογή αυτή 
+υπερτερώντας στην πλειονότητα των μετρημένων RVV workloads~\cite{CloserInTheGap2026}.
+Η σταθερότητα (low variance) είναι κρίσιμη για αξιόπιστα benchmarks. Η επιλογή αυτή 
 επιβεβαιώνεται εμπειρικά και στις δικές μας μετρήσεις: ο GCC υπερτερεί σταθερά του Clang σε 
 κάθε μετρήσιμη διαφορά(αναλυτική συγκριτική αξιολόγηση στο \cref{sec:compiler-comparison}). 
 Ο Clang/LLVM~21.1.1 διατηρεί συμπληρωματικό ρόλο ως cross-validation
@@ -690,7 +690,7 @@ early-termination βελτιστοποίηση βασισμένη σε leading z
 κάθε leaf κλήση εκτελεί ταυτόσημη ακολουθία εντολών. Ο specialized
 leaf (\code{clmul\_leaf\_n8}) χρησιμοποιεί compact inner loops με σταθερά
 bounds, εκτελώντας \num{64} κλήσεις \clmul/\clmulh ανά leaf με
-ντετερμινιστικό XOR assembly — ο αριθμός iterations είναι σταθερός
+ντετερμινιστικό XOR assembly, ο αριθμός iterations είναι σταθερός
 ανεξαρτήτως τιμών εισόδου, χωρίς data-dependent branches εντός του loop
 body.
 
@@ -775,9 +775,9 @@ context switches, και DVFS transients που θα μασκάριζαν λεπ
     \textbf{Harness} & \textbf{Target} & \textbf{Σκοπός} \\
     \midrule
     \code{dudect\_polymul} & \code{vect\_mul()} &
-      Απομονωμένος polymul — ενισχυμένη ευαισθησία \\
+      Απομονωμένος polymul, ενισχυμένη ευαισθησία \\
     \code{dudect\_kem} & \code{crypto\_kem\_dec()} &
-      Πλήρες \gls{kem} — ασφάλεια άκρο-σε-άκρο \\
+      Πλήρες \gls{kem}, ασφάλεια άκρο-σε-άκρο \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -828,8 +828,8 @@ input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμ
   \end{tabular}
 \end{table}
 
-Η κάλυψη του Tier~3 (\code{vector\_zvk}) παραμένει μελλοντική εργασία·
-προσβάσιμο RVA23-compliant hardware (π.χ. SpacemiT K3) δεν ήταν διαθέσιμο
+Η κάλυψη του Tier~3 (\code{vector\_zvk}) παραμένει μελλοντική εργασία.
+Προσβάσιμο RVA23-compliant hardware (π.χ. SpacemiT K3) δεν ήταν διαθέσιμο
 κατά την εκπόνηση (βλ.\ \cref{sec:future-work}).
 Η αρχιτεκτονική ανάλυση (\cref{ssec:ct-design-patterns}) τεκμηριώνει ότι
 οι \vclmul/\vclmulh εντολές είναι Zvkt-compliant (σταθερή καθυστέρηση

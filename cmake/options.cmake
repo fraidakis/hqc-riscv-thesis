@@ -18,9 +18,9 @@
 # Legacy keccak variants are archived under experiments/dropped/ and are not
 # selectable in the default stable build.
 set(HQC_KECCAK_IMPL "ref" CACHE STRING
-    "Keccak/SHAKE backend: ref | zvbb_x2_soa")
+    "Keccak/SHAKE backend: ref | zvbb_x2_soa | rvv_soa")
 set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
-    "ref" "zvbb_x2_soa")
+    "ref" "zvbb_x2_soa" "rvv_soa")
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
