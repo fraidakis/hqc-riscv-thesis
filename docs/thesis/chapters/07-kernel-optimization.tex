@@ -248,6 +248,110 @@ RVV-vectorized \code{memcpy} — μία κανονική κλήση θα διέ�
 Η ορθότητα επιβεβαιώθηκε μέσω \num{300}/\num{300} KAT vectors σε όλα τα
 security levels.
 
+
+%% --------------------------------------------------------------------------
+\subsection{Μεταφορά Speedup Keccak σε Πραγματικό Hardware: Ανάλυση \insn{vrgather.vv}}
+\label{ssec:keccak-hw-transferability}
+
+Η μετρηθείσα επιτάχυνση \speedup{3.7}–\speedup{3.9} στο \instret
+(\cref{tab:microbench-keccak}) εγείρει ένα θεμελιώδες ερώτημα μεταφοράς:
+σε ποιο βαθμό θα αναπαραχθεί αυτή η βελτίωση σε πραγματικό silicon; Η
+ανάλυση αποκαλύπτει ότι η απάντηση εξαρτάται κρίσιμα από τη διαδρομή
+εκτέλεσης — single-stream LMUL=8 ή 2-way \gls{soa} — λόγω θεμελιωδώς
+διαφορετικής μικροαρχιτεκτονικής συμπεριφοράς.
+
+\paragraph{Η εντολή \insn{vrgather.vv}: $\BigO{\text{VLMAX}^2}$ hardware κόστος.}
+Η single-stream μετάθεση (\code{KeccakF1600\_StatePermute},
+\cref{ssec:keccak-zvbb-soa} Φάση~1) χρησιμοποιεί \insn{vrgather.vv} σε
+LMUL=8 για τα βήματα $\pi$ και $\chi$ — τρεις εκτελέσεις ανά γύρο,
+σύνολο $3 \times 24 = 72$ \insn{vrgather.vv} ανά μετάθεση. Στο Spike
+\gls{iss}, κάθε \insn{vrgather.vv} μετράται ως μία retired instruction
+ανεξαρτήτως \VLMAX. Σε πραγματικό hardware, η κατάσταση διαφέρει
+ριζικά: η εντολή υλοποιείται ως element-by-element αναζήτηση με
+πολυπλοκότητα $\BigO{\text{VLMAX}^2}$ κύκλων. Για τη ρύθμιση
+$\text{SEW}=64$, $\text{LMUL}=8$, $\VLEN=\num{256}$ (VLMAX $= 32$
+elements), κάθε \insn{vrgather.vv} απαιτεί $\geq 25$ κύκλους σε
+τρέχοντα silicon (SiFive X280, T-Head C908). Το αθροιστικό κόστος
+ανέρχεται σε $72 \times 25 \approx \num{1800}$ κύκλοι μόνο για τα
+gathers — ισοδύναμο με $\approx\pct{85}$ του συνολικού single-stream
+μετάθεσης (\cycles{2114} \instret).
+
+\paragraph{Register pressure σε LMUL=8.}
+Η single-stream διαδρομή απαιτεί ταυτόχρονη διατήρηση του state vector,
+πέντε preloaded index tables, και ενός scratch group — σύνολο $\geq 6$
+LMUL=8 groups σε register file \num{4} groups. Όπως τεκμηριώθηκε στην
+\cref{ssec:keccak-zvbb-soa} (Φάση~2: Register Wall), ο μεταγλωττιστής
+εκχύνει (spills) vector registers στο stack, εισάγοντας vector
+load/store traffic αόρατο στο \instret αλλά κοστοβόρο σε κύκλους.
+
+\paragraph{Η 2-way \gls{soa} διαδρομή: αρχιτεκτονικά ευνοϊκή.}
+Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2},
+\cref{ssec:keccak-zvbb-soa} Φάση~3) αποφεύγει πλήρως τα παραπάνω
+προβλήματα μέσω τριών δομικών αποφάσεων:
+\begin{itemize}
+  \item \textbf{Zero \insn{vrgather.vv}:} Η στατική ανάπτυξη $\pi$ σε
+    \num{25} ρητές αναθέσεις εξαλείφει κάθε runtime permutation. Ο
+    μεταγλωττιστής εκπέμπει μόνο \insn{vror.vx}/\insn{vror.vi}
+    (1–2 κύκλοι), \insn{vxor.vv} (1 κύκλος), και \insn{vandn.vv}
+    (1 κύκλος) — εντολές σταθερής latency σε κάθε γνωστή υλοποίηση.
+  \item \textbf{Χαμηλή register pressure:} Τα \num{25} LMUL=1
+    registers αφήνουν \num{7} ελεύθερους — επαρκείς για τα ενδιάμεσα
+    $B$, $C$, $D$ χωρίς spilling.
+  \item \textbf{Καθαρό vector execution:} Ολόκληρη η μετάθεση εκτελείται
+    αποκλειστικά στο vector pipeline, χωρίς scalar↔vector transitions —
+    αποφεύγοντας τα forwarding penalties που τεκμηριώθηκαν στην
+    \cref{ssec:hw-ipc}.
+\end{itemize}
+
+\paragraph{Εκτίμηση πραγματικού speedup.}
+Ο \cref{tab:keccak-hw-estimate} συνοψίζει την εκτιμώμενη μεταφορά ανά
+διαδρομή. Η εκτίμηση βασίζεται σε δύο παραδοχές: (α)~\insn{vrgather.vv}
+LMUL=8 κοστίζει $\geq 25$ κύκλοι (τεκμηριωμένο από SiFive
+datasheets και T-Head C908 performance models), και (β)~\insn{vror.vx}
+κοστίζει 1–2 κύκλοι (\gls{zvbb} functional unit, pipelined). Δεν
+υφίσταται δημοσιευμένη μέτρηση Keccak στο Tier~3 profile σε πραγματικό
+silicon (απουσία \gls{zvbb} hardware), οπότε οι τιμές αποτελούν
+εκτιμήσεις, όχι μετρήσεις.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Εκτιμώμενη μεταφορά Keccak speedup σε πραγματικό hardware
+    (\VLEN{}=\num{256}). Η single-stream LMUL=8 διαδρομή υποφέρει από
+    $\BigO{\text{VLMAX}^2}$ \insn{vrgather.vv} latency, ενώ η 2-way
+    \gls{soa} χρησιμοποιεί αποκλειστικά σταθερής latency εντολές.}
+  \label{tab:keccak-hw-estimate}
+  \small
+  \begin{tabular}{lccl}
+    \toprule
+    \textbf{Διαδρομή} & \textbf{Spike speedup} &
+      \textbf{Εκτιμ.\ HW speedup} & \textbf{Κυρ.\ παράγοντας} \\
+    \midrule
+    Single-stream (LMUL=8) & $\times$2.2 & $\times$1.0–1.3 &
+      \insn{vrgather.vv} $\BigO{n^2}$ \\
+    2-way SoA (LMUL=1) & $\times$2.2 & $\times$1.5–2.0 &
+      καθαρό ALU pipeline \\
+    Full Tier~3 Keccak & $\times$3.7 & $\times$1.5–2.5 &
+      SoA $+$ absorb/squeeze I/O \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Η τεκμηρίωση αυτή ευθυγραμμίζεται με ανεξάρτητα ευρήματα στη
+βιβλιογραφία: ο Saarinen~\cite{Saarinen2024-vkeccak} αναφέρει ότι
+η vectorized Keccak σε SpacemiT X60 (\VLEN{}=\num{256}) παρουσιάζει
+μετριασμένα κέρδη λόγω ακριβώς αυτών των μικροαρχιτεκτονικών περιορισμών,
+ενώ οι Zhang et al.~\cite{zhang-tches2025} επιβεβαιώνουν ότι ο Keccak
+παραμένει bottleneck μετά τη vectorization lattice-based primitives
+(NTT) — υποδεικνύοντας ότι η βελτιστοποίησή του αποτελεί ανοιχτό
+ερευνητικό πρόβλημα σε vector architectures.
+
+Η πλήρης αξιολόγηση σε silicon απαιτεί hardware με \gls{zvbb} (RVA23
+profile) και αποτελεί μελλοντική εργασία (βλ.\ \cref{sec:future-work}).
+Η τρέχουσα μετρική \instret παρέχει αξιόπιστη αλγοριθμική σύγκριση
+μεταξύ variants, ενώ η εκτίμηση κύκλων ($\times$1.5–2.5) αποτελεί
+ρεαλιστικό κάτω φράγμα βάσει γνωστών μικροαρχιτεκτονικών δεδομένων.
+
+
 %% ============================================================================
 \section{Βελτιστοποίηση Decode (Reed-Muller + Reed-Solomon)}
 \label{sec:decode-optimization}
