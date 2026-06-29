@@ -52,7 +52,7 @@ _MODE_CONFIG: dict[str, dict] = {
         "leaf_fn": "scalar",
     },
     "rvv_noD": {
-        "out": REPO_ROOT / "src/mult/karatsuba_rvv/karatsuba_rvv_ablation_v_only_gen.h",
+        "out": REPO_ROOT / "src/mult/karatsuba_rvv/ablation/karatsuba_rvv_ablation_v_only_gen.h",
         "guard": "HQC_KARATSUBA_RVV_ABLATION_V_ONLY_GEN_H",
         "leaf_fn": "scalar",
     },

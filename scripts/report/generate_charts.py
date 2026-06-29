@@ -1364,7 +1364,7 @@ def chart_ablation_waterfall(loader: DataLoader, level: int) -> None:
 
     # Save output
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUT_DIR / "waterfall_ablation.pdf"
+    output_path = OUTPUT_DIR / "waterfall_polymul_scalar_zbc.pdf"
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
     print(f"Generated: {output_path}")

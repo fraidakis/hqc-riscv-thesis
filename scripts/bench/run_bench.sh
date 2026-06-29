@@ -360,6 +360,10 @@ case "$PLATFORM" in
                     op="decode"
                     ;;
             esac
+            # Route ablation variants to ablation/ subdirectory
+            if bench_is_ablation_variant "$variant" "$MODE"; then
+                out_dir="${out_dir}/ablation"
+            fi
             mkdir -p "$out_dir"
 
             # Determine the variant slug used in filenames
@@ -768,6 +772,10 @@ ${output}"
                 keccak)  op="keccak";  out_dir="${REPO_ROOT}/results/hardware/benchmarks/components/keccak" ;;
                 decode)  op="decode";  out_dir="${REPO_ROOT}/results/hardware/benchmarks/components/decode" ;;
             esac
+            # Route ablation variants to ablation/ subdirectory
+            if bench_is_ablation_variant "$variant" "$MODE"; then
+                out_dir="${out_dir}/ablation"
+            fi
 
             # For keccak/decode modes, derive filename slug from the impl, not the mul variant.
             # Resolve effective impl name (default when not explicitly overridden).

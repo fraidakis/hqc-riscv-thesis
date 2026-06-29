@@ -45,6 +45,23 @@ bench_variant_slug() {
     esac
 }
 
+# Returns 0 (true) if the variant is an ablation-only variant (not a champion).
+# Ablation variants get their CSV results placed in an ablation/ subdirectory.
+bench_is_ablation_variant() {
+    local variant="$1" mode="${2:-mul}"
+    case "$mode" in
+        mul)
+            case "$variant" in
+                scalar_zb_A|scalar_zb_AC|scalar_zb_ACB|scalar_zb_ABC_nosplit) return 0 ;;
+                vector_rvv_D|vector_rvv_V|vector_rvv_VD) return 0 ;;
+                scalar_zb_dw|scalar_zb_ab|scalar_zb_acd) return 0 ;;
+                *) return 1 ;;
+            esac
+            ;;
+        *) return 1 ;;
+    esac
+}
+
 bench_variant_matches() {
     local variant="$1" filter="${2:-}"
     if [[ -z "$filter" ]]; then
