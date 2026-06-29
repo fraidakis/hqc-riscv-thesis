@@ -1,63 +1,43 @@
-% Hardware tiers — layered diagram
-% Used in §6.1 (sec:polymul-tiers)
-
-\tikzsetnextfilename{ch6-polymul-polymul-tiers}
+% VARIANT (_v1: baseline refined — token migration + canonical tier palette)
+% — not \input by main.tex; promote manually. Same layout as the original.
+% Fig 6.1 (sec:polymul-tiers): hardware-tier superset diagram.
+\tikzsetnextfilename{ch6-polymul-polymul-tiers_v1}
 \begin{tikzpicture}[
   tier/.style={
     draw, rounded corners=4pt, minimum width=11cm, minimum height=1.6cm,
-    align=center, font=\sffamily, thick
+    align=center, figT/title, figLW/base
   },
-  extlabel/.style={
-    font=\scriptsize\ttfamily, anchor=west
-  },
-  arrow/.style={
-    ->, >=stealth, thick, gray!60
-  },
-  brace/.style={
-    decorate, decoration={brace, amplitude=6pt, mirror}, thick, gray!70
-  }
+  % local: mono at the micro scale (no mono+scriptsize token in the set)
+  extlabel/.style={font=\ttfamily\scriptsize, anchor=west},
+  % local: figbrace token + mirror (token has no mirrored variant)
+  lbrace/.style={decorate, decoration={brace, amplitude=6pt, raise=2pt, mirror},
+                 draw=figrule, figLW/base},
 ]
 
-% Tier 1 (top layer)
-\node[tier, fill=blue!8, draw=blue!50] (t1) at (0, 4.4) {
-  \textbf{Tier 1 — Scalar}\\[2pt]
-  \footnotesize rv64gc + Zbc/Zbb
-};
+% Tier 1 (top)
+\node[tier, fill=figtier1!12, draw=figtier1!70!black] (t1) at (0, 4.4)
+  {Tier 1 — Scalar\\[2pt]{\normalfont\ttfamily\scriptsize rv64gc + Zbc/Zbb}};
+% Tier 2 (middle)
+\node[tier, fill=figtier2!12, draw=figtier2!70!black] (t2) at (0, 2.2)
+  {Tier 2 — Base-RVV\\[2pt]{\normalfont\ttfamily\scriptsize rv64gcv + Zbc/Zbb}};
+% Tier 3 (bottom)
+\node[tier, fill=figtier3!12, draw=figtier3!70!black] (t3) at (0, 0)
+  {Tier 3 — Full Vector-Crypto\\[2pt]{\normalfont\ttfamily\scriptsize rv64gcv + Zbc/Zbb/Zvbc/Zvbb}};
 
-% Tier 2 (middle layer)
-\node[tier, fill=teal!8, draw=teal!50] (t2) at (0, 2.2) {
-  \textbf{Tier 2 — Base-RVV}\\[2pt]
-  \footnotesize rv64gcv + Zbc/Zbb
-};
-
-% Tier 3 (bottom layer)
-\node[tier, fill=violet!8, draw=violet!50] (t3) at (0, 0) {
-  \textbf{Tier 3 — Full Vector-Crypto}\\[2pt]
-  \footnotesize rv64gcv + Zbc/Zbb/Zvbc/Zvbb
-};
-
-% Extension annotations (right side)
+% Extension annotations (right)
 \node[extlabel] at (5.9, 4.4) {clmul, clmulh, rori, andn};
 \node[extlabel] at (5.9, 2.2) {+ vle64, vse64, vxor, vsetvl};
-\node[extlabel] at (5.9, 0) {+ vclmul.vx, vclmulh.vx, vror.vv};
+\node[extlabel] at (5.9, 0)   {+ vclmul.vx, vclmulh.vx, vror.vv};
 
-% Variant labels (left side)
-\node[font=\footnotesize\sffamily, anchor=east, blue!70!black] at (-5.9, 4.4)
-  {\texttt{scalar\_zb}};
-\node[font=\footnotesize\sffamily, anchor=east, teal!70!black] at (-5.9, 2.2)
-  {\texttt{vector\_rvv}};
-\node[font=\footnotesize\sffamily, anchor=east, violet!70!black] at (-5.9, 0)
-  {\texttt{vector\_zvk}};
+% Variant labels (left) — colour-matched to canonical tier palette
+\node[figT/label, anchor=east, text=figtier1!70!black] at (-5.9, 4.4) {\texttt{scalar\_zb}};
+\node[figT/label, anchor=east, text=figtier2!70!black] at (-5.9, 2.2) {\texttt{vector\_rvv}};
+\node[figT/label, anchor=east, text=figtier3!70!black] at (-5.9, 0)   {\texttt{vector\_zvk}};
 
 % Superset arrows
-\draw[arrow] (t1.south) -- (t2.north)
-  node[midway, right, font=\scriptsize, gray!80] {$+$ RVV 1.0};
-\draw[arrow] (t2.south) -- (t3.north)
-  node[midway, right, font=\scriptsize, gray!80] {$+$ Zvbc/Zvbb};
-
-% Left brace with "ISA complexity increases" annotation
-\draw[brace] (-6.2, -0.8) -- (-6.2, 5.2)
-  node[midway, left=8pt, font=\scriptsize\sffamily, align=center, rotate=90]
-  {Αρχιτεκτονική πολυπλοκότητα αυξάνεται};
+\draw[figedge] (t1.south) -- (t2.north)
+  node[midway, right, figT/annot] {$+$ RVV 1.0};
+\draw[figedge] (t2.south) -- (t3.north)
+  node[midway, right, figT/annot] {$+$ Zvbc/Zvbb};
 
 \end{tikzpicture}

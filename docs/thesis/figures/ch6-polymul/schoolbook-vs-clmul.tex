@@ -1,16 +1,17 @@
-% Comparison: bit-serial schoolbook vs word-level clmul leaf
-% Used in §6.2.1 (ssec:bit-to-word)
-
-\tikzsetnextfilename{ch6-polymul-schoolbook-vs-clmul}
+% VARIANT (_v1: baseline refined — token migration + semantic fills)
+% — not \input by main.tex; promote manually. Same layout as the original.
+% Fig 6.2 (ssec:bit-to-word): bit-serial schoolbook vs word-level clmul leaf.
+% Semantic colour: left = costly/old path (figthreat), right = solution
+% (figsolution); transition arrow = critical path (figedge/accent).
+\tikzsetnextfilename{ch6-polymul-schoolbook-vs-clmul_v1}
 \begin{tikzpicture}[
   box/.style={draw, rounded corners=2pt, minimum width=4.8cm,
-    minimum height=2.2cm, align=left, font=\ttfamily\small},
-  arrow/.style={->, thick, >=stealth},
-  label/.style={font=\sffamily\small\bfseries, above}
+    minimum height=2.2cm, align=left, figT/mono, figLW/base},
+  caption/.style={figT/annot, below=2pt},
 ]
 
-% Left box: bit-serial schoolbook
-\node[box, fill=red!5] (school) at (0,0) {%
+% Left box: bit-serial schoolbook (costly path)
+\node[box, fill=figthreatfill, draw=figthreat] (school) at (0,0) {%
   \begin{tabular}{@{}l@{}}
   for i in 0..n-1:\\
   \quad for bit in 0..63:\\
@@ -20,12 +21,11 @@
   \quad\quad\quad r[i+j+1] \^{}= (b[j]>>(64-bit)) \& mask
   \end{tabular}
 };
-\node[label] at (school.north) {Bit-serial schoolbook};
-\node[font=\sffamily\footnotesize, below=2pt] at (school.south)
-  {$64 \times n^2$ masked shift-XOR};
+\node[figT/title, above] at (school.north) {Bit-serial schoolbook};
+\node[caption] at (school.south) {$64 \times n^2$ masked shift-XOR};
 
-% Right box: clmul leaf
-\node[box, fill=green!5] (clmul) at (7.5,0) {%
+% Right box: clmul leaf (solution)
+\node[box, fill=figsolutionfill, draw=figsolution] (clmul) at (7.5,0) {%
   \begin{tabular}{@{}l@{}}
   for i in 0..n-1:\\
   \quad for j in 0..n-1:\\
@@ -35,13 +35,12 @@
   \quad\quad r[i+j+1] \^{}= hi
   \end{tabular}
 };
-\node[label] at (clmul.north) {Word-level \textsf{Zbc} leaf};
-\node[font=\sffamily\footnotesize, below=2pt] at (clmul.south)
-  {$n^2$ ζεύγη clmul/clmulh};
+\node[figT/title, above] at (clmul.north) {Word-level \textsf{Zbc} leaf};
+\node[caption] at (clmul.south) {$n^2$ ζεύγη clmul/clmulh};
 
-% Arrow between
-\draw[arrow, very thick, color=blue!60!black]
-  (school.east) -- node[above, font=\sffamily\small] {$\times$64}
+% Transition arrow (critical path)
+\draw[figedge/accent]
+  (school.east) -- node[above, figT/label] {$\times$64}
   (clmul.west);
 
 \end{tikzpicture}

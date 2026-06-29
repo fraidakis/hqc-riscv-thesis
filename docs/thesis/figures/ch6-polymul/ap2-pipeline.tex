@@ -1,36 +1,44 @@
-% Compile-Time Specialized Generator Pipeline diagram
-% Used in §6.2.2 (ssec:specialized-tree)
-
-\tikzsetnextfilename{ch6-polymul-ap2-pipeline}
+% VARIANT (_compact: same horizontal layout as _compiletime, tightened to fit \textwidth)
+% — not \input by main.tex; promote manually.
+% Border fix (refit, R): keep the well-received compile-time / runtime brace story but
+% shrink node width (2.8cm) and pitch (3.6cm) so the full bbox (incl. the runtime brace
+% label) stays inside \textwidth (15.5cm). Emphasis fix: recursion-tree no longer
+% coloured; only the binary is focal.
+% BUGFIX: long mono filenames are split with top-level \\ BETWEEN braced font groups
+% (never a \\ inside a {\ttfamily ...} group, which compiles blank under externalize).
+\tikzsetnextfilename{ch6-polymul-ap2-pipeline_compact}
 \begin{tikzpicture}[
-  stage/.style={draw, rounded corners=3pt, minimum width=3.2cm,
-    minimum height=1.1cm, align=center, font=\sffamily\small, thick},
-  arrow/.style={->, thick, >=stealth, color=blue!60!black},
-  note/.style={font=\sffamily\scriptsize, text=gray!70!black, align=center}
+  stage/.style={fignode/data, align=center, minimum width=2.8cm, minimum height=1.25cm, font=\footnotesize},
+  note/.style ={figT/micro, align=center, text=figneutral, text width=2.9cm},
 ]
 
-% Stage 1: Python script
-\node[stage, fill=yellow!10] (script) at (0,0)
-  {Python script\\[-2pt]\texttt{\footnotesize gen\_karatsuba\_specialized.py}};
+\node[stage] (script) at (0,0)
+  {Python script\\[-1pt]{\ttfamily\scriptsize gen\_karatsuba}\\[-1pt]{\ttfamily\scriptsize \_specialized.py}};
+\node[stage, right=0.8cm of script] (tree) {Recursion tree\\[-1pt]analysis};
+\node[stage, right=0.8cm of tree] (header)
+  {Generated C header\\[-1pt]{\ttfamily\scriptsize *\_specialized\_gen.h}};
+\node[stage, fignode/focal, right=0.8cm of header] (binary)
+  {Compiled binary\\[-1pt]{\ttfamily\scriptsize kmul\_277, \ldots}};
 
-% Stage 2: Recursion tree analysis
-\node[stage, fill=orange!10] (tree) at (4.5,0)
-  {Recursion tree\\[-2pt]analysis};
+\draw[figedge] (script) -- (tree);
+\draw[figedge] (tree) -- (header);
+\draw[figedge] (header) -- (binary);
 
-% Stage 3: Generated C header
-\node[stage, fill=green!10] (header) at (9,0)
-  {Generated C header\\[-2pt]\texttt{\footnotesize *\_specialized\_gen.h}};
+\node[figbadge] at (script.north west) {1};
+\node[figbadge] at (tree.north west) {2};
+\node[figbadge] at (header.north west) {3};
+\node[figbadge] at (binary.north west) {4};
 
-% Stage 4: Compiled binary
-\node[stage, fill=blue!10] (binary) at (13.5,0)
-  {Compiled binary\\[-2pt]\texttt{\footnotesize kmul\_277, kmul\_139, \ldots}};
+% phase braces above the row
+\draw[figbrace] ($(script.north west)+(0,0.5)$) -- ($(header.north east)+(0,0.5)$)
+  node[midway, above=3pt, figT/label, text=figprocess] {compile time (μία φορά)};
+\draw[figbrace] ($(binary.north west)+(0,0.5)$) -- ($(binary.north east)+(0,0.5)$)
+  node[midway, above=3pt, figT/label, text=figaccent] {runtime: 0 overhead};
 
-% Arrows
-\draw[arrow] (script) -- (tree);
-\draw[arrow] (tree) -- (header);
-\draw[arrow] (header) -- (binary);
+% vertical divider compile | runtime
+\draw[figedge/weak, -] ($(header.east)!0.5!(binary.west)+(0,-1.6)$)
+  -- ($(header.east)!0.5!(binary.west)+(0,1.25)$);
 
-% Annotations below
 \node[note, below=8pt] at (script.south) {Input: $N$, threshold $T$,\\mode (zbc/rvv/zvbc)};
 \node[note, below=8pt] at (tree.south) {Deterministic split:\\$n_0 = \lceil n/2 \rceil$, $n_1 = \lfloor n/2 \rfloor$};
 \node[note, below=8pt] at (header.south) {All offsets, bounds,\\dispatch as literals};
