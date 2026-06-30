@@ -135,9 +135,13 @@ profile_trace_mode() {
     local _cmake_keccak="ref"
     local _cmake_scalar_march="${HQC_SCALAR_MARCH:-rv64gc_zbc_zbb_zbs}"
     local _cmake_keccak_bench_march="${_cmake_scalar_march}"
+    local _cmake_vector_march="rv64gcv_zbc_zbb_zba"
+    local _cmake_vector_zvk_march="rv64gcv_zbc_zbb_zba_zvbc_zvbb"
     if [[ "${KECCAK_IMPL:-opt}" == "ref" ]]; then
         _cmake_scalar_march="rv64gc_zbc_zbs"
         _cmake_keccak_bench_march="rv64gc_zbc_zbs"
+        _cmake_vector_march="rv64gcv_zbc_zba"
+        _cmake_vector_zvk_march="rv64gcv_zbc_zba_zvbc_zvbb"
     fi
 
     cmake -S "$REPO_ROOT" -B "$build_dir" \
@@ -148,7 +152,9 @@ profile_trace_mode() {
         -DHQC_KECCAK_IMPL="${_cmake_keccak}" \
         -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" \
         -DHQC_SCALAR_MARCH="${_cmake_scalar_march}" \
-        -DHQC_KECCAK_BENCH_MARCH="${_cmake_keccak_bench_march}" >/dev/null 2>&1
+        -DHQC_KECCAK_BENCH_MARCH="${_cmake_keccak_bench_march}" \
+        -DHQC_VECTOR_MARCH="${_cmake_vector_march}" \
+        -DHQC_VECTOR_ZVK_MARCH="${_cmake_vector_zvk_march}" >/dev/null 2>&1
 
     echo -e "\n📦 ${variant} (trace - ${profile_kind})"
 

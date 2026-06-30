@@ -400,7 +400,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zba
+                -march=${HQC_VECTOR_MARCH}
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize
@@ -412,7 +412,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zba
+                -march=${HQC_VECTOR_MARCH}
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize)
@@ -421,7 +421,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zba
+                -march=${HQC_VECTOR_MARCH}
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize)
@@ -429,7 +429,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_rvv/gf2x_clmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zba
+                -march=${HQC_VECTOR_MARCH}
                 -mabi=lp64d
                 -O3
                 -fno-tree-vectorize)
@@ -437,7 +437,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
             set(POLYMUL_SOURCES
                 ${CMAKE_SOURCE_DIR}/src/mult/karatsuba_zvbc/gf2x_vclmul.c)
             list(APPEND VARIANT_COMPILE_OPTIONS
-                -march=rv64gcv_zbc_zbb_zba_zvbc_zvbb
+                -march=${HQC_VECTOR_ZVK_MARCH}
                 -mabi=lp64d
                 -O3)
         endif()
@@ -779,6 +779,12 @@ foreach(LEVEL ${SECURITY_LEVELS})
     # Benchmarks reed_muller_decode + reed_solomon_decode in isolation.
     # Use for Amdahl's Law analysis of the decode bottleneck.
     #   cmake --build build --target bench_decode_hqc128
+    #
+    # NOTE: This target does NOT link hqc_core_${LEVEL}.  Instead, gf.c and
+    # crypto_memset.c are compiled directly with the decode bench march flag
+    # (HQC_DECODE_BENCH_MARCH) so that gf_mul() respects the Zbc ablation:
+    #   --decode ref       → no Zbc → schoolbook gf_carryless_mul
+    #   --decode scalar_zb → Zbc    → clmul-based gf_mul
     set(DECODE_BENCH_TARGET "bench_decode_hqc${LEVEL}")
 
     add_executable(${DECODE_BENCH_TARGET} EXCLUDE_FROM_ALL
@@ -787,11 +793,13 @@ foreach(LEVEL ${SECURITY_LEVELS})
         ${CMAKE_SOURCE_DIR}/src/common/bench.c
         ${DECODE_SOURCES}
         ${FFT_SOURCES}
+        # gf.c compiled with decode bench march (Zbc ablation-aware)
+        ${CMAKE_SOURCE_DIR}/src/common/gf.c
+        # crypto_memset needed by reed_solomon
+        ${HQC_REF}/src/common/crypto_memset.c
         ${CMAKE_SOURCE_DIR}/sim/common/mem.c
         ${CMAKE_SOURCE_DIR}/sim/common/printf_stub.c
     )
-    target_link_libraries(${DECODE_BENCH_TARGET} PRIVATE
-        $<TARGET_OBJECTS:hqc_core_${LEVEL}>)
     target_include_directories(${DECODE_BENCH_TARGET} BEFORE PRIVATE
         ${HQC_REF}/src/common/${VARIANT}
         ${HQC_REF}/src/ref/${VARIANT}
@@ -809,7 +817,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
     )
     target_compile_options(${DECODE_BENCH_TARGET} PRIVATE
         -O3
-        -march=rv64gcv_zbc_zbb_zvbc_zvbb
+        -march=${HQC_DECODE_BENCH_MARCH}
         -mabi=lp64d
     )
     set_target_properties(${DECODE_BENCH_TARGET} PROPERTIES

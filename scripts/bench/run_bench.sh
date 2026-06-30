@@ -35,7 +35,7 @@ Options:
   --remote HOST           Deploy and run on remote HOST via SSH (hw only, default: root@192.168.1.50)
   --local                 Run directly on this machine (hw only)
   --keccak IMPL           Keccak implementation override (e.g., ref, opt)
-  --decode IMPL           Decode implementation override (e.g., ref, rvv, zvbc)
+  --decode IMPL           Decode implementation override (e.g., ref, scalar_zb, rvv, zvbc)
   --pgo                   Enable PGO (profile-guided optimization) for hw builds (kem/mul only)
   --isolate               Force measurement isolation (IRQ migration, ASLR-off, freq monitor)
   --no-isolate            Disable measurement isolation (even for publish quality)
@@ -383,6 +383,8 @@ case "$PLATFORM" in
                     impl_flag="rvv"
                 elif [[ "$DECODE_IMPL" == "zvbc" || "$DECODE_IMPL" == "rs_zvbc_exp" ]]; then
                     impl_flag="zvbc"
+                elif [[ "$DECODE_IMPL" == "scalar_zb" ]]; then
+                    impl_flag="scalar_zb"
                 fi
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_header="# Decode variant: ${DECODE_IMPL}"
@@ -806,6 +808,8 @@ ${output}"
                     impl_flag="rvv"
                 elif [[ "$decode_effective" == "zvbc" || "$decode_effective" == "rs_zvbc_exp" ]]; then
                     impl_flag="zvbc"
+                elif [[ "$decode_effective" == "scalar_zb" ]]; then
+                    impl_flag="scalar_zb"
                 fi
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_label="decode_${decode_effective}"

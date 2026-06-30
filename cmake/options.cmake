@@ -38,12 +38,19 @@ set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv" "zvbc")
 # Set to e.g. "rv64gc_zbc" to strip zbb and measure auto-lowering impact.
 #
 # Note: vector variants (vector_rvv, vector_zvk) have their own -march
-# strings set in CMakeLists.txt (rv64gcv_zbc_zbb_zba and rv64gcv_zbc_zbb_zba_zvbc_zvbb
-# respectively).  Zba (address-generation: sh1add/sh2add/sh3add) was promoted
+# strings set below.  Zba (address-generation: sh1add/sh2add/sh3add) was promoted
 # on 2026-05-25 after ablation showed −5.6% polymul improvement on vector_zvk
 # and −2.6% on vector_rvv (see docs/thesis-helper/optimizations/zba_ablation.md).
 set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb_zbs" CACHE STRING
     "ISA march for scalar variants (ablation: set to rv64gc_zbc to strip zbb)")
+
+# ── Vector variant ISA march (configurable for Zbb ablation) ─────────────────
+# These default to the full optimized march.  Override to strip _zbb for Keccak
+# ablation profiling (e.g. -DHQC_VECTOR_MARCH=rv64gcv_zbc_zba).
+set(HQC_VECTOR_MARCH "rv64gcv_zbc_zbb_zba" CACHE STRING
+    "ISA march for vector_rvv variants (strip _zbb for Keccak ablation)")
+set(HQC_VECTOR_ZVK_MARCH "rv64gcv_zbc_zbb_zba_zvbc_zvbb" CACHE STRING
+    "ISA march for vector_zvk variant (strip _zbb for Keccak ablation)")
 
 # ── Keccak bench ISA override ────────────────────────────────────────────────
 # Controls the -march for the keccak micro-benchmark target (bench_keccak_hqcN).
@@ -55,6 +62,21 @@ set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb_zbs" CACHE STRING
 #   --keccak ref → HQC_KECCAK_BENCH_MARCH = rv64gc_zbc (without Zbb)
 set(HQC_KECCAK_BENCH_MARCH "${HQC_SCALAR_MARCH}" CACHE STRING
     "ISA march for keccak bench target (ref: rv64gc_zbc, opt: inherit HQC_SCALAR_MARCH)")
+
+# ── Decode bench ISA override ─────────────────────────────────────────────────
+# Controls the -march for the decode micro-benchmark target (bench_decode_hqcN).
+# Defaults to the full vector+crypto march (rv64gcv_zbc_zbb_zvbc_zvbb) which
+# enables Zbc idiom recognition for gf_mul (clmul-based carry-less multiply).
+# Set to "rv64gcv_zbb_zvbc_zvbb" to strip Zbc for the pure-software gf_mul
+# baseline measurement (schoolbook gf_carryless_mul path).
+#
+# Usage from scripts:
+#   --decode ref       → HQC_DECODE_BENCH_MARCH = rv64gcv_zbb_zvbc_zvbb (without Zbc)
+#   --decode scalar_zb → HQC_DECODE_BENCH_MARCH = rv64gcv_zbc_zbb_zvbc_zvbb (with Zbc)
+#   --decode rvv       → HQC_DECODE_IMPL=rvv (march unchanged, uses vector decode)
+#   --decode zvbc      → HQC_DECODE_IMPL=zvbc (march unchanged, uses Zvbc decode)
+set(HQC_DECODE_BENCH_MARCH "rv64gcv_zbc_zbb_zvbc_zvbb" CACHE STRING
+    "ISA march for decode bench target (ref: strip _zbc, scalar_zb: keep _zbc)")
 
 # ── Diagnostic messages ───────────────────────────────────────────────────────
 message(STATUS "HQC configuration:")

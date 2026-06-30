@@ -22,7 +22,7 @@
 #   POLYMUL = scalar_ref | scalar_zb | vector_rvv | vector_zvk
 #   MODE    = dev | publish          (iteration count preset)
 #   KECCAK  = ref                    (only stable option; vectorized paths archived)
-#   DECODE  = ref | rvv | zvbc       (decode implementation for decode bench)
+#   DECODE  = ref | scalar_zb | rvv | zvbc  (decode implementation for decode bench)
 #
 # Bench-specific:
 #   EXTENDED = 0 | 1                 (extended PMU counters)
@@ -57,9 +57,10 @@ KECCAK_MARCH ?=
 KECCAK_LABEL ?= ref
 
 # DECODE: decode implementation for the decode micro-benchmark
-#   ref   — vendor scalar reed_muller + reed_solomon (default)
-#   rvv   — RVV vectorized reed_muller + reed_solomon
-#   zvbc  — Zvbc vectorized RS + iterative FFT
+#   ref       — vendor scalar reed_muller + reed_solomon WITHOUT Zbc (baseline)
+#   scalar_zb — vendor scalar reed_muller + reed_solomon WITH Zbc clmul gf_mul
+#   rvv       — RVV vectorized reed_muller + reed_solomon
+#   zvbc      — Zvbc vectorized RS + iterative FFT
 DECODE   ?= ref
 
 # ── Paths (relative to repository root) ──────────────────────────────────────
@@ -192,6 +193,10 @@ ifeq ($(DECODE),ref)
   KEM_DECODE_SOURCES := $(VENDOR)/src/ref/reed_muller.c \
                         $(VENDOR)/src/ref/reed_solomon.c \
                         $(VENDOR)/src/common/fft.c
+else ifeq ($(DECODE),scalar_zb)
+  KEM_DECODE_SOURCES := $(VENDOR)/src/ref/reed_muller.c \
+                        $(VENDOR)/src/ref/reed_solomon.c \
+                        $(VENDOR)/src/common/fft.c
 else ifeq ($(DECODE),rvv)
   KEM_DECODE_SOURCES := $(SRC)/decode/reed_muller_rvv.c \
                         $(SRC)/decode/reed_solomon_rvv.c \
@@ -201,7 +206,7 @@ else ifeq ($(DECODE),zvbc)
                         $(SRC)/decode/reed_solomon_zvbc.c \
                         $(SRC)/decode/fft_zvbc.c
 else
-  $(error Unsupported DECODE=$(DECODE). Use ref, rvv, or zvbc)
+  $(error Unsupported DECODE=$(DECODE). Use ref, scalar_zb, rvv, or zvbc)
 endif
 
 # ── Full KEM source chain (shared by bench_kem and dudect_kem) ───────────────
@@ -277,12 +282,20 @@ else ifeq ($(DECODE),zvbc)
                     $(SRC)/decode/reed_solomon_zvbc.c \
                     $(SRC)/decode/fft_zvbc.c
   DECODE_MARCH := rv64gcv_zbc_zbb_zbs_zvbc
-else
-  # ref (default): vendor scalar
+else ifeq ($(DECODE),scalar_zb)
+  # Scalar decode with Zbc injection: gf_mul uses clmul intrinsic.
+  # Same vendor scalar sources as ref, but compiled with Zbc in -march.
   DECODE_SOURCES += $(VENDOR)/src/ref/reed_muller.c \
                     $(VENDOR)/src/ref/reed_solomon.c \
                     $(VENDOR)/src/common/fft.c
-  DECODE_MARCH :=
+  DECODE_MARCH := rv64gc_zbc_zbb_zbs
+else
+  # ref (default): vendor scalar WITHOUT Zbc — pure software gf_mul baseline.
+  # This strips Zbc so the compiler uses the schoolbook gf_carryless_mul path.
+  DECODE_SOURCES += $(VENDOR)/src/ref/reed_muller.c \
+                    $(VENDOR)/src/ref/reed_solomon.c \
+                    $(VENDOR)/src/common/fft.c
+  DECODE_MARCH := rv64gc_zbb_zbs
 endif
 
 # ── Binary names ─────────────────────────────────────────────────────────────
