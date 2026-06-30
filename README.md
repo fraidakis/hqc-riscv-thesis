@@ -24,7 +24,7 @@ three implementation strategies on a RISC-V rv64gcv target:
 	- `reed_muller_rvv.c`
 	- `reed_solomon_rvv.c`
 	- `reed_solomon_zvbc.c`
-- Keccak: `src/keccak/`
+- Keccak: uses vendor scalar `fips202.c` (vectorized backends archived to `experiments/dropped/`)
 - Archived experiments: `experiments/` (catalogued in `experiments/manifest.yaml`)
 
 Repository layout and file-by-file documentation are maintained in:

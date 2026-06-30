@@ -258,21 +258,25 @@ Every multiplier variant belongs to exactly one **track**. Tracks define which K
 |-------|----------------------|-------------|-------------|-------|
 | **A — Scalar/Zbc** | `_ref`, `_zbc`, `hybrid` | `ref` | `ref` | Pure scalar; Zbc clmul; no RVV |
 | **B — Base RVV** | `_rvv` | `ref` | `rvv` | RVV polymul/decoder with scalar Keccak |
-| **C — Vector Crypto** | `_zvbc` | `zvbb_x2_soa` | `rvv` | Zvbc vclmul.vv + Zvbb x2 SoA |
+| **C — Vector Crypto** | `_zvbc` | `ref` | `zvbc` | Zvbc vclmul.vv + scalar Keccak |
 
 ### Auto-Mapping Rules (implemented in `bench_parse_track_args`)
 
+All variants now use the scalar reference Keccak (`ref`). The vectorized Keccak
+backends (`zvbb_x2_soa`, `rvv_soa`) have been archived to `experiments/dropped/`
+after experimental evaluation showed they cannot outperform scalar+Zbb on
+VLEN=256 in-order cores (see §7.1 of the thesis).
+
 ```bash
+# Keccak: always ref (vectorized paths archived)
+KECCAK_IMPL="ref"
+
+# Decode: auto-mapped from variant suffix
 case "$MUL_VARIANT" in
-    *_zvbc)             KECCAK_IMPL="zvbb_x2_soa" ;;  # Track C
-  *_rvv)              KECCAK_IMPL="ref"         ;;  # Track B
-    *_zbc|*_ref|hybrid) KECCAK_IMPL="ref"         ;;  # Track A
-    *)                  KECCAK_IMPL="ref"          ;;  # Safe default
-esac
-case "$MUL_VARIANT" in
-    *_zvbc|*_rvv)       DECODE_IMPL="rvv" ;;
-    *_zbc|*_ref|hybrid) DECODE_IMPL="ref" ;;
-    *)                  DECODE_IMPL="ref" ;;
+    *_zvbc)             DECODE_IMPL="zvbc" ;;
+    *_rvv)              DECODE_IMPL="rvv"  ;;
+    *_zbc|*_ref|hybrid) DECODE_IMPL="ref"  ;;
+    *)                  DECODE_IMPL="ref"  ;;
 esac
 ```
 
@@ -284,6 +288,6 @@ esac
 
 3. **CLI usage:** All benchmark, profile, KAT, and analysis scripts accept `--mul <variant>`. Never pass `--variant`. The `--keccak` and `--decode` flags override auto-mapping and should only be used for explicit experiments.
 
-4. **No cross-track mixing:** Do not combine a Track A multiplier with `zvbb_x2_soa` Keccak, or a Track B multiplier with `zvbb_x2_soa` Keccak, unless running an intentional cross-track experiment documented in `experiments/manifest.yaml`.
+4. **No cross-track mixing:** Keccak is always the scalar ref implementation. The `--keccak` flag is retained for backward compatibility but maps to `ref` regardless of the value passed.
 
-5. **Reconfiguration detection:** `bench_auto_configure_and_build` reads `CMakeCache.txt` to detect Keccak/Decode impl changes and forces full CMake reconfiguration when a mismatch is found. Do not bypass this by manually editing cached build dirs.
+5. **Reconfiguration detection:** `bench_auto_configure_and_build` reads `CMakeCache.txt` to detect Decode impl changes and forces full CMake reconfiguration when a mismatch is found. Do not bypass this by manually editing cached build dirs.

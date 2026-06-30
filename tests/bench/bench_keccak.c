@@ -57,7 +57,7 @@
  *
  * Compile-time knobs:
  *   SECURITY_LEVEL  128 | 192 | 256
- *   KECCAK_NAME     string literal e.g. "ref" or "zvbb_x2_soa"
+ *   KECCAK_NAME     string literal e.g. "ref" or "ref_nozbb"
  *   N_ITER          (optional, default from bench_common.h)
  *   N_WARMUP        (optional, default from bench_common.h)
  *   HQC_SILENT      suppresses HTIF metadata headers (sim only)

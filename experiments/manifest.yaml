@@ -11,7 +11,7 @@ experiments:
       total KEM suite) at the karatsuba_zvbc level.
     status: promoted_to_stable
     promoted_date: 2026-05-22
-    promoted_to: src/keccak/fips202_zvbb_x2.c
+    promoted_to: experiments/dropped/EXP-keccak-zvbb-x2-soa/src/fips202_zvbb_x2.c  # parent archived 2026-06-30
     verdict: >
       Promoted after 300/300 KAT pass. All three security levels improved.
       L128 total: 854,062 → 824,344 (-29,718, -3.48%);
@@ -375,3 +375,32 @@ experiments:
         keccak_instructions: 2838
       level_256:
         keccak_instructions: 2838
+
+  - id: EXP-keccak-zvbb-x2-soa
+    date: 2026-06-30
+    hypothesis: >
+      2-way SoA vectorized Keccak-f[1600] using Zvbb (vror.vx, vandn.vv) and
+      LMUL=8 vrgather.vv for Pi permutation.  Hypothesis: vector parallelism
+      across two independent SHAKE contexts outperforms scalar rori-based Keccak.
+    status: archived
+    verdict: >
+      Archived after hardware evaluation (BPI-F3, SpacemiT X60, VLEN=256)
+      showed vectorized Keccak cannot outperform scalar+Zbb on in-order
+      dual-issue cores.  LMUL=8 vrgather: 8.1× slower (CPI=16.9).
+      LMUL=1 SoA vl=2: 2.3× slower than two sequential scalar calls.
+      The scalar Zbb path (rori + andn idiom recognition) remains optimal.
+      Previously located at src/keccak/fips202_zvbb_x2.c.
+    path: experiments/dropped/EXP-keccak-zvbb-x2-soa
+    hardware_class: crypto_vector_zvbb
+    tracks: [AP-4]
+    target_levels: [HQC-128, HQC-192, HQC-256]
+    metrics:
+      hardware_measured: 2026-06-30
+      tool: BPI-F3 (SpacemiT X60)
+      lmul8_vrgather:
+        slowdown_vs_scalar: 8.1
+        cpi: 16.9
+      lmul1_soa_vl2:
+        slowdown_vs_scalar: 2.3
+      scalar_zbb_baseline:
+        cpi: 0.67
