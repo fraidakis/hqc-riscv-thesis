@@ -49,7 +49,7 @@ Options:
 
 Vector variants:
   vector_rvv   RVV hybrid Karatsuba (Keccak=ref, Decode=rvv by default)
-  vector_zvk   Zvbc/Zvbb champion   (Keccak=zvbb_x2_soa, Decode=zvbc by default)
+  vector_zvk   Zvbc/Zvbb champion   (Keccak=ref, Decode=zvbc by default)
   all          Run both vector_rvv and vector_zvk
 
 Notes:
@@ -180,7 +180,7 @@ unset _vlen
 RISCV="${RISCV:-$HOME/Thesis/installed-tools}"
 SPIKE="${RISCV}/bin/spike"
 TOOLCHAIN_FILE="${HQC_TOOLCHAIN_FILE:-toolchain/riscv-gcc.cmake}"
-SCALAR_MARCH="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
+SCALAR_MARCH="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb_zbs}"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 

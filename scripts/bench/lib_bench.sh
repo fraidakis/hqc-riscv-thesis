@@ -40,7 +40,7 @@ bench_variant_slug() {
         vector_rvv)     echo "vector-rvv" ;;
         vector_zvk)     echo "vector-zvk" ;;
         # For non-variant identifiers (keccak/decode impl names like "ref", "rvv",
-        # "zvbc", "opt", "zvbb_x2_soa"), fall back to underscore→hyphen + lowercase.
+        # "zvbc", "opt"), fall back to underscore→hyphen + lowercase.
         *)              echo "${canonical//_/-}" | tr '[:upper:]' '[:lower:]' ;;
     esac
 }
@@ -112,9 +112,10 @@ bench_parse_track_args() {
                 ;;
             --keccak)
                 case "${2:-}" in
-                    opt) KECCAK_IMPL="zvbb_x2_soa" ;;
+                    opt) KECCAK_IMPL="opt" ;;
                     ref) KECCAK_IMPL="ref" ;;
-                    *)   KECCAK_IMPL="${2:-}" ;;
+                    ref_nozbb) KECCAK_IMPL="ref" ;;
+                    *)   KECCAK_IMPL="${2:-ref}" ;;
                 esac
                 _keccak_explicit=1
                 shift 2
@@ -136,14 +137,10 @@ bench_parse_track_args() {
     done
 
     # Auto-map KECCAK_IMPL from MUL_VARIANT suffix if not explicitly set.
+    # Default is "opt" (with Zbb idiom recognition — the scalar optimization).
+    # Use --keccak ref to build without Zbb (baseline for ablation comparison).
     if [[ "$_keccak_explicit" -eq 0 ]] && [[ -n "$MUL_VARIANT" ]]; then
-        case "$MUL_VARIANT" in
-            scalar_ref|scalar_zb) KECCAK_IMPL="ref" ;;
-            vector_zvk)           KECCAK_IMPL="zvbb_x2_soa" ;;
-            vector_rvv|vector_rvv_D|vector_rvv_V)
-                                  KECCAK_IMPL="ref"         ;;
-            *)                    KECCAK_IMPL="ref"          ;;
-        esac
+        KECCAK_IMPL="opt"
     fi
 
     # Auto-map DECODE_IMPL from MUL_VARIANT suffix if not explicitly set.
@@ -157,7 +154,6 @@ bench_parse_track_args() {
         esac
     fi
 
-    if [[ "$KECCAK_IMPL" == "opt" ]]; then KECCAK_IMPL="zvbb_x2_soa"; fi
     if [[ "$DECODE_IMPL" == "opt" || "$DECODE_IMPL" == "rs_zvbc_exp" ]]; then DECODE_IMPL="zvbc"; fi
     export MUL_VARIANT KECCAK_IMPL DECODE_IMPL
 }
@@ -191,9 +187,10 @@ bench_require_elf_or_hint() {
 
 bench_auto_configure_and_build() {
     local build_dir="$1" repo_root="$2" target="$3" sim_type="${4:-spike}" trace_mode="${5:-0}" tag="${6:-bench}"
-    local _keccak="${KECCAK_IMPL:-ref}"
+    local _keccak="${KECCAK_IMPL:-opt}"
     local _decode="${DECODE_IMPL:-ref}"
-    local _scalar_march="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
+    local _scalar_march="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb_zbs}"
+    local _keccak_bench_march="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb_zbs}"
     local _vector_bits="${HQC_VECTOR_BITS:-256}"
     local _toolchain_file="${HQC_TOOLCHAIN_FILE:-toolchain/riscv-gcc.cmake}"
     local _opt_level="${HQC_OPT_LEVEL:-}"
@@ -201,12 +198,20 @@ bench_auto_configure_and_build() {
     local config_reason=""
     local lock_fd=""
 
-    # zvbb_x2_soa Keccak requires Clang (riscv_rvv_vector_bits attribute).
-    # Override toolchain automatically and inform the user.
-    if [[ "$_keccak" == "zvbb_x2_soa" && "$_toolchain_file" == *"gcc"* ]]; then
-        _toolchain_file="toolchain/riscv-clang.cmake"
-        echo " ├── ⚠️  Keccak zvbb_x2_soa requires Clang → switching toolchain to riscv-clang.cmake"
+    # --keccak ref → strip Zbb from the keccak bench march so rori/andn idiom
+    # recognition is disabled (baseline for Keccak Zbb ablation).
+    # --keccak opt → keep Zbb in the keccak bench march (optimized scalar Keccak).
+    # Both use the same vendor fips202 source; the difference is ISA flags only.
+    # The global HQC_SCALAR_MARCH is NOT affected (KAT/KEM targets keep Zbb).
+    if [[ "$_keccak" == "ref" ]]; then
+        _keccak_bench_march="rv64gc_zbc_zbs"
     fi
+    # CMake always sees HQC_KECCAK_IMPL=ref (same source for both ref and opt).
+    _keccak="ref"
+
+    # zvbb_x2_soa and rvv_soa Keccak have been archived — all builds now use
+    # scalar ref Keccak, which works with both GCC and Clang.  No toolchain
+    # override is needed for Keccak anymore.
 
     mkdir -p "$build_dir"
     if command -v flock >/dev/null 2>&1; then
@@ -219,12 +224,14 @@ bench_auto_configure_and_build() {
         config_reason="missing build dir"
     else
         local cache_file="${build_dir}/CMakeCache.txt"
-        local cached_keccak cached_decode cached_scalar cached_vbits
+        local cached_keccak cached_decode cached_scalar cached_vbits cached_keccak_march
         cached_keccak="$(awk -F'=' '/^HQC_KECCAK_IMPL:STRING=/{print $2; exit}' "$cache_file")"
         cached_decode="$(awk -F'=' '/^HQC_DECODE_IMPL:STRING=/{print $2; exit}' "$cache_file")"
         cached_scalar="$(awk -F'=' '/^HQC_SCALAR_MARCH:STRING=/{print $2; exit}' "$cache_file")"
+        cached_keccak_march="$(awk -F'=' '/^HQC_KECCAK_BENCH_MARCH:STRING=/{print $2; exit}' "$cache_file")"
         cached_vbits="$(awk -F'=' '/^HQC_VECTOR_BITS:STRING=/{print $2; exit}' "$cache_file")"
         cached_vbits="${cached_vbits:-256}"
+        cached_keccak_march="${cached_keccak_march:-${cached_scalar}}"
         local cached_toolchain_base want_toolchain_base cached_opt
         cached_toolchain_base="$(awk -F'=' '/^CMAKE_TOOLCHAIN_FILE:(FILEPATH|UNINITIALIZED)=/{print $2; exit}' "$cache_file" | xargs basename 2>/dev/null || true)"
         want_toolchain_base="$(basename "$_toolchain_file")"
@@ -235,6 +242,7 @@ bench_auto_configure_and_build() {
             config_reason="incomplete cache"
         elif [[ "$cached_keccak" != "$_keccak" || "$cached_decode" != "$_decode" || \
                 "$cached_scalar" != "$_scalar_march" || "$cached_vbits" != "$_vector_bits" || \
+                "$cached_keccak_march" != "$_keccak_bench_march" || \
                 "$cached_toolchain_base" != "$want_toolchain_base" ]]; then
             need_config=1
             config_reason="cache mismatch"
@@ -263,6 +271,7 @@ bench_auto_configure_and_build() {
         -DHQC_KECCAK_IMPL=${_keccak} \
         -DHQC_DECODE_IMPL=${_decode} \
         -DHQC_SCALAR_MARCH=${_scalar_march} \
+        -DHQC_KECCAK_BENCH_MARCH=${_keccak_bench_march} \
         -DHQC_VECTOR_BITS=${_vector_bits}"
 
         if [[ -n "$_opt_level" ]]; then

@@ -127,13 +127,28 @@ profile_trace_mode() {
         map_pcs_lines_arg="--lines"
     fi
 
+    # CMake only accepts HQC_KECCAK_IMPL=ref.  The opt/ref distinction is
+    # handled via HQC_SCALAR_MARCH (with/without Zbb for idiom recognition).
+    # --keccak ref  → strip _zbb from march so Keccak gets baseline codegen.
+    # --keccak opt  → keep _zbb so rori/andn idiom recognition fires.
+    # Note: polymul code uses only Zbc intrinsics; stripping Zbb doesn't affect it.
+    local _cmake_keccak="ref"
+    local _cmake_scalar_march="${HQC_SCALAR_MARCH:-rv64gc_zbc_zbb_zbs}"
+    local _cmake_keccak_bench_march="${_cmake_scalar_march}"
+    if [[ "${KECCAK_IMPL:-opt}" == "ref" ]]; then
+        _cmake_scalar_march="rv64gc_zbc_zbs"
+        _cmake_keccak_bench_march="rv64gc_zbc_zbs"
+    fi
+
     cmake -S "$REPO_ROOT" -B "$build_dir" \
         -DCMAKE_TOOLCHAIN_FILE=toolchain/riscv-gcc.cmake \
         -DRISCV="$riscv" \
         -DHQC_SIM=spike \
         -DHQC_TRACE_MODE=1 \
-        -DHQC_KECCAK_IMPL="${KECCAK_IMPL:-ref}" \
-        -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" >/dev/null 2>&1
+        -DHQC_KECCAK_IMPL="${_cmake_keccak}" \
+        -DHQC_DECODE_IMPL="${DECODE_IMPL:-ref}" \
+        -DHQC_SCALAR_MARCH="${_cmake_scalar_march}" \
+        -DHQC_KECCAK_BENCH_MARCH="${_cmake_keccak_bench_march}" >/dev/null 2>&1
 
     echo -e "\n📦 ${variant} (trace - ${profile_kind})"
 

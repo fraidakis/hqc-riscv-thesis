@@ -222,9 +222,8 @@ run_one_hw() {
     local dir="$REPO_ROOT"
     if [[ "$LOCAL_MODE" -eq 0 ]]; then dir="${REMOTE_DIR}"; fi
 
-    # NOTE: GCC + zvbb_x2_soa is handled automatically in Makefile.hw — it falls
-    # back to ref Keccak.  No skip guard needed; GCC builds proceed with scalar
-    # Keccak while the Zvbc polynomial multiplier remains fully vectorized.
+    # NOTE: GCC + vectorized Keccak backends are no longer relevant — all builds
+    # now use the scalar ref Keccak that works with both GCC and Clang.
 
     local make_mode="${QUALITY}"
     local extra_args="KECCAK=${KECCAK_IMPL} DECODE=${DECODE_IMPL}"

@@ -299,7 +299,7 @@ case "$PLATFORM" in
         SPIKE="${RISCV}/bin/spike"
         SPIKE_RUNNER="${REPO_ROOT}/sim/spike/run.sh"
         ISA="rv64gcv_zbc_zbb_zba_zvbc_zvbb_zvl256b"
-        BENCH_EXPECT_HQC_SCALAR_MARCH="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb}"
+        BENCH_EXPECT_HQC_SCALAR_MARCH="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb_zbs}"
         export BENCH_EXPECT_HQC_SCALAR_MARCH
         BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
         GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
@@ -372,8 +372,8 @@ case "$PLATFORM" in
             if [[ "$MODE" == "keccak" ]]; then
                 local impl_flag="ref"
                 case "$KECCAK_IMPL" in
-                    opt|zvbb_*) impl_flag="opt" ;;
-                    ref_nozbb)  impl_flag="ref-nozbb" ;;
+                    opt) impl_flag="opt" ;;
+                    ref) impl_flag="ref" ;;
                 esac
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_header="# Keccak variant: ${KECCAK_IMPL}"
@@ -654,11 +654,11 @@ case "$PLATFORM" in
                     fi
                     ;;
                 keccak)
-                    # Pass KECCAK_MARCH override for Zbb ablation (ref_nozbb)
-                    if [[ "$KECCAK_IMPL" == "ref_nozbb" ]]; then
-                        extra_args="KECCAK_MARCH=rv64gc_zbc_zbs KECCAK_LABEL=ref_nozbb"
-                    elif [[ -n "$KECCAK_IMPL" && "$KECCAK_IMPL" != "ref" ]]; then
-                        extra_args="KECCAK_LABEL=$KECCAK_IMPL"
+                    # --keccak ref → strip Zbb; --keccak opt → keep Zbb (default)
+                    if [[ "$KECCAK_IMPL" == "ref" ]]; then
+                        extra_args="KECCAK_MARCH=rv64gc_zbc_zbs KECCAK_LABEL=ref"
+                    else
+                        extra_args="KECCAK_LABEL=opt"
                     fi
                     ;;
                 mul)
@@ -794,8 +794,8 @@ ${output}"
                 local keccak_effective="${KECCAK_IMPL:-ref}"
                 local impl_flag="ref"
                 case "$keccak_effective" in
-                    opt|zvbb_*) impl_flag="opt" ;;
-                    ref_nozbb)  impl_flag="ref-nozbb" ;;
+                    opt) impl_flag="opt" ;;
+                    ref) impl_flag="ref" ;;
                 esac
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_label="keccak_${keccak_effective}"

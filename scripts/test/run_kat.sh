@@ -110,24 +110,15 @@ else
     fi
 fi
 
-# ── Determine simulator type and QEMU-safe Keccak impl ────────────────────────
-# zvbb_x2_soa requires Zvbb which is not enabled in the QEMU virt CPU flags.
-# For QEMU KAT tests, down-map to ref (portable scalar Keccak).
-# The KAT vectors are Keccak-implementation-agnostic:
-# any correct Keccak implementation produces identical output for the same input.
+# ── Determine simulator type ───────────────────────────────────────────────────
+# All Keccak builds now use scalar ref (vectorized paths archived).
+# KAT tests use "opt" (with Zbb) — same source, just ISA flag difference.
 if [[ "$USE_SPIKE" -eq 1 ]]; then
     sim_type="spike"
-    eff_keccak="${KECCAK_IMPL:-ref}"
 else
     sim_type="qemu"
-    if [[ "${KECCAK_IMPL:-ref}" == "zvbb_x2_soa" ]]; then
-        eff_keccak="ref"
-    else
-        eff_keccak="${KECCAK_IMPL:-ref}"
-    fi
 fi
-# Override so bench_auto_configure_and_build picks up the adjusted value.
-KECCAK_IMPL="$eff_keccak"
+KECCAK_IMPL="opt"
 export KECCAK_IMPL
 
 # Dedicated KAT build dir — owned by run_kat.sh and always configured with
