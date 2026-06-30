@@ -61,8 +61,9 @@ KECCAK_LABEL ?= ref
 #   scalar_zb — vendor scalar reed_muller + reed_solomon WITH Zbc clmul gf_mul
 #   rvv       — RVV vectorized reed_muller + reed_solomon
 #   zvbc      — Zvbc vectorized RS + iterative FFT
-#   rm_rvv_E  — ablation: RVV expand_and_sum only (hadamard+peaks scalar)
-#   rm_rvv_EH — ablation: RVV expand_and_sum + hadamard (peaks scalar)
+#   rm_rvv_E  — ablation: RVV expand_and_sum only (hadamard+peaks scalar) + Zbc RS
+#   rm_rvv_EH — ablation: RVV expand_and_sum + hadamard (peaks scalar) + Zbc RS
+#   rm_rvv_EHP — ablation: full RVV RM (E+H+P) + Zbc RS (isolates RM from RS)
 DECODE   ?= ref
 
 # Extra CFLAGS for ablation decode builds (set by decode source selection below)
@@ -212,14 +213,18 @@ else ifeq ($(DECODE),zvbc)
                         $(SRC)/decode/fft_zvbc.c
 else ifeq ($(DECODE),rm_rvv_E)
   KEM_DECODE_SOURCES := $(SRC)/decode/reed_muller_rvv_ablation.c \
-                        $(SRC)/decode/reed_solomon_rvv.c \
+                        $(VENDOR)/src/ref/reed_solomon.c \
                         $(VENDOR)/src/common/fft.c
 else ifeq ($(DECODE),rm_rvv_EH)
   KEM_DECODE_SOURCES := $(SRC)/decode/reed_muller_rvv_ablation.c \
-                        $(SRC)/decode/reed_solomon_rvv.c \
+                        $(VENDOR)/src/ref/reed_solomon.c \
+                        $(VENDOR)/src/common/fft.c
+else ifeq ($(DECODE),rm_rvv_EHP)
+  KEM_DECODE_SOURCES := $(SRC)/decode/reed_muller_rvv_ablation.c \
+                        $(VENDOR)/src/ref/reed_solomon.c \
                         $(VENDOR)/src/common/fft.c
 else
-  $(error Unsupported DECODE=$(DECODE). Use ref, scalar_zb, rvv, zvbc, rm_rvv_E, or rm_rvv_EH)
+  $(error Unsupported DECODE=$(DECODE). Use ref, scalar_zb, rvv, zvbc, rm_rvv_E, rm_rvv_EH, or rm_rvv_EHP)
 endif
 
 # ── Full KEM source chain (shared by bench_kem and dudect_kem) ───────────────
@@ -304,21 +309,29 @@ else ifeq ($(DECODE),scalar_zb)
   DECODE_MARCH := rv64gc_zbc_zbb_zbs
 # ── RM RVV ablation variants ────────────────────────────────────────────────
 # These use reed_muller_rvv_ablation.c with compile-time flags to selectively
-# enable each vectorized sub-function, paired with the RVV RS path.
+# enable each vectorized sub-function, paired with Zbc-optimized scalar RS
+# (vendor reed_solomon.c + gf.c clmul) to isolate RM vectorization.
 else ifeq ($(DECODE),rm_rvv_E)
   # +expand_and_sum vectorized only (hadamard + find_peaks remain scalar)
   DECODE_SOURCES += $(SRC)/decode/reed_muller_rvv_ablation.c \
-                    $(SRC)/decode/reed_solomon_rvv.c \
+                    $(VENDOR)/src/ref/reed_solomon.c \
                     $(VENDOR)/src/common/fft.c
   DECODE_MARCH := rv64gcv_zbc_zbb_zbs
   DECODE_EXTRA_CFLAGS := -DABLATION_RM_EXPAND_RVV=1 -DABLATION_RM_HADAMARD_RVV=0 -DABLATION_RM_PEAKS_RVV=0
 else ifeq ($(DECODE),rm_rvv_EH)
   # +expand_and_sum + hadamard vectorized (find_peaks remains scalar)
   DECODE_SOURCES += $(SRC)/decode/reed_muller_rvv_ablation.c \
-                    $(SRC)/decode/reed_solomon_rvv.c \
+                    $(VENDOR)/src/ref/reed_solomon.c \
                     $(VENDOR)/src/common/fft.c
   DECODE_MARCH := rv64gcv_zbc_zbb_zbs
   DECODE_EXTRA_CFLAGS := -DABLATION_RM_EXPAND_RVV=1 -DABLATION_RM_HADAMARD_RVV=1 -DABLATION_RM_PEAKS_RVV=0
+else ifeq ($(DECODE),rm_rvv_EHP)
+  # Full RVV RM (expand+hadamard+peaks) + Zbc scalar RS (isolates RM from RS)
+  DECODE_SOURCES += $(SRC)/decode/reed_muller_rvv_ablation.c \
+                    $(VENDOR)/src/ref/reed_solomon.c \
+                    $(VENDOR)/src/common/fft.c
+  DECODE_MARCH := rv64gcv_zbc_zbb_zbs
+  DECODE_EXTRA_CFLAGS := -DABLATION_RM_EXPAND_RVV=1 -DABLATION_RM_HADAMARD_RVV=1 -DABLATION_RM_PEAKS_RVV=1
 else
   # ref (default): vendor scalar WITHOUT Zbc — pure software gf_mul baseline.
   # This strips Zbc so the compiler uses the schoolbook gf_carryless_mul path.

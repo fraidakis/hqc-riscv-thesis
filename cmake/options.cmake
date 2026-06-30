@@ -29,8 +29,8 @@ set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS "ref")
 # zvbc : RVV RM + promoted Zvbc RS path (reed_solomon_zvbc.c)
 # rs_zvbc_exp : legacy alias of zvbc (kept for backward compatibility)
 set(HQC_DECODE_IMPL "ref" CACHE STRING
-    "RM/RS decoder backend: ref | rvv | zvbc | rm_rvv_E | rm_rvv_EH")
-set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv" "zvbc" "rm_rvv_E" "rm_rvv_EH")
+    "RM/RS decoder backend: ref | rvv | zvbc | zvbc_BD | rm_rvv_E | rm_rvv_EH | rm_rvv_EHP")
+set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv" "zvbc" "zvbc_BD" "rm_rvv_E" "rm_rvv_EH" "rm_rvv_EHP")
 
 # ── Scalar ISA override (ablation experiments) ───────────────────────────────
 # Overrides the -march for scalar-only variants (scalar_ref, scalar_zb).
@@ -182,10 +182,12 @@ endif()
 if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND
    NOT HQC_DECODE_IMPL STREQUAL "rvv"         AND
    NOT HQC_DECODE_IMPL STREQUAL "zvbc"        AND
+   NOT HQC_DECODE_IMPL STREQUAL "zvbc_BD"     AND
    NOT HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp" AND
    NOT HQC_DECODE_IMPL STREQUAL "rm_rvv_E"    AND
-   NOT HQC_DECODE_IMPL STREQUAL "rm_rvv_EH")
+   NOT HQC_DECODE_IMPL STREQUAL "rm_rvv_EH"   AND
+   NOT HQC_DECODE_IMPL STREQUAL "rm_rvv_EHP")
     message(FATAL_ERROR
-    "HQC_DECODE_IMPL must be one of: ref | rvv | zvbc | rm_rvv_E | rm_rvv_EH, "
+    "HQC_DECODE_IMPL must be one of: ref | rvv | zvbc | rm_rvv_E | rm_rvv_EH | rm_rvv_EHP, "
         "got '${HQC_DECODE_IMPL}'")
 endif()

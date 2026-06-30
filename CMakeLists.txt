@@ -176,34 +176,54 @@ elseif(HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp"
         ${CMAKE_SOURCE_DIR}/src/decode/fft_zvbc.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
+elseif(HQC_DECODE_IMPL STREQUAL "zvbc_BD")
+    # Zvbc ablation: Axes A+B+D vectorised (reed_solomon_zvbc.c) but Axis C
+    # (root-finding) uses vendor scalar fft.c. Isolates Zvbc BM+Forney
+    # contribution from the iterative FFT vectorisation.
+    set(DECODE_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
+    )
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_zvbc.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc_zvbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+    )
 elseif(HQC_DECODE_IMPL STREQUAL "rm_rvv_E")
     # RM ablation: only expand_and_sum vectorized, hadamard+find_peaks scalar.
-    # Paired with the RVV RS path to isolate the RM contribution.
+    # Paired with Zbc-optimized scalar RS to isolate the RM contribution.
     set(DECODE_SOURCES
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv_ablation.c
-        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
+        ${HQC_REF}/src/ref/reed_solomon.c
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv_ablation.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;-DABLATION_RM_EXPAND_RVV=1;-DABLATION_RM_HADAMARD_RVV=0;-DABLATION_RM_PEAKS_RVV=0;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
-    )
 elseif(HQC_DECODE_IMPL STREQUAL "rm_rvv_EH")
     # RM ablation: expand_and_sum + hadamard vectorized, find_peaks scalar.
+    # Paired with Zbc-optimized scalar RS.
     set(DECODE_SOURCES
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv_ablation.c
-        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
+        ${HQC_REF}/src/ref/reed_solomon.c
     )
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv_ablation.c
         PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;-DABLATION_RM_EXPAND_RVV=1;-DABLATION_RM_HADAMARD_RVV=1;-DABLATION_RM_PEAKS_RVV=0;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
+elseif(HQC_DECODE_IMPL STREQUAL "rm_rvv_EHP")
+    # RM ablation: full RVV RM (expand+hadamard+peaks) + Zbc scalar RS.
+    # Isolates full RM vectorization from RS vectorization.
+    set(DECODE_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv_ablation.c
+        ${HQC_REF}/src/ref/reed_solomon.c
+    )
     set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/decode/reed_solomon_rvv.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zbc;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
+        ${CMAKE_SOURCE_DIR}/src/decode/reed_muller_rvv_ablation.c
+        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv;-DABLATION_RM_EXPAND_RVV=1;-DABLATION_RM_HADAMARD_RVV=1;-DABLATION_RM_PEAKS_RVV=1;$<$<C_COMPILER_ID:Clang>:-mrvv-vector-bits=${HQC_VECTOR_BITS}>;$<$<C_COMPILER_ID:GNU>:-mrvv-vector-bits=zvl>"
     )
 else()
     # Default (ref): vendor scalar reed_muller + reed_solomon
