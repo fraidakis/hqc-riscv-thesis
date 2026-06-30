@@ -98,7 +98,7 @@ HQC-256 αντίστοιχα (μετρήθηκαν από το Spike \instret κ
 bit-scatter) που στο πραγματικό \gls{kem} είναι αδιαχώριστο από τη SHAKE squeeze.
 
 Ο~\cref{tab:microbench-keccak} παρουσιάζει τη σύγκριση μεταξύ reference
-(scalar \code{fips202.c}) και βελτιστοποιημένης υλοποίησης (\gls{soa} αρχιτεκτονική δύο ροών με \gls{zvbb}, βλ.\ \cref{ssec:keccak-zvbb-soa}).
+(scalar \code{fips202.c}) και βελτιστοποιημένης υλοποίησης (\gls{soa} αρχιτεκτονική δύο ροών με \gls{zvbb}, βλ.\ \cref{ssec:keccak-vector-failure}).
 
 \begin{table}[htbp]
   \centering
@@ -261,7 +261,7 @@ resources. Στο HQC-128:
   \item \textbf{Tier~2 $\to$ Tier~3} (Total \gls{kem}: $\num{1956787} \to \num{702755}$ \instret, $+\pct{178}$): η αντικατάσταση των scalar
     \insn{clmul}/\insn{clmulh} leaves με vectorized \vclmul/\vclmulh
     (\cref{ssec:vclmul-leaf}) μειώνει δραματικά το polymul ($-\pct{56.4}$, $\num{146267} \to \num{63804}$), ενώ η \gls{soa} δύο ροών Keccak
-    με \gls{zvbb} (\cref{ssec:keccak-zvbb-soa}) μειώνει τον Keccak κατά
+    με \gls{zvbb} (\cref{ssec:keccak-vector-failure}) μειώνει τον Keccak κατά
     \speedup{3.7}. Η σύνθεση αυτών των βελτιώσεων παράγει τη
     μεγαλύτερη σχετική βελτίωση μεταξύ διαδοχικών tiers.
 \end{itemize}
@@ -835,7 +835,7 @@ working set ($\approx \SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλή�
 (GCC \code{-ftree-vectorize}) auto-vectorizes τα θ/χ steps του Keccak-f,
 μειώνοντας τους κύκλους κατά $\approx\pct{12}$ σε σύγκριση με τον
 \code{scalar\_zb} Keccak (\num{358710} κύκλοι). Αυτό δεν αντιφάσκει με το RVV Paradox
-(\cref{ssec:keccak-rvv-paradox}): εκεί αξιολογείται χειρόγραφη \RVV
+(\cref{ssec:keccak-vector-failure}): εκεί αξιολογείται χειρόγραφη \RVV
 υλοποίηση (intrinsics), ενώ εδώ ο μεταγλωττιστής εφαρμόζει συντηρητικότερες
 (και αποδοτικότερες) auto-vectorization επιλογές μόνο στα trivially-parallel
 steps.

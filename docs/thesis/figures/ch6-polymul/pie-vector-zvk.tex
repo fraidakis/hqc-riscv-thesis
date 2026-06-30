@@ -25,40 +25,40 @@
 }
 
 % MAIN DONUT — vector_zvk (Tier 3) L128 profile (keccak=ref, decode=ref)
-% Polymul = 25.6%  →  92.2°
-% Keccak  = 41.8%  → 150.5°
-% Decode  = 26.7%  →  96.1°
-% Other   =  5.9%  →  21.2°
+% Polymul = 21.8%  →  78.5°
+% Keccak  = 49.2%  → 177.1°
+% Decode  = 24.0%  →  86.4°
+% Other   =  5.1%  →  18.4°
 %
 % Angles: start=90, clockwise (90 -> -270)
-% Polymul:  90.0  ->  -2.2
-% Keccak:  -2.2  -> -152.7
-% Decode: -152.7  -> -248.8
-% Other:  -248.8  -> -270.0
+% Polymul:  90.0  ->  11.5
+% Keccak:  11.5  -> -165.6
+% Decode: -165.6  -> -252.0
+% Other:  -252.0  -> -270.0
 
-\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{90}{-2.2}{colMul}
-\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{-2.2}{-152.7}{colKeccak}
-\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{-152.7}{-248.8}{colDecode}
-\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{-248.8}{-270}{colMem}
+\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{90}{11.5}{colMul}
+\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{11.5}{-165.6}{colKeccak}
+\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{-165.6}{-252.0}{colDecode}
+\ringsectorC{\mainCX}{\mainCY}{\innerR}{\outerR}{-252.0}{-270}{colMem}
 
 % Labels inside sectors
 \pgfmathsetmacro{\labelR}{(\innerR + \outerR)/2}
 
-% Polymul label (mid-angle = (90 + (-2.2))/2 = 43.9)
+% Polymul label (mid-angle = (90 + 11.5)/2 = 50.8)
 \node[font=\sffamily\bfseries\small, text=white] at
-    ([shift={(\mainCX,\mainCY)}] 43.9:\labelR) {25.6\%};
+    ([shift={(\mainCX,\mainCY)}] 50.8:\labelR) {21.8\%};
 
-% Keccak label (mid-angle = (-2.2 + (-152.7))/2 = -77.5)
+% Keccak label (mid-angle = (11.5 + (-165.6))/2 = -77.1)
 \node[font=\sffamily\bfseries\small, text=white] at
-    ([shift={(\mainCX,\mainCY)}] -77.5:\labelR) {41.8\%};
+    ([shift={(\mainCX,\mainCY)}] -77.1:\labelR) {49.2\%};
 
-% Decode label (mid-angle = (-152.7 + (-248.8))/2 = -200.7)
+% Decode label (mid-angle = (-165.6 + (-252.0))/2 = -208.8)
 \node[font=\sffamily\bfseries\small, text=white] at
-    ([shift={(\mainCX,\mainCY)}] -200.7:\labelR) {26.7\%};
+    ([shift={(\mainCX,\mainCY)}] -208.8:\labelR) {24.0\%};
 
-% Other label (mid-angle = (-248.8 + (-270))/2 = -259.4)
+% Other label (mid-angle = (-252.0 + (-270))/2 = -261.0)
 \node[font=\sffamily\bfseries\footnotesize, text=white] at
-    ([shift={(\mainCX,\mainCY)}] -259.4:\labelR) {5.9\%};
+    ([shift={(\mainCX,\mainCY)}] -261.0:\labelR) {5.1\%};
 
 % Center text
 \node[font=\sffamily\bfseries\large, text=textmain] at (\mainCX, \mainCY+0.15)
