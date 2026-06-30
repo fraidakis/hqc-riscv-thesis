@@ -123,41 +123,43 @@ pipeline, αναλύεται στην \cref{ssec:hw-spike-vs-hw}. Η scalar \Zbb
 \label{sec:decode-optimization}
 
 Το υποσύστημα αποκωδικοποίησης εκτελείται αποκλειστικά κατά το \Decaps και
-αποτελείται από δύο διαδοχικά στάδια: τον εσωτερικό κώδικα \gls{rm}(1,7)
-(διόρθωση σε επίπεδο bit εντός κάθε συμβόλου) και τον εξωτερικό κώδικα \gls{rs}
-πάνω από $\GF{2^8}$ (διόρθωση σε επίπεδο συμβόλου, μεταξύ διαφορετικών συμβόλων). Μετά τη
+αποτελείται από δύο διαδοχικά στάδια, τον εσωτερικό κώδικα \gls{rm}(1,7) και
+τον εξωτερικό κώδικα \gls{rs} επί του $\GF{2^8}$, όπως αναλύθηκε
+στην~\cref{sec:ecc-theory}. Μετά τη
 βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (\cref{ch:polymul-optimization})
 και του Keccak (\cref{sec:keccak-optimization}), το decode pipeline αποτελεί
 τον δεύτερο μεγαλύτερο πυρήνα, αφού το ποσοστό του στο συνολικό \gls{kem} 
 αυξάνεται καταναλώνοντας σε \pct{16}–\pct{27} ανάλογα με το tier.
 Η βελτιστοποίηση ακολουθεί τρία tiers αυξανόμενης ISA
-πολυπλοκότητας: scalar με \gls{zbc} injection (Tier~1), Base-\RVV
+πολυπλοκότητας: scalar με \gls{zbc} \clmul{} (Tier~1), Base-\RVV
 διανυσματοποίηση \gls{rm} και \gls{rs} syndromes (Tier~2), και πλήρης
 \gls{zvbc} vectorization όλων των αξόνων \gls{rs} (Tier~3). 
 
 %% --------------------------------------------------------------------------
-\subsection{Scalar Path: \Zbc Injection στη \code{gf\_mul}}
+\subsection{Scalar Path: Αξιοποίηση \Zbc στη \code{gf\_mul}}
 \label{sec:decode-scalar}
 
 Η μοναδική βελτιστοποίηση στο scalar path αφορά τον πυρήνα αριθμητικής
-$\GF{2^8}$. Η υλοποίηση αναφοράς (\code{gf\_carryless\_mul}) χρησιμοποιεί
-έναν constant-time schoolbook αλγόριθμο για $8 \times 8$-bit carry-less γινόμενο. Στο Tier~1, η
-αντικατάσταση με μία μόνο εντολή \clmul (μέσω \gls{zbc} intrinsic) μειώνει
-το κόστος σε μία εντολή για το γινόμενο.
+$\GF{2^8}$, τη συνάρτηση \code{gf\_mul}, που καλείται σε όλα τα αλγεβρικά
+στάδια της αποκωδικοποίησης.
 
-\begin{lstlisting}[language=C, caption={Scalar \code{gf\_mul} με \Zbc injection.},
-  label={lst:gf-mul-zbc}]
-uint16_t gf_mul(uint16_t a, uint16_t b) {
-    uint64_t prod = __riscv_clmul_64(
-        (uint64_t)(a & 0xFF), (uint64_t)(b & 0xFF));
-    return gf_reduce((uint16_t)prod);
-}
-\end{lstlisting}
+\paragraph{Baseline: software carry-less multiply.}
+Η υλοποίηση αναφοράς (\code{gf\_carryless\_mul}) υπολογίζει το $8 \times 8$-bit
+carry-less γινόμενο με schoolbook αλγόριθμο, μέσω ενός branchless
+βρόχου επί ζευγών bits.
 
-Kάθε κλήση \code{gf\_mul} στους υπολογισμούς syndromes, \gls{bm}, Forney, και
-\gls{fft} root-finding ωφελείται ομοιόμορφα. Iδιαίτερα
-στο HQC-256 όπου $\delta = 29$ και οι εσωτερικοί βρόχοι εκτελούν
-$\BigO{\delta^2}$ πολλαπλασιασμούς.
+\paragraph{Βελτιστοποίηση: μία \clmul{} μέσω \Zbc.}
+Στο Tier~1 ο software βρόχος αντικαθίσταται από μία μόνο εντολή \clmul{}
+(μέσω \gls{zbc} intrinsic). Επειδή οι τελεστέοι έχουν βαθμό $\leq 7$ (8 bits), το carry-less γινόμενο έχει
+βαθμό $\leq 14$ και χωρά εξ ολοκλήρου στα κάτω \num{64} bits του αποτελέσματος.
+Η \clmul{} επιστρέφει ακριβώς αυτό το κάτω μέρος, οπότε η \clmulh{} (υψηλά
+\num{64} bits) είναι σταθερά μηδέν και περιττή, σε αντίθεση με τον word-level
+πολυωνυμικό πολλαπλασιασμό \num{64}-bit τελεστέων (\cref{lst:leaf-scalar}), όπου
+το \num{127}-bit γινόμενο απαιτεί και τις δύο εντολές.
+
+\paragraph{Κέρδος της \Zbc{} \clmul{}.}
+Η αντικατάσταση του software carry-less multiply με μία \clmul{} δίνει
+επιτάχυνση \speedup{1.74} σε \instret στο απομονωμένο decode (HQC-128, Spike).
 
 %% --------------------------------------------------------------------------
 \subsection{Base-RVV Path: Διανυσματοποίηση RM και RS Syndromes}
@@ -169,10 +171,10 @@ $\BigO{\delta^2}$ πολλαπλασιασμούς.
 βασική V extension. Δεν απαιτείται \gls{zvbc}.
 
 \paragraph{Reed-Muller: Vectorized FHT μέσω Strided Loads.}
-Ο αποκωδικοποιητής RM(1,7) εκτελεί τρεις υπο-συναρτήσεις ανά σύμβολο:
+Ο αποκωδικοποιητής RM(1,7) εκτελεί τρεις συναρτήσεις ανά σύμβολο:
 \code{expand\_and\_sum} (εξαγωγή bits από \code{MULTIPLICITY} αντίγραφα),
-\code{hadamard} (7-pass Fast Hadamard Transform σε \num{128} στοιχεία),
-και \code{find\_peaks} (εύρεση θέσης μεγίστου).
+\code{hadamard} (7-pass Fast Hadamard Transform),
+και \code{find\_peaks} (εύρεση μεγίστου).
 
 Ο πυρήνας της vectorization είναι ο FHT. Κάθε pass εκτελεί \num{64}
 butterfly ζεύγη με stride-2 πρόσβαση (σε στοιχεία, ισοδύναμο με byte-stride \num{4} για \code{int16}), pattern που αντιστοιχεί απευθείας
@@ -842,7 +844,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
         εκπεμπόμενες εντολές. Ο κώδικας \gls{hqc} δεν περιέχει half-register
         packing ή bit-interleave patterns στα hot paths. Η $\GF{2^8}$
         αριθμητική χρησιμοποιεί lookup tables αντί bitwise field πράξεων.
-  \item \textbf{\ext{Zbkc}} (\insn{clmul}, \insn{clmulh} — crypto-oriented
+  \item \textbf{\ext{Zbkc}} (\insn{clmul}, \insn{clmulh}, το crypto-oriented
         υποσύνολο carry-less πολλαπλασιασμού): μηδενική επιπλέον ωφέλεια. Οι εντολές
         \code{clmul}/\code{clmulh} παρέχονται ήδη από τη \ext{Zbc} (baseline),
         οπότε η \ext{Zbkc} είναι πλεονάζουσα. Επιπλέον τα inline assembly blocks
