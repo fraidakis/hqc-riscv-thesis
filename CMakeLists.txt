@@ -117,40 +117,18 @@ file(STRINGS "${CMAKE_SOURCE_DIR}/scripts/implemented_variants.txt" IMPLEMENTED_
 
 set(SECURITY_LEVELS 128 192 256)
 
-# ── Keccak / SHAKE sources — selected by HQC_KECCAK_IMPL ─────────────────────
-# All polymul variants automatically pick up the chosen Keccak impl.
-# Stable options: ref (Track A/B) | zvbb_x2_soa (Track C2, promoted 2026-05-22;
-#   includes keccak_xor_bytes RVV byte-streaming from EXP-keccak-xor-bytes-rvv)
-# Legacy variants are archived under experiments/dropped/ and not selectable by default.
+# ── Keccak / SHAKE sources ────────────────────────────────────────────────────
+# All polymul variants use the vendor scalar fips202 reference implementation.
+# The vectorized Keccak backends (zvbb_x2_soa, rvv_soa) were experimentally
+# evaluated and found slower than scalar+Zbb on VLEN=256 in-order cores
+# (see §7.1 of the thesis).  They are archived under experiments/dropped/.
 #
-# KECCAK_INCLUDE_DIRS  : extra include dirs required by the chosen Keccak impl
-#                        (appended to every KAT / bench target)
+# The --keccak ref|opt distinction now controls whether Zbb (rori, andn) is
+# available to the compiler for idiom-recognition optimization of the scalar
+# Keccak permutation.  This is handled via HQC_SCALAR_MARCH in options.cmake.
 set(KECCAK_INCLUDE_DIRS "")
 set(KECCAK_COMPILE_DEFINES "")
-
-if(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
-    # Track C2: top-performing consolidated Zvbb backend (single TU).
-    # Contains both single-stream fips202 API and paired-stream x2 wrappers.
-    # REQUIRES Clang: uses __attribute__((riscv_rvv_vector_bits(N))) which is
-    # a Clang-only extension.  GCC cannot compile this file.
-    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-        message(FATAL_ERROR
-            "zvbb_x2_soa Keccak requires Clang (uses riscv_rvv_vector_bits attribute). "
-            "Set HQC_KECCAK_IMPL=ref or use toolchain/riscv-clang.cmake for keccak opt builds.")
-    endif()
-    set(KECCAK_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c)
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/src/keccak/fips202_zvbb_x2.c
-        PROPERTIES COMPILE_OPTIONS "-march=rv64gcv_zvbb_zbb;-mrvv-vector-bits=${HQC_VECTOR_BITS}"
-                   COMPILE_DEFINITIONS "HQC_VECTOR_BITS=${HQC_VECTOR_BITS}"
-    )
-    set(KECCAK_COMPILE_DEFINES HQC_KECCAK_X2_SOA=1)
-
-else()
-    # Default (ref): vendor scalar fips202
-    set(KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
-endif()
+set(KECCAK_SOURCES ${HQC_REF}/lib/fips202/fips202.c)
 
 # ── RM/RS Decoder sources — selected by HQC_DECODE_IMPL ──────────────────────
 # Phase 3 replaces these.  The code.c / fft.c wrappers remain vendor-sourced
@@ -779,7 +757,7 @@ foreach(LEVEL ${SECURITY_LEVELS})
     )
     target_compile_options(${KECCAK_BENCH_TARGET} PRIVATE
         -O3
-        -march=rv64gcv_zbc_zbb_zvbc_zvbb
+        -march=${HQC_KECCAK_BENCH_MARCH}
         -mabi=lp64d
     )
     set_target_properties(${KECCAK_BENCH_TARGET} PROPERTIES

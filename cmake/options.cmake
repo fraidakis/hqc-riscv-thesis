@@ -4,23 +4,24 @@
 #
 # Usage:
 #   cmake -B build -DHQC_KECCAK_IMPL=ref -DHQC_DECODE_IMPL=rvv  # Track B
-#   cmake -B build -DHQC_KECCAK_IMPL=zvbb_x2_soa -DHQC_DECODE_IMPL=rvv  # Track C2
+#   cmake -B build -DHQC_KECCAK_IMPL=ref -DHQC_DECODE_IMPL=zvbc # Track C
 #
 # All five POLYMUL_VARIANTS are always built regardless of these flags.
 # The flags control which Keccak and Decoder sources are linked into every target.
 
 # ── Phase 2 flag: Keccak / SHAKE implementation ───────────────────────────────
-# ref         : vendor scalar fips202 (default; used for Track A and Track B)
-# zvbb_x2_soa : Track C2 — 2-way SoA vector Keccak backend with paired-stream
-#               wrappers; src/keccak/fips202_zvbb_x2.c
-#               (includes keccak_xor_bytes RVV byte-streaming — promoted from
-#               EXP-keccak-xor-bytes-rvv on 2026-05-22)
-# Legacy keccak variants are archived under experiments/dropped/ and are not
-# selectable in the default stable build.
+# The vectorized Keccak backends (zvbb_x2_soa, rvv_soa) were experimentally
+# evaluated and found slower than scalar+Zbb on VLEN=256 in-order cores.
+# They are archived under experiments/dropped/.
+#
+# The only stable Keccak implementation is the vendor scalar fips202.
+# The ref-vs-opt distinction is now handled purely via HQC_SCALAR_MARCH:
+#   ref : compiled with whatever HQC_SCALAR_MARCH says (default includes Zbb)
+#   opt : same as ref (Zbb idiom recognition is the "optimization")
+# To ablate Zbb, set HQC_SCALAR_MARCH=rv64gc_zbc (strips Zbb/Zbs).
 set(HQC_KECCAK_IMPL "ref" CACHE STRING
-    "Keccak/SHAKE backend: ref | zvbb_x2_soa | rvv_soa")
-set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS
-    "ref" "zvbb_x2_soa" "rvv_soa")
+    "Keccak/SHAKE backend: ref (only stable option; vectorized paths archived)")
+set_property(CACHE HQC_KECCAK_IMPL PROPERTY STRINGS "ref")
 
 # ── Phase 3 flag: RM/RS concatenated decoder ─────────────────────────────────
 # ref : vendor scalar reed_muller.c + reed_solomon.c (default)
@@ -44,6 +45,17 @@ set_property(CACHE HQC_DECODE_IMPL PROPERTY STRINGS "ref" "rvv" "zvbc")
 set(HQC_SCALAR_MARCH "rv64gc_zbc_zbb_zbs" CACHE STRING
     "ISA march for scalar variants (ablation: set to rv64gc_zbc to strip zbb)")
 
+# ── Keccak bench ISA override ────────────────────────────────────────────────
+# Controls the -march for the keccak micro-benchmark target (bench_keccak_hqcN).
+# Defaults to HQC_SCALAR_MARCH (includes Zbb → rori/andn idiom recognition).
+# Set to "rv64gc_zbc" to strip Zbb for the keccak-ref baseline measurement.
+#
+# Usage from scripts:
+#   --keccak opt → HQC_KECCAK_BENCH_MARCH = HQC_SCALAR_MARCH (with Zbb)
+#   --keccak ref → HQC_KECCAK_BENCH_MARCH = rv64gc_zbc (without Zbb)
+set(HQC_KECCAK_BENCH_MARCH "${HQC_SCALAR_MARCH}" CACHE STRING
+    "ISA march for keccak bench target (ref: rv64gc_zbc, opt: inherit HQC_SCALAR_MARCH)")
+
 # ── Diagnostic messages ───────────────────────────────────────────────────────
 message(STATUS "HQC configuration:")
 message(STATUS "  POLYMUL  : matrix includes scalar_ref baseline and optimized variants")
@@ -55,16 +67,14 @@ elseif(HQC_KECCAK_IMPL STREQUAL "ref" AND HQC_DECODE_IMPL STREQUAL "rvv")
     message(STATUS "  → Track B build: RVV polymul/decoder with scalar reference Keccak")
 elseif(HQC_KECCAK_IMPL STREQUAL "ref" AND (HQC_DECODE_IMPL STREQUAL "zvbc" OR HQC_DECODE_IMPL STREQUAL "rs_zvbc_exp"))
     message(STATUS "  → Track B+ build: RVV polymul with Zvbc RS decode backend")
-elseif(HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
-    message(STATUS "  → Track C2 build: Zvbb 2-way SoA vector backend (fips202_zvbb_x2.c)")
 endif()
 
 # ── RVV vector-bits assumption ────────────────────────────────────────────────
 # HQC_VECTOR_BITS controls the -mrvv-vector-bits=N Clang flag applied to all
-# RVV-compiled sources (Keccak zvbb_x2_soa, decode rvv/zvbc).
+# RVV-compiled sources (decode rvv/zvbc).
 # Default is 256 (matches the reference hardware VLEN and the full-KEM build).
 # The VLEN sweep sets this to the target VLEN per build dir so the same
-# pairings (vector_rvv+ref+rvv, vector_zvk+zvbb+zvbc) produce correct
+# pairings (vector_rvv+ref+rvv, vector_zvk+ref+zvbc) produce correct
 # results at every VLEN without sacrificing performance at VLEN=256.
 set(HQC_VECTOR_BITS "256" CACHE STRING
     "RVV vector register width assumed by -mrvv-vector-bits= (default: 256)")
@@ -141,11 +151,10 @@ endif()
 message(STATUS "  reference PGO : ${HQC_REF_PGO}")
 
 # ── Validation ────────────────────────────────────────────────────────────────
-if(NOT HQC_KECCAK_IMPL STREQUAL "ref"         AND
-   NOT HQC_KECCAK_IMPL STREQUAL "zvbb_x2_soa")
+if(NOT HQC_KECCAK_IMPL STREQUAL "ref")
     message(FATAL_ERROR
-        "HQC_KECCAK_IMPL must be one of: ref | zvbb_x2_soa, "
-        "got '${HQC_KECCAK_IMPL}'")
+        "HQC_KECCAK_IMPL must be 'ref' (vectorized backends archived to experiments/dropped/). "
+        "Got '${HQC_KECCAK_IMPL}'")
 endif()
 
 if(NOT HQC_DECODE_IMPL STREQUAL "ref"         AND

@@ -21,7 +21,7 @@
 #   LEVEL   = 128 | 192 | 256       (security level)
 #   POLYMUL = scalar_ref | scalar_zb | vector_rvv | vector_zvk
 #   MODE    = dev | publish          (iteration count preset)
-#   KECCAK  = ref | zvbb_x2_soa     (keccak implementation for KEM chain)
+#   KECCAK  = ref                    (only stable option; vectorized paths archived)
 #   DECODE  = ref | rvv | zvbc       (decode implementation for decode bench)
 #
 # Bench-specific:
@@ -44,8 +44,7 @@ MODE     ?= dev
 OPT      ?= O3
 
 # KECCAK: keccak implementation for KEM chain
-#   ref          — vendor scalar fips202 (default)
-#   zvbb_x2_soa  — Zvbb×2 SoA vectorized keccak (requires Zvbb)
+#   ref — vendor scalar fips202 (only stable option; vectorized paths archived)
 KECCAK   ?= ref
 
 # KECCAK_MARCH: override -march for the keccak micro-benchmark target.
@@ -184,22 +183,9 @@ CORE_SOURCES := $(VENDOR)/src/common/kem.c \
                 $(VENDOR)/src/ref/parsing.c \
                 $(SRC)/common/gf.c
 
-# ── KEM keccak source selection (controlled by KECCAK variable) ───────────────
-ifeq ($(KECCAK),ref)
-  KEM_KECCAK_SOURCES := $(VENDOR)/lib/fips202/fips202.c
-else ifeq ($(KECCAK),zvbb_x2_soa)
-  # GCC cannot compile the Zvbb x2 SoA backend (riscv_rvv_vector_bits is
-  # Clang-only, and LMUL=8 KeccakF1600 triggers GCC regalloc issues).
-  # Automatically fall back to scalar ref Keccak when CC=gcc.
-  ifneq ($(findstring clang,$(CC)),clang)
-    $(info NOTE: GCC detected with KECCAK=zvbb_x2_soa — falling back to ref Keccak (Zvbc polymul unaffected))
-    KEM_KECCAK_SOURCES := $(VENDOR)/lib/fips202/fips202.c
-  else
-    KEM_KECCAK_SOURCES := $(SRC)/keccak/fips202_zvbb_x2.c
-  endif
-else
-  $(error Unsupported KECCAK=$(KECCAK). Use ref or zvbb_x2_soa)
-endif
+# ── KEM keccak source selection ────────────────────────────────────────────────
+# All builds use the vendor scalar fips202 reference (vectorized paths archived).
+KEM_KECCAK_SOURCES := $(VENDOR)/lib/fips202/fips202.c
 
 # ── KEM decode source selection (controlled by DECODE variable) ───────────────
 ifeq ($(DECODE),ref)
@@ -267,9 +253,14 @@ MUL_SOURCES := $(BENCH_DIR)/bench_mul.c $(POLYMUL_SRC)
 
 KECCAK_SOURCES := $(BENCH_DIR)/bench_keccak.c \
                   $(VENDOR)/src/common/symmetric.c \
-                  $(VENDOR)/lib/fips202/fips202.c \
                   $(SRC)/vector.c \
                   $(SRC)/common/randombytes.c
+
+# ── Keccak bench source selection ─────────────────────────────────────────────
+# All Keccak benchmarks now use the vendor scalar fips202.
+# Use KECCAK_MARCH to ablate Zbb (e.g. KECCAK_MARCH=rv64gc_zbc_zbs for no-Zbb).
+KECCAK_SOURCES += $(VENDOR)/lib/fips202/fips202.c
+KECCAK_EXTRA_CFLAGS :=
 
 # ── Decode source selection (controlled by DECODE variable) ──────────────────
 DECODE_SOURCES := $(BENCH_DIR)/bench_decode.c \
