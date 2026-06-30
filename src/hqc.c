@@ -16,36 +16,7 @@
 #include <stdio.h>
 #endif
 
-#ifdef HQC_KECCAK_X2_SOA
-void shake256_x2_absorb(shake256ctx *ctx0,
-                        shake256ctx *ctx1,
-                        const uint8_t *in0,
-                        const uint8_t *in1,
-                        size_t inlen);
 
-static void hqc_xof_init_pair(shake256_xof_ctx *ctx0,
-                              shake256_xof_ctx *ctx1,
-                              const uint8_t *seed0,
-                              const uint8_t *seed1)
-{
-    uint8_t in0[SEED_BYTES + 1] = {0};
-    uint8_t in1[SEED_BYTES + 1] = {0};
-    shake256ctx abs0 = {0};
-    shake256ctx abs1 = {0};
-
-    memcpy(in0, seed0, SEED_BYTES);
-    memcpy(in1, seed1, SEED_BYTES);
-    in0[SEED_BYTES] = HQC_XOF_DOMAIN;
-    in1[SEED_BYTES] = HQC_XOF_DOMAIN;
-
-    shake256_x2_absorb(&abs0, &abs1, in0, in1, SEED_BYTES + 1);
-
-    memcpy(ctx0->ctx, abs0.ctx, sizeof(abs0.ctx));
-    memcpy(ctx1->ctx, abs1.ctx, sizeof(abs1.ctx));
-    ctx0->ctx[25] = 0;
-    ctx1->ctx[25] = 0;
-}
-#endif
 
 /**
  * @brief Generates a key pair for the HQC public-key encryption (PKE) scheme.
@@ -74,12 +45,8 @@ void hqc_pke_keygen(uint8_t *ek_pke, uint8_t *dk_pke, uint8_t *seed) {
     hash_i(keypair_seed, seed);
 
     // Compute decryption/encryption XOF seeds.
-#ifdef HQC_KECCAK_X2_SOA
-    hqc_xof_init_pair(&dk_xof_ctx, &ek_xof_ctx, seed_dk, seed_ek);
-#else
     xof_init(&dk_xof_ctx, seed_dk, SEED_BYTES);
     xof_init(&ek_xof_ctx, seed_ek, SEED_BYTES);
-#endif
 
     // Compute decryption key
     vect_sample_fixed_weight1(&dk_xof_ctx, y, PARAM_OMEGA);
