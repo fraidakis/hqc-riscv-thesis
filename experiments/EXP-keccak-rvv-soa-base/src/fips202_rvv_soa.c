@@ -30,28 +30,32 @@
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Vector rotate-right by immediate amount (base-RVV replacement for vror.vx).
- * vror(x, n) = (x >> n) | (x << (64-n))  for n in [0,63]. */
-#define VROR_VX_M8(x, n, vl) \
-    ((n) == 0 ? (x) : \
-     __riscv_vor_vv_u64m8( \
-         __riscv_vsrl_vx_u64m8((x), (n), (vl)), \
-         __riscv_vsll_vx_u64m8((x), 64 - (n), (vl)), \
-         (vl)))
+ * vror(x, n) = (x >> n) | (x << (64-n))  for n in [1,63].
+ * The n=0 case (identity) is handled by the caller assigning directly. */
+static inline vuint64m8_t vror_vx_m8(vuint64m8_t x, unsigned n, size_t vl)
+{
+    vuint64m8_t lo = __riscv_vsrl_vx_u64m8(x, n, vl);
+    vuint64m8_t hi = __riscv_vsll_vx_u64m8(x, 64 - n, vl);
+    return __riscv_vor_vv_u64m8(lo, hi, vl);
+}
 
-#define VROR_VX_M1(x, n, vl) \
-    ((n) == 0 ? (x) : \
-     __riscv_vor_vv_u64m1( \
-         __riscv_vsrl_vx_u64m1((x), (n), (vl)), \
-         __riscv_vsll_vx_u64m1((x), 64 - (n), (vl)), \
-         (vl)))
+static inline vuint64m1_t vror_vx_m1(vuint64m1_t x, unsigned n, size_t vl)
+{
+    vuint64m1_t lo = __riscv_vsrl_vx_u64m1(x, n, vl);
+    vuint64m1_t hi = __riscv_vsll_vx_u64m1(x, 64 - n, vl);
+    return __riscv_vor_vv_u64m1(lo, hi, vl);
+}
 
-/* Vector AND-NOT: vandn(a, b) = a & ~b  (base-RVV replacement for vandn.vv).
- * Note: Zvbb vandn semantics are vandn(op1, op2) = op1 & ~op2. */
-#define VANDN_VV_M8(a, b, vl) \
-    __riscv_vand_vv_u64m8((a), __riscv_vnot_v_u64m8((b), (vl)), (vl))
+/* Vector AND-NOT: vandn(a, b) = a & ~b  (base-RVV replacement for vandn.vv). */
+static inline vuint64m8_t vandn_vv_m8(vuint64m8_t a, vuint64m8_t b, size_t vl)
+{
+    return __riscv_vand_vv_u64m8(a, __riscv_vnot_v_u64m8(b, vl), vl);
+}
 
-#define VANDN_VV_M1(a, b, vl) \
-    __riscv_vand_vv_u64m1((a), __riscv_vnot_v_u64m1((b), (vl)), (vl))
+static inline vuint64m1_t vandn_vv_m1(vuint64m1_t a, vuint64m1_t b, size_t vl)
+{
+    return __riscv_vand_vv_u64m1(a, __riscv_vnot_v_u64m1(b, vl), vl);
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Section 1 — LMUL=8 vrgather Keccak-f[1600] (single-stream)
@@ -128,9 +132,8 @@ static inline uint64_t rol1_zbb(uint64_t x)
 /*
  * KeccakF1600_StatePermute — LMUL=8 vrgather, base-RVV (no Zvbb).
  *
- * Same architecture as fips202_zvbb_x2.c Section 1, but:
- *   - vror.vv/vror.vx → VROR_VX_M8 macro (vsll+vsrl+vor)
- *   - vandn.vv → VANDN_VV_M8 macro (vnot+vand)
+ * With VLEN=256, SEW=64, LMUL=8: VLMAX = 256*8/64 = 32 ≥ 25.
+ * Requires VLEN ≥ 256.  Uses vror_vx_m8/vandn_vv_m8 helper functions.
  */
 static void KeccakF1600_StatePermute(uint64_t *state)
 {
@@ -188,9 +191,7 @@ static void KeccakF1600_StatePermute(uint64_t *state)
         /* ── Rho + Pi: vrgather (Pi) then vector rotate (Rho) ───────────── */
         {
             vuint64m8_t t = __riscv_vrgather_vv_u64m8(v0, idx_pi, vl);
-            /* Base-RVV rotate: vsrl by idx_ror, vsll by (64-idx_ror), OR.
-             * We use vrgatherei16 for the variable-amount rotate since we need
-             * per-element different rotation amounts from idx_ror. */
+            /* Base-RVV variable-amount rotate: vsrl.vv + vsll.vv + vor.vv */
             vuint64m8_t complement = __riscv_vrsub_vx_u64m8(idx_ror, 64, vl);
             vuint64m8_t lo = __riscv_vsrl_vv_u64m8(t, idx_ror, vl);
             vuint64m8_t hi = __riscv_vsll_vv_u64m8(t, complement, vl);
@@ -201,8 +202,9 @@ static void KeccakF1600_StatePermute(uint64_t *state)
         {
             vuint64m8_t vB = __riscv_vrgather_vv_u64m8(v0, idx_x1, vl);
             vuint64m8_t vC = __riscv_vrgather_vv_u64m8(v0, idx_x2, vl);
-            /* vandn(vC, vB) = vC & ~vB → ~vB & vC = (~A[x+1]) & A[x+2] */
-            v0 = __riscv_vxor_vv_u64m8(v0, VANDN_VV_M8(vC, vB, vl), vl);
+            vuint64m8_t notB = __riscv_vnot_v_u64m8(vB, vl);
+            vuint64m8_t andnot = __riscv_vand_vv_u64m8(vC, notB, vl);
+            v0 = __riscv_vxor_vv_u64m8(v0, andnot, vl);
         }
 
         /* ── Iota ───────────────────────────────────────────────────────── */
@@ -525,7 +527,11 @@ void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen)
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Section 5 — x2 SoA paired-stream API (base-RVV, no Zvbb)
+ * Only compiled when HQC_KECCAK_X2_SOA is defined (requires Clang 21+ for
+ * the riscv_rvv_vector_bits attribute used by fixed-size vector arrays).
  * ═══════════════════════════════════════════════════════════════════════════ */
+
+#ifdef HQC_KECCAK_X2_SOA
 
 /* Fixed-length RVV type for arrays of vector values (Clang 21+). */
 typedef vuint64m1_t vu64m1_fixed_t __attribute__((riscv_rvv_vector_bits(HQC_VECTOR_BITS)));
@@ -573,11 +579,11 @@ static void KeccakF1600_StatePermute_x2(vu64m1_fixed_t *state)
                                      __riscv_vxor_vv_u64m1(__riscv_vxor_vv_u64m1(state[14], state[19], vl), state[24], vl), vl);
 
         /* D[x] = C[x-1] ^ ROL(C[x+1], 1)  — ROL(x,1) = ROR(x,63) */
-        D[0] = __riscv_vxor_vv_u64m1(C[4], VROR_VX_M1(C[1], 63, vl), vl);
-        D[1] = __riscv_vxor_vv_u64m1(C[0], VROR_VX_M1(C[2], 63, vl), vl);
-        D[2] = __riscv_vxor_vv_u64m1(C[1], VROR_VX_M1(C[3], 63, vl), vl);
-        D[3] = __riscv_vxor_vv_u64m1(C[2], VROR_VX_M1(C[4], 63, vl), vl);
-        D[4] = __riscv_vxor_vv_u64m1(C[3], VROR_VX_M1(C[0], 63, vl), vl);
+        D[0] = __riscv_vxor_vv_u64m1(C[4], vror_vx_m1(C[1], 63, vl), vl);
+        D[1] = __riscv_vxor_vv_u64m1(C[0], vror_vx_m1(C[2], 63, vl), vl);
+        D[2] = __riscv_vxor_vv_u64m1(C[1], vror_vx_m1(C[3], 63, vl), vl);
+        D[3] = __riscv_vxor_vv_u64m1(C[2], vror_vx_m1(C[4], 63, vl), vl);
+        D[4] = __riscv_vxor_vv_u64m1(C[3], vror_vx_m1(C[0], 63, vl), vl);
 
         /* Apply D[x] across all 5 rows */
         state[ 0] = __riscv_vxor_vv_u64m1(state[ 0], D[0], vl);
@@ -608,38 +614,38 @@ static void KeccakF1600_StatePermute_x2(vu64m1_fixed_t *state)
 
         /* ── Rho + Pi: compile-time resolved, base-RVV rotate ────────────── */
         B[ 0] = state[ 0];  /* ror=0, identity */
-        B[ 1] = VROR_VX_M1(state[ 6], 20, vl);
-        B[ 2] = VROR_VX_M1(state[12], 21, vl);
-        B[ 3] = VROR_VX_M1(state[18], 43, vl);
-        B[ 4] = VROR_VX_M1(state[24], 50, vl);
-        B[ 5] = VROR_VX_M1(state[ 3], 36, vl);
-        B[ 6] = VROR_VX_M1(state[ 9], 44, vl);
-        B[ 7] = VROR_VX_M1(state[10], 61, vl);
-        B[ 8] = VROR_VX_M1(state[16], 19, vl);
-        B[ 9] = VROR_VX_M1(state[22],  3, vl);
-        B[10] = VROR_VX_M1(state[ 1], 63, vl);
-        B[11] = VROR_VX_M1(state[ 7], 58, vl);
-        B[12] = VROR_VX_M1(state[13], 39, vl);
-        B[13] = VROR_VX_M1(state[19], 56, vl);
-        B[14] = VROR_VX_M1(state[20], 46, vl);
-        B[15] = VROR_VX_M1(state[ 4], 37, vl);
-        B[16] = VROR_VX_M1(state[ 5], 28, vl);
-        B[17] = VROR_VX_M1(state[11], 54, vl);
-        B[18] = VROR_VX_M1(state[17], 49, vl);
-        B[19] = VROR_VX_M1(state[23],  8, vl);
-        B[20] = VROR_VX_M1(state[ 2],  2, vl);
-        B[21] = VROR_VX_M1(state[ 8],  9, vl);
-        B[22] = VROR_VX_M1(state[14], 25, vl);
-        B[23] = VROR_VX_M1(state[15], 23, vl);
-        B[24] = VROR_VX_M1(state[21], 62, vl);
+        B[ 1] = vror_vx_m1(state[ 6], 20, vl);
+        B[ 2] = vror_vx_m1(state[12], 21, vl);
+        B[ 3] = vror_vx_m1(state[18], 43, vl);
+        B[ 4] = vror_vx_m1(state[24], 50, vl);
+        B[ 5] = vror_vx_m1(state[ 3], 36, vl);
+        B[ 6] = vror_vx_m1(state[ 9], 44, vl);
+        B[ 7] = vror_vx_m1(state[10], 61, vl);
+        B[ 8] = vror_vx_m1(state[16], 19, vl);
+        B[ 9] = vror_vx_m1(state[22],  3, vl);
+        B[10] = vror_vx_m1(state[ 1], 63, vl);
+        B[11] = vror_vx_m1(state[ 7], 58, vl);
+        B[12] = vror_vx_m1(state[13], 39, vl);
+        B[13] = vror_vx_m1(state[19], 56, vl);
+        B[14] = vror_vx_m1(state[20], 46, vl);
+        B[15] = vror_vx_m1(state[ 4], 37, vl);
+        B[16] = vror_vx_m1(state[ 5], 28, vl);
+        B[17] = vror_vx_m1(state[11], 54, vl);
+        B[18] = vror_vx_m1(state[17], 49, vl);
+        B[19] = vror_vx_m1(state[23],  8, vl);
+        B[20] = vror_vx_m1(state[ 2],  2, vl);
+        B[21] = vror_vx_m1(state[ 8],  9, vl);
+        B[22] = vror_vx_m1(state[14], 25, vl);
+        B[23] = vror_vx_m1(state[15], 23, vl);
+        B[24] = vror_vx_m1(state[21], 62, vl);
 
         /* ── Chi: base-RVV AND-NOT ──────────────────────────────────────── */
 #define CHI_ROW(base) \
-        state[(base) + 0] = __riscv_vxor_vv_u64m1(B[(base) + 0], VANDN_VV_M1(B[(base) + 2], B[(base) + 1], vl), vl); \
-        state[(base) + 1] = __riscv_vxor_vv_u64m1(B[(base) + 1], VANDN_VV_M1(B[(base) + 3], B[(base) + 2], vl), vl); \
-        state[(base) + 2] = __riscv_vxor_vv_u64m1(B[(base) + 2], VANDN_VV_M1(B[(base) + 4], B[(base) + 3], vl), vl); \
-        state[(base) + 3] = __riscv_vxor_vv_u64m1(B[(base) + 3], VANDN_VV_M1(B[(base) + 0], B[(base) + 4], vl), vl); \
-        state[(base) + 4] = __riscv_vxor_vv_u64m1(B[(base) + 4], VANDN_VV_M1(B[(base) + 1], B[(base) + 0], vl), vl)
+        state[(base) + 0] = __riscv_vxor_vv_u64m1(B[(base) + 0], vandn_vv_m1(B[(base) + 2], B[(base) + 1], vl), vl); \
+        state[(base) + 1] = __riscv_vxor_vv_u64m1(B[(base) + 1], vandn_vv_m1(B[(base) + 3], B[(base) + 2], vl), vl); \
+        state[(base) + 2] = __riscv_vxor_vv_u64m1(B[(base) + 2], vandn_vv_m1(B[(base) + 4], B[(base) + 3], vl), vl); \
+        state[(base) + 3] = __riscv_vxor_vv_u64m1(B[(base) + 3], vandn_vv_m1(B[(base) + 0], B[(base) + 4], vl), vl); \
+        state[(base) + 4] = __riscv_vxor_vv_u64m1(B[(base) + 4], vandn_vv_m1(B[(base) + 1], B[(base) + 0], vl), vl)
 
         CHI_ROW(0);
         CHI_ROW(5);
@@ -743,3 +749,6 @@ void shake256_x2_squeezeblocks(uint8_t *out0,
         ctx1->ctx[i] = pair[1];
     }
 }
+
+
+#endif /* HQC_KECCAK_X2_SOA */
