@@ -1,7 +1,7 @@
-# date: 2026-06-07 13:27
-# commit: 783fdca
+# date: 2026-06-30 11:32
+# commit: 5dadd24
 # Keccak variant: ref
 level,op,instructions,codesize
-128,keccak,463069,15458
-192,keccak,902926,15798
-256,keccak,1405641,15228
+128,keccak,758580,9974
+192,keccak,1505161,9944
+256,keccak,2360607,10062

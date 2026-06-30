@@ -1,33 +1,33 @@
-# date: 2026-06-29 10:27
-# commit: 5972956
+# date: 2026-06-30 12:17
+# commit: 5dadd24
 # variant: vector_rvv
 # level: 128
 function,instructions,percentage
-KeccakF1600_StatePermute,591004,23.44
-clmul_leaf_n9,420324,16.67
-hadamard,229586,9.10
-keccak_inc_absorb,151064,5.99
-expand_and_sum,134090,5.32
-__riscv_clmul_64,119913,4.75
-__riscv_clmulh_64,115116,4.56
-keccak_inc_squeeze,103803,4.12
-gf_reduce,95013,3.77
-find_peaks,71293,2.83
-clmul_leaf_n8,60828,2.41
-kmul_18,58608,2.32
-kmul_17,47730,1.89
-memset,44514,1.77
-rvv_xor3_u64,38208,1.52
-vect_compare,31052,1.23
-gf_mul,23702,0.94
+KeccakF1600_StatePermute,591004,23.57
+clmul_leaf_n9,420324,16.76
+hadamard,229586,9.16
+keccak_inc_absorb,151064,6.02
+expand_and_sum,134090,5.35
+__riscv_clmul_64,119913,4.78
+__riscv_clmulh_64,115116,4.59
+keccak_inc_squeeze,103803,4.14
+gf_reduce,95013,3.79
+find_peaks,71293,2.84
+clmul_leaf_n8,60828,2.43
+kmul_18,58608,2.34
+kmul_17,47730,1.90
+memset,44514,1.78
+vect_compare,31052,1.24
+rvv_xor3_u64,23952,0.96
+gf_mul,23702,0.95
 reduce,18312,0.73
 compute_error_values,17535,0.70
-reed_solomon_encode,14950,0.59
-rvv_xor_u64,13992,0.55
-compute_syndromes,13708,0.54
+reed_solomon_encode,14950,0.60
+rvv_xor_u64,13992,0.56
+compute_syndromes,13708,0.55
 compute_elp,13415,0.53
 vect_generate_random_support2,10050,0.40
-support_contains_value,8688,0.34
+support_contains_value,8688,0.35
 fft_rec,7576,0.30
 kmul_35,7128,0.28
 ?? ??:0,6242,0.25
@@ -74,7 +74,7 @@ vect_sample_fixed_weight2,144,0.01
 reed_solomon_decode,142,0.01
 crypto_kem_keypair,124,0.00
 crypto_kem_enc,118,0.00
-main,100,0.00
+main,102,0.00
 shake256_inc_squeeze,98,0.00
 hqc_pke_decrypt,97,0.00
 hash_g,96,0.00
@@ -101,4 +101,3 @@ hqc_read_minstret,12,0.00
 shake256_inc_finalize,9,0.00
 vect_truncate,9,0.00
 hqc_htif_exit,7,0.00
-bench_consume,2,0.00

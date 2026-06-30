@@ -1,15 +1,15 @@
-# date: 2026-06-29 17:56
-# commit: 8dd2ee9
+# date: 2026-06-30 11:43
+# commit: 5dadd24
 # variant: scalar_zb
 # platform: bpi-f3
-# n_iter: 10000
-# n_warmup: 100
-# mode: publish
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
 # isolation_irq: off
 # isolation_aslr: off
 # isolation_isolcpus: off
 # isolation_core: 7
 level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-128,keccak,10000,353887,355592,355921,356504,912,502207,568058
-192,keccak,10000,710708,712025,712524,716608,4583,884666,1135418
-256,keccak,10000,1118294,1119835,1120502,1122703,2868,4138377,1787743
+128,keccak,100,519696,520365,520618,521574,1209,604574,852040
+192,keccak,100,1025199,1025892,1026462,1028240,2348,1064648,1695433
+256,keccak,100,1617183,1617701,1618151,1633570,15869,1671727,2656162
