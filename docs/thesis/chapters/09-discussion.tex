@@ -873,10 +873,7 @@ Karatsuba tree. Η διαφορά εντείνεται στο L256 ($N = \num{90
 (\code{gen\_karatsuba\_specialized.py}) εκπέμπει πλήρως εξειδικευμένες
 συναρτήσεις με σταθερά loop bounds και compile-time-resolved offsets.
 Ο μεταγλωττιστής δεν έχει αποφάσεις βελτιστοποίησης να λάβει. Ο κώδικας
-είναι ήδη \q{pre-optimized} σε source level. Η παρατήρηση αυτή
-επιβεβαιώνει την αξία του metaprogramming
-(βλ.\ \cref{ssec:principle-metaprogramming}): η εξειδίκευση σε source
-level εξαλείφει την εξάρτηση από τον optimization level του μεταγλωττιστή.
+είναι ήδη \q{pre-optimized} σε source level.
 
 Η μόνη εξαίρεση εμφανίζεται στο Tier~0 (\code{scalar\_ref}, HQC-128), όπου ο
 GCC παρουσιάζει σημαντική διακύμανση: \code{-O3} παράγει \cycles{113958344}

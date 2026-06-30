@@ -19,45 +19,52 @@ SHAKE-256 και SHA3 εντός του \gls{hqc}. Μετά τη βελτιστ�
 πολλαπλασιασμού, το ποσοστό του Keccak στο συνολικό \gls{kem} \instret αυξήθηκε
 από $<\pct{1}$ σε \pct{26}–\pct{42} ανάλογα με το tier, ως άμεση συνέπεια
 του νόμου του Amdahl. Η ενότητα αυτή
-παρουσιάζει δύο υλοποιήσεις παραγωγής: scalar με \gls{zbb} idiom recognition
-(Tier~1/2) και Vector-Crypto \gls{zvbb} με αρχιτεκτονική \gls{soa} δύο ροών
-(Tier~3).
+παρουσιάζει δύο υλοποιήσεις: τη scalar με \gls{zbb} idiom recognition
+(Tier~1/2) και τη Vector-Crypto \gls{zvbb} με δικαναλική \gls{soa} αρχιτεκτονική
+(Tier~3). Σημειώνεται ότι η ομάδα εργασίας PQC του RISC-V International έχει
+ξεκινήσει την τυποποίηση αφιερωμένης εντολής μετάθεσης Keccak (\code{vkeccak.vi},
+\cref{sec:future-isa}). Έως την επικύρωση και τη διάθεσή της σε silicon, οι
+software-only βελτιστοποιήσεις που ακολουθούν παραμένουν η πρακτική λύση.
 
 %% --------------------------------------------------------------------------
 \subsection{Scalar Path: Αξιοποίηση \Zbb}
 \label{ssec:keccak-scalar-zbb}
 
-Η φθηνότερη βελτιστοποίηση του Keccak δεν απαιτεί καμία αλλαγή στον
-πηγαίο κώδικα: αρκεί η ενεργοποίηση της \gls{zbb} στο \code{-march}, ώστε
-ο μεταγλωττιστής να εφαρμόσει idiom recognition των hot patterns σε
-εξειδικευμένες εντολές.
+Η απλούστερη βελτιστοποίηση του Keccak δεν απαιτεί καμία αλλαγή στον
+πηγαίο κώδικα: αρκεί η ενεργοποίηση της \gls{zbb} στο \code{-march}, ώστε ο μεταγλωττιστής
+να αναγνωρίσει τα επαναλαμβανόμενα patterns της μετάθεσης (idiom recognition,
+\cref{ssec:idiom-recognition}) και να τα αντιστοιχίσει σε εξειδικευμένες εντολές.
 
 Η υλοποίηση αναφοράς (προερχόμενη από το PQClean~\cite{pqclean2022})
 εκτελεί τους \num{24} γύρους της μετάθεσης Keccak-f[1600], όπως αναλύεται
-στην \cref{sec:keccak-permutation}. Σε επίπεδο υλοποίησης, κάθε γύρος
-ανάγεται σε τρία κρίσιμα patterns: περιστροφή lane μέσω \code{ROL(a, n)},
-τη μη-γραμμική πράξη \code{(\textasciitilde b) \& c} στο βήμα $\chi$, και
-XOR σταθεράς γύρου στο $\iota$. 
-Με ενεργή την επέκταση \gls{zbb}, ο GCC εφαρμόζει idiom recognition τριών patterns:
+στην \cref{sec:keccak-permutation}. Σε επίπεδο υλοποίησης, κάθε γύρος ανάγεται σε λίγα επαναλαμβανόμενα patterns.
+Με ενεργή την επέκταση \gls{zbb}, ο GCC αναγνωρίζει αυτόματα τα ακόλουθα:
 
 %
 \begin{enumerate}
-  \item Το macro \code{ROL(a, n)} αναγνωρίζεται ως rotation idiom και
-        εκπέμπεται ως μία εντολή \rori, αντί ακολουθίας ολίσθησης,
-        ολίσθησης και OR του base ISA.
-  \item Το pattern \code{(\textasciitilde b) \& c} του βήματος $\chi$
-        εκπέμπεται ως \insn{andn}, αντί ζεύγους NOT και AND.
-  \item Οι βοηθητικές \code{load64}/\code{store64} βελτιστοποιούνται
-        μερικώς από τον loop-idiom recogniser.
+  \item Ο τελεστής αριστερής κυκλικής ολίσθησης \code{ROL(a, n)} (rotate-left)
+        αναγνωρίζεται ως rotation idiom και εκπέμπεται ως μία εντολή \rori,
+        αντί της ακολουθίας δύο ολισθήσεων και ενός \code{add} του base ISA.
+  \item Η μη-γραμμική πράξη AND-NOT του βήματος $\chi$, δηλαδή η
+        \code{(\textasciitilde b) \& c}, εκπέμπεται ως μία \insn{andn}
+        αντί ζεύγους \insn{not} και \insn{and}.
 \end{enumerate}
 
-Καθοριστικός είναι ο πρώτος μετασχηματισμός, αφού η μετάθεση εκτελεί
-\num{25} περιστροφές ανά γύρο επί \num{24} γύρους. Η ενεργοποίηση της
-\gls{zbb} αποδίδει ${\approx}\speedup{1.5}$ στον απομονωμένο πυρήνα
-Keccak, χωρίς καμία αλλαγή στον πηγαίο κώδικα.
+Καθοριστική είναι η αναγνώριση του rotate-left (\code{ROL} ως \rori), αφού η
+μετάθεση εκτελεί \num{25} περιστροφές lane ανά γύρο στο βήμα $\rho$ (συν \num{5}
+ακόμη στο βήμα $\theta$), επί \num{24} γύρους. Η ενεργοποίηση της \gls{zbb}
+αποδίδει ${\approx}\speedup{1.5}$ στον απομονωμένο πυρήνα Keccak-f[1600].
+
+Πέρα από τη μείωση του πλήθους εντολών, η \gls{zbb} μειώνει το register pressure:
+στην απουσία της \rori, κάθε περιστροφή απαιτεί επιπλέον προσωρινούς καταχωρητές
+για τα ενδιάμεσα αποτελέσματα των ολισθήσεων. Με \num{25} lanes συν τα ενδιάμεσα
+των $\theta/\rho/\chi$, ο μεταγλωττιστής εξαντλεί το αρχείο καταχωρητών και
+καταφεύγει σε spills στη στοίβα. Έτσι το όφελος της \gls{zbb} είναι διπλό:
+λιγότερες εντολές υπολογισμού και αποφυγή των πρόσθετων προσβάσεων μνήμης που
+εισάγουν τα spills.
 
 %% --------------------------------------------------------------------------
-\subsection{Vector-Crypto Path: Δικαναλική SoA Αρχιτεκτονική με \Zvbb}
+\subsection{Εξερεύνηση Vectorized Keccak: Το Παράδοξο \RVV}
 \label{ssec:keccak-zvbb-soa}
 \phantomsection
 \label{ssec:keccak-rvv-paradox}
@@ -97,219 +104,61 @@ lanes αυτό σημαίνει ${\sim}25$ εντολές εισαγωγής, \n
 (\num{1600} bits) βρίσκεται ήδη στο scalar register file και τα βήματα
 είναι pipeline-fused.
 
-Η \gls{zvbb} extension προσθέτει δύο κρίσιμες εντολές:
-\insn{vror.vv}/\insn{vror.vi} (vector rotate-right) και \insn{vandn.vv}
-(vector AND-NOT), που εξαλείφουν τον τριπλασιασμό εντολών του
-\q{RVV Paradox} και καθιστούν εφικτή τη διανυσματοποίηση του Keccak. Η
-τελική αρχιτεκτονική προέκυψε αφού πρώτα αποκλείστηκε η προφανής LMUL=8
-προσέγγιση.
+\subsection{Αποτυχημένη διανυσματοποίηση και διατήρηση scalar υλοποίησης}
+\label{ssec:keccak-vectorization-negative}
 
-\paragraph{Γιατί αποτυγχάνει η προφανής LMUL=8 προσέγγιση.}
-Η αρχική υλοποίηση αναπαρέστησε τα \num{25} lanes ως ένα LMUL=8 register
-group, με \insn{vrgather.vv} για το $\pi$, \insn{vror.vv} για το $\rho$
-και \insn{vandn.vv} για το $\chi$. Στο \VLEN{}=\num{256} με LMUL=8 το
-vector register file διαιρείται σε μόλις \num{4} groups, ενώ η ταυτόχρονη
-διατήρηση του state vector, ενός scratch group και των hoisted index
-vectors απαιτεί περισσότερους. Ο μεταγλωττιστής αντέδρασε εκχύνοντας
-(spilling) τον state vector στο stack σε κάθε γύρο, με κόστος μεγαλύτερο
-από τις φορτώσεις δεικτών που υποτίθεται ότι εξάλειφε. Το συμπέρασμα είναι
-αρχιτεκτονικό: σε LMUL=8 στο \VLEN{}=\num{256}, η loop-invariant code
-motion για vector σταθερές είναι αντιπαραγωγική, αφού οι \num{4} διαθέσιμοι
-groups καταναλώνονται πλήρως από το ζεύγος (state, scratch).
+Παρά τη θεωρητική δυνατότητα που προσφέρουν η \gls{zvbb} (\insn{vror.vx},
+\insn{vandn.vv}) και η βασική \RVV extension, η πειραματική αξιολόγηση σε
+πραγματικό hardware (BPI-F3, SpacemiT X60, \VLEN{}=\num{256}) κατέδειξε
+ότι η vectorized Keccak-f[1600] αδυνατεί να υπερκεράσει τη scalar \Zbb
+υλοποίηση. Δύο αρχιτεκτονικές προσεγγίσεις υλοποιήθηκαν και μετρήθηκαν.
 
-\paragraph{Αρχιτεκτονική λύση: 2-way \gls{soa} σε LMUL=1.}
-Η λύση στο register wall ήταν μία ριζική αναδιάρθρωση. Αντί ενός
-μονολιθικού LMUL=8 vector, η κατάσταση αναπαρίσταται ως
-\code{vuint64m1\_t state[25]}: κάθε LMUL=1 register περιέχει το ίδιο lane
-από δύο ανεξάρτητες Keccak instances, σε σταθερό $\text{vl}=2$. Η
-αρχιτεκτονική αυτή εξαλείφει κάθε runtime index load μέσω τριών μηχανισμών:
-%
-\begin{itemize}
-  \item Οι δείκτες $\pi$ και τα ποσά περιστροφής $\rho$ επιλύονται
-        πλήρως κατά τη μεταγλώττιση (static unrolling): κάθε μία από τις
-        \num{25} αναθέσεις $\rho$+$\pi$ γράφεται ως ρητή πρόταση
-        \code{B[dst] = vror\_vx(state[src], amount, vl)} με compile-time
-        σταθερές \code{src}, \code{dst}, \code{amount}.
-  \item Το βήμα $\chi$ λειτουργεί απευθείας σε γειτονικά στοιχεία πίνακα
-        (\code{B[base+0]} έως \code{B[base+4]}) μέσω row-local macro, χωρίς
-        καμία εντολή μετάθεσης.
-  \item Η εφαρμογή $\theta$ (D-application) αναπτύσσεται πλήρως σε \num{25}
-        ρητές \insn{vxor} προτάσεις, εξαλείφοντας τη φόρτωση δεικτών
-        column ανά γύρο.
-\end{itemize}
+\paragraph{Προσέγγιση 1: LMUL=8 \insn{vrgather.vv}.}
+Τα \num{25} lanes αναπαρίστανται ως ένα LMUL=8 register group (VLMAX~$=32$
+στο \VLEN{}=\num{256}), με \insn{vrgather.vv} για το βήμα $\pi$ και $\chi$.
+Στο instruction-accurate Spike \gls{iss}, η προσέγγιση μειώνει το \instret
+κατά \speedup{3.5} (HQC-128: \cycles{133812} έναντι \cycles{463069}). Στο
+πραγματικό hardware, η κατάσταση αντιστρέφεται πλήρως: μετρήθηκαν
+\cycles{2915208} κύκλοι (median, HQC-128) έναντι \cycles{358346} της scalar
+υλοποίησης — \textbf{επιβράδυνση $\mathbf{8{,}1\times}$}. Η αιτία είναι
+τριπλή: (α)~η \insn{vrgather.vv} σε LMUL=8 εκτελείται σειριακά ανά element
+στο X60 (EX1-only pipe, ${\sim}\num{200}$ κύκλοι ανά εκτέλεση), (β)~η
+register pressure ($\geq 6$ LMUL=8 groups σε register file \num{4} groups)
+προκαλεί \num{5} vector spills (\insn{vl8r.v}) ανά γύρο, και (γ)~οι
+\insn{vslidedown}/\insn{vslide1up} εντολές εκτελούνται μόνο στο single
+pipe. Το αποτέλεσμα: CPI~$=16{,}9$ (έναντι $0{,}67$ του scalar).
 
-Τα \num{25} LMUL=1 state registers καταναλώνουν \num{25} από τους \num{32}
-φυσικούς vector registers, αφήνοντας \num{7} ελεύθερους για τα ενδιάμεσα
-\code{B[25]}, \code{C[5]}, \code{D[5]}, επαρκείς χωρίς spilling.
+\paragraph{Προσέγγιση 2: 2-way \gls{soa} σε LMUL=1, $\text{vl}=2$.}
+Η εναλλακτική αρχιτεκτονική αναπαριστά κάθε lane ως ξεχωριστό LMUL=1
+register περιέχοντα δύο ανεξάρτητα Keccak instances, εξαλείφοντας κάθε
+\insn{vrgather.vv}. Χωρίς \gls{zvbb}, η περιστροφή υλοποιείται ως
+\insn{vsrl}+\insn{vsll}+\insn{vor} (\num{3} εντολές αντί \num{1}) και η
+AND-NOT ως \insn{vnot}+\insn{vand} (\num{2} αντί \num{1}). Η μέτρηση
+δείχνει \cycles{306652} κύκλοι για \num{24} μεταθέσεις ×\num{2} instances —
+\speedup{5.3} βελτίωση έναντι της LMUL=8 διαδρομής, αλλά ακόμη
+\textbf{$\mathbf{2{,}3\times}$ βραδύτερη} από δύο διαδοχικές scalar
+κλήσεις (\cycles{133850} κύκλοι για ισοδύναμο φόρτο εργασίας). Η αιτία
+είναι δομική: σε $\text{vl}=2$ κάθε vector εντολή επεξεργάζεται μόνο \num{2}
+στοιχεία, ενώ ο scalar κώδικας επωφελείται πλήρως από το dual-issue pipeline
+του X60 (CPI~$=0{,}67$, IPC~$>1{,}4$). Ακόμη και η προσθήκη \gls{zvbb}
+(μείωση σε \num{1} εντολή ανά rotate και AND-NOT) δεν αναμένεται να κλείσει
+το χάσμα: η εκτιμώμενη εξοικονόμηση (\num{1392} κύκλοι/μετάθεση) μειώνει
+τον λόγο σε ${\sim}1{,}8\times$ — ακόμη βραδύτερη από τον scalar path.
 
-Η στατική ανάπτυξη επιτρέπει επιπλέον στον μεταγλωττιστή να εκπέμψει
-\insn{vror.vi} (immediate $\leq 31$) για τα μικρά ποσά περιστροφής και
-\insn{vror.vx} με pre-loaded scalar για ποσά \num{32}–\num{63},
-εξαλείφοντας πλήρως την εντολή \insn{vror.vv} και τον αντίστοιχο index
-vector.
-
-\paragraph{Γιατί 2-way και όχι 4-way.}
-Η επιλογή $N=2$ instances ανά vector δεν είναι αυθαίρετη, αλλά αλγοριθμική.
-Ένας έλεγχος του call graph του \gls{hqc} αποκάλυψε ότι η μέγιστη
-ταυτόχρονη ανεξαρτησία SHAKE contexts εντός μίας \gls{kem} κλήσης είναι
-$N=2$, στο \KeyGen, όπου δύο XOF contexts (\code{dk\_xof\_ctx} και
-\code{ek\_xof\_ctx}) εξελίσσονται ανεξάρτητα μετά την κοινή seed derivation.
-
-Η οροφή αυτή δεν οφείλεται σε register pressure. Στο \VLEN{}=\num{256}
-ένας LMUL=1 καταχωρητής χωρά \num{4} λωρίδες των \num{64} bit, άρα ακόμη
-και μια 4-way διάταξη ($\text{vl}=4$) θα χρησιμοποιούσε μόνο \num{25}
-καταχωρητές. Μία 4-way υλοποίηση όμως δεν θα απέδιδε επιπλέον όφελος: το
-\gls{hqc} δεν εκθέτει περισσότερα από \num{2} ανεξάρτητα SHAKE contexts
-ταυτόχρονα, οπότε δύο από τις τέσσερις λωρίδες θα έμεναν ανεκμετάλλευτες,
-με πρόσθετο κόστος packing/interleaving.
-
-\paragraph{Ποσοτικά αποτελέσματα.}
-Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2})
-επιτυγχάνει μείωση \pct{55} στο \instret ανά απομονωμένη μετάθεση
-Keccak-f[1600] έναντι του scalar reference.
-
-%% --------------------------------------------------------------------------
-\subsection{Βελτιστοποιήσεις Absorb/Squeeze I/O}
-\label{ssec:keccak-io}
-
-Πέρα από τον πυρήνα μετάθεσης, οι φάσεις absorb και squeeze αποτελούν
-δευτερεύον hotspot. Η υλοποίηση αναφοράς χρησιμοποιεί δύο
-instruction-heavy patterns: (α) byte-by-byte XOR βρόχο στη
-\code{keccak\_xor\_bytes} για την εισαγωγή δεδομένων στην κατάσταση, και
-(β) \num{8}-iteration shift-OR βρόχους στις \code{load64\_le}/\code{store64\_le}
-για τη μετατροπή μεταξύ byte arrays και 64-bit words.
-
-\paragraph{RVV Byte-Streaming.}
-Ο scalar word-aligned βρόχος αντικαταστάθηκε από ένα \RVV VLA
-byte-streaming loop χρησιμοποιώντας \insn{vle8.v}/\insn{vxor.vv}/\insn{vse8.v}
-σε LMUL=8. Στο \VLEN{}=\num{256}, $\text{vlmax} = 256$ bytes, επαρκές για κάλυψη
-οποιουδήποτε Keccak-rate block (SHAKE-256: \num{136} bytes, SHAKE-128:
-\num{168} bytes) σε μία μόνο vector iteration. Μία scalar pre-alignment
-φάση προωθεί τον byte pointer σε 8-byte σύνορο πριν εισέλθει στον vector
-βρόχο. Η ορθότητα εξασφαλίζεται από τη little-endian byte ordering του
-RISC-V: ένα byte-level XOR στο \code{uint8\_t*} view της κατάστασης είναι
-bit-for-bit ισοδύναμο με word-level XOR.
-
-\paragraph{Native \code{load64\_le}/\code{store64\_le}.}
-Οι \num{8}-iteration byte-shift βρόχοι αντικαταστάθηκαν με
-\code{\_\_builtin\_memcpy(\&r, x, 8)}. Σε \code{-O3} στο little-endian
-\code{rv64} χωρίς strict-alignment constraints, ο Clang εκπέμπει μία μόνο
-native unaligned \insn{ld} (ή \insn{sd}), εξαλείφοντας \num{56} scalar
-εντολές ανά κλήση. Η χρήση του compiler builtin (αντί library \code{memcpy})
-είναι κρίσιμη στο freestanding build environment, όπου υπάρχει custom
-RVV-vectorized \code{memcpy}. Μία κανονική κλήση θα διέρχονταν από αυτή τη
-συνάρτηση, ακυρώνοντας τη single-instruction lowering.
-
-\paragraph{Αθροιστικό αποτέλεσμα I/O βελτιστοποιήσεων.}
-Η συνδυασμένη εφαρμογή byte-streaming και native load/store μειώνει το
-συνολικό \gls{kem} \instret κατά \pct{3.5} (HQC-128), \pct{2.9} (HQC-192) και
-\pct{3.0} (HQC-256) στο Tier~3 variant. Η βελτίωση εντοπίζεται κυρίως
-στο \Decaps path, το οποίο εκτελεί τις περισσότερες absorb/squeeze κλήσεις.
-Η ορθότητα επιβεβαιώθηκε μέσω \num{300}/\num{300} KAT vectors σε όλα τα
-security levels.
-
-
-%% --------------------------------------------------------------------------
-\subsection{Μεταφορά Speedup Keccak σε Πραγματικό Hardware: Ανάλυση \insn{vrgather.vv}}
-\label{ssec:keccak-hw-transferability}
-
-Η μετρηθείσα επιτάχυνση \speedup{3.7}–\speedup{3.9} στο \instret
-(\cref{tab:microbench-keccak}) εγείρει ένα θεμελιώδες ερώτημα μεταφοράς:
-σε ποιο βαθμό θα αναπαραχθεί αυτή η βελτίωση σε πραγματικό silicon; Η
-ανάλυση αποκαλύπτει ότι η απάντηση εξαρτάται κρίσιμα από τη διαδρομή
-εκτέλεσης, single-stream LMUL=8 ή 2-way \gls{soa}, λόγω θεμελιωδώς
-διαφορετικής μικροαρχιτεκτονικής συμπεριφοράς.
-
-\paragraph{Η εντολή \insn{vrgather.vv}: $\BigO{\text{VLMAX}^2}$ hardware κόστος.}
-Η single-stream μετάθεση (\code{KeccakF1600\_StatePermute},
-\cref{ssec:keccak-zvbb-soa}, η LMUL=8 single-stream παραλλαγή) χρησιμοποιεί \insn{vrgather.vv} σε
-LMUL=8 για τα βήματα $\pi$ και $\chi$, τρεις εκτελέσεις ανά γύρο,
-σύνολο $3 \times 24 = 72$ \insn{vrgather.vv} ανά μετάθεση. Στο Spike
-\gls{iss}, κάθε \insn{vrgather.vv} μετράται ως μία retired instruction
-ανεξαρτήτως \VLMAX. Σε πραγματικό hardware, η κατάσταση διαφέρει
-ριζικά: η εντολή υλοποιείται ως element-by-element αναζήτηση με
-πολυπλοκότητα $\BigO{\text{VLMAX}^2}$ κύκλων. Για τη ρύθμιση
-$\text{SEW}=64$, $\text{LMUL}=8$, $\VLEN=\num{256}$ (VLMAX $= 32$
-elements), κάθε \insn{vrgather.vv} απαιτεί $\geq 25$ κύκλους σε
-τρέχοντα silicon (SiFive X280, T-Head C908). Το αθροιστικό κόστος
-ανέρχεται σε $72 \times 25 \approx \num{1800}$ κύκλοι μόνο για τα
-gathers, ισοδύναμο με $\approx\pct{85}$ του συνολικού single-stream
-μετάθεσης (\cycles{2114} \instret).
-
-\paragraph{Register pressure σε LMUL=8.}
-Η single-stream διαδρομή απαιτεί ταυτόχρονη διατήρηση του state vector,
-πέντε preloaded index tables, και ενός scratch group, σύνολο $\geq 6$
-LMUL=8 groups σε register file \num{4} groups. Όπως τεκμηριώθηκε στην
-\cref{ssec:keccak-zvbb-soa} (register wall), ο μεταγλωττιστής
-εκχύνει (spills) vector registers στο stack, εισάγοντας vector
-load/store traffic αόρατο στο \instret αλλά κοστοβόρο σε κύκλους.
-
-\paragraph{Η 2-way \gls{soa} διαδρομή: αρχιτεκτονικά ευνοϊκή.}
-Η τελική \gls{soa} υλοποίηση (\code{KeccakF1600\_StatePermute\_x2},
-\cref{ssec:keccak-zvbb-soa}, η 2-way \gls{soa} λύση) αποφεύγει πλήρως τα παραπάνω
-προβλήματα μέσω τριών δομικών αποφάσεων:
-\begin{itemize}
-  \item \textbf{Zero \insn{vrgather.vv}:} Η στατική ανάπτυξη $\pi$ σε
-    \num{25} ρητές αναθέσεις εξαλείφει κάθε runtime permutation. Ο
-    μεταγλωττιστής εκπέμπει μόνο \insn{vror.vx}/\insn{vror.vi}
-    (1–2 κύκλοι), \insn{vxor.vv} (1 κύκλος), και \insn{vandn.vv}
-    (1 κύκλος), εντολές σταθερής latency σε κάθε γνωστή υλοποίηση.
-  \item \textbf{Χαμηλή register pressure:} Τα \num{25} LMUL=1
-    registers αφήνουν \num{7} ελεύθερους, επαρκείς για τα ενδιάμεσα
-    $B$, $C$, $D$ χωρίς spilling.
-  \item \textbf{Καθαρό vector execution:} Ολόκληρη η μετάθεση εκτελείται
-    αποκλειστικά στο vector pipeline, χωρίς scalar↔vector transitions,
-    αποφεύγοντας τα forwarding penalties που τεκμηριώθηκαν στην
-    \cref{ssec:hw-ipc}.
-\end{itemize}
-
-\paragraph{Εκτίμηση πραγματικού speedup.}
-Ο \cref{tab:keccak-hw-estimate} συνοψίζει την εκτιμώμενη μεταφορά ανά
-διαδρομή. Η εκτίμηση βασίζεται σε δύο παραδοχές: (α)~\insn{vrgather.vv}
-LMUL=8 κοστίζει $\geq 25$ κύκλοι (τεκμηριωμένο από SiFive
-datasheets και T-Head C908 performance models), και (β)~\insn{vror.vx}
-κοστίζει 1–2 κύκλοι (\gls{zvbb} functional unit, pipelined). Δεν
-υφίσταται δημοσιευμένη μέτρηση Keccak στο Tier~3 profile σε πραγματικό
-silicon (απουσία \gls{zvbb} hardware), οπότε οι τιμές αποτελούν
-εκτιμήσεις, όχι μετρήσεις.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Εκτιμώμενη μεταφορά Keccak speedup σε πραγματικό hardware
-    (\VLEN{}=\num{256}). Η single-stream LMUL=8 διαδρομή υποφέρει από
-    $\BigO{\text{VLMAX}^2}$ \insn{vrgather.vv} latency, ενώ η 2-way
-    \gls{soa} χρησιμοποιεί αποκλειστικά σταθερής latency εντολές.}
-  \label{tab:keccak-hw-estimate}
-  \small
-  \begin{tabular}{lccl}
-    \toprule
-    \textbf{Διαδρομή} & \textbf{Spike speedup} &
-      \textbf{Εκτιμ.\ HW speedup} & \textbf{Κυρ.\ παράγοντας} \\
-    \midrule
-    Single-stream (LMUL=8) & $\times$2.2 & $\times$1.0–1.3 &
-      \insn{vrgather.vv} $\BigO{n^2}$ \\
-    2-way SoA (LMUL=1) & $\times$2.2 & $\times$1.5–2.0 &
-      καθαρό ALU pipeline \\
-    Full Tier~3 Keccak & $\times$3.7 & $\times$1.5–2.5 &
-      SoA $+$ absorb/squeeze I/O \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Η τεκμηρίωση αυτή ευθυγραμμίζεται με ανεξάρτητα ευρήματα στη
-βιβλιογραφία: ο Saarinen~\cite{Saarinen2024-vkeccak} αναφέρει ότι
-η vectorized Keccak σε SpacemiT X60 (\VLEN{}=\num{256}) παρουσιάζει
-μετριασμένα κέρδη λόγω ακριβώς αυτών των μικροαρχιτεκτονικών περιορισμών,
-ενώ οι Zhang et al.~\cite{zhang-tches2025} επιβεβαιώνουν ότι ο Keccak
-παραμένει bottleneck μετά τη vectorization lattice-based primitives
-(NTT), υποδεικνύοντας ότι η βελτιστοποίησή του αποτελεί ανοιχτό
-ερευνητικό πρόβλημα σε vector architectures.
-
-Η πλήρης αξιολόγηση σε silicon απαιτεί hardware με \gls{zvbb} (RVA23
-profile) και αποτελεί μελλοντική εργασία (βλ.\ \cref{sec:future-work}).
-Η τρέχουσα μετρική \instret παρέχει αξιόπιστη αλγοριθμική σύγκριση
-μεταξύ variants, ενώ η εκτίμηση κύκλων ($\times$1.5–2.5) αποτελεί
-ρεαλιστικό κάτω φράγμα βάσει γνωστών μικροαρχιτεκτονικών δεδομένων.
+\paragraph{Συμπέρασμα: διατήρηση scalar \Zbb.}
+Τα πειραματικά αποτελέσματα καταδεικνύουν ότι στο \VLEN{}=\num{256} με
+in-order dual-issue cores (SpacemiT X60), η vectorized Keccak σε
+οποιαδήποτε μορφή (LMUL=8 ή LMUL=1 SoA) δεν ξεπερνά τη scalar
+υλοποίηση. Η αιτία είναι θεμελιώδης: ο Keccak-f[1600] δεν εκθέτει
+αρκετό data-level parallelism σε $\text{vl}=2$ (μόνο \num{2} ανεξάρτητα
+SHAKE contexts στο \gls{hqc}) ώστε να αντισταθμιστεί το overhead του
+vector pipeline. Η scalar \Zbb υλοποίηση (με \insn{rori} για
+$\rho$-rotations) διατηρείται ως η βέλτιστη επιλογή σε όλα τα security
+levels. Η vectorized Keccak θα καταστεί ανταγωνιστική μόνο σε μελλοντικά
+cores με $\VLEN \geq \num{512}$ (όπου $\text{vl}=4$ ή \num{8} παρέχει
+ουσιαστικό παραλληλισμό) ή σε out-of-order vector machines με multi-cycle
+overlap μεταξύ vector εντολών. Η αξιολόγηση σε τέτοιο hardware αποτελεί
+μελλοντική εργασία (\cref{sec:future-work}).
 
 
 %% ============================================================================
@@ -764,8 +613,8 @@ loop control (\insn{add}~$i$\code{+=vl} + \insn{bltu}).
 μείωση του αριθμού εντολών κατά παράγοντα \num{20} έναντι του scalar path ($\approx\num{1108}$ εντολές).
 
 Η πράξη XOR είναι εγγενώς ανεξάρτητη δεδομένων και δεν εισάγει
-πλευρικό κανάλι χρονισμού. Η επιλογή LMUL=8 μεγιστοποιεί τη
-ρυθμαπόδοση ανά iteration, χωρίς αρνητικές συνέπειες: η \code{vect\_add}
+πλευρικό κανάλι χρονισμού. Η επιλογή LMUL=8 μεγιστοποιεί το
+throughput ανά iteration, χωρίς αρνητικές συνέπειες: η \code{vect\_add}
 αποτελεί leaf function χωρίς ανάγκη διατήρησης πρόσθετων vector registers.
 Η VLA δομή εγγυάται ορθότητα σε οποιοδήποτε $\VLEN \geq 64$ χωρίς
 compile-time υποθέσεις.
@@ -866,53 +715,9 @@ patterns, καθιστώντας τη συνάρτηση \emph{μη} constant-ti
 \fi
 
 %% --------------------------------------------------------------------------
-\subsection{Πολιτικές Ευθυγράμμισης Μνήμης}
-\label{ssec:memory-alignment}
-
-Η αποδοτική πρόσβαση μνήμης αποτελεί κρίσιμο παράγοντα σε bare-metal
-περιβάλλον χωρίς βελτιστοποιημένη C βιβλιοθήκη. Δύο παρεμβάσεις
-στοχεύουν τη μείωση μεταφορικού κόστους: η ευθυγράμμιση δεδομένων στο
-linker script και η διανυσματοποίηση των runtime memory routines.
-
-\paragraph{Linker-Level Alignment.}
-Ο linker script (\code{sim/common/link.ld}) εφαρμόζει \code{ALIGN(8)}
-στα sections \code{.data} και \code{.bss}, ενώ το stack ξεκινά σε σύνορο
-\code{ALIGN(16)}. Η πολιτική αυτή εγγυάται ότι κάθε stack-allocated
-\code{uint64\_t} array (πολυωνυμικοί buffers, ενδιάμεσα Keccak state)
-βρίσκεται σε φυσική ευθυγράμμιση 8~bytes, προϋπόθεση για τη fast-path
-διανυσματοποίηση που ακολουθεί.
-
-\paragraph{RVV-Vectorized \code{memcpy}.}
-Η freestanding \code{memcpy} αντικαταστάθηκε με ένα \RVV VLA byte-streaming
-loop σε LMUL=8, \SEW=8. Στο \VLEN{}=\num{256}, η vector length ισούται με \num{256}
-bytes ανά iteration. Ένα αντίγραφο \code{VEC\_N\_SIZE\_BYTES} = \num{2216}
-bytes (HQC-128) ολοκληρώνεται σε $\lceil 2216/256 \rceil = 9$ iterations,
-μείωση κατά παράγοντα \num{246} σε αριθμό iterations έναντι του scalar μονοπατιού. Η βελτιστοποίηση
-ενεργοποιείται για runtime-variable-size copies (σειριοποίηση κλειδιών,
-parsing ciphertext), ενώ compile-time-constant copies (\eg αντιγραφές
-seeds) μετασχηματίζονται αυτόματα σε native \insn{ld}/\insn{sd} ακολουθίες
-μέσω \code{\_\_builtin\_memcpy} lowering.
-
-\paragraph{RVV-Vectorized \code{memset} Zero-Fill.}
-Η κυρίαρχη χρήση του \code{memset} στο \gls{hqc} αφορά μηδενισμό ευθυγραμμισμένων
-buffers (\code{memset\_zero} macro σε \code{uint64\_t} arrays). Η
-βελτιστοποιημένη υλοποίηση εντοπίζει αυτήν τη χρήση μέσω τριπλού
-φρουρού (\code{c==0}, 8-byte aligned pointer, μήκος πολλαπλάσιο του
-\num{8}) και εκτελεί \RVV zero-fill σε \SEW=64, LMUL=8. Στο \VLEN{}=\num{256},
-\num{32} words (\num{256} bytes) μηδενίζονται ανά iteration. Ο μηδενισμός
-ενός \code{VEC\_N\_SIZE\_64} = \num{277} word buffer ολοκληρώνεται σε
-$\lceil 277/32 \rceil = 9$ vector iterations αντί \num{277} scalar stores.
 
 \paragraph{Αθροιστικό αποτέλεσμα.}
-Η μέτρηση στο \code{karatsuba\_zvbc} variant (ο πλησιέστερος συγκρίσιμος
-baseline) έδειξε μείωση \pct{1.62} (HQC-128), \pct{1.48} (HQC-192) και
-\pct{1.62} (HQC-256) στο συνολικό \gls{kem} \instret. Σημειώνεται ότι ο
-αρχικός \code{memset} ήταν ήδη μερικώς αυτόματα διανυσματοποιημένος από τον
-Clang (\code{e8m2}, \num{64}~bytes/iter). Άρα η βελτίωση προέρχεται κυρίως
-από την αντικατάσταση του scalar tail και τη χρήση ευρύτερου LMUL (256 αντί
-64~bytes/iter), όχι από μηδενικό scalar baseline. Η βελτίωση είναι μέτρια
-αλλά ομοιόμορφη, αντανακλώντας το γεγονός ότι οι memory operations
-κατανέμονται ομοιόμορφα σε όλα τα σημεία του \gls{kem} pipeline. Στο τελικό προφίλ εκτέλεσης
+Στο τελικό προφίλ εκτέλεσης
 (\cref{tab:kernel-redistribution}), οι βοηθητικές λειτουργίες κατέχουν
 αθροιστικά \pct{25.2} του συνολικού \instret (\pct{16.7} στα
 \q{Λοιπά}, sampling, \code{vect\_add}, control, και \pct{8.5} στις

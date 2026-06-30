@@ -63,17 +63,6 @@ effects (\cref{sec:hw-evaluation}). Ο scalar path επιτυγχάνει IPC $\
 συνεπή, αναλογικό εκτιμητή κύκλων για in-order scalar κώδικα, όπου ο
 σταθερός IPC δίνει κύκλους $\approx \instret/\text{IPC}$.
 
-\paragraph{Σχεδιαστικές αρχές}
-Η εργασία ανέδειξε τέσσερις γενικεύσιμες αρχές (\cref{sec:general-principles}):
-(1)~η αποδοτικότητα του carry-less πολλαπλασιασμού ως θεμελιώδης μοχλός για $\GFpoly$
-αριθμητική, (2)~η αξία του Vector-Length Agnosticism σε κρυπτογραφικά workloads,
-(3)~τα όρια auto-vectorization σε crypto kernels, και (4)~η υπεροχή
-metaprogramming (code generation) έναντι hand-tuning για βαθιά αναδρομικούς
-αλγορίθμους. Η σύνθεση αυτών οδηγεί στο συμπέρασμα ότι η ISA completeness
-υπερτερεί του ISA width. Η ύπαρξη της κατάλληλης εντολής (\eg \clmul, \vror)
-αποδίδει περισσότερο από ευρύτερα vector registers χωρίς εξειδικευμένες
-λειτουργίες.
-
 %% ==========================================================================
 \section{Περιορισμοί}
 \label{sec:limitations}

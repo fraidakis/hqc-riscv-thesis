@@ -18,12 +18,6 @@
   \code{vect\_write\_support}
     & $\BigO{weight}$ direct-scatter
     & 20775 & 75   & \insnreduction{277} & $-\pct{15.2}$ \Encaps \\
-  \code{memcpy} (2216 B)
-    & \RVV VLA byte-stream (LMUL=8)
-    & 2216  & 9    & \insnreduction{246} & \multirow{2}{*}{$-\pct{1.62}$ \KEM} \\
-  \code{memset} zero-fill (277 W)
-    & \RVV VLA \SEW=64 (LMUL=8)
-    & 277   & 9    & \insnreduction{31}  &  \\
   \bottomrule
   \multicolumn{6}{@{}p{0.96\linewidth}@{}}{\footnotesize
     Columns \q{Baseline} / \q{Optimized}: iterations ανά κλήση (\code{vect\_add}: εντολές,
