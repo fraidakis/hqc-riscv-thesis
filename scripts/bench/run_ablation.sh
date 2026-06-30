@@ -18,10 +18,12 @@
 #   run_ablation.sh --mode mul --vector_rvv --hw --quality publish  # Publication-quality
 #   run_ablation.sh --mode mul --scalar_zb --sim --variant scalar_zb_A  # Single variant
 #   run_ablation.sh --mode mul --vector_rvv --sim --variant vector_rvv_V  # Single variant
-#   run_ablation.sh --mode decode --rm_rvv          # RM decode RVV ablation (default: --sim + --hw)
-#   run_ablation.sh --mode decode --rm_rvv --sim    # RM decode on Spike only
-#   run_ablation.sh --mode decode --rm_rvv --hw --quality publish  # HW publication-quality
-#   run_ablation.sh --mode decode --rm_rvv --variant rm_rvv_EH    # Single ablation step
+#   run_ablation.sh --mode decode --decode_rvv       # Decode RVV ablation (baseline: scalar_zb)
+#   run_ablation.sh --mode decode --decode_rvv --sim # Decode RVV on Spike only
+#   run_ablation.sh --mode decode --decode_rvv --hw --quality publish  # HW publication-quality
+#   run_ablation.sh --mode decode --decode_rvv --variant rm_rvv_EH    # Single ablation step
+#   run_ablation.sh --mode decode --zvbc_decode      # Zvbc decode ablation (baseline: rvv)
+#   run_ablation.sh --mode decode --zvbc_decode --sim # Zvbc decode on Spike only
 #
 # Mode selection (required):
 #   --mode MODE         Component to ablate: mul (polymul), keccak, decode
@@ -31,7 +33,8 @@
 #     --scalar_zb       Run scalar Karatsuba ablation (Tier 1)
 #     --vector_rvv      Run vector RVV ablation (Tier 2)
 #   For --mode decode:
-#     --rm_rvv          Run RM(1,7) RVV vectorization ablation
+#     --decode_rvv      Run decode RVV vectorization ablation (RM + RS)
+#     --zvbc_decode     Run Zvbc tier 3 decode ablation (BM+Forney+FFT)
 #
 # Flags:
 #   --kat               Run KAT validation (via Spike)
@@ -58,10 +61,11 @@
 #   vector_rvv      : + RVV recomposition + RVV reduce (champion)
 #
 # Decode RM(1,7) RVV ablation variants (in order of optimization layering):
-#   ref             : full scalar baseline (scalar RM + scalar RS)
+#   scalar_zb       : scalar baseline (scalar RM + Zbc-optimized RS via gf.c)
 #   rm_rvv_E        : + RVV expand_and_sum (vid + vsrl, SEW=32, LMUL=4)
 #   rm_rvv_EH       : + RVV hadamard FHT (vlse16 strided loads, LMUL=4)
-#   rvv             : + RVV find_peaks (vredmaxu + vfirst, LMUL=8) = champion
+#   rm_rvv_EHP      : + RVV find_peaks (vredmaxu + vfirst, LMUL=8) — full RVV RM, still Zbc RS
+#   rvv             : + RVV RS (syndrome vectorization) = champion
 
 set -euo pipefail
 
@@ -81,26 +85,42 @@ VECTOR_RVV_ABLATION_VARIANTS=(
     vector_rvv_V
 )
 
-# Decode RM RVV ablation variants (in thesis presentation order):
-#   The ablation isolates the RM(1,7) vectorization contribution by keeping
-#   the RS backend fixed (RVV RS for rm_rvv_* variants, full scalar for ref).
+# Decode RVV ablation variants (in thesis presentation order):
+#   The ablation isolates the decode RVV vectorization contribution using the
+#   scalar Zbc finalist (scalar RM + Zbc RS via src/common/gf.c) as baseline.
 #
-#   ref        : full scalar baseline (scalar RM + scalar RS, no Zbc)
-#   rm_rvv_E   : + RVV expand_and_sum (vid+vsrl) — paired with RVV RS
-#   rm_rvv_EH  : + RVV hadamard (strided-load FHT) — paired with RVV RS
-#   rvv        : + RVV find_peaks (vredmaxu+vfirst) = full RVV RM + RVV RS (champion)
-DECODE_RM_RVV_ABLATION_VARIANTS=(
-    ref
+#   scalar_zb  : scalar baseline (scalar RM + Zbc-optimized RS via gf.c)
+#   rm_rvv_E   : + RVV expand_and_sum (vid+vsrl) — paired with Zbc RS
+#   rm_rvv_EH  : + RVV hadamard (strided-load FHT) — paired with Zbc RS
+#   rm_rvv_EHP : + RVV find_peaks (vredmaxu+vfirst) = full RVV RM + Zbc RS
+#   rvv        : + RVV RS (syndrome vectorization) = full champion
+DECODE_RVV_ABLATION_VARIANTS=(
+    scalar_zb
     rm_rvv_E
     rm_rvv_EH
+    rm_rvv_EHP
     rvv
+)
+
+# Decode Zvbc (Tier 3) ablation variants (in thesis presentation order):
+#   The ablation isolates the Zvbc RS/FFT vectorization contribution using the
+#   Tier 2 RVV champion (RVV RM + RVV RS syndromes, scalar BM/Forney/FFT) as baseline.
+#
+#   rvv      : Tier 2 champion (RVV RM + RVV RS syndromes, scalar BM/Forney/FFT)
+#   zvbc_BD  : + Zvbc BM (compute_elp_zvbc) + Forney (compute_error_values_zvbc)
+#   zvbc     : + Zvbc iterative FFT (fft_zvbc.c) = Tier 3 champion
+DECODE_ZVBC_ABLATION_VARIANTS=(
+    rvv
+    zvbc_BD
+    zvbc
 )
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
 MODE=""
 DO_SCALAR=0
 DO_VECTOR_RVV=0
-DO_RM_RVV=0
+DO_DECODE_RVV=0
+DO_ZVBC_DECODE=0
 DO_KAT=0
 DO_SIM=0
 DO_HW=0
@@ -123,7 +143,8 @@ while [[ $# -gt 0 ]]; do
             MODE="$2"; shift 2 ;;
         --scalar_zb|--scalar-zb)  DO_SCALAR=1; shift ;;
         --vector_rvv|--vector-rvv) DO_VECTOR_RVV=1; shift ;;
-        --rm_rvv|--rm-rvv)    DO_RM_RVV=1; shift ;;
+        --decode_rvv|--decode-rvv) DO_DECODE_RVV=1; shift ;;
+        --zvbc_decode|--zvbc-decode) DO_ZVBC_DECODE=1; shift ;;
         --kat)        DO_KAT=1; shift ;;
         --sim)        DO_SIM=1; shift ;;
         --hw)         DO_HW=1;  shift ;;
@@ -156,28 +177,35 @@ done
 if [[ -z "$MODE" ]]; then
     if [[ $DO_SCALAR -eq 1 || $DO_VECTOR_RVV -eq 1 ]]; then
         MODE="mul"
-    elif [[ $DO_RM_RVV -eq 1 ]]; then
+    elif [[ $DO_DECODE_RVV -eq 1 || $DO_ZVBC_DECODE -eq 1 ]]; then
         MODE="decode"
     fi
 fi
 
 # ── Auto-infer study from --variant if no study flag given ────────────────────
-if [[ $DO_SCALAR -eq 0 && $DO_VECTOR_RVV -eq 0 && $DO_RM_RVV -eq 0 && -n "$VARIANT_FILTER" ]]; then
+if [[ $DO_SCALAR -eq 0 && $DO_VECTOR_RVV -eq 0 && $DO_DECODE_RVV -eq 0 && $DO_ZVBC_DECODE -eq 0 && -n "$VARIANT_FILTER" ]]; then
     case "$VARIANT_FILTER" in
-        scalar_ref|scalar_zb|scalar_zb_*)
+        scalar_ref|scalar_zb_*)
             DO_SCALAR=1; MODE="${MODE:-mul}" ;;
+        scalar_zb)
+            # Ambiguous — belongs to polymul scalar, polymul vector, AND decode ablation.
+            echo "ERROR: Cannot infer study from variant '${VARIANT_FILTER}'." >&2
+            echo "       Specify --scalar_zb, --vector_rvv, --decode_rvv, or --zvbc_decode explicitly." >&2
+            exit 1 ;;
         vector_rvv_*|vector_rvv)
             DO_VECTOR_RVV=1; MODE="${MODE:-mul}" ;;
         rm_rvv_*|rm_rvv)
-            DO_RM_RVV=1; MODE="${MODE:-decode}" ;;
+            DO_DECODE_RVV=1; MODE="${MODE:-decode}" ;;
+        zvbc_BD|zvbc)
+            DO_ZVBC_DECODE=1; MODE="${MODE:-decode}" ;;
         ref|rvv)
             # Ambiguous — could be polymul or decode. Require explicit study flag.
             echo "ERROR: Cannot infer study from variant '${VARIANT_FILTER}'." >&2
-            echo "       Specify --scalar_zb, --vector_rvv, or --rm_rvv explicitly." >&2
+            echo "       Specify --scalar_zb, --vector_rvv, --decode_rvv, or --zvbc_decode explicitly." >&2
             exit 1 ;;
         *)
             echo "ERROR: Cannot infer study from variant '${VARIANT_FILTER}'." >&2
-            echo "       Specify --scalar_zb, --vector_rvv, or --rm_rvv explicitly." >&2
+            echo "       Specify --scalar_zb, --vector_rvv, --decode_rvv, or --zvbc_decode explicitly." >&2
             exit 1 ;;
     esac
 fi
@@ -208,8 +236,8 @@ if [[ "$MODE" == "mul" && $DO_SCALAR -eq 0 && $DO_VECTOR_RVV -eq 0 ]]; then
     exit 1
 fi
 
-if [[ "$MODE" == "decode" && $DO_RM_RVV -eq 0 ]]; then
-    echo "ERROR: At least one study must be selected for decode: --rm_rvv" >&2
+if [[ "$MODE" == "decode" && $DO_DECODE_RVV -eq 0 && $DO_ZVBC_DECODE -eq 0 ]]; then
+    echo "ERROR: At least one study must be selected for decode: --decode_rvv or --zvbc_decode" >&2
     usage >&2
     exit 1
 fi
@@ -450,8 +478,12 @@ if [[ $DO_VECTOR_RVV -eq 1 ]]; then
     run_ablation_phases "Vector RVV (Tier 2)" VECTOR_RVV_ABLATION_VARIANTS
 fi
 
-if [[ $DO_RM_RVV -eq 1 ]]; then
-    run_decode_ablation_phases "RM Decode RVV" DECODE_RM_RVV_ABLATION_VARIANTS
+if [[ $DO_DECODE_RVV -eq 1 ]]; then
+    run_decode_ablation_phases "Decode RVV" DECODE_RVV_ABLATION_VARIANTS
+fi
+
+if [[ $DO_ZVBC_DECODE -eq 1 ]]; then
+    run_decode_ablation_phases "Zvbc Decode (Tier 3)" DECODE_ZVBC_ABLATION_VARIANTS
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1046,15 +1078,15 @@ if [[ $DO_VECTOR_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
     echo "  → Vector RVV ablation report: ${REPORT}"
 fi
 
-# ── Decode RM RVV Ablation Report ────────────────────────────────────────────
-if [[ $DO_RM_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
-    header "GENERATING DECODE RM RVV ABLATION REPORT"
+# ── Decode RVV Ablation Report ────────────────────────────────────────────────
+if [[ $DO_DECODE_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
+    header "GENERATING DECODE RVV ABLATION REPORT"
 
-    REPORT="${REPORT_DIR}/decode_rm_rvv.md"
-    VARIANTS=("${DECODE_RM_RVV_ABLATION_VARIANTS[@]}")
+    REPORT="${REPORT_DIR}/decode_rvv.md"
+    VARIANTS=("${DECODE_RVV_ABLATION_VARIANTS[@]}")
     if [[ -n "$VARIANT_FILTER" ]]; then
         _in_rm=0
-        for v in "${DECODE_RM_RVV_ABLATION_VARIANTS[@]}"; do
+        for v in "${DECODE_RVV_ABLATION_VARIANTS[@]}"; do
             [[ "$v" == "$VARIANT_FILTER" ]] && _in_rm=1
         done
         [[ $_in_rm -eq 1 ]] && VARIANTS=("$VARIANT_FILTER")
@@ -1090,16 +1122,16 @@ if [[ $DO_RM_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
     [[ $DO_SIM -eq 1 ]] && HAS_SIM=1
 
     if [[ $HAS_HW -eq 0 ]]; then
-        hw_probe="$(resolve_dec_hw_csv "ref")"
+        hw_probe="$(resolve_dec_hw_csv "scalar-zb")"
         [[ -n "$hw_probe" ]] && HAS_HW=1
     fi
     if [[ $HAS_SIM -eq 0 ]]; then
-        sim_probe="$(resolve_dec_sim_csv "ref")"
+        sim_probe="$(resolve_dec_sim_csv "scalar-zb")"
         [[ -n "$sim_probe" ]] && HAS_SIM=1
     fi
 
     {
-        echo "# RM(1,7) Decode RVV Ablation Study"
+        echo "# Decode RVV Ablation Study"
         echo ""
         echo "Generated: $(date '+%Y-%m-%d %H:%M')"
         if [[ $HAS_HW -eq 1 ]]; then
@@ -1107,15 +1139,16 @@ if [[ $DO_RM_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
             echo "Quality: ${QUALITY}"
         fi
         echo ""
-        echo "Baseline: \`ref\` (vendor scalar RM + scalar RS, no Zbc)"
+        echo "Baseline: \`scalar_zb\` (scalar RM + Zbc-optimized RS via src/common/gf.c)"
         echo ""
-        echo "Optimizations (layered incrementally, all paired with RVV RS):"
+        echo "Optimizations (layered incrementally):"
         echo "- **E** — RVV-vectorized \`expand_and_sum\` (vid + vsrl + vand, SEW=32, LMUL=4)"
         echo "- **H** — RVV-vectorized \`hadamard\` FHT (vlse16 strided loads, SEW=16, LMUL=4)"
         echo "- **P** — RVV-vectorized \`find_peaks\` (vredmaxu + vmseq + vfirst, LMUL=8)"
+        echo "- **RS** — RVV-vectorized Reed-Solomon syndrome computation (vrgather log/exp)"
         echo ""
-        echo "Note: All rm_rvv_* variants also include the RVV Reed-Solomon vectorization"
-        echo "(Axis A: syndrome computation). The \`ref\` baseline uses pure scalar RS."
+        echo "Note: E, H, P steps use Zbc-optimized scalar RS. The final \`rvv\` step"
+        echo "replaces scalar RS with vectorized RS (reed_solomon_rvv.c)."
         echo ""
 
         for lvl in "${REPORT_LEVELS[@]}"; do
@@ -1123,14 +1156,14 @@ if [[ $DO_RM_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
             echo ""
 
             if [[ $HAS_HW -eq 1 && $HAS_SIM -eq 1 ]]; then
-                echo "| Variant | Optimizations | median cycles | vs ref | vs prev | instret | vs ref | vs prev |"
-                echo "|---------|---------------|-------------:|-------:|--------:|--------:|-------:|--------:|"
+                echo "| Variant | Optimizations | median cycles | vs base | vs prev | instret | vs base | vs prev |"
+                echo "|---------|---------------|-------------:|--------:|--------:|--------:|--------:|--------:|"
             elif [[ $HAS_HW -eq 1 ]]; then
-                echo "| Variant | Optimizations | median cycles | vs ref | vs prev |"
-                echo "|---------|---------------|-------------:|-------:|--------:|"
+                echo "| Variant | Optimizations | median cycles | vs base | vs prev |"
+                echo "|---------|---------------|-------------:|--------:|--------:|"
             else
-                echo "| Variant | Optimizations | instret | vs ref | vs prev |"
-                echo "|---------|---------------|--------:|-------:|--------:|"
+                echo "| Variant | Optimizations | instret | vs base | vs prev |"
+                echo "|---------|---------------|--------:|--------:|--------:|"
             fi
 
             declare -A DEC_CYCLES=()
@@ -1165,32 +1198,36 @@ if [[ $DO_RM_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
                 fi
             done
 
-            ref_cycles="${DEC_CYCLES[ref]:-}"
-            ref_instret="${DEC_INSTRET[ref]:-}"
+            ref_cycles="${DEC_CYCLES[scalar_zb]:-}"
+            ref_instret="${DEC_INSTRET[scalar_zb]:-}"
             e_cycles="${DEC_CYCLES[rm_rvv_E]:-}"
             e_instret="${DEC_INSTRET[rm_rvv_E]:-}"
             eh_cycles="${DEC_CYCLES[rm_rvv_EH]:-}"
             eh_instret="${DEC_INSTRET[rm_rvv_EH]:-}"
+            ehp_cycles="${DEC_CYCLES[rm_rvv_EHP]:-}"
+            ehp_instret="${DEC_INSTRET[rm_rvv_EHP]:-}"
 
             for v in "${VARIANTS[@]}"; do
                 cycles="${DEC_CYCLES[$v]:-}"
                 instret="${DEC_INSTRET[$v]:-}"
 
                 case "$v" in
-                    ref)         opt_label="(none — scalar baseline)" ;;
+                    scalar_zb)   opt_label="(none — scalar Zbc baseline)" ;;
                     rm_rvv_E)    opt_label="E" ;;
                     rm_rvv_EH)   opt_label="E+H" ;;
-                    rvv)         opt_label="E+H+P (champion)" ;;
+                    rm_rvv_EHP)  opt_label="E+H+P" ;;
+                    rvv)         opt_label="E+H+P+RS (champion)" ;;
                     *)           opt_label="?" ;;
                 esac
 
                 # Determine previous variant for vs-prev
                 prev_cycles="" ; prev_instret=""
                 case "$v" in
-                    ref)         prev_cycles=""; prev_instret="" ;;
+                    scalar_zb)   prev_cycles=""; prev_instret="" ;;
                     rm_rvv_E)    prev_cycles="$ref_cycles"; prev_instret="$ref_instret" ;;
                     rm_rvv_EH)   prev_cycles="$e_cycles"; prev_instret="$e_instret" ;;
-                    rvv)         prev_cycles="$eh_cycles"; prev_instret="$eh_instret" ;;
+                    rm_rvv_EHP)  prev_cycles="$eh_cycles"; prev_instret="$eh_instret" ;;
+                    rvv)         prev_cycles="$ehp_cycles"; prev_instret="$ehp_instret" ;;
                 esac
 
                 # ── Cycles columns ───────────────────────────────────────
@@ -1244,20 +1281,296 @@ if [[ $DO_RM_RVV -eq 1 && $DRY_RUN -eq 0 ]]; then
         echo ""
         echo "| Transition | What changes | Vectorized sub-function |"
         echo "|------------|--------------|-------------------------|"
-        echo "| ref→E | +RVV bit extraction | \`expand_and_sum\`: vid + vsrl.vv + vand (SEW=32, LMUL=4, vl=32) |"
+        echo "| scalar_zb→E | +RVV bit extraction | \`expand_and_sum\`: vid + vsrl.vv + vand (SEW=32, LMUL=4, vl=32) |"
         echo "| E→EH | +RVV strided-load FHT | \`hadamard\`: vlse16 + vadd/vsub (SEW=16, LMUL=4, vl=64) |"
-        echo "| EH→rvv | +RVV max+argmax | \`find_peaks\`: vredmaxu + vmseq + vfirst (LMUL=8, vl=128) |"
+        echo "| EH→EHP | +RVV max+argmax | \`find_peaks\`: vredmaxu + vmseq + vfirst (LMUL=8, vl=128) |"
+        echo "| EHP→rvv | +RVV RS syndromes | \`reed_solomon\`: vrgather log/exp table vectorization |"
         echo ""
 
     } > "$REPORT"
 
-    echo "  → Decode RM RVV ablation report: ${REPORT}"
+    echo "  → Decode RVV ablation report: ${REPORT}"
+fi
+
+# ── Decode Zvbc Ablation Report ──────────────────────────────────────────────
+if [[ $DO_ZVBC_DECODE -eq 1 && $DRY_RUN -eq 0 ]]; then
+    header "GENERATING DECODE ZVBC ABLATION REPORT"
+
+    REPORT="${REPORT_DIR}/decode_zvbc.md"
+    VARIANTS=("${DECODE_ZVBC_ABLATION_VARIANTS[@]}")
+    if [[ -n "$VARIANT_FILTER" ]]; then
+        _in_zvbc=0
+        for v in "${DECODE_ZVBC_ABLATION_VARIANTS[@]}"; do
+            [[ "$v" == "$VARIANT_FILTER" ]] && _in_zvbc=1
+        done
+        [[ $_in_zvbc -eq 1 ]] && VARIANTS=("$VARIANT_FILTER")
+    fi
+
+    # Decode CSVs live under results/{hardware,simulation}/benchmarks/components/decode/
+    DEC_HW_CSV_DIR="${REPO_ROOT}/results/hardware/benchmarks/components/decode"
+    DEC_SIM_CSV_DIR="${REPO_ROOT}/results/simulation/benchmarks/components/decode"
+    DEC_HW_ABLATION_DIR="${DEC_HW_CSV_DIR}/ablation"
+    DEC_SIM_ABLATION_DIR="${DEC_SIM_CSV_DIR}/ablation"
+
+    resolve_dec_hw_csv() {
+        local s="$1"
+        local csv="${DEC_HW_ABLATION_DIR}/hw_decode_${s}_latest.csv"
+        [[ -f "$csv" ]] && { echo "$csv"; return; }
+        csv="${DEC_HW_CSV_DIR}/hw_decode_${s}_latest.csv"
+        [[ -f "$csv" ]] && { echo "$csv"; return; }
+        echo ""
+    }
+    resolve_dec_sim_csv() {
+        local s="$1"
+        local csv="${DEC_SIM_ABLATION_DIR}/sim_decode_${s}_latest.csv"
+        [[ -f "$csv" ]] && { echo "$csv"; return; }
+        csv="${DEC_SIM_CSV_DIR}/sim_decode_${s}_latest.csv"
+        [[ -f "$csv" ]] && { echo "$csv"; return; }
+        echo ""
+    }
+
+    # Determine which data sources are available
+    HAS_HW=0
+    HAS_SIM=0
+    [[ $DO_HW -eq 1 ]] && HAS_HW=1
+    [[ $DO_SIM -eq 1 ]] && HAS_SIM=1
+
+    if [[ $HAS_HW -eq 0 ]]; then
+        hw_probe="$(resolve_dec_hw_csv "rvv")"
+        [[ -n "$hw_probe" ]] && HAS_HW=1
+    fi
+    if [[ $HAS_SIM -eq 0 ]]; then
+        sim_probe="$(resolve_dec_sim_csv "rvv")"
+        [[ -n "$sim_probe" ]] && HAS_SIM=1
+    fi
+
+    {
+        echo "# Zvbc Decode Ablation Study (Tier 3)"
+        echo ""
+        echo "Generated: $(date '+%Y-%m-%d %H:%M')"
+        if [[ $HAS_HW -eq 1 ]]; then
+            echo "Platform: BPI-F3 (SpacemiT K1 X60)"
+            echo "Quality: ${QUALITY}"
+        else
+            echo "Platform: Spike ISS (VLEN=256)"
+            echo "Metric: instret (deterministic instruction count)"
+        fi
+        echo ""
+        echo "Baseline: \`rvv\` (Tier 2 champion — RVV RM decode + RVV RS syndromes, scalar BM/Forney/FFT)"
+        echo ""
+        echo "Optimizations (layered incrementally on top of Tier 2):"
+        echo "- **B+D** — Zvbc-vectorized Berlekamp-Massey (\`compute_elp_zvbc\`: vclmul.vv SAXPY + vlse16 neg-stride dot-product) + Forney error-values (\`compute_error_values_zvbc\`: vclmul.vv/vx inner-k batch)"
+        echo "- **C** — Zvbc-vectorized iterative FFT root-finding (\`fft_iterative\`: recursive→BFS transform, beta_scale + xor_broadcast + gammas_sums_combine helpers)"
+        echo ""
+        echo "Note: All steps inherit the Tier 2 RVV RM decode (expand_and_sum + hadamard + find_peaks)"
+        echo "and RVV syndrome computation (Stage A). The Barrett single-pass reduction is embedded"
+        echo "in the Zvbc pipeline — its contribution is included in both B+D and C measurements."
+        echo ""
+
+        for lvl in "${REPORT_LEVELS[@]}"; do
+            echo "## HQC-${lvl}"
+            echo ""
+
+            if [[ $HAS_HW -eq 1 && $HAS_SIM -eq 1 ]]; then
+                echo "| Variant | Optimizations | median cycles | vs base | vs prev | instret | vs base | vs prev |"
+                echo "|---------|---------------|-------------:|--------:|--------:|--------:|--------:|--------:|"
+            elif [[ $HAS_HW -eq 1 ]]; then
+                echo "| Variant | Optimizations | median cycles | vs base | vs prev |"
+                echo "|---------|---------------|-------------:|--------:|--------:|"
+            else
+                echo "| Variant | Optimizations | instret | vs base | vs prev |"
+                echo "|---------|---------------|--------:|--------:|--------:|"
+            fi
+
+            declare -A ZVBC_CYCLES=()
+            declare -A ZVBC_INSTRET=()
+
+            for v in "${VARIANTS[@]}"; do
+                s="$(slug "$v")"
+
+                if [[ $HAS_HW -eq 1 ]]; then
+                    csv="$(resolve_dec_hw_csv "$s")"
+                    if [[ -n "$csv" ]]; then
+                        cyc=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $6}' "$csv" | head -1)
+                        ZVBC_CYCLES["$v"]="$cyc"
+                    else
+                        ZVBC_CYCLES["$v"]=""
+                    fi
+                fi
+
+                # Always prefer sim instret for consistency — zvbc_BD/zvbc only have sim data.
+                ZVBC_INSTRET["$v"]=""
+                csv="$(resolve_dec_sim_csv "$s")"
+                if [[ -n "$csv" ]]; then
+                    inst=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$csv")
+                    ZVBC_INSTRET["$v"]="$inst"
+                fi
+                # Fall back to HW instret only if sim not available
+                if [[ -z "${ZVBC_INSTRET[$v]}" && $HAS_HW -eq 1 ]]; then
+                    csv="$(resolve_dec_hw_csv "$s")"
+                    if [[ -n "$csv" ]]; then
+                        inst=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $10}' "$csv" | head -1)
+                        ZVBC_INSTRET["$v"]="$inst"
+                    fi
+                fi
+            done
+
+            ref_cycles="${ZVBC_CYCLES[rvv]:-}"
+            ref_instret="${ZVBC_INSTRET[rvv]:-}"
+            bd_cycles="${ZVBC_CYCLES[zvbc_BD]:-}"
+            bd_instret="${ZVBC_INSTRET[zvbc_BD]:-}"
+
+            for v in "${VARIANTS[@]}"; do
+                cycles="${ZVBC_CYCLES[$v]:-}"
+                instret="${ZVBC_INSTRET[$v]:-}"
+
+                case "$v" in
+                    rvv)      opt_label="(none — Tier 2 RVV baseline)" ;;
+                    zvbc_BD)  opt_label="B+D" ;;
+                    zvbc)     opt_label="B+D+C (champion)" ;;
+                    *)        opt_label="?" ;;
+                esac
+
+                # Determine previous variant for vs-prev
+                prev_cycles="" ; prev_instret=""
+                case "$v" in
+                    rvv)      prev_cycles=""; prev_instret="" ;;
+                    zvbc_BD)  prev_cycles="$ref_cycles"; prev_instret="$ref_instret" ;;
+                    zvbc)     prev_cycles="$bd_cycles"; prev_instret="$bd_instret" ;;
+                esac
+
+                # ── Cycles columns ───────────────────────────────────────
+                if [[ $HAS_HW -eq 1 ]]; then
+                    if [[ -z "$cycles" ]]; then
+                        col_cycles="—"; col_cyc_ref="—"; col_cyc_prev="—"
+                    else
+                        col_cycles=$(printf "%'d" "$cycles")
+                        if [[ -n "$ref_cycles" && "$ref_cycles" -gt 0 ]]; then
+                            col_cyc_ref=$(awk "BEGIN{printf \"×%.2f\",${ref_cycles}/${cycles}}")
+                        else col_cyc_ref="—"; fi
+
+                        if [[ -z "$prev_cycles" || "$prev_cycles" -eq 0 ]]; then
+                            col_cyc_prev="—"
+                        else
+                            col_cyc_prev=$(awk "BEGIN{printf \"×%.2f\",${prev_cycles}/${cycles}}")
+                        fi
+                    fi
+                fi
+
+                # ── Instret columns ──────────────────────────────────────
+                if [[ -z "$instret" ]]; then
+                    col_instret="—"; col_inst_ref="—"; col_inst_prev="—"
+                else
+                    col_instret=$(printf "%'d" "$instret")
+                    if [[ -n "$ref_instret" && "$ref_instret" -gt 0 ]]; then
+                        col_inst_ref=$(awk "BEGIN{printf \"×%.2f\",${ref_instret}/${instret}}")
+                    else col_inst_ref="—"; fi
+
+                    if [[ -z "$prev_instret" || "$prev_instret" -eq 0 ]]; then
+                        col_inst_prev="—"
+                    else
+                        col_inst_prev=$(awk "BEGIN{printf \"×%.2f\",${prev_instret}/${instret}}")
+                    fi
+                fi
+
+                # ── Emit row ─────────────────────────────────────────────
+                if [[ $HAS_HW -eq 1 && $HAS_SIM -eq 1 ]]; then
+                    echo "| \`${v}\` | ${opt_label} | ${col_cycles} | ${col_cyc_ref} | ${col_cyc_prev} | ${col_instret} | ${col_inst_ref} | ${col_inst_prev} |"
+                elif [[ $HAS_HW -eq 1 ]]; then
+                    echo "| \`${v}\` | ${opt_label} | ${col_cycles} | ${col_cyc_ref} | ${col_cyc_prev} |"
+                else
+                    echo "| \`${v}\` | ${opt_label} | ${col_instret} | ${col_inst_ref} | ${col_inst_prev} |"
+                fi
+            done
+            echo ""
+        done
+
+        # ── Incremental Optimization Contribution ────────────────────────
+        echo "## Incremental Optimization Contribution"
+        echo ""
+        echo "| Transition | What changes | Vectorized sub-function |"
+        echo "|------------|--------------|-------------------------|"
+        echo "| rvv→zvbc_BD | +Zvbc BM + Forney | \`compute_elp_zvbc\`: vclmul.vv/vx SAXPY + blend + neg-stride dot (SEW=64, LMUL=4); \`compute_error_values_zvbc\`: vclmul.vv inv-power dot + inner-k batch |"
+        echo "| zvbc_BD→zvbc | +Zvbc iterative FFT | \`fft_iterative\`: recursive→BFS, \`beta_scale_zvbc\` + \`xor_broadcast_zvbc\` + \`gammas_sums_combine_zvbc\` (SEW=64/16, LMUL=4) |"
+        echo ""
+
+        # ── Analysis ─────────────────────────────────────────────────────
+        echo "## Analysis"
+        echo ""
+
+        # Compute deltas for the analysis section (re-read CSVs per level)
+        for lvl in "${REPORT_LEVELS[@]}"; do
+            # Get instret for each variant at this level
+            _ref_i=""
+            _ref_csv="$(resolve_dec_sim_csv "rvv")"
+            [[ -n "$_ref_csv" ]] && _ref_i=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$_ref_csv")
+
+            _bd_i=""
+            _bd_csv="$(resolve_dec_sim_csv "zvbc-bd")"
+            [[ -n "$_bd_csv" ]] && _bd_i=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$_bd_csv")
+
+            _zvbc_i=""
+            _zvbc_csv="$(resolve_dec_sim_csv "zvbc")"
+            [[ -n "$_zvbc_csv" ]] && _zvbc_i=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$_zvbc_csv")
+
+            if [[ -n "$_ref_i" && -n "$_bd_i" && -n "$_zvbc_i" && "$_ref_i" -gt 0 && "$_bd_i" -gt 0 ]]; then
+                bd_delta=$((_ref_i - _bd_i))
+                bd_pct=$(awk "BEGIN{printf \"%.1f\",100*${bd_delta}/${_ref_i}}")
+                c_delta=$((_bd_i - _zvbc_i))
+                c_pct=$(awk "BEGIN{printf \"%.1f\",100*${c_delta}/${_bd_i}}")
+                total_sp=$(awk "BEGIN{printf \"×%.2f\",${_ref_i}/${_zvbc_i}}")
+                echo "**HQC-${lvl}**: B+D: −${bd_delta} instret (−${bd_pct}% of baseline); C: −${c_delta} instret (−${c_pct}% of zvbc_BD); Total: ${total_sp}"
+                echo ""
+            fi
+        done
+
+        # ── End-to-End table ─────────────────────────────────────────────
+        echo "## End-to-End: Scalar Reference to Zvbc Champion"
+        echo ""
+        echo "For complete context, combining with the Tier 2 ablation (decode_rvv.md):"
+        echo ""
+        echo "| Level | ref (scalar) | rvv (Tier 2) | zvbc (Tier 3) | Total speedup |"
+        echo "|-------|-------------:|:------------:|:-------------:|:-------------:|"
+
+        # Resolve ref decode CSV
+        _ref_dec_csv="$(resolve_dec_sim_csv "ref")"
+
+        for lvl in "${REPORT_LEVELS[@]}"; do
+            _ref_val=""
+            if [[ -n "$_ref_dec_csv" ]]; then
+                _ref_val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$_ref_dec_csv" | head -1)
+            fi
+
+            _rvv_val=""
+            _rvv_csv="$(resolve_dec_sim_csv "rvv")"
+            [[ -n "$_rvv_csv" ]] && _rvv_val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$_rvv_csv" | head -1)
+
+            _zvbc_val=""
+            _zvbc_csv="$(resolve_dec_sim_csv "zvbc")"
+            [[ -n "$_zvbc_csv" ]] && _zvbc_val=$(awk -F',' -v l="$lvl" '!/^#/&&!/^level/&&$1==l{print $3}' "$_zvbc_csv" | head -1)
+
+            if [[ -n "$_ref_val" && -n "$_rvv_val" && -n "$_zvbc_val" && "$_zvbc_val" -gt 0 ]]; then
+                ref_fmt=$(printf "%'d" "$_ref_val")
+                rvv_fmt=$(printf "%'d" "$_rvv_val")
+                zvbc_fmt=$(printf "%'d" "$_zvbc_val")
+                rvv_sp=$(awk "BEGIN{printf \"×%.2f\",${_ref_val}/${_rvv_val}}")
+                zvbc_sp=$(awk "BEGIN{printf \"×%.2f\",${_ref_val}/${_zvbc_val}}")
+                echo "| HQC-${lvl} | ${ref_fmt} | ${rvv_fmt} (${rvv_sp}) | ${zvbc_fmt} (${zvbc_sp}) | ${zvbc_sp} |"
+            else
+                echo "| HQC-${lvl} | — | — | — | — |"
+            fi
+        done
+        echo ""
+
+    } > "$REPORT"
+
+    echo "  → Decode Zvbc ablation report: ${REPORT}"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 header "ABLATION STUDY COMPLETE"
 echo "  Mode:             ${MODE}"
-echo "  Studies run:      $(( DO_SCALAR + DO_VECTOR_RVV + DO_RM_RVV ))"
+echo "  Studies run:      $(( DO_SCALAR + DO_VECTOR_RVV + DO_DECODE_RVV + DO_ZVBC_DECODE ))"
 echo "  Failures:         ${FAIL}"
 
 if [[ $FAIL -gt 0 ]]; then

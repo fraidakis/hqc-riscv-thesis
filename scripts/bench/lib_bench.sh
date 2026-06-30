@@ -71,7 +71,7 @@ bench_is_ablation_variant() {
             local _decode_check="${variant}"
             [[ -n "${DECODE_IMPL:-}" ]] && _decode_check="$DECODE_IMPL"
             case "$_decode_check" in
-                rm_rvv_E|rm_rvv_EH) return 0 ;;
+                rm_rvv_E|rm_rvv_EH|zvbc_BD) return 0 ;;
                 *) return 1 ;;
             esac
             ;;
@@ -136,6 +136,7 @@ bench_parse_track_args() {
                     ref) DECODE_IMPL="ref" ;;
                     rvv) DECODE_IMPL="rvv" ;;
                     scalar_zb|zbc) DECODE_IMPL="scalar_zb" ;;
+                    zvbc_BD) DECODE_IMPL="zvbc_BD" ;;
                     *)   DECODE_IMPL="${2:-}" ;;
                 esac
                 _decode_explicit=1
