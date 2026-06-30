@@ -385,6 +385,10 @@ case "$PLATFORM" in
                     impl_flag="zvbc"
                 elif [[ "$DECODE_IMPL" == "scalar_zb" ]]; then
                     impl_flag="scalar_zb"
+                elif [[ "$DECODE_IMPL" == "rm_rvv_E" ]]; then
+                    impl_flag="rm_rvv_E"
+                elif [[ "$DECODE_IMPL" == "rm_rvv_EH" ]]; then
+                    impl_flag="rm_rvv_EH"
                 fi
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_header="# Decode variant: ${DECODE_IMPL}"
@@ -810,6 +814,10 @@ ${output}"
                     impl_flag="zvbc"
                 elif [[ "$decode_effective" == "scalar_zb" ]]; then
                     impl_flag="scalar_zb"
+                elif [[ "$decode_effective" == "rm_rvv_E" ]]; then
+                    impl_flag="rm_rvv_E"
+                elif [[ "$decode_effective" == "rm_rvv_EH" ]]; then
+                    impl_flag="rm_rvv_EH"
                 fi
                 file_slug="$(bench_variant_slug "$impl_flag")"
                 variant_label="decode_${decode_effective}"

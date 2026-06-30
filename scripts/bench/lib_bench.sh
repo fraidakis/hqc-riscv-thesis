@@ -65,6 +65,16 @@ bench_is_ablation_variant() {
                 *) return 1 ;;
             esac
             ;;
+        decode)
+            # RM RVV ablation variants (incremental vectorization layers)
+            # Check both the variant arg and the DECODE_IMPL environment variable
+            local _decode_check="${variant}"
+            [[ -n "${DECODE_IMPL:-}" ]] && _decode_check="$DECODE_IMPL"
+            case "$_decode_check" in
+                rm_rvv_E|rm_rvv_EH) return 0 ;;
+                *) return 1 ;;
+            esac
+            ;;
         *) return 1 ;;
     esac
 }
