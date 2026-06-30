@@ -1,0 +1,7 @@
+# date: 2026-06-30 18:35
+# commit: 088ce04
+# Decode variant: rm_rvv_EHP
+level,op,instructions,codesize
+128,decode,176473,13870
+192,decode,223743,17104
+256,decode,587257,22284
