@@ -1,11 +1,15 @@
-# date: 2026-06-23 01:24
-# commit: 45892ca
+# date: 2026-06-30 13:59
+# commit: 349c9a2
 # variant: scalar_zb
 # platform: bpi-f3
 # n_iter: 100
 # n_warmup: 10
 # mode: dev
-level,op,iterations,min_cycles,median_cycles,max_cycles,mean_cycles,stddev_cycles,min_instret,median_instret,max_instret,mean_instret,stddev_instret
-128,decode,100,438729,439226,482710,441215.2,6943.4,595600,595600,602980,596042.4,1636.3
-192,decode,100,614454,615081,651512,617163.6,6658.5,850463,850463,857694,850945.7,1664.4
-256,decode,100,1103700,1105430,1144230,1109217.9,8676.4,1544256,1544256,1552159,1545269.4,2208.8
+# isolation_irq: off
+# isolation_aslr: off
+# isolation_isolcpus: off
+# isolation_core: 7
+level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
+128,decode,100,725161,726499,727341,728275,1776,766950,1113036
+192,decode,100,977854,984779,986479,987529,2750,1017183,1506280
+256,decode,100,2049653,2051613,2053642,2071662,20049,2136757,3232692

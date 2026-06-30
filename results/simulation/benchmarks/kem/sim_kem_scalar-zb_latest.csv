@@ -1,8 +1,8 @@
-# date: 2026-06-29 10:26
-# commit: 5972956
+# date: 2026-06-30 14:01
+# commit: 349c9a2
 # Multiplication variant: scalar_zb
 level,op,instructions,codesize
-128,keypair,429065,34790
-128,encaps,834481,34790
-128,decaps,1990573,34790
-128,total,3254119,34790
+128,keypair,428923,34746
+128,encaps,834245,34746
+128,decaps,1972346,34746
+128,total,3235514,34746

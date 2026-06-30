@@ -1,46 +1,46 @@
-# date: 2026-06-30 12:18
-# commit: 5dadd24
+# date: 2026-06-30 12:41
+# commit: 349c9a2
 # variant: vector_rvv
 # level: 256
 function,instructions,percentage
-clmul_leaf_n14,2715708,24.96
-KeccakF1600_StatePermute,1752202,16.10
-clmul_leaf_n15,990000,9.10
-__riscv_clmul_64,906020,8.33
-__riscv_clmulh_64,889386,8.17
-keccak_inc_absorb,473564,4.35
-expand_and_sum,453060,4.16
-hadamard,449190,4.13
-kmul_28,319920,2.94
-gf_reduce,307564,2.83
-keccak_inc_squeeze,300162,2.76
-kmul_29,190080,1.75
-find_peaks,139505,1.28
-memset,113049,1.04
-compute_error_values,103319,0.95
-vect_compare,100968,0.93
-rvv_xor3_u64,98010,0.90
-gf_mul,82185,0.76
-reduce,59502,0.55
-reed_solomon_encode,56680,0.52
-rvv_xor_u64,53406,0.49
-compute_elp,52693,0.48
-compute_syndromes,52024,0.48
-support_contains_value,23697,0.22
-rvv_copy_u64,20490,0.19
-?? ??:0,20455,0.19
-vect_generate_random_support2,19822,0.18
-kmul_57,14256,0.13
-vect_write_support_to_vector,11619,0.11
-fft_rec,11594,0.11
-_start,10991,0.10
+KeccakF1600_StatePermute,2765549,23.08
+clmul_leaf_n14,2715708,22.66
+clmul_leaf_n15,990000,8.26
+__riscv_clmul_64,906020,7.56
+__riscv_clmulh_64,889386,7.42
+keccak_inc_absorb,473564,3.95
+expand_and_sum,453060,3.78
+hadamard,449190,3.75
+kmul_28,319920,2.67
+gf_reduce,307564,2.57
+keccak_inc_squeeze,300162,2.50
+find_peaks,224837,1.88
+kmul_29,190080,1.59
+memset,113049,0.94
+compute_error_values,107762,0.90
+vect_compare,100968,0.84
+rvv_xor3_u64,98010,0.82
+gf_mul,82185,0.69
+reduce,59502,0.50
+reed_solomon_encode,56680,0.47
+compute_elp,54055,0.45
+rvv_xor_u64,53406,0.45
+compute_syndromes,52024,0.43
+support_contains_value,23697,0.20
+rvv_copy_u64,20490,0.17
+?? ??:0,20455,0.17
+vect_generate_random_support2,19828,0.17
+kmul_57,14256,0.12
+vect_write_support_to_vector,11619,0.10
+fft_rec,11594,0.10
+_start,10991,0.09
 memcpy,10260,0.09
 kmul_56,10212,0.09
-encode,7740,0.07
-vect_generate_random_support1,7220,0.07
-kmul_113,7128,0.07
+encode,7740,0.06
+vect_generate_random_support1,7220,0.06
+kmul_113,7128,0.06
 reed_muller_encode,6882,0.06
-compute_z_poly,5107,0.05
+compute_z_poly,5107,0.04
 fft_retrieve_error_poly,3721,0.03
 barrett_reduce,3570,0.03
 compute_subset_sums,3342,0.03
@@ -50,7 +50,7 @@ fft,2059,0.02
 kmul_225,2010,0.02
 kmul_226,1320,0.01
 kmul_112,1290,0.01
-reed_muller_decode,1188,0.01
+reed_muller_decode,1278,0.01
 sha3_512_inc_finalize,984,0.01
 kmul_451,900,0.01
 store64,858,0.01

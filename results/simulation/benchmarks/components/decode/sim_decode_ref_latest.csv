@@ -1,7 +1,7 @@
-# date: 2026-06-06 20:48
-# commit: ccbe5e7
+# date: 2026-06-30 14:00
+# commit: 349c9a2
 # Decode variant: ref
 level,op,instructions,codesize
-128,decode,384986,18202
-192,decode,562125,18908
-256,decode,1059605,26412
+128,decode,1052690,14286
+192,decode,1430375,17038
+256,decode,3066749,22218

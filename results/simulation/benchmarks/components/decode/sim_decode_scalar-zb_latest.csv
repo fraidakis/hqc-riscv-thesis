@@ -1,0 +1,7 @@
+# date: 2026-06-30 14:00
+# commit: 349c9a2
+# Decode variant: scalar_zb
+level,op,instructions,codesize
+128,decode,604216,13798
+192,decode,859330,16550
+256,decode,1608744,21730
