@@ -128,20 +128,12 @@ pipeline, αναλύεται στην \cref{ssec:hw-spike-vs-hw}. Η scalar \Zbb
 πάνω από $\GF{2^8}$ (διόρθωση σε επίπεδο συμβόλου, μεταξύ διαφορετικών συμβόλων). Μετά τη
 βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (\cref{ch:polymul-optimization})
 και του Keccak (\cref{sec:keccak-optimization}), το decode pipeline αποτελεί
-τον τρίτο μεγαλύτερο πυρήνα, καταναλώνοντας \pct{18.4} (HQC-128),
-\pct{12.7} (HQC-192) και \pct{10.9} (HQC-256) του \Decaps \instret στο
-\code{scalar\_zb} variant (μετά τη βελτιστοποίηση του polymul). Η φθίνουσα
-τάση με το security level αντανακλά τον νόμο Amdahl: ο Karatsuba polymul
-κλιμακώνεται υπεργραμμικά με $n$, αυξάνοντας το απόλυτο κόστος του
-ταχύτερα από τον αποκωδικοποιητή, ο οποίος κλιμακώνεται ως
-$\BigO{\delta^2}$ με σταθερό $\delta$ ανά tier.
-
+τον δεύτερο μεγαλύτερο πυρήνα, αφού το ποσοστό του στο συνολικό \gls{kem} 
+αυξάνεται καταναλώνοντας σε \pct{16}–\pct{27} ανάλογα με το tier.
 Η βελτιστοποίηση ακολουθεί τρία tiers αυξανόμενης ISA
 πολυπλοκότητας: scalar με \gls{zbc} injection (Tier~1), Base-\RVV
 διανυσματοποίηση \gls{rm} και \gls{rs} syndromes (Tier~2), και πλήρης
-\gls{zvbc} vectorization όλων των αξόνων \gls{rs} (Tier~3). Η τελική Tier~3
-υλοποίηση επιτυγχάνει \speedup{6.8}–\speedup{7.8} στο decode pipeline
-σε σχέση με το scalar reference.
+\gls{zvbc} vectorization όλων των αξόνων \gls{rs} (Tier~3). 
 
 %% --------------------------------------------------------------------------
 \subsection{Scalar Path: \Zbc Injection στη \code{gf\_mul}}
@@ -149,13 +141,9 @@ $\BigO{\delta^2}$ με σταθερό $\delta$ ανά tier.
 
 Η μοναδική βελτιστοποίηση στο scalar path αφορά τον πυρήνα αριθμητικής
 $\GF{2^8}$. Η υλοποίηση αναφοράς (\code{gf\_carryless\_mul}) χρησιμοποιεί
-έναν constant-time schoolbook αλγόριθμο που απαιτεί $\approx\num{15}$
-εντολές ανά $8 \times 8$-bit carry-less γινόμενο. Στο Tier~1, η
+έναν constant-time schoolbook αλγόριθμο για $8 \times 8$-bit carry-less γινόμενο. Στο Tier~1, η
 αντικατάσταση με μία μόνο εντολή \clmul (μέσω \gls{zbc} intrinsic) μειώνει
-το κόστος σε μία εντολή για το γινόμενο, ακολουθούμενη από $\approx\num{12}$
-εντολές αναγωγής μέσω \code{gf\_reduce}, σύνολο
-$\approx\num{14}$ εντολές ανά κλήση \code{gf\_mul}, έναντι
-$\approx\num{27}$ στο software path (\cref{lst:gf-mul-zbc}).
+το κόστος σε μία εντολή για το γινόμενο.
 
 \begin{lstlisting}[language=C, caption={Scalar \code{gf\_mul} με \Zbc injection.},
   label={lst:gf-mul-zbc}]
@@ -166,17 +154,10 @@ uint16_t gf_mul(uint16_t a, uint16_t b) {
 }
 \end{lstlisting}
 
-Η βελτίωση εφαρμόζεται οριζόντια σε ολόκληρο τον αποκωδικοποιητή: κάθε
-κλήση \code{gf\_mul} στους υπολογισμούς syndromes, \gls{bm}, Forney, και
-\gls{fft} root-finding ωφελείται ομοιόμορφα. Η μείωση ανά κλήση
-($\approx\pct{48}$) αθροίζεται σε χιλιάδες κλήσεις ανά \Decaps, ιδιαίτερα
+Kάθε κλήση \code{gf\_mul} στους υπολογισμούς syndromes, \gls{bm}, Forney, και
+\gls{fft} root-finding ωφελείται ομοιόμορφα. Iδιαίτερα
 στο HQC-256 όπου $\delta = 29$ και οι εσωτερικοί βρόχοι εκτελούν
 $\BigO{\delta^2}$ πολλαπλασιασμούς.
-
-Η \gls{zbb} δεν συνεισφέρει στο decode path: ο \gls{rm} hadamard χρησιμοποιεί
-πρόσθεση/αφαίρεση \code{int16}, ενώ η \code{gf\_reduce} χρησιμοποιεί
-ολισθήσεις και XOR. Κανένα pattern δεν αντιστοιχεί σε \gls{zbb} εντολές
-(περιστροφή, \insn{andn}, count-leading-zeros).
 
 %% --------------------------------------------------------------------------
 \subsection{Base-RVV Path: Διανυσματοποίηση RM και RS Syndromes}
@@ -208,7 +189,8 @@ vse16_v(out,      vadd_vv(even, odd, vl));     // sums
 vse16_v(out + 64, vsub_vv(even, odd, vl));     // diffs
 \end{lstlisting}
 
-\noindent Τα intrinsics στα listings παρατίθενται σε συντομευμένη μορφή (π.χ. \code{vlse16\_v}, \code{vadd\_vv}). Τα πλήρη ονόματα ακολουθούν τη σύμβαση \code{\_\_riscv\_*} (π.χ. \code{\_\_riscv\_vlse16\_v\_i16m4}).
+\noindent Τα intrinsics στα listings παρατίθενται σε συντομευμένη μορφή (π.χ. 
+\code{vlse16\_v}, \code{vadd\_vv}). Τα πλήρη ονόματα ακολουθούν τη σύμβαση \code{\_\_riscv\_*} (π.χ. \code{\_\_riscv\_vlse16\_v\_i16m4}).
 
 Κάθε pass απαιτεί ακριβώς \num{6} vector εντολές (2 strided loads, 2
 αριθμητικές, 2 contiguous stores), σύνολο \num{42} vector εντολές για
@@ -248,23 +230,6 @@ pass για HQC-128/192 ($N_1 = 46, 56$) και \num{2} passes για HQC-256
 ($N_1 = 90$). Η υλοποίηση είναι \gls{vla}: χρησιμοποιεί
 \code{vsetvl\_e16m4} για ερώτηση του hardware vector length, εξασφαλίζοντας
 ορθότητα σε οποιοδήποτε $\VLEN \geq 64$.
-
-Το trade-off έναντι της \gls{zvbc} προσέγγισης (Track~C) συνοψίζεται ως εξής:
-η RVV gather μέθοδος εμφανίζει υψηλότερο εντολικό κόστος ανά στοιχείο
-($\approx\num{12}$ εντολές) αλλά επεξεργάζεται \num{4} φορές περισσότερα
-στοιχεία ανά pass. Επιπλέον, δεν απαιτεί Vector-Crypto extensions,
-μόνο τη βασική V extension και scalar \gls{zbc} για τα fallback στάδια B/C/D.
-Σε επίπεδο \instret, ο ευρύτερος παραλληλισμός ανά pass αντισταθμίζει
-το υψηλότερο εντολικό κόστος ανά στοιχείο. Ωστόσο σε
-πραγματικό υλικό (SpacemiT X60, VLEN=256) ο ισολογισμός εξαρτάται
-κρίσιμα από τη λανθάνουσα των indexed loads. Μετρήσεις κύκλων στο
-BPI-F3 δείχνουν ότι η \code{vector\_rvv} (Tier~2) υπολείπεται της
-\code{scalar\_zb} (Tier~1) στον απομονωμένο πολυωνυμικό
-πολλαπλασιασμό (\cycles{211846} έναντι \cycles{148489} κύκλων),
-κερδίζοντας ωστόσο ελαφρά στο πλήρες \Decaps (\cycles{1147999}
-έναντι \cycles{1286829} κύκλων), αποτέλεσμα που αντανακλά
-τη συμπεριφορά του in-order X60 pipeline και δεν γενικεύεται
-αυτόματα σε υλοποιήσεις με αποδοτικότερες indexed-load μονάδες.
 
 %% --------------------------------------------------------------------------
 \subsection{Vector-Crypto Path: \Zvbc RS (Berlekamp-Massey, Forney)}
