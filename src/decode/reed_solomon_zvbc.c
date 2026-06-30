@@ -421,8 +421,8 @@ static void compute_error_values_zvbc(uint16_t *error_values,
             inv_pow[j] = gf_mul(inv_pow[j - 1u], inverse);
 
         /* ── Step 2: vectorised Forney dot-product ───────────────────────── *
-         * tmp1 = XOR_{j=1}^{DELTA} inv_pow[j] * z[j]                       */
-        tmp1 = 0;
+         * tmp1 = 1 XOR XOR_{j=1}^{DELTA} inv_pow[j] * z[j]                */
+        tmp1 = 1;
         {
             const uint16_t *pi  = inv_pow + 1;
             const uint16_t *pz  = z + 1;
