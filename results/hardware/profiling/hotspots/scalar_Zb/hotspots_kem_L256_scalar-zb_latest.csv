@@ -1,41 +1,29 @@
-# date: 2026-06-25 00:36
-# commit: eeac22f
+# date: 2026-06-30 23:07
+# commit: bdd9cf4
 # variant: scalar_zb
 # level: 256
 # component: kem
 # method: perf record -e task-clock -F 4999 --call-graph fp
 # binary: build-hw/bench_profile_kem_hqc256_scalar_zb (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
-# samples: 59K
+# samples: 53K
 # platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
 # note: harness-free binary (no perf_event_open/ioctl overhead)
 function,self_pct,samples
-clmul_leaf,32.43,19363
-crypto_kem_dec,12.56,7504
-KeccakF1600_StatePermute,11.15,6654
-clmul_leaf,11.00,6565
-vect_sample_fixed_weight2,4.52,2699
-keccak_inc_absorb,3.89,2319
-kmul_28,3.19,1904
-vect_mul,2.60,1555
-kmul_113,2.27,1357
-kmul_57,2.27,1357
-kmul_29,1.99,1187
-kmul_56,1.94,1159
-keccak_inc_squeeze,1.81,1079
-vect_sample_fixed_weight1,1.70,1014
-kmul_225,1.62,963
-hqc_pke_encrypt,1.42,847
-kmul_451,1.21,717
-kmul_226,1.10,659
-memset,0.41,243
-gf_inverse,0.32,194
-crypto_kem_keypair,0.21,125
-__memcpy_noalignment,0.09,54
-fft_rec,0.08,46
-fft_rec,0.07,39
-crypto_kem_enc,0.06,34
-fft_rec,0.03,20
-do_lookup_x,0.03,15
-keccak_inc_squeeze,0.02,11
-keccak_inc_squeeze,0.02,9
-radix,0.01,8
+kmul_28,28.30,15053
+kmul_29,17.76,9448
+crypto_kem_dec,14.02,7459
+KeccakF1600_StatePermute,12.42,6604
+vect_sample_fixed_weight2,4.69,2491
+keccak_inc_absorb,4.42,2352
+kmul_113,2.43,1297
+vect_mul,2.39,1271
+kmul_57,2.25,1201
+keccak_inc_squeeze,2.04,1084
+kmul_56,1.84,976
+vect_sample_fixed_weight1,1.77,942
+kmul_225,1.53,811
+hqc_pke_encrypt,1.44,767
+kmul_451,1.02,541
+kmul_226,0.89,471
+memset,0.43,230
+gf_inverse,0.35,189

@@ -1,0 +1,213 @@
+# ═══════════════════════════════════════════════════════════════════
+# perf annotate — vector_rvv / mul / L192
+# date: 2026-06-30 23:33
+# commit: bdd9cf4
+# binary: build-hw/bench_profile_mul_hqc192_vector_rvv (-O3 -fno-omit-frame-pointer -g -static)
+# method: perf record -e task-clock -F 4999 → perf annotate --stdio
+# NOTE: Per-line percentages are APPROXIMATE (task-clock skid).
+#       These are not cycle-exact; treat as hot-line indicators.
+# ═══════════════════════════════════════════════════════════════════
+
+
+# ─── Function: kmul_18 ─────────────────────────────────────────
+
+--------------------------------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3     Disassembly of section .text:
+         :
+         : 5     0000000000010600 <kmul_18>:
+         : 6     kmul_18():
+         :
+         : 79    static void kmul_18(uint64_t * __restrict__ r,
+         : 80    const uint64_t * __restrict__ a,
+         : 81    const uint64_t * __restrict__ b,
+         : 82    uint64_t * __restrict__ tmp)
+         : 83    {
+    0.00 :   10600:  addi    sp,sp,-112
+    0.00 :   10602:  sd      s0,96(sp)
+    0.14 :   10604:  sd      s1,88(sp)
+    0.10 :   10606:  sd      s2,80(sp)
+    0.12 :   10608:  sd      s3,72(sp)
+    0.08 :   1060a:  sd      s4,64(sp)
+    0.09 :   1060c:  sd      s5,56(sp)
+    0.11 :   1060e:  sd      s6,48(sp)
+    0.09 :   10610:  sd      s7,40(sp)
+    0.11 :   10612:  sd      s8,32(sp)
+    0.10 :   10614:  sd      s9,24(sp)
+    0.09 :   10616:  sd      ra,104(sp)
+    0.10 :   10618:  sd      s10,16(sp)
+    0.10 :   1061a:  sd      s11,8(sp)
+    0.08 :   1061c:  addi    s0,sp,112
+         : 99    clmul_leaf_n9():
+         : 44    const uint64_t * __restrict__ b)
+         : 45    {
+         : 46    uint64_t lo, hi;
+         :
+         : 48    /* ── Row i=0: assign-on-first-write (initializes r[0..9]) ─────────── */
+         : 49    clmul64(a[0], b[0], &lo, &hi);
+    0.00 :   1061e:  ld      a4,0(a1)
+    0.10 :   10620:  ld      s3,0(a2)
+         : 49    r[0] = lo;
+         : 50    r[1] = hi;
+         :
+         : 52    for (size_t j = 1; j < 9; j++) {
+         : 53    clmul64(a[0], b[j], &lo, &hi);
+    0.00 :   10624:  ld      s5,8(a2)
+    0.14 :   10628:  ld      s4,16(a2)
+         : 56    __riscv_clmulh_64():
+         :
+         : 222   extern __inline uint64_t
+         : 223   __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
+         : 224   __riscv_clmulh_64 (uint64_t rs1, uint64_t rs2)
+         : 225   {
+         : 226   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.09 :   1062c:  clmulh  a5,a4,s3
+         : 228   clmul_leaf_n9():
+    0.22 :   10630:  ld      s2,24(a2)
+    0.00 :   10634:  ld      s1,32(a2)
+    0.08 :   10636:  ld      t2,40(a2)
+    0.00 :   1063a:  ld      t0,48(a2)
+    0.17 :   1063e:  ld      t6,56(a2)
+    0.00 :   10642:  ld      s6,64(a2)
+         : 55    kmul_18():
+         : 80    uint64_t *zmid      = tmp;
+         : 81    uint64_t *ta        = zmid + 18u;
+    0.21 :   10646:  addi    s7,a3,144
+         : 83    clmul_leaf_n9():
+         : 51    r[j]     ^= lo;
+         : 52    r[j + 1]  = hi;
+    0.00 :   1064a:  addi    s9,a0,72
+    0.08 :   1064e:  addi    t5,a1,8
+    0.00 :   10652:  addi    s8,a0,64
+         : 56    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.10 :   10656:  clmul   a6,a4,s5
+    0.00 :   1065a:  clmul   a7,a4,s3
+         : 217   clmul_leaf_n9():
+         : 50    r[j]     ^= lo;
+    0.08 :   1065e:  xor     a5,a5,a6
+    0.05 :   10662:  sd      a5,8(a0)
+    0.05 :   10664:  addi    a5,a0,8
+         : 54    __riscv_clmul_64():
+    0.03 :   10668:  clmul   t1,a4,s4
+         : 215   clmul_leaf_n9():
+         : 45    r[0] = lo;
+    0.05 :   1066c:  sd      a7,0(a0)
+         : 47    __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.08 :   10670:  clmulh  a6,a4,s5
+    0.04 :   10674:  clmulh  a7,a4,s4
+         : 224   clmul_leaf_n9():
+         : 50    r[j]     ^= lo;
+    0.02 :   10678:  xor     a6,a6,t1
+    0.13 :   1067c:  sd      a6,16(a0)
+         : 53    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.01 :   10680:  clmul   t1,a4,s2
+         : 216   __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.18 :   10684:  clmulh  a6,a4,s2
+         : 223   clmul_leaf_n9():
+    0.00 :   10688:  xor     a7,a7,t1
+    0.12 :   1068c:  sd      a7,24(a0)
+         : 52    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.00 :   10690:  clmul   t1,a4,s1
+         : 216   __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.09 :   10694:  clmulh  a7,a4,s1
+         : 223   clmul_leaf_n9():
+    0.00 :   10698:  xor     a6,a6,t1
+    0.09 :   1069c:  sd      a6,32(a0)
+         : 52    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.00 :   106a0:  clmul   t1,a4,t2
+         : 216   __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.07 :   106a4:  clmulh  a6,a4,t2
+         : 223   clmul_leaf_n9():
+    0.00 :   106a8:  xor     a7,a7,t1
+    0.11 :   106ac:  sd      a7,40(a0)
+         : 52    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.00 :   106b0:  clmul   t1,a4,t0
+         : 216   __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.10 :   106b4:  clmulh  a7,a4,t0
+         : 223   clmul_leaf_n9():
+    0.00 :   106b8:  xor     a6,a6,t1
+    0.14 :   106bc:  sd      a6,48(a0)
+         : 52    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.00 :   106c0:  clmul   t1,a4,t6
+         : 216   clmul_leaf_n9():
+    0.10 :   106c4:  xor     a7,a7,t1
+         : 51    __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.14 :   106c8:  clmulh  a6,a4,t6
+         : 223   clmul_leaf_n9():
+    0.00 :   106cc:  sd      a7,56(a0)
+         : 51    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.10 :   106d0:  clmul   a7,a4,s6
+         : 216   __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.00 :   106d4:  clmulh  a4,a4,s6
+         : 223   clmul_leaf_n9():
+    0.08 :   106d8:  xor     a6,a6,a7
+    0.10 :   106dc:  sd      a6,64(a0)
+         : 51    r[j + 1]  = hi;
+    0.00 :   106e0:  sd      a4,72(a0)
+         : 57    }
+         :
+         : 59    /* ── Rows i=1..7: XOR-accumulate with compact inner loop ─────────── */
+         : 60    for (size_t i = 1; i < 8; i++) {
+         : 61    for (size_t j = 0; j < 8; j++) {
+         : 62    clmul64(a[i], b[j], &lo, &hi);
+    0.00 :   106e2:  ld      a4,0(t5)
+         : 59    r[i + j]     ^= lo;
+         : 60    r[i + j + 1] ^= hi;
+    0.65 :   106e6:  ld      t4,8(a5)
+    0.00 :   106ea:  ld      t3,16(a5)
+         : 63    __riscv_clmulh_64():
+    0.28 :   106ee:  clmulh  s10,a4,s3
+         : 222   clmul_leaf_n9():
+    0.36 :   106f2:  ld      t1,24(a5)
+    0.00 :   106f6:  ld      a7,32(a5)
+    0.52 :   106fa:  ld      a6,40(a5)
+         : 55    for (size_t i = 1; i < 8; i++) {
+    0.00 :   106fe:  addi    a5,a5,8
+    0.61 :   10700:  addi    t5,t5,8
+         : 59    r[i + j + 1] ^= hi;
+    0.00 :   10702:  xor     t4,t4,s10
+         : 61    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    1.06 :   10706:  clmul   s10,a4,s5
+         : 216   __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    0.00 :   1070a:  clmulh  s11,a4,s5
+         : 223   clmul_leaf_n9():
+         : 58    r[i + j]     ^= lo;
+    0.61 :   1070e:  xor     t4,t4,s10
+    0.58 :   10712:  sd      t4,0(a5)
+         : 61    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.01 :   10716:  clmul   t4,a4,s4
+         : 216   clmul_leaf_n9():
+         : 59    r[i + j + 1] ^= hi;
+    0.59 :   1071a:  xor     t3,t3,s11
+         : 58    r[i + j]     ^= lo;
+    0.00 :   1071e:  xor     t3,t3,t4
+         : 60    __riscv_clmulh_64():
+         : 221   return __builtin_riscv_clmulh_64 (rs1,rs2);
+    1.37 :   10722:  clmulh  s11,a4,s4
+         : 223   clmul_leaf_n9():
+    0.00 :   10726:  sd      t3,8(a5)
+         : 59    __riscv_clmul_64():
+         : 214   return __builtin_riscv_clmul_64 (rs1,rs2);
+    0.66 :   1072a:  clmul   t3,a4,s2
+         : 216   clmul_leaf_n9():
+         : 59    r[i + j + 1] ^= hi;
+    0.00 :   1072e:  xor     t1,t1,s11

@@ -1,58 +1,35 @@
-# date: 2026-06-25 00:43
-# commit: eeac22f
+# date: 2026-06-30 23:15
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 256
 # component: kem
 # method: perf record -e task-clock -F 4999 --call-graph fp
 # binary: build-hw/bench_profile_kem_hqc256_vector_rvv (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
-# samples: 54K
+# samples: 49K
 # platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
 # note: harness-free binary (no perf_event_open/ioctl overhead)
 function,self_pct,samples
-clmul_leaf,36.56,19872
-clmul_leaf,12.72,6913
-KeccakF1600_StatePermute,12.61,6858
-reed_muller_decode,5.57,3025
-keccak_inc_absorb,4.15,2255
-gf_mul,4.09,2222
-expand_and_sum,3.20,1737
-kmul_28,2.72,1480
-shake256_inc_squeeze,2.12,1150
-kmul_29,1.93,1051
-reed_solomon_decode,1.85,1007
-kmul_57,1.67,907
-kmul_113,1.53,828
-vect_mul,1.44,781
-kmul_56,1.11,601
-kmul_225,1.04,563
-vect_compare,1.01,553
-vect_generate_random_support2,0.97,530
-kmul_451,0.57,314
-kmul_226,0.53,289
-reed_solomon_encode,0.44,239
-gf_inverse,0.33,178
-memset,0.31,171
-vect_generate_random_support1,0.27,148
-vect_add,0.27,146
-vect_sample_fixed_weight2,0.19,106
-reed_muller_encode,0.14,77
-crypto_kem_keypair,0.11,59
-encode,0.07,37
-vect_sample_fixed_weight1,0.05,26
-fft_retrieve_error_poly,0.03,19
-hqc_ek_pke_from_string,0.03,19
-hqc_pke_keygen,0.03,19
-crypto_kem_dec,0.03,17
-fft,0.03,16
-fft_rec,0.03,16
-do_lookup_x,0.03,16
-fft_rec,0.03,15
-fft_rec,0.03,14
-hqc_c_kem_from_string,0.03,14
-hqc_c_kem_to_string,0.03,14
-fft_rec,0.02,13
-xof_init,0.02,12
-sha3_512_inc_finalize,0.02,10
-gf_square,0.01,8
-check_match,0.01,8
-xof_get_bytes,0.01,7
+kmul_28,30.96,15212
+kmul_29,18.89,9281
+KeccakF1600_StatePermute,13.21,6492
+reed_muller_decode,6.28,3085
+keccak_inc_absorb,4.63,2276
+gf_mul,4.27,2099
+expand_and_sum,3.89,1912
+shake256_inc_squeeze,2.14,1052
+vect_mul,1.83,897
+kmul_57,1.76,861
+reed_solomon_decode,1.74,851
+kmul_113,1.66,818
+vect_generate_random_support2,1.28,628
+kmul_56,1.25,612
+vect_compare,1.21,593
+kmul_225,1.13,553
+vect_generate_random_support1,0.64,312
+kmul_451,0.60,293
+reed_solomon_encode,0.56,272
+kmul_226,0.53,261
+gf_inverse,0.43,209
+memset,0.42,205
+vect_add,0.42,205
+vect_sample_fixed_weight2,0.30,149

@@ -1,0 +1,213 @@
+# ═══════════════════════════════════════════════════════════════════
+# perf annotate — vector_rvv / kem / L128
+# date: 2026-06-30 23:29
+# commit: bdd9cf4
+# binary: build-hw/bench_profile_kem_hqc128_vector_rvv (-O3 -fno-omit-frame-pointer -g -static)
+# method: perf record -e task-clock -F 4999 → perf annotate --stdio
+# NOTE: Per-line percentages are APPROXIMATE (task-clock skid).
+#       These are not cycle-exact; treat as hot-line indicators.
+# ═══════════════════════════════════════════════════════════════════
+
+
+# ─── Function: KeccakF1600_StatePermute ─────────────────────────────────────────
+
+-------------------------------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3     Disassembly of section .text:
+         :
+         : 5     0000000000014900 <KeccakF1600_StatePermute>:
+         : 6     KeccakF1600_StatePermute():
+         : 65    *
+         : 66    * Description: The Keccak F1600 Permutation
+         : 67    *
+         : 68    * Arguments:   - uint64_t *state: pointer to input/output Keccak state
+         : 69    **************************************************/
+         : 70    static void KeccakF1600_StatePermute(uint64_t *state) {
+    0.00 :   14900:  addi    sp,sp,-240
+    0.00 :   14902:  sd      s0,224(sp)
+    0.05 :   14904:  sd      s1,216(sp)
+    0.00 :   14906:  addi    s0,sp,240
+    0.05 :   14908:  sd      s2,208(sp)
+    0.00 :   1490a:  sd      s3,200(sp)
+    0.05 :   1490c:  sd      s4,192(sp)
+    0.00 :   1490e:  sd      s5,184(sp)
+    0.00 :   14910:  sd      s7,168(sp)
+    0.09 :   14912:  sd      s8,160(sp)
+    0.00 :   14914:  sd      s9,152(sp)
+    0.00 :   14916:  sd      s10,144(sp)
+    0.05 :   14918:  sd      s11,136(sp)
+    0.00 :   1491a:  sd      ra,232(sp)
+    0.05 :   1491c:  sd      s6,176(sp)
+         : 83    uint64_t Ema, Eme, Emi, Emo, Emu;
+         : 84    uint64_t Esa, Ese, Esi, Eso, Esu;
+         :
+         : 86    // copyFromState(A, state)
+         : 87    Aba = state[0];
+         : 88    Abe = state[1];
+    0.14 :   1491e:  ld      a5,8(a0)
+         : 88    Abi = state[2];
+         : 89    Abo = state[3];
+         : 90    Abu = state[4];
+         : 91    Aga = state[5];
+         : 92    Age = state[6];
+    0.00 :   14920:  ld      s9,48(a0)
+         : 82    Aba = state[0];
+    0.00 :   14924:  ld      s4,0(a0)
+         : 83    Abe = state[1];
+    0.00 :   14928:  sd      a5,-120(s0)
+         : 84    Abi = state[2];
+    0.00 :   1492c:  ld      a5,16(a0)
+         : 89    Agi = state[7];
+    0.09 :   1492e:  ld      s5,56(a0)
+         : 65    static void KeccakF1600_StatePermute(uint64_t *state) {
+    0.05 :   14932:  mv      a2,a0
+         : 84    Abi = state[2];
+    0.00 :   14934:  sd      a5,-128(s0)
+         : 85    Abo = state[3];
+    0.14 :   14938:  ld      a5,24(a0)
+         : 106   Amu = state[19];
+         : 107   Asa = state[20];
+         : 108   Ase = state[21];
+         : 109   Asi = state[22];
+         : 110   Aso = state[23];
+         : 111   Asu = state[24];
+    0.00 :   1493a:  mv      s7,s9
+         : 85    Abo = state[3];
+    0.14 :   1493c:  sd      a5,-184(s0)
+         : 86    Abu = state[4];
+    0.00 :   14940:  ld      a5,32(a0)
+    0.00 :   14942:  sd      a5,-136(s0)
+         : 87    Aga = state[5];
+    0.00 :   14946:  ld      a5,40(a0)
+    0.14 :   14948:  sd      a5,-144(s0)
+         : 90    Ago = state[8];
+    0.00 :   1494c:  ld      a5,64(a0)
+    0.00 :   1494e:  sd      a5,-152(s0)
+         : 91    Agu = state[9];
+    0.14 :   14952:  ld      a5,72(a0)
+    0.00 :   14954:  sd      a5,-192(s0)
+         : 92    Aka = state[10];
+    0.05 :   14958:  ld      t5,80(a0)
+         : 93    Ake = state[11];
+    0.00 :   1495c:  ld      a5,88(a0)
+         : 98    Ame = state[16];
+    0.18 :   1495e:  ld      a3,128(a0)
+         : 95    Ako = state[13];
+    0.00 :   14960:  ld      s1,104(a0)
+         : 93    Ake = state[11];
+    0.00 :   14962:  sd      a5,-160(s0)
+         : 96    Aku = state[14];
+    0.00 :   14966:  ld      a5,112(a0)
+         : 94    Aki = state[12];
+    0.05 :   14968:  ld      t0,96(a0)
+         : 101   Amu = state[19];
+    0.00 :   1496c:  ld      a1,152(a2)
+         : 96    Aku = state[14];
+    0.00 :   1496e:  sd      a5,-168(s0)
+         : 97    Ama = state[15];
+    0.00 :   14972:  ld      a5,120(a0)
+         : 104   Asi = state[22];
+    0.00 :   14974:  ld      t3,176(a2)
+         : 99    Ami = state[17];
+    0.00 :   14978:  ld      a0,136(a0)
+         : 97    Ama = state[15];
+    0.05 :   1497a:  sd      a5,-176(s0)
+         : 106   Asu = state[24];
+    0.00 :   1497e:  lui     a5,0x8
+    0.00 :   14980:  addi    a5,a5,130 # 8082 <__libc_dlerror_result+0x803a>
+         : 105   Aso = state[23];
+    0.05 :   14984:  ld      a7,184(a2)
+         : 106   Asu = state[24];
+    0.00 :   14988:  sd      a5,-208(s0)
+    0.14 :   1498c:  auipc   a5,0x4f
+    0.00 :   14990:  addi    a5,a5,-2020 # 631a8 <KeccakF_RoundConstants+0x10>
+    0.00 :   14994:  sd      a5,-224(s0)
+    0.05 :   14998:  li      a5,1
+    0.00 :   1499a:  mv      s3,t5
+         : 100   Amo = state[18];
+    0.05 :   1499c:  ld      s2,144(a2)
+         : 106   Asu = state[24];
+    0.00 :   149a0:  mv      t5,a3
+         : 102   Asa = state[20];
+    0.00 :   149a2:  ld      s11,160(a2)
+         : 103   Ase = state[21];
+    0.00 :   149a6:  ld      s10,168(a2)
+         : 106   Asu = state[24];
+    0.05 :   149aa:  ld      a4,192(a2)
+    0.00 :   149ac:  sd      a5,-200(s0)
+    0.00 :   149b0:  mv      a3,s1
+    0.00 :   149b2:  mv      s9,a0
+    0.00 :   149b4:  mv      a6,a1
+    0.00 :   149b6:  mv      t4,t3
+    0.00 :   149b8:  mv      s8,a7
+    0.00 :   149ba:  sd      a2,-232(s0)
+    0.00 :   149be:  j       149d4 <KeccakF1600_StatePermute+0xd4>
+         : 134   Amo ^= Do;
+         : 135   BCo = ROL(Amo, 21);
+         : 136   Asu ^= Du;
+         : 137   BCu = ROL(Asu, 14);
+         : 138   Eba = BCa ^ ((~BCe) & BCi);
+         : 139   Eba ^= KeccakF_RoundConstants[round];
+    0.37 :   149c0:  ld      a2,0(a5)
+    0.00 :   149c2:  addi    a5,a5,16
+    0.00 :   149c4:  sd      a2,-200(s0)
+         : 229   Emo ^= Do;
+         : 230   BCo = ROL(Emo, 21);
+         : 231   Esu ^= Du;
+         : 232   BCu = ROL(Esu, 14);
+         : 233   Aba = BCa ^ ((~BCe) & BCi);
+         : 234   Aba ^= KeccakF_RoundConstants[round + 1];
+    0.55 :   149c8:  ld      a2,-8(a5)
+    0.00 :   149cc:  sd      a5,-224(s0)
+    0.64 :   149d0:  sd      a2,-208(s0)
+         : 114   BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
+    0.78 :   149d4:  ld      s6,-192(s0)
+    0.00 :   149d8:  ld      a7,-136(s0)
+         : 112   BCi = Abi ^ Agi ^ Aki ^ Ami ^ Asi;
+    0.00 :   149dc:  ld      a2,-128(s0)
+         : 114   BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
+    0.87 :   149e0:  ld      t6,-168(s0)
+         : 110   BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
+    0.55 :   149e4:  ld      a5,-144(s0)
+         : 113   BCo = Abo ^ Ago ^ Ako ^ Amo ^ Aso;
+    0.64 :   149e8:  ld      t3,-184(s0)
+    0.82 :   149ec:  ld      t1,-152(s0)
+         : 114   BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
+    0.46 :   149f0:  xor     a7,a7,s6
+         : 110   BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
+    0.05 :   149f4:  ld      t2,-176(s0)
+         : 112   BCi = Abi ^ Agi ^ Aki ^ Ami ^ Asi;
+    0.73 :   149f8:  xor     a0,a2,s5
+         : 114   BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
+    0.00 :   149fc:  xor     a7,a7,t6
+         : 111   BCe = Abe ^ Age ^ Ake ^ Ame ^ Ase;
+    0.46 :   14a00:  ld      t6,-120(s0)
+    0.05 :   14a04:  ld      a2,-160(s0)
+         : 110   BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
+    0.60 :   14a08:  xor     a1,s4,a5
+         : 112   BCi = Abi ^ Agi ^ Aki ^ Ami ^ Asi;
+    0.00 :   14a0c:  xor     a0,a0,t0
+         : 113   BCo = Abo ^ Ago ^ Ako ^ Amo ^ Aso;
+    0.41 :   14a10:  xor     t1,t3,t1
+         : 110   BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
+    0.00 :   14a14:  xor     a1,a1,s3
+         : 112   BCi = Abi ^ Agi ^ Aki ^ Ami ^ Asi;
+    0.46 :   14a18:  xor     a0,a0,s9
+    0.00 :   14a1c:  xor     a0,a0,t4
+         : 111   BCe = Abe ^ Age ^ Ake ^ Ame ^ Ase;
+    0.00 :   14a20:  xor     a5,t6,s7
+         : 113   BCo = Abo ^ Ago ^ Ako ^ Amo ^ Aso;
+    0.32 :   14a24:  xor     t1,t1,a3
+         : 110   BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
+    0.00 :   14a28:  xor     a1,a1,t2
+         : 114   BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
+    0.60 :   14a2c:  xor     a7,a7,a6
+         : 110   BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
+    0.00 :   14a30:  xor     a1,a1,s11
+         : 114   BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
+    0.23 :   14a34:  xor     a7,a7,a4
+         : 111   BCe = Abe ^ Age ^ Ake ^ Ame ^ Ase;
+    0.00 :   14a38:  xor     a5,a5,a2
+         : 113   BCo = Abo ^ Ago ^ Ako ^ Amo ^ Aso;

@@ -1,22 +1,20 @@
-# date: 2026-06-25 00:46
-# commit: eeac22f
+# date: 2026-06-30 23:17
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 256
 # component: mul
 # method: perf record -e task-clock -F 4999 --call-graph fp
 # binary: build-hw/bench_profile_mul_hqc256_vector_rvv (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
-# samples: 138K
+# samples: 118K
 # platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
 # note: harness-free binary (no perf_event_open/ioctl overhead)
 function,self_pct,samples
-clmul_leaf,58.08,80178
-clmul_leaf,20.42,28188
-kmul_28,4.20,5790
-kmul_29,3.34,4606
-vect_mul,3.08,4242
-kmul_57,2.69,3724
-kmul_113,2.56,3534
-kmul_56,1.88,2600
-kmul_225,1.73,2399
-kmul_451,1.01,1394
-kmul_226,1.00,1389
+kmul_28,52.07,61821
+kmul_29,32.99,39167
+kmul_57,3.09,3659
+vect_mul,3.05,3619
+kmul_113,2.86,3396
+kmul_56,2.17,2584
+kmul_225,1.80,2138
+kmul_451,1.00,1193
+kmul_226,0.97,1153

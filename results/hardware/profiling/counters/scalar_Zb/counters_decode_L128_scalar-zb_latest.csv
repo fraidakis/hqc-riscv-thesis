@@ -1,5 +1,5 @@
-# date: 2026-06-25 12:48
-# commit: cbc6115
+# date: 2026-06-30 23:01
+# commit: bdd9cf4
 # variant: scalar_zb
 # level: 128
 # component: decode
@@ -11,8 +11,8 @@
 # governor: performance
 # level=128,decode=ref,n_iter=100,n_warmup=10,platform=hw
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-decode,100,438998,439578,439903,440240,662,583435,595600
+decode,100,724496,724974,725276,726476,1502,760471,1113310
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-decode,1.3539,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0015
+decode,1.5350,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0021

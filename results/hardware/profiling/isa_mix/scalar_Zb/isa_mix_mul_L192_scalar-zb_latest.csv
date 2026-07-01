@@ -1,13 +1,13 @@
-# date: 2026-06-25 00:49
-# commit: eeac22f
+# date: 2026-06-30 23:18
+# commit: bdd9cf4
 # variant: scalar_zb
 # level: 192
 # component: mul
 # binary: build-hw/bench_hw_mul_hqc192_scalar_zb (-O3, same as bench)
 # platform: bpi-f3 (SpacemiT X60)
 category,mnemonic,count
-zbc,clmul,100
-zbc,clmulh,100
+zbc,clmul,159
+zbc,clmulh,159
 zbb,sext.b,91
 zbb,maxu,64
 zbb,max,45
@@ -42,15 +42,15 @@ scalar_mul,divu,14
 scalar_mul,mulhu,13
 scalar_mul,mulw,4
 scalar_mul,div,2
-branch,jal,3784
-branch,beq,1738
-branch,bne,1358
+branch,jal,3771
+branch,beq,1730
+branch,bne,1369
 branch,bltu,1042
 branch,bgeu,821
 branch,jalr,294
 branch,blt,230
 branch,bge,191
-load,ld,18645
+load,ld,17927
 load,lw,2160
 load,lbu,1286
 load,lhu,369
@@ -58,36 +58,36 @@ load,fld,124
 load,lwu,82
 load,lb,31
 load,lh,13
-store,sd,13209
+store,sd,12691
 store,sw,1260
 store,sb,714
 store,sh,139
 store,fsd,86
-total,all_instructions,107795
-summary,zbc_total,200
+total,all_instructions,106181
+summary,zbc_total,318
 summary,zbb_total,409
 summary,zba_total,1065
 summary,zbs_total,275
 summary,scalar_mul_total,155
-summary,branch_total,9458
-summary,load_total,22710
-summary,store_total,15408
-top_n,1,ld,18645
-top_n,2,sd,13209
-top_n,3,addi,11453
-top_n,4,li,8187
-top_n,5,mv,7735
-top_n,6,j,4719
-top_n,7,jal,3784
-top_n,8,auipc,3715
-top_n,9,add,3426
-top_n,10,beqz,2937
+summary,branch_total,9448
+summary,load_total,21992
+summary,store_total,14890
+top_n,1,ld,17927
+top_n,2,sd,12691
+top_n,3,addi,11334
+top_n,4,li,8198
+top_n,5,mv,7730
+top_n,6,j,4722
+top_n,7,jal,3771
+top_n,8,auipc,3699
+top_n,9,add,3290
+top_n,10,beqz,2943
 top_n,11,bnez,2748
 top_n,12,lw,2160
-top_n,13,beq,1738
-top_n,14,lui,1724
+top_n,13,beq,1730
+top_n,14,lui,1628
 top_n,15,andi,1462
-top_n,16,bne,1358
+top_n,16,bne,1369
 top_n,17,lbu,1286
 top_n,18,sw,1260
 top_n,19,ret,1138

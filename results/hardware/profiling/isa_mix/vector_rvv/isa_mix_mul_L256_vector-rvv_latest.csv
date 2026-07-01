@@ -1,13 +1,13 @@
-# date: 2026-06-25 00:52
-# commit: eeac22f
+# date: 2026-06-30 23:21
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 256
 # component: mul
 # binary: build-hw/bench_hw_mul_hqc256_vector_rvv (-O3, same as bench)
 # platform: bpi-f3 (SpacemiT X60)
 category,mnemonic,count
-zbc,clmul,60
-zbc,clmulh,60
+zbc,clmul,258
+zbc,clmulh,258
 zbb,sext.b,91
 zbb,maxu,64
 zbb,max,45
@@ -23,7 +23,7 @@ zbb,orn,4
 zbb,clz,3
 zbb,rori,2
 zbb,cpop,1
-zba,sh3add,623
+zba,sh3add,544
 zba,sh2add,267
 zba,sh1add,110
 zba,add.uw,92
@@ -36,30 +36,28 @@ zbs,bexti,35
 zbs,bext,31
 zbs,bset,24
 zbs,bclri,17
-rvv_arith,vxor,102
+rvv_arith,vxor,116
 rvv_arith,vmv,1
-rvv_arith,vsll,1
-rvv_arith,vsrl,1
-rvv_load,vle64,164
-rvv_store,vse64,62
+rvv_load,vle64,146
+rvv_store,vse64,82
 rvv_store,vse8,8
-rvv_config,vsetvli,51
-rvv_config,vsetivli,1
+rvv_config,vsetvli,57
+rvv_config,vsetivli,3
 scalar_mul,mul,81
 scalar_mul,remu,41
 scalar_mul,divu,14
 scalar_mul,mulhu,13
 scalar_mul,mulw,4
 scalar_mul,div,2
-branch,jal,3776
+branch,jal,3770
 branch,beq,1730
-branch,bne,1316
+branch,bne,1321
 branch,bltu,1041
 branch,bgeu,821
 branch,jalr,294
 branch,blt,230
 branch,bge,191
-load,ld,17362
+load,ld,17803
 load,lw,2160
 load,lbu,1286
 load,lhu,369
@@ -67,41 +65,41 @@ load,fld,124
 load,lwu,82
 load,lb,31
 load,lh,13
-store,sd,12364
+store,sd,12672
 store,sw,1260
 store,sb,714
 store,sh,139
 store,fsd,86
-total,all_instructions,105269
-summary,zbc_total,120
+total,all_instructions,107081
+summary,zbc_total,516
 summary,zbb_total,409
-summary,zba_total,1267
+summary,zba_total,1188
 summary,zbs_total,275
-summary,rvv_arith_total,105
-summary,rvv_load_total,164
-summary,rvv_store_total,70
-summary,rvv_config_total,52
+summary,rvv_arith_total,117
+summary,rvv_load_total,146
+summary,rvv_store_total,90
+summary,rvv_config_total,60
 summary,scalar_mul_total,155
-summary,branch_total,9399
-summary,load_total,21427
-summary,store_total,14563
-top_n,1,ld,17362
-top_n,2,sd,12364
-top_n,3,addi,11237
-top_n,4,li,8238
-top_n,5,mv,7792
-top_n,6,j,4715
-top_n,7,jal,3776
+summary,branch_total,9398
+summary,load_total,21868
+summary,store_total,14871
+top_n,1,ld,17803
+top_n,2,sd,12672
+top_n,3,addi,11236
+top_n,4,li,8236
+top_n,5,mv,7783
+top_n,6,j,4748
+top_n,7,jal,3770
 top_n,8,auipc,3687
-top_n,9,add,3308
-top_n,10,beqz,2937
-top_n,11,bnez,2799
+top_n,9,add,3375
+top_n,10,beqz,2981
+top_n,11,bnez,2806
 top_n,12,lw,2160
 top_n,13,beq,1730
-top_n,14,lui,1643
+top_n,14,lui,1644
 top_n,15,andi,1462
-top_n,16,bne,1316
+top_n,16,bne,1321
 top_n,17,lbu,1286
 top_n,18,sw,1260
-top_n,19,ret,1140
+top_n,19,ret,1138
 top_n,20,addiw,1107

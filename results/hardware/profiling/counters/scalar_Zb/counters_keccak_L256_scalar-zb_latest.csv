@@ -1,5 +1,5 @@
-# date: 2026-06-25 12:48
-# commit: cbc6115
+# date: 2026-06-30 23:01
+# commit: bdd9cf4
 # variant: scalar_zb
 # level: 256
 # component: keccak
@@ -11,8 +11,8 @@
 # governor: performance
 # level=256,keccak=ref,n_iter=100,n_warmup=10,platform=hw
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-keccak,100,1118368,1119044,1119403,1120463,1419,1165527,1787743
+keccak,100,1118795,1119332,1120885,1125131,5799,1190439,1787743
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-keccak,1.5971,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0013
+keccak,1.5949,0.000000,0.000,0.000,0.000,0.0000,0.0000,NA,NA,NA,0,NA,0.0052

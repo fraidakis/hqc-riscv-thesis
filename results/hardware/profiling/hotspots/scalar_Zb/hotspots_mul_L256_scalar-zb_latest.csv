@@ -1,23 +1,20 @@
-# date: 2026-06-25 00:39
-# commit: eeac22f
+# date: 2026-06-30 23:08
+# commit: bdd9cf4
 # variant: scalar_zb
 # level: 256
 # component: mul
 # method: perf record -e task-clock -F 4999 --call-graph fp
 # binary: build-hw/bench_profile_mul_hqc256_scalar_zb (-O3 -fno-omit-frame-pointer -g, NO -fno-inline)
-# samples: 150K
+# samples: 128K
 # platform: bpi-f3 (SpacemiT X60, 1.6GHz, VLEN=256)
 # note: harness-free binary (no perf_event_open/ioctl overhead)
 function,self_pct,samples
-clmul_leaf,51.72,77880
-clmul_leaf,18.91,28487
-vect_mul,6.37,9591
-kmul_28,5.18,7794
-kmul_57,3.86,5803
-kmul_113,3.78,5688
-kmul_29,3.61,5428
-kmul_56,2.90,4359
-kmul_451,1.76,2660
-kmul_225,1.10,1658
-kmul_226,0.80,1201
-main,0.01,18
+kmul_28,49.03,62894
+kmul_29,30.64,39307
+kmul_57,4.31,5528
+kmul_113,3.79,4862
+vect_mul,3.61,4631
+kmul_56,3.12,3995
+kmul_225,2.39,3074
+kmul_451,1.69,2167
+kmul_226,1.42,1820

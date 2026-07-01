@@ -1,0 +1,213 @@
+# ═══════════════════════════════════════════════════════════════════
+# perf annotate — vector_rvv / mul / L256
+# date: 2026-06-30 23:35
+# commit: bdd9cf4
+# binary: build-hw/bench_profile_mul_hqc256_vector_rvv (-O3 -fno-omit-frame-pointer -g -static)
+# method: perf record -e task-clock -F 4999 → perf annotate --stdio
+# NOTE: Per-line percentages are APPROXIMATE (task-clock skid).
+#       These are not cycle-exact; treat as hot-line indicators.
+# ═══════════════════════════════════════════════════════════════════
+
+
+# ─── Function: kmul_113 ─────────────────────────────────────────
+
+-------------------------------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3     Disassembly of section .text:
+         :
+         : 5     00000000000129be <kmul_113>:
+         : 6     kmul_113():
+         :
+         : 530   static void kmul_113(uint64_t * __restrict__ r,
+         : 531   const uint64_t * __restrict__ a,
+         : 532   const uint64_t * __restrict__ b,
+         : 533   uint64_t * __restrict__ tmp)
+         : 534   {
+    0.00 :   129be:  addi    sp,sp,-96
+    0.00 :   129c0:  sd      s6,32(sp)
+         : 533   uint64_t *zmid      = tmp;
+         : 534   uint64_t *ta        = zmid + 114u;
+         : 535   uint64_t *tb        = ta + 57u;
+         : 536   uint64_t *child_buf = tb + 57u;
+    0.28 :   129c2:  addi    s6,a3,1824
+         : 529   {
+    0.00 :   129c6:  sd      ra,88(sp)
+    0.12 :   129c8:  sd      s0,80(sp)
+    0.21 :   129ca:  sd      s1,72(sp)
+    0.06 :   129cc:  sd      s2,64(sp)
+    0.03 :   129ce:  sd      s3,56(sp)
+    0.12 :   129d0:  sd      s4,48(sp)
+    0.09 :   129d2:  sd      s5,40(sp)
+    0.06 :   129d4:  sd      s7,24(sp)
+    0.09 :   129d6:  sd      s8,16(sp)
+    0.18 :   129d8:  sd      s9,8(sp)
+    0.06 :   129da:  sd      s10,0(sp)
+    0.09 :   129dc:  mv      s9,a1
+    0.00 :   129de:  addi    s0,sp,96
+    0.06 :   129e0:  mv      s2,a3
+    0.00 :   129e2:  mv      s1,a0
+    0.09 :   129e4:  mv      s8,a2
+         :
+         : 537   /* Direct-write: z0 → r[0..113], z2 → r[114..225] */
+         : 538   kmul_57(r, a, b, child_buf);
+    0.00 :   129e6:  mv      a3,s6
+    0.24 :   129e8:  jal     127d0 <kmul_57>
+         : 537   kmul_56(r + 114u, a + 57u, b + 57u, child_buf);
+    0.00 :   129ec:  addi    s3,s1,912
+    0.15 :   129f0:  addi    s7,s9,456
+    0.00 :   129f4:  addi    s5,s8,456
+    0.18 :   129f8:  mv      a0,s3
+    0.00 :   129fa:  mv      a3,s6
+    0.15 :   129fc:  mv      a1,s7
+    0.00 :   129fe:  mv      a2,s5
+    0.21 :   12a00:  jal     12642 <kmul_56>
+         : 531   uint64_t *ta        = zmid + 114u;
+    0.00 :   12a04:  addi    s4,s2,912
+         : 532   uint64_t *tb        = ta + 57u;
+    0.15 :   12a08:  addi    s10,s2,1368
+         : 537   kmul_56(r + 114u, a + 57u, b + 57u, child_buf);
+    0.00 :   12a0c:  mv      a0,s4
+    0.15 :   12a0e:  mv      a3,s9
+         : 540   rvv_xor_u64():
+         : 114   static inline void rvv_xor_u64(uint64_t * __restrict__ dst,
+         : 115   const uint64_t * __restrict__ src1,
+         : 116   const uint64_t * __restrict__ src2,
+         : 117   size_t n_words)
+         : 118   {
+         : 119   size_t n = n_words;
+    0.00 :   12a10:  li      a4,56
+         : 116   while (n > 0) {
+         : 117   size_t vl = __riscv_vsetvl_e64m4(n);
+    0.43 :   12a14:  vsetvli a5,a4,e64,m4,ta,ma
+         : 117   vuint64m4_t v1 = __riscv_vle64_v_u64m4(src1, vl);
+    0.76 :   12a18:  vle64.v v4,(a3)
+         : 123   vuint64m4_t v2 = __riscv_vle64_v_u64m4(src2, vl);
+         : 124   __riscv_vse64_v_u64m4(dst, __riscv_vxor_vv_u64m4(v1, v2, vl), vl);
+         : 125   src1 += vl;
+         : 126   src2 += vl;
+         : 127   dst  += vl;
+         : 128   n    -= vl;
+    3.12 :   12a1c:  sub     a4,a4,a5
+         : 118   vuint64m4_t v2 = __riscv_vle64_v_u64m4(src2, vl);
+    0.06 :   12a1e:  vle64.v v8,(s7)
+         : 120   src1 += vl;
+    4.34 :   12a22:  sh3add  a3,a5,a3
+         : 121   src2 += vl;
+    0.00 :   12a26:  sh3add  s7,a5,s7
+         : 119   __riscv_vse64_v_u64m4(dst, __riscv_vxor_vv_u64m4(v1, v2, vl), vl);
+    0.49 :   12a2a:  vxor.vv v4,v4,v8
+    0.00 :   12a2e:  vse64.v v4,(a0)
+         : 122   dst  += vl;
+    3.52 :   12a32:  sh3add  a0,a5,a0
+         : 115   while (n > 0) {
+    0.00 :   12a36:  bnez    a4,12a14 <kmul_113+0x56>
+    0.15 :   12a38:  mv      a0,s10
+    0.00 :   12a3a:  mv      a3,s8
+         : 114   size_t n = n_words;
+    0.03 :   12a3c:  li      a4,56
+         : 116   size_t vl = __riscv_vsetvl_e64m4(n);
+    0.40 :   12a40:  vsetvli a5,a4,e64,m4,ta,ma
+         : 117   vuint64m4_t v1 = __riscv_vle64_v_u64m4(src1, vl);
+    0.98 :   12a44:  vle64.v v4,(a3)
+         : 123   n    -= vl;
+    5.63 :   12a48:  sub     a4,a4,a5
+         : 118   vuint64m4_t v2 = __riscv_vle64_v_u64m4(src2, vl);
+    0.00 :   12a4a:  vle64.v v8,(s5)
+         : 120   src1 += vl;
+    4.68 :   12a4e:  sh3add  a3,a5,a3
+         : 121   src2 += vl;
+    0.00 :   12a52:  sh3add  s5,a5,s5
+         : 119   __riscv_vse64_v_u64m4(dst, __riscv_vxor_vv_u64m4(v1, v2, vl), vl);
+    0.37 :   12a56:  vxor.vv v4,v4,v8
+    0.00 :   12a5a:  vse64.v v4,(a0)
+         : 122   dst  += vl;
+    3.67 :   12a5e:  sh3add  a0,a5,a0
+         : 115   while (n > 0) {
+    0.00 :   12a62:  bnez    a4,12a40 <kmul_113+0x82>
+         : 117   kmul_113():
+         :
+         : 542   rvv_xor_u64(ta, a, a + 57u, 56u);
+         : 543   rvv_xor_u64(tb, b, b + 57u, 56u);
+         : 544   ta[56u] = a[56u];
+    0.06 :   12a64:  ld      a4,448(s9)
+         : 542   tb[56u] = b[56u];
+    1.41 :   12a68:  ld      a5,448(s8)
+         :
+         : 545   kmul_57(zmid, ta, tb, child_buf);
+    0.09 :   12a6c:  mv      a3,s6
+         : 541   ta[56u] = a[56u];
+    0.00 :   12a6e:  sd      a4,1360(s2)
+         : 544   kmul_57(zmid, ta, tb, child_buf);
+    0.12 :   12a72:  mv      a2,s10
+    0.00 :   12a74:  mv      a1,s4
+         : 542   tb[56u] = b[56u];
+    0.12 :   12a76:  sd      a5,1816(s2)
+         : 544   kmul_57(zmid, ta, tb, child_buf);
+    0.00 :   12a7a:  mv      a0,s2
+    0.12 :   12a7c:  jal     127d0 <kmul_57>
+         :
+         : 548   /* Save overlap region r[n0..2*n0-1] to ta */
+         : 549   rvv_copy_u64(ta, r + 57u, 57u);
+    0.00 :   12a80:  addi    a4,s1,456
+    0.06 :   12a84:  mv      a1,a4
+    0.09 :   12a86:  mv      a2,s4
+         : 553   rvv_copy_u64():
+         : 94    size_t n = n_words;
+    0.00 :   12a88:  li      a3,57
+         : 96    size_t vl = __riscv_vsetvl_e64m4(n);
+    0.40 :   12a8c:  vsetvli a5,a3,e8,mf2,ta,ma
+         : 97    vuint64m4_t v = __riscv_vle64_v_u64m4(src, vl);
+    0.80 :   12a90:  vle64.v v4,(a1)
+         : 101   n   -= vl;
+    3.24 :   12a94:  sub     a3,a3,a5
+         : 99    src += vl;
+    0.09 :   12a96:  sh3add  a1,a5,a1
+         : 98    __riscv_vse64_v_u64m4(dst, v, vl);
+    0.40 :   12a9a:  vse64.v v4,(a2)
+         : 100   dst += vl;
+    4.25 :   12a9e:  sh3add  a2,a5,a2
+         : 95    while (n > 0) {
+    0.00 :   12aa2:  bnez    a3,12a8c <kmul_113+0xce>
+    0.09 :   12aa4:  mv      a1,s3
+    0.00 :   12aa6:  mv      a2,s1
+    0.09 :   12aa8:  mv      a0,s2
+         : 100   rvv_xor3_u64():
+         : 141   const uint64_t * __restrict__ src_zmid,
+         : 142   const uint64_t * __restrict__ src_z0,   /* NULL means 0 */
+         : 143   const uint64_t * __restrict__ src_z2,   /* NULL means 0 */
+         : 144   size_t n_words)
+         : 145   {
+         : 146   size_t n = n_words;
+    0.00 :   12aaa:  li      a3,57
+         : 143   while (n > 0) {
+         : 144   size_t vl = __riscv_vsetvl_e64m4(n);
+    0.52 :   12aae:  vsetvli a5,a3,e64,m4,ta,ma
+         : 144   vuint64m4_t vdst  = __riscv_vle64_v_u64m4(dst,      vl);
+    0.67 :   12ab2:  mv      a6,a4
+    0.00 :   12ab4:  vle64.v v8,(a4)
+         : 157   vuint64m4_t vz2 = __riscv_vle64_v_u64m4(src_z2, vl);
+         : 158   acc = __riscv_vxor_vv_u64m4(acc, vz2, vl);
+         : 159   }
+         : 160   vdst = __riscv_vxor_vv_u64m4(vdst, acc,  vl);
+         : 161   __riscv_vse64_v_u64m4(dst, vdst, vl);
+         : 162   dst      += vl;
+    6.88 :   12ab8:  slli    a7,a5,0x3
+         : 145   vuint64m4_t vmid  = __riscv_vle64_v_u64m4(src_zmid, vl);
+    0.00 :   12abc:  vle64.v v4,(a0)
+         : 157   dst      += vl;
+    4.22 :   12ac0:  sh3add  a4,a5,a4
+         : 158   src_zmid += vl;
+    0.00 :   12ac4:  sh3add  a0,a5,a0
+         : 147   if (src_z0 != (const uint64_t *)0) {
+    0.18 :   12ac8:  beqz    a2,12ad4 <kmul_113+0x116>
+         : 148   vuint64m4_t vz0 = __riscv_vle64_v_u64m4(src_z0, vl);
+    0.00 :   12aca:  vle64.v v12,(a2)
+         : 159   if (src_z0 != (const uint64_t *)0) src_z0 += vl;
+    2.84 :   12ace:  add     a2,a2,a7
+         : 149   acc = __riscv_vxor_vv_u64m4(acc, vz0, vl);
+    0.00 :   12ad0:  vxor.vv v4,v4,v12
+         : 151   if (src_z2 != (const uint64_t *)0) {
+    0.28 :   12ad4:  beqz    a1,12bac <kmul_113+0x1ee>
+         : 152   vuint64m4_t vz2 = __riscv_vle64_v_u64m4(src_z2, vl);

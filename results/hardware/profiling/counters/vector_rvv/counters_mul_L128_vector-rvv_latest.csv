@@ -1,5 +1,5 @@
-# date: 2026-06-25 12:51
-# commit: cbc6115
+# date: 2026-06-30 23:03
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 128
 # component: mul
@@ -11,8 +11,8 @@
 # governor: performance
 # level=128,polymul=vector_rvv,n_iter=100,n_warmup=10,platform=hw,extended=1
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret,median_l1d_miss,median_l1d_access,l1d_miss_rate,median_dtlb_miss,median_br_mispred,median_stall_fe,median_stall_be,median_vec_inst,median_vpu_stall,median_vec_load,median_vec_store
-vect_mul,100,125539,126322,126745,127404,1082,187877,145211,88,65855,0.13%,39,48,2342,25494,3872,5563,1927,717
+vect_mul,100,124736,125473,125849,126365,892,173634,155638,87,70229,0.12%,41,94,1341,24948,2896,3446,1448,614
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-vect_mul,1.1457,0.001336,0.606,0.269,0.331,0.0185,0.2011,0.0267,2.687587168758717,0.0439,5632,25.78,0.0085
+vect_mul,1.2367,0.001239,0.559,0.263,0.604,0.0107,0.1982,0.0186,2.3583061889250816,0.0274,5568,27.95,0.0071

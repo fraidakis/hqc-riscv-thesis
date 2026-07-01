@@ -1,13 +1,13 @@
-# date: 2026-06-25 00:51
-# commit: eeac22f
+# date: 2026-06-30 23:20
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 128
 # component: mul
 # binary: build-hw/bench_hw_mul_hqc128_vector_rvv (-O3, same as bench)
 # platform: bpi-f3 (SpacemiT X60)
 category,mnemonic,count
-zbc,clmul,469
-zbc,clmulh,469
+zbc,clmul,159
+zbc,clmulh,159
 zbb,sext.b,91
 zbb,maxu,64
 zbb,max,45
@@ -23,7 +23,7 @@ zbb,orn,4
 zbb,clz,3
 zbb,rori,2
 zbb,cpop,1
-zba,sh3add,553
+zba,sh3add,518
 zba,sh2add,267
 zba,sh1add,110
 zba,add.uw,92
@@ -36,14 +36,12 @@ zbs,bexti,35
 zbs,bext,31
 zbs,bset,24
 zbs,bclri,17
-rvv_arith,vxor,66
+rvv_arith,vxor,93
 rvv_arith,vmv,1
-rvv_arith,vsll,1
-rvv_arith,vsrl,1
-rvv_load,vle64,108
-rvv_store,vse64,42
+rvv_load,vle64,117
+rvv_store,vse64,66
 rvv_store,vse8,8
-rvv_config,vsetvli,33
+rvv_config,vsetvli,46
 rvv_config,vsetivli,3
 scalar_mul,mul,81
 scalar_mul,remu,41
@@ -53,13 +51,13 @@ scalar_mul,mulw,4
 scalar_mul,div,2
 branch,jal,3764
 branch,beq,1730
-branch,bne,1314
+branch,bne,1321
 branch,bltu,1041
 branch,bgeu,821
 branch,jalr,294
 branch,blt,230
 branch,bge,191
-load,ld,18044
+load,ld,17578
 load,lw,2160
 load,lbu,1286
 load,lhu,369
@@ -67,41 +65,41 @@ load,fld,124
 load,lwu,82
 load,lb,31
 load,lh,13
-store,sd,12576
+store,sd,12502
 store,sw,1260
 store,sb,714
 store,sh,139
 store,fsd,86
-total,all_instructions,107480
-summary,zbc_total,938
+total,all_instructions,105929
+summary,zbc_total,318
 summary,zbb_total,409
-summary,zba_total,1197
+summary,zba_total,1162
 summary,zbs_total,275
-summary,rvv_arith_total,69
-summary,rvv_load_total,108
-summary,rvv_store_total,50
-summary,rvv_config_total,36
+summary,rvv_arith_total,94
+summary,rvv_load_total,117
+summary,rvv_store_total,74
+summary,rvv_config_total,49
 summary,scalar_mul_total,155
-summary,branch_total,9385
-summary,load_total,22109
-summary,store_total,14775
-top_n,1,ld,18044
-top_n,2,sd,12576
-top_n,3,addi,11186
-top_n,4,li,8220
-top_n,5,mv,7788
-top_n,6,j,4715
+summary,branch_total,9392
+summary,load_total,21643
+summary,store_total,14701
+top_n,1,ld,17578
+top_n,2,sd,12502
+top_n,3,addi,11214
+top_n,4,li,8225
+top_n,5,mv,7737
+top_n,6,j,4743
 top_n,7,jal,3764
 top_n,8,auipc,3687
-top_n,9,add,3275
-top_n,10,beqz,2937
-top_n,11,bnez,2781
+top_n,9,add,3333
+top_n,10,beqz,2972
+top_n,11,bnez,2794
 top_n,12,lw,2160
 top_n,13,beq,1730
-top_n,14,lui,1613
+top_n,14,lui,1616
 top_n,15,andi,1463
-top_n,16,bne,1314
+top_n,16,bne,1321
 top_n,17,lbu,1286
 top_n,18,sw,1260
-top_n,19,xor,1239
-top_n,20,ret,1136
+top_n,19,ret,1136
+top_n,20,addiw,1107

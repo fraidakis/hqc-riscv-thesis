@@ -1,0 +1,213 @@
+# ═══════════════════════════════════════════════════════════════════
+# perf annotate — scalar_zb / kem / L256
+# date: 2026-06-30 23:24
+# commit: bdd9cf4
+# binary: build-hw/bench_profile_kem_hqc256_scalar_zb (-O3 -fno-omit-frame-pointer -g -static)
+# method: perf record -e task-clock -F 4999 → perf annotate --stdio
+# NOTE: Per-line percentages are APPROXIMATE (task-clock skid).
+#       These are not cycle-exact; treat as hot-line indicators.
+# ═══════════════════════════════════════════════════════════════════
+
+
+# ─── Function: crypto_kem_dec.constprop.0.isra.0 ─────────────────────────────────────────
+
+------------------------------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3     Disassembly of section .text:
+         :
+         : 5     0000000000016672 <crypto_kem_dec.constprop.0.isra.0>:
+         : 6     crypto_kem_dec():
+         : 166   * @param[in]  c_kem     Pointer to the input KEM ciphertext.
+         : 167   * @param[in]  dk_kem    Pointer to the decapsulation key.
+         : 168   *
+         : 169   * @return Returns 0 on success.
+         : 170   */
+         : 171   int crypto_kem_dec(uint8_t *K_prime, const uint8_t *c_kem, const uint8_t *dk_kem) {
+    0.00 :   16672:  addi    sp,sp,-112
+         : 179   uint8_t m_prime[PARAM_SECURITY_BYTES] = {0};
+         : 180   uint8_t hash_ek_kem[SEED_BYTES] = {0};
+         : 181   uint8_t K_theta_prime[SHARED_SECRET_BYTES + SEED_BYTES] = {0};
+         : 182   uint8_t K_bar[SHARED_SECRET_BYTES] = {0};
+         : 183   uint8_t theta_prime[SEED_BYTES] = {0};
+         : 184   ciphertext_kem_t c_kem_t = {0};
+    0.00 :   16674:  lui     a5,0xffff7
+         : 166   int crypto_kem_dec(uint8_t *K_prime, const uint8_t *c_kem, const uint8_t *dk_kem) {
+    0.00 :   16676:  sd      s0,96(sp)
+         : 179   ciphertext_kem_t c_kem_t = {0};
+    0.00 :   16678:  addi    a5,a5,32 # ffffffffffff7020 <__BSS_END__+0xfffffffffff580c0>
+         : 166   int crypto_kem_dec(uint8_t *K_prime, const uint8_t *c_kem, const uint8_t *dk_kem) {
+    0.00 :   1667c:  addi    s0,sp,112
+    0.00 :   1667e:  lui     t0,0xffff1
+    0.00 :   16680:  sd      ra,104(sp)
+    0.00 :   16682:  sd      s1,88(sp)
+    0.00 :   16684:  sd      s2,80(sp)
+    0.00 :   16686:  sd      s3,72(sp)
+    0.00 :   16688:  sd      s4,64(sp)
+    0.00 :   1668a:  sd      s5,56(sp)
+    0.00 :   1668c:  sd      s6,48(sp)
+    0.00 :   1668e:  sd      s7,40(sp)
+    0.00 :   16690:  sd      s8,32(sp)
+    0.00 :   16692:  sd      s9,24(sp)
+    0.00 :   16694:  sd      s10,16(sp)
+    0.00 :   16696:  sd      s11,8(sp)
+    0.00 :   16698:  addi    t0,t0,496 # ffffffffffff11f0 <__BSS_END__+0xfffffffffff52290>
+         : 179   ciphertext_kem_t c_kem_t = {0};
+    0.00 :   1669c:  add     a0,s0,a5
+         : 174   uint8_t m_prime[PARAM_SECURITY_BYTES] = {0};
+    0.00 :   166a0:  lui     a5,0xffffe
+         : 166   int crypto_kem_dec(uint8_t *K_prime, const uint8_t *c_kem, const uint8_t *dk_kem) {
+    0.00 :   166a2:  add     sp,sp,t0
+         : 174   uint8_t m_prime[PARAM_SECURITY_BYTES] = {0};
+    0.00 :   166a4:  addi    a5,a5,-112 # ffffffffffffdf90 <__BSS_END__+0xfffffffffff5f030>
+    0.00 :   166a8:  add     s1,s0,a5
+         : 166   int crypto_kem_dec(uint8_t *K_prime, const uint8_t *c_kem, const uint8_t *dk_kem) {
+    0.00 :   166ac:  auipc   a4,0x7a
+    0.00 :   166b0:  ld      a4,1420(a4) # 90c38 <_GLOBAL_OFFSET_TABLE_+0x68>
+         : 174   uint8_t m_prime[PARAM_SECURITY_BYTES] = {0};
+    0.00 :   166b4:  sd      zero,400(s1)
+    0.00 :   166b8:  sd      zero,408(s1)
+    0.00 :   166bc:  sd      zero,416(s1)
+    0.00 :   166c0:  sd      zero,424(s1)
+         : 175   uint8_t hash_ek_kem[SEED_BYTES] = {0};
+    0.00 :   166c4:  sd      zero,432(s1)
+    0.00 :   166c8:  sd      zero,440(s1)
+    0.00 :   166cc:  sd      zero,448(s1)
+    0.00 :   166d0:  sd      zero,456(s1)
+         : 176   uint8_t K_theta_prime[SHARED_SECRET_BYTES + SEED_BYTES] = {0};
+    0.00 :   166d4:  sd      zero,528(s1)
+    0.00 :   166d8:  sd      zero,536(s1)
+    0.00 :   166dc:  sd      zero,544(s1)
+    0.00 :   166e0:  sd      zero,552(s1)
+    0.00 :   166e4:  sd      zero,560(s1)
+    0.00 :   166e8:  sd      zero,568(s1)
+    0.00 :   166ec:  sd      zero,576(s1)
+         : 179   ciphertext_kem_t c_kem_t = {0};
+    0.00 :   166f0:  lui     a2,0x4
+         : 176   uint8_t K_theta_prime[SHARED_SECRET_BYTES + SEED_BYTES] = {0};
+    0.00 :   166f2:  sd      zero,584(s1)
+         : 179   ciphertext_kem_t c_kem_t = {0};
+    0.00 :   166f6:  addi    a2,a2,-1952 # 3860 <__libc_dlerror_result+0x3818>
+         : 166   int crypto_kem_dec(uint8_t *K_prime, const uint8_t *c_kem, const uint8_t *dk_kem) {
+    0.00 :   166fa:  ld      a5,0(a4)
+    0.00 :   166fc:  sd      a5,-120(s0)
+    0.00 :   16700:  li      a5,0
+         : 179   ciphertext_kem_t c_kem_t = {0};
+    0.00 :   16702:  li      a1,0
+         : 177   uint8_t K_bar[SHARED_SECRET_BYTES] = {0};
+    0.00 :   16704:  sd      zero,464(s1)
+    0.00 :   16708:  sd      zero,472(s1)
+    0.00 :   1670c:  sd      zero,480(s1)
+    0.00 :   16710:  sd      zero,488(s1)
+         : 178   uint8_t theta_prime[SEED_BYTES] = {0};
+    0.00 :   16714:  sd      zero,496(s1)
+    0.00 :   16718:  sd      zero,504(s1)
+    0.00 :   1671c:  sd      zero,512(s1)
+    0.00 :   16720:  sd      zero,520(s1)
+         : 179   ciphertext_kem_t c_kem_t = {0};
+    0.00 :   16724:  jal     1ed40 <memset>
+         : 180   ciphertext_kem_t c_kem_prime_t = {0};
+    0.00 :   16728:  lui     a5,0xffffb
+    0.00 :   1672a:  addi    a5,a5,-1920 # ffffffffffffa880 <__BSS_END__+0xfffffffffff5b920>
+    0.00 :   1672e:  lui     a2,0x4
+    0.00 :   16730:  add     a0,s0,a5
+    0.00 :   16734:  addi    a2,a2,-1952 # 3860 <__libc_dlerror_result+0x3818>
+    0.00 :   16738:  li      a1,0
+    0.00 :   1673a:  jal     1ed40 <memset>
+         : 188   memcpy():
+         :
+         : 30    __fortify_function void *
+         : 31    __NTH (memcpy (void *__restrict __dest, const void *__restrict __src,
+         : 32    size_t __len))
+         : 33    {
+         : 34    return __builtin___memcpy_chk (__dest, __src, __len,
+    0.00 :   1673e:  addi    s1,s1,944
+    0.00 :   16742:  auipc   a5,0x80
+    0.00 :   16746:  addi    a5,a5,-1258 # 96258 <sk>
+    0.00 :   1674a:  auipc   a4,0x81
+    0.00 :   1674e:  addi    a4,a4,1870 # 97e98 <sk+0x1c40>
+    0.00 :   16752:  ld      a0,0(a5)
+    0.00 :   16754:  ld      a1,8(a5)
+    0.05 :   16756:  ld      a2,16(a5)
+    0.00 :   16758:  ld      a3,24(a5)
+    0.03 :   1675a:  sd      a0,0(s1)
+    0.00 :   1675c:  sd      a1,8(s1)
+    0.00 :   1675e:  sd      a2,16(s1)
+    0.00 :   16760:  sd      a3,24(s1)
+    0.03 :   16762:  addi    a5,a5,32
+    0.00 :   16766:  addi    s1,s1,32
+    0.01 :   1676a:  bne     a5,a4,16752 <crypto_kem_dec.constprop.0.isra.0+0xe0>
+    0.00 :   1676e:  lw      a4,0(a5)
+    0.00 :   16770:  lui     a3,0xffffe
+    0.00 :   16772:  addi    a3,a3,-112 # ffffffffffffdf90 <__BSS_END__+0xfffffffffff5f030>
+    0.00 :   16776:  sw      a4,0(s1)
+    0.00 :   16778:  lbu     a5,4(a5)
+    0.00 :   1677c:  add     s2,s0,a3
+    0.00 :   16780:  li      a2,32
+    0.00 :   16784:  sb      a5,4(s1)
+    0.00 :   16788:  auipc   a1,0x81
+    0.00 :   1678c:  addi    a1,a1,1813 # 97e9d <sk+0x1c45>
+    0.00 :   16790:  addi    a0,s2,336
+    0.00 :   16794:  auipc   ra,0xffffa
+    0.00 :   16798:  jalr    -1364(ra) # 10240 <__rela_iplt_end>
+    0.00 :   1679c:  addi    a0,s2,368
+    0.00 :   167a0:  li      a2,32
+    0.00 :   167a4:  auipc   a1,0x81
+    0.00 :   167a8:  addi    a1,a1,1817 # 97ebd <sk+0x1c65>
+    0.00 :   167ac:  auipc   ra,0xffffa
+    0.00 :   167b0:  jalr    -1388(ra) # 10240 <__rela_iplt_end>
+    0.00 :   167b4:  lui     a5,0xffff7
+    0.00 :   167b6:  addi    a5,a5,32 # ffffffffffff7020 <__BSS_END__+0xfffffffffff580c0>
+    0.00 :   167ba:  add     a5,a5,s0
+    0.00 :   167bc:  auipc   a4,0x7c
+    0.00 :   167c0:  addi    a4,a4,580 # 92a00 <ct>
+    0.00 :   167c4:  auipc   a3,0x7e
+    0.00 :   167c8:  addi    a3,a3,-420 # 94620 <__global_pointer$+0x1578>
+    0.00 :   167cc:  ld      a6,0(a4)
+    0.01 :   167d0:  ld      a0,8(a4)
+    0.00 :   167d2:  ld      a1,16(a4)
+    0.05 :   167d4:  ld      a2,24(a4)
+    0.05 :   167d6:  sd      a6,0(a5)
+    0.00 :   167da:  sd      a0,8(a5)
+    0.00 :   167dc:  sd      a1,16(a5)
+    0.00 :   167de:  sd      a2,24(a5)
+    0.01 :   167e0:  addi    a4,a4,32
+    0.00 :   167e4:  addi    a5,a5,32
+    0.01 :   167e8:  bne     a4,a3,167cc <crypto_kem_dec.constprop.0.isra.0+0x15a>
+    0.00 :   167ec:  lw      a3,0(a4)
+    0.01 :   167ee:  lui     s1,0x2
+    0.00 :   167f0:  addi    s1,s1,-984 # 1c28 <__libc_dlerror_result+0x1be0>
+    0.00 :   167f4:  sw      a3,0(a5)
+    0.00 :   167f6:  lbu     a3,4(a4)
+    0.00 :   167fa:  lui     a4,0xffff7
+    0.00 :   167fc:  addi    a4,a4,32 # ffffffffffff7020 <__BSS_END__+0xfffffffffff580c0>
+    0.00 :   16800:  add     s7,s0,a4
+    0.00 :   16804:  lui     a4,0x2
+    0.00 :   16806:  addi    s5,a4,-992 # 1c20 <__libc_dlerror_result+0x1bd8>
+    0.00 :   1680a:  add     s6,s7,s1
+    0.00 :   1680e:  sb      a3,4(a5)
+    0.00 :   16812:  mv      a2,s5
+    0.00 :   16814:  auipc   a1,0x7e
+    0.00 :   16818:  addi    a1,a1,-495 # 94625 <__global_pointer$+0x157d>
+    0.00 :   1681c:  mv      a0,s6
+    0.00 :   1681e:  auipc   ra,0xffffa
+    0.00 :   16822:  jalr    -1502(ra) # 10240 <__rela_iplt_end>
+         : 106   hqc_pke_decrypt():
+         : 175   *
+         : 176   * @return Returns 0 on success.
+         : 177   *
+         : 178   */
+         : 179   uint8_t hqc_pke_decrypt(uint64_t *m, const uint8_t *dk_pke, const ciphertext_pke_t *c_pke) {
+         : 180   uint64_t y[VEC_N_SIZE_64] = {0};
+    0.00 :   16826:  lui     s4,0xffff2
+         : 182   memcpy():
+    0.00 :   16828:  auipc   a5,0x80
+    0.00 :   1682c:  addi    a5,a5,472 # 96a00 <sk+0x7a8>
+    0.00 :   16830:  ld      a4,-1971(a5)
+    0.00 :   16834:  ld      a3,-1979(a5)
+         : 33    hqc_pke_decrypt():
+    0.00 :   16838:  addi    a5,s4,-112 # ffffffffffff1f90 <__BSS_END__+0xfffffffffff53030>
+    0.00 :   1683c:  add     s3,s0,a5
+         : 177   memcpy():
+    0.00 :   16840:  lui     a5,0xffffb

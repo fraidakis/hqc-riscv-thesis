@@ -1,0 +1,213 @@
+# ═══════════════════════════════════════════════════════════════════
+# perf annotate — scalar_zb / mul / L256
+# date: 2026-06-30 23:28
+# commit: bdd9cf4
+# binary: build-hw/bench_profile_mul_hqc256_scalar_zb (-O3 -fno-omit-frame-pointer -g -static)
+# method: perf record -e task-clock -F 4999 → perf annotate --stdio
+# NOTE: Per-line percentages are APPROXIMATE (task-clock skid).
+#       These are not cycle-exact; treat as hot-line indicators.
+# ═══════════════════════════════════════════════════════════════════
+
+
+# ─── Function: kmul_113 ─────────────────────────────────────────
+
+------------------------------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3     Disassembly of section .text:
+         :
+         : 5     000000000001290e <kmul_113>:
+         : 6     kmul_113():
+         :
+         : 438   static void kmul_113(uint64_t * __restrict__ r,
+         : 439   const uint64_t * __restrict__ a,
+         : 440   const uint64_t * __restrict__ b,
+         : 441   uint64_t * __restrict__ tmp)
+         : 442   {
+    0.06 :   1290e:  addi    sp,sp,-80
+    0.08 :   12910:  sd      s5,24(sp)
+         : 441   uint64_t *zmid      = tmp;
+         : 442   uint64_t *ta        = zmid + 114u;
+         : 443   uint64_t *tb        = ta + 57u;
+         : 444   uint64_t *child_buf = tb + 57u;
+    0.08 :   12912:  addi    s5,a3,1824
+         : 437   {
+    0.06 :   12916:  sd      ra,72(sp)
+    0.04 :   12918:  sd      s0,64(sp)
+    0.19 :   1291a:  sd      s1,56(sp)
+    0.13 :   1291c:  sd      s2,48(sp)
+    0.08 :   1291e:  sd      s3,40(sp)
+    0.08 :   12920:  sd      s4,32(sp)
+    0.10 :   12922:  sd      s6,16(sp)
+    0.17 :   12924:  sd      s7,8(sp)
+    0.04 :   12926:  sd      s8,0(sp)
+    0.13 :   12928:  addi    s0,sp,80
+    0.00 :   1292a:  mv      s2,a3
+    0.08 :   1292c:  mv      s3,a0
+         :
+         : 445   /* Direct-write: z0 → r[0..113], z2 → r[114..225] */
+         : 446   kmul_57(r, a, b, child_buf);
+    0.00 :   1292e:  mv      a3,s5
+         : 437   {
+    0.15 :   12930:  mv      s7,a1
+    0.00 :   12932:  mv      s6,a2
+         : 445   kmul_56(r + 114u, a + 57u, b + 57u, child_buf);
+    0.13 :   12934:  addi    s1,s3,912
+         : 444   kmul_57(r, a, b, child_buf);
+    0.00 :   12938:  jal     127a0 <kmul_57>
+         : 445   kmul_56(r + 114u, a + 57u, b + 57u, child_buf);
+    0.00 :   1293c:  mv      a3,s5
+    0.10 :   1293e:  mv      a0,s1
+    0.00 :   12940:  addi    a2,s6,456
+    0.10 :   12944:  addi    a1,s7,456
+    0.00 :   12948:  jal     115da <kmul_56>
+         : 439   uint64_t *ta        = zmid + 114u;
+    0.00 :   1294c:  addi    s4,s2,912
+         : 440   uint64_t *tb        = ta + 57u;
+    0.04 :   12950:  addi    s8,s2,1368
+         : 442   scalar_xor_u64():
+         : 88    void scalar_xor_u64(uint64_t * __restrict__ dst,
+         : 89    const uint64_t * __restrict__ src1,
+         : 90    const uint64_t * __restrict__ src2,
+         : 91    size_t n_words)
+         : 92    {
+         : 93    for (size_t i = 0; i < n_words; i++)
+    0.00 :   12954:  mv      a5,s7
+    0.27 :   12956:  mv      a3,s4
+    0.00 :   12958:  addi    a6,s7,448
+         : 89    dst[i] = src1[i] ^ src2[i];
+    3.96 :   1295c:  ld      a4,0(a5)
+    0.38 :   1295e:  ld      a0,456(a5)
+         : 88    for (size_t i = 0; i < n_words; i++)
+    0.00 :   12962:  addi    a5,a5,8
+    4.34 :   12964:  addi    a3,a3,8
+         : 89    dst[i] = src1[i] ^ src2[i];
+    0.00 :   12966:  xor     a4,a4,a0
+    8.88 :   12968:  sd      a4,-8(a3)
+         : 88    for (size_t i = 0; i < n_words; i++)
+    0.02 :   1296c:  bne     a6,a5,1295c <kmul_113+0x4e>
+    0.04 :   12970:  mv      a5,s6
+    0.00 :   12972:  mv      a6,s8
+    0.00 :   12974:  addi    a0,s6,448
+         : 89    dst[i] = src1[i] ^ src2[i];
+    3.82 :   12978:  ld      a4,0(a5)
+    0.29 :   1297a:  ld      a3,456(a5)
+         : 88    for (size_t i = 0; i < n_words; i++)
+    0.00 :   1297e:  addi    a5,a5,8
+    4.40 :   12980:  addi    a6,a6,8
+         : 89    dst[i] = src1[i] ^ src2[i];
+    0.00 :   12982:  xor     a4,a4,a3
+    8.15 :   12984:  sd      a4,-8(a6)
+         : 88    for (size_t i = 0; i < n_words; i++)
+    0.00 :   12988:  bne     a0,a5,12978 <kmul_113+0x6a>
+         : 90    kmul_113():
+         :
+         : 450   scalar_xor_u64(ta, a, a + 57u, 56u);
+         : 451   scalar_xor_u64(tb, b, b + 57u, 56u);
+         : 452   ta[56u] = a[56u];
+    0.04 :   1298c:  ld      a4,448(s7)
+         : 450   tb[56u] = b[56u];
+    0.00 :   12990:  ld      a5,448(s6)
+         :
+         : 453   kmul_57(zmid, ta, tb, child_buf);
+    0.04 :   12994:  mv      a3,s5
+         : 449   ta[56u] = a[56u];
+    0.00 :   12996:  sd      a4,1360(s2)
+         : 450   tb[56u] = b[56u];
+    0.06 :   1299a:  sd      a5,1816(s2)
+         : 452   kmul_57(zmid, ta, tb, child_buf);
+    0.06 :   1299e:  mv      a2,s8
+    0.02 :   129a0:  mv      a1,s4
+    0.02 :   129a2:  mv      a0,s2
+    0.00 :   129a4:  jal     127a0 <kmul_57>
+         : 457   scalar_copy_u64():
+         : 78    dst[i] = src[i];
+    0.00 :   129a8:  addi    a6,s3,456
+    0.10 :   129ac:  mv      a5,a6
+    0.06 :   129ae:  addi    a4,s3,904
+    0.00 :   129b2:  ld      a0,0(a5)
+    0.00 :   129b4:  ld      a1,8(a5)
+    1.11 :   129b6:  ld      a2,16(a5)
+    0.69 :   129b8:  ld      a3,24(a5)
+    0.96 :   129ba:  sd      a0,0(s4)
+    0.00 :   129be:  sd      a1,8(s4)
+    0.00 :   129c2:  sd      a2,16(s4)
+    0.92 :   129c6:  sd      a3,24(s4)
+    0.96 :   129ca:  addi    a5,a5,32
+    0.00 :   129ce:  addi    s4,s4,32
+    1.23 :   129d2:  bne     a5,a4,129b2 <kmul_113+0xa4>
+    0.00 :   129d6:  ld      a5,0(a5)
+    0.13 :   129d8:  sd      a5,0(s4)
+         : 95    scalar_xor3_u64():
+         : 102   const uint64_t * __restrict__ src_zmid,
+         : 103   const uint64_t * __restrict__ src_z0,
+         : 104   const uint64_t * __restrict__ src_z2,
+         : 105   size_t n_words)
+         : 106   {
+         : 107   if (src_z0 && src_z2) {
+    0.13 :   129dc:  beqz    s3,12a68 <kmul_113+0x15a>
+    0.00 :   129e0:  mv      a4,s3
+    0.17 :   129e2:  mv      a3,s2
+         : 104   for (size_t i = 0; i < n_words; i++)
+         : 105   dst[i] ^= src_zmid[i] ^ src_z0[i] ^ src_z2[i];
+    3.55 :   129e4:  ld      a5,456(a4)
+    0.04 :   129e8:  ld      a0,0(a3)
+    3.65 :   129ea:  ld      a1,0(a4)
+    4.42 :   129ec:  ld      a2,912(a4)
+    3.94 :   129f0:  xor     a5,a5,a0
+    0.00 :   129f2:  xor     a5,a5,a1
+    4.07 :   129f4:  xor     a5,a5,a2
+    4.09 :   129f6:  sd      a5,456(a4)
+         : 103   for (size_t i = 0; i < n_words; i++)
+    0.00 :   129fa:  addi    a4,a4,8
+    0.00 :   129fc:  addi    a3,a3,8
+    4.17 :   129fe:  bne     a6,a4,129e4 <kmul_113+0xd6>
+    0.08 :   12a02:  mv      a4,s1
+    0.15 :   12a04:  addi    a2,s2,456
+    0.00 :   12a08:  addi    a6,s3,1352
+         : 104   dst[i] ^= src_zmid[i] ^ src_z0[i] ^ src_z2[i];
+    3.96 :   12a0c:  ld      a5,0(a4)
+    0.00 :   12a0e:  ld      a0,0(a2)
+    3.88 :   12a10:  ld      a1,456(a2)
+    3.80 :   12a14:  ld      a3,456(a4)
+    3.88 :   12a18:  xor     a5,a5,a0
+    0.00 :   12a1a:  xor     a5,a5,a1
+    3.61 :   12a1c:  xor     a5,a5,a3
+    3.77 :   12a1e:  sd      a5,0(a4)
+         : 103   for (size_t i = 0; i < n_words; i++)
+    0.00 :   12a20:  addi    a4,a4,8
+    0.00 :   12a22:  addi    a2,a2,8
+    4.28 :   12a24:  bne     a6,a4,12a0c <kmul_113+0xfe>
+         : 107   } else if (src_z0) {
+         : 108   for (size_t i = 0; i < n_words; i++)
+         : 109   dst[i] ^= src_zmid[i] ^ src_z0[i];
+    0.10 :   12a28:  ld      a2,896(s2)
+    0.00 :   12a2c:  ld      a0,1352(s2)
+    0.06 :   12a30:  ld      a3,904(s2)
+    0.10 :   12a34:  ld      a1,1360(s2)
+    0.04 :   12a38:  ld      a4,1352(s3)
+    0.00 :   12a3c:  ld      a5,1360(s3)
+         : 116   kmul_113():
+         : 465   /* Loop 3A second half: z0 from saved ta, z2 from r[3*n0..] */
+         : 466   scalar_xor3_u64(r + 114u, zmid + 57u, ta, r + 171u, 55u);
+         :
+         : 468   /* Loop 3B: odd-n tail where z2 is absent */
+         : 469   scalar_xor3_u64(r + 169u, zmid + 112u, ta + 55u, (const uint64_t *)0, 2u);
+         : 470   }
+    0.10 :   12a40:  ld      ra,72(sp)
+    0.13 :   12a42:  ld      s0,64(sp)
+         : 473   scalar_xor3_u64():
+    0.06 :   12a44:  xor     a2,a2,a0
+    0.00 :   12a46:  xor     a3,a3,a1
+    0.04 :   12a48:  xor     a4,a4,a2
+    0.02 :   12a4a:  xor     a5,a5,a3
+    0.08 :   12a4c:  sd      a4,1352(s3)
+    0.00 :   12a50:  sd      a5,1360(s3)
+         : 113   kmul_113():
+    0.00 :   12a54:  ld      s1,56(sp)
+    0.44 :   12a56:  ld      s2,48(sp)
+    0.06 :   12a58:  ld      s3,40(sp)
+    0.00 :   12a5a:  ld      s4,32(sp)
+    0.02 :   12a5c:  ld      s5,24(sp)
+    0.06 :   12a5e:  ld      s6,16(sp)

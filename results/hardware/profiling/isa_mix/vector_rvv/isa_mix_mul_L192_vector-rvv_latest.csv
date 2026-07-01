@@ -1,13 +1,13 @@
-# date: 2026-06-25 00:51
-# commit: eeac22f
+# date: 2026-06-30 23:21
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 192
 # component: mul
 # binary: build-hw/bench_hw_mul_hqc192_vector_rvv (-O3, same as bench)
 # platform: bpi-f3 (SpacemiT X60)
 category,mnemonic,count
-zbc,clmul,469
-zbc,clmulh,469
+zbc,clmul,159
+zbc,clmulh,159
 zbb,sext.b,91
 zbb,maxu,64
 zbb,max,45
@@ -23,7 +23,7 @@ zbb,orn,4
 zbb,clz,3
 zbb,rori,2
 zbb,cpop,1
-zba,sh3add,588
+zba,sh3add,544
 zba,sh2add,267
 zba,sh1add,110
 zba,add.uw,92
@@ -36,14 +36,12 @@ zbs,bexti,35
 zbs,bext,31
 zbs,bset,24
 zbs,bclri,17
-rvv_arith,vxor,84
+rvv_arith,vxor,116
 rvv_arith,vmv,1
-rvv_arith,vsll,1
-rvv_arith,vsrl,1
-rvv_load,vle64,137
-rvv_store,vse64,53
+rvv_load,vle64,146
+rvv_store,vse64,82
 rvv_store,vse8,8
-rvv_config,vsetvli,42
+rvv_config,vsetvli,57
 rvv_config,vsetivli,3
 scalar_mul,mul,81
 scalar_mul,remu,41
@@ -53,13 +51,13 @@ scalar_mul,mulw,4
 scalar_mul,div,2
 branch,jal,3770
 branch,beq,1730
-branch,bne,1314
+branch,bne,1321
 branch,bltu,1041
 branch,bgeu,821
 branch,jalr,294
 branch,blt,230
 branch,bge,191
-load,ld,18115
+load,ld,17602
 load,lw,2160
 load,lbu,1286
 load,lhu,369
@@ -67,41 +65,41 @@ load,fld,124
 load,lwu,82
 load,lb,31
 load,lh,13
-store,sd,12602
+store,sd,12526
 store,sw,1260
 store,sb,714
 store,sh,139
 store,fsd,86
-total,all_instructions,107797
-summary,zbc_total,938
+total,all_instructions,106252
+summary,zbc_total,318
 summary,zbb_total,409
-summary,zba_total,1232
+summary,zba_total,1188
 summary,zbs_total,275
-summary,rvv_arith_total,87
-summary,rvv_load_total,137
-summary,rvv_store_total,61
-summary,rvv_config_total,45
+summary,rvv_arith_total,117
+summary,rvv_load_total,146
+summary,rvv_store_total,90
+summary,rvv_config_total,60
 summary,scalar_mul_total,155
-summary,branch_total,9391
-summary,load_total,22180
-summary,store_total,14801
-top_n,1,ld,18115
-top_n,2,sd,12602
-top_n,3,addi,11211
-top_n,4,li,8229
-top_n,5,mv,7817
-top_n,6,j,4715
+summary,branch_total,9398
+summary,load_total,21667
+summary,store_total,14725
+top_n,1,ld,17602
+top_n,2,sd,12526
+top_n,3,addi,11237
+top_n,4,li,8236
+top_n,5,mv,7783
+top_n,6,j,4748
 top_n,7,jal,3770
 top_n,8,auipc,3687
-top_n,9,add,3293
-top_n,10,beqz,2937
-top_n,11,bnez,2790
+top_n,9,add,3360
+top_n,10,beqz,2981
+top_n,11,bnez,2806
 top_n,12,lw,2160
 top_n,13,beq,1730
-top_n,14,lui,1626
+top_n,14,lui,1628
 top_n,15,andi,1463
-top_n,16,bne,1314
+top_n,16,bne,1321
 top_n,17,lbu,1286
 top_n,18,sw,1260
-top_n,19,xor,1239
-top_n,20,ret,1138
+top_n,19,ret,1138
+top_n,20,addiw,1107

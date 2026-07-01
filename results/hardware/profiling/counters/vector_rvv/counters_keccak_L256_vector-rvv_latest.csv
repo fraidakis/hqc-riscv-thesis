@@ -1,5 +1,5 @@
-# date: 2026-06-25 12:52
-# commit: cbc6115
+# date: 2026-06-30 23:04
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 256
 # component: keccak
@@ -11,8 +11,8 @@
 # governor: performance
 # level=256,keccak=ref,n_iter=100,n_warmup=10,platform=hw
 op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-keccak,100,949732,950076,950367,950944,868,987321,1484587
+keccak,100,950119,950426,950662,951606,1180,987094,1484587
 
 # --- derived metrics ---
 op,ipc,l1d_miss_rate,l1d_mpki,dtlb_mpki,br_mispred_pki,stall_frontend_pct,stall_backend_pct,vector_inst_pct,vector_ls_ratio,vpu_stall_pct,dram_bytes_est,arith_intensity,cqv
-keccak,1.5621,0.000000,0.000,0.000,0.000,0.0000,0.0000,0.0000,NA,0.0000,0,NA,0.0009
+keccak,1.5616,0.000000,0.000,0.000,0.000,0.0000,0.0000,0.0000,NA,0.0000,0,NA,0.0012
