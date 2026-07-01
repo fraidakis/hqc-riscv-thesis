@@ -1,22 +1,18 @@
 % figures/ch7-kernels/kernel-redistribution-table.tex
-% Kernel instret redistribution across three optimization stages (HQC-128, Tier 3)
+% Kernel instret redistribution: baseline vs final (HQC-128, Tier 3)
 \small
-\begin{tabular}{l S[table-format=2.2] S[table-format=2.1] S[table-format=2.1]}
+\begin{tabular}{l S[table-format=2.1] S[table-format=2.1]}
   \toprule
-  {Πυρήνας} & {Baseline (\%)} & {Post-polymul (\%)} & {Τελικό (\%)} \\
+  {Πυρήνας} & {Baseline (\%)} & {Τελικό (\%)} \\
   \midrule
-  Polymul (schoolbook / Karatsuba)  & 95.96 & 37.4 & 50.8 \\
-  Keccak / SHA-3                    &  0.49 & 29.1 & 27.4 \\
-  Decode (RM + RS)                  &  0.33 & 11.2 &  5.3 \\
-  GF αριθμητική (\code{gf\_reduce}, \code{gf\_mul})
-                                    &  0.11 &  5.0 &  7.8 \\
-  I/O, μνήμη (\code{memset}, \code{memcpy}, absorb/squeeze)
-                                    &  1.81 &  7.1 &  3.5 \\
+  Keccak / SHA-3                    &  0.8 & 57.0 \\
+  Polymul (schoolbook / Karatsuba)  & 96.6 & 24.0 \\
   Λοιπά (sampling, \code{vect\_add}, control)
-                                    &  1.30 & 10.2 &  5.2 \\
-  \midrule
-  \textbf{Σύνολο \KEM \instret}     & \multicolumn{1}{r}{\num{117344294}}
-                                    & \multicolumn{1}{r}{\num{1956787}}
-                                    & \multicolumn{1}{r}{\num{702755}} \\
+                                    &  0.2 &  7.4 \\
+  GF αριθμητική (\code{gf\_reduce}, \code{gf\_mul})
+                                    &  0.1 &  4.7 \\
+  Decode (RM + RS)                  &  0.4 &  3.8 \\
+  I/O, μνήμη (\code{memset}, \code{memcpy})
+                                    &  1.9 &  3.7 \\
   \bottomrule
 \end{tabular}
