@@ -763,17 +763,16 @@ $\chi$, $\iota$.
   \centering
   \caption{Rotation offsets $r[x,y]$ του βήματος $\rho$ (σε bits, modulo 64).}
   \label{tab:keccak-rho-offsets}
-  \begin{tabular}{@{} c | c c c c c @{}}
-    \toprule
+  \begin{thesistblr}{
+    colspec = {c c c c c c},
+  }
     $r[x,y]$ & $y=0$ & $y=1$ & $y=2$ & $y=3$ & $y=4$ \\
-    \midrule
     $x=0$ &  0 & 36 &  3 & 41 & 18 \\
     $x=1$ &  1 & 44 & 10 & 45 &  2 \\
     $x=2$ & 62 &  6 & 43 & 15 & 61 \\
     $x=3$ & 28 & 55 & 25 & 21 & 56 \\
     $x=4$ & 27 & 20 & 39 &  8 & 14 \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 \paragraph{Βήμα $\pi$: Lane transposition.}
@@ -982,15 +981,14 @@ symbols (bytes).
   \centering
   \caption[Παράμετροι του RS κώδικα ανά security level]{Παράμετροι του \glsfmtshort{rs} κώδικα ανά security level.}
   \label{tab:rs-params}
-  \begin{tabular}{@{} l r r r r @{}}
-    \toprule
+  \begin{thesistblr}{
+    colspec = {l r r r r},
+  }
     Level & $n_1$ & $\delta$ & $k_{\mathrm{RS}}$ & \code{MULTIPLICITY} \\
-    \midrule
     HQC-128 & 46 & 15 & 16 & 3 \\
     HQC-192 & 56 & 16 & 24 & 5 \\
     HQC-256 & 90 & 29 & 32 & 5 \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 \paragraph{Αριθμητική σε $\GF{2^8}$.}
@@ -1134,16 +1132,15 @@ $\text{cdw}[j] \mathrel{\oplus}= e_j$ για κάθε θέση σφάλματο�
   \centering
   \caption[Πολυπλοκότητα αποκωδικοποίησης \glsfmtshort{rs} ανά στάδιο]{Υπολογιστική πολυπλοκότητα αποκωδικοποίησης \glsfmtshort{rs}, σε κλήσεις \code{gf\_mul}.}
   \label{tab:decode-complexity}
-  \begin{tabular}{@{} l l r r r @{}}
-    \toprule
+  \begin{thesistblr}{
+    colspec = {l l r r r},
+  }
     Στάδιο & Πολυπλοκότητα & HQC-128 & HQC-192 & HQC-256 \\
-    \midrule
     A (syndromes) & $\BigO{\delta \cdot n_1}$ & \num{1350} & \num{1760} & \num{5162} \\
     B (\gls{bm}) & $\BigO{\delta^2}$ & \num{225} & \num{256} & \num{841} \\
     C (FFT roots) & $\BigO{M \cdot 2^M}$ & \num{2048} & \num{2048} & \num{2048} \\
     D (Forney) & $\BigO{\delta^2}$ & \num{225} & \num{256} & \num{841} \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 \paragraph{Επίπτωση στα υψηλότερα security levels.}

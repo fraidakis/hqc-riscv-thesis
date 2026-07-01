@@ -7,39 +7,15 @@
 \providecommand{\Rempty}{\textcolor{black!20}{$\bigstar$}}
 \providecommand{\Rhalf}{\mbox{\clipbox{0pt 0pt {.5\width} 0pt}{\Rfull}\clipbox{{.5\width} 0pt 0pt 0pt}{\Rempty}}}
 \newcommand{\Rate}[1]{\scalebox{0.9}{#1}}
-\begin{tabular}{@{}l c c c c@{}}
-  \toprule
-  \textbf{Μέθοδος} &
-  \textbf{Έλεγχος} &
-  \textbf{Compiler Opt.} &
-  \textbf{Portability} &
-  \textbf{Error-Prone} \\
-  \midrule
-  Pure Assembly (\texttt{.S}) &
-  \Rate{\Rfull\Rfull\Rfull} &
-  \Rate{\Rfull\Rempty\Rempty} &
-  \Rate{\Rfull\Rempty\Rempty} &
-  \Rate{\Rfull\Rfull\Rfull} \\
-  \addlinespace
-  Inline Assembly &
-  \Rate{\Rfull\Rfull\Rhalf} &
-  \Rate{\Rfull\Rhalf\Rempty} &
-  \Rate{\Rfull\Rfull\Rempty} &
-  \Rate{\Rfull\Rfull\Rfull} \\
-  \addlinespace
-  C Intrinsics &
-  \Rate{\Rfull\Rfull\Rempty} &
-  \Rate{\Rfull\Rfull\Rfull} &
-  \Rate{\Rfull\Rfull\Rhalf} &
-  \Rate{\Rfull\Rfull\Rempty} \\
-  \addlinespace
-  Idiom Recognition &
-  \Rate{\Rfull\Rempty\Rempty} &
-  \Rate{\Rfull\Rfull\Rfull} &
-  \Rate{\Rfull\Rfull\Rfull} &
-  \Rate{\Rfull\Rempty\Rempty} \\
-  \bottomrule
-  \addlinespace[2pt]
-  \multicolumn{5}{@{}l@{}}{\footnotesize\itshape\color{figneutral}\Rate{\Rfull}\, = ελάχιστο \quad \Rate{\Rfull\Rfull\Rfull}\, = μέγιστο \quad (στο Error-Prone: περισσότερα \Rate{\Rfull} = πιο επιρρεπές)} \\
-\end{tabular}
+\begin{thesistblr}{
+  colspec = {l c c c c},
+  cell{6}{1} = {c=5}{l},
+}
+{Μέθοδος} & {Έλεγχος} & {Compiler Opt.} & {Portability} & {Error-Prone} \\
+Pure Assembly (\texttt{.S}) & \Rate{\Rfull\Rfull\Rfull} & \Rate{\Rfull\Rempty\Rempty} & \Rate{\Rfull\Rempty\Rempty} & \Rate{\Rfull\Rfull\Rfull} \\
+Inline Assembly & \Rate{\Rfull\Rfull\Rhalf} & \Rate{\Rfull\Rhalf\Rempty} & \Rate{\Rfull\Rfull\Rempty} & \Rate{\Rfull\Rfull\Rfull} \\
+C Intrinsics & \Rate{\Rfull\Rfull\Rempty} & \Rate{\Rfull\Rfull\Rfull} & \Rate{\Rfull\Rfull\Rhalf} & \Rate{\Rfull\Rfull\Rempty} \\
+Idiom Recognition & \Rate{\Rfull\Rempty\Rempty} & \Rate{\Rfull\Rfull\Rfull} & \Rate{\Rfull\Rfull\Rfull} & \Rate{\Rfull\Rempty\Rempty} \\
+{\footnotesize\itshape\color{figneutral}\Rate{\Rfull}\, = ελάχιστο \quad \Rate{\Rfull\Rfull\Rfull}\, = μέγιστο \quad (στο Error-Prone: περισσότερα \Rate{\Rfull} = πιο επιρρεπές)} & & & & \\
+\end{thesistblr}
 \endgroup

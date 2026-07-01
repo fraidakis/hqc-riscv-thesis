@@ -1,24 +1,22 @@
 % Idiom-recognition boundary: what the compiler emits automatically vs what requires intrinsics
 % §9.2.4
-\begin{tabular}{l l l c l}
-\toprule
-\textbf{Extension} & \textbf{Εντολή} & \textbf{C Pattern} &
-  \textbf{Auto} & \textbf{Μέθοδος} \\
-\midrule
-\multicolumn{5}{l}{\textit{Scalar — αυτόματη εκπομπή (idiom recognition)}} \\
-\addlinespace[3pt]
+\begin{thesistblr}{
+  colspec = {l l l c l},
+  cell{2}{1} = {c=5}{l},
+  cell{8}{1} = {c=5}{l},
+  hline{8} = {0.4pt, figtablerule},
+}
+{Extension} & {Εντολή} & {C Pattern} & {Auto} & {Μέθοδος} \\
+{\textit{Scalar — αυτόματη εκπομπή (idiom recognition)}} & & & & \\
 \Zbb & \rori & \code{(x << n) | (x >> (64-n))} & \ding{51} & \code{-march} flag \\
 \Zbb & \insn{andn} & \code{\textasciitilde a \& b} & \ding{51} & \code{-march} flag \\
 \Zbb & \insn{max}/\insn{minu} & \code{a > b ? a : b} & \ding{51} & \code{-march} flag \\
 \ext{Zba} & \insn{sh3add} & \code{base + idx*8} & \ding{51} & \code{-march} flag \\
 \ext{Zbs} & \insn{bset} & \code{x |= (1ULL << pos)} & \ding{51} & \code{-march} flag \\
-\midrule
-\multicolumn{5}{l}{\textit{Vector crypto — απαιτεί ρητά intrinsics}} \\
-\addlinespace[3pt]
+{\textit{Vector crypto — απαιτεί ρητά intrinsics}} & & & & \\
 \Zvbc & \vclmul & carry-less multiply & \ding{55} & \code{\_\_riscv\_vclmul\_vx\_u64m1()} \\
 \Zvbc & \vclmulh & carry-less multiply high & \ding{55} & \code{\_\_riscv\_vclmulh\_vx\_u64m1()} \\
 \Zvbb & \insn{vror.vv} & vector rotate right & \ding{55} & \code{\_\_riscv\_vror\_vv\_u64m1()} \\
 \Zvbb & \insn{vandn.vv} & vector AND-NOT & \ding{55} & \code{\_\_riscv\_vandn\_vv\_u64m1()} \\
 \Zvbb & \insn{vbrev8.v} & vector byte-reverse & \ding{55} & \code{\_\_riscv\_vbrev8\_v\_u64m1()} \\
-\bottomrule
-\end{tabular}
+\end{thesistblr}

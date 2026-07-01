@@ -1,16 +1,13 @@
 % Barrett reduction: two-pass vs single-pass comparison
-\begin{tabular}{l l l}
-  \toprule
-  {Βήμα} & {Two-pass (12 εντολές)} & {Single-pass (6 εντολές)} \\
-  \midrule
-  1 & \insn{vsrl} (extract high bits)     & \insn{vsrl} (extract high bits) \\
-  2 & \insn{vand} (mask taps)             & \insn{vclmul} (quotient estimate) \\
-  3 & \insn{vxor} (feedback tap 1)        & \insn{vsrl} (shift quotient) \\
-  4 & \insn{vsll} + \insn{vxor} (tap 2)   & \insn{vclmul} (correction) \\
-  5 & \insn{vsll} + \insn{vxor} (tap 3)   & \insn{vxor} (apply correction) \\
-  6 & \insn{vsll} + \insn{vxor} (tap 4)   & \insn{vand} (mask to 8 bits) \\
-  7 & \insn{vsrl} (second pass high)      & — \\
-  8 & \insn{vand} (second pass mask)      & — \\
-  9–12 & (repeat taps 2–4 + final mask)   & — \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{colspec = {l l l}}
+{Βήμα} & {Two-pass (12 εντολές)} & {Single-pass (6 εντολές)} \\
+1 & \insn{vsrl} (extract high bits)     & \insn{vsrl} (extract high bits) \\
+2 & \insn{vand} (mask taps)             & \insn{vclmul} (quotient estimate) \\
+3 & \insn{vxor} (feedback tap 1)        & \insn{vsrl} (shift quotient) \\
+4 & \insn{vsll} + \insn{vxor} (tap 2)   & \insn{vclmul} (correction) \\
+5 & \insn{vsll} + \insn{vxor} (tap 3)   & \insn{vxor} (apply correction) \\
+6 & \insn{vsll} + \insn{vxor} (tap 4)   & \insn{vand} (mask to 8 bits) \\
+7 & \insn{vsrl} (second pass high)      & — \\
+8 & \insn{vand} (second pass mask)      & — \\
+9–12 & (repeat taps 2–4 + final mask)   & — \\
+\end{thesistblr}

@@ -3,19 +3,19 @@
 %   Baseline  = commit cc403b9 (karatsuba_zvbc polymul, Axis A only: scalar BM/Forney/FFT)
 %   Optimized = commit 9db0c6a (+ Axes B+D vectorized via Zvbc; Axis C still scalar)
 %   Variant: vector_zvk, VLEN=256
-\begin{tabular}{l S[table-format=7.0] S[table-format=7.0] S[table-format=7.0] S[table-format=2.1]}
-  \toprule
-  {Security Level} & {Baseline \Decaps$^\dagger$} & {Optimized \Decaps$^\ddagger$} & {$\Delta$ \instret} & {$\Delta$ (\%)} \\
-  \midrule
-  HQC-128 & 521613  & 485507  & -36106  & -6.9 \\
-  HQC-192 & 1150818 & 1110836 & -39982  & -3.5 \\
-  HQC-256 & 1861032 & 1726034 & -134998 & -7.3 \\
-  \midrule[\lightrulewidth]
-  \multicolumn{5}{@{}p{0.92\linewidth}@{}}{\footnotesize
-    $^\dagger$ Variant \texttt{vector\_zvk}, \texttt{karatsuba\_zvbc} polymul,
-    \Zvbc Στάδιο~A (syndromes) vectorized, Στάδια B/C/D scalar; commit \texttt{cc403b9}, \VLEN=256.
-    $^\ddagger$ Ίδιο variant. Στάδια B (Berlekamp-Massey) και D (Forney) προστέθηκαν στο
-    \insn{vclmul.vv} pipeline. Στάδιο~C (FFT root-finding) παραμένει scalar.
-  } \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{
+  colspec = {l r r r r},
+  cell{5}{1} = {c=5}{l},
+  hline{5} = {0.4pt, figtablerule},
+}
+{Security Level} & {Baseline \Decaps$^\dagger$} & {Optimized \Decaps$^\ddagger$} & {$\Delta$ \instret} & {$\Delta$ (\%)} \\
+HQC-128 & \num{521613}  & \num{485507}  & \num{-36106}  & \num{-6.9} \\
+HQC-192 & \num{1150818} & \num{1110836} & \num{-39982}  & \num{-3.5} \\
+HQC-256 & \num{1861032} & \num{1726034} & \num{-134998} & \num{-7.3} \\
+{\footnotesize
+  $^\dagger$ Variant \texttt{vector\_zvk}, \texttt{karatsuba\_zvbc} polymul,
+  \Zvbc Στάδιο~A (syndromes) vectorized, Στάδια B/C/D scalar; commit \texttt{cc403b9}, \VLEN=256.
+  $^\ddagger$ Ίδιο variant. Στάδια B (Berlekamp-Massey) και D (Forney) προστέθηκαν στο
+  \insn{vclmul.vv} pipeline. Στάδιο~C (FFT root-finding) παραμένει scalar.
+} & & & & \\
+\end{thesistblr}

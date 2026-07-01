@@ -411,15 +411,14 @@ assign-on-first-write (tree + leaf).
   συνεισφορά.}
   \label{tab:scalar-ablation}
   \small
-  \begin{tabular}{llcc}
-    \toprule
-    \textbf{Στάδιο} & \textbf{Βελτιστοποίηση} & \textbf{vs prev} & \textbf{vs ref} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l l c c},
+  }
+    Στάδιο & Βελτιστοποίηση & vs prev & vs ref \\
     1 & word-level \clmul{} leaf kernel  & \speedup{38.62} & \speedup{38.62} \\
     2 & στατικό δέντρο αναδρομής   & \speedup{1.99}  & \speedup{76.7}  \\
-    3 & assign-on-first-write      & \speedup{1.25}  & \speedup{96.0} \\
-    \bottomrule
-  \end{tabular}
+    3 & assign-on-first-write      & \speedup{1.25}  & \best{\speedup{96.0}} \\
+  \end{thesistblr}
 \end{table}
 
 %% ============================================================================

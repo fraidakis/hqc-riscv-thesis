@@ -82,16 +82,14 @@ x86-64 champion.
     πλήρες \KEM). Η στήλη \q{Εκτ.\ κύκλοι} αντιπροσωπεύει το γινόμενο
     $\text{instret} \times \text{CPI}$, ενδεικτική εκτίμηση, όχι μέτρηση.}
   \label{tab:cpi-estimate}
-  \begin{tabular}{l S[table-format=7.0] c S[table-format=7.0] S[table-format=2.1]}
-    \toprule
-    \textbf{Tier} & {\textbf{\instret}} & \textbf{CPI} &
-      {\textbf{Εκτ.\ κύκλοι}} & {\textbf{Κυρ.\ κατηγορία (\%)}} \\
-    \midrule
-    Tier~1 (\gls{zbc})  & 3235515 & 1.37 & 4432656  & {ALU \pct{24.3}, Load \pct{37.5}} \\
-    Tier~2 (\RVV)  & 2022978 & 1.48 & 2994007  & {ALU \pct{19.9}, Load \pct{33.6}} \\
-    Tier~3 (\gls{zvbc}) & 1491854 & 1.69 & 2521233  & {Load \pct{32.7}, Vec.\ Mem \pct{18.5}} \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r c r r},
+  }
+    Tier & \instret & CPI & Εκτ.\ κύκλοι & Κυρ.\ κατηγορία (\%) \\
+    Tier~1 (\gls{zbc})  & \num{3235515} & \num{1.37} & \num{4432656}  & {ALU \pct{24.3}, Load \pct{37.5}} \\
+    Tier~2 (\RVV)  & \num{2022978} & \num{1.48} & \num{2994007}  & {ALU \pct{19.9}, Load \pct{33.6}} \\
+    Tier~3 (\gls{zvbc}) & \num{1491854} & \num{1.69} & \num{2521233}  & {Load \pct{32.7}, Vec.\ Mem \pct{18.5}} \\
+  \end{thesistblr}
 \end{table}
 
 Η αύξηση CPI από Tier~1 ($1.37$) σε Tier~3 ($1.69$) αντικατοπτρίζει τη
@@ -555,16 +553,14 @@ level, ενώ ο αριθμός περιστροφών Keccak παραμένει
   % Data sources: "Με Zbb" = current scalar_zb sim_kem CSVs (commit bdd9cf4).
   % "Χωρίς Zbb" = zbb_ablation_study.md §"Zbb Ablation on karatsuba_zbc" (karatsuba_zbc no-Zbb run).
   % The Zbb ablation delta (+355,789 for L128) is applied to the current "Με Zbb" totals.
-  \begin{tabular}{l S[table-format=7.0] S[table-format=7.0] S[table-format=7.0] S[table-format=2.2]}
-    \toprule
-    \textbf{Level} & {\textbf{Με \gls{zbb}}} & {\textbf{Χωρίς \gls{zbb}}} &
-      {\textbf{Δ instret}} & {\textbf{Δ\%}} \\
-    \midrule
-    HQC-128 & 3235515  & 3591304  & {+355789}  & {+11.00} \\
-    HQC-192 & 7284126  & 7955667  & {+671541}  & {+9.22} \\
-    HQC-256 & 13999118 & 15050651 & {+1051533} & {+7.51} \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r r},
+  }
+    Level & Με \gls{zbb} & Χωρίς \gls{zbb} & Δ instret & Δ\% \\
+    HQC-128 & \num{3235515}  & \num{3591304}  & {+\num{355789}}  & {+11.00} \\
+    HQC-192 & \num{7284126}  & \num{7955667}  & {+\num{671541}}  & {+9.22} \\
+    HQC-256 & \num{13999118} & \num{15050651} & {+\num{1051533}} & {+7.51} \\
+  \end{thesistblr}
 \end{table}
 
 Η \gls{zbb} αποτελεί υποχρεωτική hard ISA constraint για το Tier~1 profile.
@@ -702,17 +698,15 @@ $6.66\times$ μεγαλύτερο μέγεθος κώδικα από τη refere
     tier (HQC-128). Χαμηλότερη τιμή = καλύτερη αξιοποίηση code footprint.}
   \label{tab:instret-per-kb}
   \small
-  \begin{tabular}{l S[table-format=7.0] S[table-format=2.1] S[table-format=5.0]}
-    \toprule
-    \textbf{Variant (Tier)} & {\textbf{\Decaps \instret}} &
-      {\textbf{\code{.text} (KB)}} & {\textbf{instret/KB}} \\
-    \midrule
-    \code{scalar\_ref} (Tier~0)  & 56937074 & 28.7 & 1983799 \\
-    \code{scalar\_zb}  (Tier~1)  & 1972347  & 28.8 & 68484 \\
-    \code{vector\_rvv} (Tier~2)  & 1139356  & 29.1 & 39152 \\
-    \code{vector\_zvk} (Tier~3)  & 843459   & 27.1 & 31123 \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r},
+  }
+    Variant (Tier) & \Decaps \instret & \code{.text} (KB) & instret/KB \\
+    \code{scalar\_ref} (Tier~0)  & \num{56937074} & \num{28.7} & \num{1983799} \\
+    \code{scalar\_zb}  (Tier~1)  & \num{1972347}  & \num{28.8} & \num{68484} \\
+    \code{vector\_rvv} (Tier~2)  & \num{1139356}  & \num{29.1} & \num{39152} \\
+    \code{vector\_zvk} (Tier~3)  & \num{843459}   & \num{27.1} & \num{31123} \\
+  \end{thesistblr}
 \end{table}
 
 Ο \cref{tab:instret-per-kb} αποκαλύπτει τεράστια διακύμανση. Η μετρική ορίζεται ρητά ως ο λόγος του \Decaps \instret (HQC-128) προς το μέγεθος \code{.text} του πλήρους \KEM binary σε kilobytes, και προκύπτει απευθείας από τις δύο πρώτες στήλες του πίνακα: το Tier~3 επιτυγχάνει $\num{843459} / 27.1 = \num{31123}$ instret/KB, $\num{68484} / \num{31123} = 2.2\times$ αποδοτικότερο από το Tier~1 και $\num{1983799} / \num{31123} = 63.7\times$ αποδοτικότερο από τη reference. Πρόκειται για λόγους αποδοτικότητας (\instret ανά \code{.text} KB), όχι για speedup ratios. Η βελτίωση αυτή αντικατοπτρίζει τον συνδυασμό
@@ -966,17 +960,15 @@ wall-clock κόστους ανά \Decaps κλήση.
     περνούν με t-statistics πολύ κάτω από το threshold.}
   \label{tab:dudect-results}
   \small
-  \begin{tabular}{llcS[table-format=6.0]S[table-format=-1.2]S[table-format=-1.2]l}
-    \toprule
-    \textbf{Variant} & \textbf{Level} & \textbf{Target} &
-      {$N$} & {$t_1$} & {$t_2$} & \textbf{Verdict} \\
-    \midrule
-    \code{scalar\_zb} & 128 & polymul & 100000 & -0.50 & 0.41 & PASS \\
-    \code{vector\_rvv} & 128 & polymul & 100000 & -2.02 & -0.90 & PASS \\
-    \code{scalar\_zb} & 192 & polymul & 100000 & -0.53 & 0.50 & PASS \\
-    \code{scalar\_zb} & 128 & \gls{kem} & 26000 & -3.00 & -0.80 & PASS \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l l c r r r l},
+  }
+    Variant & Level & Target & $N$ & $t_1$ & $t_2$ & Verdict \\
+    \code{scalar\_zb} & 128 & polymul & \num{100000} & \num{-0.50} & \num{0.41} & PASS \\
+    \code{vector\_rvv} & 128 & polymul & \num{100000} & \num{-2.02} & \num{-0.90} & PASS \\
+    \code{scalar\_zb} & 192 & polymul & \num{100000} & \num{-0.53} & \num{0.50} & PASS \\
+    \code{scalar\_zb} & 128 & \gls{kem} & \num{26000} & \num{-3.00} & \num{-0.80} & PASS \\
+  \end{thesistblr}
 \end{table}
 
 Τρεις παρατηρήσεις αναδεικνύονται. Πρώτον, όλες οι βελτιστοποιημένες
@@ -1005,21 +997,15 @@ timing distribution differences, ενώ ο second-order ($t_2$, percentile-cropp
     σημασιολογικά μοντέλα για \RVV 1.0 ή \Zvbc.}
   \label{tab:formal-ct-tools}
   \small
-  \begin{tabular}{llll}
-    \toprule
-    \textbf{Εργαλείο} & \textbf{Επίπεδο} & \textbf{Προσέγγιση} &
-      \textbf{Αρχιτεκτονικές} \\
-    \midrule
-    Binsec/Rel \cite{Daniel2020-BinsecRel} & Binary &
-      Relational symbolic exec. & x86, ARM \\
-    ct-verif \cite{Almeida2016-ctverif} & LLVM IR &
-      Information flow analysis & Arch-independent \\
-    HolBA \cite{Lindner2019-HolBA,Palmskog2025-HolBA-RISCV} & Binary &
-      Symbolic exec.\ (HOL4) & RISC-V (base ISA) \\
-    Bedrock2 \cite{Conoly2025-Bedrock2CT} & Source→Binary &
-      Correct-by-construction & RISC-V (base ISA) \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l l l l},
+  }
+    Εργαλείο & Επίπεδο & Προσέγγιση & Αρχιτεκτονικές \\
+    Binsec/Rel \cite{Daniel2020-BinsecRel} & Binary & Relational symbolic exec. & x86, ARM \\
+    ct-verif \cite{Almeida2016-ctverif} & LLVM IR & Information flow analysis & Arch-independent \\
+    HolBA \cite{Lindner2019-HolBA,Palmskog2025-HolBA-RISCV} & Binary & Symbolic exec.\ (HOL4) & RISC-V (base ISA) \\
+    Bedrock2 \cite{Conoly2025-Bedrock2CT} & Source→Binary & Correct-by-construction & RISC-V (base ISA) \\
+  \end{thesistblr}
 \end{table}
 
 Κανένα υπάρχον binary analysis framework δεν ερμηνεύει τις εντολές
@@ -1049,10 +1035,10 @@ compilation με αποδεδειγμένες constant-time εγγυήσεις �
     dudect μέτρησης. Κάθε μέθοδος καλύπτει κενά της άλλης.}
   \label{tab:ct-complementarity}
   \small
-  \begin{tabular}{lcc}
-    \toprule
-    \textbf{Ιδιότητα} & \textbf{Zkt ανάλυση} & \textbf{dudect} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l c c},
+  }
+    Ιδιότητα & Zkt ανάλυση & dudect \\
     Secret-dependent branches        & \ding{51} & \ding{51} \\
     Secret-dependent memory access   & \ding{51} & \ding{51} \\
     Μικροαρχιτεκτονικά κανάλια       & —          & \ding{51} \\
@@ -1060,8 +1046,7 @@ compilation με αποδεδειγμένες constant-time εγγυήσεις �
     Speculative execution            & —          & $\triangle$ \\
     RISC-V \gls{zbc}/\RVV variants        & \ding{51} & \ding{51} \\
     Τεκμηρίωση χωρίς hardware        & \ding{51} & — \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 Η αρχιτεκτονική ανάλυση Zkt παρέχει ντετερμινιστική τεκμηρίωση ότι κάθε

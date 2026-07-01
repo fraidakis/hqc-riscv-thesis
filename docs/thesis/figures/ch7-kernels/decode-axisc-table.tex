@@ -1,10 +1,7 @@
 % Axis C (FFT root-finding) isolated contribution table
-\begin{tabular}{l S[table-format=6.0] S[table-format=6.0] S[table-format=2.1]}
-  \toprule
-  {Security Level} & {Zvbc (scalar FFT)} & {Zvbc (vectorized FFT)} & {$\Delta$ (\%)} \\
-  \midrule
-  HQC-128 & 88011  & 56326  & -36.0 \\
-  HQC-192 & 119982 & 72012  & -40.0 \\
-  HQC-256 & 204354 & 146513 & -28.3 \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{colspec = {l r r r}}
+{Security Level} & {Zvbc (scalar FFT)} & {Zvbc (vectorized FFT)} & {$\Delta$ (\%)} \\
+HQC-128 & \num{88011}  & \num{56326}  & \num{-36.0} \\
+HQC-192 & \num{119982} & \num{72012}  & \num{-40.0} \\
+HQC-256 & \num{204354} & \num{146513} & \num{-28.3} \\
+\end{thesistblr}

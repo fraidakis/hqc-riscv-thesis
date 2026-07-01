@@ -2,73 +2,21 @@
 % Includes heterogeneous platforms with different metrics
 % Data source: sim_kem_*_latest.csv (commit bdd9cf4, 2026-06-30)
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{
-  l                          % Platform
-  l                          % ISA / Extensions
-  l                          % Metric
-  S[table-format=8.0]        % KeyGen
-  S[table-format=8.0]        % Encaps
-  S[table-format=8.0]        % Decaps
-  l                          % Notes
+\begin{thesistblr}{
+  colspec = {l l l r r r l},
+  cell{2}{1} = {c=7}{l},
+  cell{7}{1} = {c=7}{l},
+  hline{7} = {0.4pt, figtablerule},
 }
-\toprule
-\textbf{Πλατφόρμα} & \textbf{ISA} & \textbf{Μετρική} &
-  {\textbf{KeyGen}} & {\textbf{Encaps}} & {\textbf{Decaps}} & \textbf{Σημειώσεις} \\
-\midrule
-\multicolumn{7}{l}{\textit{Αρχιτεκτονικές αναφοράς (κύκλοι ρολογιού σε πραγματικό hardware)}} \\
-\addlinespace[3pt]
-x86-64 (FFT+CRT)
-  & AVX2 + \code{PCLMULQDQ} + GFNI
-  & cycles
-  & 87000
-  & 110000
-  & 245000
-  & AMD EPYC 9754 (cache-key) \\
-AMD Zen~4
-  & AVX2 + \code{PCLMULQDQ}
-  & cycles
-  & 402210
-  & 674620
-  & 868857
-  & SUPERCOP ref \\
-ARM Cortex-M4
-  & ARMv7E-M (no clmul)
-  & cycles
-  & 1837507
-  & 4878515
-  & 7502580
-  & pqm4, bit-slicing \\
-RISC-V FAFFT
-  & RV32IMC (CV32E40P)
-  & cycles
-  & 12208482
-  & 24882981
-  & 38099269
-  & SW-only, FPGA \\
-\midrule
-\multicolumn{7}{l}{\textit{Παρούσα εργασία (retired instructions, Spike ISS, VLEN $= \num{256}$)}} \\
-\addlinespace[3pt]
-Tier~1 (\code{scalar\_zb})
-  & RV64GC + \Zbc/\Zbb
-  & instret
-  & 428923
-  & 834245
-  & 1972347
-  & Scalar, specialized tree \\
-Tier~2 (\code{vector\_rvv})
-  & RV64GCV + \Zbc/\Zbb
-  & instret
-  & 294501
-  & 589121
-  & 1139356
-  & Hybrid, specialized tree \\
-Tier~3 (\code{vector\_zvk})
-  & RV64GCV + \Zvbc/\Zvbb
-  & instret
-  & 216092
-  & 432303
-  & 843459
-  & Full vector, specialized tree \\
-\bottomrule
-\end{tabular}%
+{Πλατφόρμα} & {ISA} & {Μετρική} & {KeyGen} & {Encaps} & {Decaps} & {Σημειώσεις} \\
+{\textit{Αρχιτεκτονικές αναφοράς (κύκλοι ρολογιού σε πραγματικό hardware)}} & & & & & & \\
+x86-64 (FFT+CRT) & AVX2 + \code{PCLMULQDQ} + GFNI & cycles & \num{87000} & \num{110000} & \num{245000} & AMD EPYC 9754 (cache-key) \\
+AMD Zen~4 & AVX2 + \code{PCLMULQDQ} & cycles & \num{402210} & \num{674620} & \num{868857} & SUPERCOP ref \\
+ARM Cortex-M4 & ARMv7E-M (no clmul) & cycles & \num{1837507} & \num{4878515} & \num{7502580} & pqm4, bit-slicing \\
+RISC-V FAFFT & RV32IMC (CV32E40P) & cycles & \num{12208482} & \num{24882981} & \num{38099269} & SW-only, FPGA \\
+{\textit{Παρούσα εργασία (retired instructions, Spike ISS, VLEN $= \num{256}$)}} & & & & & & \\
+Tier~1 (\code{scalar\_zb}) & RV64GC + \Zbc/\Zbb & instret & \num{428923} & \num{834245} & \num{1972347} & Scalar, specialized tree \\
+Tier~2 (\code{vector\_rvv}) & RV64GCV + \Zbc/\Zbb & instret & \num{294501} & \num{589121} & \num{1139356} & Hybrid, specialized tree \\
+Tier~3 (\code{vector\_zvk}) & RV64GCV + \Zvbc/\Zvbb & instret & \num{216092} & \num{432303} & \num{843459} & Full vector, specialized tree \\
+\end{thesistblr}%
 }

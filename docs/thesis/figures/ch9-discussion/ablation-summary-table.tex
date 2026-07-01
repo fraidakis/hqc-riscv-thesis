@@ -1,66 +1,20 @@
 % Summary table: ISA extension ablation results
 % §9.2.1
 % Data source: commit bdd9cf4 (2026-06-30) KEM CSVs + earlier ablation studies
-\begin{tabular}{l l S[table-format=3.0] S[table-format=2.2] l}
-\toprule
-\textbf{Extension} & \textbf{Εντολές} & {\textbf{Στατικές}} &
-  {\textbf{Δ\% (best)}} & \textbf{Απόφαση} \\
-\midrule
-\Zbc (\clmul/\clmulh)
-  & carry-less multiply
-  & {1200+}
-  & {-96.00}
-  & Υποχρεωτική \\
-\Zbb (\rori, \insn{andn})
-  & rotate, AND-NOT
-  & 58
-  & {-10.48}
-  & Υποχρεωτική \\
-\gls{zba} (\insn{sh3add})
-  & address generation
-  & 211
-  & {-5.61}
-  & Promoted (Tier 2/3) \\
-\gls{zbs} (\insn{bset})
-  & single-bit set
-  & 5
-  & {-0.71}
-  & Ενεργή (scalar) \\
-\RVV (\insn{vxor}, \insn{vle64})
-  & διανυσματική ανασύνθεση
-  & {—}
-  & {-42.22}
-  & Tier 2+ \\
-\Zvbc (\vclmul/\vclmulh)
-  & vector carry-less mul
-  & {—}
-  & {-25.97}
-  & Tier 3 \\
-\Zvbb (\insn{vror}, \insn{vandn})
-  & vector rotate/AND-NOT
-  & {—}
-  & {—}
-  & Tier 3 (combined) \\
-\midrule
-\ext{Zbkb} (\insn{pack}, \insn{brev8})
-  & crypto bit-manip
-  & 0
-  & {0.00}
-  & Απορρίφθηκε \\
-\ext{Zbkc} (\insn{clmul}, \insn{clmulh})
-  & crypto carry-less
-  & 0
-  & {0.00}
-  & Απορρίφθηκε \\
-\ext{Zicond} (\insn{czero})
-  & conditional zero
-  & 0
-  & {-0.38}
-  & Απορρίφθηκε \\
-\ext{Zcb}
-  & compressed encoding
-  & {—}
-  & {0.00}
-  & Απορρίφθηκε \\
-\bottomrule
-\end{tabular}
+\begin{thesistblr}{
+  colspec = {l l r r l},
+  hline{9} = {0.4pt, figtablerule},
+}
+{Extension} & {Εντολές} & {Στατικές} & {Δ\% (best)} & {Απόφαση} \\
+\Zbc (\clmul/\clmulh) & carry-less multiply & {1200+} & \best{\num{-96.00}} & Υποχρεωτική \\
+\Zbb (\rori, \insn{andn}) & rotate, AND-NOT & \num{58} & \num{-10.48} & Υποχρεωτική \\
+\gls{zba} (\insn{sh3add}) & address generation & \num{211} & \num{-5.61} & Promoted (Tier 2/3) \\
+\gls{zbs} (\insn{bset}) & single-bit set & \num{5} & \num{-0.71} & Ενεργή (scalar) \\
+\RVV (\insn{vxor}, \insn{vle64}) & διανυσματική ανασύνθεση & — & \num{-42.22} & Tier 2+ \\
+\Zvbc (\vclmul/\vclmulh) & vector carry-less mul & — & \num{-25.97} & Tier 3 \\
+\Zvbb (\insn{vror}, \insn{vandn}) & vector rotate/AND-NOT & — & — & Tier 3 (combined) \\
+\ext{Zbkb} (\insn{pack}, \insn{brev8}) & crypto bit-manip & \num{0} & \num{0.00} & Απορρίφθηκε \\
+\ext{Zbkc} (\insn{clmul}, \insn{clmulh}) & crypto carry-less & \num{0} & \num{0.00} & Απορρίφθηκε \\
+\ext{Zicond} (\insn{czero}) & conditional zero & \num{0} & \num{-0.38} & Απορρίφθηκε \\
+\ext{Zcb} & compressed encoding & — & \num{0.00} & Απορρίφθηκε \\
+\end{thesistblr}

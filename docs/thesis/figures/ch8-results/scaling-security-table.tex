@@ -1,38 +1,25 @@
 % Table: Security level scaling — instret ratios and speedups across levels
 % Data source: results/simulation/benchmarks/kem/sim_kem_*.csv (commit bdd9cf4)
-% Shows how instret grows with security level and how speedup evolves
 % Speedup baseline: all tiers vs scalar_ref
-\begin{tabular}{
-  l
-  S[table-format=3.1]
-  S[table-format=3.1]
-  S[table-format=3.1]
-  S[table-format=1.2]
-  S[table-format=1.2]
+\begin{thesistblr}{
+  colspec = {l r r r r r},
+  cell{2}{1} = {c=6}{l},
+  cell{7}{1} = {c=6}{l},
+  cell{11}{1} = {c=6}{l},
+  hline{7,11} = {0.4pt, figtablerule},
 }
-\toprule
-\textbf{Variant}
-  & {\textbf{HQC-128}} & {\textbf{HQC-192}} & {\textbf{HQC-256}}
-  & {$\frac{\text{192}}{\text{128}}$}
-  & {$\frac{\text{256}}{\text{128}}$} \\
-\midrule
-\multicolumn{6}{l}{\textit{Decaps \instret ($\times 10^3$)}} \\
-\addlinespace[2pt]
-scalar\_ref       & 56937 & 171349 & 421861 & 3.01 & 7.41 \\
-Tier~1 (Zbc)      & 1972  & 4182   & 7981   & 2.12 & 4.05 \\
-Tier~2 (RVV)      & 1139  & 2580   & 5274   & 2.26 & 4.63 \\
-Tier~3 (Zvbc)     & 843   & 1774   & 2902   & 2.10 & 3.44 \\
-\midrule
-\multicolumn{6}{l}{\textit{Decaps speedup ($\times$; all tiers vs scalar\_ref)}} \\
-\addlinespace[2pt]
-Tier~1 (Zbc)      & 28.9  & 41.0   & 52.9   & {—} & {—} \\
-Tier~2 (RVV)      & 50.0  & 66.4   & 80.0   & {—} & {—} \\
-Tier~3 (Zvbc)     & 67.5  & 96.6   & 145.4  & {—} & {—} \\
-\midrule
-\multicolumn{6}{l}{\textit{Total \KEM speedup ($\times$; all tiers vs scalar\_ref)}} \\
-\addlinespace[2pt]
-Tier~1 (Zbc)      & 35.0  & 46.9   & 60.1   & {—} & {—} \\
-Tier~2 (RVV)      & 55.9  & 72.3   & 86.9   & {—} & {—} \\
-Tier~3 (Zvbc)     & 75.9  & 107.0  & 163.8  & {—} & {—} \\
-\bottomrule
-\end{tabular}
+{Variant} & {HQC-128} & {HQC-192} & {HQC-256} & {$\frac{\text{192}}{\text{128}}$} & {$\frac{\text{256}}{\text{128}}$} \\
+{\textit{Decaps \instret ($\times 10^3$)}} & & & & & \\
+scalar\_ref   & \num{56937} & \num{171349} & \num{421861} & \num{3.01} & \num{7.41} \\
+Tier~1 (Zbc)  & \num{1972}  & \num{4182}   & \num{7981}   & \num{2.12} & \num{4.05} \\
+Tier~2 (RVV)  & \num{1139}  & \num{2580}   & \num{5274}   & \num{2.26} & \num{4.63} \\
+Tier~3 (Zvbc) & \num{843}   & \num{1774}   & \num{2902}   & \num{2.10} & \num{3.44} \\
+{\textit{Decaps speedup ($\times$; all tiers vs scalar\_ref)}} & & & & & \\
+Tier~1 (Zbc)  & \num{28.9} & \num{41.0}  & \num{52.9}  & — & — \\
+Tier~2 (RVV)  & \num{50.0} & \num{66.4}  & \num{80.0}  & — & — \\
+Tier~3 (Zvbc) & \num{67.5} & \num{96.6}  & \num{145.4} & — & — \\
+{\textit{Total \KEM speedup ($\times$; all tiers vs scalar\_ref)}} & & & & & \\
+Tier~1 (Zbc)  & \num{35.0} & \num{46.9}  & \num{60.1}  & — & — \\
+Tier~2 (RVV)  & \num{55.9} & \num{72.3}  & \num{86.9}  & — & — \\
+Tier~3 (Zvbc) & \num{75.9} & \num{107.0} & \num{163.8} & — & — \\
+\end{thesistblr}

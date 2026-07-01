@@ -173,15 +173,14 @@ levels στο Tier~3 ($\num{73769} \to \num{89688} \to \num{231570}$)
     VLEN $= \num{256}$). Η βάση αναφοράς είναι το \code{scalar\_ref}
     (\cref{conv:baseline}) για όλα τα tiers.}
   \label{tab:microbench-summary}
-  \begin{tabular}{l S[table-format=3.1] S[table-format=3.1] S[table-format=3.1]}
-    \toprule
-    \textbf{Πυρήνας} & {\textbf{Tier~1}} & {\textbf{Tier~2}} & {\textbf{Tier~3}} \\
-    \midrule
-    Polymul (\code{vect\_mul}) & 101.3  & 124.6 & 264.1 \\
-    Keccak (\Decaps pattern)    & {—}   & {—}   & 1.37  \\
-    Decode (RM+RS)             & {—}   & 7.81  & 14.27  \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r},
+  }
+    Πυρήνας & Tier~1 & Tier~2 & Tier~3 \\
+    Polymul (\code{vect\_mul}) & \num{101.3}  & \num{124.6} & \best{\num{264.1}} \\
+    Keccak (\Decaps pattern)    & {—}   & {—}   & \best{\num{1.37}}  \\
+    Decode (RM+RS)             & {—}   & \num{7.81}  & \best{\num{14.27}}  \\
+  \end{thesistblr}
 \end{table}
 
 Η ανάλυση αυτή θεμελιώνει τις μετρήσεις πλήρους \gls{kem} που ακολουθούν
@@ -325,15 +324,14 @@ resources. Στο HQC-128:
 \label{ssec:kem-summary}
 
 \begin{keyresultbox}[Speedups πλήρους \gls{kem} (HQC-128, Spike VLEN $= \num{256}$)]
-  \begin{tabular}{l S[table-format=2.1] S[table-format=2.1] S[table-format=3.1]}
-    \toprule
-    & {\textbf{Tier~1}} & {\textbf{Tier~2}} & {\textbf{Tier~3}} \\
-    \midrule
-    \Decaps speedup  & 28.9 & 50.0 & 67.5 \\
-    Total \gls{kem} speedup & 35.0 & 55.9 & 75.9 \\
-    \Decaps \instret & {\num{1972347}} & {\num{1139356}} & {\num{843459}} \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r},
+  }
+    & Tier~1 & Tier~2 & Tier~3 \\
+    \Decaps speedup  & \num{28.9} & \num{50.0} & \best{\num{67.5}} \\
+    Total \gls{kem} speedup & \num{35.0} & \num{55.9} & \best{\num{75.9}} \\
+    \Decaps \instret & \num{1972347} & \num{1139356} & \best{\num{843459}} \\
+  \end{thesistblr}
 
   {\footnotesize Βάση αναφοράς (\cref{conv:baseline}): όλα τα speedups
  υπολογίζονται ως προς \code{scalar\_ref}. Οι λόγοι μεταξύ
@@ -783,25 +781,20 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
     αντίστοιχους κύκλους.}
   \label{tab:hw-microbench}
   \small
-  \begin{tabular}{l l S[table-format=8.0] S[table-format=8.0]
-                  S[table-format=1.2] S[table-format=4.0]}
-    \toprule
-    \textbf{Πυρήνας} & \textbf{Variant} &
-    {\textbf{Spike \instret}} & {\textbf{HW cycles}} &
-    {\textbf{IPC}} & {\textbf{$\mu$s}} \\
-    \midrule
-    \multirow{3}{*}{Polymul}
-      & \code{scalar\_ref}  & 18504302 & 11635670 & 1.59 & 7272 \\
-      & \code{scalar\_zb}   & 182726   & 122503   & 1.49 & 77 \\
-      & \code{vector\_rvv}  & 148479   & 122085   & 1.22 & 76 \\
-    \midrule
-    Keccak & \code{scalar\_zb} & 554900 & 356668 & 1.56 & 223 \\
-    \midrule
-    \multirow{2}{*}{Decode}
-      & \code{scalar\_zb}  & 604218 & 460886 & 1.31 & 288 \\
-      & \code{vector\_rvv} & 134737 & 205151 & 0.66 & 128 \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l l r r r r},
+    cell{2}{1} = {r=3}{l},
+    cell{6}{1} = {r=2}{l},
+    hline{5,6} = {0.4pt, figtablerule},
+  }
+    Πυρήνας & Variant & Spike \instret & HW cycles & IPC & $\mu$s \\
+    Polymul & \code{scalar\_ref}  & \num{18504302} & \num{11635670} & \num{1.59} & \num{7272} \\
+     & \code{scalar\_zb}   & \num{182726}   & \num{122503}   & \num{1.49} & \num{77} \\
+     & \code{vector\_rvv}  & \num{148479}   & \num{122085}   & \num{1.22} & \num{76} \\
+    Keccak & \code{scalar\_zb} & \num{554900} & \num{356668} & \num{1.56} & \num{223} \\
+    Decode & \code{scalar\_zb}  & \num{604218} & \num{460886} & \num{1.31} & \num{288} \\
+     & \code{vector\_rvv} & \num{134737} & \num{205151} & \num{0.66} & \num{128} \\
+  \end{thesistblr}
 \end{table}
 
 Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
@@ -861,22 +854,17 @@ trivially-parallel steps.
     υπολογίζεται ως προς \code{scalar\_ref}.}
   \label{tab:hw-kem}
   \small
-  \begin{tabular}{l S[table-format=8.0] S[table-format=7.0]
-                  S[table-format=7.0] S[table-format=2.1] S[table-format=4.0]}
-    \toprule
-    \textbf{Op} & {\textbf{scalar\_ref}} & {\textbf{scalar\_zb}} &
-    {\textbf{vector\_rvv}} & {\textbf{Speedup$_\text{zb}$}} &
-    {\textbf{$\mu$s$_\text{zb}$}} \\
+  \begin{thesistblr}{
+    colspec = {l r r r r r},
+    hline{3,6} = {0.4pt, figtablerule},
+  }
+    Op & scalar\_ref & scalar\_zb & vector\_rvv & Speedup$_\text{zb}$ & $\mu$s$_\text{zb}$ \\
     & {(cycles)} & {(cycles)} & {(cycles)} & & \\
-    \midrule
-    \KeyGen & 11762776 & 232836 & 212671 & 50.5 & 146 \\
-    \Encaps & 23488205 & 461278 & 425274 & 50.9 & 288 \\
-    \Decaps & 35747311 & 1197341 & 910108 & 29.9 & 748 \\
-    \midrule
-    \textbf{Total} & \textbf{70998292} & \textbf{1891455} &
-    \textbf{1548053} & \textbf{37.5} & \textbf{1182} \\
-    \bottomrule
-  \end{tabular}
+    \KeyGen & \num{11762776} & \num{232836} & \num{212671} & \num{50.5} & \num{146} \\
+    \Encaps & \num{23488205} & \num{461278} & \num{425274} & \num{50.9} & \num{288} \\
+    \Decaps & \num{35747311} & \num{1197341} & \num{910108} & \num{29.9} & \num{748} \\
+    \best{Total} & \best{\num{70998292}} & \best{\num{1891455}} & \best{\num{1548053}} & \best{\num{37.5}} & \best{\num{1182}} \\
+  \end{thesistblr}
 \end{table}
 
 Τρία ευρήματα αναδεικνύονται από τα δεδομένα πλήρους \gls{kem}.
@@ -931,17 +919,14 @@ stalls. Ο~\cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant κ
     ενώ ο \RVV κώδικας παρουσιάζει IPC $= 1.22$ στον polymul αλλά
     IPC $< 1$ στον decode λόγω pipeline transition penalties.}
   \label{tab:hw-ipc}
-  \begin{tabular}{l S[table-format=1.2] S[table-format=1.2]
-                  S[table-format=1.2]}
-    \toprule
-    \textbf{Πυρήνας} & {\textbf{scalar\_ref}} & {\textbf{scalar\_zb}} &
-    {\textbf{vector\_rvv}} \\
-    \midrule
-    Polymul & 1.59 & 1.49 & 1.22 \\
-    Keccak  & {—}  & 1.56 & {—} \\
-    Decode  & {—}  & 1.31 & 0.66 \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r},
+  }
+    Πυρήνας & scalar\_ref & scalar\_zb & vector\_rvv \\
+    Polymul & \num{1.59} & \num{1.49} & \num{1.22} \\
+    Keccak  & {—}  & \num{1.56} & {—} \\
+    Decode  & {—}  & \num{1.31} & \num{0.66} \\
+  \end{thesistblr}
 \end{table}
 
 Η ανάλυση αποκαλύπτει μια θεμελιώδη ασυμμετρία μεταξύ scalar και vector
@@ -1040,15 +1025,22 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
     περισσότερο. Ο \code{vector\_rvv} αποκλίνει (HW/Spike $\approx 0.8$)
     λόγω microarchitectural penalties.}
   \label{tab:hw-spike-prediction}
-  \begin{tabular}{l S[table-format=2.2] S[table-format=2.2] S[table-format=1.2]}
-    \toprule
-    \textbf{Μετρική} & {\textbf{Spike Speedup}} &
-    {\textbf{HW Speedup}} & {\textbf{HW/Spike}} \\
-    \midrule
-    \multicolumn{4}{l}{\textit{\code{scalar\_zb} vs \code{scalar\_ref}}} \\
-    \quad Polymul & 101.27 & 94.98 & 0.94 \\ \quad \Decaps & 28.87 & 29.86 & 1.03 \\ \quad Total \gls{kem} & 34.98 & 37.54 & 1.07 \\ \midrule \multicolumn{4}{l}{\textit{\code{vector\_rvv} vs \code{scalar\_ref}}} \\ \quad Polymul & 124.63 & 95.31 & 0.76 \\ \quad \Decaps & 49.97 & 39.28 & 0.79 \\ \quad Total \gls{kem} & 55.94 & 45.86 & 0.82 \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r},
+    cell{2}{1} = {c=4}{l},
+    cell{6}{1} = {c=4}{l},
+    hline{6} = {0.4pt, figtablerule},
+  }
+    Μετρική & Spike Speedup & HW Speedup & HW/Spike \\
+    \SetCell[c=4]{l} \textit{\code{scalar\_zb} vs \code{scalar\_ref}} & & & \\
+    \quad Polymul & \num{101.27} & \num{94.98} & \num{0.94} \\
+    \quad \Decaps & \num{28.87} & \num{29.86} & \num{1.03} \\
+    \quad Total \gls{kem} & \num{34.98} & \num{37.54} & \num{1.07} \\
+    \SetCell[c=4]{l} \textit{\code{vector\_rvv} vs \code{scalar\_ref}} & & & \\
+    \quad Polymul & \num{124.63} & \num{95.31} & \num{0.76} \\
+    \quad \Decaps & \num{49.97} & \num{39.28} & \num{0.79} \\
+    \quad Total \gls{kem} & \num{55.94} & \num{45.86} & \num{0.82} \\
+  \end{thesistblr}
 \end{table}
 
 Τα δεδομένα αποκαλύπτουν δύο διακριτά καθεστώτα πρόβλεψης.
@@ -1073,15 +1065,14 @@ HQC-256 (\cref{tab:hw-spike-prediction-levels}), με τον λόγο HW/Spike �
     Ο λόγος HW/Spike παραμένει σταθερά $\approx 1.07$–$1.10$ σε όλα τα levels,
     υποδηλώνοντας ότι ο dual-issue pipeline ωφελεί συστηματικά τον optimized κώδικα.}
   \label{tab:hw-spike-prediction-levels}
-  \begin{tabular}{l S[table-format=2.2] S[table-format=2.2] S[table-format=1.2]}
-    \toprule
-    {Level} & {Spike Speedup} & {HW Speedup} & {HW/Spike} \\
-    \midrule
-    HQC-128 & 34.98 & 37.54 & 1.07 \\
-    HQC-192 & 46.90 & 50.80 & 1.08 \\
-    HQC-256 & 60.13 & 66.06 & 1.10 \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r},
+  }
+    Level & Spike Speedup & HW Speedup & HW/Spike \\
+    HQC-128 & \num{34.98} & \num{37.54} & \num{1.07} \\
+    HQC-192 & \num{46.90} & \num{50.80} & \num{1.08} \\
+    HQC-256 & \num{60.13} & \num{66.06} & \num{1.10} \\
+  \end{thesistblr}
 \end{table}
 
 \paragraph{Vector path: απόκλιση (HW/Spike $\approx 0.82$).}
@@ -1138,27 +1129,24 @@ reference baseline (\code{ref\_scalar}), ανεξάρτητη από τις αλ
     $\approx\pct{4.8}$ χωρίς να απαιτεί \gls{lto}.}
   \label{tab:hw-pgo}
   \small
-  \begin{tabular}{llrrr}
-    \toprule
-    \textbf{Config} & \textbf{Op} & \textbf{Med.\ Cycles} &
-      \textbf{Med.\ Instret} & \textbf{$\Delta$ vs baseline} \\
-    \midrule
-    baseline (\code{-O3})
-      & \KeyGen  & \cycles{11758470} & \num{18431190} & — \\
-      & \Encaps  & \cycles{23495120} & \num{36872180} & — \\
-      & \Decaps  & \cycles{35759565} & \num{56020322} & — \\
-    \addlinespace
-    LTO (\code{-O3 -flto})
-      & \KeyGen  & \cycles{11798468} & \num{18432056} & $+\pct{0.3}$ \\
-      & \Encaps  & \cycles{23589546} & \num{36866619} & $+\pct{0.4}$ \\
-      & \Decaps  & \cycles{35908184} & \num{55995102} & $+\pct{0.4}$ \\
-    \addlinespace
-    PGO (\code{-O3 -fprofile-use})
-      & \KeyGen  & \cycles{11202257} & \num{18835912} & $-\pct{4.7}$ \\
-      & \Encaps  & \cycles{22396223} & \num{37674170} & $-\pct{4.7}$ \\
-      & \Decaps  & \cycles{34021814} & \num{57143285} & $-\pct{4.9}$ \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l l r r r},
+    cell{2}{1} = {r=3}{l},
+    cell{5}{1} = {r=3}{l},
+    cell{8}{1} = {r=3}{l},
+    hline{5,8} = {0.4pt, figtablerule},
+  }
+    Config & Op & Med.\ Cycles & Med.\ Instret & $\Delta$ vs baseline \\
+    baseline (\code{-O3}) & \KeyGen & \cycles{11758470} & \num{18431190} & — \\
+     & \Encaps & \cycles{23495120} & \num{36872180} & — \\
+     & \Decaps & \cycles{35759565} & \num{56020322} & — \\
+    LTO (\code{-O3 -flto}) & \KeyGen & \cycles{11798468} & \num{18432056} & $+\pct{0.3}$ \\
+     & \Encaps & \cycles{23589546} & \num{36866619} & $+\pct{0.4}$ \\
+     & \Decaps & \cycles{35908184} & \num{55995102} & $+\pct{0.4}$ \\
+    PGO (\code{-O3 -fprofile-use}) & \KeyGen & \cycles{11202257} & \num{18835912} & \best{$-\pct{4.7}$} \\
+     & \Encaps & \cycles{22396223} & \num{37674170} & \best{$-\pct{4.7}$} \\
+     & \Decaps & \cycles{34021814} & \num{57143285} & \best{$-\pct{4.9}$} \\
+  \end{thesistblr}
 \end{table}
 
 Ο \cref{tab:hw-pgo} αναδεικνύει τρεις παρατηρήσεις.

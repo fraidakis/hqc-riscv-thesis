@@ -1,40 +1,24 @@
 % Table: Full KEM (KeyGen+Encaps+Decaps) instret results for all tiers and security levels
 % Data source: results/simulation/benchmarks/kem/sim_kem_*.csv (commit bdd9cf4, 2026-06-30/07-01)
 % Baseline convention: all speedups (xT1, xT2, xT3) computed vs scalar_ref.
-\begin{tabular}{
-  l l
-  S[table-format=9.0, group-separator={,}, group-minimum-digits=4]
-  S[table-format=7.0, group-separator={,}, group-minimum-digits=4]
-  S[table-format=7.0, group-separator={,}, group-minimum-digits=4]
-  S[table-format=7.0, group-separator={,}, group-minimum-digits=4]
-  S[table-format=3.1]
-  S[table-format=3.1]
-  S[table-format=3.1]
+\begin{thesistblr}{
+  colspec = {l l r r r r r r r},
+  cell{2}{1} = {r=4}{l},
+  cell{6}{1} = {r=4}{l},
+  cell{10}{1} = {r=4}{l},
+  hline{6,10} = {0.4pt, figtablerule},
 }
-\toprule
-\textbf{Level} & \textbf{Operation}
-  & {\textbf{scalar\_ref}} & {\textbf{Tier~1 (Zbc)}} & {\textbf{Tier~2 (RVV)}} & {\textbf{Tier~3 (Zvbc)}}
-  & {$\times$\textbf{T1}} & {$\times$\textbf{T2}} & {$\times$\textbf{T3}} \\
-\midrule
-\multirow{4}{*}{HQC-128}
-  & \KeyGen  & 18750499  & 428923  & 294501  & 216092  & 43.7  & 63.7  & 86.8 \\
-  & \Encaps  & 37477397  & 834245  & 589121  & 432303  & 44.9  & 63.6  & 86.7 \\
-  & \Decaps  & 56937074  & 1972347 & 1139356 & 843459  & 28.9  & 50.0  & 67.5 \\
-  & \textbf{Total} & \textbf{113164970} & \textbf{3235515} & \textbf{2022978} & \textbf{1491854}
-    & \textbf{35.0} & \textbf{55.9} & \textbf{75.9} \\
-\midrule
-\multirow{4}{*}{HQC-192}
-  & \KeyGen  & 56763859  & 1041343  & 710531  & 468166  & 54.5  & 79.9  & 121.2 \\
-  & \Encaps  & 113506273 & 2061241  & 1435368 & 950638  & 55.1  & 79.1  & 119.4 \\
-  & \Decaps  & 171349089 & 4181542  & 2579762 & 1773770 & 41.0  & 66.4  & 96.6 \\
-  & \textbf{Total} & \textbf{341619221} & \textbf{7284126} & \textbf{4725661} & \textbf{3192574}
-    & \textbf{46.9} & \textbf{72.3} & \textbf{107.0} \\
-\midrule
-\multirow{4}{*}{HQC-256}
-  & \KeyGen  & 139979206 & 2019141  & 1461824 & 737070  & 69.3  & 95.8  & 189.9 \\
-  & \Encaps  & 279919351 & 3999221  & 2948854 & 1499346 & 70.0  & 94.9  & 186.7 \\
-  & \Decaps  & 421860950 & 7980756  & 5274100 & 2902352 & 52.9  & 80.0  & 145.4 \\
-  & \textbf{Total} & \textbf{841759507} & \textbf{13999118} & \textbf{9684778} & \textbf{5138768}
-    & \textbf{60.1} & \textbf{86.9} & \textbf{163.8} \\
-\bottomrule
-\end{tabular}
+{Level} & {Operation} & {scalar\_ref} & {Tier~1 (Zbc)} & {Tier~2 (RVV)} & {Tier~3 (Zvbc)} & {$\times$T1} & {$\times$T2} & {$\times$T3} \\
+HQC-128 & \KeyGen & \num{18750499} & \num{428923} & \num{294501} & \num{216092} & \num{43.7} & \num{63.7} & \num{86.8} \\
+ & \Encaps & \num{37477397} & \num{834245} & \num{589121} & \num{432303} & \num{44.9} & \num{63.6} & \num{86.7} \\
+ & \Decaps & \num{56937074} & \num{1972347} & \num{1139356} & \num{843459} & \num{28.9} & \num{50.0} & \num{67.5} \\
+ & \best{Total} & \best{\num{113164970}} & \best{\num{3235515}} & \best{\num{2022978}} & \best{\num{1491854}} & \best{\num{35.0}} & \best{\num{55.9}} & \best{\num{75.9}} \\
+HQC-192 & \KeyGen & \num{56763859} & \num{1041343} & \num{710531} & \num{468166} & \num{54.5} & \num{79.9} & \num{121.2} \\
+ & \Encaps & \num{113506273} & \num{2061241} & \num{1435368} & \num{950638} & \num{55.1} & \num{79.1} & \num{119.4} \\
+ & \Decaps & \num{171349089} & \num{4181542} & \num{2579762} & \num{1773770} & \num{41.0} & \num{66.4} & \num{96.6} \\
+ & \best{Total} & \best{\num{341619221}} & \best{\num{7284126}} & \best{\num{4725661}} & \best{\num{3192574}} & \best{\num{46.9}} & \best{\num{72.3}} & \best{\num{107.0}} \\
+HQC-256 & \KeyGen & \num{139979206} & \num{2019141} & \num{1461824} & \num{737070} & \num{69.3} & \num{95.8} & \num{189.9} \\
+ & \Encaps & \num{279919351} & \num{3999221} & \num{2948854} & \num{1499346} & \num{70.0} & \num{94.9} & \num{186.7} \\
+ & \Decaps & \num{421860950} & \num{7980756} & \num{5274100} & \num{2902352} & \num{52.9} & \num{80.0} & \num{145.4} \\
+ & \best{Total} & \best{\num{841759507}} & \best{\num{13999118}} & \best{\num{9684778}} & \best{\num{5138768}} & \best{\num{60.1}} & \best{\num{86.9}} & \best{\num{163.8}} \\
+\end{thesistblr}

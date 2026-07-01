@@ -2,13 +2,9 @@
 % Disassembly comparison: single-bit set without/with Zbs
 \centering
 \small
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Χωρίς \ext{Zbs}} (3 εντολές) & \textbf{Με \ext{Zbs}} (1 εντολή) \\
-\midrule
-\texttt{li\enspace\enspace t1, 1\quad\quad\enspace ; t1 = 1} &
-\texttt{bset t2, t2, a2 ; v[idx] |= (1<<pos)} \\
+\begin{thesistblr}{colspec = {l l}}
+{Χωρίς \ext{Zbs} (3 εντολές)} & {Με \ext{Zbs} (1 εντολή)} \\
+\texttt{li\enspace\enspace t1, 1\quad\quad\enspace ; t1 = 1} & \texttt{bset t2, t2, a2 ; v[idx] |= (1<<pos)} \\
 \texttt{sll\enspace t1, t1, a2\enspace ; t1 = 1 << bit\_pos} & \\
 \texttt{or\enspace\enspace t2, t2, t1\enspace ; v[idx] |= mask} & \\
-\bottomrule
-\end{tabular}
+\end{thesistblr}

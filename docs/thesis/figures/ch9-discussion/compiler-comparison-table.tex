@@ -1,23 +1,23 @@
 % Compiler comparison table: Clang 20.1.2 vs GCC 14.2.0, best hardware cycles per variant/level
 % Data source: results/reports/summaries/compiler_analysis.md (results/hardware/benchmarks/compiler_compare/)
-\begin{tabular}{l c S[table-format=9.0] S[table-format=9.0] l S[table-format=2.1]}
-  \toprule
-  \textbf{Variant} & \textbf{Level} & {\textbf{Clang (best)}} &
-    {\textbf{GCC (best)}} & \textbf{Νικητής} & {\textbf{Δ\%}} \\
-  \midrule
-  \multicolumn{6}{l}{\textit{Tier~0 — Reference (bit-serial polymul)}} \\
-  \code{scalar\_ref}  & 128 & 82540770  & 70994731  & GCC & 16.3 \\
-  \code{scalar\_ref}  & 192 & 249443989 & 214228777 & GCC & 16.4 \\
-  \code{scalar\_ref}  & 256 & 611456033 & 533883002 & GCC & 14.5 \\
-  \midrule
-  \multicolumn{6}{l}{\textit{Tier~1 — Scalar Karatsuba + \Zbc}} \\
-  \code{scalar\_zb} & 128 & 2151335  & 1902665  & GCC & 13.1 \\
-  \code{scalar\_zb} & 192 & 4874759  & 4223873  & GCC & 15.4 \\
-  \code{scalar\_zb} & 256 & 11144875 & 8106449  & GCC & 37.5 \\
-  \midrule
-  \multicolumn{6}{l}{\textit{Tier~2 — Vector Karatsuba + \RVV}} \\
-  \code{vector\_rvv} & 128 & 1712970  & 1585434  & GCC & 8.0 \\
-  \code{vector\_rvv} & 192 & 4039884  & 3592013  & GCC & 12.5 \\
-  \code{vector\_rvv} & 256 & 9756962  & 6848116  & GCC & 42.5 \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{
+  colspec = {l c r r l r},
+  cell{2}{1} = {c=6}{l},
+  cell{6}{1} = {c=6}{l},
+  cell{10}{1} = {c=6}{l},
+  hline{6,10} = {0.4pt, figtablerule},
+}
+{Variant} & {Level} & {Clang (best)} & {GCC (best)} & {Νικητής} & {Δ\%} \\
+{\textit{Tier~0 — Reference (bit-serial polymul)}} & & & & & \\
+\code{scalar\_ref} & 128 & \num{82540770}  & \num{70994731}  & GCC & \num{16.3} \\
+\code{scalar\_ref} & 192 & \num{249443989} & \num{214228777} & GCC & \num{16.4} \\
+\code{scalar\_ref} & 256 & \num{611456033} & \num{533883002} & GCC & \num{14.5} \\
+{\textit{Tier~1 — Scalar Karatsuba + \Zbc}} & & & & & \\
+\code{scalar\_zb} & 128 & \num{2151335}  & \num{1902665}  & GCC & \num{13.1} \\
+\code{scalar\_zb} & 192 & \num{4874759}  & \num{4223873}  & GCC & \num{15.4} \\
+\code{scalar\_zb} & 256 & \num{11144875} & \num{8106449}  & GCC & \num{37.5} \\
+{\textit{Tier~2 — Vector Karatsuba + \RVV}} & & & & & \\
+\code{vector\_rvv} & 128 & \num{1712970} & \num{1585434} & GCC & \num{8.0} \\
+\code{vector\_rvv} & 192 & \num{4039884} & \num{3592013} & GCC & \num{12.5} \\
+\code{vector\_rvv} & 256 & \num{9756962} & \num{6848116} & GCC & \num{42.5} \\
+\end{thesistblr}

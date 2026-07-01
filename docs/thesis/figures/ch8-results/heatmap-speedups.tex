@@ -1,31 +1,23 @@
-% Speedup matrix: security level × operation × tier
-% Uses siunitx S columns for alignment
+% Speedup matrix: security level x operation x tier
 % Baseline: all tiers vs scalar_ref
 % Data source: sim_kem_*_latest.csv (commit bdd9cf4)
-\begin{tabular}{l l
-  S[table-format=3.1]
-  S[table-format=3.1]
-  S[table-format=3.1]}
-\toprule
-\textbf{Level} & \textbf{Operation}
-  & {\textbf{Tier~1}} & {\textbf{Tier~2}} & {\textbf{Tier~3}} \\
-\midrule
-\multirow{3}{*}{HQC-128}
-  & \KeyGen  & 43.7  & 63.7  & 86.8 \\
-  & \Encaps  & 44.9  & 63.6  & 86.7 \\
-  & \Decaps  & 28.9  & 50.0  & 67.5 \\
-\midrule
-\multirow{3}{*}{HQC-192}
-  & \KeyGen  & 54.5  & 79.9  & 121.2 \\
-  & \Encaps  & 55.1  & 79.1  & 119.4 \\
-  & \Decaps  & 41.0  & 66.4  & 96.6 \\
-\midrule
-\multirow{3}{*}{HQC-256}
-  & \KeyGen  & 69.3  & 95.8  & {\textbf{189.9}} \\
-  & \Encaps  & 70.0  & 94.9  & {\textbf{186.7}} \\
-  & \Decaps  & 52.9  & 80.0  & {\textbf{145.4}} \\
-\midrule
-\multicolumn{2}{l}{\textit{Total \KEM speedup}}
-  & {35.0–60.1} & {55.9–86.9} & {75.9–163.8} \\
-\bottomrule
-\end{tabular}
+\begin{thesistblr}{
+  colspec = {l l r r r},
+  cell{2}{1} = {r=3}{l},
+  cell{5}{1} = {r=3}{l},
+  cell{8}{1} = {r=3}{l},
+  cell{11}{1} = {c=2}{l},
+  hline{5,8,11} = {0.4pt, figtablerule},
+}
+{Level} & {Operation} & {Tier~1} & {Tier~2} & {Tier~3} \\
+HQC-128 & \KeyGen & \num{43.7} & \num{63.7} & \num{86.8} \\
+ & \Encaps & \num{44.9} & \num{63.6} & \num{86.7} \\
+ & \Decaps & \num{28.9} & \num{50.0} & \num{67.5} \\
+HQC-192 & \KeyGen & \num{54.5} & \num{79.9} & \num{121.2} \\
+ & \Encaps & \num{55.1} & \num{79.1} & \num{119.4} \\
+ & \Decaps & \num{41.0} & \num{66.4} & \num{96.6} \\
+HQC-256 & \KeyGen & \num{69.3} & \num{95.8} & \best{\num{189.9}} \\
+ & \Encaps & \num{70.0} & \num{94.9} & \best{\num{186.7}} \\
+ & \Decaps & \num{52.9} & \num{80.0} & \best{\num{145.4}} \\
+{\textit{Total \KEM speedup}} & & {35.0–60.1} & {55.9–86.9} & {75.9–163.8} \\
+\end{thesistblr}

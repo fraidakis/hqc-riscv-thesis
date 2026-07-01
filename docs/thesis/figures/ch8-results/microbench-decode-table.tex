@@ -1,23 +1,21 @@
 % Table: Decode micro-benchmark results (ref, rvv, zvbc)
 % Data source: results/simulation/benchmarks/components/decode/sim_decode_*_latest.csv
 % Updated: 2026-06-30 (commit bdd9cf4)
-\begin{tabular}{l l S[table-format=7.0] S[table-format=5.0] S[table-format=2.2]}
-  \toprule
-  \textbf{Security Level} & \textbf{Variant} & {\textbf{\instret}} & {\textbf{Code size (B)}} & {\textbf{Speedup}} \\
-  \midrule
-  \multirow{3}{*}{HQC-128}
-    & Reference (scalar)  & 1052692 & 12452 & {—} \\
-    & Tier~2 (base-RVV)   & 134737  & 12532 & {7.81} \\
-    & Tier~3 (\Zvbc)      &  73769  & 13148 & {14.27} \\
-  \midrule
-  \multirow{3}{*}{HQC-192}
-    & Reference (scalar)  & 1430377 & 15338 & {—} \\
-    & Tier~2 (base-RVV)   & 168915  & 15744 & {8.47} \\
-    & Tier~3 (\Zvbc)      &  89688  & 15222 & {15.95} \\
-  \midrule
-  \multirow{3}{*}{HQC-256}
-    & Reference (scalar)  & 3066751 & 20456 & {—} \\
-    & Tier~2 (base-RVV)   & 429339  & 20866 & {7.14} \\
-    & Tier~3 (\Zvbc)      & 231570  & 20982 & {13.24} \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{
+  colspec = {l l r r r},
+  cell{2}{1} = {r=3}{l},
+  cell{5}{1} = {r=3}{l},
+  cell{8}{1} = {r=3}{l},
+  hline{5,8} = {0.4pt, figtablerule},
+}
+{Security Level} & {Variant} & {\instret} & {Code size (B)} & {Speedup} \\
+HQC-128 & Reference (scalar) & \num{1052692} & \num{12452} & — \\
+ & Tier~2 (base-RVV) & \num{134737} & \num{12532} & \num{7.81} \\
+ & Tier~3 (\Zvbc) & \num{73769} & \num{13148} & \best{\num{14.27}} \\
+HQC-192 & Reference (scalar) & \num{1430377} & \num{15338} & — \\
+ & Tier~2 (base-RVV) & \num{168915} & \num{15744} & \num{8.47} \\
+ & Tier~3 (\Zvbc) & \num{89688} & \num{15222} & \best{\num{15.95}} \\
+HQC-256 & Reference (scalar) & \num{3066751} & \num{20456} & — \\
+ & Tier~2 (base-RVV) & \num{429339} & \num{20866} & \num{7.14} \\
+ & Tier~3 (\Zvbc) & \num{231570} & \num{20982} & \best{\num{13.24}} \\
+\end{thesistblr}

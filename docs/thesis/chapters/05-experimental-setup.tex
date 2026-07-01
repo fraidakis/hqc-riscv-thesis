@@ -85,10 +85,10 @@ pipeline effects, cache behavior, και dual-issue scheduling.
   \centering
   \caption{Προδιαγραφές Banana Pi BPI-F3 (SpacemiT K1 X60).}
   \label{tab:bpif3-specs}
-  \begin{tabular}{ll}
-    \toprule
-    \textbf{Χαρακτηριστικό} & \textbf{Τιμή} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l l},
+  }
+    Χαρακτηριστικό & Τιμή \\
     SoC              & SpacemiT K1 \\
     Πυρήνες          & $8\times$ X60 (RV64GCVB) \\
     Pipeline         & Dual-issue, in-order, 8-stage \\
@@ -100,8 +100,7 @@ pipeline effects, cache behavior, και dual-issue scheduling.
     RAM              & \SI{16}{\giga\byte} LPDDR4X @ \num{2666}~MT/s \\
     Αποθήκευση       & \SI{128}{\giga\byte} eMMC \\
     OS               & Bianbu Linux (kernel 6.6.x) \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 \paragraph{Υποστηριζόμενες Επεκτάσεις.}
@@ -163,14 +162,13 @@ RISC-V (ELF χωρίς λειτουργικό σύστημα). Το \code{riscv6
   \centering
   \caption{Toolchains ανά πλατφόρμα μέτρησης.}
   \label{tab:toolchains-per-platform}
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Πλατφόρμα} & \textbf{Μετρική} & \textbf{Toolchain} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l l l},
+  }
+    Πλατφόρμα & Μετρική & Toolchain \\
     Spike \gls{iss} (cross, bare-metal) & \instret & GCC~15.2 / Clang~21.1.1 (host x86-64) \\
     Banana Pi BPI-F3 (native, Linux) & κύκλοι & GCC~14.2.0 / Clang~20.1.2 \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
   \par\smallskip\footnotesize
 \end{table}
 
@@ -221,16 +219,15 @@ variant:
   \centering
   \caption{Συμβολοσειρές \code{-march} ανά polymul variant.}
   \label{tab:march-per-variant}
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Variant} & \textbf{Tier} & \textbf{\code{-march}} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l l l},
+  }
+    Variant & Tier & \code{-march} \\
     \code{scalar\_ref}     & Baseline & \code{rv64gc\_zbc\_zbb} \\
     \code{scalar\_zb}  & Tier~1   & \code{rv64gc\_zbc\_zbb} \\
     \code{vector\_rvv}  & Tier~2   & \code{rv64gcv\_zbc\_zbb} \\
     \code{vector\_zvk} & Tier~3   & \code{rv64gcv\_zbc\_zbb\_zvbc\_zvbb} \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 \paragraph{Επίπεδα Βελτιστοποίησης.}
@@ -770,16 +767,13 @@ context switches, και DVFS transients που θα μασκάριζαν λεπ
   \caption{Dudect test harnesses: στόχοι και σκοπός κάθε δοκιμής.}
   \label{tab:dudect-harnesses}
   \small
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Harness} & \textbf{Target} & \textbf{Σκοπός} \\
-    \midrule
-    \code{dudect\_polymul} & \code{vect\_mul()} &
-      Απομονωμένος polymul, ενισχυμένη ευαισθησία \\
-    \code{dudect\_kem} & \code{crypto\_kem\_dec()} &
-      Πλήρες \gls{kem}, ασφάλεια άκρο-σε-άκρο \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l l l},
+  }
+    Harness & Target & Σκοπός \\
+    \code{dudect\_polymul} & \code{vect\_mul()} & Απομονωμένος polymul, ενισχυμένη ευαισθησία \\
+    \code{dudect\_kem} & \code{crypto\_kem\_dec()} & Πλήρες \gls{kem}, ασφάλεια άκρο-σε-άκρο \\
+  \end{thesistblr}
 \end{table}
 
 Η επιλογή αυτή βασίζεται σε ανάλυση ροής δεδομένων. Ο \code{dudect\_polymul}
@@ -817,15 +811,14 @@ input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμ
     δοκιμάζεται λόγω απουσίας \Zvbc/\Zvbb υποστήριξης στο SpacemiT K1.}
   \label{tab:dudect-variants}
   \small
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Variant} & \textbf{ISA Extensions} & \textbf{Περιγραφή} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l l l},
+  }
+    Variant & ISA Extensions & Περιγραφή \\
     \code{scalar\_ref}    & RV64GC           & Vendor reference (baseline CT) \\
     \code{scalar\_zb} & RV64GC + \gls{zbc} + \gls{zbb} & Scalar Karatsuba + carry-less \\
     \code{vector\_rvv} & RV64GCV + \gls{zbc} + \gls{zbb} & \RVV vectorized hybrid \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 Η κάλυψη του Tier~3 (\code{vector\_zvk}) παραμένει μελλοντική εργασία.
@@ -860,15 +853,14 @@ input-dependent latency. Ένα passing \code{dudect\_keccak} αποτέλεσμ
   \centering
   \caption{Reference \instret (baseline) ανά λειτουργία \KEM και security level.}
   \label{tab:baseline-kem}
-  \begin{tabular}{l S[table-format=9.0] S[table-format=9.0] S[table-format=9.0] S[table-format=9.0]}
-    \toprule
-    {Level} & {\KeyGen} & {\Encaps} & {\Decaps} & {Total} \\
-    \midrule
-    HQC-128 & 18750499 & 37477397 & 56937074 & 113164970 \\
-    HQC-192 & 56763859 & 113506273 & 171349089 & 341619221 \\
-    HQC-256 & 139979206 & 279919351 & 421860950 & 841759507 \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r r r},
+  }
+    Level & \KeyGen & \Encaps & \Decaps & Total \\
+    HQC-128 & \num{18750499} & \num{37477397} & \num{56937074} & \num{113164970} \\
+    HQC-192 & \num{56763859} & \num{113506273} & \num{171349089} & \num{341619221} \\
+    HQC-256 & \num{139979206} & \num{279919351} & \num{421860950} & \num{841759507} \\
+  \end{thesistblr}
 \end{table}
 
 Ο \cref{tab:baseline-kem} οδηγεί σε δύο παρατηρήσεις. Πρώτον, η
@@ -889,19 +881,18 @@ HQC-128 (πλήρες \KEM):
   \centering
   \caption[Function-level hotspots στο reference scalar HQC-128]{Function-level hotspots στο reference scalar HQC-128 (πλήρες \KEM).\protect\footnotemark}
   \label{tab:baseline-hotspots}
-  \begin{tabular}{l S[table-format=9.0] S[table-format=2.2]}
-    \toprule
-    {Συνάρτηση} & {Εντολές} & {\%} \\
-    \midrule
-    \code{schoolbook\_mul}            & 108419784 & 95.11 \\
-    \code{memset}                     & 1994589   & 1.75 \\
-    \code{karatsuba\_mul}             & 899916    & 0.79 \\
-    \code{KeccakF1600\_StatePermute}  & 591004    & 0.52 \\
-    \code{hadamard}                   & 229586    & 0.20 \\
-    \code{keccak\_inc\_absorb}        & 159678    & 0.14 \\
-    Λοιπές                            & 1701718   & 1.49 \\
-    \bottomrule
-  \end{tabular}
+  \begin{thesistblr}{
+    colspec = {l r r},
+  }
+    Συνάρτηση & Εντολές & \% \\
+    \code{schoolbook\_mul}            & \num{108419784} & \num{95.11} \\
+    \code{memset}                     & \num{1994589}   & \num{1.75} \\
+    \code{karatsuba\_mul}             & \num{899916}    & \num{0.79} \\
+    \code{KeccakF1600\_StatePermute}  & \num{591004}    & \num{0.52} \\
+    \code{hadamard}                   & \num{229586}    & \num{0.20} \\
+    \code{keccak\_inc\_absorb}        & \num{159678}    & \num{0.14} \\
+    Λοιπές                            & \num{1701718}   & \num{1.49} \\
+  \end{thesistblr}
 \end{table}
 \footnotetext{Εμφανίζονται μόνο συναρτήσεις με συνεισφορά ${>}\,\pct{0.10}$\,---\,οι υπόλοιπες αθροίζονται στη γραμμή \q{Λοιπές}. Τα αθροιστικά ποσοστά ανά οικογένεια στην ανάλυση που ακολουθεί συμπεριλαμβάνουν και αυτές.}
 

@@ -1,23 +1,17 @@
 % Table: Full-KEM .text footprint per tier and security level
 % Data source: results/simulation/benchmarks/kem/sim_kem_*_latest.csv (commit bdd9cf4, 2026-06-30)
 % §9.3
-\begin{tabular}{l
-    S[table-format=5.0] S[table-format=2.1]
-    S[table-format=5.0] S[table-format=2.1]
-    S[table-format=5.0] S[table-format=2.1]}
-  \toprule
-  \textbf{Variant (Tier)} &
-    \multicolumn{2}{c}{\textbf{HQC-128}} &
-    \multicolumn{2}{c}{\textbf{HQC-192}} &
-    \multicolumn{2}{c}{\textbf{HQC-256}} \\
-  \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
-  & {\code{.text} (B)} & {\si{\kilo\byte}} &
-    {\code{.text} (B)} & {\si{\kilo\byte}} &
-    {\code{.text} (B)} & {\si{\kilo\byte}} \\
-  \midrule
-  \code{scalar\_ref} (Tier~0)  & 29438 & 28.7 & 32024 & 31.3 & 36530 & 35.7 \\
-  \code{scalar\_zb}  (Tier~1)  & 29520 & 28.8 & 31646 & 30.9 & 39104 & 38.2 \\
-  \code{vector\_rvv} (Tier~2)  & 29776 & 29.1 & 34124 & 33.3 & 42402 & 41.4 \\
-  \code{vector\_zvk} (Tier~3)  & 27790 & 27.1 & 30922 & 30.2 & 37976 & 37.1 \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{
+  colspec = {l r r r r r r},
+  cell{1}{2} = {c=2}{c},
+  cell{1}{4} = {c=2}{c},
+  cell{1}{6} = {c=2}{c},
+  hline{3} = {0.5pt, figtablerule},
+}
+{Variant (Tier)} & {HQC-128} & & {HQC-192} & & {HQC-256} & \\
+ & {\code{.text} (B)} & {\si{\kilo\byte}} & {\code{.text} (B)} & {\si{\kilo\byte}} & {\code{.text} (B)} & {\si{\kilo\byte}} \\
+\code{scalar\_ref} (Tier~0) & \num{29438} & \num{28.7} & \num{32024} & \num{31.3} & \num{36530} & \num{35.7} \\
+\code{scalar\_zb} (Tier~1)  & \num{29520} & \num{28.8} & \num{31646} & \num{30.9} & \num{39104} & \num{38.2} \\
+\code{vector\_rvv} (Tier~2) & \num{29776} & \num{29.1} & \num{34124} & \num{33.3} & \num{42402} & \num{41.4} \\
+\code{vector\_zvk} (Tier~3) & \num{27790} & \num{27.1} & \num{30922} & \num{30.2} & \num{37976} & \num{37.1} \\
+\end{thesistblr}

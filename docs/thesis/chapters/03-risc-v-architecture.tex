@@ -164,17 +164,16 @@ density. Κατά συνέπεια, η συντομογραφία \code{RV64GC} 
   οποίο απαιτείται η επέκταση.}
   \label{tab:extensions-used}
   \small
-  \begin{tabular}{llll}
-    \toprule
-    \textbf{Επέκταση} & \textbf{Περιγραφή} & \textbf{Ratified} & \textbf{Tier} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l l l l},
+  }
+    Επέκταση & Περιγραφή & Ratified & Tier \\
     \gls{zbc}  & Carry-less multiplication (\clmul, \clmulh) & 11/2021 & 1 \\
     \gls{zbb}  & Basic bit-manipulation (\rori, \insn{andn}, \insn{rev8}) & 11/2021 & 1 \\
     V     & Vector extension 1.0 (RVV) & 11/2021 & 2 \\
     \gls{zvbc} & Vector carry-less multiplication (\vclmul, \vclmulh) & 09/2023 & 3 \\
     \gls{zvbb} & Vector bit-manipulation (\vror, \insn{vandn}, \insn{vbrev8}) & 09/2023 & 3 \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 \paragraph{Standard Profiles και mainstream adoption.}
@@ -205,17 +204,16 @@ RVA23~\cite{RVA23-profile} (RVA: \emph{RISC-V Application profile}), που
   \caption{Κατάσταση των αξιοποιούμενων επεκτάσεων στο προφίλ RVA23.}
   \label{tab:rva23-extensions}
   \small
-  \begin{tabular}{lll}
-    \toprule
-    \textbf{Επέκταση} & \textbf{Κατάσταση RVA23} & \textbf{Σημασία} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l l l},
+  }
+    Επέκταση & Κατάσταση RVA23 & Σημασία \\
     V (RVV 1.0)  & Mandatory & Εγγυημένη παρουσία σε κάθε RVA23 chip \\
     \gls{zbb}         & Mandatory & Rotations, \insn{andn} διαθέσιμα παντού \\
     \gls{zvbb}        & Mandatory & Vector rotations/\insn{vandn} εγγυημένα \\
     \gls{zvbc}        & Development option & Αναμένεται υποχρεωτική σε μελλοντικό προφίλ \\
     \gls{zbc}         & Expansion option & Scalar carry-less multiply \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 \paragraph{SpacemiT K1 X60.}

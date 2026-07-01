@@ -2,12 +2,8 @@
 % Disassembly comparison: pointer arithmetic without/with Zba
 \centering
 \small
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Χωρίς \ext{Zba}} (2 εντολές) & \textbf{Με \ext{Zba}} (1 εντολή) \\
-\midrule
-\texttt{slli\enspace t0, a1, 3\quad ; t0 = half * 8} &
-\texttt{sh3add t0, a1, a0 ; t0 = base + half*8} \\
+\begin{thesistblr}{colspec = {l l}}
+{Χωρίς \ext{Zba} (2 εντολές)} & {Με \ext{Zba} (1 εντολή)} \\
+\texttt{slli\enspace t0, a1, 3\quad ; t0 = half * 8} & \texttt{sh3add t0, a1, a0 ; t0 = base + half*8} \\
 \texttt{add\enspace\enspace t0, a0, t0 ; t0 = base + t0} & \\
-\bottomrule
-\end{tabular}
+\end{thesistblr}

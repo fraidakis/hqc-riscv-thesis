@@ -1,18 +1,12 @@
 % figures/ch7-kernels/kernel-redistribution-table.tex
 % Kernel instret redistribution: baseline vs final (HQC-128, Tier 3)
 \small
-\begin{tabular}{l S[table-format=2.1] S[table-format=2.1]}
-  \toprule
-  {Πυρήνας} & {Baseline (\%)} & {Τελικό (\%)} \\
-  \midrule
-  Keccak / SHA-3                    &  0.8 & 57.0 \\
-  Polymul (schoolbook / Karatsuba)  & 96.6 & 24.0 \\
-  Λοιπά (sampling, \code{vect\_add}, control)
-                                    &  0.2 &  7.4 \\
-  GF αριθμητική (\code{gf\_reduce}, \code{gf\_mul})
-                                    &  0.1 &  4.7 \\
-  Decode (RM + RS)                  &  0.4 &  3.8 \\
-  I/O, μνήμη (\code{memset}, \code{memcpy})
-                                    &  1.9 &  3.7 \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{colspec = {l r r}}
+{Πυρήνας} & {Baseline (\%)} & {Τελικό (\%)} \\
+Keccak / SHA-3 & \num{0.8} & \num{57.0} \\
+Polymul (schoolbook / Karatsuba) & \num{96.6} & \num{24.0} \\
+Λοιπά (sampling, \code{vect\_add}, control) & \num{0.2} & \num{7.4} \\
+GF αριθμητική (\code{gf\_reduce}, \code{gf\_mul}) & \num{0.1} & \num{4.7} \\
+Decode (RM + RS) & \num{0.4} & \num{3.8} \\
+I/O, μνήμη (\code{memset}, \code{memcpy}) & \num{1.9} & \num{3.7} \\
+\end{thesistblr}

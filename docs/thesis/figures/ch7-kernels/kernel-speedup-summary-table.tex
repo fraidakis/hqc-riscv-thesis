@@ -1,12 +1,9 @@
 % figures/ch7-kernels/kernel-speedup-summary-table.tex
 % Per-kernel speedup summary (HQC-128, isolated micro-benchmarks)
 \small
-\begin{tabular}{l S[table-format=3.2] S[table-format=2.1]}
-  \toprule
-  {Πυρήνας} & {Speedup ($\times$)} & {\% Τελικού} \\
-  \midrule
-  Polymul (\code{vect\_mul})   & 264.1 & 24.0 \\
-  Keccak (decaps pattern)      &   1.37 & 57.0 \\
-  Decode (RM + RS)             &  14.27 &  3.8 \\
-  \bottomrule
-\end{tabular}
+\begin{thesistblr}{colspec = {l r r}}
+{Πυρήνας} & {Speedup ($\times$)} & {\% Τελικού} \\
+Polymul (\code{vect\_mul}) & \num{264.1} & \num{24.0} \\
+Keccak (decaps pattern) & \num{1.37} & \num{57.0} \\
+Decode (RM + RS) & \num{14.27} & \num{3.8} \\
+\end{thesistblr}

@@ -272,17 +272,16 @@ lane, χωρίς indexed gather), όπως αναλύεται στην \cref{sec
   \centering
   \caption{Ablation των βημάτων Tier~2 στο decode (HQC-128, \instret, median).}
   \label{tab:decode-rvv-ablation}
-  \begin{tblr}{colspec={l r r}, row{1}={font=\bfseries}}
-    \toprule
+  \begin{thesistblr}{
+    colspec = {l r r},
+  }
     Βήμα & Οριακό κέρδος & Σωρευτικό \\
-    \midrule
     scalar path (\Zbc \code{gf\_mul})  &                & \speedup{1.00} \\
     {}+ \code{expand\_and\_sum}         & \speedup{1.9} & \speedup{1.9} \\
     {}+ \code{hadamard} FHT            & \speedup{1.24} & \speedup{2.4} \\
     {}+ \code{find\_peaks}             & \speedup{1.38} & \speedup{3.3} \\
-    {}+ \gls{rs} Στάδιο~A syndromes    & \speedup{1.31} & \speedup{4.3} \\
-    \bottomrule
-  \end{tblr}
+    {}+ \gls{rs} Στάδιο~A syndromes    & \speedup{1.31} & \best{\speedup{4.3}} \\
+  \end{thesistblr}
 \end{table}
 
 %% --------------------------------------------------------------------------
@@ -339,15 +338,14 @@ $\BigO{2^M}$ κλήσεις συναρτήσεων) σε επαναληπτικ�
   \centering
   \caption{Ablation των σταδίων Tier~3 \Zvbc στο decode (HQC-128, \instret, median).}
   \label{tab:decode-zvbc-ablation}
-  \begin{tblr}{colspec={l r r}, row{1}={font=\bfseries}}
-    \toprule
+  \begin{thesistblr}{
+    colspec = {l r r},
+  }
     Στάδιο & Οριακό κέρδος & Σωρευτικό \\
-    \midrule
     Tier~2 Base-\RVV (baseline)         &                & \speedup{1.00} \\
     {}+ Στάδια B+D (\gls{bm}, Forney)    & \speedup{1.41} & \speedup{1.41} \\
-    {}+ Στάδιο C (FFT root-finding)      & \speedup{1.30} & \speedup{1.83} \\
-    \bottomrule
-  \end{tblr}
+    {}+ Στάδιο C (FFT root-finding)      & \speedup{1.30} & \best{\speedup{1.83}} \\
+  \end{thesistblr}
 \end{table}
 
 %% ============================================================================
@@ -746,10 +744,10 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
            Οι εκπεμπόμενες εντολές αφορούν στατικές εμφανίσεις στο ELF.
            Η στήλη \instret Δ αναφέρεται στη μέγιστη δυναμική βελτίωση.}
   \label{tab:extensions-summary}
-  \begin{tabular}{@{}l c r l@{}}
-    \toprule
-    \textbf{Extension} & \textbf{Εντολές (static)} & \textbf{\instret Δ (best)} & \textbf{Απόφαση} \\
-    \midrule
+  \begin{thesistblr}{
+    colspec = {l c r l},
+  }
+    Extension & Εντολές (static) & \instret Δ (best) & Απόφαση \\
     \ext{Zba} (\insn{sh3add})   & 146–211 & $-\pct{5.61}$ polymul (zvbc) & Promoted \\
     \ext{Zbb} (\rori, \insn{andn}) & 9+ & Ήδη στο baseline & Included \\
     \ext{Zbs} (\insn{bset})     & 5       & $-\pct{0.43}$ KEM (zbc) & Scalar only \\
@@ -757,8 +755,7 @@ march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την
     \ext{Zbkc} (\insn{clmul}, \insn{clmulh}) & 0 & \pct{0} & Dropped \\
     \ext{Zicond} (czero)        & 0–73    & $-\pct{0.38}$  & Dropped \\
     \ext{Zcb} (compressed)      & N/A     & \pct{0} instret & Dropped \\
-    \bottomrule
-  \end{tabular}
+  \end{thesistblr}
 \end{table}
 
 Η μεθοδολογία ablation αποκάλυψε δύο γενικεύσιμα ευρήματα. Πρώτον, η
@@ -790,64 +787,42 @@ target pattern εντός του hot path. Μια extension με εκατοντ�
 
 \paragraph{Εξέλιξη κατανομής ανά στάδιο.}
 Ο \cref{tab:kernel-redistribution} συνοψίζει τη μετατόπιση ποσοστών μεταξύ
-του baseline και του τελικού σταδίου βελτιστοποίησης για το HQC-128, Tier~3
-(\code{vector\_zvk}, \VLEN{}=\num{256}):
+του baseline και του τελικού σταδίου βελτιστοποίησης (Tier~3 , \code{vector\_zvk}):
 %
 \begin{table}[htbp]
   \centering
-  \caption{Εξέλιξη κατανομής \instret κατά πυρήνα (HQC-128). Η στήλη
-           \q{Baseline} αντιστοιχεί στο reference scalar
-           (\cref{sec:hqc-cost-distribution}) και η \q{Τελικό} στο
-           πλήρες Tier~3 variant. Τα sponge operations (absorb/squeeze)
-           προσμετρώνται στον Keccak/SHA-3.}
+  \caption{Εξέλιξη κατανομής \instret κατά πυρήνα (HQC-128).}
   \label{tab:kernel-redistribution}
   \input{figures/ch7-kernels/kernel-redistribution-table}
 \end{table}
 
 Στο baseline, ο schoolbook πολυωνυμικός πολλαπλασιασμός καταλαμβάνει
-\pct{96} του συνολικού \instret (μερίδιο in-KEM, όχι isolated). Κάθε άλλος πυρήνας είναι αμελητέος.
-Μετά τη βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (Karatsuba + \gls{zvbc} vectorization), ο
+\pct{96} του συνολικού \instret, ενώ κάθε άλλος πυρήνας είναι αμελητέος.
+Μετά τη βελτιστοποίηση του πολυωνυμικού πολλαπλασιασμού (\gls{zvbc} vectorization), ο
 πολυωνυμικός πολλαπλασιασμός μειώνεται δραστικά και αποκαλύπτονται
-δευτερεύοντα bottlenecks, με πιο σημαντικό τον Keccak. Στο τελικό στάδιο, η εφαρμογή
-\gls{zvbb} 2-way \gls{soa} Keccak και η \gls{zvbc} FFT root-finding
-αναδεικνύουν τον Keccak/SHA-3 ως τον κυρίαρχο πλέον πυρήνα: Keccak
-(\pct{57.0}), polymul (\pct{24.0}), λοιπά (\pct{7.4}), GF αριθμητική
-(\pct{4.7}), decode (\pct{3.8}), και I/O και μνήμη (\pct{3.7}).
+δευτερεύοντα bottlenecks, με πιο σημαντικό τον Keccak. Στο τελικό στάδιο, λόγω της
+μεγάλης βελτιστοποίησης του βήματος αποκωδικοποίησης, ο Keccak αναδεικνύεται ως ο κυρίαρχος πλέον πυρήνας.
+
+
 
 \paragraph{Ερμηνεία μέσω Amdahl.}
 Η ακολουθία βελτιστοποιήσεων αποτυπώνει τον κλασικό μηχανισμό Amdahl:
 κάθε φορά που μια συνιστώσα μειώνεται, η σχετική βαρύτητα των υπολοίπων
-αυξάνεται, δημιουργώντας νέα σημεία εστίασης. Στο τελικό προφίλ ο
-Keccak/SHA-3 αναδεικνύεται ως ο κυρίαρχος πλέον πυρήνας: τα μεγαλύτερα
-περιθώρια περαιτέρω επιτάχυνσης εντοπίζονται σε αυτόν, ενώ η
-βελτιστοποίηση των μικρότερων πυρήνων αποφέρει φθίνουσες αποδόσεις.
-
-\paragraph{Ποσοτική σύνοψη.}
-Ο \cref{tab:kernel-speedup-summary} παρουσιάζει το αθροιστικό αποτέλεσμα
-ανά οικογένεια πυρήνα, συγκρίνοντας τα απομονωμένα \instret (isolated
-micro-benchmarks) μεταξύ scalar reference και Tier~3 optimized:
-%
-\begin{table}[htbp]
-  \centering
-  \caption{Σύνοψη βελτιστοποίησης ανά πυρήνα (HQC-128, isolated
-           micro-benchmarks). Η στήλη \q{Τελικό \%} δείχνει τη
-           συνεισφορά κάθε πυρήνα στο τελικό \KEM \instret. Το decode εδώ 
-           αναφέρεται στο πλήρες decode pipeline (RM\,+\,RS).}
-  \label{tab:kernel-speedup-summary}
-  \input{figures/ch7-kernels/kernel-speedup-summary-table}
-\end{table}
-
+αυξάνεται, δημιουργώντας νέα σημεία εστίασης. 
 Ο πολυωνυμικός πολλαπλασιασμός επιτυγχάνει τη μεγαλύτερη απόλυτη μείωση
 (\speedup{264.1} σε isolated benchmark), ο Keccak αποδίδει \speedup{1.37}
 σε επίπεδο πλήρους \Decaps call pattern, και η αποκωδικοποίηση \speedup{14.27}
 σε isolated decode. Η συνδυασμένη εφαρμογή μετατρέπει ένα σύστημα
 κυριαρχούμενο από ένα μονολιθικό hotspot σε ένα pipeline κατανεμημένο
-μεταξύ πολλαπλών πυρήνων.
+μεταξύ πολλαπλών πυρήνων. Στο τελικό προφίλ ο
+Keccak/SHA-3 αναδεικνύεται ως ο κυρίαρχος πλέον πυρήνας: τα μεγαλύτερα
+περιθώρια περαιτέρω επιτάχυνσης εντοπίζονται σε αυτόν, ενώ η
+βελτιστοποίηση των μικρότερων πυρήνων αποφέρει φθίνουσες αποδόσεις.
 
 \paragraph{Ολοκλήρωση υλοποίησης και μετάβαση στα αποτελέσματα.}
 Με την αποτίμηση του τελικού προφίλ ολοκληρώνεται το σκέλος υλοποίησης
 της εργασίας: όλοι οι κρίσιμοι πυρήνες έχουν βελτιστοποιηθεί και το
 υπολογιστικό κόστος έχει ανακατανεμηθεί σε νέα ισορροπία. Η
-συστηματική ποσοτική αποτίμηση των επιδόσεων, η κλιμάκωσή τους ανά
+ποσοτική αποτίμηση των επιδόσεων, η κλιμάκωσή τους ανά
 security level και \VLEN, καθώς και η σύγκριση με τη
 βιβλιογραφία, αναπτύσσονται στο \cref{ch:results}.
