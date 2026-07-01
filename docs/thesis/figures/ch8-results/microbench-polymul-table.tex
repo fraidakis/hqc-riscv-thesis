@@ -5,21 +5,21 @@
 % security level (Tier 3) is emphasised with \best (bold, colour-independent).
 % Data unchanged (data-lock): results/simulation/benchmarks/components/poly_mul/sim_mul_*_latest.csv
 \begin{thesistblr}{
-  colspec     = {l l r r r},
+  colspec     = {l l r r},
   cell{2,6,10}{1} = {r=4}{l},
   hline{6,10} = {0.4pt, figtablerule},
 }
-  \textbf{Security Level} & \textbf{Variant} & {\instret} & {Code size (B)} & {Speedup} \\
-  HQC-128 & \code{scalar\_ref}  & \num{18504302} & \num{5054}  & {\textemdash}            \\
-          & \code{scalar\_zb}   & \num{182726}   & \num{10362} & \num{101.3}              \\
-          & \code{vector\_rvv}  & \num{148479}   & \num{9606}  & \num{124.6}              \\
-          & \code{vector\_zvk}  & \num{70070}    & \num{6978}  & \best{\num{264.1}}       \\
-  HQC-192 & \code{scalar\_ref}  & \num{56292809} & \num{5090}  & {\textemdash}            \\
-          & \code{scalar\_zb}   & \num{570293}   & \num{9808}  & \num{98.7}               \\
-          & \code{vector\_rvv}  & \num{449808}   & \num{10796} & \num{125.1}              \\
-          & \code{vector\_zvk}  & \num{207443}   & \num{8074}  & \best{\num{271.4}}       \\
-  HQC-256 & \code{scalar\_ref}  & \num{139222953}& \num{4298}  & {\textemdash}            \\
-          & \code{scalar\_zb}   & \num{1262888}  & \num{11994} & \num{110.2}              \\
-          & \code{vector\_rvv}  & \num{1043726}  & \num{13834} & \num{133.4}              \\
-          & \code{vector\_zvk}  & \num{318972}   & \num{9250}  & \best{\num{436.5}}       \\
+  \textbf{Security Level} & \textbf{Variant} & {\instret} & {Speedup} \\
+  HQC-128 & \code{scalar\_ref}  & \num{18504302} & {\textemdash}      \\
+          & \code{scalar\_zb}   & \num{182726}   & \num{101.3}        \\
+          & \code{vector\_rvv}  & \num{148479}   & \num{124.6}        \\
+          & \code{vector\_zvk}  & \num{70070}    & \best{\num{264.1}} \\
+  HQC-192 & \code{scalar\_ref}  & \num{56292809} & {\textemdash}      \\
+          & \code{scalar\_zb}   & \num{570293}   & \num{98.7}         \\
+          & \code{vector\_rvv}  & \num{449808}   & \num{125.1}        \\
+          & \code{vector\_zvk}  & \num{207443}   & \best{\num{271.4}} \\
+  HQC-256 & \code{scalar\_ref}  & \num{139222953}& {\textemdash}      \\
+          & \code{scalar\_zb}   & \num{1262888}  & \num{110.2}        \\
+          & \code{vector\_rvv}  & \num{1043726}  & \num{133.4}        \\
+          & \code{vector\_zvk}  & \num{318972}   & \best{\num{436.5}} \\
 \end{thesistblr}

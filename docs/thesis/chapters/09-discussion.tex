@@ -1,7 +1,7 @@
 \chapter{Αξιολόγηση σε Hardware και Συγκριτική Ανάλυση}
 \label{ch:discussion}
 
-Το κεφάλαιο αυτό μεταφέρει τα αποτελέσματα προσομοίωσης του~\cref{ch:results} σε πραγματικό silicon και τα τοποθετεί στο διεθνές τοπίο υλοποιήσεων. Παρουσιάζεται πρώτα η αξιολόγηση σε πραγματικό hardware (Banana Pi BPI-F3, SpacemiT K1 X60), ακολουθεί η σύγκριση με ετερογενείς αρχιτεκτονικές\ifTODO{}, η μελέτη ISA ablation και ο συμβιβασμός μεγέθους κώδικα έναντι απόδοσης\fi, και η συγκριτική αξιολόγηση μεταγλωττιστών\ifTODO{}, ολοκληρώνοντας με την επαλήθευση σταθερού χρόνου εκτέλεσης των βελτιστοποιημένων υλοποιήσεων\fi.
+Το κεφάλαιο αυτό μεταφέρει τα αποτελέσματα προσομοίωσης του~\cref{ch:results} σε πραγματικό silicon και τα τοποθετεί στο διεθνές τοπίο υλοποιήσεων. Παρουσιάζεται πρώτα η αξιολόγηση σε πραγματικό hardware (Banana Pi BPI-F3, SpacemiT K1 X60), ακολουθεί η σύγκριση με ετερογενείς αρχιτεκτονικές\ifTODO, η μελέτη ISA ablation και ο συμβιβασμός μεγέθους κώδικα έναντι απόδοσης\fi, και η συγκριτική αξιολόγηση μεταγλωττιστών\ifTODO{}, ολοκληρώνοντας με την επαλήθευση σταθερού χρόνου εκτέλεσης των βελτιστοποιημένων υλοποιήσεων\fi.
 
 \section{Αξιολόγηση σε Πραγματικό Hardware (BPI-F3 SpacemiT K1 X60)}
 \label{sec:hw-evaluation}
@@ -28,8 +28,7 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 Ο~\cref{tab:hw-microbench} παρουσιάζει τα αποτελέσματα ανά πυρήνα για το
 HQC-128. Κάθε γραμμή περιλαμβάνει τα Spike \instret (αλγοριθμική βάση),
 τους πραγματικούς κύκλους (median, \num{10000} iterations), τον παρατηρούμενο
-\gls{ipc} ($= \text{instret} / \text{cycles}$), και τον αντίστοιχο
-wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
+\gls{ipc} ($= \text{instret} / \text{cycles}$).
 
 \begin{table}[htbp]
   \centering
@@ -42,18 +41,18 @@ wall-clock χρόνο στα \SI{1.6}{\giga\hertz} του X60.
   \label{tab:hw-microbench}
   \small
   \begin{thesistblr}{
-    colspec = {l l r r r r},
+    colspec = {l l r r r},
     cell{2}{1} = {r=3}{l},
     cell{6}{1} = {r=2}{l},
     hline{5,6} = {0.4pt, figtablerule},
   }
-    Πυρήνας & Variant & Spike \instret & HW cycles & IPC & $\mu$s \\
-    Polymul & \code{scalar\_ref}  & \num{18504302} & \num{11635670} & \num{1.59} & \num{7272} \\
-     & \code{scalar\_zb}   & \num{182726}   & \num{122503}   & \num{1.49} & \num{77} \\
-     & \code{vector\_rvv}  & \num{148479}   & \num{122085}   & \num{1.22} & \num{76} \\
-    Keccak & \code{scalar\_zb} & \num{554900} & \num{356668} & \num{1.56} & \num{223} \\
-    Decode & \code{scalar\_zb}  & \num{604218} & \num{460886} & \num{1.31} & \num{288} \\
-     & \code{vector\_rvv} & \num{134737} & \num{205151} & \num{0.66} & \num{128} \\
+    Πυρήνας & Variant & Spike \instret & HW cycles & IPC \\
+    Polymul & \code{scalar\_ref} & \num{18504302} & \num{11635670} & \num{1.59} \\
+     & \code{scalar\_zb} & \num{182726} & \num{122503} & \num{1.49} \\
+     & \code{vector\_rvv} & \num{148479} & \num{122085} & \num{1.22} \\
+    Keccak & \code{scalar\_zb} & \num{554900} & \num{356668} & \num{1.56} \\
+    Decode & \code{scalar\_zb} & \num{604218} & \num{460886} & \num{1.31} \\
+     & \code{vector\_rvv} & \num{134737} & \num{205151} & \num{0.66} \\
   \end{thesistblr}
 \end{table}
 
@@ -101,29 +100,28 @@ trivially-parallel steps.
 \label{ssec:hw-kem}
 
 Ο~\cref{tab:hw-kem} παρουσιάζει τα αποτελέσματα πλήρους \gls{kem} σε
-πραγματικούς κύκλους. Η στήλη wall-clock παρέχει τη χρονική διάρκεια
-κάθε λειτουργίας στα \SI{1.6}{\giga\hertz}, η πρακτική μετρική deployment.
+πραγματικούς κύκλους.
 
 \begin{table}[htbp]
   \centering
   \caption{Πλήρες \KEM σε πραγματικό hardware (HQC-128, BPI-F3,
-    \SI{1.6}{\giga\hertz}). Ο \code{scalar\_zb} (Tier~1) επιτυγχάνει
-    \Decaps σε \SI{748}{\micro\second}, \speedup{29.9} έναντι reference.
-    Ο \code{vector\_rvv} (Tier~2) φτάνει \SI{569}{\micro\second} χάρη
-    στη vectorized αποκωδικοποίηση. Η στήλη Speedup$_\text{zb}$
+    \SI{1.6}{\giga\hertz}, κύκλοι ρολογιού). Ο \code{scalar\_zb} (Tier~1)
+    επιτυγχάνει \Decaps σε \num{1197341} κύκλους, \speedup{29.9} έναντι
+    reference. Ο \code{vector\_rvv} (Tier~2) φτάνει \num{910108} κύκλους
+    χάρη στη vectorized αποκωδικοποίηση. Η στήλη Speedup$_\text{zb}$
     υπολογίζεται ως προς \code{scalar\_ref}.}
   \label{tab:hw-kem}
   \small
   \begin{thesistblr}{
-    colspec = {l r r r r r},
+    colspec = {l r r r r},
     hline{3,6} = {0.4pt, figtablerule},
   }
-    Op & scalar\_ref & scalar\_zb & vector\_rvv & Speedup$_\text{zb}$ & $\mu$s$_\text{zb}$ \\
-    & {(cycles)} & {(cycles)} & {(cycles)} & & \\
-    \KeyGen & \num{11762776} & \num{232836} & \num{212671} & \num{50.5} & \num{146} \\
-    \Encaps & \num{23488205} & \num{461278} & \num{425274} & \num{50.9} & \num{288} \\
-    \Decaps & \num{35747311} & \num{1197341} & \num{910108} & \num{29.9} & \num{748} \\
-    \best{Total} & \best{\num{70998292}} & \best{\num{1891455}} & \best{\num{1548053}} & \best{\num{37.5}} & \best{\num{1182}} \\
+    Op & scalar\_ref & scalar\_zb & vector\_rvv & Speedup$_\text{zb}$ \\
+    & {(cycles)} & {(cycles)} & {(cycles)} & \\
+    \KeyGen & \num{11762776} & \num{232836} & \num{212671} & \num{50.5} \\
+    \Encaps & \num{23488205} & \num{461278} & \num{425274} & \num{50.9} \\
+    \Decaps & \num{35747311} & \num{1197341} & \num{910108} & \num{29.9} \\
+    \best{Total} & \best{\num{70998292}} & \best{\num{1891455}} & \best{\num{1548053}} & \best{\num{37.5}} \\
   \end{thesistblr}
 \end{table}
 
@@ -154,14 +152,17 @@ decoder (\num{205151} vs \num{460886} κύκλοι). Συνολικά, ο
 
 \paragraph{Πρακτική σημασία deployment.}
 Ένα πλήρες \HQC-128 key exchange (1$\times$\KeyGen $+$ 1$\times$\Encaps
-$+$ 1$\times$\Decaps) ολοκληρώνεται σε $\approx\SI{1.2}{\milli\second}$
+$+$ 1$\times$\Decaps) ολοκληρώνεται σε \num{1891455} κύκλους
 στον SpacemiT K1 με τον \code{scalar\_zb} variant, αποδεκτό για
 TLS handshakes και IoT key establishment. Με τον \code{vector\_rvv},
-ο χρόνος μειώνεται στα $\approx\SI{968}{\micro\second}$, σπάζοντας
-το φράγμα του \SI{1}{\milli\second}. Η \Decaps μεμονωμένα
-(\SI{748}{\micro\second} scalar\_zb, \SI{569}{\micro\second} vector\_rvv)
+ο συνολικός αριθμός μειώνεται στους \num{1548053} κύκλους ($-\pct{18}$).
+Η \Decaps μεμονωμένα
+(\num{1197341} κύκλοι scalar\_zb, \num{910108} vector\_rvv)
 αποτελεί τη βαρύτερη λειτουργία, αλλά παραμένει εντός των ορίων
-πρακτικής χρήσης.
+πρακτικής χρήσης. Το Tier~3 (\code{vector\_zvk}) δεν αξιολογείται σε
+πραγματικό hardware, καθώς ο SpacemiT X60 (RVA22 profile) δεν υλοποιεί
+τις επεκτάσεις \gls{zvbc}/\gls{zvbb}· τα αποτελέσματά του περιορίζονται
+στον Spike \gls{iss}.
 
 %% --------------------------------------------------------------------------
 \subsection{Ανάλυση IPC και Pipeline Utilization}
@@ -428,8 +429,7 @@ reference baseline (\code{ref\_scalar}), ανεξάρτητη από τις αλ
 διάταξη κώδικα μειώνει τα branch mispredictions και βελτιώνει τη χωρική
 τοπικότητα στην I-cache, αυξάνοντας τον ρυθμό dual-issue του X60 pipeline.
 
-Τρίτον, το \code{.text} footprint μειώνεται (\SI{516}{\kilo\byte} PGO
-έναντι \SI{530}{\kilo\byte} baseline). Η \gls{pgo} αποφεύγει aggressive
+Τρίτον, η \gls{pgo} αποφεύγει aggressive
 inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει αυτών των ευρημάτων,
 η \gls{pgo} εφαρμόζεται στο reference baseline κατά τις hardware μετρήσεις
 (βλ.\ \cref{ssec:lto-pgo} για τη μεθοδολογία).
@@ -442,26 +442,25 @@ inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει α
 \subsection{Σύνοψη Hardware Evaluation}
 \label{ssec:hw-summary}
 
-\begin{keyresultbox}[Hardware Validation — Βασικά Ευρήματα (HQC-128, BPI-F3)]
-  \begin{itemize}
+\paragraph{Hardware validation — βασικά ευρήματα (HQC-128, BPI-F3).}
+\begin{itemize}
     \item \textbf{Tier~1 (\code{scalar\_zb}):} \Decaps σε
-      \SI{748}{\micro\second}, \speedup{29.9} έναντι reference.
+      \num{1197341} κύκλους, \speedup{29.9} έναντι reference.
       Spike prediction accuracy: $\pct{98}$ (HW/Spike $= 1.01$ στο \gls{kem}).
     \item \textbf{Tier~2 (\code{vector\_rvv}):} \Decaps σε
-      \SI{569}{\micro\second}, \speedup{39.3} έναντι \code{scalar\_ref}.
+      \num{910108} κύκλους, \speedup{39.3} έναντι \code{scalar\_ref}.
       Ο \code{vector\_rvv} υπερτερεί πλέον σε όλες τις λειτουργίες.
     \item \textbf{Microarchitectural insight:} Ο αποσυζευγμένος
       scalar/vector pipeline του X60 εισάγει transition penalties
       (IPC $= 1.22$ στο polymul, $0.66$ στο decode) αλλά η μείωση
       εντολών αντισταθμίζει πλήρως.
     \item \textbf{Deployment:} Πλήρες key exchange σε
-      $\approx\SI{1.2}{\milli\second}$ (scalar) ή $\approx\SI{968}{\micro\second}$ (vector), αποδεκτό για TLS και IoT.
+      \num{1891455} κύκλους (scalar) ή \num{1548053} κύκλους (vector), αποδεκτό για TLS και IoT.
     \item \textbf{Πρόβλεψη Tier~3:} Η \gls{zvbc} υλοποίηση αναμένεται να
       εξαλείψει τα scalar↔vector transitions (ολόκληρος ο υπολογισμός
       στο vector pipeline), επιτυγχάνοντας IPC $\geq 1.0$ και
       πλησιάζοντας τις Spike predictions.
   \end{itemize}
-\end{keyresultbox}
 
 \section{Σύγκριση με Ετερογενείς Αρχιτεκτονικές}
 \label{sec:cross-architecture}
@@ -491,8 +490,8 @@ inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει α
     SUPERCOP/Zen~4 από \cite{OptHQC2025}, τα Cortex-M4 από
     \cite{Jang2025-CortexM4-HQC}, και τα FAFFT RISC-V από
     \cite{ras-nist2025}. Η παρούσα εργασία χρησιμοποιεί \instret μέσω
-    Spike ISS (βλ.\ \cref{ssec:methodology-caveat} για μεθοδολογικές
-    επιφυλάξεις).}%
+    Spike ISS· ο \instret αποτελεί κάτω φράγμα των αντίστοιχων
+    κύκλων ρολογιού.}%
   \label{tab:cross-architecture}
   \small
   \input{figures/ch9-discussion/cross-architecture-table}
@@ -501,69 +500,13 @@ inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει α
 Τρεις βασικές παρατηρήσεις αναδεικνύονται από τον πίνακα. Πρώτον, το
 Tier~3 (\code{vector\_zvk}) επιτυγχάνει \instret της ίδιας τάξης
 μεγέθους με τον x86-64 champion. Ο λόγος \Decaps ανέρχεται σε
-$\num{843459}$ \instret έναντι \num{245000} κύκλων ($3.44\times$ σε δυναμικές εντολές, σε εκτιμώμενους κύκλους ρολογιού, μετά από CPI adjustment, το ρεαλιστικό χάσμα ανέρχεται σε $\approx 5.8\times$, βλ.\ \cref{ssec:methodology-caveat}). Δεύτερον, η απόσταση από τον Cortex-M4 champion
+$\num{843459}$ \instret έναντι \num{245000} κύκλων ($3.44\times$). Καθώς ο \instret αποτελεί κάτω φράγμα των κύκλων ρολογιού, το πραγματικό χάσμα είναι κάπως μεγαλύτερο· τα Tier~1 και Tier~2 επικυρώνονται πλέον σε πραγματικούς κύκλους στο BPI-F3 (\cref{tab:hw-kem}). Δεύτερον, η απόσταση από τον Cortex-M4 champion
 ανέρχεται σε $\num{7502580} / \num{843459} = 8.9\times$, αντικατοπτρίζοντας
 άμεσα την αξία του hardware carry-less πολλαπλασιασμού. Τρίτον, η παρούσα
 υλοποίηση υπερτερεί κατά $\num{38099269} / \num{843459} = 45.2\times$ έναντι
 της FAFFT σε καθαρό λογισμικό, σε scalar RISC-V, τεκμηριώνοντας ότι η αλγοριθμική
 ανωτερότητα $\BigO{n \log n}$ δεν εκδηλώνεται χωρίς κατάλληλη hardware
 υποστήριξη.
-
-%% --------------------------------------------------------------------------
-\subsection{Μεθοδολογική Επιφύλαξη: \instret έναντι Κύκλων Ρολογιού}
-\label{ssec:methodology-caveat}
-
-Η άμεση αριθμητική σύγκριση μεταξύ \instret και κύκλων ρολογιού δεν
-επιτρέπεται χωρίς ρητές επιφυλάξεις. Οι μετρήσεις αναφοράς ενσωματώνουν
-παραλληλισμό επιπέδου εντολών (ILP), out-of-order εκτέλεση, ιεραρχία cache
-και branch prediction, παράγοντες που το Spike ISS δεν μοντελοποιεί.
-Αντίστροφα, ο \instret αποτελεί \defterm{κάτω φράγμα κύκλων} σε κάθε
-ρεαλιστικό pipeline: ένας αλγόριθμος δεν μπορεί να εκτελεστεί σε λιγότερους
-κύκλους από τις δυναμικές εντολές του, εκτός εάν ο επεξεργαστής εκμεταλλεύεται
-υπερβαθμωτή εκτέλεση (superscalar issue width $> 1$).
-
-Η εκτίμηση CPI (Cycles Per Instruction) μέσω ανάλυσης instruction mix
-(\cref{tab:cpi-estimate}) παρέχει μια ενδεικτική γέφυρα μεταξύ \instret και
-αναμενόμενων κύκλων. Για το Tier~3, η εκτιμώμενη CPI ανέρχεται σε $1.69$
-(λόγω υψηλού ποσοστού vector memory operations, \pct{32.7} loads), τιμή που
-προέρχεται από ανάλυση του πλήρους \gls{kem} instruction mix και χρησιμοποιείται
-ως proxy για τη \Decaps, δεδομένου ότι η \Decaps κυριαρχείται από τον ίδιο
-polymul/Keccak πυρήνα. Η εφαρμογή του proxy CPI οδηγεί σε εκτιμώμενους
-$\num{843459} \times 1.69 \approx \num{1425446}$ κύκλους για \Decaps, τιμή
-που παραμένει $\num{1425446} / \num{245000} = 5.8\times$ υψηλότερη από τον
-x86-64 champion.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Εκτίμηση CPI ανά tier μέσω ανάλυσης instruction mix (HQC-128,
-    πλήρες \KEM). Η στήλη \q{Εκτ.\ κύκλοι} αντιπροσωπεύει το γινόμενο
-    $\text{instret} \times \text{CPI}$, ενδεικτική εκτίμηση, όχι μέτρηση.}
-  \label{tab:cpi-estimate}
-  \begin{thesistblr}{
-    colspec = {l r c r r},
-  }
-    Tier & \instret & CPI & Εκτ.\ κύκλοι & Κυρ.\ κατηγορία (\%) \\
-    Tier~1 (\gls{zbc})  & \num{3235515} & \num{1.37} & \num{4432656}  & {ALU \pct{24.3}, Load \pct{37.5}} \\
-    Tier~2 (\RVV)  & \num{2022978} & \num{1.48} & \num{2994007}  & {ALU \pct{19.9}, Load \pct{33.6}} \\
-    Tier~3 (\gls{zvbc}) & \num{1491854} & \num{1.69} & \num{2521233}  & {Load \pct{32.7}, Vec.\ Mem \pct{18.5}} \\
-  \end{thesistblr}
-\end{table}
-
-Η αύξηση CPI από Tier~1 ($1.37$) σε Tier~3 ($1.69$) αντικατοπτρίζει τη
-μετατόπιση του bottleneck: στο Tier~3, οι vector memory operations
-(\insn{vle64.v}/\insn{vse64.v}) και οι vector crypto operations
-(\vclmul/\vclmulh) κυριαρχούν στο instruction mix, εισάγοντας υψηλότερη
-μέση latency ανά εντολή. Παρ' όλα αυτά, η σημαντική μείωση \instret
-($\num{3235515} \to \num{1491854}$, $-\pct{54}$) υπερκαλύπτει πλήρως την
-αύξηση CPI ($+\pct{23}$), οδηγώντας σε καθαρή μείωση εκτιμώμενων κύκλων
-κατά $\pct{43}$ μεταξύ Tier~1 και Tier~3.
-
-Η μεθοδολογική θέση της παρούσας εργασίας ακολουθεί τη δομή αποδεικτικής
-αλυσίδας που προτείνουν οι Zhang et al.\ \cite{zhang-tches2025}: (α)~πίνακας
-\instret, (β)~εκτίμηση CPI μέσω instruction mix, (γ)~θεωρητική πρόβλεψη
-IPC. Η προσέγγιση αυτή αποτελεί αποδεκτή πρακτική στην κοινότητα \gls{pqc}
-benchmarking \cite{pqm4, zhang-tches2025} για υλοποιήσεις που δεν διαθέτουν
-πρόσβαση σε φυσικό hardware με τις απαιτούμενες extensions.
 
 %% --------------------------------------------------------------------------
 \subsection{Ανάλυση Χάσματος Cortex-M4: Η Αρχιτεκτονική Αναγκαιότητα
@@ -580,8 +523,7 @@ look-up tables), μεταφράζοντας κάθε λογικό βήμα σε 
 Η ποσοτική διαφορά είναι εντυπωσιακή: η \Decaps στον Cortex-M4 απαιτεί
 \cycles{7502580} κύκλους, ενώ το Tier~3 της παρούσας εργασίας εκτελεί
 \cycles{843459} δυναμικές εντολές, λόγος $8.9\times$. Ακόμη και υπό τη
-συντηρητική υπόθεση CPI $= 2.0$ για τον RISC-V pipeline (σημαντικά
-υψηλότερη από την εκτιμώμενη $1.69$), οι αναμενόμενοι κύκλοι
+συντηρητική υπόθεση CPI $= 2.0$ για έναν in-order RISC-V pipeline, οι αναμενόμενοι κύκλοι
 ($\approx\num{1686918}$) παραμένουν $4.4\times$ χαμηλότεροι.
 
 Η παρατήρηση αυτή δεν αποτελεί κριτική της αρχιτεκτονικής Cortex-M4.
@@ -644,9 +586,8 @@ $\GF{2}[x]$ (πολυωνυμική αναπαράσταση), δεν υποστ
 δημοσιευμένη υλοποίηση \gls{hqc} σε οποιαδήποτε πλατφόρμα. Η υλοποίηση
 αξιοποιεί AVX2 SIMD με \code{PCLMULQDQ} (128-bit carry-less πολλαπλασιασμός) και
 GFNI (Galois Field New Instructions) στον AMD EPYC 9754 (x86-64).
-Η ανάλυση του εναπομένοντος χάσματος ($3.44\times$
-σε δυναμικές εντολές, $\approx 5.8\times$ σε εκτιμώμενους κύκλους) αποκαλύπτει τρεις
-δομικούς παράγοντες.
+Η ανάλυση του εναπομένοντος χάσματος ($3.44\times$ σε δυναμικές
+εντολές) αποκαλύπτει τρεις δομικούς παράγοντες.
 
 \paragraph{Εύρος SIMD και register file.}
 Η εντολή \code{PCLMULQDQ} εκτελεί $1 \times 64$-bit carry-less γινόμενο ανά

@@ -2,20 +2,23 @@
 % Data source: results/simulation/benchmarks/components/decode/sim_decode_*_latest.csv
 % Updated: 2026-06-30 (commit bdd9cf4)
 \begin{thesistblr}{
-  colspec = {l l r r r},
-  cell{2}{1} = {r=3}{l},
-  cell{5}{1} = {r=3}{l},
-  cell{8}{1} = {r=3}{l},
-  hline{5,8} = {0.4pt, figtablerule},
+  colspec = {l l r r},
+  cell{2}{1} = {r=4}{l},
+  cell{6}{1} = {r=4}{l},
+  cell{10}{1} = {r=4}{l},
+  hline{6,10} = {0.4pt, figtablerule},
 }
-{Security Level} & {Variant} & {\instret} & {Code size (B)} & {Speedup} \\
-HQC-128 & Reference (scalar) & \num{1052692} & \num{12452} & — \\
- & Tier~2 (base-RVV) & \num{134737} & \num{12532} & \num{7.81} \\
- & Tier~3 (\Zvbc) & \num{73769} & \num{13148} & \best{\num{14.27}} \\
-HQC-192 & Reference (scalar) & \num{1430377} & \num{15338} & — \\
- & Tier~2 (base-RVV) & \num{168915} & \num{15744} & \num{8.47} \\
- & Tier~3 (\Zvbc) & \num{89688} & \num{15222} & \best{\num{15.95}} \\
-HQC-256 & Reference (scalar) & \num{3066751} & \num{20456} & — \\
- & Tier~2 (base-RVV) & \num{429339} & \num{20866} & \num{7.14} \\
- & Tier~3 (\Zvbc) & \num{231570} & \num{20982} & \best{\num{13.24}} \\
+{Security Level} & {Variant} & {\instret} & {Speedup} \\
+HQC-128 & Reference (scalar) & \num{1052692} & — \\
+ & Tier~1 (scalar \Zbc) & \num{604218} & \num{1.74} \\
+ & Tier~2 (base-RVV) & \num{134737} & \num{7.81} \\
+ & Tier~3 (\Zvbc) & \num{73769} & \best{\num{14.27}} \\
+HQC-192 & Reference (scalar) & \num{1430377} & — \\
+ & Tier~1 (scalar \Zbc) & \num{859332} & \num{1.66} \\
+ & Tier~2 (base-RVV) & \num{168915} & \num{8.47} \\
+ & Tier~3 (\Zvbc) & \num{89688} & \best{\num{15.95}} \\
+HQC-256 & Reference (scalar) & \num{3066751} & — \\
+ & Tier~1 (scalar \Zbc) & \num{1608746} & \num{1.91} \\
+ & Tier~2 (base-RVV) & \num{429339} & \num{7.14} \\
+ & Tier~3 (\Zvbc) & \num{231570} & \best{\num{13.24}} \\
 \end{thesistblr}

@@ -1,16 +1,16 @@
 % Table: Keccak micro-benchmark results (ref vs optimized, all security levels)
 \begin{thesistblr}{
-  colspec = {l l r r r},
+  colspec = {l l r r},
   cell{2}{1} = {r=2}{l},
   cell{4}{1} = {r=2}{l},
   cell{6}{1} = {r=2}{l},
   hline{4,6} = {0.4pt, figtablerule},
 }
-{Security Level} & {Variant} & {\instret} & {Code size (B)} & {Speedup} \\
-HQC-128 & Reference (\code{fips202.c}) & \num{758580} & \num{5860} & — \\
- & Optimized (\code{zvbb\_x2\_soa}) & \num{554900} & \num{5278} & \best{\num{1.37}} \\
-HQC-192 & Reference (\code{fips202.c}) & \num{1505161} & \num{5822} & — \\
- & Optimized (\code{zvbb\_x2\_soa}) & \num{1103161} & \num{5240} & \best{\num{1.36}} \\
-HQC-256 & Reference (\code{fips202.c}) & \num{2360607} & \num{5908} & — \\
- & Optimized (\code{zvbb\_x2\_soa}) & \num{1736167} & \num{5326} & \best{\num{1.36}} \\
+{Security Level} & {Variant} & {\instret} & {Speedup} \\
+HQC-128 & Reference (\code{fips202.c}) & \num{758580} & — \\
+ & Optimized (scalar \Zbb) & \num{554900} & \best{\num{1.37}} \\
+HQC-192 & Reference (\code{fips202.c}) & \num{1505161} & — \\
+ & Optimized (scalar \Zbb) & \num{1103161} & \best{\num{1.36}} \\
+HQC-256 & Reference (\code{fips202.c}) & \num{2360607} & — \\
+ & Optimized (scalar \Zbb) & \num{1736167} & \best{\num{1.36}} \\
 \end{thesistblr}
