@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-24 15:21:07 |
-| Commit | `0eb2718` |
+| Generated | 2026-06-30 23:42:27 |
+| Commit | `bdd9cf4` |
 
 ---
 
@@ -16,71 +16,53 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 186,629 | 12,220 |
-| 192 | vect_mul | 591,557 | 11,904 |
-| 256 | vect_mul | 1,306,068 | 11,514 |
+| 128 | vect_mul | 182,726 | 10,362 |
+| 192 | vect_mul | 570,293 | 9808 |
+| 256 | vect_mul | 1,262,888 | 11,994 |
 
 ### Full KEM Suite
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 432,968 | 36,490 |
-| 128 | encaps | 842,287 | 36,490 |
-| 128 | decaps | 2,002,282 | 36,490 |
-| 128 | **total** | 3,277,537 | 36,490 |
-| 192 | keypair | 1,062,817 | 38,724 |
-| 192 | encaps | 2,104,122 | 38,724 |
-| 192 | decaps | 4,281,887 | 38,724 |
-| 192 | **total** | 7,448,826 | 38,724 |
-| 256 | keypair | 2,062,593 | 43,628 |
-| 256 | encaps | 4,086,039 | 43,628 |
-| 256 | decaps | 8,168,745 | 43,628 |
-| 256 | **total** | 14,317,377 | 43,628 |
+| 128 | keypair | 428,923 | 29,520 |
+| 128 | encaps | 834,245 | 29,520 |
+| 128 | decaps | 1,972,347 | 29,520 |
+| 128 | **total** | 3,235,515 | 29,520 |
+| 192 | keypair | 1,041,343 | 31,646 |
+| 192 | encaps | 2,061,241 | 31,646 |
+| 192 | decaps | 4,181,542 | 31,646 |
+| 192 | **total** | 7,284,126 | 31,646 |
+| 256 | keypair | 2,019,141 | 39,104 |
+| 256 | encaps | 3,999,221 | 39,104 |
+| 256 | decaps | 7,980,756 | 39,104 |
+| 256 | **total** | 13,999,118 | 39,104 |
 
-## 2. Memory & Cache
-
-### Cache Misses (Top 10 Rows)
-
-| Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1331 | 90 | 1241 | 155 | 10,225,881 | 5,107,503 | 1,557,477 | 982,784 |
-| 192 | 3098 | 197 | 2901 | 809 | 22,916,958 | 13,988,195 | 3,316,397 | 2,369,632 |
-| 256 | 6890 | 883 | 6007 | 3266 | 41,210,119 | 28,307,416 | 5,912,256 | 4,531,455 |
-
-### Memory Footprint
-
-| Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 2072 | 1731 | 14,707 | 12,338 | 230 | 193 |
-| 192 | 2127 | 1786 | 14,809 | 12,598 | 232 | 197 |
-| 256 | 2140 | 1779 | 15,052 | 12,729 | 236 | 199 |
-
-## 3. Hotspots
+## 2. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| clmul_leaf | 3,861,438 | 27.05 |
-| KeccakF1600_StatePermute | 1,752,202 | 12.27 |
-| memset | 933,355 | 6.54 |
-| __riscv_clmul_64 | 909,188 | 6.37 |
-| __riscv_clmulh_64 | 887,928 | 6.22 |
-| support_contains_value | 554,346 | 3.88 |
-| keccak_inc_absorb | 502,326 | 3.52 |
-| hadamard | 449,190 | 3.15 |
-| memcpy | 448,010 | 3.14 |
-| kmul_28 | 402,690 | 2.82 |
-| expand_and_sum | 395,460 | 2.77 |
-| kmul_113 | 318,252 | 2.23 |
-| gf_reduce | 307,564 | 2.15 |
-| kmul_57 | 302,016 | 2.12 |
-| keccak_inc_squeeze | 300,162 | 2.10 |
-| kmul_56 | 244,644 | 1.71 |
-| kmul_29 | 238,128 | 1.67 |
-| kmul_225 | 142,140 | 1.00 |
-| find_peaks | 139,505 | 0.98 |
-| kmul_901 | 134,382 | 0.94 |
+| clmul_leaf_n14 | 2,715,180 | 19.38 |
+| KeccakF1600_StatePermute | 1,752,202 | 12.50 |
+| scalar_xor3_u64 | 1,086,480 | 7.75 |
+| clmul_leaf_n15 | 990,000 | 7.07 |
+| memset | 933,355 | 6.66 |
+| __riscv_clmul_64 | 906,020 | 6.47 |
+| __riscv_clmulh_64 | 889,386 | 6.35 |
+| scalar_xor_u64 | 648,714 | 4.63 |
+| support_contains_value | 554,346 | 3.96 |
+| keccak_inc_absorb | 502,326 | 3.58 |
+| hadamard | 449,190 | 3.21 |
+| memcpy | 448,010 | 3.20 |
+| expand_and_sum | 395,460 | 2.82 |
+| gf_reduce | 307,564 | 2.19 |
+| keccak_inc_squeeze | 300,162 | 2.14 |
+| scalar_copy_u64 | 224,886 | 1.60 |
+| find_peaks | 139,505 | 1.00 |
+| compute_error_values | 104,949 | 0.75 |
+| vect_compare | 100,974 | 0.72 |
+| gf_mul | 82,185 | 0.59 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
@@ -107,36 +89,36 @@
 | clmul_leaf at gf2x_clmul.c:391 | 172,536 | 1.21 |
 | hadamard at reed_muller.c:98 | 161,280 | 1.13 |
 
-## 5. Compiler Comparison
+## 4. Compiler Comparison
 
 ### HQC-128
 
 | Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| gcc | -O2 | karatsuba_zbc | OK | 2,234,431 | 523,497 |
-| gcc | -O3 | karatsuba_zbc | OK | 2,032,805 | 540,153 |
-| clang | -O2 | karatsuba_zbc | OK | 2,179,591 | 542,507 |
-| clang | -O3 | karatsuba_zbc | OK | 2,158,898 | 561,411 |
+| gcc | -O2 | scalar_zb | OK | 2,834,259 | 522,825 |
+| gcc | -O3 | scalar_zb | OK | 1,902,665 | 539,721 |
+| clang | -O2 | scalar_zb | OK | 2,151,335 | 542,145 |
+| clang | -O3 | scalar_zb | OK | 2,163,048 | 563,401 |
 
 ### HQC-192
 
 | Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| gcc | -O2 | karatsuba_zbc | OK | 5,225,191 | 525,817 |
-| gcc | -O3 | karatsuba_zbc | OK | 4,621,302 | 541,337 |
-| clang | -O2 | karatsuba_zbc | OK | 4,897,752 | 544,679 |
-| clang | -O3 | karatsuba_zbc | OK | 4,912,525 | 564,729 |
+| gcc | -O2 | scalar_zb | OK | 6,996,043 | 525,137 |
+| gcc | -O3 | scalar_zb | OK | 4,223,873 | 541,065 |
+| clang | -O2 | scalar_zb | OK | 4,874,759 | 544,435 |
+| clang | -O3 | scalar_zb | OK | 4,882,834 | 565,625 |
 
 ### HQC-256
 
 | Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| gcc | -O2 | karatsuba_zbc | OK | 11,223,044 | 531,865 |
-| gcc | -O3 | karatsuba_zbc | OK | 8,958,436 | 545,905 |
-| clang | -O2 | karatsuba_zbc | OK | 11,420,506 | 549,393 |
-| clang | -O3 | karatsuba_zbc | OK | 11,360,831 | 566,783 |
+| gcc | -O2 | scalar_zb | OK | 17,234,639 | 532,185 |
+| gcc | -O3 | scalar_zb | OK | 8,106,449 | 548,257 |
+| clang | -O2 | scalar_zb | OK | 11,467,224 | 551,225 |
+| clang | -O3 | scalar_zb | OK | 11,144,875 | 567,675 |
 
-## 6. Cross-Variant Reports
+## 5. Cross-Variant Reports
 
 The following reports aggregate data across all variants and are regenerated
 each time a full analysis runs:

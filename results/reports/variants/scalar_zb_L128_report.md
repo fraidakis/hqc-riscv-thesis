@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-24 15:21:07 |
-| Commit | `0eb2718` |
+| Generated | 2026-06-30 23:42:22 |
+| Commit | `bdd9cf4` |
 
 ---
 
@@ -16,71 +16,53 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 186,629 | 12,220 |
-| 192 | vect_mul | 591,557 | 11,904 |
-| 256 | vect_mul | 1,306,068 | 11,514 |
+| 128 | vect_mul | 182,726 | 10,362 |
+| 192 | vect_mul | 570,293 | 9808 |
+| 256 | vect_mul | 1,262,888 | 11,994 |
 
 ### Full KEM Suite
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 432,968 | 36,490 |
-| 128 | encaps | 842,287 | 36,490 |
-| 128 | decaps | 2,002,282 | 36,490 |
-| 128 | **total** | 3,277,537 | 36,490 |
-| 192 | keypair | 1,062,817 | 38,724 |
-| 192 | encaps | 2,104,122 | 38,724 |
-| 192 | decaps | 4,281,887 | 38,724 |
-| 192 | **total** | 7,448,826 | 38,724 |
-| 256 | keypair | 2,062,593 | 43,628 |
-| 256 | encaps | 4,086,039 | 43,628 |
-| 256 | decaps | 8,168,745 | 43,628 |
-| 256 | **total** | 14,317,377 | 43,628 |
+| 128 | keypair | 428,923 | 29,520 |
+| 128 | encaps | 834,245 | 29,520 |
+| 128 | decaps | 1,972,347 | 29,520 |
+| 128 | **total** | 3,235,515 | 29,520 |
+| 192 | keypair | 1,041,343 | 31,646 |
+| 192 | encaps | 2,061,241 | 31,646 |
+| 192 | decaps | 4,181,542 | 31,646 |
+| 192 | **total** | 7,284,126 | 31,646 |
+| 256 | keypair | 2,019,141 | 39,104 |
+| 256 | encaps | 3,999,221 | 39,104 |
+| 256 | decaps | 7,980,756 | 39,104 |
+| 256 | **total** | 13,999,118 | 39,104 |
 
-## 2. Memory & Cache
-
-### Cache Misses (Top 10 Rows)
-
-| Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1331 | 90 | 1241 | 155 | 10,225,881 | 5,107,503 | 1,557,477 | 982,784 |
-| 192 | 3098 | 197 | 2901 | 809 | 22,916,958 | 13,988,195 | 3,316,397 | 2,369,632 |
-| 256 | 6890 | 883 | 6007 | 3266 | 41,210,119 | 28,307,416 | 5,912,256 | 4,531,455 |
-
-### Memory Footprint
-
-| Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 2072 | 1731 | 14,707 | 12,338 | 230 | 193 |
-| 192 | 2127 | 1786 | 14,809 | 12,598 | 232 | 197 |
-| 256 | 2140 | 1779 | 15,052 | 12,729 | 236 | 199 |
-
-## 3. Hotspots
+## 2. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| KeccakF1600_StatePermute | 591,004 | 18.05 |
-| clmul_leaf | 457,320 | 13.96 |
-| memset | 307,101 | 9.38 |
-| hadamard | 229,586 | 7.01 |
-| keccak_inc_absorb | 159,678 | 4.88 |
-| support_contains_value | 140,436 | 4.29 |
-| memcpy | 137,922 | 4.21 |
-| __riscv_clmul_64 | 119,913 | 3.66 |
-| expand_and_sum | 116,426 | 3.55 |
-| __riscv_clmulh_64 | 114,324 | 3.49 |
-| keccak_inc_squeeze | 103,803 | 3.17 |
-| gf_reduce | 95,013 | 2.90 |
-| kmul_35 | 84,216 | 2.57 |
-| find_peaks | 71,293 | 2.18 |
-| kmul_18 | 70,752 | 2.16 |
-| kmul_17 | 51,282 | 1.57 |
-| kmul_69 | 41,520 | 1.27 |
-| kmul_139 | 35,340 | 1.08 |
-| kmul_277 | 34,896 | 1.07 |
-| kmul_70 | 32,496 | 0.99 |
+| KeccakF1600_StatePermute | 591,004 | 18.18 |
+| clmul_leaf_n9 | 420,366 | 12.93 |
+| memset | 307,101 | 9.45 |
+| hadamard | 229,586 | 7.06 |
+| scalar_xor3_u64 | 193,260 | 5.95 |
+| keccak_inc_absorb | 159,678 | 4.91 |
+| support_contains_value | 140,436 | 4.32 |
+| memcpy | 137,922 | 4.24 |
+| __riscv_clmul_64 | 119,913 | 3.69 |
+| expand_and_sum | 116,426 | 3.58 |
+| __riscv_clmulh_64 | 114,588 | 3.53 |
+| scalar_xor_u64 | 105,930 | 3.26 |
+| keccak_inc_squeeze | 103,803 | 3.19 |
+| gf_reduce | 95,013 | 2.92 |
+| find_peaks | 71,293 | 2.19 |
+| clmul_leaf_n8 | 61,272 | 1.89 |
+| scalar_copy_u64 | 42,198 | 1.30 |
+| vect_compare | 31,058 | 0.96 |
+| gf_mul | 23,702 | 0.73 |
+| reduce | 18,312 | 0.56 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
@@ -107,36 +89,36 @@
 | gf_reduce at gf.c:80 | 44,712 | 1.37 |
 | gf_reduce at gf.c:82 | 44,712 | 1.37 |
 
-## 5. Compiler Comparison
+## 4. Compiler Comparison
 
 ### HQC-128
 
 | Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| gcc | -O2 | karatsuba_zbc | OK | 2,234,431 | 523,497 |
-| gcc | -O3 | karatsuba_zbc | OK | 2,032,805 | 540,153 |
-| clang | -O2 | karatsuba_zbc | OK | 2,179,591 | 542,507 |
-| clang | -O3 | karatsuba_zbc | OK | 2,158,898 | 561,411 |
+| gcc | -O2 | scalar_zb | OK | 2,834,259 | 522,825 |
+| gcc | -O3 | scalar_zb | OK | 1,902,665 | 539,721 |
+| clang | -O2 | scalar_zb | OK | 2,151,335 | 542,145 |
+| clang | -O3 | scalar_zb | OK | 2,163,048 | 563,401 |
 
 ### HQC-192
 
 | Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| gcc | -O2 | karatsuba_zbc | OK | 5,225,191 | 525,817 |
-| gcc | -O3 | karatsuba_zbc | OK | 4,621,302 | 541,337 |
-| clang | -O2 | karatsuba_zbc | OK | 4,897,752 | 544,679 |
-| clang | -O3 | karatsuba_zbc | OK | 4,912,525 | 564,729 |
+| gcc | -O2 | scalar_zb | OK | 6,996,043 | 525,137 |
+| gcc | -O3 | scalar_zb | OK | 4,223,873 | 541,065 |
+| clang | -O2 | scalar_zb | OK | 4,874,759 | 544,435 |
+| clang | -O3 | scalar_zb | OK | 4,882,834 | 565,625 |
 
 ### HQC-256
 
 | Compiler | Opt | Variant | Status | cycles | Text (B) |
 | --- | --- | --- | --- | ---: | ---: |
-| gcc | -O2 | karatsuba_zbc | OK | 11,223,044 | 531,865 |
-| gcc | -O3 | karatsuba_zbc | OK | 8,958,436 | 545,905 |
-| clang | -O2 | karatsuba_zbc | OK | 11,420,506 | 549,393 |
-| clang | -O3 | karatsuba_zbc | OK | 11,360,831 | 566,783 |
+| gcc | -O2 | scalar_zb | OK | 17,234,639 | 532,185 |
+| gcc | -O3 | scalar_zb | OK | 8,106,449 | 548,257 |
+| clang | -O2 | scalar_zb | OK | 11,467,224 | 551,225 |
+| clang | -O3 | scalar_zb | OK | 11,144,875 | 567,675 |
 
-## 6. Cross-Variant Reports
+## 5. Cross-Variant Reports
 
 The following reports aggregate data across all variants and are regenerated
 each time a full analysis runs:

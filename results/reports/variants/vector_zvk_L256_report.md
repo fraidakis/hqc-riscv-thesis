@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 256 |
-| Generated | 2026-06-24 15:21:08 |
-| Commit | `0eb2718` |
+| Generated | 2026-06-30 23:42:30 |
+| Commit | `bdd9cf4` |
 
 ---
 
@@ -16,71 +16,53 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 63,804 | 5882 |
-| 192 | vect_mul | 189,388 | 6894 |
-| 256 | vect_mul | 272,896 | 7082 |
+| 128 | vect_mul | 70,070 | 6978 |
+| 192 | vect_mul | 207,443 | 8074 |
+| 256 | vect_mul | 318,972 | 9250 |
 
 ### Full KEM Suite
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | keypair | 209,826 | 30,774 |
-| 128 | encaps | 419,771 | 30,774 |
-| 128 | decaps | 824,660 | 30,774 |
-| 128 | **total** | 1,454,257 | 30,774 |
-| 192 | keypair | 450,111 | 33,834 |
-| 192 | encaps | 914,528 | 33,834 |
-| 192 | decaps | 1,719,604 | 33,834 |
-| 192 | **total** | 3,084,243 | 33,834 |
-| 256 | keypair | 690,994 | 39,906 |
-| 256 | encaps | 1,407,194 | 39,906 |
-| 256 | decaps | 2,764,123 | 39,906 |
-| 256 | **total** | 4,862,311 | 39,906 |
+| 128 | keypair | 216,092 | 27,790 |
+| 128 | encaps | 432,303 | 27,790 |
+| 128 | decaps | 843,459 | 27,790 |
+| 128 | **total** | 1,491,854 | 27,790 |
+| 192 | keypair | 468,166 | 30,922 |
+| 192 | encaps | 950,638 | 30,922 |
+| 192 | decaps | 1,773,770 | 30,922 |
+| 192 | **total** | 3,192,574 | 30,922 |
+| 256 | keypair | 737,070 | 37,976 |
+| 256 | encaps | 1,499,346 | 37,976 |
+| 256 | decaps | 2,902,352 | 37,976 |
+| 256 | **total** | 5,138,768 | 37,976 |
 
-## 2. Memory & Cache
-
-### Cache Misses (Top 10 Rows)
-
-| Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1314 | 84 | 1230 | 146 | 13,142,297 | 7,174,511 | 1,922,241 | 1,080,842 |
-| 192 | 3026 | 206 | 2820 | 735 | 30,742,554 | 19,952,135 | 4,294,814 | 2,786,754 |
-| 256 | 6814 | 867 | 5947 | 3193 | 59,825,441 | 42,194,770 | 8,239,574 | 5,770,845 |
-
-### Memory Footprint
-
-| Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1583 | 1530 | 23,269 | 17,714 | 364 | 277 |
-| 192 | 1596 | 1508 | 25,285 | 18,620 | 396 | 291 |
-| 256 | 1880 | 1759 | 27,291 | 20,521 | 427 | 321 |
-
-## 3. Hotspots
+## 2. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
 
 | Function | Instructions | % Total |
 | --- | ---: | ---: |
-| KeccakF1600_StatePermute | 1,752,202 | 35.97 |
-| vclmul_leaf | 1,101,198 | 22.60 |
-| keccak_inc_absorb | 473,564 | 9.72 |
-| keccak_inc_squeeze | 300,162 | 6.16 |
-| rvv_xor3_u64 | 155,442 | 3.19 |
-| gf_reduce | 126,038 | 2.59 |
-| memset | 112,827 | 2.32 |
-| rvv_copy_u64 | 112,794 | 2.32 |
-| vect_compare | 100,968 | 2.07 |
-| compute_error_values_zvbc | 92,328 | 1.90 |
-| rvv_xor_u64 | 90,384 | 1.86 |
-| reduce | 59,502 | 1.22 |
-| reed_solomon_encode | 56,680 | 1.16 |
-| kmul_28 | 46,500 | 0.95 |
-| gf_mul | 31,724 | 0.65 |
-| kmul_29 | 27,984 | 0.57 |
-| support_contains_value | 23,697 | 0.49 |
-| vect_generate_random_support2 | 19,822 | 0.41 |
-| expand_and_sum | 15,033 | 0.31 |
-| kmul_57 | 14,784 | 0.30 |
+| KeccakF1600_StatePermute | 1,752,202 | 34.04 |
+| vclmul_leaf | 1,101,198 | 21.39 |
+| keccak_inc_absorb | 473,564 | 9.20 |
+| kmul_28 | 340,380 | 6.61 |
+| keccak_inc_squeeze | 300,162 | 5.83 |
+| kmul_29 | 202,752 | 3.94 |
+| gf_reduce | 126,038 | 2.45 |
+| memset | 112,827 | 2.19 |
+| vect_compare | 100,968 | 1.96 |
+| rvv_xor3_u64 | 98,082 | 1.91 |
+| compute_error_values_zvbc | 92,328 | 1.79 |
+| reduce | 59,502 | 1.16 |
+| reed_solomon_encode | 56,680 | 1.10 |
+| rvv_xor_u64 | 53,406 | 1.04 |
+| gf_mul | 31,724 | 0.62 |
+| support_contains_value | 23,697 | 0.46 |
+| rvv_copy_u64 | 20,472 | 0.40 |
+| vect_generate_random_support2 | 19,822 | 0.39 |
+| expand_and_sum | 15,033 | 0.29 |
+| ?? ??:0 | 14,471 | 0.28 |
 
 ### Line-Level Hotspots (Top 20 Rows)
 
@@ -107,36 +89,21 @@
 | KeccakF1600_StatePermute at fips202.c:113 | 30,312 | 0.62 |
 | KeccakF1600_StatePermute at fips202.c:111 | 30,312 | 0.62 |
 
-## 4. VLEN Scaling Sweep
+## 3. VLEN Scaling Sweep
 
 ### VLEN Sweep — HQC-128
 
-| Operation | VLEN | Instructions |
-| --- | ---: | ---: |
-| total | 256 | 702,755 |
-| total | 512 | 677,092 |
-| total | 1024 | 679,548 |
-| total | 2048 | 703,870 |
+> _No data rows._
 
 ### VLEN Sweep — HQC-192
 
-| Operation | VLEN | Instructions |
-| --- | ---: | ---: |
-| total | 256 | 1,653,804 |
-| total | 512 | 1,561,614 |
-| total | 1024 | 1,549,935 |
-| total | 2048 | 1,569,907 |
+> _No data rows._
 
 ### VLEN Sweep — HQC-256
 
-| Operation | VLEN | Instructions |
-| --- | ---: | ---: |
-| total | 256 | 2,544,133 |
-| total | 512 | 2,404,440 |
-| total | 1024 | 2,386,495 |
-| total | 2048 | 2,404,029 |
+> _No data rows._
 
-## 5. Compiler Comparison
+## 4. Compiler Comparison
 
 ### HQC-128
 
@@ -150,7 +117,7 @@
 
 > _No data available._
 
-## 6. Cross-Variant Reports
+## 5. Cross-Variant Reports
 
 The following reports aggregate data across all variants and are regenerated
 each time a full analysis runs:

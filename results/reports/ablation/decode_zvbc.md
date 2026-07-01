@@ -1,6 +1,6 @@
 # Zvbc Decode Ablation Study (Tier 3)
 
-Generated: 2026-06-30 19:37
+Generated: 2026-06-30 22:27
 Platform: BPI-F3 (SpacemiT K1 X60)
 Quality: dev
 
@@ -19,7 +19,7 @@ in the Zvbc pipeline — its contribution is included in both B+D and C measurem
 | Variant | Optimizations | median cycles | vs base | vs prev | instret | vs base | vs prev |
 |---------|---------------|-------------:|--------:|--------:|--------:|--------:|--------:|
 | `rvv` | (none — Tier 2 RVV baseline) | 205,072 | ×1.00 | — | 134,737 | ×1.00 | — |
-| `zvbc_BD` | B+D | — | — | — | 95,543 | ×1.41 | ×1.41 |
+| `zvbc_BD` | B+D | — | — | — | 95,545 | ×1.41 | ×1.41 |
 | `zvbc` | B+D+C (champion) | — | — | — | 73,769 | ×1.83 | ×1.30 |
 
 ## HQC-192
@@ -27,7 +27,7 @@ in the Zvbc pipeline — its contribution is included in both B+D and C measurem
 | Variant | Optimizations | median cycles | vs base | vs prev | instret | vs base | vs prev |
 |---------|---------------|-------------:|--------:|--------:|--------:|--------:|--------:|
 | `rvv` | (none — Tier 2 RVV baseline) | 279,624 | ×1.00 | — | 168,915 | ×1.00 | — |
-| `zvbc_BD` | B+D | — | — | — | 124,964 | ×1.35 | ×1.35 |
+| `zvbc_BD` | B+D | — | — | — | 124,966 | ×1.35 | ×1.35 |
 | `zvbc` | B+D+C (champion) | — | — | — | 89,688 | ×1.88 | ×1.39 |
 
 ## HQC-256
@@ -35,7 +35,7 @@ in the Zvbc pipeline — its contribution is included in both B+D and C measurem
 | Variant | Optimizations | median cycles | vs base | vs prev | instret | vs base | vs prev |
 |---------|---------------|-------------:|--------:|--------:|--------:|--------:|--------:|
 | `rvv` | (none — Tier 2 RVV baseline) | 546,616 | ×1.00 | — | 429,339 | ×1.00 | — |
-| `zvbc_BD` | B+D | — | — | — | 268,646 | ×1.60 | ×1.60 |
+| `zvbc_BD` | B+D | — | — | — | 268,648 | ×1.60 | ×1.60 |
 | `zvbc` | B+D+C (champion) | — | — | — | 231,570 | ×1.85 | ×1.16 |
 
 ## Incremental Optimization Contribution
@@ -47,15 +47,15 @@ in the Zvbc pipeline — its contribution is included in both B+D and C measurem
 
 ## Analysis
 
-**HQC-128**: B+D: −39194 instret (−29.1% of baseline); C: −21774 instret (−22.8% of zvbc_BD); Total: ×1.83
+**HQC-128**: B+D: −39192 instret (−29.1% of baseline); C: −21776 instret (−22.8% of zvbc_BD); Total: ×1.83
 
-**HQC-192**: B+D: −43951 instret (−26.0% of baseline); C: −35276 instret (−28.2% of zvbc_BD); Total: ×1.88
+**HQC-192**: B+D: −43949 instret (−26.0% of baseline); C: −35278 instret (−28.2% of zvbc_BD); Total: ×1.88
 
-**HQC-256**: B+D: −160693 instret (−37.4% of baseline); C: −37076 instret (−13.8% of zvbc_BD); Total: ×1.85
+**HQC-256**: B+D: −160691 instret (−37.4% of baseline); C: −37078 instret (−13.8% of zvbc_BD); Total: ×1.85
 
 ## End-to-End: Scalar Reference to Zvbc Champion
 
-For complete context, combining with the Tier 2 ablation (decode_rm_rvv.md):
+For complete context, combining with the Tier 2 ablation (decode_rvv.md):
 
 | Level | ref (scalar) | rvv (Tier 2) | zvbc (Tier 3) | Total speedup |
 |-------|-------------:|:------------:|:-------------:|:-------------:|

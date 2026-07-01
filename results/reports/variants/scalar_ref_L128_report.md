@@ -5,8 +5,8 @@
 | Track | scalar |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-24 15:21:07 |
-| Commit | `0eb2718` |
+| Generated | 2026-06-30 23:42:22 |
+| Commit | `bdd9cf4` |
 
 ---
 
@@ -16,9 +16,9 @@
 
 | Level | Operation | Instructions | Code (B) |
 | ---: | --- | ---: | ---: |
-| 128 | vect_mul | 18,639,752 | 5216 |
-| 192 | vect_mul | 56,702,057 | 5252 |
-| 256 | vect_mul | 139,877,019 | 4466 |
+| 128 | vect_mul | 18,504,302 | 5054 |
+| 192 | vect_mul | 56,292,809 | 5090 |
+| 256 | vect_mul | 139,222,953 | 4298 |
 
 ### Full KEM Suite
 
@@ -28,34 +28,8 @@
 | 128 | encaps | 37,748,533 | 29,486 |
 | 128 | decaps | 57,361,651 | 29,486 |
 | 128 | **total** | 113,996,275 | 29,486 |
-| 192 | keypair | 57,173,317 | 32,072 |
-| 192 | encaps | 114,325,122 | 32,072 |
-| 192 | decaps | 172,613,387 | 32,072 |
-| 192 | **total** | 344,111,826 | 32,072 |
-| 256 | keypair | 140,633,544 | 36,580 |
-| 256 | encaps | 281,227,941 | 36,580 |
-| 256 | decaps | 423,881,598 | 36,580 |
-| 256 | **total** | 845,743,083 | 36,580 |
 
-## 2. Memory & Cache
-
-### Cache Misses (Top 10 Rows)
-
-| Level | D$ Misses | D$ Read Miss | D$ Write Miss | D$ Writebacks | D$ Bytes Read | D$ Bytes Written | D$ Read Acc. | D$ Write Acc. |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1349 | 87 | 1262 | 136 | 372,860,807 | 236,874,517 | 46,886,869 | 30,932,959 |
-| 192 | 3298 | 291 | 3007 | 932 | 1,123,549,340 | 718,572,777 | 140,895,471 | 93,503,859 |
-| 256 | 7593 | 1131 | 6462 | 3778 | 2,808,270,227 | 1,822,987,412 | 351,794,801 | 233,769,062 |
-
-### Memory Footprint
-
-| Level | Load Insns | Store Insns | Load Bytes | Store Bytes | CL Load | CL Store |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 128 | 1207 | 1060 | 7787 | 6970 | 122 | 109 |
-| 192 | 1236 | 1131 | 7681 | 7358 | 121 | 115 |
-| 256 | 1107 | 1041 | 6788 | 6825 | 107 | 107 |
-
-## 3. Hotspots
+## 2. Hotspots
 
 ### Function-Level Hotspots (Top 20 Rows)
 
@@ -107,7 +81,7 @@
 | hadamard at reed_muller.c:99 | 82,432 | 0.07 |
 | karatsuba_mul at gf2x.c:115 (discriminator 1) | 70,338 | 0.06 |
 
-## 5. Compiler Comparison
+## 4. Compiler Comparison
 
 ### HQC-128
 
@@ -136,7 +110,7 @@
 | clang | -O2 | ref_scalar | OK | 611,671,813 | 541,505 |
 | clang | -O3 | ref_scalar | OK | 611,456,033 | 552,753 |
 
-## 6. Cross-Variant Reports
+## 5. Cross-Variant Reports
 
 The following reports aggregate data across all variants and are regenerated
 each time a full analysis runs:
