@@ -10,16 +10,16 @@ hardware) implementation of HQC, a post-quantum \gls{kem}, on RISC-V.
 The implementation leverages the ratified \gls{isa} extensions
 Zbc and Zvbc (carry-less multiplication) as well as Zbb and Zvbb (bit 
 manipulation). For HQC-128, the optimized implementation achieves a 
-\speedup{318} speedup on polynomial multiplication and \speedup{167} 
+\speedup{264} speedup on polynomial multiplication and \speedup{76} 
 on the full \gls{kem} relative to the HQC team's reference implementation, 
 measured in instruction count (\instret). This benefit is sustained 
-across all three security levels (HQC-128/192/256), reaching \speedup{547} 
-on polynomial multiplication and \speedup{339} on the full KEM at HQC-256. 
+across all three security levels (HQC-128/192/256), reaching \speedup{436} 
+on polynomial multiplication and \speedup{164} on the full KEM at HQC-256. 
 Beyond the \gls{iss}, the measurements are also confirmed on real RISC-V 
 silicon (Banana Pi BPI-F3, SpacemiT K1): as no hardware supporting the 
 Zvbc/Zvbb vector extensions was available at the time of writing, the 
 scalar (Zbc/Zbb) version is run instead of the fully vectorized one, 
-achieving \speedup{34} at HQC-128 over the reference.
+achieving \speedup{38} at HQC-128 over the reference.
 
 \begin{thesiskeywords}
   post-quantum cryptography (PQC),\; HQC,\; RISC-V,\;

@@ -938,7 +938,7 @@ HQC-192/256 ($n_2 = 640$). Ο πλεονασμός αυτός τροφοδοτε
 διάνυσμα εισόδου $\mathbf{x}$ και γράφει την έξοδο $\mathbf{y}$ in-place. Στο
 πρώτο πέρασμα $\mathbf{x} = \mathbf{s}$. Σε κάθε επόμενο, $\mathbf{x}$ είναι η
 έξοδος του προηγούμενου περάσματος. Κάθε πέρασμα $p$ ($p = 0, \ldots, 6$) εκτελεί 64 πράξεις butterfly:
-\begin{equation}
+\begin{equation}\label{eq:fht-butterfly}
   \begin{cases}
     y[i] = x[2i] + x[2i+1], \\
     y[i+64] = x[2i] - x[2i+1],

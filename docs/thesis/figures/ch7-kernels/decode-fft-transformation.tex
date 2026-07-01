@@ -1,4 +1,4 @@
-% VARIANT (baseline refined, SAME layout) — not \input by main.tex; promote manually.
+% Canonical decode FFT transformation figure (baseline refined, SAME layout).
 % decode-fft-transformation_v1: token migration + cleanup of the original
 % side-by-side layout (raw red!8/green!8/blue!8 -> figthreat/figsolution/figprocess
 % tokens; raw arrows -> figedge/*; \footnotesize -> figT/* scale). Central leaves
@@ -7,7 +7,7 @@
 % "Μετασχηματισμός" arrow is perfectly horizontal. Tree shape unchanged (calc
 % offsets reproduce the liked layout). NOTE: keeps the wide side-by-side layout;
 % use _vertical to fit \textwidth.
-\tikzsetnextfilename{ch7-kernels-decode-fft-transformation_v1}
+\tikzsetnextfilename{ch7-kernels-decode-fft-transformation}
 \begin{tikzpicture}[
   fftbox/.style ={figbox, align=center, minimum height=0.6cm},
   fftrec/.style ={fftbox, draw=figthreat,   fill=figthreatfill,   minimum width=1.6cm},
@@ -23,10 +23,10 @@
 \node[fftit,  below=8mm of lev2]   (leaf) {Leaves: XOR-broadcast};
 \node[fftcomb,below=8mm of leaf]   (comb) {Bottom-up: combine};
 
-\draw[figedge] (lev0) -- (lev1) node[midway, right=3pt, figT/annot] {\insn{beta\_scale} + radix};
-\draw[figedge] (lev1) -- (lev2) node[midway, right=3pt, figT/annot] {\insn{beta\_scale} + radix};
-\draw[figedge] (lev2) -- (leaf) node[midway, right=3pt, figT/annot] {\insn{xor\_broadcast}};
-\draw[figedge/weak] (leaf) -- (comb) node[midway, right=3pt, figT/annot] {\insn{gammas\_combine}};
+\draw[figedge] (lev0) -- (lev1) node[midway, right=3pt, figT/annot] {\code{beta\_scale\_zvbc} (ανά επίπεδο) + radix};
+\draw[figedge] (lev1) -- (lev2) node[midway, right=3pt, figT/annot] {\code{beta\_scale\_zvbc} (ανά επίπεδο) + radix};
+\draw[figedge] (lev2) -- (leaf) node[midway, right=3pt, figT/annot] {\code{xor\_broadcast\_zvbc}};
+\draw[figedge/weak] (leaf) -- (comb) node[midway, right=3pt, figT/annot] {\code{gammas\_sums\_combine\_zvbc}};
 
 \node[figT/callout, below=3mm of comb, align=center] {Σταθερός αριθμός επαναλήψεων βρόχου};
 

@@ -5,8 +5,8 @@
 | Track | vector |
 | Security levels | 128 · 192 · 256 |
 | Report level (profiles) | 128 |
-| Generated | 2026-06-30 23:42:23 |
-| Commit | `bdd9cf4` |
+| Generated | 2026-07-01 11:48:46 |
+| Commit | `cc8054d` |
 
 ---
 
@@ -93,15 +93,23 @@
 
 ### VLEN Sweep — HQC-128
 
-> _No data rows._
+| Operation | VLEN | Instructions |
+| --- | ---: | ---: |
+| total | 256 | 1,491,853 |
+| total | 512 | 1,474,358 |
 
 ### VLEN Sweep — HQC-192
 
-> _No data rows._
+| Operation | VLEN | Instructions |
+| --- | ---: | ---: |
+| total | 256 | 3,192,573 |
+| total | 512 | 3,136,500 |
 
 ### VLEN Sweep — HQC-256
 
-> _No data rows._
+| Operation | VLEN | Instructions |
+| --- | ---: | ---: |
+| total | 256 | 5,138,767 |
 
 ## 4. Compiler Comparison
 

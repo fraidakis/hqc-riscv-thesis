@@ -181,19 +181,24 @@ Fast Hadamard Transform, και εντοπισμό κορυφής (\code{find\_p
 
 \paragraph{Reed-Muller, βήμα 1: \code{expand\_and\_sum} (vectorized bit-extraction).}
 Η \code{expand\_and\_sum} εξάγει τα bits από τα \code{MULTIPLICITY} αντίγραφα
-του codeword. Η scalar reference εκτελεί διπλό βρόχο bit-by-bit. Η vectorized
+του codeword. Η κωδική λέξη των \num{128} bits αποθηκεύεται ως τέσσερα \code{uint32} words. 
+Η scalar reference εξάγει τα bits ένα προς ένα, με εμφωλευμένο βρόχο στα τέσσερα words 
+και στα \num{32} bits καθενός. Η vectorized
 εκδοχή χρησιμοποιεί \insn{vid} για παραγωγή των shift amounts
 $[0, 1, \ldots, 31]$ (SEW=32, LMUL=4, $\text{vl}=32$) και εξάγει και τα
 \num{32} bits ενός \code{uint32} word σε μία πράξη μέσω
-\insn{vsrl.vv}~+~\insn{vand}, με narrowing u32$\to$u16 για συσσώρευση.
-Επιτάχυνση \speedup{1.9} σε σχέση με το optimized scalar path decode.
+\insn{vsrl.vv}~+~\insn{vand}, επαναλαμβάνοντας για τα τέσσερα words ώστε 
+να καλυφθούν και τα \num{128} bits.
+Η επιτάχυνση ανέρχεται σε \speedup{1.9} σε σχέση με το optimized scalar path decode.
 
 \paragraph{Reed-Muller, βήμα 2: \code{hadamard} (vectorized FHT).}
 Ο 7-pass Fast Hadamard Transform είναι ο κυρίαρχος υπολογισμός του \gls{rm}
-αποκωδικοποιητή. Κάθε pass εκτελεί \num{64} butterfly ζεύγη με stride-2
-πρόσβαση (σε στοιχεία, ισοδύναμο με byte-stride \num{4} για \code{int16}),
+αποκωδικοποιητή. Κάθε pass εκτελεί \num{64} butterfly ζεύγη (\cref{eq:fht-butterfly}) 
+με πρόσβαση βήματος 2, δηλαδή τα ζυγά στοιχεία $x[2i]$ και τα μονά $x[2i+1]$ σε δύο 
+χωριστά διανύσματα (κάθε στοιχείο \code{int16}, \num{2} bytes, οπότε το βήμα 
+2 στοιχείων ισοδυναμεί με byte-stride \num{4}),
 pattern που αντιστοιχεί απευθείας στην εντολή \insn{vlse16} (strided load). Στο
-\VLEN{}=\num{256}, SEW=16, LMUL=4, το hardware vector length φτάνει \num{64}
+\VLEN{}=\num{256}, SEW=16, LMUL=4, το ενεργό $\text{vl}$ φτάνει \num{64}
 στοιχεία, επαρκεί για κάλυψη όλων των butterfly ζευγών σε μία vector πράξη
 (\cref{lst:hadamard-rvv}):
 
@@ -222,8 +227,9 @@ vse16_v(out + 64, vsub_vv(even, odd, vl));     // diffs
 vectorization).
 
 \paragraph{Reed-Solomon Στάδιο~A: Vectorized Syndrome Computation.}
-Το Στάδιο~A υπολογίζει $2\delta$ syndromes, καθένα ανεξάρτητο εσωτερικό
-γινόμενο μήκους $N_1 - 1$ επί του $\GF{2^8}$. Ο εξωτερικός βρόχος (ανά
+Το Στάδιο~A υπολογίζει $2\delta$ syndromes. Καθένα είναι ένα εσωτερικό γινόμενο 
+(dot product) μήκους $N_1 - 1$ επί του $\GF{2^8}$, ανεξάρτητο από τα 
+υπόλοιπα. Ο εξωτερικός βρόχος (ανά
 syndrome) παραμένει scalar, ενώ ο εσωτερικός (ανά στοιχείο) διανυσματοποιείται
 πλήρως. Ο $\GF{2^8}$ πολλαπλασιασμός υλοποιείται μέσω της ταυτότητας
 λογαρίθμου/αντιλογαρίθμου:
@@ -286,31 +292,37 @@ lane, χωρίς indexed gather), όπως αναλύεται στην \cref{sec
 
 Το Tier~3 διανυσματοποιεί τους εναπομείναντες scalar εσωτερικούς βρόχους του
 \gls{rs} αποκωδικοποιητή (Στάδια B, C, D) μέσω \gls{zvbc} \insn{vclmul.vv}
-lane-packing: ένα στοιχείο $\GF{2^8}$ ανά 64-bit lane, carry-less
-πολλαπλασιασμός μέσω \insn{vclmul.vv} και inline reduction, εξαλείφοντας τις
-scalar \code{gf\_mul} κλήσεις στους εσωτερικούς βρόχους.
+lane-packing. Κάθε 64-bit lane φέρει ένα στοιχείο $\GF{2^8}$ και υφίσταται 
+carry-less πολλαπλασιασμό με αναγωγή, εξαλείφοντας τις scalar \Zbc \code{gf\_mul} 
+κλήσεις στους εσωτερικούς βρόχους.
 
 \paragraph{Στάδια B+D: Berlekamp-Massey και Forney.}
-Ο \gls{bm}~\autocite{Berlekamp1978} εκτελεί $2\delta$ διαδοχικά εξαρτημένες
+Ο \gls{bm} (\cref{sec:reed-solomon-theory}) εκτελεί $2\delta$ διαδοχικά εξαρτημένες
 εξωτερικές επαναλήψεις (μη παραλληλοποιήσιμες), αλλά κάθε επανάληψη περιέχει
 ανεξάρτητους εσωτερικούς βρόχους που διανυσματοποιούνται σε SEW=64, LMUL=4
 ($\text{vl}=16$): το sigma SAXPY ($\sigma \mathrel{\oplus}= dd \cdot
-X_{\sigma_p}$) μέσω \insn{vclmul.vx}, ένα constant-time blend, και το
-discrepancy dot-product μέσω \insn{vlse16} με αρνητικό stride συν
-\insn{vredxor}. Οι εσωτερικοί βρόχοι χωρούν σε \num{1} pass για HQC-128/192
+X_{\sigma_p}$) μέσω \insn{vclmul.vx}, μια branchless (constant-time) 
+επιλογή μέσω mask, και το εσωτερικό γινόμενο του discrepancy, όπου το 
+ιστορικό syndromes διαβάζεται με αντίστροφη σειρά μέσω \insn{vlse16} 
+αρνητικού βήματος και αθροίζεται με XOR-reduction (\insn{vredxor}). 
+Οι εσωτερικοί βρόχοι χωρούν σε \num{1} pass για HQC-128/192
 ($\delta \leq 16$) και \num{2} για HQC-256 ($\delta = 29$). Ο τύπος
-Forney~\autocite{Forney1966} επαναχρησιμοποιεί την ίδια δομή: ο αριθμητής είναι
-dot-product, ενώ ο παρονομαστής υπολογίζεται σε
+Forney επαναχρησιμοποιεί την ίδια δομή: 
+ο αριθμητής $z(\beta_j^{-1})$ είναι dot-product και διανυσματοποιείται 
+όπως το discrepancy, ενώ ο παρονομαστής υπολογίζεται σε
 inner-k batch μέσω \insn{vclmul.vx}, αφήνοντας μόνο την $\BigO{\delta}$
 ακολουθιακή αλυσίδα γινομένου scalar. Οριακό κέρδος: \speedup{1.41} σε σχέση με
-την RVV optimized υλοποιείται του Tier~2 (HQC-128).
+την RVV optimized υλοποίηση του Tier~2 (HQC-128).
 
 \paragraph{Στάδιο C: FFT Root-Finding.}
 Το Στάδιο~C αποτιμά το error-locator $\sigma(x)$ σε όλα τα $2^8 = 256$ σημεία
 του $\GF{2^8}$ μέσω additive Gao-Mateer \gls{fft}. Η
 κρίσιμη παρέμβαση είναι ο μετασχηματισμός της αναδρομικής \code{fft\_rec} (με
-$\BigO{2^M}$ κλήσεις συναρτήσεων) σε επαναληπτική breadth-first διάσχιση
-(\cref{fig:decode-fft-transform}), που εξαλείφει το function-call overhead και
+$\BigO{2^M}$ κλήσεις συναρτήσεων) σε επαναληπτική διάσχιση κατά πλάτος 
+(breadth-first) του δέντρου αναδρομής, 
+όπου κάθε επίπεδο επεξεργάζεται ως σύνολο και οι ίδιες πράξεις του 
+ομαδοποιούνται σε μία vector εντολή (\cref{fig:decode-fft-transform}). 
+Ο μετασχηματισμός εξαλείφει το function-call overhead και
 ενεργοποιεί τρεις vectorized helpers στο \insn{vclmul.vv} pipeline:
 \code{beta\_scale\_zvbc} (κλιμάκωση $\beta^i$), \code{xor\_broadcast\_zvbc}
 (XOR-broadcast ανά επίπεδο δέντρου) και \code{gammas\_sums\_combine\_zvbc}
@@ -389,7 +401,7 @@ while (i < n) {
 }
 \end{lstlisting}
 
-Στο \VLEN{}=\num{256} με LMUL=8, η hardware vector length ισούται με \num{32}
+Στο \VLEN{}=\num{256} με LMUL=8, το ενεργό $\text{vl}$ ισούται με \num{32}
 elements (64-bit). Η \num{277}-word πράξη XOR ολοκληρώνεται σε
 $\lceil 277/32 \rceil = 9$ vector iterations, εκάστη αποτελούμενη από
 \num{4} vector εντολές (2 loads, 1 XOR, 1 store) και \num{2} εντολές
