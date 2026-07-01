@@ -1,0 +1,36 @@
+# date: 2026-06-30 22:29
+# commit: bdd9cf4
+# variant: scalar_zb
+# level: 256
+function,instructions,percentage
+clmul_leaf_n14,452530,34.83
+scalar_xor3_u64,181080,13.94
+clmul_leaf_n15,165000,12.70
+__riscv_clmulh_64,148231,11.41
+__riscv_clmul_64,147988,11.39
+scalar_xor_u64,108119,8.32
+scalar_copy_u64,37481,2.89
+memset,21628,1.66
+reduce,9917,0.76
+_start,8120,0.63
+bench_init_random_poly,4524,0.35
+kmul_28,4340,0.33
+kmul_29,2728,0.21
+kmul_57,1936,0.15
+kmul_56,1628,0.13
+bench_init_sparse_poly,1511,0.12
+kmul_113,968,0.07
+?? ??:0,388,0.03
+kmul_225,265,0.02
+kmul_112,205,0.02
+kmul_226,204,0.02
+kmul_451,126,0.01
+main,93,0.01
+kmul_450,49,0.00
+kmul_901,39,0.00
+vect_mul,36,0.00
+hqc_htif_exit,8,0.00
+bench_median,4,0.00
+hqc_read_mcycle,4,0.00
+hqc_read_minstret,4,0.00
+bench_consume,2,0.00

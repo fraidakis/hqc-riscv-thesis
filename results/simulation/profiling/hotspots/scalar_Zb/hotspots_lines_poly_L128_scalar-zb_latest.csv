@@ -1,0 +1,150 @@
+# date: 2026-06-30 22:32
+# commit: bdd9cf4
+# variant: scalar_zb
+# level: 128
+function,instructions,percentage
+scalar_xor3_u64 at gf2x_clmul.c:104,26243,13.51
+clmul_leaf_n9 at clmul_leaf_specialized.h:58,24514,12.62
+clmul_leaf_n9 at clmul_leaf_specialized.h:59,23072,11.87
+__riscv_clmulh_64 at riscv_bitmanip.h:221,19098,9.83
+__riscv_clmul_64 at riscv_bitmanip.h:214,19054,9.81
+scalar_xor_u64 at gf2x_clmul.c:89,13675,7.04
+scalar_xor3_u64 at gf2x_clmul.c:103 (discriminator 1),5302,2.73
+scalar_xor_u64 at gf2x_clmul.c:88 (discriminator 1),3978,2.05
+scalar_copy_u64 at gf2x_clmul.c:78,3766,1.94
+clmul_leaf_n9 at clmul_leaf_specialized.h:55 (discriminator 1),3759,1.93
+clmul_leaf_n9 at clmul_leaf_specialized.h:70,3745,1.93
+clmul_leaf_n9 at clmul_leaf_specialized.h:71,3377,1.74
+clmul_leaf_n8 at clmul_leaf_specialized.h:109,3330,1.71
+clmul_leaf_n9 at clmul_leaf_specialized.h:50,3296,1.70
+scalar_copy_u64 at gf2x_clmul.c:77 (discriminator 1),3245,1.67
+clmul_leaf_n8 at clmul_leaf_specialized.h:110,3108,1.60
+clmul_leaf_n9 at clmul_leaf_specialized.h:63,2884,1.48
+_start,2504,1.29
+memset at mem.c:91 (discriminator 1),2219,1.14
+memset at mem.c:92,2216,1.14
+memset at mem.c:91,2216,1.14
+clmul_leaf_n9 at clmul_leaf_specialized.h:57,1442,0.74
+clmul_leaf_n9 at clmul_leaf_specialized.h:64,1442,0.74
+reduce at gf2x_clmul.c:125,1108,0.57
+reduce at gf2x_clmul.c:122 (discriminator 1),1108,0.57
+clmul_leaf_n9 at clmul_leaf_specialized.h:49,1000,0.51
+bench_init_random_poly at bench_common.h:94 (discriminator 1),844,0.43
+kmul_18 at karatsuba_specialized_gen.h:64,748,0.38
+clmul_leaf_n8 at clmul_leaf_specialized.h:106 (discriminator 1),666,0.34
+scalar_xor3_u64 at gf2x_clmul.c:107,665,0.34
+kmul_17 at karatsuba_specialized_gen.h:30,629,0.32
+clmul_leaf_n8 at clmul_leaf_specialized.h:121,629,0.32
+kmul_18 at karatsuba_specialized_gen.h:87,616,0.32
+bench_init_random_poly at bench_common.h:95,561,0.29
+clmul_leaf_n8 at clmul_leaf_specialized.h:101,518,0.27
+clmul_leaf_n8 at clmul_leaf_specialized.h:122,518,0.27
+kmul_17 at karatsuba_specialized_gen.h:58,518,0.27
+bench_init_sparse_poly at bench_common.h:118,450,0.23
+clmul_leaf_n8 at clmul_leaf_specialized.h:114,444,0.23
+clmul_leaf_n9 at clmul_leaf_specialized.h:75,412,0.21
+reduce at gf2x_clmul.c:123,277,0.14
+reduce at gf2x_clmul.c:124 (discriminator 1),277,0.14
+reduce at gf2x_clmul.c:124,277,0.14
+clmul_leaf_n8 at clmul_leaf_specialized.h:100,259,0.13
+clmul_leaf_n9 at clmul_leaf_specialized.h:44,250,0.13
+clmul_leaf_n9 at clmul_leaf_specialized.h:76,250,0.13
+kmul_35 at karatsuba_specialized_gen.h:185,242,0.12
+clmul_leaf_n8 at clmul_leaf_specialized.h:108,222,0.11
+clmul_leaf_n8 at clmul_leaf_specialized.h:115,222,0.11
+clmul_leaf_n9 at clmul_leaf_specialized.h:45,206,0.11
+clmul_leaf_n9 at clmul_leaf_specialized.h:51,206,0.11
+clmul_leaf_n9 at clmul_leaf_specialized.h:69,206,0.11
+kmul_35 at karatsuba_specialized_gen.h:200,198,0.10
+kmul_35 at karatsuba_specialized_gen.h:213,176,0.09
+bench_init_sparse_poly at bench_common.h:117,157,0.08
+bench_init_sparse_poly at bench_common.h:116 (discriminator 1),154,0.08
+kmul_35 at karatsuba_specialized_gen.h:193,154,0.08
+?? ??:0,145,0.07
+kmul_69 at karatsuba_specialized_gen.h:311,90,0.05
+kmul_69 at karatsuba_specialized_gen.h:339,75,0.04
+clmul_leaf_n8 at clmul_leaf_specialized.h:95,74,0.04
+clmul_leaf_n8 at clmul_leaf_specialized.h:126,74,0.04
+kmul_17 at karatsuba_specialized_gen.h:43,74,0.04
+kmul_17 at karatsuba_specialized_gen.h:42,74,0.04
+kmul_35 at karatsuba_specialized_gen.h:192,66,0.03
+kmul_70 at karatsuba_specialized_gen.h:353,56,0.03
+kmul_35 at karatsuba_specialized_gen.h:197,44,0.02
+kmul_35 at karatsuba_specialized_gen.h:198,44,0.02
+kmul_70 at karatsuba_specialized_gen.h:345,44,0.02
+kmul_69 at karatsuba_specialized_gen.h:326,40,0.02
+clmul_leaf_n8 at clmul_leaf_specialized.h:96,37,0.02
+clmul_leaf_n8 at clmul_leaf_specialized.h:102,37,0.02
+clmul_leaf_n8 at clmul_leaf_specialized.h:120,37,0.02
+clmul_leaf_n8 at clmul_leaf_specialized.h:127,37,0.02
+kmul_70 at karatsuba_specialized_gen.h:358,32,0.02
+kmul_70 at karatsuba_specialized_gen.h:368,32,0.02
+kmul_34 at karatsuba_specialized_gen.h:163,30,0.02
+kmul_34 at karatsuba_specialized_gen.h:164,30,0.02
+kmul_34 at karatsuba_specialized_gen.h:169,30,0.02
+kmul_138 at karatsuba_specialized_gen.h:484,29,0.01
+kmul_139 at karatsuba_specialized_gen.h:500,26,0.01
+scalar_copy_u64 at gf2x_clmul.c:77,22,0.01
+kmul_139 at karatsuba_specialized_gen.h:528,20,0.01
+kmul_139 at karatsuba_specialized_gen.h:508,16,0.01
+kmul_139 at karatsuba_specialized_gen.h:515,16,0.01
+vect_mul at gf2x_clmul.c:132,16,0.01
+kmul_69 at karatsuba_specialized_gen.h:318,15,0.01
+vect_mul at gf2x_clmul.c:150,14,0.01
+kmul_277 at karatsuba_specialized_gen.h:675,13,0.01
+kmul_70 at karatsuba_specialized_gen.h:352,12,0.01
+kmul_138 at karatsuba_specialized_gen.h:478,11,0.01
+bench_init_sparse_poly at bench_common.h:113,10,0.01
+kmul_69 at karatsuba_specialized_gen.h:315,10,0.01
+kmul_69 at karatsuba_specialized_gen.h:313,10,0.01
+kmul_69 at karatsuba_specialized_gen.h:314,10,0.01
+kmul_69 at karatsuba_specialized_gen.h:323,10,0.01
+kmul_69 at karatsuba_specialized_gen.h:324,10,0.01
+kmul_138 at karatsuba_specialized_gen.h:479,10,0.01
+main at bench_mul.c:385,8,0.00
+kmul_277 at karatsuba_specialized_gen.h:667,8,0.00
+main at bench_mul.c:357,6,0.00
+kmul_139 at karatsuba_specialized_gen.h:507,6,0.00
+kmul_139 at karatsuba_specialized_gen.h:513,6,0.00
+kmul_277 at karatsuba_specialized_gen.h:672,6,0.00
+kmul_69 at karatsuba_specialized_gen.h:319,5,0.00
+reduce at gf2x_clmul.c:127,5,0.00
+bench_median at bench_common.h:163,4,0.00
+main at bench_mul.c:389,4,0.00
+main at bench_mul.c:388,4,0.00
+main at bench_mul.c:416,4,0.00
+main at bench_mul.c:418,4,0.00
+main at bench_mul.c:420,4,0.00
+main at bench_mul.c:422,4,0.00
+main at bench_mul.c:424,4,0.00
+main at bench_mul.c:426,4,0.00
+main at bench_mul.c:428,4,0.00
+main at bench_mul.c:430,4,0.00
+hqc_htif_exit at bench.c:113,4,0.00
+kmul_139 at karatsuba_specialized_gen.h:504,4,0.00
+kmul_139 at karatsuba_specialized_gen.h:512,4,0.00
+main at bench_mul.c:383,3,0.00
+main at bench_mul.c:384,3,0.00
+main at bench_mul.c:386,3,0.00
+main at bench_mul.c:417,3,0.00
+main at bench_mul.c:419,3,0.00
+main at bench_mul.c:421,3,0.00
+main at bench_mul.c:423,3,0.00
+main at bench_mul.c:425,3,0.00
+main at bench_mul.c:427,3,0.00
+main at bench_mul.c:429,3,0.00
+main at bench_mul.c:435,3,0.00
+hqc_htif_exit at bench.c:112,3,0.00
+main at bench_mul.c:387,2,0.00
+main at bench_mul.c:421 (discriminator 1),2,0.00
+main at bench_mul.c:427 (discriminator 1),2,0.00
+bench_consume at bench_common.h:182,2,0.00
+hqc_read_mcycle at bench.c:32,2,0.00
+hqc_read_mcycle at bench.c:34,2,0.00
+hqc_read_minstret at bench.c:44,2,0.00
+hqc_read_minstret at bench.c:46,2,0.00
+scalar_xor_u64 at gf2x_clmul.c:88,2,0.00
+kmul_277 at karatsuba_specialized_gen.h:668,2,0.00
+kmul_277 at karatsuba_specialized_gen.h:673,2,0.00
+hqc_htif_exit at bench.c:114,1,0.00
+memset at mem.c:94,1,0.00

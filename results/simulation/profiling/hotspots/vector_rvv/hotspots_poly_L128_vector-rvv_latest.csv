@@ -1,0 +1,34 @@
+# date: 2026-06-30 22:31
+# commit: bdd9cf4
+# variant: vector_rvv
+# level: 128
+function,instructions,percentage
+clmul_leaf_n9,70054,45.65
+__riscv_clmulh_64,19186,12.50
+__riscv_clmul_64,19054,12.42
+clmul_leaf_n8,10138,6.61
+kmul_18,9768,6.36
+kmul_17,7955,5.18
+rvv_xor3_u64,3992,2.60
+reduce,3052,1.99
+_start,2507,1.63
+rvv_xor_u64,2332,1.52
+bench_init_random_poly,1405,0.92
+kmul_35,1188,0.77
+rvv_copy_u64,907,0.59
+bench_init_sparse_poly,772,0.50
+kmul_69,280,0.18
+kmul_70,184,0.12
+kmul_34,155,0.10
+?? ??:0,145,0.09
+kmul_139,118,0.08
+main,93,0.06
+memset,63,0.04
+kmul_138,42,0.03
+vect_mul,28,0.02
+kmul_277,28,0.02
+hqc_htif_exit,7,0.00
+bench_median,4,0.00
+hqc_read_mcycle,4,0.00
+hqc_read_minstret,4,0.00
+bench_consume,2,0.00

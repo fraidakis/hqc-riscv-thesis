@@ -1,0 +1,31 @@
+# date: 2026-06-30 22:32
+# commit: bdd9cf4
+# variant: vector_zvk
+# level: 128
+function,instructions,percentage
+vclmul_leaf,38785,51.53
+kmul_18,10384,13.80
+kmul_17,8547,11.36
+rvv_xor3_u64,3997,5.31
+reduce,3052,4.06
+_start,2507,3.33
+rvv_xor_u64,2333,3.10
+bench_init_random_poly,1405,1.87
+kmul_35,1188,1.58
+rvv_copy_u64,905,1.20
+bench_init_sparse_poly,772,1.03
+?? ??:0,351,0.47
+kmul_69,280,0.37
+kmul_70,184,0.24
+kmul_34,155,0.21
+kmul_139,118,0.16
+main,93,0.12
+kmul_138,63,0.08
+memset,63,0.08
+kmul_277,35,0.05
+vect_mul,26,0.03
+hqc_htif_exit,7,0.01
+bench_median,4,0.01
+hqc_read_mcycle,4,0.01
+hqc_read_minstret,4,0.01
+bench_consume,2,0.00
