@@ -1,0 +1,15 @@
+# date: 2026-06-30 22:45
+# commit: bdd9cf4
+# variant: vector_rvv_V
+# platform: bpi-f3
+# n_iter: 100
+# n_warmup: 10
+# mode: dev
+# isolation_irq: off
+# isolation_aslr: off
+# isolation_isolcpus: off
+# isolation_core: 7
+level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
+128,vect_mul,100,120258,121077,121398,121906,829,215032,154805
+192,vect_mul,100,354552,356419,357403,358054,1635,409150,455603
+256,vect_mul,100,725494,727600,728689,730094,2494,798273,1045424

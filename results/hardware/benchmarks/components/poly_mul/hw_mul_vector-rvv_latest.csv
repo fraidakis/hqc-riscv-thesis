@@ -1,5 +1,5 @@
-# date: 2026-06-29 12:16
-# commit: cc9fc7c
+# date: 2026-06-30 22:36
+# commit: bdd9cf4
 # variant: vector_rvv
 # platform: bpi-f3
 # n_iter: 100
@@ -10,6 +10,6 @@
 # isolation_isolcpus: off
 # isolation_core: 7
 level,op,iterations,min_cycles,p25_cycles,median_cycles,p75_cycles,iqr_cycles,max_cycles,instret
-128,vect_mul,100,120049,120623,121007,121472,849,169569,157287
-192,vect_mul,100,351456,353820,354680,355501,1681,457675,463739
-256,vect_mul,100,730641,732723,733640,735185,2462,774785,1060046
+128,vect_mul,100,121151,121857,122085,122618,761,147947,154805
+192,vect_mul,100,353806,356243,357116,358050,1807,405517,455603
+256,vect_mul,100,725590,729515,730657,731749,2234,780333,1045424

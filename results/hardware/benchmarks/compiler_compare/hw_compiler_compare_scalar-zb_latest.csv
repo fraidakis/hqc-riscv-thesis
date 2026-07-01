@@ -1,18 +1,18 @@
-# date: 2026-06-23 02:56
-# commit: 5461cc5
+# date: 2026-06-30 22:48
+# commit: bdd9cf4
 # platform: bpi-f3
 # quality: dev
 # variant: scalar_zb
 compiler,opt,level,variant,status,cycles,text_bytes,binary,error
-gcc,-O2,128,karatsuba_zbc,OK,2234431,523497,build-hw/bench_hw_kem_hqc128_scalar_zb,
-gcc,-O3,128,karatsuba_zbc,OK,2032805,540153,build-hw/bench_hw_kem_hqc128_scalar_zb,
-clang,-O2,128,karatsuba_zbc,OK,2179591,542507,build-hw/bench_hw_kem_hqc128_scalar_zb,
-clang,-O3,128,karatsuba_zbc,OK,2158898,561411,build-hw/bench_hw_kem_hqc128_scalar_zb,
-gcc,-O2,192,karatsuba_zbc,OK,5225191,525817,build-hw/bench_hw_kem_hqc192_scalar_zb,
-gcc,-O3,192,karatsuba_zbc,OK,4621302,541337,build-hw/bench_hw_kem_hqc192_scalar_zb,
-clang,-O2,192,karatsuba_zbc,OK,4897752,544679,build-hw/bench_hw_kem_hqc192_scalar_zb,
-clang,-O3,192,karatsuba_zbc,OK,4912525,564729,build-hw/bench_hw_kem_hqc192_scalar_zb,
-gcc,-O2,256,karatsuba_zbc,OK,11223044,531865,build-hw/bench_hw_kem_hqc256_scalar_zb,
-gcc,-O3,256,karatsuba_zbc,OK,8958436,545905,build-hw/bench_hw_kem_hqc256_scalar_zb,
-clang,-O2,256,karatsuba_zbc,OK,11420506,549393,build-hw/bench_hw_kem_hqc256_scalar_zb,
-clang,-O3,256,karatsuba_zbc,OK,11360831,566783,build-hw/bench_hw_kem_hqc256_scalar_zb,
+gcc,-O2,128,scalar_zb,OK,2834259,522825,build-hw/bench_hw_kem_hqc128_scalar_zb,
+gcc,-O3,128,scalar_zb,OK,1902665,539721,build-hw/bench_hw_kem_hqc128_scalar_zb,
+clang,-O2,128,scalar_zb,OK,2151335,542145,build-hw/bench_hw_kem_hqc128_scalar_zb,
+clang,-O3,128,scalar_zb,OK,2163048,563401,build-hw/bench_hw_kem_hqc128_scalar_zb,
+gcc,-O2,192,scalar_zb,OK,6996043,525137,build-hw/bench_hw_kem_hqc192_scalar_zb,
+gcc,-O3,192,scalar_zb,OK,4223873,541065,build-hw/bench_hw_kem_hqc192_scalar_zb,
+clang,-O2,192,scalar_zb,OK,4874759,544435,build-hw/bench_hw_kem_hqc192_scalar_zb,
+clang,-O3,192,scalar_zb,OK,4882834,565625,build-hw/bench_hw_kem_hqc192_scalar_zb,
+gcc,-O2,256,scalar_zb,OK,17234639,532185,build-hw/bench_hw_kem_hqc256_scalar_zb,
+gcc,-O3,256,scalar_zb,OK,8106449,548257,build-hw/bench_hw_kem_hqc256_scalar_zb,
+clang,-O2,256,scalar_zb,OK,11467224,551225,build-hw/bench_hw_kem_hqc256_scalar_zb,
+clang,-O3,256,scalar_zb,OK,11144875,567675,build-hw/bench_hw_kem_hqc256_scalar_zb,

@@ -1,18 +1,18 @@
-# date: 2026-06-23 12:01
-# commit: 516ff25
+# date: 2026-06-30 22:53
+# commit: bdd9cf4
 # platform: bpi-f3
 # quality: dev
 # variant: vector_rvv
 compiler,opt,level,variant,status,cycles,text_bytes,binary,error
-gcc,-O2,128,karatsuba_rvv,OK,1820793,529971,build-hw/bench_hw_kem_hqc128_vector_rvv,
-gcc,-O3,128,karatsuba_rvv,OK,1673598,537187,build-hw/bench_hw_kem_hqc128_vector_rvv,
-clang,-O2,128,karatsuba_rvv,OK,1684379,542297,build-hw/bench_hw_kem_hqc128_vector_rvv,
-clang,-O3,128,karatsuba_rvv,OK,1660813,546833,build-hw/bench_hw_kem_hqc128_vector_rvv,
-gcc,-O2,192,karatsuba_rvv,OK,4430532,532515,build-hw/bench_hw_kem_hqc192_vector_rvv,
-gcc,-O3,192,karatsuba_rvv,OK,3975160,541955,build-hw/bench_hw_kem_hqc192_vector_rvv,
-clang,-O2,192,karatsuba_rvv,OK,3958739,546945,build-hw/bench_hw_kem_hqc192_vector_rvv,
-clang,-O3,192,karatsuba_rvv,OK,3954544,550985,build-hw/bench_hw_kem_hqc192_vector_rvv,
-gcc,-O2,256,karatsuba_rvv,OK,9429684,538579,build-hw/bench_hw_kem_hqc256_vector_rvv,
-gcc,-O3,256,karatsuba_rvv,OK,7558296,546827,build-hw/bench_hw_kem_hqc256_vector_rvv,
-clang,-O2,256,karatsuba_rvv,OK,9629208,549753,build-hw/bench_hw_kem_hqc256_vector_rvv,
-clang,-O3,256,karatsuba_rvv,OK,9366365,553481,build-hw/bench_hw_kem_hqc256_vector_rvv,
+gcc,-O2,128,vector_rvv,OK,2667282,531235,build-hw/bench_hw_kem_hqc128_vector_rvv,
+gcc,-O3,128,vector_rvv,OK,1585434,541883,build-hw/bench_hw_kem_hqc128_vector_rvv,
+clang,-O2,128,vector_rvv,OK,1712970,544425,build-hw/bench_hw_kem_hqc128_vector_rvv,
+clang,-O3,128,vector_rvv,OK,1769249,550849,build-hw/bench_hw_kem_hqc128_vector_rvv,
+gcc,-O2,192,vector_rvv,OK,6726919,533787,build-hw/bench_hw_kem_hqc192_vector_rvv,
+gcc,-O3,192,vector_rvv,OK,3592013,546763,build-hw/bench_hw_kem_hqc192_vector_rvv,
+clang,-O2,192,vector_rvv,OK,4039884,547601,build-hw/bench_hw_kem_hqc192_vector_rvv,
+clang,-O3,192,vector_rvv,OK,4145892,554665,build-hw/bench_hw_kem_hqc192_vector_rvv,
+gcc,-O2,256,vector_rvv,OK,15911458,540867,build-hw/bench_hw_kem_hqc256_vector_rvv,
+gcc,-O3,256,vector_rvv,OK,6848116,555067,build-hw/bench_hw_kem_hqc256_vector_rvv,
+clang,-O2,256,vector_rvv,OK,9756962,554225,build-hw/bench_hw_kem_hqc256_vector_rvv,
+clang,-O3,256,vector_rvv,OK,9757317,561785,build-hw/bench_hw_kem_hqc256_vector_rvv,
