@@ -1,12 +1,12 @@
 % Table: Full KEM (KeyGen+Encaps+Decaps) instret results for all tiers and security levels
-% Data source: results/simulation/benchmarks/kem/sim_kem_*.csv
+% Data source: results/simulation/benchmarks/kem/sim_kem_*.csv (commit bdd9cf4, 2026-06-30/07-01)
 % Baseline convention: all speedups (xT1, xT2, xT3) computed vs scalar_ref.
 \begin{tabular}{
   l l
   S[table-format=9.0, group-separator={,}, group-minimum-digits=4]
   S[table-format=7.0, group-separator={,}, group-minimum-digits=4]
   S[table-format=7.0, group-separator={,}, group-minimum-digits=4]
-  S[table-format=6.0, group-separator={,}, group-minimum-digits=4]
+  S[table-format=7.0, group-separator={,}, group-minimum-digits=4]
   S[table-format=3.1]
   S[table-format=3.1]
   S[table-format=3.1]
@@ -17,24 +17,24 @@
   & {$\times$\textbf{T1}} & {$\times$\textbf{T2}} & {$\times$\textbf{T3}} \\
 \midrule
 \multirow{4}{*}{HQC-128}
-  & \KeyGen  & 19454626  & 462794  & 286255  & 103129  & 42.0  & 68.0  & 188.6 \\
-  & \Encaps  & 38875925  & 898649  & 586400  & 213179  & 43.3  & 66.3  & 182.4 \\
-  & \Decaps  & 59013743  & 2088352 & 1084132 & 386447  & 28.3  & 54.4  & 152.7 \\
-  & \textbf{Total} & \textbf{117344294} & \textbf{3449795} & \textbf{1956787} & \textbf{702755}
-    & \textbf{34.0} & \textbf{60.0} & \textbf{167.0} \\
+  & \KeyGen  & 18750499  & 428923  & 294501  & 216092  & 43.7  & 63.7  & 86.8 \\
+  & \Encaps  & 37477397  & 834245  & 589121  & 432303  & 44.9  & 63.6  & 86.7 \\
+  & \Decaps  & 56937074  & 1972347 & 1139356 & 843459  & 28.9  & 50.0  & 67.5 \\
+  & \textbf{Total} & \textbf{113164970} & \textbf{3235515} & \textbf{2022978} & \textbf{1491854}
+    & \textbf{35.0} & \textbf{55.9} & \textbf{75.9} \\
 \midrule
 \multirow{4}{*}{HQC-192}
-  & \KeyGen  & 58895392  & 1132934  & 704882  & 251755  & 52.0  & 83.6  & 233.9 \\
-  & \Encaps  & 117744966 & 2235711  & 1455147 & 521642  & 52.7  & 80.9  & 225.7 \\
-  & \Decaps  & 177662495 & 4442411  & 2515258 & 880407  & 40.0  & 70.6  & 201.8 \\
-  & \textbf{Total} & \textbf{354302853} & \textbf{7811056} & \textbf{4675287} & \textbf{1653804}
-    & \textbf{45.4} & \textbf{75.8} & \textbf{214.2} \\
+  & \KeyGen  & 56763859  & 1041343  & 710531  & 468166  & 54.5  & 79.9  & 121.2 \\
+  & \Encaps  & 113506273 & 2061241  & 1435368 & 950638  & 55.1  & 79.1  & 119.4 \\
+  & \Decaps  & 171349089 & 4181542  & 2579762 & 1773770 & 41.0  & 66.4  & 96.6 \\
+  & \textbf{Total} & \textbf{341619221} & \textbf{7284126} & \textbf{4725661} & \textbf{3192574}
+    & \textbf{46.9} & \textbf{72.3} & \textbf{107.0} \\
 \midrule
 \multirow{4}{*}{HQC-256}
-  & \KeyGen  & 143382635 & 2621830  & 1869816 & 373210  & 54.7  & 76.7  & 384.2 \\
-  & \Encaps  & 286701285 & 5204511  & 3809926 & 795269  & 55.1  & 75.3  & 360.5 \\
-  & \Decaps  & 431890526 & 9725450  & 6341725 & 1375654 & 44.4  & 68.1  & 314.0 \\
-  & \textbf{Total} & \textbf{861974446} & \textbf{17551791} & \textbf{12021467} & \textbf{2544133}
-    & \textbf{49.1} & \textbf{71.7} & \textbf{338.8} \\
+  & \KeyGen  & 139979206 & 2019141  & 1461824 & 737070  & 69.3  & 95.8  & 189.9 \\
+  & \Encaps  & 279919351 & 3999221  & 2948854 & 1499346 & 70.0  & 94.9  & 186.7 \\
+  & \Decaps  & 421860950 & 7980756  & 5274100 & 2902352 & 52.9  & 80.0  & 145.4 \\
+  & \textbf{Total} & \textbf{841759507} & \textbf{13999118} & \textbf{9684778} & \textbf{5138768}
+    & \textbf{60.1} & \textbf{86.9} & \textbf{163.8} \\
 \bottomrule
 \end{tabular}

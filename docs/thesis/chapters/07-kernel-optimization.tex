@@ -53,7 +53,7 @@ SHAKE-256 και SHA3 εντός του \gls{hqc}. Μετά τη βελτιστ�
 των $\theta/\rho/\chi$, ο μεταγλωττιστής εξαντλεί το αρχείο καταχωρητών και
 καταφεύγει σε spills στη στοίβα.
 
-Η ενεργοποίηση της \gls{zbb} αποδίδει ${\approx}\speedup{1.5}$ στον πυρήνα Keccak-f[1600]. 
+Η ενεργοποίηση της \gls{zbb} αποδίδει ${\approx}\speedup{1.46}$ στον πυρήνα Keccak-f[1600]. 
 
 %% --------------------------------------------------------------------------
 \subsection{Διανυσματοποίηση Keccak: το παράδοξο της \RVV}
@@ -140,47 +140,62 @@ pipeline, αναλύεται στην \cref{ssec:hw-spike-vs-hw}. Η scalar \Zbb
 \label{sec:decode-scalar}
 
 Η μοναδική βελτιστοποίηση στο scalar path αφορά τον πυρήνα αριθμητικής
-$\GF{2^8}$, τη συνάρτηση \code{gf\_mul}, που καλείται σε όλα τα αλγεβρικά
-στάδια της αποκωδικοποίησης.
+$\GF{2^8}$. Η \code{gf\_mul} πολλαπλασιάζει δύο
+στοιχεία του $\GF{2^8}$ και καλείται σε όλα τα αλγεβρικά στάδια του \gls{rs}
+αποκωδικοποιητή (syndromes, Berlekamp-Massey, Forney). Ο πολλαπλασιασμός στο
+$\GF{2^8}$ ισοδυναμεί με carry-less (πολυωνυμικό επί $\GF{2}$) γινόμενο δύο
+τελεστέων βαθμού $\leq 7$, ακολουθούμενο από αναγωγή modulo το ανάγωγο
+πολυώνυμο του $\GF{2^8}$. Το carry-less γινόμενο είναι το ακριβό βήμα και
+αποτελεί τον στόχο της βελτιστοποίησης.
 
 \paragraph{Baseline: software carry-less multiply.}
-Η υλοποίηση αναφοράς (\code{gf\_carryless\_mul}) υπολογίζει το $8 \times 8$-bit
-carry-less γινόμενο με schoolbook αλγόριθμο, μέσω ενός branchless
-βρόχου επί ζευγών bits.
+Επειδή η base ISA δεν διαθέτει εντολή carry-less πολλαπλασιασμού, η υλοποίηση
+αναφοράς (\code{gf\_carryless\_mul}) εξομοιώνει το γινόμενο σε software μέσω
+μιας ολόκληρης ακολουθίας shift-and-XOR εντολών (branchless για constant-time
+συμπεριφορά). Η σύνθεση ενός μόνο $8\times8$-bit γινομένου απαιτεί έτσι δεκάδες
+εντολές, κόστος που πολλαπλασιάζεται με το πλήθος των \code{gf\_mul} κλήσεων
+στον αποκωδικοποιητή.
 
 \paragraph{Βελτιστοποίηση: μία \clmul{} μέσω \Zbc.}
-Στο Tier~1 ο software βρόχος αντικαθίσταται από μία μόνο εντολή \clmul{}
-(μέσω \gls{zbc} intrinsic). Επειδή οι τελεστέοι έχουν βαθμό $\leq 7$ (8 bits), το carry-less γινόμενο έχει
+Στο Tier~1 ο software βρόχος αντικαθίσταται από μία μόνο εντολή \clmul{}. 
+Επειδή οι τελεστέοι έχουν βαθμό $\leq 7$ (8 bits), το carry-less γινόμενο έχει
 βαθμό $\leq 14$ και χωρά εξ ολοκλήρου στα κάτω \num{64} bits του αποτελέσματος.
 Η \clmul{} επιστρέφει ακριβώς αυτό το κάτω μέρος, οπότε η \clmulh{} (υψηλά
-\num{64} bits) είναι σταθερά μηδέν και περιττή, σε αντίθεση με τον word-level
+\num{64} bits) είναι σταθερά μηδέν, σε αντίθεση με τον word-level
 πολυωνυμικό πολλαπλασιασμό \num{64}-bit τελεστέων (\cref{lst:leaf-scalar}), όπου
 το \num{127}-bit γινόμενο απαιτεί και τις δύο εντολές.
 
 \paragraph{Κέρδος της \Zbc{} \clmul{}.}
 Η αντικατάσταση του software carry-less multiply με μία \clmul{} δίνει
-επιτάχυνση \speedup{1.74} σε \instret στο απομονωμένο decode (HQC-128, Spike).
+επιτάχυνση \speedup{1.74} σε \instret στον πυρήνα decode (HQC-128, Spike).
 
 %% --------------------------------------------------------------------------
 \subsection{Base-RVV Path: Διανυσματοποίηση RM και RS Syndromes}
 \label{sec:decode-rvv}
 
-Το Tier~2 εισάγει πλήρη \RVV vectorization του \gls{rm} αποκωδικοποιητή
-και vectorized syndrome computation για τον \gls{rs}. Οι υπόλοιποι άξονες
-\gls{rs} (B, C, D) παραμένουν scalar. Η ISA απαίτηση περιορίζεται στη
-βασική V extension. Δεν απαιτείται \gls{zvbc}.
+Το Tier~2 εισάγει πλήρη \RVV vectorization του \gls{rm} αποκωδικοποιητή και
+vectorized syndrome computation (Στάδιο~A) του \gls{rs}.
+Ο \gls{rm} αποκωδικοποιητής διανυσματοποιείται σε τρία διαδοχικά βήματα, που
+ακολουθούν τη ροή του αλγορίθμου: bit-extraction (\code{expand\_and\_sum}),
+Fast Hadamard Transform, και εντοπισμό κορυφής (\code{find\_peaks}).
 
-\paragraph{Reed-Muller: Vectorized FHT μέσω Strided Loads.}
-Ο αποκωδικοποιητής RM(1,7) εκτελεί τρεις συναρτήσεις ανά σύμβολο:
-\code{expand\_and\_sum} (εξαγωγή bits από \code{MULTIPLICITY} αντίγραφα),
-\code{hadamard} (7-pass Fast Hadamard Transform),
-και \code{find\_peaks} (εύρεση μεγίστου).
+\paragraph{Reed-Muller, βήμα 1: \code{expand\_and\_sum} (vectorized bit-extraction).}
+Η \code{expand\_and\_sum} εξάγει τα bits από τα \code{MULTIPLICITY} αντίγραφα
+του codeword. Η scalar reference εκτελεί διπλό βρόχο bit-by-bit. Η vectorized
+εκδοχή χρησιμοποιεί \insn{vid} για παραγωγή των shift amounts
+$[0, 1, \ldots, 31]$ (SEW=32, LMUL=4, $\text{vl}=32$) και εξάγει και τα
+\num{32} bits ενός \code{uint32} word σε μία πράξη μέσω
+\insn{vsrl.vv}~+~\insn{vand}, με narrowing u32$\to$u16 για συσσώρευση.
+Επιτάχυνση \speedup{1.9} σε σχέση με το optimized scalar path decode.
 
-Ο πυρήνας της vectorization είναι ο FHT. Κάθε pass εκτελεί \num{64}
-butterfly ζεύγη με stride-2 πρόσβαση (σε στοιχεία, ισοδύναμο με byte-stride \num{4} για \code{int16}), pattern που αντιστοιχεί απευθείας
-στην εντολή \insn{vlse16} (strided load). Στο \VLEN{}=\num{256}, SEW=16, LMUL=4,
-η hardware vector length φτάνει \num{64} στοιχεία, επαρκή για κάλυψη
-όλων των butterfly ζευγών σε μία μόνο vector πράξη (\cref{lst:hadamard-rvv}):
+\paragraph{Reed-Muller, βήμα 2: \code{hadamard} (vectorized FHT).}
+Ο 7-pass Fast Hadamard Transform είναι ο κυρίαρχος υπολογισμός του \gls{rm}
+αποκωδικοποιητή. Κάθε pass εκτελεί \num{64} butterfly ζεύγη με stride-2
+πρόσβαση (σε στοιχεία, ισοδύναμο με byte-stride \num{4} για \code{int16}),
+pattern που αντιστοιχεί απευθείας στην εντολή \insn{vlse16} (strided load). Στο
+\VLEN{}=\num{256}, SEW=16, LMUL=4, το hardware vector length φτάνει \num{64}
+στοιχεία, επαρκεί για κάλυψη όλων των butterfly ζευγών σε μία vector πράξη
+(\cref{lst:hadamard-rvv}):
 
 \begin{lstlisting}[language=C, caption={Vectorized FHT butterfly pass.},
   label={lst:hadamard-rvv}]
@@ -191,288 +206,138 @@ vse16_v(out,      vadd_vv(even, odd, vl));     // sums
 vse16_v(out + 64, vsub_vv(even, odd, vl));     // diffs
 \end{lstlisting}
 
-\noindent Τα intrinsics στα listings παρατίθενται σε συντομευμένη μορφή (π.χ. 
-\code{vlse16\_v}, \code{vadd\_vv}). Τα πλήρη ονόματα ακολουθούν τη σύμβαση \code{\_\_riscv\_*} (π.χ. \code{\_\_riscv\_vlse16\_v\_i16m4}).
-
 Κάθε pass απαιτεί ακριβώς \num{6} vector εντολές (2 strided loads, 2
-αριθμητικές, 2 contiguous stores), σύνολο \num{42} vector εντολές για
-τους \num{7} passes. Η scalar reference εκτελεί \num{896} αριθμητικές
-πράξεις (πρόσθεση/αφαίρεση/αποθήκευση) για τον ίδιο υπολογισμό.
+αριθμητικές και 2 stores), σύνολο \num{42} vector εντολές, 
+έναντι \num{896} scalar πράξεων πρόσθεσης/αφαίρεσης (και
+ισάριθμων stores) της reference υλοποίησης. Το βήμα αυτό προσθέτει επιτάχυνση
+\speedup{1.24} σε σχέση με το βήμα~1, ανεβάζοντας τη σωρευτική επιτάχυνση σε
+\speedup{2.4} έναντι του scalar path.
 
-Η \code{expand\_and\_sum} αξιοποιεί την εντολή \insn{vid} για δημιουργία
-shift amounts $[0, 1, \ldots, 31]$ σε SEW=32, LMUL=4 ($\text{vl}=32$),
-εξάγοντας όλα τα \num{32} bits ενός \code{uint32} word σε μία vector
-πράξη μέσω \insn{vsrl.vv} + \insn{vand}. Η \code{find\_peaks} χρησιμοποιεί
-LMUL=8 ($\text{vl}=128$) για σάρωση ολόκληρου του μετασχηματισμένου
-πίνακα σε ένα pass: \insn{vredmaxu} για εύρεση μεγίστου, \insn{vmseq} +
-\insn{vfirst\_m} για εντοπισμό θέσης.
+\paragraph{Reed-Muller, βήμα 3: \code{find\_peaks} (vectorized argmax).}
+Η \code{find\_peaks} εντοπίζει το μέγιστο absolute value στον μετασχηματισμένο 
+πίνακα. Με LMUL=8, SEW=16 ($\text{vl}=128$)
+σαρώνει ολόκληρο τον πίνακα σε ένα pass: \insn{vredmaxu} για το μέγιστο,
+\insn{vmseq}~+~\insn{vfirst\_m} για τη θέση. Προσθέτει \speedup{1.38} σε σχέση 
+με το βήμα~2 (σωρευτικά \speedup{3.3}, ολοκληρώνοντας την \gls{rm}
+vectorization).
 
-\paragraph{Reed-Solomon Στάδιο A: Vectorized Syndrome Computation.}
-Κάθε ένα από τα $2\delta$ syndromes αποτελεί ανεξάρτητο εσωτερικό γινόμενο
-μήκους $N_1 - 1$ επί του $\GF{2^8}$. Ο εξωτερικός βρόχος (ανά syndrome)
-παραμένει scalar, ενώ ο εσωτερικός βρόχος (ανά στοιχείο) vectorized πλήρως.
-
-Η στρατηγική αξιοποιεί την ταυτότητα λογαρίθμου/αντιλογαρίθμου:
+\paragraph{Reed-Solomon Στάδιο~A: Vectorized Syndrome Computation.}
+Το Στάδιο~A υπολογίζει $2\delta$ syndromes, καθένα ανεξάρτητο εσωτερικό
+γινόμενο μήκους $N_1 - 1$ επί του $\GF{2^8}$. Ο εξωτερικός βρόχος (ανά
+syndrome) παραμένει scalar, ενώ ο εσωτερικός (ανά στοιχείο) διανυσματοποιείται
+πλήρως. Ο $\GF{2^8}$ πολλαπλασιασμός υλοποιείται μέσω της ταυτότητας
+λογαρίθμου/αντιλογαρίθμου:
 \begin{equation}
   \text{gf\_mul}(a, b) = \text{gf\_exp}\bigl[(\text{gf\_log}[a] + \text{gf\_log}[b]) \bmod 255\bigr]
 \end{equation}
 %
-μέσω πέντε vectorized βημάτων ανά iteration: (1)~indexed gather στον
-\code{gf\_log[]} πίνακα μέσω \insn{vluxei16}, (2)~modular πρόσθεση
-λογαρίθμων με branchless conditional subtract ($\geq 255 \Rightarrow -255$)\ifTODO~(\cref{sec:ct-verification}, χωρίς εξάρτηση από \ext{Zkt})\fi,
+
+Η προσέγγιση αυτή μετατρέπει κάθε πολλαπλασιασμό πεδίου σε δύο indexed gathers
+και μία ακέραια πρόσθεση, επιτρέποντας λειτουργία σε SEW=16 με LMUL=4
+($\text{vl}=64$ στο \VLEN{}=\num{256}). Η υλοποίηση εκτελεί πέντε vectorized βήματα ανά iteration:
+(1)~indexed gather στον \code{gf\_log[]} πίνακα μέσω \insn{vluxei16},
+(2)~modular πρόσθεση λογαρίθμων με branchless conditional subtract
+($\geq 255 \Rightarrow -255$)\ifTODO~%
+(\cref{sec:ct-verification}, χωρίς εξάρτηση από \ext{Zkt})\fi,
 (3)~indexed gather στον \code{gf\_exp[]} πίνακα, (4)~zero-masking μέσω
-\insn{vmsne} + \insn{vmand} + \insn{vmerge} για τη συνθήκη $0 \cdot x = 0$,
-και (5)~XOR-reduction μέσω \insn{vredxor}.
+\insn{vmsne} + \insn{vmand} + \insn{vmerge} για τη συνθήκη $0 \cdot x = 0$, και
+(5)~XOR-reduction μέσω \insn{vredxor}. Ο αριθμός passes ανά syndrome είναι
+$\lceil (N_1 - 1) / 64 \rceil$: μόλις \num{1} pass για HQC-128/192
+($N_1 = 46, 56$) και \num{2} passes για HQC-256 ($N_1 = 90$).
 
-Η παραμετροποίηση SEW=16, LMUL=4 παρέχει $\text{vl}=64$ lanes στο
-\VLEN{}=\num{256}, \num{4} φορές ευρύτερο παραλληλισμό ανά pass σε σχέση με
-την \gls{zvbc} lane-packing προσέγγιση (SEW=64, $\text{vl}=16$). Ο αριθμός
-passes ανά syndrome είναι $\lceil (N_1 - 1) / 64 \rceil$: μόλις \num{1}
-pass για HQC-128/192 ($N_1 = 46, 56$) και \num{2} passes για HQC-256
-($N_1 = 90$). Η υλοποίηση είναι \gls{vla}: χρησιμοποιεί
-\code{vsetvl\_e16m4} για ερώτηση του hardware vector length, εξασφαλίζοντας
-ορθότητα σε οποιοδήποτε $\VLEN \geq 64$.
+Το Στάδιο~A προσθέτει \speedup{1.31} σε σχέση με το πλήρως vectorized \gls{rm}
+(σωρευτικά \speedup{4.3}).
 
-%% --------------------------------------------------------------------------
-\subsection{Vector-Crypto Path: \Zvbc RS (Berlekamp-Massey, Forney)}
-\label{sec:decode-zvbc-bm-forney}
-
-Το Tier~3 επεκτείνει το Tier~2 διανυσματοποιώντας τους εναπομείναντες εσωτερικούς
-βρόχους \gls{rs} (Στάδια B και D) μέσω \gls{zvbc} \insn{vclmul.vv} lane-packing.
-Η στρατηγική τοποθετεί ένα στοιχείο $\GF{2^8}$ ανά 64-bit lane, εκτελεί
-carry-less πολλαπλασιασμό μέσω \insn{vclmul.vv}, και εφαρμόζει inline
-Barrett reduction, εξαλείφοντας πλήρως τις scalar \code{gf\_mul} κλήσεις
-στους εσωτερικούς βρόχους.
-
-\paragraph{Στάδιο B: Berlekamp-Massey (\code{compute\_elp\_zvbc}).}
-Ο αλγόριθμος \gls{bm}~\autocite{Berlekamp1978} εκτελεί $2\delta$ εξωτερικές επαναλήψεις, κάθε μία
-εξαρτώμενη διαδοχικά από την τιμή discrepancy $d$ και τις μεταβλητές
-ελέγχου βαθμού. Ο εξωτερικός βρόχος δεν παραλληλοποιείται. Ωστόσο, κάθε
-επανάληψη περιέχει τρεις εσωτερικούς βρόχους αυξανόμενου μήκους (από
-\num{1} έως $\delta$), οι οποίοι είναι ανεξάρτητοι εντός κάθε επανάληψης:
-
-\begin{enumerate}
-  \item \textbf{Sigma SAXPY}: $\sigma[i] \mathrel{\oplus}= dd \cdot X_{\sigma_p}[i]$,
-        \insn{vclmul.vx} με τον $dd$ ως άμεσο scalar τελεστέο
-        επί των zero-extended $X_{\sigma_p}$ στοιχείων, Barrett reduction, και
-        XOR με τα τρέχοντα $\sigma$ values.
-  \item \textbf{Blend}: constant-time conditional copy\ifTODO~(\cref{sec:ct-verification})\fi μέσω bitwise select
-        pattern (\insn{vand} + \insn{vxor}) σε SEW=16, LMUL=4, χωρίς
-        $\GF{2^8}$ πολλαπλασιασμό.
-  \item \textbf{Discrepancy dot-product}: φόρτωση $\sigma[1..n]$ contiguously
-        και $S[\mu..\mu+1-n]$ σε αντίστροφη σειρά μέσω \insn{vlse16} με
-        αρνητικό stride $-2$ bytes, \insn{vclmul.vv}, reduction, και
-        XOR-accumulation μέσω \insn{vredxor}.
-\end{enumerate}
-
-Στο LMUL=4, SEW=64, $\text{vl}=16$ (\VLEN{}=\num{256}): οι εσωτερικοί βρόχοι
-χωράνε σε \num{1} vector pass για HQC-128 ($\delta=15$) και HQC-192
-($\delta=16$), και σε \num{2} passes για HQC-256 ($\delta=29$).
-
-\paragraph{Στάδιο D: Forney Error-Values (\code{compute\_error\_values\_zvbc}).}
-Ο τύπος Forney~\autocite{Forney1966} υπολογίζει τιμές σφάλματος $e_j$ για κάθε θέση σφάλματος.
-Δύο δομές vectorized:
-
-\begin{itemize}
-  \item \textbf{Αριθμητής (dot-product)}: μετά τη scalar προ-υπολογισμό
-        δυνάμεων \code{inv\_pow[1..$\delta$]}, το εσωτερικό γινόμενο με
-        $z[1..\delta]$ vectorized μέσω \insn{vclmul.vv} + \insn{vredxor},
-        δομικά ταυτόσημο με το Στάδιο~A syndrome dot-product.
-  \item \textbf{Παρονομαστής (inner-k batch)}: ο modular δείκτης
-        $\beta_j[(i+k) \bmod \delta]$ αποσυντίθεται σε δύο συνεχόμενα
-        τμήματα μνήμης (αποφεύγοντας indexed gather), κάθε ένα
-        επεξεργαζόμενο μέσω \insn{vclmul.vx} (άμεσος scalar τελεστέος) +
-        Barrett reduction + \insn{vxor.vx} (XOR με σταθερά \num{1}). Το
-        τελικό sequential γινόμενο $\text{tmp2} = \prod_{k} \text{inner\_k}[k]$
-        παραμένει scalar. Η $\BigO{\delta}$ αλυσίδα δεν παραλληλοποιείται
-        χωρίς prefix-product scan, ο οποίος δεν αποσβένεται στα μικρά
-        $\delta$ του \gls{hqc}.
-\end{itemize}
-
-Ο \cref{tab:decode-rs-zvbc} παρουσιάζει τα αποτελέσματα της vectorization
-Στάδια B+D σε απομόνωση (πριν την ενσωμάτωση του Σταδίου~C).
+\paragraph{Γιατί μόνο το Στάδιο~A του RS.}
+Από τα τέσσερα στάδια του \gls{rs} αποκωδικοποιητή, μόνο ο υπολογισμός
+syndromes διανυσματοποιείται αποδοτικά με τη βασική V extension. Τα Στάδια~B
+(Berlekamp-Massey), C (FFT root-finding) και D (Forney) παραμένουν scalar στο
+Tier~2 για δύο λόγους. Πρώτον, ο εξωτερικός βρόχος τους είναι εγγενώς
+σειριακός: κάθε επανάληψη \gls{bm} εξαρτάται από την τιμή discrepancy της
+προηγούμενης, ενώ ο παρονομαστής Forney περιέχει σειριακή αλυσίδα γινομένου
+$\BigO{\delta}$. Δεύτερον, οι εσωτερικοί τους βρόχοι είναι μικρού και
+ανομοιόμορφου μήκους (από \num{1} έως $\delta$), οπότε το σταθερό setup cost
+της base-\RVV indexed-gather προσέγγισης δεν αποσβένεται. Αντίθετα, το Στάδιο~A
+είναι ένα μακρύ ($N_1 - 1$), ομοιόμορφο, ανεξάρτητο εσωτερικό γινόμενο, ιδανικό
+για base-\RVV. Η αποδοτική διανυσματοποίηση των B/C/D απαιτεί τον πυκνό
+\gls{zvbc} \insn{vclmul.vv} lane-packing πολλαπλασιασμό (ένα \code{gf\_mul} ανά
+lane, χωρίς indexed gather), όπως αναλύεται στην \cref{sec:decode-zvbc-bm-forney}.
 
 \begin{table}[htbp]
   \centering
-  \caption{Αποτελέσματα \Zvbc vectorization Στάδια B+D στο \Decaps \instret (variant
-           \texttt{vector\_zvk}, \VLEN{}=\num{256}, σε ενδιάμεσο build πριν την ενσωμάτωση
-           του Σταδίου~C). Η βελτίωση κλιμακώνεται με $\delta^2$, μέγιστη στο HQC-256
-           ($\delta=29$).}
-  \label{tab:decode-rs-zvbc}
-  \input{figures/ch7-kernels/decode-rs-zvbc-table}
+  \caption{Ablation των βημάτων Tier~2 στο decode (HQC-128, \instret, median).}
+  \label{tab:decode-rvv-ablation}
+  \begin{tblr}{colspec={l r r}, row{1}={font=\bfseries}}
+    \toprule
+    Βήμα & Οριακό κέρδος & Σωρευτικό \\
+    \midrule
+    scalar path (\Zbc \code{gf\_mul})  &                & \speedup{1.00} \\
+    {}+ \code{expand\_and\_sum}         & \speedup{1.9} & \speedup{1.9} \\
+    {}+ \code{hadamard} FHT            & \speedup{1.24} & \speedup{2.4} \\
+    {}+ \code{find\_peaks}             & \speedup{1.38} & \speedup{3.3} \\
+    {}+ \gls{rs} Στάδιο~A syndromes    & \speedup{1.31} & \speedup{4.3} \\
+    \bottomrule
+  \end{tblr}
 \end{table}
 
-Η κλιμάκωση επιβεβαιώνει τη θεωρητική πρόβλεψη: το HQC-256 ($\delta=29$)
-εμφανίζει τη μεγαλύτερη απόλυτη μείωση ($-\cycles{134998}$ \instret,
-$-\pct{7.3}$) διότι οι εσωτερικοί βρόχοι \gls{bm} και Forney εκτελούν
-$\BigO{\delta^2}$ πολλαπλασιασμούς, πλήρως αξιοποιώντας τον vector
-throughput. Τα \KeyGen και \Encaps παραμένουν αμετάβλητα, επιβεβαιώνοντας
-την απομόνωση της βελτιστοποίησης στο \Decaps path.
-
 %% --------------------------------------------------------------------------
-\subsection{Vector-Crypto Path: \Zvbc FFT Root-Finding (Στάδιο C)}
-\label{sec:decode-zvbc-fft}
+\subsection{Vector-Crypto Path: \Zvbc RS (Berlekamp-Massey, Forney, FFT)}
+\label{sec:decode-zvbc-bm-forney}
 
-Το Στάδιο~C αποτιμά το error-locator πολυώνυμο $\sigma(x)$ σε όλα τα
-$2^M = 256$ σημεία του $\GF{2^8}$ μέσω αναδρομικής radix αποσύνθεσης
-(additive Gao-Mateer \gls{fft}~\autocite{GaoMateer2010}). Η υλοποίηση αναφοράς (\code{fft\_rec})
-εκτελεί depth-first αναδρομική διάσχιση ενός δυαδικού δέντρου βάθους
-\code{PARAM\_M} (= 8), με $\BigO{2^M}$ κλήσεις συναρτήσεων.
+Το Tier~3 διανυσματοποιεί τους εναπομείναντες scalar εσωτερικούς βρόχους του
+\gls{rs} αποκωδικοποιητή (Στάδια B, C, D) μέσω \gls{zvbc} \insn{vclmul.vv}
+lane-packing: ένα στοιχείο $\GF{2^8}$ ανά 64-bit lane, carry-less
+πολλαπλασιασμός μέσω \insn{vclmul.vv} και inline reduction, εξαλείφοντας τις
+scalar \code{gf\_mul} κλήσεις στους εσωτερικούς βρόχους.
 
-\paragraph{Μετασχηματισμός: Αναδρομικό → Επαναληπτικό BFS.}
-Η κρίσιμη αρχιτεκτονική απόφαση ήταν η μετατροπή της αναδρομικής δομής
-σε επαναληπτική breadth-first διάσχιση (\cref{fig:decode-fft-transform}).
-Ο μετασχηματισμός αποτελείται από δύο passes:
+\paragraph{Στάδια B+D: Berlekamp-Massey και Forney.}
+Ο \gls{bm}~\autocite{Berlekamp1978} εκτελεί $2\delta$ διαδοχικά εξαρτημένες
+εξωτερικές επαναλήψεις (μη παραλληλοποιήσιμες), αλλά κάθε επανάληψη περιέχει
+ανεξάρτητους εσωτερικούς βρόχους που διανυσματοποιούνται σε SEW=64, LMUL=4
+($\text{vl}=16$): το sigma SAXPY ($\sigma \mathrel{\oplus}= dd \cdot
+X_{\sigma_p}$) μέσω \insn{vclmul.vx}, ένα constant-time blend, και το
+discrepancy dot-product μέσω \insn{vlse16} με αρνητικό stride συν
+\insn{vredxor}. Οι εσωτερικοί βρόχοι χωρούν σε \num{1} pass για HQC-128/192
+($\delta \leq 16$) και \num{2} για HQC-256 ($\delta = 29$). Ο τύπος
+Forney~\autocite{Forney1966} επαναχρησιμοποιεί την ίδια δομή: ο αριθμητής είναι
+dot-product, ενώ ο παρονομαστής υπολογίζεται σε
+inner-k batch μέσω \insn{vclmul.vx}, αφήνοντας μόνο την $\BigO{\delta}$
+ακολουθιακή αλυσίδα γινομένου scalar. Οριακό κέρδος: \speedup{1.41} σε σχέση με
+την RVV optimized υλοποιείται του Tier~2 (HQC-128).
 
-\begin{itemize}
-  \item \textbf{Pass 1 (top-down)}: για κάθε επίπεδο δέντρου από ρίζα
-        προς φύλλα, εφαρμογή vectorized beta-scaling σε κάθε segment,
-        ακολουθούμενη από radix αποσύνθεση σε δύο κόμβους επόμενου επιπέδου.
-  \item \textbf{Leaf base case}: vectorized XOR-broadcast για παραγωγή
-        των $2^{m_{\text{leaf}}}$ εξόδων ανά φύλλο.
-  \item \textbf{Pass 2 (bottom-up)}: butterfly combination κόμβων επόμενου επιπέδου μέσω
-        vectorized gammas-sums πολλαπλασιασμό.
-\end{itemize}
-
-Ο μετασχηματισμός εξαλείφει $\BigO{2^M}$ κλήσεις συναρτήσεων (function
-call overhead: prologue/epilogue, stack frame allocation, argument passing)
-και αντικαθιστά τις με explicit level-loops επί compile-time-bounded
-arrays. Η μνήμη εργασίας εκχωρείται στο stack με σταθερά μεγέθη
-καθοριζόμενα από \code{PARAM\_M} και \code{PARAM\_FFT}, χωρίς heap
-allocation.
+\paragraph{Στάδιο C: FFT Root-Finding.}
+Το Στάδιο~C αποτιμά το error-locator $\sigma(x)$ σε όλα τα $2^8 = 256$ σημεία
+του $\GF{2^8}$ μέσω additive Gao-Mateer \gls{fft}. Η
+κρίσιμη παρέμβαση είναι ο μετασχηματισμός της αναδρομικής \code{fft\_rec} (με
+$\BigO{2^M}$ κλήσεις συναρτήσεων) σε επαναληπτική breadth-first διάσχιση
+(\cref{fig:decode-fft-transform}), που εξαλείφει το function-call overhead και
+ενεργοποιεί τρεις vectorized helpers στο \insn{vclmul.vv} pipeline:
+\code{beta\_scale\_zvbc} (κλιμάκωση $\beta^i$), \code{xor\_broadcast\_zvbc}
+(XOR-broadcast ανά επίπεδο δέντρου) και \code{gammas\_sums\_combine\_zvbc}
+(butterfly combination). Οριακό κέρδος: \speedup{1.30} σε σχέση με τη 
+βελτιστοποίηση μόνο των Σταδίων~B+D (HQC-128).
 
 \begin{figure}[htbp]
   \centering
   \input{figures/ch7-kernels/decode-fft-transformation}
-  \caption{Μετασχηματισμός αναδρομικού \code{fft\_rec} σε επαναληπτικό BFS.
-           Αριστερά: depth-first αναδρομή με $\BigO{2^M}$ κλήσεις
-           συναρτήσεων. Δεξιά: level-by-level βρόχος με σταθερό αριθμό
-           επαναλήψεων και vectorized helpers σε κάθε επίπεδο.}
+  \caption{Μετασχηματισμός αναδρομικού \code{fft\_rec} σε επαναληπτικό BFS.}
   \label{fig:decode-fft-transform}
 \end{figure}
 
-\paragraph{Τρεις Vectorized Helpers.}
-Η επαναληπτική δομή ενεργοποιεί τρεις vectorized πυρήνες:
-
-\begin{enumerate}
-  \item \textbf{\code{beta\_scale\_zvbc}$(f, n, \beta)$}: υπολογίζει
-        $f[i] = \text{gf\_mul}(\beta^i, f[i])$ για $i = 1, \ldots, n-1$.
-        Οι δυνάμεις $\beta^i$ προ-υπολογίζονται σε bounded stack array.
-        Η vectorized πράξη χρησιμοποιεί το pipeline: \insn{vle16} →
-        \insn{vzext} u16→u64 → \insn{vclmul.vv} → Barrett reduction →
-        narrowing u64→u16 → \insn{vse16}. Η περίπτωση $\beta = 1$
-        (identity) εκτελείται χωρίς branch. Η \code{gf\_mul}(1, x) = x
-        αποτελεί fixed-latency vector no-op\ifTODO~(\cref{sec:ct-verification})\fi.
-  \item \textbf{\code{xor\_broadcast\_zvbc}$(dst, src, len, val)$}: υπολογίζει
-        $dst[k] = src[k] \oplus val$ μέσω \gls{vla} loop:
-        \insn{vle16}/\insn{vxor.vx}/\insn{vse16} σε SEW=16, LMUL=4
-        ($\text{vl}=64$ στο \VLEN{}=\num{256}). Αντικαθιστά τον scalar βρόχο
-        XOR-broadcast σε κάθε επίπεδο δέντρου.
-  \item \textbf{\code{gammas\_sums\_combine\_zvbc}$(out, u, gs, v, count)$}:
-        υπολογίζει $out[i] = u[i] \oplus \text{gf\_mul}(gs[i], v[i])$ μέσω
-        του πλήρους \insn{vclmul.vv} + Barrett reduce + \insn{vxor.vv}
-        pipeline. Μία scalar-broadcast παραλλαγή χειρίζεται την περίπτωση
-        $\text{sc} \leq 3$ όπου το $v$ είναι σταθερά.
-\end{enumerate}
-
-\paragraph{Αποτελέσματα.}
-Ο \cref{tab:decode-instret} παρουσιάζει τη συνολική επιτάχυνση του decode
-pipeline (πλήρες RM + RS, συμπεριλαμβανομένου του Σταδίου~C) σε σχέση με
-το scalar reference. Ο \cref{tab:decode-axisc} απομονώνει τη συνεισφορά
-του Σταδίου~C μέσω διαφοράς με το προηγούμενο Zvbc baseline (ίδια Στάδια
-A/B/D, scalar \code{fft\_rec} για το Στάδιο~C).
-
 \begin{table}[htbp]
   \centering
-  \caption{Συνολικό decode pipeline \instret: scalar reference έναντι
-           πλήρους \Zvbc υλοποίησης (Στάδια A+B+C+D). Μέτρηση σε Spike,
-           \VLEN{}=\num{256}.}
-  \label{tab:decode-instret}
-  \input{figures/ch7-kernels/decode-instret-table}
+  \caption{Ablation των σταδίων Tier~3 \Zvbc στο decode (HQC-128, \instret, median).}
+  \label{tab:decode-zvbc-ablation}
+  \begin{tblr}{colspec={l r r}, row{1}={font=\bfseries}}
+    \toprule
+    Στάδιο & Οριακό κέρδος & Σωρευτικό \\
+    \midrule
+    Tier~2 Base-\RVV (baseline)         &                & \speedup{1.00} \\
+    {}+ Στάδια B+D (\gls{bm}, Forney)    & \speedup{1.41} & \speedup{1.41} \\
+    {}+ Στάδιο C (FFT root-finding)      & \speedup{1.30} & \speedup{1.83} \\
+    \bottomrule
+  \end{tblr}
 \end{table}
-
-\begin{table}[htbp]
-  \centering
-  \caption{Απομονωμένη συνεισφορά του Σταδίου~C (FFT root-finding): σύγκριση
-           \Zvbc pipeline με scalar FFT έναντι vectorized FFT.  Scope: μόνο το Στάδιο~C (όχι πλήρες decode).}
-  \label{tab:decode-axisc}
-  \input{figures/ch7-kernels/decode-axisc-table}
-\end{table}
-
-Η vectorized FFT επιτυγχάνει $-\pct{35.8}$ (HQC-128) έως $-\pct{39.8}$
-(HQC-192) μείωση στο Στάδιο~C component. Η χαμηλότερη βελτίωση στο HQC-256
-($-\pct{28.0}$) οφείλεται στο μεγαλύτερο \code{PARAM\_FFT} (= 5 αντί 4),
-το οποίο αυξάνει τον αριθμό επιπέδων δέντρου και τα μεγέθη segments,
-μειώνοντας αναλογικά το ποσοστό function-call overhead που εξαλείφθηκε.
-
-Συνολικά, η πλήρης Tier~3 decode υλοποίηση (Στάδια A+B+C+D) επιτυγχάνει
-\speedup{6.84} (HQC-128), \speedup{7.81} (HQC-192) και \speedup{7.23}
-(HQC-256) στο decode pipeline. Η ορθότητα επιβεβαιώθηκε μέσω
-\num{300}/\num{300} \gls{kat} vectors σε όλα τα security levels.
-
-%% --------------------------------------------------------------------------
-\subsection{Βελτιστοποίηση \texorpdfstring{$\GF{2^8}$}{GF(2\textasciicircum 8)} Reduction: Single-Pass Barrett via \insn{vclmul}}
-\label{sec:decode-barrett}
-
-Η αναγωγή $\bmod\; p(x) = x^8 + x^4 + x^3 + x^2 + 1$ (0x11D)
-εφαρμόζεται μετά κάθε \insn{vclmul.vv} στο Zvbc decode pipeline. Η αρχική
-υλοποίηση χρησιμοποιούσε two-pass shift-and-XOR feedback (ταυτόσημη με τη
-scalar \code{gf\_reduce}): \num{12} vector εντολές ανά reduction. Η
-βελτιστοποίηση αντικαθιστά αυτή τη δομή με single-pass Barrett reduction
-χρησιμοποιώντας \insn{vclmul.vx} για εκτίμηση πηλίκου, μειώνοντας το
-κόστος σε \num{6} vector εντολές.
-
-\paragraph{Μαθηματική θεμελίωση.}
-Η Barrett reduction στο $\GF{2}[x]$~\cite{Barrett1986} υπολογίζει:
-\begin{align}
-  \text{high} &= v \gg 8 \\
-  q &= (\text{high} \polymul \mu) \gg 8 \\
-  \text{corr} &= q \polymul p(x) \\
-  r &= (v \oplus \text{corr}) \mathbin{\&} \text{0xFF}
-\end{align}
-%
-όπου $\mu = \lfloor x^{16} / p(x) \rfloor = \text{0x11C}$ στο $\GF{2}[x]$
-και $\polymul$ σημαίνει carry-less πολλαπλασιασμό. Η κρίσιμη παρατήρηση
-είναι ότι η χρήση $\text{0x11D}$ (αντί $\text{0x11C}$) ως $\mu$ παράγει
-ταυτόσημα αποτελέσματα για όλες τις 14-bit εισόδους: η διαφορά $+1$ (bit~0)
-δεν επηρεάζει το πηλίκο μετά τη δεξιά ολίσθηση κατά \num{8} θέσεις για
-τελεστέους βαθμού $\leq 5$. Η ιδιότητα αυτή (self-reciprocal) επιτρέπει
-τη χρήση ενός μόνο σταθερού scalar τελεστέου $\mu$ και για τις δύο \insn{vclmul.vx} πράξεις.
-
-\paragraph{Υλοποίηση.}
-Η \code{gf\_reduce\_vec\_u64m4} (\cref{lst:barrett-single}) εκτελεί την αναγωγή σε \num{6} vector
-εντολές, με τον σταθερό τελεστέο $\mu$ να περνά απευθείας ως scalar
-(\code{rs1}) χωρίς ανάγκη broadcast:
-
-\begin{lstlisting}[language=C, caption={Single-pass Barrett reduction μέσω \insn{vclmul.vx}.},
-  label={lst:barrett-single}]
-vuint64m4_t high = vsrl_vx(v, 8, vl);       // overflow [13:8]
-vuint64m4_t q    = vclmul_vx(high, mu, vl);  // quotient est.
-q                = vsrl_vx(q, 8, vl);        // shift quotient
-vuint64m4_t corr = vclmul_vx(q, mu, vl);     // correction
-v                = vxor_vv(v, corr, vl);      // apply
-v                = vand_vx(v, 0xFF, vl);      // mask 8 bits
-\end{lstlisting}
-
-Η ορθότητα επαληθεύτηκε εξαντλητικά: όλες οι \num{16384} τιμές στο
-εύρος $[0, \text{0x3FFF}]$ παράγουν ταυτόσημο αποτέλεσμα με τη reference
-\code{gf\_reduce}. Η βελτιστοποίηση εφαρμόζεται τόσο στο
-\code{fft\_zvbc.c} όσο και στο \code{reed\_solomon\_zvbc.c}.
-
-\paragraph{Εξερεύνηση \ext{Zvkg} (\insn{vgmul.vv}).}
-Η εντολή \insn{vgmul.vv} (GHASH multiply) εξερευνήθηκε ως εναλλακτική
-μονο-εντολής reduction. Ωστόσο, η \ext{Zvkg} χρησιμοποιεί σταθερό
-πολυώνυμο GHASH ($x^{128} + x^7 + x^2 + x + 1$), ασύμβατο με το
-$\GF{2^8}$ irreducible $\text{0x11D}$. Πειραματική επαλήθευση επιβεβαίωσε
-τη μη εφαρμοσιμότητα: \num{21}/\num{300} \gls{kat} failures (Option~A)
-και \num{259}/\num{300} failures (Option~B).
-
-\paragraph{Ποσοτικό αποτέλεσμα.}
-Η single-pass Barrett μειώνει το \Decaps \instret κατά \cycles{2699}
-($-\pct{0.67}$) στο HQC-128, χωρίς επίπτωση στα \KeyGen/\Encaps. Η
-μικρή απόλυτη τιμή αντανακλά το γεγονός ότι η reduction αποτελεί μικρό
-κλάσμα του ήδη βελτιστοποιημένου decode pipeline, αλλά η \pct{50} μείωση
-εντολών ανά reduction κλήση αθροίζεται σε χιλιάδες εκτελέσεις ανά \Decaps.
 
 %% ============================================================================
 \section{Βοηθητικοί Πυρήνες και Πρωτόγονες Πράξεις}
@@ -829,7 +694,7 @@ $\approx\num{225}$ εντολές καθαρά scatter εξοικονόμηση�
 march strings: η ωφέλεια \pct{0.12} δεν δικαιολογεί την πρόσθετη ISA
 δήλωση. Η επέκταση αποτελεί mandatory στο RVA22U64, επομένως η
 διαθεσιμότητά της σε hardware είναι εγγυημένη. Η σχεδιαστική επιλογή
-αφορά αποκλειστικά τη σαφήνεια του ελάχιστου ISA profile ανά tier. Τα ποσοστά \ext{Zbs} προέρχονται από screening ablation στο scalar profile. Καθώς η επέκταση απορρίφθηκε για τα vector variants, δεν εκτελέστηκαν production runs σε L128 με ενεργή \ext{Zbs}. Η τιμή \num{760132} αντιστοιχεί στη μέτρηση ablation, έναντι \num{702755} του \code{vector\_zvk\_L128}.
+αφορά αποκλειστικά τη σαφήνεια του ελάχιστου ISA profile ανά tier. Τα ποσοστά \ext{Zbs} προέρχονται από screening ablation στο scalar profile. Καθώς η επέκταση απορρίφθηκε για τα vector variants, δεν εκτελέστηκαν production runs σε L128 με ενεργή \ext{Zbs}. Η τιμή \num{760132} αντιστοιχεί στη μέτρηση ablation, έναντι \num{1491854} του \code{vector\_zvk\_L128}.
 
 %% --------------------------------------------------------------------------
 \subsection{Πρόσθετες Extensions: Αξιολόγηση και Απόρριψη}
@@ -962,8 +827,8 @@ micro-benchmarks) μεταξύ scalar reference και Tier~3 optimized:
 \end{table}
 
 Ο πολυωνυμικός πολλαπλασιασμός επιτυγχάνει τη μεγαλύτερη απόλυτη μείωση
-(\speedup{318} σε isolated benchmark), ο Keccak αποδίδει \speedup{3.7}
-σε επίπεδο πλήρους \Decaps call pattern, και η αποκωδικοποίηση \speedup{6.8}
+(\speedup{264.1} σε isolated benchmark), ο Keccak αποδίδει \speedup{1.46}
+σε επίπεδο πλήρους \Decaps call pattern, και η αποκωδικοποίηση \speedup{14.27}
 σε isolated decode. Η συνδυασμένη εφαρμογή μετατρέπει ένα σύστημα
 κυριαρχούμενο από ένα μονολιθικό hotspot σε ένα pipeline κατανεμημένο
 μεταξύ πολλαπλών πυρήνων.

@@ -81,7 +81,7 @@
           χωρίς εξειδικευμένο hardware.
   \end{itemize}
   \begin{block}{Headline (HQC-128, \instret\ vs reference~\cite{HQC-reference-impl})}
-    Πολυωνυμικός πολλαπλασιασμός \pos{\speedup{318}} \quad\textbar\quad πλήρες \KEM\ \pos{\speedup{167}}
+    Πολυωνυμικός πολλαπλασιασμός \pos{\speedup{264}} \quad\textbar\quad πλήρες \KEM\ \pos{\speedup{76}}
   \end{block}
   \centering\footnotesize\textcolor{neutral}{Το όφελος διατηρείται σε όλα τα security levels (128/192/256).}
 \end{frame}
@@ -152,7 +152,7 @@
       {3 πολ/μοί αντί 4· leaf multiply $=$ \texttt{clmul}/\texttt{clmulh} (\Zbc)};
   \end{tikzpicture}
   \end{center}
-  \centering Κέρδος polymul (HQC-128): \pos{\speedup{86.9}} έναντι reference.
+  \centering Κέρδος polymul (HQC-128): \pos{\speedup{101.3}} έναντι reference.
 \end{frame}
 
 % ---------- 8. Polymul II: RVV recompose + Zvbc ------------------------------
@@ -167,12 +167,12 @@
     \begin{axis}[
         ybar, bar width=16pt, width=0.82\textwidth, height=4.6cm,
         symbolic x coords={scalar Zbc, base-RVV, Zvbc}, xtick=data,
-        ymin=0, ymax=360, ylabel={polymul speedup ($\times$)}, ymajorgrids,
+        ymin=0, ymax=300, ylabel={polymul speedup ($\times$)}, ymajorgrids,
         nodes near coords, every node near coord/.append style={font=\scriptsize},
         enlarge x limits=0.35]
-      \addplot[fill=oiBlue!70]   coordinates {(scalar Zbc,86.9)};
-      \addplot[fill=oiOrange!75] coordinates {(base-RVV,122.0)};
-      \addplot[fill=oiGreen!75]  coordinates {(Zvbc,318.2)};
+      \addplot[fill=oiBlue!70]   coordinates {(scalar Zbc,101.3)};
+      \addplot[fill=oiOrange!75] coordinates {(base-RVV,124.6)};
+      \addplot[fill=oiGreen!75]  coordinates {(Zvbc,264.1)};
     \end{axis}
   \end{tikzpicture}
   \end{center}
@@ -186,12 +186,12 @@
     \begin{axis}[
         ybar, bar width=11pt, width=0.86\textwidth, height=4.8cm,
         symbolic x coords={HQC-128,HQC-192,HQC-256}, xtick=data,
-        ymin=0, ymax=9, ylabel={speedup ($\times$)}, ymajorgrids,
+        ymin=0, ymax=18, ylabel={speedup ($\times$)}, ymajorgrids,
         legend style={at={(0.5,1.04)},anchor=south,legend columns=-1},
         nodes near coords, every node near coord/.append style={font=\scriptsize},
         enlarge x limits=0.3]
-      \addplot[fill=oiOrange!75] coordinates {(HQC-128,3.7)(HQC-192,3.8)(HQC-256,3.9)};
-      \addplot[fill=oiGreen!75]  coordinates {(HQC-128,6.8)(HQC-192,7.8)(HQC-256,7.2)};
+      \addplot[fill=oiOrange!75] coordinates {(HQC-128,1.37)(HQC-192,1.36)(HQC-256,1.36)};
+      \addplot[fill=oiGreen!75]  coordinates {(HQC-128,14.27)(HQC-192,15.95)(HQC-256,13.24)};
       \legend{Keccak / SHA-3, Decode (RM+RS)}
     \end{axis}
   \end{tikzpicture}
@@ -206,12 +206,12 @@
     \begin{axis}[
         ybar, bar width=12pt, width=0.88\textwidth, height=5.0cm,
         symbolic x coords={HQC-128,HQC-192,HQC-256}, xtick=data,
-        ymin=0, ymax=600, ylabel={speedup ($\times$, \instret)}, ymajorgrids,
+        ymin=0, ymax=500, ylabel={speedup ($\times$, \instret)}, ymajorgrids,
         legend style={at={(0.5,1.04)},anchor=south,legend columns=-1},
         nodes near coords, every node near coord/.append style={font=\scriptsize},
         enlarge x limits=0.3]
-      \addplot[fill=oiBlue!70] coordinates {(HQC-128,318.2)(HQC-192,327.1)(HQC-256,547.3)};
-      \addplot[fill=oiGreen!75] coordinates {(HQC-128,167.0)(HQC-192,214.2)(HQC-256,338.8)};
+      \addplot[fill=oiBlue!70] coordinates {(HQC-128,264.1)(HQC-192,271.4)(HQC-256,436.5)};
+      \addplot[fill=oiGreen!75] coordinates {(HQC-128,76.4)(HQC-192,111.0)(HQC-256,167.7)};
       \legend{polynomial multiply, full \KEM}
     \end{axis}
   \end{tikzpicture}
@@ -226,18 +226,18 @@
       \begin{tikzpicture}[font=\footnotesize]
         \begin{axis}[
             width=\textwidth, height=4.6cm,
-            symbolic x coords={256,512,1024,2048}, xtick=data,
+            symbolic x coords={256}, xtick=data,
             xlabel={\VLEN\ (bits)}, ylabel={total \instret\ ($\times 10^3$)},
-            ymin=650, ymax=720, ymajorgrids,
+            ymin=1300, ymax=1600, ymajorgrids,
             nodes near coords, every node near coord/.append style={font=\scriptsize}]
-          \addplot[mark=*,oiGreen,thick] coordinates {(256,702.8)(512,677.1)(1024,679.5)(2048,703.9)};
+          \addplot[mark=*,oiGreen,thick] coordinates {(256,1491.9)};
         \end{axis}
       \end{tikzpicture}
-      \par\footnotesize\textcolor{neutral}{HQC-128, vector\_zvk (Spike). Βέλτιστο ∼512, μικρό όφελος πέραν 256.}
+      \par\footnotesize\textcolor{neutral}{HQC-128, vector\_zvk (Spike), \VLEN$=256$. Λοιπά VLEN δεδομένα δεν είναι διαθέσιμα.}
     \column{0.42\textwidth}
       \begin{block}{Real silicon (BPI-F3, K1 X60)}
         \VLEN $=256$, GCC native.\\[0.3em]
-        Scalar (\Zbc/\Zbb) full \KEM:\\ \pos{\speedup{34.3}} (HQC-128).
+        Scalar (\Zbc/\Zbb) full \KEM:\\ \pos{\speedup{35.2}} (HQC-128).
       \end{block}
       \footnotesize \con{HW με \Zvbc/\Zvbb μη διαθέσιμο}, στο silicon τρέχει η scalar έκδοση.
   \end{columns}
@@ -268,8 +268,8 @@
 \begin{frame}{Συμπεράσματα}
   \begin{itemize}
     \item Πρώτη ISA-driven optimized \HQC\ σε RISC-V (pure software).
-    \item \pos{\speedup{167}}--\pos{\speedup{339}} στο πλήρες \KEM\ (\instret), έως \pos{\speedup{547}} στο polymul.
-    \item Επικύρωση σε πραγματικό silicon: \pos{\speedup{34.3}} (scalar, HQC-128).
+    \item \pos{\speedup{76.4}}--\pos{\speedup{167.7}} στο πλήρες \KEM\ (\instret), έως \pos{\speedup{436.5}} στο polymul.
+    \item Επικύρωση σε πραγματικό silicon: \pos{\speedup{35.2}} (scalar, HQC-128).
     \item Μελλοντικά: HW με vector-crypto, επέκταση HW σε 192/256.
   \end{itemize}
   \vfill
@@ -301,13 +301,13 @@
     \begin{axis}[
         ybar, bar width=18pt, width=0.8\textwidth, height=4.8cm,
         symbolic x coords={reference,+Zbc,+RVV,+Zvbc}, xtick=data,
-        ymin=0, ymax=360, ylabel={polymul speedup ($\times$)}, ymajorgrids,
+        ymin=0, ymax=300, ylabel={polymul speedup ($\times$)}, ymajorgrids,
         nodes near coords, every node near coord/.append style={font=\scriptsize},
         enlarge x limits=0.22]
       \addplot[fill=neutral!50]  coordinates {(reference,1)};
-      \addplot[fill=oiBlue!70]   coordinates {(+Zbc,86.9)};
-      \addplot[fill=oiOrange!75] coordinates {(+RVV,122.0)};
-      \addplot[fill=oiGreen!75]  coordinates {(+Zvbc,318.2)};
+      \addplot[fill=oiBlue!70]   coordinates {(+Zbc,101.3)};
+      \addplot[fill=oiOrange!75] coordinates {(+RVV,124.6)};
+      \addplot[fill=oiGreen!75]  coordinates {(+Zvbc,264.1)};
     \end{axis}
   \end{tikzpicture}
   \end{center}

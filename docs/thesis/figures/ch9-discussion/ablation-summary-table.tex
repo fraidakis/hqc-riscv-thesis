@@ -1,5 +1,6 @@
 % Summary table: ISA extension ablation results
 % §9.2.1
+% Data source: commit bdd9cf4 (2026-06-30) KEM CSVs + earlier ablation studies
 \begin{tabular}{l l S[table-format=3.0] S[table-format=2.2] l}
 \toprule
 \textbf{Extension} & \textbf{Εντολές} & {\textbf{Στατικές}} &
@@ -28,12 +29,12 @@
 \RVV (\insn{vxor}, \insn{vle64})
   & διανυσματική ανασύνθεση
   & {—}
-  & {-48.07}
+  & {-42.22}
   & Tier 2+ \\
 \Zvbc (\vclmul/\vclmulh)
   & vector carry-less mul
   & {—}
-  & {-63.00}
+  & {-25.97}
   & Tier 3 \\
 \Zvbb (\insn{vror}, \insn{vandn})
   & vector rotate/AND-NOT

@@ -16,23 +16,23 @@
 αντιστοιχούν στη σταδιακή υιοθέτηση ISA extensions:
 
 \paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
-Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{18639752} σε
-\num{184108} \instret (HQC-128), επιτυγχάνοντας \speedup{101.2} μέσω
+Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{18504302} σε
+\num{182726} \instret (HQC-128), επιτυγχάνοντας \speedup{101.3} μέσω
 Karatsuba compile-time specialized tree generation και εγγενούς \clmul/\clmulh. Το πλήρες
-\gls{kem} (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{34} στο HQC-128 και
-\speedup{49} στο HQC-256.
+\gls{kem} (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{35.0} στο HQC-128 και
+\speedup{60.1} στο HQC-256.
 
 \paragraph{Tier~2 — Base-RVV (\RVV + \Zbc/\Zbb)}
 Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
-speedup σε \speedup{127.5} (HQC-128) και το πλήρες \gls{kem} σε \speedup{60}.
+speedup σε \speedup{124.6} (HQC-128) και το πλήρες \gls{kem} σε \speedup{55.9}.
 Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το Base-RVV
 rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
 
 \paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
-Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vx} επιτυγχάνει \speedup{292.1} στο
-polymul (HQC-128) και \speedup{512.6} στο HQC-256. Το πλήρες \gls{kem} φτάνει
-\speedup{167} (HQC-128) και \speedup{339} (HQC-256), τοποθετώντας τον
-\instret σε \num{702755}. Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
+Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vx} επιτυγχάνει \speedup{264.1} στο
+polymul (HQC-128) και \speedup{436.5} στο HQC-256. Το πλήρες \gls{kem} φτάνει
+\speedup{75.9} (HQC-128) και \speedup{163.8} (HQC-256), τοποθετώντας τον
+\instret σε \num{1491854}. Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
 της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion. Σε εκτιμώμενους κύκλους
 ρολογιού το χάσμα είναι μεγαλύτερο ($\approx 2.7\times$, \cref{ssec:avx2-gap}), και
 τόσο η άμεση σύγκριση \instret-έναντι-κύκλων όσο και η επικύρωση σε πραγματικό
@@ -40,8 +40,8 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 
 \paragraph{Βοηθητικοί πυρήνες}
 Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
-(\speedup{3.7}–\speedup{3.9} μέσω 2-way \gls{soa} με \gls{zvbb}) και η
-αποκωδικοποίηση \gls{rm}/\gls{rs} (\speedup{6.8}–\speedup{7.8} μέσω
+(\speedup{1.37} μέσω 2-way \gls{soa} με \gls{zvbb}) και η
+αποκωδικοποίηση \gls{rm}/\gls{rs} (\speedup{14.27} μέσω
 \RVV vectorization και \gls{zvbc} $\GF{2^8}$ acceleration).
 
 \ifTODO
@@ -221,8 +221,7 @@ silicon.
 \paragraph{Configurable-polynomial GF reduction extension}
 Η \gls{zvbc} \insn{vclmul.vx} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο
 $\GFpoly$, αλλά η αναγωγή σε μικρά σώματα (\eg $\GF{2^8}$) απαιτεί
-\num{6} vector εντολές ακόμη και μετά τη single-pass Barrett optimization
-(\cref{sec:decode-barrett}). Μια μελλοντική extension με
+πολλαπλές vector εντολές ανά πράξη. Μια μελλοντική extension με
 configurable reduction polynomial (\eg \code{Zvkgf} ή \code{Zvkpoly}) θα
 συμπίεζε την αναγωγή σε μία εντολή, ωφελώντας τόσο τον HQC \gls{rs}
 decoder όσο και γενικότερα AES-GCM/GHASH workloads.

@@ -1,49 +1,57 @@
-% Recursive-to-iterative FFT transformation diagram
-\tikzsetnextfilename{ch7-kernels-decode-fft-transformation}
+% VARIANT (baseline refined, SAME layout) — not \input by main.tex; promote manually.
+% decode-fft-transformation_v1: token migration + cleanup of the original
+% side-by-side layout (raw red!8/green!8/blue!8 -> figthreat/figsolution/figprocess
+% tokens; raw arrows -> figedge/*; \footnotesize -> figT/* scale). Central leaves
+% (f01/f10) de-overlapped. The recursive tree is anchored so its root f(x) sits at
+% the SAME height as the BFS "Level 0" box (root placed via (... |- lev0)), so the
+% "Μετασχηματισμός" arrow is perfectly horizontal. Tree shape unchanged (calc
+% offsets reproduce the liked layout). NOTE: keeps the wide side-by-side layout;
+% use _vertical to fit \textwidth.
+\tikzsetnextfilename{ch7-kernels-decode-fft-transformation_v1}
 \begin{tikzpicture}[
-  node distance=1.2cm and 2.5cm,
-  box/.style={draw, rounded corners=2pt, minimum width=2.2cm, minimum height=0.7cm,
-              font=\small\sffamily},
-  arrow/.style={->, >=stealth, thick},
-  label/.style={font=\footnotesize\itshape, text=gray!70!black}
+  fftbox/.style ={figbox, align=center, minimum height=0.6cm},
+  fftrec/.style ={fftbox, draw=figthreat,   fill=figthreatfill,   minimum width=1.6cm},
+  fftit/.style  ={fftbox, draw=figsolution, fill=figsolutionfill, minimum width=4.6cm},
+  fftcomb/.style={fftbox, draw=figprocess,  fill=figprocessfill,  minimum width=4.6cm},
 ]
 
-% Left side: Recursive (depth-first)
-\node[font=\sffamily\bfseries] (ltitle) {Αναδρομικό (depth-first)};
-\node[box, below=0.5cm of ltitle, fill=red!8] (root) {$f(x)$};
-\node[box, below left=0.8cm and 0.8cm of root, fill=red!8] (l1) {$f_0$};
-\node[box, below right=0.8cm and 0.8cm of root, fill=red!8] (r1) {$f_1$};
-\node[box, below left=0.6cm and 0.3cm of l1, fill=red!8] (l2a) {$f_{00}$};
-\node[box, below right=0.6cm and 0.3cm of l1, fill=red!8] (l2b) {$f_{01}$};
-\node[box, below left=0.6cm and 0.3cm of r1, fill=red!8] (r2a) {$f_{10}$};
-\node[box, below right=0.6cm and 0.3cm of r1, fill=red!8] (r2b) {$f_{11}$};
+% ===== Δεξιά: Επαναληπτικό (BFS) — defined first so the tree can align to lev0 =====
+\node[figT/title] (rtitle) at (10.6,3.25) {Επαναληπτικό (BFS)};
+\node[fftit,  below=4mm of rtitle] (lev0) {Level 0: 1 segment};
+\node[fftit,  below=8mm of lev0]   (lev1) {Level 1: 2 segments};
+\node[fftit,  below=8mm of lev1]   (lev2) {Level 2: 4 segments};
+\node[fftit,  below=8mm of lev2]   (leaf) {Leaves: XOR-broadcast};
+\node[fftcomb,below=8mm of leaf]   (comb) {Bottom-up: combine};
 
-\draw[arrow] (root) -- (l1) node[midway, left, label] {call};
-\draw[arrow] (root) -- (r1) node[midway, right, label] {call};
-\draw[arrow] (l1) -- (l2a);
-\draw[arrow] (l1) -- (l2b);
-\draw[arrow] (r1) -- (r2a);
-\draw[arrow] (r1) -- (r2b);
+\draw[figedge] (lev0) -- (lev1) node[midway, right=3pt, figT/annot] {\insn{beta\_scale} + radix};
+\draw[figedge] (lev1) -- (lev2) node[midway, right=3pt, figT/annot] {\insn{beta\_scale} + radix};
+\draw[figedge] (lev2) -- (leaf) node[midway, right=3pt, figT/annot] {\insn{xor\_broadcast}};
+\draw[figedge/weak] (leaf) -- (comb) node[midway, right=3pt, figT/annot] {\insn{gammas\_combine}};
 
-\node[below=0.3cm of l2a, label, align=center] {$\BigO{2^M}$ κλήσεις\\συναρτήσεων};
+\node[figT/callout, below=3mm of comb, align=center] {Σταθερός αριθμός επαναλήψεων βρόχου};
 
-% Right side: Iterative (BFS)
-\node[font=\sffamily\bfseries, right=5.5cm of ltitle] (rtitle) {Επαναληπτικό (BFS)};
-\node[box, below=0.5cm of rtitle, fill=green!8] (lev0) {Level 0: 1 segment};
-\node[box, below=0.7cm of lev0, fill=green!8] (lev1) {Level 1: 2 segments};
-\node[box, below=0.7cm of lev1, fill=green!8] (lev2) {Level 2: 4 segments};
-\node[box, below=0.7cm of lev2, fill=green!8] (leaf) {Leaves: XOR-broadcast};
-\node[box, below=0.7cm of leaf, fill=blue!8] (comb) {Bottom-up: combine};
+% ===== Αριστερά: Αναδρομικό (depth-first) — root aligned to lev0 (straight arrow) =====
+% Root sits at lev0's height; rest of the tree is placed relative to root (same shape).
+\node[fftrec] (root) at (2.775,0 |- lev0) {$f(x)$};
+\node[fftrec] (l1)  at ($(root)+(-1.85,-1.20)$) {$f_0$};
+\node[fftrec] (r1)  at ($(root)+( 1.85,-1.20)$) {$f_1$};
+\node[fftrec] (l2a) at ($(root)+(-2.775,-2.40)$) {$f_{00}$};
+\node[fftrec] (l2b) at ($(root)+(-0.925,-2.40)$) {$f_{01}$};
+\node[fftrec] (r2a) at ($(root)+( 0.925,-2.40)$) {$f_{10}$};
+\node[fftrec] (r2b) at ($(root)+( 2.775,-2.40)$) {$f_{11}$};
+\node[figT/title] (ltitle) at ($(root)+(0,0.85)$) {Αναδρομικό (depth-first)};
 
-\draw[arrow] (lev0) -- (lev1) node[midway, right, label] {\insn{beta\_scale} + radix};
-\draw[arrow] (lev1) -- (lev2) node[midway, right, label] {\insn{beta\_scale} + radix};
-\draw[arrow] (lev2) -- (leaf) node[midway, right, label] {\insn{xor\_broadcast}};
-\draw[arrow, dashed] (leaf) -- (comb) node[midway, right, label] {\insn{gammas\_combine}};
+\draw[figedge] (root) -- (l1) node[midway, left, figT/annot] {call};
+\draw[figedge] (root) -- (r1) node[midway, right, figT/annot] {call};
+\draw[figedge] (l1) -- (l2a);
+\draw[figedge] (l1) -- (l2b);
+\draw[figedge] (r1) -- (r2a);
+\draw[figedge] (r1) -- (r2b);
 
-\node[below=0.3cm of comb, label, align=center] {Σταθερός αριθμός\\επαναλήψεων βρόχου};
+\node[figT/callout, anchor=north, align=center] at ($(root)+(0,-3.05)$)
+  {$\BigO{2^M}$ κλήσεις συναρτήσεων};
 
-% Arrow between the two
-\draw[->, ultra thick, gray!60, >=stealth] ([xshift=0.5cm]root.east) -- ([xshift=-0.5cm]lev0.west)
-  node[midway, above, font=\small\sffamily] {Μετασχηματισμός};
-
+% ===== Μετασχηματισμός (οριζόντιο βέλος — root.east και lev0.west στο ίδιο y) =====
+\draw[figedge/accent] ([xshift=0.5cm]root.east) -- ([xshift=-0.5cm]lev0.west)
+  node[midway, above, figT/label] {Μετασχηματισμός};
 \end{tikzpicture}

@@ -1,27 +1,27 @@
 % Table: Polymul micro-benchmark results (all tiers, all security levels)
 % All speedups computed vs scalar_ref baseline
 % Data source: results/simulation/benchmarks/components/poly_mul/sim_mul_*_latest.csv
-% Updated: 2026-06-28 (commits 131b14c, 2464b5e, d38ed14)
+% Updated: 2026-06-30 (commit bdd9cf4)
 \begin{tabular}{l l S[table-format=9.0] S[table-format=6.0] S[table-format=3.1]}
   \toprule
   \textbf{Security Level} & \textbf{Variant} & {\textbf{\instret}} & {\textbf{Code size (B)}} & {\textbf{Speedup}} \\
   \midrule
   \multirow{4}{*}{HQC-128}
-    & \code{scalar\_ref}     & 18639752 &  5062 & {—} \\
-    & \code{scalar\_zb}  &   184108 & 13986 & {101.2} \\
-    & \code{vector\_rvv}  &   146267 &  8968 & {127.5} \\
-    & \code{vector\_zvk} &    63804 &  5882 & {292.1} \\
+    & \code{scalar\_ref}     & 18504302 &  5054 & {—} \\
+    & \code{scalar\_zb}  &   182726 & 10362 & {101.3} \\
+    & \code{vector\_rvv}  &   148479 &  9606 & {124.6} \\
+    & \code{vector\_zvk} &    70070 &  6978 & {264.1} \\
   \midrule
   \multirow{4}{*}{HQC-192}
-    & \code{scalar\_ref}     & 56702057 &  5098 & {—} \\
-    & \code{scalar\_zb}  &   571251 & 13460 & {99.3} \\
-    & \code{vector\_rvv}  &   446658 & 10074 & {127.0} \\
-    & \code{vector\_zvk} &   189388 &  6894 & {299.4} \\
+    & \code{scalar\_ref}     & 56292809 &  5090 & {—} \\
+    & \code{scalar\_zb}  &   570293 &  9808 & {98.7} \\
+    & \code{vector\_rvv}  &   449808 & 10796 & {125.1} \\
+    & \code{vector\_zvk} &   207443 &  8074 & {271.4} \\
   \midrule
   \multirow{4}{*}{HQC-256}
-    & \code{scalar\_ref}     & 139877019 & 4312 & {—} \\
-    & \code{scalar\_zb}  &  1273112 & 15646 & {109.9} \\
-    & \code{vector\_rvv}  &   989721 & 11302 & {141.3} \\
-    & \code{vector\_zvk} &    272896 & 7082 & {512.6} \\
+    & \code{scalar\_ref}     & 139222953 & 4298 & {—} \\
+    & \code{scalar\_zb}  &  1262888 & 11994 & {110.2} \\
+    & \code{vector\_rvv}  &  1043726 & 13834 & {133.4} \\
+    & \code{vector\_zvk} &   318972 &  9250 & {436.5} \\
   \bottomrule
 \end{tabular}

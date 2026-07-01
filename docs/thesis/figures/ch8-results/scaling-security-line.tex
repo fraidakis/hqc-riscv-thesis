@@ -28,23 +28,23 @@
 
 % scalar_ref: schoolbook O(N^2)
 \addplot[color=black!70, mark=square*, dashed]
-  coordinates {(17669, 59013743) (35851, 177662247) (57637, 431890526)};
-\addlegendentry{scalar\_ref ($\sim N^{2.0}$)}
+  coordinates {(17669, 56937074) (35851, 171349089) (57637, 421860950)};
+\addlegendentry{scalar\_ref ($\sim N^{1.7}$)}
 
 % Tier 1: Karatsuba Zbc
 \addplot[color=blue!80, mark=triangle*]
-  coordinates {(17669, 2088352) (35851, 4442411) (57637, 9725450)};
-\addlegendentry{Tier~1 Zbc ($\sim N^{1.3}$)}
+  coordinates {(17669, 1972347) (35851, 4181542) (57637, 7980756)};
+\addlegendentry{Tier~1 Zbc ($\sim N^{1.2}$)}
 
 % Tier 2: Karatsuba RVV
 \addplot[color=orange!80!black, mark=diamond*]
-  coordinates {(17669, 1084132) (35851, 2515258) (57637, 6341725)};
-\addlegendentry{Tier~2 RVV ($\sim N^{1.5}$)}
+  coordinates {(17669, 1139356) (35851, 2579762) (57637, 5274100)};
+\addlegendentry{Tier~2 RVV ($\sim N^{1.3}$)}
 
 % Tier 3: Karatsuba Zvbc
 \addplot[color=red!70!black, mark=*]
-  coordinates {(17669, 386447) (35851, 880407) (57637, 1375654)};
-\addlegendentry{Tier~3 Zvbc ($\sim N^{1.1}$)}
+  coordinates {(17669, 843459) (35851, 1773770) (57637, 2902352)};
+\addlegendentry{Tier~3 Zvbc ($\sim N^{1.0}$)}
 
 \end{axis}
 \end{tikzpicture}

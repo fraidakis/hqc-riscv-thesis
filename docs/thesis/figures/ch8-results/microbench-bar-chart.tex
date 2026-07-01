@@ -31,30 +31,30 @@
 
 % Reference (scalar baseline)
 \addplot[fill=gray!60, draw=gray!80] coordinates {
-    (Polymul, 18639752)
-    (Keccak, 463069)
-    (Decode, 384986)
+    (Polymul, 18504302)
+    (Keccak, 758580)
+    (Decode, 1052692)
 };
 
-% Tier 1 (scalar_zb / ref keccak / ref decode)
+% Tier 1 (scalar_zb polymul / opt keccak / scalar-zb decode)
 \addplot[fill=blue!50, draw=blue!70] coordinates {
-    (Polymul, 184108)
-    (Keccak, 463069)
-    (Decode, 384986)
+    (Polymul, 182726)
+    (Keccak, 554900)
+    (Decode, 604218)
 };
 
-% Tier 2 (vector_rvv / ref keccak / rvv decode)
+% Tier 2 (vector_rvv polymul / opt keccak / rvv decode)
 \addplot[fill=orange!60, draw=orange!80] coordinates {
-    (Polymul, 146267)
-    (Keccak, 463069)
-    (Decode, 121217)
+    (Polymul, 148479)
+    (Keccak, 554900)
+    (Decode, 134737)
 };
 
-% Tier 3 (vector_zvk / zvbb_x2 keccak / zvbc decode)
+% Tier 3 (vector_zvk polymul / zvbb keccak / zvbc decode)
 \addplot[fill=green!50, draw=green!70] coordinates {
-    (Polymul, 63804)
-    (Keccak, 124648)
-    (Decode, 56326)
+    (Polymul, 70070)
+    (Keccak, 554900)
+    (Decode, 73769)
 };
 
 \legend{Reference, Tier~1 (\Zbc), Tier~2 (RVV), Tier~3 (\Zvbc/\Zvbb)}
