@@ -9,8 +9,8 @@
         \toprule
         Βαθμίδα & \HQC-128 & \HQC-256 \\
         \midrule
-        1 · σειριακή (\Zbc) & \speedup{34.0} & \speedup{49.1} \\
-        2 · \RVV          & \speedup{60.0} & \speedup{71.7} \\
+        1 · σειριακή (\Zbc) & \speedup{35.0} & \speedup{60.1} \\
+        2 · \RVV          & \speedup{55.9} & \speedup{86.9} \\
         3 · \en{vec-crypto} & \HL{\speedup{75.9}} & \HL{\speedup{163.8}} \\
         \bottomrule
       \end{tabular}\\[0.6em]
@@ -23,16 +23,16 @@
         \begin{axis}[
             ybar, width=\textwidth, height=4.6cm,
             bar width=8pt, enlarge x limits=0.25,
-            ymin=0, ymax=360,
+            ymin=0, ymax=200,
             ylabel={\scriptsize επιτάχυνση ($\times$)},
             symbolic x coords={Βαθμ.1,Βαθμ.2,Βαθμ.3},
             xtick=data, x tick label style={font=\scriptsize},
-            ytick={0,100,200,300}, y tick label style={font=\scriptsize},
+            ytick={0,50,100,150,200}, y tick label style={font=\scriptsize},
             legend style={font=\scriptsize,at={(0.02,0.97)},anchor=north west,draw=none},
             nodes near coords, every node near coord/.append style={font=\tiny,rotate=90,anchor=west},
         ]
-          \addplot[fill=hlc!55] coordinates {(Βαθμ.1,34.0) (Βαθμ.2,60.0) (Βαθμ.3,167.0)};
-          \addplot[fill=conc!55] coordinates {(Βαθμ.1,49.1) (Βαθμ.2,71.7) (Βαθμ.3,338.8)};
+          \addplot[fill=hlc!55] coordinates {(Βαθμ.1,35.0) (Βαθμ.2,55.9) (Βαθμ.3,75.9)};
+          \addplot[fill=conc!55] coordinates {(Βαθμ.1,60.1) (Βαθμ.2,86.9) (Βαθμ.3,163.8)};
           \legend{\HQC-128,\HQC-256}
         \end{axis}
       \end{tikzpicture}\\

@@ -211,7 +211,7 @@
         nodes near coords, every node near coord/.append style={font=\scriptsize},
         enlarge x limits=0.3]
       \addplot[fill=oiBlue!70] coordinates {(HQC-128,264.1)(HQC-192,271.4)(HQC-256,436.5)};
-      \addplot[fill=oiGreen!75] coordinates {(HQC-128,76.4)(HQC-192,111.0)(HQC-256,167.7)};
+      \addplot[fill=oiGreen!75] coordinates {(HQC-128,75.9)(HQC-192,107.0)(HQC-256,163.8)};
       \legend{polynomial multiply, full \KEM}
     \end{axis}
   \end{tikzpicture}
@@ -237,7 +237,7 @@
     \column{0.42\textwidth}
       \begin{block}{Real silicon (BPI-F3, K1 X60)}
         \VLEN $=256$, GCC native.\\[0.3em]
-        Scalar (\Zbc/\Zbb) full \KEM:\\ \pos{\speedup{35.2}} (HQC-128).
+        Scalar (\Zbc/\Zbb) full \KEM:\\ \pos{\speedup{37.5}} (HQC-128).
       \end{block}
       \footnotesize \con{HW με \Zvbc/\Zvbb μη διαθέσιμο}, στο silicon τρέχει η scalar έκδοση.
   \end{columns}
@@ -268,8 +268,8 @@
 \begin{frame}{Συμπεράσματα}
   \begin{itemize}
     \item Πρώτη ISA-driven optimized \HQC\ σε RISC-V (pure software).
-    \item \pos{\speedup{76.4}}--\pos{\speedup{167.7}} στο πλήρες \KEM\ (\instret), έως \pos{\speedup{436.5}} στο polymul.
-    \item Επικύρωση σε πραγματικό silicon: \pos{\speedup{35.2}} (scalar, HQC-128).
+    \item \pos{\speedup{75.9}}--\pos{\speedup{163.8}} στο πλήρες \KEM\ (\instret), έως \pos{\speedup{436.5}} στο polymul.
+    \item Επικύρωση σε πραγματικό silicon: \pos{\speedup{37.5}} (scalar, HQC-128).
     \item Μελλοντικά: HW με vector-crypto, επέκταση HW σε 192/256.
   \end{itemize}
   \vfill

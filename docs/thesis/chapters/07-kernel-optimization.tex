@@ -1,4 +1,4 @@
-\chapter{Βελτιστοποίηση Keccak, Decode και Βοηθητικών Πυρήνων}
+\chapter{Βελτιστοποίηση Keccak και Αποκωδικοποίησης}
 \label{ch:kernel-optimization}
 
 Στο \cref{ch:polymul-optimization} παρουσιάστηκε η βελτιστοποίηση του
@@ -6,9 +6,8 @@
 πυρήνα από \pct{97} σε \pct{22}–\pct{33} του συνολικού \instret ανάλογα
 με το tier. Η μείωση αυτή αποκάλυψε καινούργια bottlenecks που προηγουμένως 
 ήταν αμελητέα: τον Keccak-f[1600]
-(SHA-3/SHAKE), την αποκωδικοποίηση \gls{rs}/\gls{rm}, και βοηθητικές
-πράξεις bit-scatter. Το παρόν κεφάλαιο παρουσιάζει τη συστηματική
-βελτιστοποίηση αυτών των πυρήνων.
+(SHA-3/SHAKE) και την αποκωδικοποίηση \gls{rs}/\gls{rm}. Το παρόν κεφάλαιο
+παρουσιάζει τη συστηματική βελτιστοποίηση αυτών των πυρήνων.
 
 %% ============================================================================
 \section{Βελτιστοποίηση Keccak / SHA-3}
@@ -352,6 +351,7 @@ $\BigO{2^M}$ κλήσεις συναρτήσεων) σε επαναληπτικ�
 \end{table}
 
 %% ============================================================================
+\ifTODO
 \section{Βοηθητικοί Πυρήνες και Πρωτόγονες Πράξεις}
 \label{sec:auxiliary-kernels}
 
@@ -541,6 +541,7 @@ I/O/μνήμη λειτουργίες). Η μείωση του \Encaps \instret 
   \label{tab:auxiliary-kernels-summary}
   \input{figures/ch7-kernels/auxiliary-kernels-summary-table}
 \end{table}
+\fi
 
 %% ============================================================================
 \ifTODO
@@ -777,10 +778,10 @@ target pattern εντός του hot path. Μια extension με εκατοντ�
 \label{sec:kernel-assessment}
 
 Οι προηγούμενες ενότητες του παρόντος κεφαλαίου εφάρμοσαν διαδοχικά τον
-νόμο του Amdahl σε τρεις οικογένειες πυρήνων: Keccak/SHA-3
-(\cref{sec:keccak-optimization}), αποκωδικοποίηση \gls{rs}/\gls{rm}
-(\cref{sec:decode-optimization}), βοηθητικούς πυρήνες
-(\cref{sec:auxiliary-kernels})\ifTODO και idiom recognition
+νόμο του Amdahl σε δύο οικογένειες πυρήνων: Keccak/SHA-3
+(\cref{sec:keccak-optimization}) και αποκωδικοποίηση \gls{rs}/\gls{rm}
+(\cref{sec:decode-optimization})\ifTODO, βοηθητικούς πυρήνες
+(\cref{sec:auxiliary-kernels}), και idiom recognition
 (\cref{sec:idiom-recognition-hqc})\fi. Η ενότητα αυτή παρουσιάζει τη
 συνολική μεταμόρφωση του υπολογιστικού προφίλ, από τη μονοδιάστατη
 κυριαρχία ενός πυρήνα στο baseline, σε ένα κατανεμημένο τελικό σχήμα
@@ -810,8 +811,8 @@ target pattern εντός του hot path. Μια extension με εκατοντ�
 πολυωνυμικός πολλαπλασιασμός μειώνεται δραστικά και αποκαλύπτονται
 δευτερεύοντα bottlenecks: ο Keccak αναδύεται σε \pct{29} και η
 αποκωδικοποίηση σε \pct{11.2} (HQC-128). Στο τελικό στάδιο, η εφαρμογή
-\gls{zvbb} 2-way \gls{soa} Keccak, η \gls{zvbc} FFT root-finding, και οι βοηθητικοί
-πυρήνες ισορροπούν πλήρως το προφίλ: polymul (\pct{50.8}), Keccak
+\gls{zvbb} 2-way \gls{soa} Keccak και η \gls{zvbc} FFT root-finding
+ισορροπούν πλήρως το προφίλ: polymul (\pct{50.8}), Keccak
 (\pct{27.4}), GF αριθμητική (\pct{7.8}), I/O και μνήμη (\pct{3.5}),
 decode (\pct{5.3}), και λοιπά (\pct{5.2}).
 

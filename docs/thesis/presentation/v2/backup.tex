@@ -10,15 +10,15 @@
     \toprule
     & Tier 1 & Tier 2 & Tier 3 \\
     \midrule
-    HQC-128 & \speedup{34.0} & \speedup{60.0} & \speedup{167.0} \\
-    HQC-192 & \speedup{45.4} & \speedup{75.8} & \speedup{214.2} \\
-    HQC-256 & \speedup{49.1} & \speedup{71.7} & \speedup{338.8} \\
+    HQC-128 & \speedup{35.0} & \speedup{55.9} & \speedup{75.9} \\
+    HQC-192 & \speedup{46.9} & \speedup{72.3} & \speedup{107.0} \\
+    HQC-256 & \speedup{60.1} & \speedup{86.9} & \speedup{163.8} \\
     \bottomrule
   \end{tabular}
   \end{center}
   \vspace{0.4em}
-  \footnotesize \en{polymul} (HQC-128): \speedup{86.9}/\speedup{122.0}/\speedup{318.2}.
-  HQC-256: \speedup{75.9}/\speedup{95.0}/\speedup{547.3}.
+  \footnotesize \en{polymul} (HQC-128): \speedup{101.3}/\speedup{124.6}/\speedup{264.1}.
+  HQC-256: \speedup{110.2}/\speedup{133.4}/\speedup{436.5}.
 \end{frame}
 
 \begin{frame}{Backup — \en{Keccak} \& αποκωδικοποίηση}
@@ -28,8 +28,8 @@
     \toprule
     Επιτάχυνση & HQC-128 & HQC-192 & HQC-256 \\
     \midrule
-    \en{Keccak} & \speedup{3.7} & \speedup{3.8} & \speedup{3.9} \\
-    \en{Decode} & \speedup{6.8} & \speedup{7.8} & \speedup{7.2} \\
+    \en{Keccak} & \speedup{1.37} & \speedup{1.36} & \speedup{1.36} \\
+    \en{Decode} & \speedup{14.3} & \speedup{15.9} & \speedup{13.2} \\
     \bottomrule
   \end{tabular}
   \end{center}
@@ -52,8 +52,8 @@
     \toprule
     & scalar (\Zbc) & vector (\RVV) \\
     \midrule
-    \en{polymul} & \speedup{78.6} & \speedup{55.1} \\
-    Πλήρες \en{KEM} & \speedup{34.3} & \speedup{34.6} \\
+    \en{polymul} & \speedup{95.0} & \speedup{95.3} \\
+    Πλήρες \en{KEM} & \speedup{37.5} & \speedup{45.9} \\
     \bottomrule
   \end{tabular}
   \end{center}
