@@ -1,7 +1,7 @@
-# date: 2026-06-30 19:08
-# commit: 088ce04
+# date: 2026-06-30 22:27
+# commit: bdd9cf4
 # Decode variant: zvbc_BD
 level,op,instructions,codesize
-128,decode,95543,13744
-192,decode,124964,16972
-256,decode,268646,22794
+128,decode,95545,12572
+192,decode,124966,15774
+256,decode,268648,21534

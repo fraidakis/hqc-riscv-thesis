@@ -1,21 +1,17 @@
-# date: 2026-06-23 12:40
-# commit: c828690
+# date: 2026-07-01 00:00
+# commit: bdd9cf4
 # variant: vector_rvv
 # level: 128
 op,vlen,instructions
-keypair,256,295804
-keypair,512,290572
-keypair,1024,289186
-keypair,2048,288636
-encaps,256,593089
-encaps,512,582425
-encaps,1024,579673
-encaps,2048,578583
-decaps,256,1129719
-decaps,512,1113845
-decaps,1024,1110277
-decaps,2048,1108698
-total,256,2018612
-total,512,1986842
-total,1024,1979136
-total,2048,1975917
+keypair,256,294501
+keypair,512,291709
+keypair,1024,290691
+encaps,256,589121
+encaps,512,583330
+encaps,1024,581314
+decaps,256,1139355
+decaps,512,1130777
+decaps,1024,1127747
+total,256,2022977
+total,512,2005816
+total,1024,1999752

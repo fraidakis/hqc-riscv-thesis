@@ -1,7 +1,0 @@
-# date: 2026-06-28 17:58
-# commit: d4b80cf
-# Multiplication variant: vector_rvv_lmul_m8
-level,op,instructions,codesize
-128,vect_mul,145321,9072
-192,vect_mul,440201,10206
-256,vect_mul,972665,11436
