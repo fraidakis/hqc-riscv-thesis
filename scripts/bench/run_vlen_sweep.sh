@@ -45,6 +45,7 @@ Options:
   --vlens "V1 V2…"   Space-separated VLEN values to sweep (default: "256 512 1024 2048")
   --keccak IMPL       Keccak override (ref | opt); auto-mapped from variant if omitted
   --decode IMPL       Decode override (ref | rvv | zvbc); auto-mapped from variant if omitted
+  --timeout SECS      Per-VLEN Spike timeout in seconds (default: 3, env: SPIKE_TIMEOUT)
   -h, --help          Show this help and exit
 
 Vector variants:
@@ -61,6 +62,10 @@ Notes:
     -DVLEN_LIST=<VLEN> so the _vlen<VLEN> CMake targets are generated.
   - Spike is invoked with --isa=...zvl<VLEN>b so the emulated register
     width matches the compiled assumption.
+  - Spike's Zvbc (vclmul/vclmulh) simulation has super-linear cost with
+    VLEN, causing timeouts at VLEN≥1024 for vector_zvk and ≥2048 for
+    vector_rvv.  These are reported as TIMEOUT and the sweep continues.
+    Override with --timeout or SPIKE_TIMEOUT env variable.
   - Results are written to:
       results/simulation/benchmarks/vlen_scaling/
 
@@ -127,6 +132,15 @@ while [[ $# -gt 0 ]]; do
             DECODE_IMPL_ARG="$2"
             shift 2
             ;;
+        --timeout)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --timeout requires a value (seconds)" >&2
+                usage >&2
+                exit 1
+            fi
+            SPIKE_TIMEOUT="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             exit 0
@@ -184,6 +198,13 @@ SCALAR_MARCH="${BENCH_EXPECT_HQC_SCALAR_MARCH:-rv64gc_zbc_zbb_zbs}"
 BENCH_TIME="$(date +'%Y-%m-%d_%H-%M')"
 GIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
+# Per-invocation timeout (seconds).  Spike's Zvbc (vclmul/vclmulh) simulation
+# has O(VLEN) per-element cost that becomes prohibitive at large VLEN (≥1024
+# for vector_zvk, ≥2048 for vector_rvv).  A generous timeout prevents the
+# sweep from hanging while still allowing legitimately slow runs to complete.
+# Calibrated at ~5× the slowest successful run (HQC-256 vector_zvk ≈ 0.5s).
+SPIKE_TIMEOUT="${SPIKE_TIMEOUT:-3}"
+
 if ! bench_require_executable "$SPIKE" "Spike not found"; then
     echo "       Source toolchain/toolchain.env or set RISCV" >&2
     exit 2
@@ -221,6 +242,7 @@ echo "╔$(printf '═%.0s' $(seq 1 $BOX_W))╗"
 _box_line "run_vlen_sweep.sh"
 _box_line "$(printf 'Variant: %-12s  Level: %-5s' "$VARIANT" "$LEVEL")"
 _box_line "$(printf 'VLENs: %s' "$VLENS")"
+_box_line "$(printf 'Spike timeout: %ss per invocation' "$SPIKE_TIMEOUT")"
 [[ -n "$KECCAK_IMPL_ARG" ]] && _box_line "Keccak override: ${KECCAK_IMPL_ARG}"
 [[ -n "$DECODE_IMPL_ARG" ]] && _box_line "Decode override: ${DECODE_IMPL_ARG}"
 echo "╚$(printf '═%.0s' $(seq 1 $BOX_W))╝"
@@ -248,7 +270,11 @@ vlen_configure_and_build() {
     local vlen="$3"
     # KECCAK_IMPL / DECODE_IMPL are read from the caller's exported globals.
 
-    local keccak="${KECCAK_IMPL:-ref}"
+    # CMake only accepts HQC_KECCAK_IMPL=ref. The opt/ref distinction is
+    # handled via SCALAR_MARCH (with/without Zbb for idiom recognition).
+    # --keccak opt → keep _zbb in march so rori/andn idiom recognition fires.
+    # --keccak ref → strip _zbb from march (baseline codegen).
+    local keccak="ref"
     local decode="${DECODE_IMPL:-ref}"
     local lock_fd=""
 
@@ -391,11 +417,22 @@ run_vlen_sweep_single_variant() {
             fi
 
             # Run Spike with the matching zvl<VLEN>b ISA string.
+            # A timeout guard is essential: Spike's Zvbc (vclmul/vclmulh)
+            # simulation cost scales super-linearly with VLEN, causing
+            # multi-minute hangs at VLEN≥1024 for vector_zvk and ≥2048 for
+            # vector_rvv.  The timeout lets the sweep skip infeasible VLENs
+            # gracefully instead of blocking indefinitely.
             local isa="${ISA_BASE}_zvl${vlen}b"
             local tmp_log
             tmp_log="$(mktemp)"
-            if ! "$SPIKE" --isa="$isa" "$elf" > "$tmp_log" 2>/dev/null; then
-                echo " ├── ❌ SKIP  VLEN=${vlen}: Spike exited with error" >&2
+            local spike_rc=0
+            timeout "$SPIKE_TIMEOUT" "$SPIKE" --isa="$isa" "$elf" > "$tmp_log" 2>/dev/null || spike_rc=$?
+            if [[ "$spike_rc" -ne 0 ]]; then
+                if [[ "$spike_rc" -eq 124 ]]; then
+                    echo " ├── ⏱️  TIMEOUT  VLEN=${vlen}: Spike exceeded ${SPIKE_TIMEOUT}s (simulator limitation)" >&2
+                else
+                    echo " ├── ❌ SKIP  VLEN=${vlen}: Spike exited with error (rc=${spike_rc})" >&2
+                fi
                 rm -f "$tmp_log"
                 _kp[$vlen]=""; _enc[$vlen]=""; _dec[$vlen]=""
                 continue

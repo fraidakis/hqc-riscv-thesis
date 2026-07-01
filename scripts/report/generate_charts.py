@@ -735,80 +735,71 @@ def chart_grouped_bar_micro(loader: DataLoader, level: int) -> None:
 def chart_vlen_sweep(loader: DataLoader, level: int) -> None:
     """Render line chart showing how total KEM Instret varies with VLEN.
 
-    Plots separate lines for HQC-128, HQC-192, HQC-256 using Tier_3
-    (vector_zvk) data. Marks the minimum Instret point on each line
-    with a distinct marker. The `level` parameter is unused since this
-    chart always shows all three security levels.
+    Plots separate lines for each vector variant (RVV, Zvk) at each security
+    level that has data. Marks the minimum Instret point on each line.
+    The `level` parameter is unused since this chart shows all three levels.
     """
     levels = [128, 192, 256]
-    line_styles = {
-        128: {"color": "#e63946", "marker": "o", "label": "HQC-128"},
-        192: {"color": "#457b9d", "marker": "s", "label": "HQC-192"},
-        256: {"color": "#2a9d8f", "marker": "^", "label": "HQC-256"},
-    }
-    min_markers = {
-        128: {"marker": "*", "color": "#e63946", "size": 200},
-        192: {"marker": "D", "color": "#457b9d", "size": 120},
-        256: {"marker": "P", "color": "#2a9d8f", "size": 150},
-    }
+    # Plot configurations per variant
+    variant_configs = [
+        ("vector_rvv", "RVV"),
+        ("vector_zvk", "Zvk"),
+    ]
+    level_markers = {128: "o", 192: "s", 256: "^"}
+    level_colors = {128: "#e63946", 192: "#457b9d", 256: "#2a9d8f"}
 
     fig, ax = plt.subplots(figsize=(8, 5))
     any_plotted = False
 
-    for lvl in levels:
-        df = loader.vlen_sweep("vector_zvk", lvl)
-        if df is None or df.empty:
-            print(
-                f"Warning: Missing VLEN sweep data for vector_zvk at level {lvl}, "
-                f"skipping this line.",
-                file=sys.stderr,
+    for variant, variant_label in variant_configs:
+        for lvl in levels:
+            df = loader.vlen_sweep(variant, lvl)
+            if df is None or df.empty:
+                continue
+
+            # Filter for total KEM operation
+            total_df = df[df["op"] == "total"].copy()
+            if total_df.empty:
+                continue
+
+            total_df = total_df.sort_values("vlen")
+            vlens = total_df["vlen"].values
+            instrets = total_df["instructions"].values
+
+            color = level_colors[lvl]
+            marker = level_markers[lvl]
+            linestyle = "-" if variant == "vector_rvv" else "--"
+            label = f"{variant_label} HQC-{lvl}"
+
+            ax.plot(
+                vlens,
+                instrets,
+                color=color,
+                marker=marker,
+                linestyle=linestyle,
+                label=label,
+                linewidth=1.5,
+                markersize=6,
             )
-            continue
 
-        # Filter for total KEM operation
-        total_df = df[df["op"] == "total"].copy()
-        if total_df.empty:
-            print(
-                f"Warning: No 'total' op data in VLEN sweep for level {lvl}, "
-                f"skipping this line.",
-                file=sys.stderr,
+            # Mark the minimum Instret point
+            min_idx = np.argmin(instrets)
+            ax.scatter(
+                vlens[min_idx],
+                instrets[min_idx],
+                marker="*",
+                color=color,
+                s=200,
+                zorder=5,
+                edgecolors="black",
+                linewidths=0.5,
             )
-            continue
 
-        total_df = total_df.sort_values("vlen")
-        vlens = total_df["vlen"].values
-        instrets = total_df["instructions"].values
-
-        style = line_styles[lvl]
-        ax.plot(
-            vlens,
-            instrets,
-            color=style["color"],
-            marker=style["marker"],
-            label=style["label"],
-            linewidth=1.5,
-            markersize=6,
-        )
-
-        # Mark the minimum Instret point with a distinct marker
-        min_idx = np.argmin(instrets)
-        mm = min_markers[lvl]
-        ax.scatter(
-            vlens[min_idx],
-            instrets[min_idx],
-            marker=mm["marker"],
-            color=mm["color"],
-            s=mm["size"],
-            zorder=5,
-            edgecolors="black",
-            linewidths=0.5,
-        )
-
-        any_plotted = True
+            any_plotted = True
 
     if not any_plotted:
         print(
-            "Warning: No VLEN sweep data available for any level, "
+            "Warning: No VLEN sweep data available for any variant/level, "
             "skipping vlen_sweep chart.",
             file=sys.stderr,
         )
@@ -817,10 +808,10 @@ def chart_vlen_sweep(loader: DataLoader, level: int) -> None:
 
     ax.set_xlabel("VLEN")
     ax.set_ylabel("Instructions (Instret)")
-    ax.set_title("Total KEM Instret vs VLEN (Tier 3 — vector_zvk)")
+    ax.set_title("Total KEM Instret vs VLEN")
     ax.set_xticks([256, 512, 1024, 2048])
     ax.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda x, _: f"{int(x)}"))
-    ax.legend()
+    ax.legend(fontsize=8)
     ax.grid(alpha=0.3)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -955,17 +946,16 @@ def chart_security_scaling(loader: DataLoader, level: int) -> None:
 def chart_compiler_comparison(loader: DataLoader, level: int) -> None:
     """Render grouped bar chart comparing Clang vs GCC for each variant.
 
-    X-axis groups: scalar_ref, scalar_zb, vector_rvv, vector_zvk.
-    Two bars per group: best Clang result and best GCC result for total KEM Instret.
+    X-axis groups: scalar_ref, scalar_zb, vector_rvv (HW-available variants only).
+    Two bars per group: best Clang result and best GCC result for total KEM cycles.
     SKIP entries are rendered with hatched pattern and grey color.
     Each pair is annotated with the winning compiler and margin percentage.
     """
-    # Variant configurations: (variant_name, track)
+    # Variant configurations: only HW-available variants (vector_zvk cannot run on HW)
     variant_configs = [
         ("scalar_ref", "scalar"),
         ("scalar_zb", "scalar"),
         ("vector_rvv", "vector"),
-        ("vector_zvk", "vector"),
     ]
 
     # Collect best results per compiler per variant
@@ -1025,7 +1015,7 @@ def chart_compiler_comparison(loader: DataLoader, level: int) -> None:
         x_labels.append(variant.replace("_", "\\_") if False else variant.replace("_", " ").title())
 
     # Nicer labels
-    x_labels = ["Ref Scalar", "Karatsuba Zbc", "Karatsuba RVV", "Karatsuba Zvbc"]
+    x_labels = ["Ref Scalar", "Karatsuba Zbc", "Karatsuba RVV"]
 
     # Create grouped bar chart
     x = np.arange(len(x_labels))
@@ -1698,7 +1688,7 @@ HW_IPC_COLORS: dict[str, str] = {
     "vector_rvv": "#2ca02c",
 }
 
-# Hardware variant → directory mapping
+# Hardware variant → directory mapping (only variants that run on hardware)
 HW_VARIANT_DIRS: dict[str, str] = {
     "scalar_ref": "scalar_ref",
     "scalar_zb": "scalar_Zb",
@@ -1722,7 +1712,16 @@ def _load_hw_kem_data(repo_root: Path) -> pd.DataFrame | None:
 
     for variant, dir_name in HW_VARIANT_DIRS.items():
         slug = variant_slug(variant)
-        path = (
+        # Try flat layout first (files directly in kem/), then subdirectory layout
+        path_flat = (
+            repo_root
+            / "results"
+            / "hardware"
+            / "benchmarks"
+            / "kem"
+            / f"hw_kem_{slug}_latest.csv"
+        )
+        path_subdir = (
             repo_root
             / "results"
             / "hardware"
@@ -1731,12 +1730,15 @@ def _load_hw_kem_data(repo_root: Path) -> pd.DataFrame | None:
             / dir_name
             / f"hw_kem_{slug}_latest.csv"
         )
+        path = path_flat if path_flat.exists() else path_subdir
         df = load_csv(path)
         if df is None or df.empty:
             continue
-        # Normalize column name: 'op' → 'operation'
+        # Normalize column names for consistent downstream access
         if "op" in df.columns:
             df = df.rename(columns={"op": "operation"})
+        if "instret" in df.columns and "median_instret" not in df.columns:
+            df = df.rename(columns={"instret": "median_instret"})
         df["variant"] = variant
         frames.append(df)
 
@@ -1763,6 +1765,10 @@ def plot_spike_vs_hw_bars(loader: DataLoader, level: int) -> None:
     df = _load_hw_kem_data(loader._root)
     if df is None:
         return
+
+    # Filter by requested security level
+    if "level" in df.columns:
+        df = df[df["level"] == level]
 
     variants = [v for v in HW_VARIANT_DIRS if v in df["variant"].unique()]
     operations = [op for op in HW_OPS if op in df["operation"].unique()]
@@ -1823,7 +1829,7 @@ def plot_spike_vs_hw_bars(loader: DataLoader, level: int) -> None:
 
     ax.set_xlabel("Variant / Operation")
     ax.set_ylabel("Count")
-    ax.set_title("Spike Instret vs Hardware Cycles (HQC-128, BPI-F3 K1 X60)")
+    ax.set_title(f"Spike Instret vs Hardware Cycles (HQC-{level}, BPI-F3 K1 X60)")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=7)
     ax.legend()
@@ -1850,6 +1856,10 @@ def plot_ipc_chart(loader: DataLoader, level: int) -> None:
     df = _load_hw_kem_data(loader._root)
     if df is None:
         return
+
+    # Filter by requested security level
+    if "level" in df.columns:
+        df = df[df["level"] == level]
 
     variants = [v for v in HW_VARIANT_DIRS if v in df["variant"].unique()]
     operations = [op for op in HW_OPS if op in df["operation"].unique()]
@@ -1934,6 +1944,10 @@ def plot_wallclock_bars(loader: DataLoader, level: int) -> None:
     if df is None:
         return
 
+    # Filter by requested security level
+    if "level" in df.columns:
+        df = df[df["level"] == level]
+
     variants = [v for v in HW_VARIANT_DIRS if v in df["variant"].unique()]
     operations = [op for op in HW_OPS if op in df["operation"].unique()]
 
@@ -1982,7 +1996,7 @@ def plot_wallclock_bars(loader: DataLoader, level: int) -> None:
 
     ax.set_xlabel("KEM Operation")
     ax.set_ylabel("Wall-Clock Time (μs)")
-    ax.set_title("HQC-128 Wall-Clock Latency @ 1.6 GHz (BPI-F3 K1 X60)")
+    ax.set_title(f"HQC-{level} Wall-Clock Latency @ 1.6 GHz (BPI-F3 K1 X60)")
     ax.set_xticks(x)
     ax.set_xticklabels([op.capitalize() for op in operations])
     ax.legend()
@@ -2010,6 +2024,10 @@ def plot_spike_hw_scatter(loader: DataLoader, level: int) -> None:
     df = _load_hw_kem_data(loader._root)
     if df is None:
         return
+
+    # Filter by requested security level
+    if "level" in df.columns:
+        df = df[df["level"] == level]
 
     # Need scalar_ref as baseline
     baseline_rows = df[df["variant"] == "scalar_ref"]
@@ -2114,109 +2132,6 @@ def plot_spike_hw_scatter(loader: DataLoader, level: int) -> None:
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
     print(f"Generated: {output_path}")
-
-
-@register_hw_chart("cycle_histogram")
-def plot_cycle_histogram(loader: DataLoader, level: int) -> None:
-    """Histogram of per-iteration cycle counts from raw dump files.
-
-    Input: results/hardware/benchmarks/kem/<dir>/raw/<variant>_<op>_cycles_raw.txt
-    Marks median (red), mean (blue dashed), annotates IQR and outlier count (>3σ).
-    Falls back gracefully if raw data is not yet available.
-    """
-    # Look for raw cycle dump files
-    raw_base = loader._root / "results" / "hardware" / "benchmarks" / "kem"
-
-    # Try to find any raw data file
-    raw_files: list[tuple[str, str, Path]] = []
-    for variant, dir_name in HW_VARIANT_DIRS.items():
-        raw_dir = raw_base / dir_name / "raw"
-        if not raw_dir.exists():
-            continue
-        for f in sorted(raw_dir.glob("*.txt")):
-            # Infer operation from filename
-            stem = f.stem
-            for op in HW_OPS:
-                if op in stem:
-                    raw_files.append((variant, op, f))
-                    break
-
-    if not raw_files:
-        print(
-            "Warning: No raw cycle dump files found in "
-            "results/hardware/benchmarks/kem/*/raw/. "
-            "Skipping cycle_histogram chart. "
-            "Expected format: one cycle value per line, 10000 lines.",
-            file=sys.stderr,
-        )
-        return
-
-    # Generate one histogram per raw file found
-    for variant, op, path in raw_files:
-        try:
-            data = np.loadtxt(path)
-        except Exception as e:
-            print(f"Warning: Could not load {path}: {e}", file=sys.stderr)
-            continue
-
-        if len(data) < 10:
-            print(f"Warning: Too few data points in {path}, skipping.", file=sys.stderr)
-            continue
-
-        median_val = np.median(data)
-        mean_val = np.mean(data)
-        std_val = np.std(data)
-        q1 = np.percentile(data, 25)
-        q3 = np.percentile(data, 75)
-        iqr = q3 - q1
-        outlier_count = int(np.sum(np.abs(data - mean_val) > 3 * std_val))
-
-        fig, ax = plt.subplots(figsize=(9, 5))
-
-        ax.hist(data, bins=100, color="#457b9d", edgecolor="black", linewidth=0.3, alpha=0.8)
-
-        # Median line (red solid)
-        ax.axvline(median_val, color="red", linewidth=1.5, label=f"Median = {median_val:,.0f}")
-        # Mean line (blue dashed)
-        ax.axvline(mean_val, color="blue", linestyle="--", linewidth=1.5, label=f"Mean = {mean_val:,.0f}")
-
-        ax.set_xlabel("Cycles")
-        ax.set_ylabel("Frequency")
-        ax.set_title(
-            f"Cycle Distribution: {HW_VARIANT_DISPLAY[variant]} – {op} "
-            f"(n={len(data):,})"
-        )
-        ax.legend(loc="upper right", fontsize=8)
-
-        # Annotate IQR and outliers
-        annotation_text = (
-            f"IQR = {iqr:,.0f}\n"
-            f"σ = {std_val:,.0f}\n"
-            f"Outliers (>3σ) = {outlier_count}"
-        )
-        ax.annotate(
-            annotation_text,
-            xy=(0.98, 0.75),
-            xycoords="axes fraction",
-            ha="right",
-            va="top",
-            fontsize=8,
-            fontfamily="monospace",
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
-        )
-
-        ax.grid(axis="y", alpha=0.3)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-
-        fig.tight_layout()
-
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        slug = variant_slug(variant)
-        output_path = OUTPUT_DIR / f"hw_cycle_histogram_{slug}_{op}.pdf"
-        fig.savefig(output_path, bbox_inches="tight")
-        plt.close(fig)
-        print(f"Generated: {output_path}")
 
 
 # ---------------------------------------------------------------------------
