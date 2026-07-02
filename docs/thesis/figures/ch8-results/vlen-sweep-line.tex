@@ -1,5 +1,6 @@
 % VLEN sweep line chart: x=VLEN, y=instret (total KEM)
 % Multiple lines for HQC-128/192/256 (vector_zvk variant)
+% Source: results/simulation/benchmarks/vlen_scaling/*-vector-zvk_latest.csv (commit 7c8d219)
 \tikzsetnextfilename{ch8-results-vlen-sweep-line}
 \begin{tikzpicture}
 \begin{axis}[
@@ -25,38 +26,38 @@
 
 % HQC-256
 \addplot[blue!70!black, mark=square*] coordinates {
-  (256, 2544133)
-  (512, 2404440)
-  (1024, 2386495)
-  (2048, 2404029)
+  (256, 5138700)
+  (512, 5045386)
+  (1024, 5014831)
+  (2048, 5004353)
 };
 \addlegendentry{HQC-256}
 
 % HQC-192
 \addplot[red!70!black, mark=triangle*] coordinates {
-  (256, 1653804)
-  (512, 1561614)
-  (1024, 1549935)
-  (2048, 1569907)
+  (256, 3192507)
+  (512, 3136588)
+  (1024, 3116877)
+  (2048, 3110691)
 };
 \addlegendentry{HQC-192}
 
 % HQC-128
 \addplot[green!50!black, mark=*] coordinates {
-  (256, 702755)
-  (512, 677092)
-  (1024, 679548)
-  (2048, 703870)
+  (256, 1491550)
+  (512, 1473002)
+  (1024, 1466123)
+  (2048, 1464102)
 };
 \addlegendentry{HQC-128}
 
-% Annotation: sweet spot at VLEN=512
+% Annotation: main gain at VLEN=512
 \node[anchor=south, font=\scriptsize\itshape, text=blue!60!black]
-  at (axis cs:512, 2404440) {$-\pct{5.5}$};
+  at (axis cs:512, 5045386) {$-\pct{1.8}$};
 \node[anchor=south, font=\scriptsize\itshape, text=red!60!black]
-  at (axis cs:512, 1561614) {$-\pct{5.6}$};
+  at (axis cs:512, 3136588) {$-\pct{1.8}$};
 \node[anchor=south west, font=\scriptsize\itshape, text=green!40!black]
-  at (axis cs:512, 677092) {$-\pct{3.7}$};
+  at (axis cs:512, 1473002) {$-\pct{1.2}$};
 
 \end{axis}
 \end{tikzpicture}

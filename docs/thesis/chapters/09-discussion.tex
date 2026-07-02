@@ -1,7 +1,7 @@
 \chapter{Αποτελέσματα Αξιολόγησης σε Hardware και Συγκριτική Ανάλυση}
 \label{ch:discussion}
 
-Το κεφάλαιο αυτό μεταφέρει τα αποτελέσματα προσομοίωσης του~\cref{ch:results} σε πραγματικό silicon και τα τοποθετεί στο διεθνές τοπίο υλοποιήσεων. Παρουσιάζεται πρώτα η αξιολόγηση σε πραγματικό hardware (Banana Pi BPI-F3, SpacemiT K1 X60), ακολουθεί η σύγκριση με ετερογενείς αρχιτεκτονικές\ifTODO, η μελέτη ISA ablation και ο συμβιβασμός μεγέθους κώδικα έναντι απόδοσης\fi, και η συγκριτική αξιολόγηση μεταγλωττιστών\ifTODO{}, ολοκληρώνοντας με την επαλήθευση σταθερού χρόνου εκτέλεσης των βελτιστοποιημένων υλοποιήσεων\fi.
+Το κεφάλαιο αυτό αποτιμά σε πραγματικό silicon τις υλοποιήσεις που αξιολογήθηκαν με προσομοίωση στο~\cref{ch:results} και παραθέτει συγκριτική αποτίμηση έναντι αντίστοιχων υλοποιήσεων HQC KEM. Παρουσιάζεται πρώτα η αξιολόγηση σε πραγματικό hardware (Banana Pi BPI-F3, SpacemiT K1 X60), ακολουθεί η σύγκριση με ετερογενείς αρχιτεκτονικές\ifTODO, η μελέτη ISA ablation και ο συμβιβασμός μεγέθους κώδικα έναντι απόδοσης\fi, και η συγκριτική αξιολόγηση μεταγλωττιστών\ifTODO{}, ολοκληρώνοντας με την επαλήθευση σταθερού χρόνου εκτέλεσης των βελτιστοποιημένων υλοποιήσεων\fi.
 
 \section{Αξιολόγηση σε Πραγματικό Hardware}
 \label{sec:hw-evaluation}
@@ -13,44 +13,72 @@ penalties παραμένουν αόρατα. Η παρούσα ενότητα
 συμπληρώνει την εικόνα με μετρήσεις κύκλων σε πραγματικό silicon, το Banana Pi
 BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\hertz},
 βλ.\ \cref{ssec:bpi-f3}). Οι μετρήσεις αφορούν τα Tier~1
-(\code{scalar\_zb}) και Tier~2 (\code{vector\_rvv}), καθώς ο X60 δεν υλοποιεί 
+και Tier~2, καθώς ο X60 δεν υλοποιεί 
 \gls{zvbc}/\gls{zvbb} και συνεπώς δεν μπορούμε να εκτελέσουμε το Tier~3.
 Η μεθοδολογία μέτρησης τεκμηριώνεται στην~\cref{ssec:hw-measurement}. 
 
 %% --------------------------------------------------------------------------
-\subsection{Μικρο-αξιολογήσεις σε Hardware (Cycles)}
+\subsection{Microbenchmarks σε Hardware}
 \label{ssec:hw-microbench}
 
-Ο~\cref{tab:hw-microbench} παρουσιάζει τα αποτελέσματα ανά πυρήνα για το
-HQC-128. Κάθε γραμμή περιλαμβάνει τα Spike \instret (αλγοριθμική βάση),
+Ο~\cref{tab:hw-microbench} παρουσιάζει τα αποτελέσματα ανά πυρήνα και για τα
+τρία security levels. Κάθε γραμμή περιλαμβάνει τα Spike \instret (αλγοριθμική βάση),
 τους πραγματικούς κύκλους (median, \num{10000} iterations) και το παρατηρούμενο
 \gls{ipc} ($= \text{instret} / \text{cycles}$).
 
 \begin{table}[htbp]
   \centering
-  \caption{Isolated kernel benchmarks σε πραγματικό hardware (HQC-128, BPI-F3).}
+  \caption{Isolated kernel benchmarks σε πραγματικό hardware ανά security level (BPI-F3). IPC $= \text{Spike instret} / \text{HW cycles}$.}
   \label{tab:hw-microbench}
   \small
   \begin{thesistblr}{
-    colspec = {l l r r r},
-    cell{2}{1} = {r=3}{l},
-    cell{6}{1} = {r=2}{l},
-    hline{5,6} = {0.4pt, figtablerule},
+    colspec = {l l l r r r},
+    cell{2}{1} = {r=8}{l},
+    cell{10}{1} = {r=8}{l},
+    cell{18}{1} = {r=8}{l},
+    cell{2}{2} = {r=3}{l},
+    cell{5}{2} = {r=2}{l},
+    cell{7}{2} = {r=3}{l},
+    cell{10}{2} = {r=3}{l},
+    cell{13}{2} = {r=2}{l},
+    cell{15}{2} = {r=3}{l},
+    cell{18}{2} = {r=3}{l},
+    cell{21}{2} = {r=2}{l},
+    cell{23}{2} = {r=3}{l},
+    hline{10,18} = {0.4pt, figtablerule},
   }
-    Πυρήνας & Variant & Spike \instret & HW cycles & IPC \\
-    Polymul & \code{scalar\_ref} & \num{18504302} & \num{11635670} & \num{1.59} \\
-     & \code{scalar\_zb} & \num{182726} & \num{122503} & \num{1.49} \\
-     & \code{vector\_rvv} & \num{148479} & \num{122085} & \num{1.22} \\
-    Keccak & \code{scalar\_zb} & \num{554900} & \num{356668} & \num{1.56} \\
-    Decode & \code{scalar\_zb} & \num{604218} & \num{460886} & \num{1.31} \\
-     & \code{vector\_rvv} & \num{134737} & \num{205151} & \num{0.66} \\
+    Level & Πυρήνας & Tier & Spike \instret & HW cycles & IPC \\
+    HQC-128 & Polymul & Reference & \num{18504302} & \num{11635670} & \num{1.59} \\
+     & & Tier~1 & \num{182726} & \num{122503} & \num{1.49} \\
+     & & Tier~2 & \num{148479} & \num{122085} & \num{1.22} \\
+     & Keccak & Reference & \num{758580} & \num{520235} & \num{1.46} \\
+     & & Tier~1 & \num{554900} & \num{356668} & \num{1.56} \\
+     & Decode & Reference & \num{1052692} & \num{726249} & \num{1.45} \\
+     & & Tier~1 & \num{604218} & \num{460886} & \num{1.31} \\
+     & & Tier~2 & \num{134737} & \num{205151} & \num{0.66} \\
+    HQC-192 & Polymul & Reference & \num{56292809} & \num{35382098} & \num{1.59} \\
+     & & Tier~1 & \num{570293} & \num{367480} & \num{1.55} \\
+     & & Tier~2 & \num{449808} & \num{357116} & \num{1.26} \\
+     & Keccak & Reference & \num{1505161} & \num{1026931} & \num{1.47} \\
+     & & Tier~1 & \num{1103161} & \num{711893} & \num{1.55} \\
+     & Decode & Reference & \num{1430377} & \num{983046} & \num{1.46} \\
+     & & Tier~1 & \num{859332} & \num{636978} & \num{1.35} \\
+     & & Tier~2 & \num{168915} & \num{280234} & \num{0.60} \\
+    HQC-256 & Polymul & Reference & \num{139222953} & \num{88385859} & \num{1.58} \\
+     & & Tier~1 & \num{1262888} & \num{790047} & \num{1.60} \\
+     & & Tier~2 & \num{1043726} & \num{730657} & \num{1.43} \\
+     & Keccak & Reference & \num{2360607} & \num{1618377} & \num{1.46} \\
+     & & Tier~1 & \num{1736167} & \num{1122697} & \num{1.55} \\
+     & Decode & Reference & \num{3066751} & \num{2055181} & \num{1.49} \\
+     & & Tier~1 & \num{1608746} & \num{1165362} & \num{1.38} \\
+     & & Tier~2 & \num{429339} & \num{546829} & \num{0.79} \\
   \end{thesistblr}
 \end{table}
 
 Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
 
-\paragraph{Ο scalar Karatsuba (\code{scalar\_zb}) επιτυγχάνει IPC $> 1$.}
-Ο \code{scalar\_zb} polymul παρουσιάζει IPC $= 1.49$, αξιοποιώντας πλήρως
+\paragraph{Οι βελτιστοποιημένοι πυρήνες επιτυγχάνουν IPC $>1$, με μόνη εξαίρεση τον Tier~2 decoder (IPC $= 0.66$).}
+Ο Tier~1 polymul παρουσιάζει IPC $= 1.49$, αξιοποιώντας πλήρως
 τον dual-issue in-order pipeline του X60. Η εξήγηση είναι δομική: ο πλήρως
 ξεδιπλωμένος Karatsuba tree παράγει μακρές ακολουθίες ανεξάρτητων εντολών
 (\insn{clmul}/\insn{clmulh} pairs, \insn{xor} chains, \insn{ld}/\insn{sd}
@@ -59,10 +87,10 @@ sequences) χωρίς branches, ιδανικό workload για dual-issue schedu
 working set ($\approx\SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλήρως
 στην L1 cache (\SI{32}{\kilo\byte}).
 
-\paragraph{Ο RVV polymul (\code{vector\_rvv}) επιτυγχάνει ταυτόσημους κύκλους
+\paragraph{Ο RVV polymul (Tier~2) επιτυγχάνει ταυτόσημους κύκλους
 με τον scalar παρά τις \pct{19} λιγότερες εντολές.}
-Ο \code{vector\_rvv} (\num{122085} κύκλοι) ισοφαρίζει πρακτικά τον
-\code{scalar\_zb} (\num{122503} κύκλοι), με οριακό πλεονέκτημα $\pct{0.3}$.
+Ο Tier~2 (\num{122085} κύκλοι) ισοφαρίζει πρακτικά τον
+Tier~1 (\num{122503} κύκλοι), με οριακό πλεονέκτημα $\pct{0.3}$.
 Παρά τις \pct{19} λιγότερες εντολές ($\num{148479}$ vs $\num{182726}$),
 ο IPC είναι χαμηλότερος ($1.22$ vs $1.49$), αντανακλώντας τα
 scalar↔vector transition penalties του αποσυζευγμένου pipeline. Ωστόσο,
@@ -71,23 +99,16 @@ scalar↔vector transition penalties του αποσυζευγμένου pipelin
 αντισταθμίζει πλήρως το χαμηλότερο IPC. Η λεπτομερής ανάλυση τεκμηριώνεται
 στην~\cref{ssec:hw-ipc}.
 
-\paragraph{Ο Keccak παρουσιάζει IPC $= 1.56$.}
+\paragraph{Ο Keccak αξιοποιεί πλήρως τον dual-issue (IPC $= 1.56$).}
 Η scalar μετάθεση Keccak-f[1600] επιτυγχάνει IPC $= 1.56$, σχεδόν ισότιμο
 με τον \code{scalar\_ref} polymul ($1.59$). Η εξήγηση είναι ότι ο Keccak
 αποτελείται από μακρές ακολουθίες \insn{xor}, \insn{rori} (\gls{zbb}) και
 \insn{andn} (\gls{zbb}) χωρίς memory accesses (η κατάσταση 25$\times$64-bit
 χωράει σε registers), παρέχοντας ιδανικό instruction-level parallelism για
-dual-issue. Σημειώνεται ότι στο vector variant (\code{vector\_rvv}), ο
-μεταγλωττιστής (GCC \code{-ftree-vectorize}) auto-vectorizes τα θ/χ steps
-του Keccak-f, μειώνοντας τους κύκλους κατά $\approx\pct{12}$ σε σύγκριση
-με τον \code{scalar\_zb} Keccak (\num{356668} κύκλοι). Αυτό δεν αντιφάσκει
-με το RVV Paradox (\cref{ssec:keccak-vector-failure}): εκεί αξιολογείται
-χειρόγραφη \RVV υλοποίηση (intrinsics), ενώ εδώ ο μεταγλωττιστής εφαρμόζει
-συντηρητικότερες (και αποδοτικότερες) auto-vectorization επιλογές μόνο στα
-trivially-parallel steps.
+dual-issue.
 
 %% --------------------------------------------------------------------------
-\subsection{Πλήρες \KEM σε Hardware (Cycles)}
+\subsection{Πλήρες \KEM σε Hardware}
 \label{ssec:hw-kem}
 
 Ο~\cref{tab:hw-kem} παρουσιάζει τα αποτελέσματα πλήρους \gls{kem} σε
@@ -95,41 +116,50 @@ trivially-parallel steps.
 
 \begin{table}[htbp]
   \centering
-  \caption{Πλήρες \KEM σε πραγματικό hardware (HQC-128, BPI-F3).}
+  \caption{Πλήρες \KEM σε πραγματικό hardware ανά security level (BPI-F3). Τα speedups υπολογίζονται ως προς το Reference.}
   \label{tab:hw-kem}
   \small
   \begin{thesistblr}{
-    colspec = {l r r r r},
-    hline{3,6} = {0.4pt, figtablerule},
+    colspec = {l l r r r r r},
+    cell{2}{1} = {r=4}{l},
+    cell{6}{1} = {r=4}{l},
+    cell{10}{1} = {r=4}{l},
+    hline{6,10} = {0.4pt, figtablerule},
   }
-    Op & scalar\_ref & scalar\_zb & vector\_rvv & Speedup$_\text{zb}$ \\
-    & {(cycles)} & {(cycles)} & {(cycles)} & \\
-    \KeyGen & \num{11762776} & \num{232836} & \num{212671} & \num{50.5} \\
-    \Encaps & \num{23488205} & \num{461278} & \num{425274} & \num{50.9} \\
-    \Decaps & \num{35747311} & \num{1197341} & \num{910108} & \num{29.9} \\
-    \best{Total} & \best{\num{70998292}} & \best{\num{1891455}} & \best{\num{1548053}} & \best{\num{37.5}} \\
+    Level & Op & Reference & Tier~1 & Tier~2 & {$\times$T1} & {$\times$T2} \\
+    HQC-128 & \KeyGen & \num{11762776} & \num{232836} & \num{212671} & \num{50.5} & \num{55.3} \\
+     & \Encaps & \num{23488205} & \num{461278} & \num{425274} & \num{50.9} & \num{55.2} \\
+     & \Decaps & \num{35747311} & \num{1197341} & \num{910108} & \num{29.9} & \num{39.3} \\
+     & \best{Total} & \best{\num{70998292}} & \best{\num{1891455}} & \best{\num{1548053}} & \best{\num{37.5}} & \best{\num{45.9}} \\
+    HQC-192 & \KeyGen & \num{35682067} & \num{578051} & \num{528765} & \num{61.7} & \num{67.5} \\
+     & \Encaps & \num{71390781} & \num{1157009} & \num{1062094} & \num{61.7} & \num{67.2} \\
+     & \Decaps & \num{107748827} & \num{2493891} & \num{2021272} & \num{43.2} & \num{53.3} \\
+     & \best{Total} & \best{\num{214821675}} & \best{\num{4228951}} & \best{\num{3612131}} & \best{\num{50.8}} & \best{\num{59.5}} \\
+    HQC-256 & \KeyGen & \num{89379246} & \num{1111921} & \num{982499} & \num{80.4} & \num{91.0} \\
+     & \Encaps & \num{178710310} & \num{2275266} & \num{2019880} & \num{78.5} & \num{88.5} \\
+     & \Decaps & \num{269200932} & \num{4746244} & \num{3845521} & \num{56.7} & \num{70.0} \\
+     & \best{Total} & \best{\num{537290488}} & \best{\num{8133431}} & \best{\num{6847900}} & \best{\num{66.1}} & \best{\num{78.5}} \\
   \end{thesistblr}
 \end{table}
 
 Τρία ευρήματα αναδεικνύονται από τα δεδομένα πλήρους \gls{kem}.
 
-\paragraph{Ο \code{vector\_rvv} κυριαρχεί σε όλες τις λειτουργίες.}
-Σε αντίθεση με παλαιότερες μετρήσεις, ο \code{vector\_rvv} υπερτερεί
+\paragraph{Ο Tier~2 κυριαρχεί σε όλες τις λειτουργίες.}
+Σε αντίθεση με παλαιότερες μετρήσεις, ο Tier~2 υπερτερεί
 πλέον στο σύνολο των \gls{kem} λειτουργιών. Στο \KeyGen (\num{212671}
 κύκλοι vs \num{232836}, $-\pct{8.7}$) και \Encaps (\num{425274} vs
 \num{461278}, $-\pct{7.8}$) η βελτιστοποίηση polymul δίνει ισοδύναμους
-κύκλους (βλ.\ §\ref{ssec:hw-microbench}), αλλά η vectorized Keccak
-auto-vectorization κερδίζει τη διαφορά. Στη \Decaps (\num{910108} vs
+κύκλους (βλ.\ §\ref{ssec:hw-microbench}), αλλά η vectorized δειγματοληψία σταθερού βάρους (\code{vect\_sample\_fixed\_weight}, \code{vect\_generate\_random\_support}) κερδίζει τη διαφορά. Στη \Decaps (\num{910108} vs
 \num{1197341}, $-\pct{24}$) η vectorized αποκωδικοποίηση αποτελεί τον
 κυρίαρχο παράγοντα, εξοικονομώντας $\num{255735}$ κύκλους μόνο στον
 decoder (\num{205151} vs \num{460886} κύκλοι). Συνολικά, ο
-\code{vector\_rvv} (\num{1548053} κύκλοι) είναι \pct{18} ταχύτερος
-από τον \code{scalar\_zb} (\num{1891455} κύκλοι).
+Tier~2 (\num{1548053} κύκλοι) είναι \pct{18} ταχύτερος
+από τον Tier~1 (\num{1891455} κύκλοι).
 
 \paragraph{Η \Decaps αναδεικνύει τη vectorized αποκωδικοποίηση.}
-Στη \Decaps, ο \code{vector\_rvv} (\num{910108} κύκλοι) υπερτερεί
-κατά \pct{24} του \code{scalar\_zb} (\num{1197341} κύκλοι). Η
-κυρίαρχη αιτία είναι η vectorized αποκωδικοποίηση: ο \code{vector\_rvv}
+Στη \Decaps, ο Tier~2 (\num{910108} κύκλοι) υπερτερεί
+κατά \pct{24} του Tier~1 (\num{1197341} κύκλοι). Η
+κυρίαρχη αιτία είναι η vectorized αποκωδικοποίηση: ο Tier~2
 χρησιμοποιεί \RVV decode (\num{205151} κύκλοι) αντί scalar decode
 (\num{460886} κύκλοι), εξοικονομώντας $\num{255735}$ κύκλους στον decoder.
 Η \Decaps αποτελεί τη μοναδική λειτουργία όπου εκτελείται
@@ -139,13 +169,13 @@ decoder (\num{205151} vs \num{460886} κύκλοι). Συνολικά, ο
 \paragraph{Πρακτική σημασία deployment.}
 Ένα πλήρες \HQC-128 key exchange (1$\times$\KeyGen $+$ 1$\times$\Encaps
 $+$ 1$\times$\Decaps) ολοκληρώνεται σε \num{1891455} κύκλους
-στον SpacemiT K1 με τον \code{scalar\_zb} variant, αποδεκτό για
-TLS handshakes και IoT key establishment. Με τον \code{vector\_rvv},
+στον SpacemiT K1 με τον Tier~1 variant, αποδεκτό για
+TLS handshakes και IoT key establishment. Με τον Tier~2,
 ο συνολικός αριθμός μειώνεται στους \num{1548053} κύκλους ($-\pct{18}$).
 Η \Decaps μεμονωμένα
 (\num{1197341} κύκλοι scalar\_zb, \num{910108} vector\_rvv)
 αποτελεί τη βαρύτερη λειτουργία, αλλά παραμένει εντός των ορίων
-πρακτικής χρήσης. Το Tier~3 (\code{vector\_zvk}) δεν αξιολογείται σε
+πρακτικής χρήσης. Το Tier~3 δεν αξιολογείται σε
 πραγματικό hardware, καθώς ο SpacemiT X60 (RVA22 profile) δεν υλοποιεί
 τις επεκτάσεις \gls{zvbc}/\gls{zvbb}· τα αποτελέσματά του περιορίζονται
 στον Spike \gls{iss}.
@@ -157,22 +187,33 @@ TLS handshakes και IoT key establishment. Με τον \code{vector\_rvv},
 Ο \gls{ipc} ($= \text{Spike instret} / \text{HW cycles}$) αποτελεί
 τον κεντρικό δείκτη μικροαρχιτεκτονικής αποδοτικότητας. Τιμή IPC $> 1$
 υποδηλώνει αξιοποίηση dual-issue, ενώ IPC $< 1$ σηματοδοτεί pipeline
-stalls. Ο~\cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant και πυρήνα.
+stalls. Ο~\cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant και πυρήνα για τα τρία security levels.
 
 \begin{table}[htbp]
   \centering
-  \caption{IPC ανά variant και πυρήνα (HQC-128, BPI-F3). Ο scalar
+  \caption{IPC ανά security level, variant και πυρήνα (BPI-F3). Ο scalar
     κώδικας αξιοποιεί πλήρως τον dual-issue pipeline (IPC $\geq 1.3$),
-    ενώ ο \RVV κώδικας παρουσιάζει IPC $= 1.22$ στον polymul αλλά
-    IPC $< 1$ στον decode λόγω pipeline transition penalties.}
+    ενώ ο \RVV κώδικας παρουσιάζει IPC $> 1$ στον polymul αλλά
+    IPC $< 1$ στον decode λόγω pipeline transition penalties. Το Tier~2
+    δεν διαθέτει vectorized Keccak (κοινός scalar πυρήνας με το Tier~1).}
   \label{tab:hw-ipc}
   \begin{thesistblr}{
-    colspec = {l r r r},
+    colspec = {l l r r r},
+    cell{2}{1} = {r=3}{l},
+    cell{5}{1} = {r=3}{l},
+    cell{8}{1} = {r=3}{l},
+    hline{5,8} = {0.4pt, figtablerule},
   }
-    Πυρήνας & scalar\_ref & scalar\_zb & vector\_rvv \\
-    Polymul & \num{1.59} & \num{1.49} & \num{1.22} \\
-    Keccak  & {—}  & \num{1.56} & {—} \\
-    Decode  & {—}  & \num{1.31} & \num{0.66} \\
+    Level & Πυρήνας & Reference & Tier~1 & Tier~2 \\
+    HQC-128 & Polymul & \num{1.59} & \num{1.49} & \num{1.22} \\
+     & Keccak & \num{1.46} & \num{1.56} & {—} \\
+     & Decode & \num{1.45} & \num{1.31} & \num{0.66} \\
+    HQC-192 & Polymul & \num{1.59} & \num{1.55} & \num{1.26} \\
+     & Keccak & \num{1.47} & \num{1.55} & {—} \\
+     & Decode & \num{1.46} & \num{1.35} & \num{0.60} \\
+    HQC-256 & Polymul & \num{1.58} & \num{1.60} & \num{1.43} \\
+     & Keccak & \num{1.46} & \num{1.55} & {—} \\
+     & Decode & \num{1.49} & \num{1.38} & \num{0.79} \\
   \end{thesistblr}
 \end{table}
 
@@ -184,14 +225,14 @@ stalls. Ο~\cref{tab:hw-ipc} παρουσιάζει τον IPC ανά variant κ
 μεταξύ polymul variants. Η τιμή αυτή υπερβαίνει τη μονάδα διότι ο
 schoolbook πολλαπλασιασμός αποτελείται από μακρές ακολουθίες ανεξάρτητων
 \insn{xor} εντολών (partial product accumulation) που ο dual-issue
-pipeline εκτελεί παράλληλα. Ο \code{scalar\_zb} παρουσιάζει ελαφρώς
+pipeline εκτελεί παράλληλα. Ο Tier~1 παρουσιάζει ελαφρώς
 χαμηλότερο IPC ($1.49$) λόγω των data dependencies μεταξύ
 \insn{clmul}/\insn{clmulh} pairs. Κάθε \insn{clmulh} εξαρτάται από
 τον ίδιο operand με τον προηγούμενο \insn{clmul}, περιορίζοντας τις
 ευκαιρίες dual-issue.
 
 \paragraph{Vector code: IPC $= 1.22$ στον polymul — μερικός dual-issue.}
-Ο \code{vector\_rvv} polymul παρουσιάζει IPC $= 1.22$, πάνω από τη
+Ο Tier~2 polymul παρουσιάζει IPC $= 1.22$, πάνω από τη
 μονάδα αλλά χαμηλότερο από τον scalar. Η ανάλυση μέσω hardware
 performance counters αποκαλύπτει ότι τα scalar↔vector transition
 penalties μειώνουν τον ρυθμό εκτέλεσης χωρίς ωστόσο να τον φέρνουν
@@ -206,12 +247,12 @@ penalties μειώνουν τον ρυθμό εκτέλεσης χωρίς ωσ�
     buffer στην L1 cache πριν προχωρήσει, penalty $\approx \num{28}$
     κύκλοι ανά εμφάνιση.\footnote{Το $\approx\num{28}$ κύκλοι δεν προκύπτει
     από άμεση ανάγνωση performance counter, αλλά από ablation σύγκριση:
-    η διαφορά κύκλων μεταξύ \code{vector\_rvv} και \code{vector\_rvv\_deferred}
+    η διαφορά κύκλων μεταξύ Tier~2 και \code{vector\_rvv\_deferred}
     (variant χωρίς scalar→vector forwarding) διαιρείται με τον αριθμό
     forwarding εμφανίσεων στο recursion tree, αποδίδοντας
     $\approx\num{28}$ κύκλοι ανά εμφάνιση (βλ.\ §9.6 του
     \texttt{multiplication.md}).}
-    Στον \code{vector\_rvv}, οι κλήσεις επόμενου επιπέδου γράφουν τα $z_0$
+    Στον Tier~2, οι κλήσεις επόμενου επιπέδου γράφουν τα $z_0$
     και $z_2$ απευθείας στον output buffer μέσω scalar \insn{sd}, και στη
     συνέχεια τα Loop~3 vector operations τα διαβάζουν μέσω \insn{vle64},
     δημιουργώντας forwarding failure σε κάθε επίπεδο αναδρομής.
@@ -236,7 +277,7 @@ penalties μειώνουν τον ρυθμό εκτέλεσης χωρίς ωσ�
     τα υπόλοιπα penalties.
 \end{enumerate}
 
-Η αντίθεση μεταξύ \instret (λιγότερες εντολές στον \code{vector\_rvv})
+Η αντίθεση μεταξύ \instret (λιγότερες εντολές στον Tier~2)
 και κύκλων (περισσότεροι κύκλοι) τεκμηριώνει ότι η μετρική \instret
 αποτελεί αναγκαία αλλά όχι ικανή συνθήκη για πρόβλεψη πραγματικής
 απόδοσης σε hardware με αποσυζευγμένο scalar/vector pipeline. Η
@@ -252,7 +293,7 @@ VLEN$= \num{256}$): ο Saarinen αναφέρει $\sim 5\times$ NTT vector speed
 για Kyber-768 (NTT-based, χωρίς scalar↔vector transitions), με τον
 SHA3/SHAKE να αναδεικνύεται σε bottleneck μετά τη vectorization. Η
 υψηλότερη σχετική αποδοτικότητα του NTT path, σε σχέση με τον δικό μας
-\code{vector\_rvv} (IPC $= 1.22$), εξηγείται δομικά: ο NTT παραμένει
+Tier~2 (IPC $= 1.22$), εξηγείται δομικά: ο NTT παραμένει
 εξ ολοκλήρου στο vector pipeline, αποφεύγοντας τα scalar↔vector
 transition penalties που πλήττουν τον hybrid Karatsuba.
 
@@ -269,7 +310,7 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
   \caption{Σύγκριση Spike predictions vs hardware reality (HQC-128).
     Ο λόγος HW/Spike $\approx 1.07$ για τον scalar path υποδηλώνει ότι
     ο dual-issue pipeline ωφελεί τον optimized κώδικα ελαφρώς
-    περισσότερο. Ο \code{vector\_rvv} αποκλίνει (HW/Spike $\approx 0.8$)
+    περισσότερο. Το Tier~2 αποκλίνει (HW/Spike $\approx 0.8$)
     λόγω microarchitectural penalties.}
   \label{tab:hw-spike-prediction}
   \begin{thesistblr}{
@@ -279,11 +320,11 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
     hline{6} = {0.4pt, figtablerule},
   }
     Μετρική & Spike Speedup & HW Speedup & HW/Spike \\
-    \SetCell[c=4]{l} \textit{\code{scalar\_zb} vs \code{scalar\_ref}} & & & \\
+    \SetCell[c=4]{l} \textit{Tier~1 vs Reference} & & & \\
     \quad Polymul & \num{101.27} & \num{94.98} & \num{0.94} \\
     \quad \Decaps & \num{28.87} & \num{29.86} & \num{1.03} \\
     \quad Total \gls{kem} & \num{34.98} & \num{37.54} & \num{1.07} \\
-    \SetCell[c=4]{l} \textit{\code{vector\_rvv} vs \code{scalar\_ref}} & & & \\
+    \SetCell[c=4]{l} \textit{Tier~2 vs Reference} & & & \\
     \quad Polymul & \num{124.63} & \num{95.31} & \num{0.76} \\
     \quad \Decaps & \num{49.97} & \num{39.28} & \num{0.79} \\
     \quad Total \gls{kem} & \num{55.94} & \num{45.86} & \num{0.82} \\
@@ -293,7 +334,7 @@ transition penalties που πλήττουν τον hybrid Karatsuba.
 Τα δεδομένα αποκαλύπτουν δύο διακριτά καθεστώτα πρόβλεψης.
 
 \paragraph{Scalar path: ακριβής πρόβλεψη (HW/Spike $\approx 1.07$).}
-Στο πλήρες \gls{kem}, ο λόγος HW/Spike για τον \code{scalar\_zb} ανέρχεται
+Στο πλήρες \gls{kem}, ο λόγος HW/Spike για τον Tier~1 ανέρχεται
 σε $1.07$, δηλαδή το hardware επιτυγχάνει ελαφρώς υψηλότερο speedup από ό,τι
 προβλέπει το Spike. Η εξήγηση είναι ότι ο dual-issue pipeline του X60
 ωφελεί δυσανάλογα τον optimized κώδικα (IPC $> 1$), ενώ το Spike
@@ -308,22 +349,30 @@ HQC-256 (\cref{tab:hw-spike-prediction-levels}), με τον λόγο HW/Spike �
 \begin{table}[htbp]
   \centering
   \caption{Επέκταση της επικύρωσης Spike vs hardware στα τρία security
-    levels (\code{scalar\_zb} έναντι \code{scalar\_ref}, πλήρες \gls{kem}).
-    Ο λόγος HW/Spike παραμένει σταθερά $\approx 1.07$–$1.10$ σε όλα τα levels,
-    υποδηλώνοντας ότι ο dual-issue pipeline ωφελεί συστηματικά τον optimized κώδικα.}
+    levels (πλήρες \gls{kem}, έναντι Reference). Ο λόγος HW/Spike του Tier~1
+    παραμένει σταθερά $\approx 1.07$–$1.10$, ενώ του Tier~2 βελτιώνεται από
+    $0.82$ (HQC-128) σε $0.90$ (HQC-256), καθώς τα μεγαλύτερα δεδομένα
+    αποσβένουν τα scalar↔vector transition penalties.}
   \label{tab:hw-spike-prediction-levels}
   \begin{thesistblr}{
-    colspec = {l r r r},
+    colspec = {l l r r r},
+    cell{2}{1} = {r=2}{l},
+    cell{4}{1} = {r=2}{l},
+    cell{6}{1} = {r=2}{l},
+    hline{4,6} = {0.4pt, figtablerule},
   }
-    Level & Spike Speedup & HW Speedup & HW/Spike \\
-    HQC-128 & \num{34.98} & \num{37.54} & \num{1.07} \\
-    HQC-192 & \num{46.90} & \num{50.80} & \num{1.08} \\
-    HQC-256 & \num{60.13} & \num{66.06} & \num{1.10} \\
+    Level & Tier & Spike Speedup & HW Speedup & HW/Spike \\
+    HQC-128 & Tier~1 & \num{34.98} & \num{37.54} & \num{1.07} \\
+     & Tier~2 & \num{55.94} & \num{45.86} & \num{0.82} \\
+    HQC-192 & Tier~1 & \num{46.90} & \num{50.80} & \num{1.08} \\
+     & Tier~2 & \num{72.29} & \num{59.47} & \num{0.82} \\
+    HQC-256 & Tier~1 & \num{60.13} & \num{66.06} & \num{1.10} \\
+     & Tier~2 & \num{86.92} & \num{78.46} & \num{0.90} \\
   \end{thesistblr}
 \end{table}
 
-\paragraph{Vector path: απόκλιση (HW/Spike $\approx 0.82$).}
-Ο \code{vector\_rvv} παρουσιάζει HW/Spike $= 0.82$ στο \gls{kem}, η πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{18}. Η
+\paragraph{Vector path: απόκλιση (HW/Spike $= 0.82$–$0.90$).}
+Ο Tier~2 παρουσιάζει HW/Spike $= 0.82$ στο HQC-128 \gls{kem}, δηλαδή η πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup κατά \pct{18}. Η απόκλιση όμως συρρικνώνεται στα υψηλότερα security levels (HW/Spike $= 0.90$ στο HQC-256, \cref{tab:hw-spike-prediction-levels}), καθώς τα μεγαλύτερα δεδομένα αποσβένουν το σταθερό κόστος των scalar↔vector μεταβάσεων. Η
 απόκλιση οφείλεται εξ ολοκλήρου στα microarchitectural penalties που
 αναλύθηκαν στην~\cref{ssec:hw-ipc}: το Spike μοντελοποιεί κάθε εντολή
 ως CPI$=$1, αγνοώντας τα scalar↔vector transition costs και τα store
@@ -344,7 +393,7 @@ forwarding failures. Η παρατήρηση αυτή τεκμηριώνει ό�
 
 \paragraph{Threshold sweep: επικύρωση σταθερότητας.}
 Η σύγκριση Spike vs hardware επεκτείνεται μέσω threshold sweep στον
-\code{scalar\_zb}: μεταβολή του Karatsuba threshold (8, 16, 32, 64, 128)
+Tier~1: μεταβολή του Karatsuba threshold (8, 16, 32, 64, 128)
 παράγει σταθερό \instret ($\num{195403}$ σε όλες τις τιμές, ο
 specialized code generator παράγει ισοδύναμο κώδικα) και σχεδόν σταθερούς
 κύκλους ($\num{146288}$–$\num{146545}$, $<\pct{0.2}$ διακύμανση). Η
@@ -352,7 +401,7 @@ specialized code generator παράγει ισοδύναμο κώδικα) κα�
 scalar path δεν εξαρτάται από τη δομή του recursion tree, μόνο από τον
 συνολικό αριθμό εντολών.
 
-Αντιθέτως, ο \code{vector\_rvv} threshold sweep αποκαλύπτει ισχυρή
+Αντιθέτως, ο Tier~2 threshold sweep αποκαλύπτει ισχυρή
 εξάρτηση: threshold $= 16$ (βέλτιστο) δίνει \num{206774} κύκλοι, ενώ
 threshold $= 128$ δίνει \num{411118} κύκλοι ($+\pct{99}$). Η αύξηση
 threshold μειώνει τον αριθμό recursion levels αλλά αυξάνει τον αριθμό
@@ -432,12 +481,12 @@ inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει α
 
 \paragraph{Hardware validation — βασικά ευρήματα (HQC-128, BPI-F3).}
 \begin{itemize}
-    \item \textbf{Tier~1 (\code{scalar\_zb}):} \Decaps σε
-      \num{1197341} κύκλους, \speedup{29.9} έναντι reference.
-      Spike prediction accuracy: $\pct{98}$ (HW/Spike $= 1.01$ στο \gls{kem}).
-    \item \textbf{Tier~2 (\code{vector\_rvv}):} \Decaps σε
+    \item \textbf{Tier~1:} \Decaps σε
+      \num{1197341} κύκλους, \speedup{29.9} έναντι \code{scalar\_ref}.
+      Spike prediction accuracy: HW/Spike $= 1.07$ στο \gls{kem} (το hardware ξεπερνά οριακά την πρόβλεψη λόγω dual-issue).
+    \item \textbf{Tier~2:} \Decaps σε
       \num{910108} κύκλους, \speedup{39.3} έναντι \code{scalar\_ref}.
-      Ο \code{vector\_rvv} υπερτερεί πλέον σε όλες τις λειτουργίες.
+      Το Tier~2 υπερτερεί πλέον σε όλες τις λειτουργίες.
     \item \textbf{Microarchitectural insight:} Ο αποσυζευγμένος
       scalar/vector pipeline του X60 εισάγει transition penalties
       (IPC $= 1.22$ στο polymul, $0.66$ στο decode) αλλά η μείωση
@@ -486,7 +535,7 @@ inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει α
 \end{table}
 
 Τρεις βασικές παρατηρήσεις αναδεικνύονται από τον πίνακα. Πρώτον, το
-Tier~3 (\code{vector\_zvk}) επιτυγχάνει \instret της ίδιας τάξης
+Tier~3 επιτυγχάνει \instret της ίδιας τάξης
 μεγέθους με τον x86-64 champion. Ο λόγος \Decaps ανέρχεται σε
 $\num{843459}$ \instret έναντι \num{245000} κύκλων ($3.44\times$). Καθώς ο \instret αποτελεί κάτω φράγμα των κύκλων ρολογιού, το πραγματικό χάσμα είναι κάπως μεγαλύτερο· τα Tier~1 και Tier~2 επικυρώνονται πλέον σε πραγματικούς κύκλους στο BPI-F3 (\cref{tab:hw-kem}). Δεύτερον, η απόσταση από τον Cortex-M4 champion
 ανέρχεται σε $\num{7502580} / \num{843459} = 8.9\times$, αντικατοπτρίζοντας
@@ -1224,8 +1273,8 @@ security level, και tier. Η στήλη \q{Δ\%} αντιπροσωπεύει
 
 \paragraph{Εύρημα 1: Ο GCC υπερτερεί στον scalar κώδικα.}
 Στα Tier~0 και Tier~1 variants, ο GCC παράγει σταθερά λιγότερες δυναμικές
-εντολές. Η υπεροχή κυμαίνεται από \pct{13.1} (\code{scalar\_zb}, L128)
-έως \pct{37.5} (\code{scalar\_zb}, L256). Η εξήγηση βρίσκεται στη
+εντολές. Η υπεροχή κυμαίνεται από \pct{13.1} (Tier~1, L128)
+έως \pct{37.5} (Tier~1, L256). Η εξήγηση βρίσκεται στη
 δομή του hot path: ο scalar leaf (\code{clmul\_leaf\_n8}) χρησιμοποιεί
 compact inner loops με σταθερά bounds, παράγοντας ακολουθίες
 \clmul/\clmulh χωρίς control flow overhead στο εσωτερικό τους.
@@ -1235,7 +1284,7 @@ Karatsuba tree. Η διαφορά εντείνεται στο L256 ($N = \num{90
 όπου το βάθος αναδρομής αυξάνεται και η register pressure γίνεται κρίσιμη.
 
 \paragraph{Εύρημα 2: Στον vector κώδικα ο GCC υπερτερεί σταθερά.}
-Στο Tier~2 (\code{vector\_rvv}), ο GCC υπερτερεί σταθερά: η διαφορά
+Στο Tier~2, ο GCC υπερτερεί σταθερά: η διαφορά
 ανέρχεται σε \pct{8.0} (L128) και \pct{12.5} (L192) υπέρ GCC.
 Στο L256, όπου το βαθύτερο recursion tree αυξάνει την
 αναλογία scalar Karatsuba overhead, ο GCC υπερτερεί εντυπωσιακά (κατά \pct{42.5})

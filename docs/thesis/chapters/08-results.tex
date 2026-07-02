@@ -44,7 +44,7 @@ levels, με το μεγαλύτερο κέρδος στο Tier~3:
 Karatsuba, όμως το reference καταλήγει σε bit-serial schoolbook στα φύλλα, 
 το οποίο κυριαρχεί χρονικά (\pct{96} των
 εντολών): το κόστος αυξάνεται $\num{18504302} \to \num{139222953}$
-(\num{7.52}$\times$) με πρακτικό εκθέτη $\sim 1.7$, δηλαδή χειρότερα από τη
+(\num{7.52}$\times$) με πρακτικό εκθέτη $p = \log(\num{7.52}) / \log(\num{57637}/\num{17669}) \approx 1.7$, δηλαδή χειρότερα από τη
 θεωρητική κλιμάκωση Karatsuba ($\log_2 3 \approx 1.59$). Το Tier~3
 αντικαθιστά τα schoolbook φύλλα με hardware \insn{vclmul} και εκτελεί διανυσματικά τη XOR ανασύνθεση
 του Karatsuba. Σε αυτό το εύρος μεγεθών το σταθερό overhead της διανυσματοποίησης 
@@ -53,6 +53,9 @@ $\num{70070} \to \num{318972}$ (\num{4.55}$\times$), με πρακτικό εκ�
 $\sim 1.29$, δηλαδή καλύτερη κλιμάκωση από Karatsuba. Αυτή η διαφορά στον
 ρυθμό αύξησης μεταφράζεται σε ολοένα και μεγαλύτερο speedup: \speedup{264.1}
 (HQC-128), \speedup{271.4} (HQC-192) και \speedup{436.5} (HQC-256).
+Αντιθέτως, τα Tier~1 και Tier~2 κλιμακώνουν με λόγο $\approx 6.9\times$
+(256/128), πάνω από τον θεωρητικό Karatsuba ($6.5\times$), οπότε τα
+speedups τους παραμένουν σχεδόν σταθερά ανά security level.
 
 %% --------------------------------------------------------------------------
 \paragraph{Keccak/SHA-3.}
@@ -120,7 +123,7 @@ locator), το οποίο κλιμακώνεται λιγότερο ευνοϊκ
   }
     Πυρήνας & Tier~1 & Tier~2 & Tier~3 \\
     Πολυωνυμικός πολλαπλασιασμός & \num{101.3}  & \num{124.6} & \best{\num{264.1}} \\
-    Keccak                       & \num{1.37}   & \num{1.37}  & \best{\num{1.37}}  \\
+    Keccak/SHA-3                 & \num{1.37}   & \num{1.37}  & \best{\num{1.37}}  \\
     Αποκωδικοποίηση (RM + RS)    & \num{1.74}   & \num{7.81}  & \best{\num{14.27}}  \\
   \end{thesistblr}
 \end{table}
@@ -164,7 +167,7 @@ security levels και τις τρεις βαθμίδες hardware. Η βάση 
 αν και επιταχύνεται (\speedup{14.27} στο Tier~3), υπολείπεται κατά μία
 τάξη μεγέθους του polymul (\speedup{264.1}). Αφετέρου, και κυριότερο,
 επιβαρύνεται με περισσότερο hashing, ανεβάζοντας το μερίδιο του Keccak,
-του πυρήνα με το χαμηλότερο speedup (\speedup{1.37}. Έτσι, κατά τον νόμο
+του πυρήνα με το χαμηλότερο speedup (\speedup{1.37}). Έτσι, κατά τον νόμο
 του Amdahl, οι δύο αυτοί πυρήνες συγκρατούν το συνολικό speedup: στο
 HQC-128 Tier~3 η \Decaps επιτυγχάνει \speedup{67.5} έναντι \speedup{86.8}
 της \KeyGen. Αντιθέτως, οι \KeyGen και \Encaps παρουσιάζουν σχεδόν
@@ -172,19 +175,31 @@ HQC-128 Tier~3 η \Decaps επιτυγχάνει \speedup{67.5} έναντι \sp
 δομή: μία κλήση \code{vect\_mul} με δειγματοληψία και hashing, χωρίς το
 overhead της αποκωδικοποίησης.
 
-\paragraph{Το speedup αυξάνεται με το security level.}
+\paragraph{Κλιμάκωση speedup με security level.}
 Το κέρδος στο πλήρες \gls{kem} μεγαλώνει στα υψηλότερα levels: στο Tier~3 η
 \Decaps επιταχύνεται κατά \speedup{67.5}, \speedup{96.6} και \speedup{145.4}
-για HQC-128, 192 και 256 αντίστοιχα. Αιτία είναι ότι ο πολυωνυμικός
-πολλαπλασιασμός καταλαμβάνει ολοένα μεγαλύτερο μερίδιο του reference καθώς
-μεγαλώνει το $N$ (\pct{96.6} στο HQC-128, \pct{97.3} στο HQC-192, με αυξητική
-τάση στο HQC-256), οπότε η επιτάχυνσή του κυριαρχεί όλο και περισσότερο στο
-συνολικό κέρδος.
+για HQC-128, 192 και 256 αντίστοιχα. Η αιτία είναι ότι ο πολυωνυμικός
+πολλαπλασιασμός καταλαμβάνει ολοένα και μεγαλύτερο μερίδιο του reference καθώς
+μεγαλώνει το $N$ (\pct{96.6} στο HQC-128, \pct{97.3} στο HQC-192), οπότε η 
+επιτάχυνσή του κυριαρχεί όλο και περισσότερο στο συνολικό κέρδος.
+Αξιοσημείωτο είναι ότι το speedup του \emph{πλήρους} \gls{kem} κλιμακώνει
+\emph{ταχύτερα} από αυτό του απομονωμένου polymul: από HQC-128 σε HQC-256
+το isolated polymul speedup αυξάνεται κατά $\times 1.65$
+($\speedup{264.1} \to \speedup{436.5}$), ενώ το Total κατά $\times 2.16$
+($\speedup{163.8} \to \speedup{75.9}$). Πρόκειται για άμεση συνέπεια του
+νόμου του Amdahl: το συνολικό speedup είναι ο σταθμισμένος αρμονικός μέσος
+των επιμέρους speedups, με βάρη τα μερίδια \instret κάθε πυρήνα. Στα
+χαμηλότερα levels τα μεγαλύτερα βάρη των Keccak και decode, έχοντας
+χαμηλότερο speedup, έλκουν τον μέσο προς τα κάτω. Με την αύξηση του $N$ το
+βάρος μετατοπίζεται προς τον polymul και το συνολικό speedup ανεβαίνει
+προς το δικό του υψηλό επίπεδο.
 
 
 %% --------------------------------------------------------------------------
 \paragraph{Σύνοψη end-to-end.}
 \label{ssec:kem-summary}
+
+Ο~\cref{tab:kem-summary} συνοψίζει τα speedups του πλήρους \gls{kem}.
 
 \begin{table}[htbp]
   \centering
@@ -194,14 +209,14 @@ overhead της αποκωδικοποίησης.
     colspec = {l r r r},
   }
     & Tier~1 & Tier~2 & Tier~3 \\
-    \KeyGen speedup          & \num{43.7} & \num{63.7} & \best{\num{86.8}} \\
-    \Encaps speedup          & \num{44.9} & \num{63.6} & \best{\num{86.7}} \\
-    \Decaps speedup          & \num{28.9} & \num{50.0} & \best{\num{67.5}} \\
-    Total \gls{kem} speedup  & \num{35.0} & \num{55.9} & \best{\num{75.9}} \\
+    \KeyGen           & \num{43.7} & \num{63.7} & \best{\num{86.8}} \\
+    \Encaps           & \num{44.9} & \num{63.6} & \best{\num{86.7}} \\
+    \Decaps           & \num{28.9} & \num{50.0} & \best{\num{67.5}} \\
+    Total \gls{kem}   & \num{35.0} & \num{55.9} & \best{\num{75.9}} \\
   \end{thesistblr}
 \end{table}
 
-Τα αποτελέσματα επιβεβαιώνουν ότι η αξιοποίηση αποκλειστικά ratified 
+Τα αποτελέσματα επιβεβαιώνουν ότι η αξιοποίηση ratified 
 RISC-V extensions παρέχει σημαντική επιτάχυνση στο πλήρες \gls{kem},
 χωρίς την ανάγκη για custom hardware. 
 
@@ -408,188 +423,93 @@ protocol.
 \section{Ανάλυση Κλιμάκωσης \VLEN}
 \label{sec:vlen-scaling}
 
-Η αρχιτεκτονική \RVV ορίζει το \VLEN ως hardware parameter. Κάθε
-υλοποίηση επιλέγει εύρος vector register file ανεξάρτητα από τον κώδικα
-εφαρμογής. Η ανάλυση αυτή εξετάζει πώς η αύξηση \VLEN επηρεάζει το
-\instret ολόκληρου του \gls{hqc} \gls{kem} (polymul $+$ Keccak $+$ decode),
-αποκαλύπτοντας τα δομικά όρια κλιμάκωσης και το πρακτικό sweet spot
-για deployment. Οι μετρήσεις αφορούν αποκλειστικά το Tier~3
-(\code{vector\_zvk}), το μοναδικό variant όπου η vectorization
-διεισδύει τόσο στα leaves όσο και στους βρόχους ανασύνθεσης.
-
-%% --------------------------------------------------------------------------
-\subsection{Μοντέλο Κλιμάκωσης και Θεωρητικό Όριο}
-\label{ssec:vlen-model}
-
-Η κατανομή \instret στο \VLEN$= \num{256}$ (HQC-128, πλήρες \gls{kem})
-χωρίζεται σε τρεις κατηγορίες ως προς την ευαισθησία στο \VLEN:
-
-\begin{enumerate}
-  \item \textbf{Πλήρως κλιμακούμενο κλάσμα ($\approx\pct{11}$ του
-    συνολικού \KEM):} Οι helpers ανασύνθεσης
-    (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64})
-    χρησιμοποιούν VLA strip-mining σε LMUL$=$m4,
-    $\num{80202}$ \instret ($\pct{11.2}$ του συνολικού \KEM).
-    Στο \VLEN$= \num{256}$, \VLMAX$= \num{16}$ words ανά iteration.
-    Στο \VLEN$= \num{512}$, \VLMAX$= \num{32}$. Κάθε εξαλειφθείσα
-    iteration εξοικονομεί το πλήρες σώμα strip-mining (\insn{vsetvli}
-    $+$ \insn{vle64} $+$ \insn{vse64} $+$ pointer arithmetic).
-    Το \code{kmul\_N} scaffolding ($\num{34506}$ \instret, $\pct{4.8}$)
-    κλιμακώνει \emph{μερικώς}, περιέχει τόσο κλήσεις helpers ανασύνθεσης όσο και σταθερό bookkeeping overhead, και δεν
-    προσμετράται στο θεωρητικό ανώτατο όριο.
-  \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{59}$):} Ο
-    \code{vclmul\_leaf} (\pct{33.8}) λειτουργεί σε σταθερό $n = \num{16}$
-    elements. Στο \VLEN$= \num{256}$ ήδη $\text{VLMAX} = n$, επομένως
-    ευρύτερο \VLEN δεν μειώνει iterations. Ο Keccak (\pct{24.8})
-    λειτουργεί σε σταθερή 25-lane κατάσταση με LMUL$=$m8, ήδη
-    $\text{VLMAX} = \num{32} \geq 25$.
-  \item \textbf{Μη κλιμακούμενο / λοιπό κλάσμα ($\approx\pct{28}$):} Scalar
-    helpers (\code{rol1\_zbb}, \pct{2.4}), σειριακή $\GF{2^8}$
-    αριθμητική (\code{gf\_reduce}, \pct{6.3}, \code{gf\_mul}, \pct{1.3}),
-    δειγματοληψία, \code{memset}/\code{memcpy} και λοιπά (\pct{14.2}),
-    καθώς και το μερικώς κλιμακούμενο \code{kmul\_N} scaffolding (\pct{4.8}).
-    Κανένα από αυτά δεν ωφελείται πλήρως από ευρύτερο \VLEN.
-\end{enumerate}
-
-Το~\cref{fig:vlen-budget} απεικονίζει τη σύνθεση αυτή. Το θεωρητικό
-ανώτατο όριο βελτίωσης από αύξηση \VLEN περιορίζεται στο
-$\approx\pct{11}$, ακόμη και με άπειρο \VLEN, μόνο οι helpers ανασύνθεσης (\code{rvv\_xor3\_u64}, \code{rvv\_copy\_u64},
-\code{rvv\_xor\_u64}) θα εξαλειφθούν πλήρως.
-
-\begin{figure}[htbp]
-  \centering
-  \input{figures/ch8-results/vlen-budget-breakdown}
-  \caption{Κατανομή \instret σε τρεις κατηγορίες ευαισθησίας \VLEN (HQC-128, \code{vector\_zvk}).}
-  \label{fig:vlen-budget}
-\end{figure}
+Η αρχιτεκτονική \RVV ορίζει το \VLEN ως hardware parameter: κάθε
+υλοποίηση επιλέγει το εύρος του vector register file ανεξάρτητα από τον
+κώδικα εφαρμογής. Η ανάλυση αυτή εξετάζει πώς η αύξηση \VLEN επηρεάζει το
+\instret ολόκληρου του \gls{hqc} \gls{kem} (polymul, Keccak και decode)
+για τα δύο διανυσματικά variants, Tier~2 (\code{vector\_rvv}) και Tier~3
+(\code{vector\_zvk}), σε $\VLEN \in \{256, 512, 1024, 2048\}$ και για τα
+τρία security levels.
 
 %% --------------------------------------------------------------------------
 \subsection{Πειραματικά Αποτελέσματα VLEN Sweep}
 \label{ssec:vlen-sweep-results}
 
-\todo[inline]{VLEN sweep: ο πίνακας και τα ποσοστά βασίζονται σε παλαιότερη μέτρηση (VLEN=256 baseline 702K).
-Τα τρέχοντα \_latest αρχεία δίνουν VLEN=256 total=1.49M και μόνο VLEN=512 (−1.2\% L128). Χρειάζεται
-fresh sweep με VLEN$\in\{256,512,1024,2048\}$ στο canonical binary (bdd9cf4).}
-
 Ο~\cref{tab:vlen-sweep} παρουσιάζει τα πλήρη \gls{kem} \instret για
-$\VLEN \in \{256, 512, 1024, 2048\}$ σε όλα τα security levels. Το~\cref{fig:vlen-sweep-line} απεικονίζει τα ίδια δεδομένα γραφικά.
+$\VLEN \in \{256, 512, 1024, 2048\}$ και για τα δύο διανυσματικά tiers σε
+όλα τα security levels:
 
 \begin{table}[htbp]
   \centering
-  \caption{Total \KEM \instret ως συνάρτηση \VLEN
-    (\code{vector\_zvk}, Spike). Το πρακτικό sweet spot εντοπίζεται
-    στο \VLEN$= \num{512}$ με \pct{3.6}–\pct{5.4} μείωση ανά security
-    level. Το \VLEN$= \num{1024}$ προσφέρει οριακό επιπλέον κέρδος
-    (έως \pct{6.1}) μόνο στα HQC-192/256.}
+  \caption{Total \KEM \instret ως συνάρτηση \VLEN για τα δύο διανυσματικά tiers (Spike).}
   \label{tab:vlen-sweep}
   \input{figures/ch8-results/vlen-sweep-table}
 \end{table}
 
-\begin{figure}[htbp]
-  \centering
-  \input{figures/ch8-results/vlen-sweep-line}
-  \caption{Κλιμάκωση \instret ως συνάρτηση \VLEN (log κλίμακα στον
-    $x$-άξονα). Η μείωση συγκεντρώνεται στη μετάβαση
-    $\num{256} \to \num{512}$, με ελάχιστη πρόσθετη βελτίωση στο
-    $\num{1024}$. Το HQC-128 παρουσιάζει παλινδρόμηση στο
-    \VLEN$= \num{2048}$.}
-  \label{fig:vlen-sweep-line}
-\end{figure}
-
-Τρεις παρατηρήσεις αναδεικνύονται από τα δεδομένα.
-
-\paragraph{Τα υψηλότερα security levels ωφελούνται περισσότερο.}
-Το HQC-128 επιτυγχάνει μέγιστη μείωση \pct{3.6} (στο \VLEN$= \num{512}$),
-ενώ τα HQC-192 και HQC-256 φτάνουν \pct{6.1} (στο \VLEN$= \num{1024}$).
-Η ασυμμετρία εξηγείται από το μέγεθος πολυωνύμου: τα μεγαλύτερα
-πολυώνυμα ($\num{561}$ και $\num{901}$ words αντί $\num{277}$) παράγουν
-περισσότερα επίπεδα αναδρομής και μεγαλύτερους ενδιάμεσους πίνακες στα
-ανώτερα επίπεδα, δίνοντας στο ευρύτερο \VLMAX περισσότερες ευκαιρίες
-μείωσης iterations.
-
-\paragraph{Η βελτίωση συγκεντρώνεται στη μετάβαση $\num{256} \to \num{512}$.}
-Η πρόσθετη βελτίωση από \VLEN$= \num{512}$ σε \VLEN$= \num{1024}$ είναι
-μόλις \pct{0.7} για τα HQC-192/256 και αρνητική ($+\pct{0.4}$) για το
-HQC-128. Η εξήγηση είναι δομική: στο \VLEN$= \num{512}$
-($\text{VLMAX} = \num{32}$), οι βρόχοι ανασύνθεσης στα κατώτερα επίπεδα
-αναδρομής (μεγέθη 16–34 words) ολοκληρώνονται ήδη σε 1 iteration. Μόνο
-τα ανώτερα επίπεδα (μεγέθη 70–451 words) ωφελούνται ακόμη από
-\VLEN$= \num{1024}$, αλλά αυτά εκτελούνται εκθετικά λιγότερες φορές
-(λιγότεροι κόμβοι στα ανώτερα επίπεδα του δέντρου αναδρομής).
-
-\paragraph{Το HQC-128 παλινδρομεί στο \VLEN$= \num{2048}$.}
-Στο \VLEN$= \num{2048}$, το HQC-128 επιστρέφει στη βάση αναφοράς
-($+\pct{0.2}$), ενώ τα HQC-192/256 διατηρούν τα κέρδη τους
-($-\pct{5.0}$ και $-\pct{5.4}$). Η παλινδρόμηση οφείλεται σε δύο
-παράγοντες: (α)~στο HQC-128, οι βρόχοι ανασύνθεσης (μεγέθη 16–34 words)
-ολοκληρώνονται ήδη σε 1 iteration στο \VLEN$= \num{1024}$
-($\text{VLMAX} = \num{64}$). Το \VLEN$= \num{2048}$ δεν προσφέρει
-πρόσθετη μείωση, (β)~ο μεταγλωττιστής εκπέμπει περισσότερες εντολές
-\insn{vsetvli} για εναλλαγή μεταξύ LMUL groups (m4 στο polymul, m8 στον
-Keccak, m2 σε βοηθητικές ρουτίνες), και αυτό το overhead εξουδετερώνει
-τα οριακά κέρδη ανασύνθεσης στο μικρό working set του HQC-128.
+\paragraph{Το κέρδος από ευρύτερο \VLEN είναι μικρό.}
+Ακόμη και στο \VLEN$= \num{2048}$, η μείωση \instret του Tier~3 δεν
+ξεπερνά το \pct{2.6} (HQC-256), ενώ το Tier~2 παραμένει κάτω από
+\pct{1.7}. Ο λόγος είναι δομικός: το μεγαλύτερο μέρος του \instret είτε
+είναι scalar (Keccak, σειριακή $\GF{2^8}$ αριθμητική του
+\gls{rs} decoder) είτε είναι ήδη κορεσμένη διανυσματική εργασία
+(\code{vclmul\_leaf} σε σταθερό $n = \num{16}$, με $\text{VLMAX} \geq n$). 
+Μόνο οι βρόχοι ανασύνθεσης του Karatsuba (VLA strip-mining) συρρικνώνονται 
+με ευρύτερο \VLEN, και αποτελούν μικρό κλάσμα του συνόλου, οπότε το εμπειρικό 
+ανώτατο όριο βελτίωσης παραμένει χαμηλό.
 
 %% --------------------------------------------------------------------------
 \subsection{Αρχιτεκτονικοί Περιορισμοί Κλιμάκωσης}
 \label{ssec:vlen-constraints}
 
-Η ανάλυση αυτή τεκμηριώνει γιατί $\approx\pct{61}$ του \instret
-παραμένει αμετάβλητο ανεξαρτήτως \VLEN.
+Η μικρή ευαισθησία του \instret στο \VLEN εξηγείται από τη σύνθεσή του.
+Το~\cref{fig:vlen-budget} αναλύει το \instret του HQC-128
+(Tier~3, \VLEN$= \num{256}$) ανά πυρήνα και ανά ευαισθησία στο
+\VLEN, χωρίζοντάς το σε τρεις κατηγορίες:
+\begin{enumerate}
 
-\paragraph{\code{vclmul\_leaf}: σταθερό $n = \num{16}$.}
-Ο vectorized schoolbook leaf εκτελεί $n \times 1$ vector instruction
-groups: ο εξωτερικός $i$-βρόχος επαναλαμβάνεται $n = \num{16}$ φορές,
-και σε κάθε iteration ο εσωτερικός $j$-βρόχος επεξεργάζεται $n$
-elements σε μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη στο
-\VLEN$= \num{256}$). Ευρύτερο \VLEN δεν μειώνει ούτε τον εξωτερικό
-βρόχο (σταθερός) ούτε τον εσωτερικό (ήδη 1 iteration). Η εναλλακτική
-προσέγγιση, αύξηση threshold σε $\text{VLMAX}$ ώστε ο leaf να
-επεξεργάζεται περισσότερα elements, δοκιμάστηκε και απορρίφθηκε:
-η τετραγωνική πολυπλοκότητα $\BigO{n^2}$ του schoolbook αυξάνει το
-\instret κατά \pct{4}–\pct{11} στο $\VLEN \geq \num{1024}$, καθώς
-το κόστος $n^2$ κυριαρχεί έναντι της εξοικονόμησης αναδρομής.
+  \item \textbf{Πλήρως κλιμακούμενο κλάσμα ($\approx\pct{2.9}$):} 
+    Η ανασύνθεση Karatsuba χρησιμοποιεί VLA 
+    strip-mining με LMUL$=$m4. Στο \VLEN$= \num{256}$
+    επεξεργάζονται \VLMAX$= \num{16}$ words ανά iteration, ενώ στο
+    \VLEN$= \num{512}$ διπλασιάζονται σε \VLMAX$= \num{32}$. Κάθε
+    iteration που εξαλείφεται εξοικονομεί το πλήρες σώμα strip-mining
+    (\insn{vsetvli} $+$ \insn{vle64} $+$ \insn{vse64} $+$ pointer
+    arithmetic). Αυτό είναι το μόνο κλάσμα που συρρικνώνεται με ευρύτερο \VLEN.
 
-\paragraph{Keccak: σταθερή 25-lane κατάσταση.}
-Η μετάθεση Keccak-f[1600] λειτουργεί σε $25 \times 64$-bit state
-χρησιμοποιώντας LMUL$=$m8. Στο \VLEN$= \num{256}$, $\text{VLMAX} =
-\num{32} \geq 25$. Ολόκληρη η κατάσταση χωράει σε ένα vector group.
-Ευρύτερο \VLEN δεν μπορεί να επεξεργαστεί περισσότερα state elements
-διότι υπάρχουν μόνο 25. Κάθε κλήση Keccak-f εκτελεί σταθερό αριθμό
-εντολών ($\approx \num{8950}$ \instret) ανεξαρτήτως \VLEN.
+  \item \textbf{Σταθερό vectorized κλάσμα ($\approx\pct{17.2}$):} 
+  Ο vectorized schoolbook leaf εκτελεί $n \times 1$ vector instruction
+  groups: ο εξωτερικός $i$-βρόχος επαναλαμβάνεται $n = \num{16}$ φορές, και
+  σε κάθε iteration ο εσωτερικός $j$-βρόχος επεξεργάζεται $n$ elements σε
+  μία vector εντολή (αφού $\text{VLMAX} \geq n$ ήδη στο \VLEN$= \num{256}$).
+  Ευρύτερο \VLEN δεν μειώνει ούτε τον εξωτερικό βρόχο (σταθερός) ούτε τον
+  εσωτερικό (ήδη 1 iteration).
 
-\paragraph{$\GF{2^8}$ αριθμητική.}
-Η FFT root-finding φάση του
-\gls{rs} decoder και η \code{gf\_mul} (\pct{1.3}) παρουσιάζουν εγγενώς
-σειριακές εξαρτήσεις δεδομένων, κάθε iteration εξαρτάται από το αποτέλεσμα
-της προηγούμενης, και δεν είναι vectorizable ανεξαρτήτως \VLEN.
+  \item \textbf{Scalar / μη κλιμακούμενο κλάσμα ($\approx\pct{79.9}$):} Ο
+    Keccak-f[1600] εκτελείται αποκλειστικά scalar μέσω \gls{zbb}
+    και αποτελεί μόνος του $\approx\pct{56.5}$ του
+    συνολικού \KEM. Ακολουθούν η σειριακή $\GF{2^8}$ αριθμητική του
+    \gls{rs} decoder (\code{gf\_reduce}, \code{gf\_mul}, $\approx\pct{5.3}$),
+    και λοιπές scalar ρουτίνες. Προφανώς κανένα δεν ωφελείται από ευρύτερο \VLEN.
+\end{enumerate}
 
-%% --------------------------------------------------------------------------
-\subsection{Σύνοψη Κλιμάκωσης \VLEN}
-\label{ssec:vlen-summary}
+\begin{figure}[htbp]
+  \centering
+  \input{figures/ch8-results/vlen-budget-breakdown}
+  \caption{Κατανομή \instret σε κατηγορίες ευαισθησίας \VLEN (HQC-128, Tier~3, \VLEN$= \num{256}$).}
+  \label{fig:vlen-budget}
+\end{figure}
 
-\paragraph{\VLEN scaling: βασικά ευρήματα.}
-  \begin{itemize}
-    \item Το $\VLEN = \num{512}$ αποτελεί το πρακτικό sweet spot:
-      \pct{3.7}–\pct{5.5} μείωση \instret χωρίς αύξηση πολυπλοκότητας
-      κώδικα.
-    \item Το θεωρητικό ανώτατο όριο βελτίωσης είναι $\approx\pct{11}$
-      (μόνο οι helpers ανασύνθεσης, \code{rvv\_xor3\_u64},
-      \code{rvv\_copy\_u64}, \code{rvv\_xor\_u64}, κλιμακώνουν πλήρως.
-      Το \code{kmul\_N} scaffolding, $\pct{4.9}$, κλιμακώνει μερικώς
-      και δεν προσμετράται στο ceiling).
-    \item $\approx\pct{59}$ του \instret είναι δομικά ανεξάρτητο από
-      \VLEN (\code{vclmul\_leaf} $+$ Keccak).
-    \item Η αύξηση \VLEN πέραν του $\num{1024}$ δεν προσφέρει πρόσθετη
-      βελτίωση. Στο HQC-128 προκαλεί παλινδρόμηση.
-  \end{itemize}
+Το θεωρητικό ανώτατο όριο βελτίωσης από αύξηση \VLEN περιορίζεται στο
+$\approx\pct{2.9}$: ακόμη και με άπειρο \VLEN, μόνο η ανασύνθεση
+θα εξαλείφονταν πλήρως. Η πρόβλεψη αυτή είναι συνεπής με το εμπειρικό
+ανώτατο όριο $\pct{2.6}$ (Tier~3, HQC-256, \VLEN$= \num{2048}$).
 
 Σε πραγματικό hardware (σε αντίθεση με το Spike \gls{iss}), ευρύτερο
 \VLEN θα παρείχε πρόσθετα οφέλη που δεν αποτυπώνονται στο \instret:
 μειωμένη πίεση memory bandwidth, καλύτερη αξιοποίηση cache, και
 χαμηλότερη per-element latency για vector operations. Η ανάλυση βάσει
-\instret αποτελεί συντηρητικό κάτω φράγμα των πραγματικών ωφελειών \VLEN.
+\instret αποτελεί κάτω φράγμα των πραγματικών ωφελειών \VLEN.
 
 Τα αποτελέσματα προσομοίωσης που παρουσιάστηκαν σε αυτό το κεφάλαιο τεκμηριώνουν 
 την αλγοριθμική συνεισφορά των βελτιστοποιήσεων σε επίπεδο \instret. Η 
-μεταφορά τους σε πραγματικό silicon και η τοποθέτησή τους έναντι 
-ετερογενών αρχιτεκτονικών αναλύονται στο \cref{ch:discussion}.
+μεταφορά τους σε πραγματικό silicon αναλύεται στο \cref{ch:discussion}.

@@ -1,17 +1,21 @@
-% VLEN sweep results table (vector_zvk, full KEM)
+% VLEN sweep results table (vector_zvk + vector_rvv, full KEM)
+% Source: results/simulation/benchmarks/vlen_scaling/sim_vlen_l{128,192,256}-vector-{zvk,rvv}_latest.csv
+%   vector_zvk: commit 7c8d219 | vector_rvv: commit 7c8d219 (sweep incl. VLEN=2048, 2026-07-02)
 \begin{thesistblr}{
   colspec = {l r r r r},
   cell{1}{2} = {c=4}{c},
-  cell{6}{1} = {c=5}{l},
-  hline{6,7} = {0.4pt, figtablerule},
+  cell{3}{1} = {c=5}{l},
+  cell{7}{1} = {c=5}{l},
+  hline{3,7} = {0.4pt, figtablerule},
 }
- & {Total \KEM \instret} & & & \\
+ & {Total \KEM \instret (\% ως προς \VLEN$= \num{256}$)} & & & \\
 {Security Level} & {\VLEN=256} & {\VLEN=512} & {\VLEN=1024} & {\VLEN=2048} \\
-HQC-128 & \num{702755}  & \num{677092}  & \num{679548}  & \num{703870}  \\
-HQC-192 & \num{1653804} & \num{1561614} & \num{1549935} & \num{1569907} \\
-HQC-256 & \num{2544133} & \num{2404440} & \num{2386495} & \num{2404029} \\
-{\textbf{Μεταβολή ως προς \VLEN=256 (\%)}} & & & & \\
-HQC-128 & — & {$-3.7$} & {$-3.3$} & {$+0.2$} \\
-HQC-192 & — & {$-5.6$} & {$-6.3$} & {$-5.1$} \\
-HQC-256 & — & {$-5.5$} & {$-6.2$} & {$-5.5$} \\
+{\textbf{Tier 2 (\code{vector\_rvv})}} & & & & \\
+HQC-128 & \num{2022800} & \num{2004585} {\footnotesize$-0.9$} & \num{1997816} {\footnotesize$-1.2$} & \num{1995899} {\footnotesize$-1.3$} \\
+HQC-192 & \num{4725645} & \num{4670391} {\footnotesize$-1.2$} & \num{4650795} {\footnotesize$-1.6$} & \num{4644712} {\footnotesize$-1.7$} \\
+HQC-256 & \num{9684744} & \num{9594957} {\footnotesize$-0.9$} & \num{9564516} {\footnotesize$-1.2$} & \num{9554333} {\footnotesize$-1.3$} \\
+{\textbf{Tier 3 (\code{vector\_zvk})}} & & & & \\
+HQC-128 & \num{1491550} & \num{1473002} {\footnotesize$-1.2$} & \num{1466123} {\footnotesize$-1.7$} & \num{1464102} {\footnotesize$-1.8$} \\
+HQC-192 & \num{3192507} & \num{3136588} {\footnotesize$-1.8$} & \num{3116877} {\footnotesize$-2.4$} & \num{3110691} {\footnotesize$-2.6$} \\
+HQC-256 & \num{5138700} & \num{5045386} {\footnotesize$-1.8$} & \num{5014831} {\footnotesize$-2.4$} & \num{5004353} {\footnotesize$-2.6$} \\
 \end{thesistblr}

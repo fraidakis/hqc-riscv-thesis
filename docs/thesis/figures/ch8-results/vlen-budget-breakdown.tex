@@ -1,23 +1,14 @@
-% Stacked bar chart: instret breakdown into 3 categories
-% (VLEN-scalable, fixed-cost vectorized, non-vectorized)
+% Stacked bar chart: instret breakdown into 3 VLEN-sensitivity categories
 % HQC-128, vector_zvk, \VLEN=256
 %
-% Source: trace profile (commit c5f821b / 2026-06-18), total KEM = 702,755 instret
-%   vclmul_leaf        237,654  33.8%  fixed-vectorized  (Polymul)
-%   KeccakF1600        177,860  25.3%  fixed-vectorized  (Keccak)
-%   rvv recomp helpers  80,202  11.4%  VLEN-scalable     (Polymul)
-%   kmul_N scaffolding  34,506   4.9%  VLEN-scalable     (Polymul, partial)
-%   gf_reduce           44,726   6.4%  scalar            (Decode)
-%   rol1_zbb            17,040   2.4%  scalar            (Keccak)
-%   gf_mul               8,952   1.3%  scalar            (Decode)
-%   Other              101,815  14.5%  mixed             (Other)
+% Source: results/simulation/profiling/hotspots/vector_Zvk/
+%           hotspots_kem_L128_vector-zvk_latest.csv (commit bdd9cf4), total = 1,505,134 instret
 %
-% Per-bar assignments (sum = 100%):
-%   Polymul : scalable=16.3 (11.4+4.9), fixed=33.8, scalar=0     → 50.1%
-%   Keccak  : scalable= 0,   fixed=25.3, scalar=2.4              → 27.7%
-%   Decode  : scalable= 0,   fixed= 0,   scalar=7.7 (6.4+1.3)   →  7.7%
-%   Other   : scalable= 0,   fixed= 0,   scalar=0, +other=14.5  → 14.5%
-%   Total                                                          100.0%
+% Category shares (% of total KEM instret), per kernel:
+%   Polymul : scalable=2.9 (rvv_xor3/xor/copy), fixed-vec=15.6 (vclmul_leaf), scalar=10.1  -> 28.6
+%   Keccak  : scalar=56.5 (KeccakF1600 + inc_absorb + inc_squeeze, Zbb, NOT vectorized)   -> 56.5
+%   Decode  : scalable=0.1, fixed-vec=1.6 (zvbc/rvv), scalar=5.3 (gf_reduce, gf_mul)       ->  7.0
+%   Other   : scalar=8.0 (memset, sampling, vect_compare, etc.)                            ->  8.0
 \tikzsetnextfilename{ch8-results-vlen-budget-breakdown}
 \begin{tikzpicture}
 \begin{axis}[
@@ -29,7 +20,7 @@
   xtick=data,
   ylabel={Ποσοστό \instret (\%)},
   ymin=0, ymax=60,
-  ytick={0,10,20,30,40,50},
+  ytick={0,10,20,30,40,50,60},
   legend style={at={(0.5,-0.22)}, anchor=north, legend columns=3,
                 font=\small, draw=none},
   nodes near coords style={font=\tiny},
@@ -37,38 +28,30 @@
   enlarge x limits=0.25,
 ]
 
-% VLEN-scalable portion
-% Polymul: helpers ανασύνθεσης (11.4%) + kmul_N scaffolding (4.9%) = 16.3%
-% Keccak/Decode/Other: 0 (no scalable component in those groups)
+% VLEN-scalable portion (Karatsuba reconstruction helpers, VLA strip-mining)
 \addplot[fill=green!50!black, fill opacity=0.7] coordinates {
-  (Polymul, 16.3)
-  (Keccak,   0)
-  (Decode,   0)
-  (Other,    0)
+  (Polymul, 2.9)
+  (Keccak,  0)
+  (Decode,  0.1)
+  (Other,   0)
 };
 \addlegendentry{Κλιμακώνει με \VLEN}
 
-% Fixed-cost vectorized (doesn't benefit from wider VLEN)
-% Polymul: vclmul_leaf = 33.8%
-% Keccak:  KeccakF1600 = 25.3%
-% Decode/Other: 0
+% Fixed-cost vectorized (saturated, no benefit from wider VLEN)
 \addplot[fill=blue!60, fill opacity=0.7] coordinates {
-  (Polymul, 33.8)
-  (Keccak,  25.3)
-  (Decode,   0)
-  (Other,    0)
+  (Polymul, 15.6)
+  (Keccak,  0)
+  (Decode,  1.6)
+  (Other,   0)
 };
 \addlegendentry{Σταθερό (vectorized)}
 
-% Non-vectorized / scalar or unclassified
-% Keccak: rol1_zbb = 2.4%
-% Decode: gf_reduce (6.4%) + gf_mul (1.3%) = 7.7%
-% Other:  sampling, memset, RS encode, etc. = 14.5%
+% Scalar / non-vectorized (Keccak via Zbb, GF(2^8) arithmetic, sampling, memory ops)
 \addplot[fill=gray!50, fill opacity=0.7] coordinates {
-  (Polymul,  0)
-  (Keccak,   2.4)
-  (Decode,   7.7)
-  (Other,   14.5)
+  (Polymul, 10.1)
+  (Keccak,  56.5)
+  (Decode,  5.3)
+  (Other,   8.0)
 };
 \addlegendentry{Scalar / μη κλιμακούμενο}
 
