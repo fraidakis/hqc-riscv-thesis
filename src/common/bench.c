@@ -137,3 +137,34 @@ void hqc_htif_putu64(uint64_t v)
     }
     hqc_htif_puts(buf + pos);
 }
+
+/* Print a uint64_t as 16-digit zero-padded hex (no 0x prefix). */
+void hqc_htif_puthex(uint64_t v)
+{
+    static const char hexd[16] = "0123456789abcdef";
+    for (int shift = 60; shift >= 0; shift -= 4) {
+        bench_putchar(hexd[(v >> shift) & 0xFu]);
+    }
+}
+
+/*
+ * Trap reporter: called from the assembly _trap_handler on ANY exception.
+ * Prints mcause/mepc/mtval over the HTIF console so a plain `spike <elf>`
+ * run (no --log-commits, finishes in seconds) reveals the exact faulting PC
+ * (mepc) and faulting address (mtval).  Then exits with a mcause-encoded
+ * code so the sweep's rc still identifies the trap type: 0x40 | (mcause&0x3F)
+ * (host decode: mcause = rc - 64).
+ */
+void hqc_trap_report(uint64_t mcause, uint64_t mepc, uint64_t mtval, uint64_t ra)
+{
+    hqc_htif_puts("\n[TRAP] mcause=");
+    hqc_htif_putu64(mcause);
+    hqc_htif_puts(" mepc=0x");
+    hqc_htif_puthex(mepc);
+    hqc_htif_puts(" mtval=0x");
+    hqc_htif_puthex(mtval);
+    hqc_htif_puts(" ra=0x");
+    hqc_htif_puthex(ra);
+    hqc_htif_puts("\n");
+    hqc_htif_exit((int)(0x40u | (mcause & 0x3Fu)));
+}

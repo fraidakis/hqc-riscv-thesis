@@ -19,6 +19,15 @@ _start:
     /* ── 1. Stack pointer ──────────────────────────────────────────── */
     la   sp, _stack_top
 
+    /* 1b. Trap vector (patch): install a machine-mode handler in DIRECT
+     * mode so ANY exception (e.g. a corrupted return address after a stack
+     * overflow) forces a clean HTIF exit with a nonzero code instead of
+     * trapping to mtvec=0 (unmapped) and spinning forever. Without this a
+     * fault shows up as an indefinite Spike hang rather than a reported
+     * error. */
+    la   t0, _trap_handler
+    csrw mtvec, t0          /* low bits 00 => DIRECT mode (handler is 4B aligned) */
+
     /* ── 2/3. Vector init (only when building with V enabled) ──────
      * If __riscv_vector is not defined, scalar targets skip this.
      */
@@ -54,7 +63,47 @@ _start:
 
     .size _start, . - _start
 
+    /* Trap handler (patch): on any trap, signal a nonzero failure code to
+     * HTIF tohost so the simulator exits promptly. Exit code 0xFF is
+     * distinct from the success path (which writes (0<<1)|1). This turns
+     * silent corruption-induced hangs into an observable failure. */
+    .align 2
+    .global _trap_handler
+    .type   _trap_handler, @function
+_trap_handler:
+    /* Encode the trap cause into the HTIF exit code so the sweep script's rc
+     * reveals WHAT faulted without a debugger:
+     *   exit_code = 0x40 | (mcause & 0x3F)   (0x40 tag keeps it nonzero)
+     * Decode on the host as:  mcause = rc - 64
+     * Common RISC-V exception codes:
+     *   1  instruction access fault   2  illegal instruction
+     *   4  load address misaligned    5  load access fault
+     *   6  store/AMO misaligned       7  store/AMO access fault
+     * So rc=69 => load access fault, rc=71 => store access fault,
+     *    rc=66 => illegal instruction, rc=65 => instruction access fault.
+     * The handler also calls hqc_trap_report, which prints mcause/mepc/mtval
+     * over HTIF, so a plain 'spike <elf>' run reveals the faulting PC directly
+     * (no --log-commits needed). */
+    la   sp, _trap_stack_top   /* fresh stack: the original sp may itself be the corrupted pointer */
+    csrr a0, mcause
+    csrr a1, mepc
+    csrr a2, mtval
+    mv   a3, ra                /* ra is still the memcpy/leaf caller at trap entry -> identifies the culprit */
+    call hqc_trap_report       /* prints mcause/mepc/mtval/ra over HTIF, then exits via tohost */
+.Ltrap_spin:
+    j    .Ltrap_spin
+    .size _trap_handler, . - _trap_handler
+
     /* ── HTIF symbols (Spike uses these) ──────────────────────────── */
+    /* Dedicated trap stack so the trap handler can safely call C even if the
+     * main stack pointer is what got corrupted (store access fault). */
+    .section .bss
+    .align 4
+    .global _trap_stack
+_trap_stack:
+    .skip 4096
+_trap_stack_top:
+
     .section .tohost, "aw", @progbits
     .align 6
     .global tohost

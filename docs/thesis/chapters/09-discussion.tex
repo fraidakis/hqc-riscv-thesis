@@ -3,23 +3,19 @@
 
 Το κεφάλαιο αυτό μεταφέρει τα αποτελέσματα προσομοίωσης του~\cref{ch:results} σε πραγματικό silicon και τα τοποθετεί στο διεθνές τοπίο υλοποιήσεων. Παρουσιάζεται πρώτα η αξιολόγηση σε πραγματικό hardware (Banana Pi BPI-F3, SpacemiT K1 X60), ακολουθεί η σύγκριση με ετερογενείς αρχιτεκτονικές\ifTODO, η μελέτη ISA ablation και ο συμβιβασμός μεγέθους κώδικα έναντι απόδοσης\fi, και η συγκριτική αξιολόγηση μεταγλωττιστών\ifTODO{}, ολοκληρώνοντας με την επαλήθευση σταθερού χρόνου εκτέλεσης των βελτιστοποιημένων υλοποιήσεων\fi.
 
-\section{Αξιολόγηση σε Πραγματικό Hardware (BPI-F3 SpacemiT K1 X60)}
+\section{Αξιολόγηση σε Πραγματικό Hardware}
 \label{sec:hw-evaluation}
 
 Οι μετρήσεις \instret στο Spike \gls{iss} παρέχουν ντετερμινιστική αλγοριθμική
 σύγκριση, αλλά δεν αποτυπώνουν τη συμπεριφορά πραγματικού pipeline: cache misses,
 store-to-load forwarding, dual-issue scheduling και scalar↔vector transition
-penalties παραμένουν αόρατα σε ένα CPI$=$1 μοντέλο. Η παρούσα ενότητα
+penalties παραμένουν αόρατα. Η παρούσα ενότητα
 συμπληρώνει την εικόνα με μετρήσεις κύκλων σε πραγματικό silicon, το Banana Pi
 BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\hertz},
 βλ.\ \cref{ssec:bpi-f3}). Οι μετρήσεις αφορούν τα Tier~1
-(\code{scalar\_zb}) και Tier~2 (\code{vector\_rvv}), τα μοναδικά variants
-εκτελέσιμα στο διαθέσιμο hardware, καθώς ο X60 δεν υλοποιεί \gls{zvbc}/\gls{zvbb}.
-
-Κάθε benchmark εκτελείται \num{10000} iterations μετά από \num{100} warmup iterations,
-σε single-core pinning (\code{taskset}) υπό Linux. Η μετρική είναι η διάμεσος
-κύκλων (μέσω \code{perf\_event\_open}), ανθεκτική σε outliers από interrupts ή scheduling jitter.
-Η μεθοδολογία μέτρησης τεκμηριώνεται στην~\cref{ssec:hw-measurement}. Οι hardware μετρήσεις εμφανίζουν χαμηλή διασπορά (coefficient of variation $\approx \pct{2}$ μεταξύ επαναλήψεων). Αναφέρεται η διάμεσος ως ανθεκτικό στατιστικό έναντι outliers από interrupts ή scheduling jitter.
+(\code{scalar\_zb}) και Tier~2 (\code{vector\_rvv}), καθώς ο X60 δεν υλοποιεί 
+\gls{zvbc}/\gls{zvbb} και συνεπώς δεν μπορούμε να εκτελέσουμε το Tier~3.
+Η μεθοδολογία μέτρησης τεκμηριώνεται στην~\cref{ssec:hw-measurement}. 
 
 %% --------------------------------------------------------------------------
 \subsection{Μικρο-αξιολογήσεις σε Hardware (Cycles)}
@@ -27,17 +23,12 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 
 Ο~\cref{tab:hw-microbench} παρουσιάζει τα αποτελέσματα ανά πυρήνα για το
 HQC-128. Κάθε γραμμή περιλαμβάνει τα Spike \instret (αλγοριθμική βάση),
-τους πραγματικούς κύκλους (median, \num{10000} iterations), τον παρατηρούμενο
+τους πραγματικούς κύκλους (median, \num{10000} iterations) και το παρατηρούμενο
 \gls{ipc} ($= \text{instret} / \text{cycles}$).
 
 \begin{table}[htbp]
   \centering
-  \caption{Isolated kernel benchmarks σε πραγματικό hardware (HQC-128,
-    BPI-F3 SpacemiT K1 X60, \SI{1.6}{\giga\hertz}, \num{10000} iterations).
-    Ο \gls{ipc} αποκαλύπτει τη μικροαρχιτεκτονική αποδοτικότητα κάθε
-    variant: ο \code{scalar\_zb} επιτυγχάνει IPC $= 1.49$ χάρη στο
-    dual-issue, ενώ ο \code{vector\_rvv} φτάνει IPC $= 1.22$ με
-    αντίστοιχους κύκλους.}
+  \caption{Isolated kernel benchmarks σε πραγματικό hardware (HQC-128, BPI-F3).}
   \label{tab:hw-microbench}
   \small
   \begin{thesistblr}{
@@ -104,12 +95,7 @@ trivially-parallel steps.
 
 \begin{table}[htbp]
   \centering
-  \caption{Πλήρες \KEM σε πραγματικό hardware (HQC-128, BPI-F3,
-    \SI{1.6}{\giga\hertz}, κύκλοι ρολογιού). Ο \code{scalar\_zb} (Tier~1)
-    επιτυγχάνει \Decaps σε \num{1197341} κύκλους, \speedup{29.9} έναντι
-    reference. Ο \code{vector\_rvv} (Tier~2) φτάνει \num{910108} κύκλους
-    χάρη στη vectorized αποκωδικοποίηση. Η στήλη Speedup$_\text{zb}$
-    υπολογίζεται ως προς \code{scalar\_ref}.}
+  \caption{Πλήρες \KEM σε πραγματικό hardware (HQC-128, BPI-F3).}
   \label{tab:hw-kem}
   \small
   \begin{thesistblr}{
@@ -374,6 +360,7 @@ threshold μειώνει τον αριθμό recursion levels αλλά αυξά�
 ταυτόχρονα αυξάνει τα scalar↔vector transitions ανά leaf.
 
 %% --------------------------------------------------------------------------
+\ifTODO
 \subsection{Επίδραση Profile-Guided Optimization (PGO)}
 \label{ssec:hw-pgo-results}
 
@@ -437,6 +424,7 @@ inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει α
 ??? LTO: το προηγούμενο συμπέρασμα «η \gls{lto} απορρίπτεται» αφαιρέθηκε 
 ώστε να μην αντιφάσκει με τη μεθοδολογία του ch5 (PGO+LTO)· ευθυγράμμισε 
 πίνακα/παρατηρήσεις μετά την επαναμέτρηση ???
+\fi
 
 %% --------------------------------------------------------------------------
 \subsection{Σύνοψη Hardware Evaluation}
