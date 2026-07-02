@@ -9,17 +9,17 @@
   cell{2,6,10}{1} = {r=4}{l},
   hline{6,10} = {0.4pt, figtablerule},
 }
-  \textbf{Security Level} & \textbf{Variant} & {\instret} & {Speedup} \\
-  HQC-128 & \code{scalar\_ref}  & \num{18504302} & {\textemdash}      \\
-          & \code{scalar\_zb}   & \num{182726}   & \num{101.3}        \\
-          & \code{vector\_rvv}  & \num{148479}   & \num{124.6}        \\
-          & \code{vector\_zvk}  & \num{70070}    & \best{\num{264.1}} \\
-  HQC-192 & \code{scalar\_ref}  & \num{56292809} & {\textemdash}      \\
-          & \code{scalar\_zb}   & \num{570293}   & \num{98.7}         \\
-          & \code{vector\_rvv}  & \num{449808}   & \num{125.1}        \\
-          & \code{vector\_zvk}  & \num{207443}   & \best{\num{271.4}} \\
-  HQC-256 & \code{scalar\_ref}  & \num{139222953}& {\textemdash}      \\
-          & \code{scalar\_zb}   & \num{1262888}  & \num{110.2}        \\
-          & \code{vector\_rvv}  & \num{1043726}  & \num{133.4}        \\
-          & \code{vector\_zvk}  & \num{318972}   & \best{\num{436.5}} \\
+  \textbf{Security Level} & \textbf{Tier} & {\instret} & {Speedup} \\
+  HQC-128 & Reference  & \num{18504302} & {\textemdash}      \\
+          & Tier~1   & \num{182726}   & \num{101.3}        \\
+          & Tier~2  & \num{148479}   & \num{124.6}        \\
+          & Tier~3  & \num{70070}    & \best{\num{264.1}} \\
+  HQC-192 & Reference  & \num{56292809} & {\textemdash}      \\
+          & Tier~1   & \num{570293}   & \num{98.7}         \\
+          & Tier~2  & \num{449808}   & \num{125.1}        \\
+          & Tier~3  & \num{207443}   & \best{\num{271.4}} \\
+  HQC-256 & Reference  & \num{139222953}& {\textemdash}      \\
+          & Tier~1   & \num{1262888}  & \num{110.2}        \\
+          & Tier~2  & \num{1043726}  & \num{133.4}        \\
+          & Tier~3  & \num{318972}   & \best{\num{436.5}} \\
 \end{thesistblr}

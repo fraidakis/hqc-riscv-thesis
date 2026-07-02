@@ -599,7 +599,7 @@ vclmul_leaf(result + offset, a + half, b + half);
 \paragraph{Ασυμμετρική επίπτωση μεταξύ variants.}
 Η μέτρηση σε Spike αποκάλυψε μία εντυπωσιακή ασυμμετρία: η \ext{Zba}
 μειώνει το polymul \instret κατά \pct{5.61} στο \code{vector\_zvk}
-(Tier~3), κατά \pct{1.03} (polymul micro-benchmark) / \pct{0.67} (πλήρες \gls{kem}) στο \code{vector\_rvv} (Tier~2), αλλά κατά
+(Tier~3), κατά \pct{1.03} (polymul microbenchmark) / \pct{0.67} (πλήρες \gls{kem}) στο \code{vector\_rvv} (Tier~2), αλλά κατά
 μόλις \pct{0.004} στο \code{scalar\_zb} (Tier~1) και \pct{0} στα
 reference baselines. Η ερμηνεία βρίσκεται στη δομή του hot path:
 %
