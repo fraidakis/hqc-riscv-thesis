@@ -11,7 +11,14 @@ Keccak και αποκωδικοποίησης, σε τρεις βαθμίδες
 (\KeyGen, \Encaps, \Decaps), και στη συνεχεία μέσω αξιολόγησης σε 
 πραγματικό hardware και συγκριτικής αποτίμησης έναντι αντίστοιχων εργασιών.
 
-\section{Απομονωμένα microbenchmarks}
+\section{Αξιολόγηση στο Spike (\gls{iss})}
+\label{sec:spike-evaluation}
+
+Η ενότητα αυτή παρουσιάζει τις μετρήσεις \instret στο Spike \gls{iss}
+(VLEN $= \num{256}$~bits), από τα απομονωμένα microbenchmarks ανά πυρήνα
+έως το πλήρες \gls{kem} και την κλιμάκωσή του ανά security level και \VLEN.
+
+\subsection{Απομονωμένα microbenchmarks}
 \label{sec:microbenchmarks}
 
 Η απομονωμένη μέτρηση κάθε πυρήνα εξαλείφει τις αλληλεπιδράσεις μεταξύ
@@ -134,7 +141,7 @@ locator), το οποίο κλιμακώνεται λιγότερο ευνοϊκ
 \speedup{264} μείωση μόνο του polymul μεταφράζεται σε σημαντικά χαμηλότερο
 system-level speedup λόγω του εναπομένοντος μη βελτιστοποιημένου κλάσματος.
 
-\section{Αξιολόγηση Πλήρους \KEM: \KeyGen, \Encaps και \Decaps}
+\subsection{Αξιολόγηση πλήρους \KEM}
 \label{sec:end-to-end}
 
 Η απομονωμένη μέτρηση κάθε πυρήνα αποκαλύπτει τη βελτίωση
@@ -223,7 +230,7 @@ RISC-V extensions παρέχει σημαντική επιτάχυνση στο 
 
 %% ============================================================================
 \ifTODO
-\section{Κλιμάκωση ανά Security Level}
+\subsection{Κλιμάκωση ανά security level}
 \label{sec:scaling-security}
 
 Η μετάβαση μεταξύ security levels (HQC-128 / HQC-192 / HQC-256) αυξάνει
@@ -235,7 +242,7 @@ RISC-V extensions παρέχει σημαντική επιτάχυνση στο 
 μονότονα με το security level, προς τα υψηλότερα.
 
 %% --------------------------------------------------------------------------
-\subsection{Θεωρητικό Μοντέλο Κλιμάκωσης}
+\subsubsection{Θεωρητικό Μοντέλο Κλιμάκωσης}
 \label{ssec:scaling-theory}
 
 Η θεωρητική πολυπλοκότητα κάθε πυρήνα καθορίζει τον αναμενόμενο ρυθμό
@@ -254,7 +261,7 @@ RISC-V extensions παρέχει σημαντική επιτάχυνση στο 
 \end{itemize}
 
 %% --------------------------------------------------------------------------
-\subsection{Πειραματικά Αποτελέσματα Κλιμάκωσης}
+\subsubsection{Πειραματικά Αποτελέσματα Κλιμάκωσης}
 \label{ssec:scaling-results}
 
 Ο~\cref{tab:scaling-security} παρουσιάζει τα \instret \Decaps ανά Tier
@@ -324,7 +331,7 @@ levels: καθώς το $N$ αυξάνεται, ο schoolbook πολλαπλασ
 μέγεθος έναντι των μεμονωμένων peak τιμών.
 
 %% --------------------------------------------------------------------------
-\subsection{Ανάλυση Κλιμάκωσης ανά Πυρήνα}
+\subsubsection{Ανάλυση Κλιμάκωσης ανά Πυρήνα}
 \label{ssec:scaling-per-kernel}
 
 Η διαφοροποίηση μεταξύ πυρήνων εξηγεί τη συνολική συμπεριφορά.
@@ -364,7 +371,7 @@ $\delta = 15$ στο HQC-128), αυξάνοντας δραματικά τον α
 και τον βαθμό του error locator polynomial.
 
 %% --------------------------------------------------------------------------
-\subsection{Πίνακας Speedups ανά Security Level και Λειτουργία}
+\subsubsection{Πίνακας Speedups ανά Security Level και Λειτουργία}
 \label{ssec:scaling-heatmap}
 
 Το~\cref{fig:heatmap-speedups} παρουσιάζει τον πλήρη πίνακα speedups
@@ -396,7 +403,7 @@ polymul call στο Fujisaki-Okamoto re-encryption. Η τάση αυτή δεν
 protocol.
 
 %% --------------------------------------------------------------------------
-\subsection{Σύνοψη Κλιμάκωσης}
+\subsubsection{Σύνοψη Κλιμάκωσης}
 \label{ssec:scaling-summary}
 
 Η ανάλυση κλιμάκωσης τεκμηριώνει τρία ευρήματα πρακτικής σημασίας:
@@ -421,7 +428,7 @@ protocol.
 %% ============================================================================
 
 
-\section{Ανάλυση Κλιμάκωσης \VLEN}
+\subsection{Ανάλυση κλιμάκωσης \VLEN}
 \label{sec:vlen-scaling}
 
 Η αρχιτεκτονική \RVV ορίζει το \VLEN ως hardware parameter: κάθε
@@ -516,37 +523,7 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 \gls{zvbc}/\gls{zvbb} και συνεπώς δεν μπορεί να εκτελέσει το Tier~3.
 
 %% --------------------------------------------------------------------------
-\subsection{Microbenchmarks σε Hardware}
-\label{ssec:hw-microbench}
-
-Οι~\cref{tab:hw-microbench-polymul,tab:hw-microbench-keccak,tab:hw-microbench-decode}
-παρουσιάζουν τα αποτελέσματα ανά πυρήνα για όλα τα security levels. Κάθε πίνακας
-δίνει τους πραγματικούς κύκλους (median, \num{10000} iterations) και το αντίστοιχο
-speedup έναντι της reference υλοποίησης του πυρήνα.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Polymul: isolated microbenchmark σε BPI-F3 ανά security level.}
-  \label{tab:hw-microbench-polymul}
-  \input{figures/ch8-results/hw-microbench-polymul-table}
-\end{table}
-
-\begin{table}[htbp]
-  \centering
-  \caption{Keccak: isolated microbenchmark σε BPI-F3 ανά security level. Ο Keccak διαθέτει μόνο Tier~1 optimization (scalar \gls{zbb}).}
-  \label{tab:hw-microbench-keccak}
-  \input{figures/ch8-results/hw-microbench-keccak-table}
-\end{table}
-
-\begin{table}[htbp]
-  \centering
-  \caption{Decode (RM + RS): isolated microbenchmark σε BPI-F3 ανά security level.}
-  \label{tab:hw-microbench-decode}
-  \input{figures/ch8-results/hw-microbench-decode-table}
-\end{table}
-
-%% --------------------------------------------------------------------------
-\subsection{Πλήρες \KEM σε Hardware}
+\subsection{Αξιολόγηση πλήρους \KEM}
 \label{ssec:hw-kem}
 
 Ο~\cref{tab:hw-kem} παρουσιάζει τα αποτελέσματα πλήρους \gls{kem} σε
@@ -580,23 +557,32 @@ speedup έναντι της reference υλοποίησης του πυρήνα.
   \end{thesistblr}
 \end{table}
 
+Οι δύο βαθμίδες επιτυγχάνουν επιτάχυνση από \num{37.5}$\times$ έως
+\num{78.5}$\times$ έναντι της reference υλοποίησης. Η μόνη ουσιαστική διαφορά
+του Tier~2 έναντι του Tier~1 προέρχεται από το \Decaps, χάρη στη
+βελτιστοποίηση του decoder: ο \KeyGen και ο \Encaps, που κυριαρχούνται
+από τον polymul, μεταβάλλονται ελάχιστα, καθώς ο polymul έχει ήδη κορεστεί
+στο Tier~1. Το συνολικό \gls{kem} speedup αυξάνεται με το security level
+(Total Tier~2: \num{45.9}$\times$ στο HQC-128 έως \num{78.5}$\times$ στο HQC-256),
+αντίστοιχα με την τάση που τεκμηριώθηκε στην \cref{sec:end-to-end}.
+
 \paragraph{RVV polymul (Tier~2): ίδιοι κύκλοι παρά τις λιγότερες εντολές.}
-Η απόκλιση instret vs κύκλων φαίνεται καθαρότερα στον isolated polymul. Παρά τις
-\pct{19} λιγότερες εντολές του Tier~2 ($\num{148479}$ vs $\num{182726}$ Spike
-\instret), οι πραγματικοί κύκλοι είναι ουσιαστικά ταυτόσημοι με τον Tier~1
-(\num{122085} vs \num{122503}, οριακό $\pct{0.3}$). Το Spike, μοντελοποιώντας
-CPI$=$1, προβλέπει πλεονέκτημα \pct{19} που το hardware δεν αποδίδει: το
-χαμηλότερο IPC του vector path ($1.22$ vs $1.49$) απορροφά ολόκληρο το κέρδος
-σε instruction count. 
+Ο Tier~2 εκτελεί \pct{19} λιγότερες εντολές από τον Tier~1
+($\num{148479}$ έναντι $\num{182726}$ \instret), όμως οι πραγματικοί κύκλοι
+παραμένουν ουσιαστικά ταυτόσημοι (\num{122085} έναντι \num{122503}, διαφορά
+μόλις $\pct{0.3}$). Το μοντέλο CPI$=1$ του Spike προβλέπει έτσι πλεονέκτημα
+\pct{19} που το hardware δεν αποδίδει: το χαμηλότερο IPC του vector path
+($1.22$ έναντι $1.49$) απορροφά ολόκληρο το κέρδος σε instruction count.
 
 %% --------------------------------------------------------------------------
-\subsection{Ανάλυση IPC και Pipeline Utilization}
+\subsection{Μικροαρχιτεκτονική ανάλυση: IPC και dual-issue}
 \label{ssec:hw-ipc}
 
-Το \gls{ipc} ($= \text{Spike instret} / \text{HW cycles}$) αποτελεί
-τον κεντρικό δείκτη μικροαρχιτεκτονικής αποδοτικότητας. Τιμή IPC $> 1$
-υποδηλώνει αξιοποίηση του dual-issue, ενώ IPC $< 1$ σηματοδοτεί pipeline
-stalls. Ο~\cref{tab:hw-ipc} παρουσιάζει τον IPC ανά Tier και πυρήνα για τα τρία security levels.
+Το \gls{ipc} ($= \instret / \text{HW cycles}$) αποτελεί τον κεντρικό δείκτη
+μικροαρχιτεκτονικής αποδοτικότητας. Τιμή IPC $> 1$ αντανακλά αποτελεσματική
+αξιοποίηση του dual-issue, ενώ τιμές κοντά ή κάτω από τη μονάδα υποδηλώνουν
+περιορισμένο instruction-level parallelism ή pipeline stalls (π.χ.\ data
+dependencies, latency μνήμης). Ο~\cref{tab:hw-ipc} παρουσιάζει το IPC ανά Tier και πυρήνα για τα τρία security levels.
 
 \begin{table}[htbp]
   \centering
@@ -622,25 +608,21 @@ stalls. Ο~\cref{tab:hw-ipc} παρουσιάζει τον IPC ανά Tier κα�
   \end{thesistblr}
 \end{table}
 
-Οι βελτιστοποιημένοι πυρήνες επιτυγχάνουν IPC $> 1$ σχεδόν καθολικά, με μόνη
-εξαίρεση το Tier~2 decoder. Η αξιοποίηση του dual-issue
-in-order pipeline του X60 είναι εμφανής ήδη από το Tier~1 polymul (IPC $= 1.49$):
-η L1D miss rate παραμένει αμελητέα (\pct{0.20}), καθώς το working set
-($\approx\SI{4.4}{\kilo\byte}$ για HQC-128) χωράει πλήρως στην L1 cache
-(\SI{32}{\kilo\byte}).
-
 \paragraph{Πλήρης αξιοποίηση dual-issue}
-Ο \code{scalar\_ref} polymul επιτυγχάνει IPC $= 1.59$. 
+Ο reference polymul επιτυγχάνει IPC $= 1.59$. 
 Η τιμή αυτή υπερβαίνει τη μονάδα διότι ο
 schoolbook πολλαπλασιασμός αποτελείται από μακρές ακολουθίες ανεξάρτητων
 \insn{xor} εντολών (partial product accumulation) που ο dual-issue
-pipeline εκτελεί παράλληλα. Ο Tier~1 παρουσιάζει ελαφρώς
-χαμηλότερο IPC ($1.49$) λόγω των data dependencies μεταξύ
-\insn{clmul}/\insn{clmulh} pairs. Κάθε \insn{clmulh} εξαρτάται από
-τον ίδιο operand με τον προηγούμενο \insn{clmul}, περιορίζοντας τις
-ευκαιρίες dual-issue. Η scalar μετάθεση Keccak-f[1600] επιτυγχάνει IPC $= 1.56$. 
-Ο Keccak αποτελείται από μακρές
-ακολουθίες \insn{xor}, \insn{rori} (\gls{zbb}) και \insn{andn} (\gls{zbb})
+pipeline εκτελεί παράλληλα. Το Tier~1 polymul στο HQC-128 παρουσιάζει
+ελαφρώς χαμηλότερο IPC ($1.49$) λόγω των data dependencies μεταξύ
+\insn{clmul}/\insn{clmulh} pairs: κάθε \insn{clmulh} εξαρτάται από το
+ίδιο operand με το προηγούμενο \insn{clmul}, περιορίζοντας έτσι τις ευκαιρίες
+dual-issue. Η διαφορά αυτή όμως συρρικνώνεται με το μέγεθος
+($1.49 \to 1.60$ για τον Tier~1) και στο HQC-256 ο Tier~1 προσπερνά οριακά
+τον reference ($1.60$ έναντι $1.58$, \cref{tab:hw-ipc}) και αποδίδεται στην καλύτερη πλήρωση του
+dual-issue σε μεγαλύτερα operands. Παρόμοια, η scalar μετάθεση 
+Keccak-f[1600] επιτυγχάνει IPC $= 1.56$. Ο Keccak αποτελείται από μακρές
+ακολουθίες \insn{xor}, \insn{rori} και \insn{andn}
 χωρίς memory accesses (η κατάσταση 25$\times$64-bit χωράει σε registers),
 παρέχοντας ιδανικό instruction-level parallelism για dual-issue.
 
@@ -649,34 +631,22 @@ pipeline εκτελεί παράλληλα. Ο Tier~1 παρουσιάζει ε�
 μονάδα αλλά χαμηλότερο από τον scalar. 
 
 \begin{enumerate}
-  \item \textbf{Scalar store → vector load forwarding failure:} Ο X60
-    διαθέτει αποσυζευγμένο scalar/vector pipeline. Ο scalar store buffer
-    δεν μπορεί να προωθήσει δεδομένα στη vector load unit. Κάθε φορά
-    που ένα vector load (\insn{vle64}) προσπελαύνει διεύθυνση με
-    εκκρεμείς scalar stores, ο pipeline πρέπει να αδειάσει τον store
-    buffer στην L1 cache πριν προχωρήσει.
-    Στον Tier~2, οι κλήσεις επόμενου επιπέδου γράφουν τα $z_0$
-    και $z_2$ απευθείας στον output buffer μέσω scalar \insn{sd}, και στη
-    συνέχεια τα Loop~3 vector operations τα διαβάζουν μέσω \insn{vle64},
-    δημιουργώντας forwarding failure σε κάθε επίπεδο αναδρομής.
-
-  \item \textbf{Scalar↔vector transition cost:} Κάθε μετάβαση μεταξύ
-    scalar \insn{clmul\_leaf} και vector XOR operations κοστίζει. 
-    Με \num{121} εσωτερικούς κόμβους στο
-    recursion tree (HQC-128) και \num{3} μεταβάσεις ανά κόμβο, το
-    συνολικό transition overhead ανέρχεται σε $\approx \num{3630}$ κύκλοι.
-
-  \item \textbf{VPU stall accumulation:} Οι \num{25911} VPU stall κύκλοι
-    προέρχονται από vector load latency σε recently-scalar-stored
-    δεδομένα και από chaining inefficiency σε μικρά element counts
-    (8–18 elements στα κατώτερα επίπεδα αναδρομής).
+  \item \textbf{Scalar$\leftrightarrow$vector μεταβάσεις και store-to-load forwarding:} Ο X60
+    διαθέτει αποσυζευγμένο scalar/vector pipeline, όπου ο scalar store buffer
+    δεν προωθεί δεδομένα απευθείας στη vector load unit. Στο Tier~2, κάθε
+    επίπεδο της αναδρομής Karatsuba γράφει ενδιάμεσα αποτελέσματα ($z_0$, $z_2$)
+    μέσω scalar \insn{sd} και στη συνέχεια τα διαβάζει μέσω \insn{vle64},
+    αναγκάζοντας drain του store buffer στην L1 σε κάθε επίπεδο αναδρομής. Το
+    συσσωρευμένο κόστος αυτών των μεταβάσεων εμφανίζεται ως stalls στη
+    διανυσματική μονάδα και αποτελεί την κύρια πηγή της απόκλισης έναντι του Spike.
 
   \item \textbf{Half-width vector execution (2 micro-ops ανά \num{256}-bit op):}
-    Οι vector execution units του X60 έχουν εύρος \num{128} bits, οπότε
-    κάθε \num{256}-bit \RVV operation στο \VLEN$= \num{256}$ αποσυντίθεται
-    σε \num{2} micro-ops στο back-end. Αυτό υποδιπλασιάζει το effective throughput ανά
-    vector εντολή και θέτει ανώτατο όριο IPC $\approx 1.0$ ακόμη και χωρίς
-    τα υπόλοιπα penalties.
+    Οι vector units του X60 έχουν εύρος \num{128} bits, οπότε κάθε \num{256}-bit
+    \RVV op στο \VLEN$= \num{256}$ αποσυντίθεται σε \num{2} back-end micro-ops
+    που μοιράζονται τον ίδιο 128-bit datapath. Η διανυσματική μονάδα επομένως
+    ολοκληρώνει το πραγματικό vector work με περίπου τον μισό ρυθμό από ό,τι
+    υποδηλώνει το instruction count, θέτοντας πρακτικό πλαφόν IPC $\approx 1.0$
+    στα vector-dominated τμήματα ακόμη και απουσία των υπόλοιπων penalties.
 \end{enumerate}
 
 %% --------------------------------------------------------------------------
@@ -684,8 +654,9 @@ pipeline εκτελεί παράλληλα. Ο Tier~1 παρουσιάζει ε�
 \label{ssec:hw-spike-vs-hw}
 
 Η κεντρική ερώτηση αυτής της ενότητας είναι: πόσο αξιόπιστα προβλέπει
-το Spike \instret τη σχετική απόδοση σε πραγματικό hardware; Ο~\cref{tab:hw-spike-prediction} συγκρίνει τα per-kernel speedups (πυρήνας /
-Reference) μεταξύ Spike και BPI-F3.
+το μοντέλο CPI$=1$ του Spike τη σχετική απόδοση σε πραγματικό hardware;
+Οι~\cref{tab:hw-spike-prediction,tab:hw-spike-prediction-levels} συγκρίνουν
+τα per-kernel και per-level speedups μεταξύ Spike και BPI-F3.
 
 \begin{table}[htbp]
   \centering
@@ -708,23 +679,6 @@ Reference) μεταξύ Spike και BPI-F3.
   \end{thesistblr}
 \end{table}
 
-Τα δεδομένα αποκαλύπτουν δύο διακριτά καθεστώτα πρόβλεψης.
-
-\paragraph{Scalar path: ακριβής πρόβλεψη (HW/Spike $\approx 1.07$).}
-Στο πλήρες \gls{kem}, ο λόγος HW/Spike για τον Tier~1 ανέρχεται
-σε $1.07$, δηλαδή το hardware επιτυγχάνει ελαφρώς υψηλότερο speedup από ό,τι
-προβλέπει το Spike. Η εξήγηση είναι ότι το dual-issue pipeline του X60
-ωφελεί δυσανάλογα τον optimized κώδικα (IPC $> 1$), ενώ το Spike
-μοντελοποιεί CPI$=$1 και για τα δύο variants. Η μικρή υστέρηση στο isolated polymul (HW/Spike $= 0.94$)
-οφείλεται στο ότι το reference polymul αξιοποιεί ελαφρώς καλύτερα τον
-dual-issue λόγω μεγαλύτερου instruction-level parallelism στον schoolbook
-loop. Στο πλήρες \gls{kem} η τάση αντιστρέφεται διότι το optimized variant
-κερδίζει από τον dual-issue σε Keccak, decode και sampling. Η ίδια τάση επεκτείνεται και στα HQC-192 και
-HQC-256 (\cref{tab:hw-spike-prediction-levels}), με τον λόγο HW/Spike να
-παραμένει σταθερά $\approx 1.07$–$1.10$ ανεξαρτήτως μεγέθους παραμέτρων.
-
-Τα αντίστοιχα Total \gls{kem} νούμερα ανά security level δίνει ο ~\cref{tab:hw-spike-prediction-levels}
-
 \begin{table}[htbp]
   \centering
   \caption{Spike vs Hardware στα τρία security levels (πλήρες \gls{kem}).}
@@ -746,6 +700,19 @@ HQC-256 (\cref{tab:hw-spike-prediction-levels}), με τον λόγο HW/Spike �
   \end{thesistblr}
 \end{table}
 
+\paragraph{Scalar path: ακριβής πρόβλεψη (HW/Spike $\approx 1.07$).}
+Στο πλήρες \gls{kem} ο λόγος HW/Spike για το Tier~1 φτάνει το $1.07$: το
+hardware αποδίδει ελαφρώς μεγαλύτερο speedup από ό,τι προβλέπει το μοντέλο
+CPI$=1$, διότι ο βελτιστοποιημένος κώδικας εκμεταλλεύεται το dual-issue
+(IPC $> 1$). Στον isolated polymul η σχέση αντιστρέφεται (HW/Spike $= 0.94$),
+καθώς ο μακρύς schoolbook loop του reference προσφέρει περισσότερο
+instruction-level parallelism από τα εξαρτημένα \insn{clmul}/\insn{clmulh}
+pairs του Tier~1. Συνολικά όμως στο reference ο polymul καταναλώνει το συντριπτικό ποσοστό του χρόνου, ενώ το
+Tier~1 τον επιταχύνει κατά δύο τάξεις μεγέθους, μεταθέτοντας το βάρος του
+βελτιστοποιημένου \gls{kem} σε Keccak, decode και sampling, πυρήνες όπου το
+dual-issue αποδίδει IPC $> 1$ και το hardware ξεπερνά την πρόβλεψη. Η τάση
+παραμένει σταθερή στα HQC-192/256 (HW/Spike $\approx 1.07$–$1.10$).
+
 \paragraph{Vector path: απόκλιση (HW/Spike $= 0.82$–$0.90$).}
 Το Tier~2 παρουσιάζει HW/Spike $= 0.82$ στο HQC-128 \gls{kem}, δηλαδή η πρόβλεψη Spike υπερεκτιμά το πραγματικό speedup. 
 Η απόκλιση όμως συρρικνώνεται στα υψηλότερα security levels (HW/Spike $= 0.90$ στο HQC-256), 
@@ -758,15 +725,15 @@ HQC-256 (\cref{tab:hw-spike-prediction-levels}), με τον λόγο HW/Spike �
 ως CPI$=$1, αγνοώντας τα scalar↔vector transition costs και τα store
 forwarding failures. Η παρατήρηση αυτή τεκμηριώνει ότι:
 \begin{itemize}
-  \item Για \textbf{scalar-only variants} (Tier~1), το Spike \instret
-    αποτελεί αξιόπιστο δείκτη σχετικής απόδοσης ($\approx\pct{7}$
+  \item Για \textbf{scalar-only variants} (Tier~1), το \instret
+    αποτελεί αξιόπιστο δείκτη σχετικής απόδοσης ($\pct{7}$–$\pct{10}$
     υπο-εκτίμηση λόγω dual-issue).
-  \item Για \textbf{hybrid scalar/vector variants} (Tier~2), το Spike
-    \instret αποτελεί αισιόδοξο κάτω φράγμα. Η πραγματική απόδοση
-    εξαρτάται κρίσιμα από τη μικροαρχιτεκτονική του target.
+  \item Για \textbf{hybrid scalar/vector variants} (Tier~2), το \instret
+    αποτελεί \textbf{αισιόδοξη εκτίμηση}: υπερεκτιμά το επιτεύξιμο speedup,
+    καθώς αγνοεί τα scalar$\leftrightarrow$vector penalties.
   \item Για \textbf{pure-vector variants} (Tier~3), η πρόβλεψη
     αναμένεται ακριβέστερη διότι ολόκληρος ο υπολογισμός παραμένει στο
-    vector pipeline, χωρίς scalar↔vector transitions. Η επαλήθευση
+    vector pipeline, χωρίς scalar$\leftrightarrow$vector transitions. Η επαλήθευση
     αυτής της υπόθεσης απαιτεί hardware με \gls{zvbc}.
 \end{itemize}
 

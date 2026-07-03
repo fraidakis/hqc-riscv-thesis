@@ -12,8 +12,7 @@
 
 Η παρούσα εργασία παρουσίασε την πρώτη πλήρως βελτιστοποιημένη υλοποίηση του \gls{hqc} \gls{kem}
 σε RISC-V σε καθαρό λογισμικό (χωρίς custom hardware), αξιοποιώντας αποκλειστικά επικυρωμένες επεκτάσεις bit-manipulation και vector-crypto (\gls{zbc},
-\gls{zbb}, \gls{zvbc}, \gls{zvbb}). Η υλοποίηση οργανώθηκε σε τρία tiers που
-αντιστοιχούν στη σταδιακή υιοθέτηση ISA extensions:
+\gls{zbb}, \gls{zvbc}, \gls{zvbb}). Η υλοποίηση οργανώθηκε σε τρία tiers:
 
 \paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
 Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{18504302} σε
@@ -25,8 +24,7 @@ Karatsuba compile-time specialized tree generation και εγγενούς \clmu
 \paragraph{Tier~2 — Base-RVV (\RVV + \Zbc/\Zbb)}
 Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
 speedup σε \speedup{124.6} (HQC-128) και το πλήρες \gls{kem} σε \speedup{55.9}.
-Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak) αποφεύγει το Base-RVV
-rotation penalty που τεκμηριώθηκε στο \cref{ch:kernel-optimization}.
+Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak).
 
 \paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
 Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vx} επιτυγχάνει \speedup{264.1} στο
@@ -34,7 +32,7 @@ polymul (HQC-128) και \speedup{436.5} στο HQC-256. Το πλήρες \gls{
 \speedup{75.9} (HQC-128) και \speedup{163.8} (HQC-256), τοποθετώντας τον
 \instret σε \num{1491854}. Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
 της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion. Σε εκτιμώμενους κύκλους
-ρολογιού το χάσμα είναι μεγαλύτερο ($\approx 2.7\times$, \cref{ssec:avx2-gap}), και
+ρολογιού το χάσμα είναι μεγαλύτερο, και
 τόσο η άμεση σύγκριση \instret-έναντι-κύκλων όσο και η επικύρωση σε πραγματικό
 silicon παραμένουν μελλοντική εργασία (\cref{sec:future-work}).
 
@@ -58,7 +56,7 @@ variants (\cref{sec:ct-verification}). Η εμπειρική dudect κάλυψη
 \paragraph{Hardware validation}
 Τα Tier~1 και Tier~2 επικυρώθηκαν σε πραγματικό RISC-V hardware (BPI-F3,
 SpacemiT K1 X60, VLEN $= \num{256}$), παρέχοντας μετρήσεις κύκλων με pipeline
-effects (\cref{sec:hw-evaluation}). Ο scalar path επιτυγχάνει IPC $\approx 1.49$. Συνεπώς ο \instret δεν αποτελεί
+effects (\cref{sec:hw-evaluation}). Το scalar path επιτυγχάνει IPC $\approx 1.49$. Συνεπώς ο \instret δεν αποτελεί
 απόλυτο cycle predictor (υπερεκτιμά τους κύκλους κατά περίπου \pct{50}), αλλά παρέχει
 συνεπή, αναλογικό εκτιμητή κύκλων για in-order scalar κώδικα, όπου ο
 σταθερός IPC δίνει κύκλους $\approx \instret/\text{IPC}$.
@@ -72,12 +70,9 @@ effects (\cref{sec:hw-evaluation}). Ο scalar path επιτυγχάνει IPC $\
 
 \paragraph{Απουσία Tier~3 hardware validation}
 Το Tier~3 (\gls{zvbc}/\gls{zvbb}) αξιολογήθηκε αποκλειστικά σε εξομοίωση (Spike ISS)
-λόγω μη διαθεσιμότητας, κατά την εκπόνηση, εμπορικού silicon με \gls{zvbc} υποστήριξη. Το πρώτο τέτοιο SoC (SpacemiT K3) κυκλοφόρησε μόλις το 2026 και επομένως δεν ήταν διαθέσιμο κατά τη διεξαγωγή της εργασίας. Τα
-αποτελέσματα αντιπροσωπεύουν \instret (αριθμό δυναμικά αποσυρθεισών εντολών)
-υπό ιδανικές pipeline συνθήκες, χωρίς cache misses, branch mispredictions, ή
-vector pipeline stalls. Η πραγματική απόδοση σε silicon αναμένεται να
-διαφοροποιηθεί ανάλογα με τη μικροαρχιτεκτονική υλοποίηση του \gls{zvbc} execution
-unit.
+λόγω μη διαθεσιμότητας, κατά την εκπόνηση, εμπορικού silicon με \gls{zvbc} υποστήριξη. Το πρώτο τέτοιο SoC (SpacemiT K3) κυκλοφόρησε μόλις τον Μάιο 2026 και επομένως δεν ήταν διαθέσιμο κατά τη διεξαγωγή της εργασίας. Τα
+αποτελέσματα αντιπροσωπεύουν \instret (αριθμό δυναμικά αποσυρθεισών εντολών). Η πραγματική απόδοση σε silicon αναμένεται να
+διαφοροποιηθεί ανάλογα με τη μικροαρχιτεκτονική υλοποίηση του \gls{zvbc} execution unit.
 
 \paragraph{Ετερογένεια μετρικών στη cross-architecture σύγκριση}
 Η σύγκριση με x86-64 (AVX2+PCLMULQDQ+GFNI), AMD Zen~4, και ARM Cortex-M4
@@ -87,12 +82,6 @@ unit.
 superscalar/dual-issue πυρήνες (όπως ο SpacemiT X60 με IPC $\approx 1.49$)
 γίνεται άνω φράγμα. Σε κάθε περίπτωση δεν ενσωματώνει ILP, OoO execution, ή
 cache effects.
-
-\paragraph{Residual OS noise στις hardware μετρήσεις}
-Οι μετρήσεις κύκλων στο BPI-F3 πραγματοποιήθηκαν σε Linux userspace μέσω
-\code{perf\_event\_open}. Παρά τη χρήση single-core pinning (\code{taskset})
-και median statistic, residual OS noise (timer interrupts $\sim$κάθε
-\SI{4}{\milli\second}) εισάγει μικρή αβεβαιότητα στις μετρήσεις.
 
 \ifTODO
 \paragraph{Εμπειρική CT verification μόνο για Tier~1/2}
@@ -104,11 +93,6 @@ cache effects.
 παραμένει εκκρεμής.
 
 \fi
-
-\paragraph{Μονοπύρηνη αξιολόγηση}
-Η αξιολόγηση εστιάζει σε single-core εκτέλεση. Σε multi-session σενάρια
-(\eg TLS server με πολλαπλές ταυτόχρονες KEM operations), η απόδοση εξαρτάται
-από cache contention, memory bandwidth, και NUMA effects που δεν εξετάστηκαν.
 
 \paragraph{Απουσία energy/power χαρακτηρισμού}
 Όλες οι μετρικές αφορούν performance proxies (\instret/κύκλοι). Δεν πραγματοποιήθηκαν
@@ -185,12 +169,6 @@ error evaluation του \gls{rs} decoder. Το στάδιο Berlekamp-Massey
 αλγορίθμων (\eg Sugiyama, Patterson) με μεγαλύτερο inherent parallelism
 αποτελεί ανοιχτή κατεύθυνση.
 
-\paragraph{Multi-session batching}
-Σε server σενάρια, η ταυτόχρονη εκτέλεση πολλαπλών \gls{kem} sessions επιτρέπει
-amortization του Keccak overhead μέσω $N$-way batched SHAKE. Η 2-way \gls{soa}
-αρχιτεκτονική που αναπτύχθηκε για τον Keccak (\cref{sec:microbenchmarks})
-γενικεύεται φυσικά σε $N$-way για $N \leq \text{VLEN}/64$.
-
 %% --------------------------------------------------------------------------
 \subsection{Επεκτάσεις ISA Μελλοντικής Γενιάς}
 \label{sec:future-isa}
@@ -199,9 +177,8 @@ amortization του Keccak overhead μέσω $N$-way batched SHAKE. Η 2-way \gl
 Η ομάδα εργασίας PQC του RISC-V International έχει ξεκινήσει επίσημη διαδικασία
 τυποποίησης αφιερωμένης εντολής μετάθεσης Keccak (\code{vkeccak.vi}) υπό τον
 κωδικό RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}. Το δημοσιευμένο πλάνο θέτει
-στόχο τελικής τυποποίησης (v1.0) έως τον Δεκέμβριο 2026, αν και η προδιαγραφή
-βρίσκεται ακόμη σε πρώιμο στάδιο ανάπτυξης και το χρονοδιάγραμμα παραμένει
-ενδεικτικό. Η εντολή στοχεύει εφαρμογές σε επεξεργαστές κλάσης εφαρμογών (Application-class) με
+στόχο τελικής τυποποίησης (v1.0) έως τον Δεκέμβριο 2026. 
+Η εντολή στοχεύει εφαρμογές σε επεξεργαστές κλάσης εφαρμογών (Application-class) με
 vector unit, αξιοποιώντας register group αρκετά μεγάλο ώστε να χωρά την 1600-bit
 κατάσταση Keccak ($25\times64$-bit words), λ.χ. LMUL=8 σε \VLEN${}=256$ (group 2048 bits),
 αποθηκευμένη σε ομαδοποιημένους διανυσματικούς καταχωρητές. Εφόσον
