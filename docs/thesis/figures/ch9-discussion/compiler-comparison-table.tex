@@ -1,23 +1,20 @@
-% Compiler comparison table: Clang 20.1.2 vs GCC 14.2.0, best hardware cycles per variant/level
+% Compiler comparison table: Clang 20.1.2 vs GCC 14.2.0, best hardware cycles per tier/level
 % Data source: results/reports/summaries/compiler_analysis.md (results/hardware/benchmarks/compiler_compare/)
 \begin{thesistblr}{
   colspec = {l c r r l r},
-  cell{2}{1} = {c=6}{l},
-  cell{6}{1} = {c=6}{l},
-  cell{10}{1} = {c=6}{l},
-  hline{6,10} = {0.4pt, figtablerule},
+  cell{2}{1} = {r=3}{l},
+  cell{5}{1} = {r=3}{l},
+  cell{8}{1} = {r=3}{l},
+  hline{5,8} = {0.4pt, figtablerule},
 }
-{Variant} & {Level} & {Clang} & {GCC} & {Νικητής} & {Δ\%} \\
-{\textit{Tier~0 — Reference (bit-serial polymul)}} & & & & & \\
-\code{scalar\_ref} & 128 & \num{82540770}  & \num{70994731}  & GCC & \num{16.3} \\
-\code{scalar\_ref} & 192 & \num{249443989} & \num{214228777} & GCC & \num{16.4} \\
-\code{scalar\_ref} & 256 & \num{611456033} & \num{533883002} & GCC & \num{14.5} \\
-{\textit{Tier~1 — Scalar Karatsuba + \Zbc}} & & & & & \\
-\code{scalar\_zb} & 128 & \num{2151335}  & \num{1902665}  & GCC & \num{13.1} \\
-\code{scalar\_zb} & 192 & \num{4874759}  & \num{4223873}  & GCC & \num{15.4} \\
-\code{scalar\_zb} & 256 & \num{11144875} & \num{8106449}  & GCC & \num{37.5} \\
-{\textit{Tier~2 — Vector Karatsuba + \RVV}} & & & & & \\
-\code{vector\_rvv} & 128 & \num{1712970} & \num{1585434} & GCC & \num{8.0} \\
-\code{vector\_rvv} & 192 & \num{4039884} & \num{3592013} & GCC & \num{12.5} \\
-\code{vector\_rvv} & 256 & \num{9756962} & \num{6848116} & GCC & \num{42.5} \\
+{Tier} & {Level} & {Clang} & {GCC} & {Νικητής} & {Δ\%} \\
+Reference & 128 & \num{82540770}  & \num{70994731}  & GCC & \num{16.3} \\
+          & 192 & \num{249443989} & \num{214228777} & GCC & \num{16.4} \\
+          & 256 & \num{611456033} & \num{533883002} & GCC & \num{14.5} \\
+Tier~1 & 128 & \num{2151335}  & \num{1902665}  & GCC & \num{13.1} \\
+       & 192 & \num{4874759}  & \num{4223873}  & GCC & \num{15.4} \\
+       & 256 & \num{11144875} & \num{8106449}  & GCC & \num{37.5} \\
+Tier~2 & 128 & \num{1712970} & \num{1585434} & GCC & \num{8.0} \\
+       & 192 & \num{4039884} & \num{3592013} & GCC & \num{12.5} \\
+       & 256 & \num{9756962} & \num{6848116} & GCC & \num{42.5} \\
 \end{thesistblr}
