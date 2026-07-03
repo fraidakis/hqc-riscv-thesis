@@ -1,0 +1,20 @@
+% Table: Decode isolated microbenchmark on real hardware (BPI-F3), cycles + speedup
+% Speedup = Reference HW cycles / Tier HW cycles. Data: results/hardware/benchmarks/components/decode/hw_decode_*_latest.csv
+\begin{thesistblr}{
+  colspec = {l l r r},
+  cell{2}{1} = {r=3}{l},
+  cell{5}{1} = {r=3}{l},
+  cell{8}{1} = {r=3}{l},
+  hline{5,8} = {0.4pt, figtablerule},
+}
+{Security Level} & {Tier} & {HW cycles} & {Speedup} \\
+HQC-128 & Reference & \num{726249}  & {\textemdash} \\
+ & Tier~1  & \num{460886}  & \num{1.58} \\
+ & Tier~2  & \num{205151}  & \best{\num{3.54}} \\
+HQC-192 & Reference & \num{983046}  & {\textemdash} \\
+ & Tier~1  & \num{636978}  & \num{1.54} \\
+ & Tier~2  & \num{280234}  & \best{\num{3.51}} \\
+HQC-256 & Reference & \num{2055181} & {\textemdash} \\
+ & Tier~1  & \num{1165362} & \num{1.76} \\
+ & Tier~2  & \num{546829}  & \best{\num{3.76}} \\
+\end{thesistblr}

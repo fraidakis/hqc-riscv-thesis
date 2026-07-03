@@ -1,0 +1,21 @@
+% Table: Polymul isolated microbenchmark on real hardware (BPI-F3), cycles + speedup
+% Split from former combined tab:hw-microbench (Spike instret -> sec:microbenchmarks, IPC -> tab:hw-ipc).
+% Speedup = Reference HW cycles / Tier HW cycles. Data: results/hardware/benchmarks/components/poly_mul/hw_mul_*_latest.csv (L128/192/256, median cycles)
+\begin{thesistblr}{
+  colspec     = {l l r r},
+  cell{2}{1} = {r=3}{l},
+  cell{5}{1} = {r=3}{l},
+  cell{8}{1} = {r=3}{l},
+  hline{5,8} = {0.4pt, figtablerule},
+}
+  \textbf{Security Level} & \textbf{Tier} & {HW cycles} & {Speedup} \\
+  HQC-128 & Reference & \num{11635670} & {\textemdash}       \\
+          & Tier~1   & \num{122503}   & \num{94.98}         \\
+          & Tier~2   & \num{122085}   & \best{\num{95.31}}  \\
+  HQC-192 & Reference & \num{35382098} & {\textemdash}       \\
+          & Tier~1   & \num{367480}   & \num{96.28}         \\
+          & Tier~2   & \num{357116}   & \best{\num{99.08}}  \\
+  HQC-256 & Reference & \num{88385859} & {\textemdash}       \\
+          & Tier~1   & \num{790047}   & \num{111.87}        \\
+          & Tier~2   & \num{730657}   & \best{\num{120.97}} \\
+\end{thesistblr}

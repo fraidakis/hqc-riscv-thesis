@@ -1,0 +1,18 @@
+% Table: Keccak isolated microbenchmark on real hardware (BPI-F3), cycles + speedup
+% Keccak has only Tier 1 (scalar Zbb); no vectorized Keccak variant in HW.
+% Speedup = Reference HW cycles / Tier HW cycles. Data: results/hardware/benchmarks/components/keccak/hw_keccak_*_latest.csv
+\begin{thesistblr}{
+  colspec = {l l r r},
+  cell{2}{1} = {r=2}{l},
+  cell{4}{1} = {r=2}{l},
+  cell{6}{1} = {r=2}{l},
+  hline{4,6} = {0.4pt, figtablerule},
+}
+{Security Level} & {Tier} & {HW cycles} & {Speedup} \\
+HQC-128 & Reference & \num{520235}  & {\textemdash} \\
+ & Tier~1 & \num{356668}  & \best{\num{1.46}} \\
+HQC-192 & Reference & \num{1026931} & {\textemdash} \\
+ & Tier~1 & \num{711893}  & \best{\num{1.44}} \\
+HQC-256 & Reference & \num{1618377} & {\textemdash} \\
+ & Tier~1 & \num{1122697} & \best{\num{1.44}} \\
+\end{thesistblr}
