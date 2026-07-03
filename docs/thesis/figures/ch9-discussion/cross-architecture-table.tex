@@ -1,6 +1,9 @@
-% Cross-architecture comparison table for §9.1
-% Includes heterogeneous platforms with different metrics
-% Data source: sim_kem_*_latest.csv (commit bdd9cf4, 2026-06-30)
+% Cross-architecture comparison table for §8.5 (Σύγκριση με Ετερογενείς Αρχιτεκτονικές)
+% All figures are real clock cycles (no instret).
+% Reference data: see caption citations (Chen2026/OptHQC2025/Jang2025/ras-nist2025).
+% Present-work data: real BPI-F3 median cycles (SpacemiT K1 X60), see tab:hw-kem
+%   (source CSVs: results/hardware/benchmarks/kem/hw_kem_*_latest.csv, HQC-128).
+% Tier 3 (Zvbc/Zvbb) is not available on the X60 -> future work, omitted here.
 \resizebox{\textwidth}{!}{%
 \begin{thesistblr}{
   colspec = {l l l r r r l},
@@ -14,9 +17,8 @@ x86-64 (FFT+CRT) & AVX2 + \code{PCLMULQDQ} + GFNI & cycles & \num{87000} & \num{
 AMD Zen~4 & AVX2 + \code{PCLMULQDQ} & cycles & \num{402210} & \num{674620} & \num{868857} & SUPERCOP ref \\
 ARM Cortex-M4 & ARMv7E-M (no clmul) & cycles & \num{1837507} & \num{4878515} & \num{7502580} & pqm4, bit-slicing \\
 RISC-V FAFFT & RV32IMC (CV32E40P) & cycles & \num{12208482} & \num{24882981} & \num{38099269} & SW-only, FPGA \\
-{\textit{Παρούσα εργασία (retired instructions, Spike ISS, VLEN $= \num{256}$)}} & & & & & & \\
-Tier~1 (\code{scalar\_zb}) & RV64GC + \Zbc/\Zbb & instret & \num{428923} & \num{834245} & \num{1972347} & Scalar, specialized tree \\
-Tier~2 (\code{vector\_rvv}) & RV64GCV + \Zbc/\Zbb & instret & \num{294501} & \num{589121} & \num{1139356} & Hybrid, specialized tree \\
-Tier~3 (\code{vector\_zvk}) & RV64GCV + \Zvbc/\Zvbb & instret & \num{216092} & \num{432303} & \num{843459} & Full vector, specialized tree \\
+{\textit{Παρούσα εργασία (πραγματικοί κύκλοι, BPI-F3 / SpacemiT K1 X60, VLEN $= \num{256}$)}} & & & & & & \\
+Tier~1 (\code{scalar\_zb}) & RV64GC + \Zbc/\Zbb & cycles & \num{232836} & \num{461278} & \num{1197341} & Scalar, specialized tree \\
+Tier~2 (\code{vector\_rvv}) & RV64GCV + \Zbc/\Zbb & cycles & \num{212671} & \num{425274} & \num{910108} & Hybrid, specialized tree \\
 \end{thesistblr}%
 }

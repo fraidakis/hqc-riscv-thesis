@@ -1,0 +1,22 @@
+% Kernel-level acceleration: ratified RISC-V ISA vs tightly-coupled custom HW.
+% Present work: real BPI-F3 cycles (HQC-128) -> reduction & speedup vs reference kernel:
+%   poly-mul  : hw-microbench-polymul-table (Reference 11635670 / Tier2 122085 = x95.31, 98.95%)
+%   Keccak-f  : hw-microbench-keccak-table  (Reference 520235   / Tier1 356668 = x1.46,  31.4%)
+% TYRCA (Dolmeta2025-TYRCA, Table III): Karatsuba 6072->52cc (99.14%, x116.8);
+%   Keccak-f 26825->2538cc (90.54%, x10.57).
+% Seo (Seo2026-HQC-Ibex, Table III): MULT_64 2444->31cc (98.73%, x78.84);
+%   Keccak-f 25447->245cc (99.04%, x103.87).
+\begin{thesistblr}{
+  colspec = {l l r r},
+  cell{2}{1} = {r=3}{l},
+  cell{5}{1} = {r=3}{l},
+  hline{5} = {0.4pt, figtablerule},
+}
+  {Πυρήνας} & {Προσέγγιση} & {Μείωση κύκλων} & {Speedup} \\
+  Carry-less / poly-mul & Παρούσα εργασία (\vclmul, ratified) & \pct{98.95} & \speedup{95.31} \\
+   & TYRCA (custom Karatsuba unit) & \pct{99.14} & \speedup{116.8} \\
+   & Seo (custom \code{MULT\_64} ISE) & \pct{98.73} & \speedup{78.84} \\
+  Keccak-f & Παρούσα εργασία (scalar \Zbb) & \pct{31.4} & \speedup{1.46} \\
+   & TYRCA (custom Keccak unit) & \pct{90.54} & \speedup{10.57} \\
+   & Seo (custom Keccak ISE) & \pct{99.04} & \speedup{103.87} \\
+\end{thesistblr}
