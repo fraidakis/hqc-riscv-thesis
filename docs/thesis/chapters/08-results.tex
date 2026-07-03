@@ -9,7 +9,7 @@ Keccak και αποκωδικοποίησης, σε τρεις βαθμίδες
 ξεκινώντας από απομονωμένα microbenchmarks ανά πυρήνα και καταλήγοντας
 στην αξιολόγηση του πλήρους \gls{kem} μέσω των τριών λειτουργιών του 
 (\KeyGen, \Encaps, \Decaps), και στη συνεχεία μέσω αξιολόγησης σε 
-πραγματικό hardware και συγκριτικής αποτίμησης έναντι αντίστοιχων εργασιών.
+hardware και συγκριτικής αποτίμησης έναντι αντίστοιχων εργασιών.
 
 \section{Αξιολόγηση στο Spike (\gls{iss})}
 \label{sec:spike-evaluation}
@@ -509,7 +509,7 @@ $\approx\pct{2.9}$: ακόμη και με άπειρο \VLEN, μόνο η αν�
 ανώτατο όριο $\pct{2.6}$ (Tier~3, HQC-256, \VLEN$= \num{2048}$).
 
 %% ==========================================================================
-\section{Αξιολόγηση σε Πραγματικό Hardware}
+\section{Αξιολόγηση σε Hardware}
 \label{sec:hw-evaluation}
 
 Οι μετρήσεις \instret στο Spike \gls{iss} παρέχουν ντετερμινιστική αλγοριθμική
@@ -531,7 +531,7 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 
 \begin{table}[htbp]
   \centering
-  \caption{Πλήρες \KEM σε πραγματικό hardware ανά security level (BPI-F3).}
+  \caption{Πλήρες \KEM σε hardware ανά security level (BPI-F3).}
   \label{tab:hw-kem}
   \small
   \begin{thesistblr}{
@@ -654,7 +654,7 @@ Keccak-f[1600] επιτυγχάνει IPC $= 1.56$. Ο Keccak αποτελείτ
 \label{ssec:hw-spike-vs-hw}
 
 Η κεντρική ερώτηση αυτής της ενότητας είναι: πόσο αξιόπιστα προβλέπει
-το μοντέλο CPI$=1$ του Spike τη σχετική απόδοση σε πραγματικό hardware;
+το μοντέλο CPI$=1$ του Spike τη σχετική απόδοση σε hardware;
 Οι~\cref{tab:hw-spike-prediction,tab:hw-spike-prediction-levels} συγκρίνουν
 τα per-kernel και per-level speedups μεταξύ Spike και BPI-F3.
 

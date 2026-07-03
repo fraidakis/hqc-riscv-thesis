@@ -13,12 +13,12 @@
 
 Η αξιολόγηση απόδοσης σε RISC-V με κρυπτογραφικές επεκτάσεις \gls{zvbc} και \gls{zvbb}
 αντιμετωπίζει ένα πρακτικό εμπόδιο: κατά τη στιγμή εκπόνησης της εργασίας δεν
-υπήρχε διαθέσιμο πραγματικό hardware (silicon) που να υποστηρίζει τις διανυσματικές
+υπήρχε διαθέσιμο  hardware (silicon) που να υποστηρίζει τις διανυσματικές
 επεκτάσεις \gls{zvbc} και \gls{zvbb} σε προσβάσιμη πλατφόρμα. Κατά συνέπεια, η πειραματική
 υποδομή συνδυάζει δύο συμπληρωματικές πλατφόρμες: το \gls{iss} Spike, που
 υποστηρίζει το σύνολο των επεκτάσεων που χρησιμοποιεί η υλοποίηση και παρέχει
 ντετερμινιστική καταμέτρηση εντολών, και το Banana Pi BPI-F3 (SpacemiT K1 X60),
-που προσφέρει μετρήσεις κύκλων σε πραγματικό hardware για τα tiers που υποστηρίζει.
+που προσφέρει μετρήσεις κύκλων σε hardware για τα tiers που υποστηρίζει.
 
 \subsection{Spike: Golden Reference ISS}
 \label{ssec:spike}
@@ -234,7 +234,7 @@ variant:
 \label{ssec:opt-levels}
 
 Όλα τα variants μεταγλωττίζονται με \code{-O3}. Εμπειρική σύγκριση \code{-O2}
-έναντι \code{-O3} σε πραγματικό hardware (\cref{sec:compiler-comparison}) δείχνει
+έναντι \code{-O3} σε hardware (\cref{sec:compiler-comparison}) δείχνει
 ότι το \code{-O3} αποδίδει σταθερά καλύτερα σε όλα τα security levels και variants,
 χωρίς regressions. Για τον λόγο αυτό υιοθετείται ομοιόμορφα ως το βασικό επίπεδο
 βελτιστοποίησης.
@@ -260,7 +260,7 @@ variant:
 \label{ssec:lto-pgo}
 
 Όλα τα variants μεταγλωττίζονται με συνδυασμό \gls{pgo} (\code{-fprofile-use})
-και \gls{lto} (\code{-flto}) κατά τη μέτρηση σε πραγματικό hardware. Το \gls{pgo}
+και \gls{lto} (\code{-flto}) κατά τη μέτρηση σε hardware. Το \gls{pgo}
 ακολουθεί δύο φάσεις: αρχική μεταγλώττιση με \code{-fprofile-generate} και
 εκτέλεση εκπαίδευσης που παράγει profile data (\code{.gcda}
 αρχεία), ακολουθούμενη από τελική μεταγλώττιση με \code{-fprofile-use} που
@@ -428,7 +428,7 @@ UART hardware ή device tree.
 ανεξάρτητη βάση σύγκρισης για όλα τα variants, συμπεριλαμβανομένων των 
 Tier~3 που δεν υποστηρίζονται από το BPI-F3. Οι μετρήσεις κύκλων 
 (βλ.\ \cref{ssec:hw-measurement}) αποτιμούν τη μεταφορά των αποτελεσμάτων 
-σε πραγματικό hardware για τα variants που υποστηρίζονται σε silicon.
+σε hardware για τα variants που υποστηρίζονται σε silicon.
 
 \subsection{Μέτρηση σε Spike (\instret)}
 \label{ssec:spike-measurement}
@@ -480,10 +480,10 @@ csrr a0, 0xb02    # read minstret (retired instruction count)
 \emph{πού} εκτελείται (ποιες συναρτήσεις). Τα pie charts κατανομής κόστους
 (\cf \cref{sec:baseline-profiling}) παράγονται από τον δεύτερο μηχανισμό.
 
-\subsection{Μέτρηση σε Πραγματικό Hardware (BPI-F3 Cycles)}
+\subsection{Μέτρηση σε Hardware (BPI-F3 Cycles)}
 \label{ssec:hw-measurement}
 
-Η μέτρηση κύκλων σε πραγματικό hardware πραγματοποιείται μέσω του Linux perf
+Η μέτρηση κύκλων σε hardware πραγματοποιείται μέσω του Linux perf
 subsystem, χρησιμοποιώντας τον \code{perf\_event\_open} syscall, τη 
 διεπαφή του πυρήνα Linux που παρέχει σε userspace πρόσβαση στους 
 hardware performance counters του επεξεργαστή (κύκλους και retired 
@@ -617,7 +617,7 @@ bit-exact σωστά αποτελέσματα.
 δηλαδή ότι η εκτέλεσή τους είναι ανεξάρτητη από μυστικά δεδομένα. Η στρατηγική
 επαλήθευσης λειτουργεί σε δύο συμπληρωματικά στρώματα: αρχιτεκτονική ανάλυση Zkt που τεκμηριώνει ότι όλες οι εντολές χειρισμού
 μυστικών δεδομένων ανήκουν στο data-independent timing subset
-και στατιστική ανίχνευση διαρροής μέσω dudect σε πραγματικό hardware. Τα
+και στατιστική ανίχνευση διαρροής μέσω dudect σε hardware. Τα
 εμπειρικά αποτελέσματα της επαλήθευσης και η ερμηνεία τους παρουσιάζονται
 στην \cref{sec:ct-verification}.
 

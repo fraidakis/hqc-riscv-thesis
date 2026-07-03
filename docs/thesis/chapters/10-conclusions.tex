@@ -1,8 +1,10 @@
 \chapter{Συμπεράσματα και Μελλοντικές Επεκτάσεις}
 \label{ch:conclusions}
 
-Στο \cref{ch:results} τα αποτελέσματα αξιολογήθηκαν σε πραγματικό hardware και υπό το πρίσμα ετερογενών
-αρχιτεκτονικών\ifTODO, ISA ablation, και constant-time ασφάλειας\fi. Το παρόν κεφάλαιο
+Στο \cref{ch:results} τα αποτελέσματα αξιολογήθηκαν τόσο σε εξομοίωση (Spike ISS)
+όσο και σε RISC-V hardware, και τοποθετήθηκαν έναντι υλοποιήσεων
+διαφορετικών αρχιτεκτονικών κατηγοριών\ifTODO, ISA ablation, και constant-time
+ασφάλειας\fi. Το παρόν κεφάλαιο
 συνοψίζει τη συνεισφορά της εργασίας, αναγνωρίζει τους περιορισμούς της, και
 χαρτογραφεί τις κατευθύνσεις μελλοντικής έρευνας.
 
@@ -14,23 +16,22 @@
 σε RISC-V σε καθαρό λογισμικό (χωρίς custom hardware), αξιοποιώντας αποκλειστικά επικυρωμένες επεκτάσεις bit-manipulation και vector-crypto (\gls{zbc},
 \gls{zbb}, \gls{zvbc}, \gls{zvbb}). Η υλοποίηση οργανώθηκε σε τρία tiers:
 
-\paragraph{Tier~1 — Scalar (\Zbc/\Zbb)}
-Ο πολυωνυμικός πολλαπλασιασμός μειώθηκε από \num{18504302} σε
-\num{182726} \instret (HQC-128), επιτυγχάνοντας \speedup{101.3} μέσω
+\paragraph{Tier~1: Scalar (\Zbc/\Zbb)}
+Ο πολυωνυμικός πολλαπλασιασμός επιταχύνθηκε κατά \speedup{101.3} (HQC-128) μέσω
 Karatsuba compile-time specialized tree generation και εγγενούς \clmul/\clmulh. Το πλήρες
-\gls{kem} (\KeyGen + \Encaps + \Decaps) επιτυγχάνει \speedup{35.0} στο HQC-128 και
+\gls{kem} επιτυγχάνει \speedup{35.0} στο HQC-128 και
 \speedup{60.1} στο HQC-256.
 
-\paragraph{Tier~2 — Base-RVV (\RVV + \Zbc/\Zbb)}
-Η προσθήκη βάσης \RVV 1.0 με vectorized Karatsuba leaves αυξάνει το polymul
-speedup σε \speedup{124.6} (HQC-128) και το πλήρες \gls{kem} σε \speedup{55.9}.
-Η υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak).
+\paragraph{Tier~2: Base-RVV (\RVV + \Zbc/\Zbb)}
+Η προσθήκη του \RVV 1.0 αυξάνει το polymul
+speedup σε \speedup{124.6} (HQC-128) και το πλήρες \gls{kem} σε \speedup{55.9},
+με υβριδική αρχιτεκτονική (RVV polymul + scalar Keccak).
 
-\paragraph{Tier~3 — Vector-Crypto (\Zvbc/\Zvbb)}
+\paragraph{Tier~3: Vector-Crypto (\Zvbc/\Zvbb)}
 Η πλήρης αξιοποίηση \gls{zvbc} \insn{vclmul.vx} επιτυγχάνει \speedup{264.1} στο
 polymul (HQC-128) και \speedup{436.5} στο HQC-256. Το πλήρες \gls{kem} φτάνει
-\speedup{75.9} (HQC-128) και \speedup{163.8} (HQC-256), τοποθετώντας τον
-\instret σε \num{1491854}. Σε επίπεδο δυναμικών εντολών (\instret) αυτό είναι
+\speedup{75.9} (HQC-128) και \speedup{163.8} (HQC-256). Σε επίπεδο δυναμικών
+εντολών (\instret) αυτό είναι
 της ίδιας τάξης μεγέθους με τον x86-64 FFT+CRT champion. Σε εκτιμώμενους κύκλους
 ρολογιού το χάσμα είναι μεγαλύτερο, και
 τόσο η άμεση σύγκριση \instret-έναντι-κύκλων όσο και η επικύρωση σε πραγματικό
@@ -38,7 +39,7 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 
 \paragraph{Keccak και αποκωδικοποίηση}
 Πέραν του πολυωνυμικού πολλαπλασιασμού, βελτιστοποιήθηκαν ο Keccak
-(\speedup{1.37} μέσω 2-way \gls{soa} με \gls{zvbb}) και η
+(\speedup{1.37} μέσω scalar \gls{zbb} idiom recognition) και η
 αποκωδικοποίηση \gls{rm}/\gls{rs} (\speedup{14.27} μέσω
 \RVV vectorization και \gls{zvbc} $\GF{2^8}$ acceleration).
 
@@ -47,7 +48,7 @@ silicon παραμένουν μελλοντική εργασία (\cref{sec:futu
 Η timing side-channel ασφάλεια επαληθεύθηκε μέσω διπλής στρατηγικής:
 αρχιτεκτονική ανάλυση Zkt (τεκμηρίωση ότι κάθε εντολή ανήκει στο
 data-independent timing subset) και εμπειρική στατιστική ανίχνευση dudect
-σε πραγματικό hardware (BPI-F3 / SpacemiT K1 X60) για τα Tier~1 και Tier~2
+σε hardware (BPI-F3 / SpacemiT K1 X60) για τα Tier~1 και Tier~2
 variants (\cref{sec:ct-verification}). Η εμπειρική dudect κάλυψη του Tier~2
 περιορίζεται σε επίπεδο polymul. Η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει
 θεωρητική CT συμμόρφωση για το Tier~3.
@@ -74,14 +75,16 @@ effects (\cref{sec:hw-evaluation}). Το scalar path επιτυγχάνει IPC 
 αποτελέσματα αντιπροσωπεύουν \instret (αριθμό δυναμικά αποσυρθεισών εντολών). Η πραγματική απόδοση σε silicon αναμένεται να
 διαφοροποιηθεί ανάλογα με τη μικροαρχιτεκτονική υλοποίηση του \gls{zvbc} execution unit.
 
-\paragraph{Ετερογένεια μετρικών στη cross-architecture σύγκριση}
-Η σύγκριση με x86-64 (AVX2+PCLMULQDQ+GFNI), AMD Zen~4, και ARM Cortex-M4
-(\cref{sec:cross-architecture}) αντιπαραθέτει \instret (Spike) με κύκλους
-ρολογιού (πραγματικό hardware). Η άμεση αριθμητική σύγκριση δεν επιτρέπεται
-χωρίς επιφυλάξεις. Ο \instret αποτελεί κάτω φράγμα κύκλων σε in-order pipelines, αλλά σε
-superscalar/dual-issue πυρήνες (όπως ο SpacemiT X60 με IPC $\approx 1.49$)
-γίνεται άνω φράγμα. Σε κάθε περίπτωση δεν ενσωματώνει ILP, OoO execution, ή
-cache effects.
+\paragraph{Μικροαρχιτεκτονική ετερογένεια στη cross-architecture σύγκριση}
+Οι συγκρινόμενες υλοποιήσεις εκτελούνται σε δομικά διαφορετικούς επεξεργαστές
+(in-order έναντι out-of-order, dual- έναντι multi-issue, soft-cores σε FPGA), 
+οπότε η άμεση αριθμητική σύγκριση απαιτεί
+επιφυλάξεις. Ο \instret αποτελεί κάτω φράγμα κύκλων σε in-order pipelines, αλλά σε
+superscalar/dual-issue πυρήνες (όπως ο SpacemiT X60 με IPC $\approx 1.49$) γίνεται
+άνω φράγμα, και σε κάθε περίπτωση δεν ενσωματώνει ILP, OoO execution, ή cache
+effects. Επιπλέον, η hardware validation των Tier~1/2 στηρίζεται σε έναν μόνο
+in-order πυρήνα (SpacemiT K1 X60), οπότε η μεταφορά των cycle-based συμπερασμάτων
+σε out-of-order silicon ή διαφορετικό vector pipeline μπορεί να μεταβάλει τον IPC.
 
 \ifTODO
 \paragraph{Εμπειρική CT verification μόνο για Tier~1/2}
@@ -94,18 +97,10 @@ cache effects.
 
 \fi
 
-\paragraph{Απουσία energy/power χαρακτηρισμού}
+\paragraph{Απουσία ενεργειακού χαρακτηρισμού}
 Όλες οι μετρικές αφορούν performance proxies (\instret/κύκλοι). Δεν πραγματοποιήθηκαν
-μετρήσεις energy-per-operation ή power envelope. Για embedded/edge στόχευση, όπου η
-ενεργειακή κατανάλωση αποτελεί ουσιώδη διάσταση (ιδίως για τα Tier~3 vector paths),
-η ενεργειακή αποδοτικότητα παραμένει αχαρτογράφητη.
-
-\paragraph{Μονή μικροαρχιτεκτονική στην hardware validation}
-Η hardware validation των Tier~1/2 στηρίζεται σε έναν μόνο in-order πυρήνα
-(SpacemiT K1 X60). Δεν δοκιμάστηκε out-of-order RISC-V silicon. Η μεταφορά των
-cycle-based συμπερασμάτων σε άλλες μικροαρχιτεκτονικές (OoO execution, διαφορετικό
-vector pipeline) μπορεί να μεταβάλει τον IPC και άρα τη σχέση
-\instret$\leftrightarrow$κύκλων.
+μετρήσεις energy-per-operation ή power envelope, μετρικές που θα ολοκλήρωναν την
+εικόνα απόδοσης σε deployment σενάρια πέραν του instruction/cycle proxy.
 
 %% ==========================================================================
 \section{Μελλοντική Έρευνα}
@@ -143,8 +138,6 @@ trial. Η επέκταση σε \num{10000000} measurements ανά trial (publis
 \fi
 
 %% --------------------------------------------------------------------------
-\subsection{Hardware Validation και Cycle-Accurate Simulation}
-\label{sec:future-hw}
 
 \paragraph{Tier~3 performance validation σε πραγματικό silicon}
 Η κεντρική εκκρεμότητα είναι η μέτρηση πραγματικών κύκλων για το
@@ -159,53 +152,47 @@ Verilator θα παρέχει χαρακτηρισμό της pipeline με ακ
 πριν τη διαθεσιμότητα commercial silicon.
 
 %% --------------------------------------------------------------------------
-\subsection{Αλγοριθμικές Επεκτάσεις}
-\label{sec:future-algorithmic}
 
 \paragraph{Vectorization εκκρεμών decode σταδίων}
 Η τρέχουσα υλοποίηση διανυσματοποιεί τα στάδια syndromes, root-finding (FFT), και
 error evaluation του \gls{rs} decoder. Το στάδιο Berlekamp-Massey
-παραμένει scalar λόγω loop-carried dependencies. Η διερεύνηση εναλλακτικών
-αλγορίθμων (\eg Sugiyama, Patterson) με μεγαλύτερο inherent parallelism
-αποτελεί ανοιχτή κατεύθυνση.
+παραμένει scalar λόγω loop-carried dependencies.
 
 %% --------------------------------------------------------------------------
-\subsection{Επεκτάσεις ISA Μελλοντικής Γενιάς}
 \label{sec:future-isa}
 
-\paragraph{Εντολή \code{vkeccak.vi} (RISC-V PQC Task Group — υπό τυποποίηση)}
+\paragraph{Εντολή \code{vkeccak.vi} (RISC-V PQC Task Group, υπό τυποποίηση)}
 Η ομάδα εργασίας PQC του RISC-V International έχει ξεκινήσει επίσημη διαδικασία
 τυποποίησης αφιερωμένης εντολής μετάθεσης Keccak (\code{vkeccak.vi}) υπό τον
 κωδικό RVS-2360~\cite{RISCV-PQC-Keccak-Plan2026}. Το δημοσιευμένο πλάνο θέτει
 στόχο τελικής τυποποίησης (v1.0) έως τον Δεκέμβριο 2026. 
-Η εντολή στοχεύει εφαρμογές σε επεξεργαστές κλάσης εφαρμογών (Application-class) με
+Η εντολή προτείνεται για επεξεργαστές κλάσης εφαρμογών (application-class) με
 vector unit, αξιοποιώντας register group αρκετά μεγάλο ώστε να χωρά την 1600-bit
 κατάσταση Keccak ($25\times64$-bit words), λ.χ. LMUL=8 σε \VLEN${}=256$ (group 2048 bits),
 αποθηκευμένη σε ομαδοποιημένους διανυσματικούς καταχωρητές. Εφόσον
 τυποποιηθεί, θα εξαλείψει τον Keccak πυρήνα που αποτελεί τον επόμενο Amdahl's Law
-floor στην τρέχουσα υλοποίηση (\pct{27.4} του Tier~3 \gls{kem} \instret,
-\cref{tab:kernel-redistribution}). Βάσει
-προκαταρκτικών benchmarks σε SpacemiT X60~\cite{Saarinen2024-vkeccak}, η εντολή
-μειώνει το κόστος μίας μετάθεσης Keccak από $\sim$\num{2000} σε $\sim$\num{30}
-κύκλους, αποφέροντας βελτίωση \speedup{12.74} σε scheme-level Kyber-768
-(NTT + \code{vkeccak.vi}). Δεδομένου του \pct{27.4} μεριδίου του Keccak στον
-Tier~3 \gls{hqc} \gls{kem} \instret, μια προκαταρκτική προβολή, βασισμένη σε
-Spike, χωρίς hardware proof-of-concept, υποδεικνύει αναλογική βελτίωση της τάξης
-$10$–$13\times$ σε επίπεδο σχήματος για τον \gls{hqc}. Η ποσοτικοποίηση αυτή
-παραμένει εκτίμηση έως την τυποποίηση (RVS-2360) και την εμπειρική επικύρωση σε
-silicon.
+floor στην τρέχουσα υλοποίηση (\pct{57.0} του Tier~3 \gls{kem} \instret,
+\cref{tab:kernel-redistribution}). Σύμφωνα με την πρόταση του PQC Task Group για
+την εντολή~\cite{Saarinen2024-vkeccak}, η μετάθεση Keccak-f[1600] (24 γύροι)
+συμπυκνώνεται σε κόστος κάτω των \num{100} κύκλων, με επιτάχυνση τάξης
+$\geq\!20\times$ σε επίπεδο μετάθεσης και $\sim\!2$–$3\times$ σε επίπεδο σχήματος
+για PQC αλγορίθμους. Με μερίδιο Keccak \pct{57.0} στον Tier~3 \gls{hqc} \gls{kem}
+\instret, ο νόμος του Amdahl φράσσει το αντίστοιχο scheme-level κέρδος για τον
+\gls{hqc} σε $\lesssim\!2.3\times$ (πλήρης εξάλειψη του Keccak). Η ποσοτικοποίηση
+αυτή παραμένει εκτίμηση έως την τυποποίηση (RVS-2360) και την εμπειρική επικύρωση
+σε silicon.
 
 \paragraph{Configurable-polynomial GF reduction extension}
 Η \gls{zvbc} \insn{vclmul.vx} εξυπηρετεί αποτελεσματικά τον πολλαπλασιασμό στο
 $\GFpoly$, αλλά η αναγωγή σε μικρά σώματα (\eg $\GF{2^8}$) απαιτεί
-πολλαπλές vector εντολές ανά πράξη. Μια μελλοντική extension με
-configurable reduction polynomial (\eg \code{Zvkgf} ή \code{Zvkpoly}) θα
+πολλαπλές vector εντολές ανά πράξη. Ένα μελλοντικό extension με
+configurable reduction polynomial (στο πνεύμα ενεργών προτάσεων για vectorized $\GF{2^8}$ multiply) θα
 συμπίεζε την αναγωγή σε μία εντολή, ωφελώντας τόσο τον HQC \gls{rs}
 decoder όσο και γενικότερα AES-GCM/GHASH workloads.
 
 \paragraph{Ευρύτερη εφαρμογή σε code-based PQC}
-Οι τεχνικές που αναπτύχθηκαν (compile-time specialized Karatsuba, \gls{zvbc} vectorized leaves, 2-way
-\gls{soa} Keccak) εφαρμόζονται άμεσα σε άλλα code-based σχήματα που
+Οι τεχνικές που αναπτύχθηκαν (compile-time specialized Karatsuba, \gls{zvbc} vectorized leaves, scalar
+\gls{zbb} Keccak) εφαρμόζονται άμεσα σε άλλα code-based σχήματα που
 χρησιμοποιούν πολυωνυμικό πολλαπλασιασμό στο $\GFpoly$, ιδίως στο BIKE, το
 οποίο μοιράζεται τον ίδιο αλγεβρικό πυρήνα με τον \gls{hqc}. Η επέκταση της
 υλοποίησης σε BIKE θα τεκμηρίωνε τη γενικευσιμότητα της προσέγγισης.
