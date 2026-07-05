@@ -1,20 +1,12 @@
-% --- 09 Experimental setup ---------------------------------------------------
-\begin{frame}{Πειραματική διάταξη: διπλή επαλήθευση}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.62\textwidth}
-      \begin{itemize}
-        \item \HL{\en{Spike ISS}}: μέτρηση \instret (αρχιτεκτονικά ανεξάρτητη) + επικύρωση ορθότητας (\en{KAT}), όλες οι βαθμίδες
-        \item \HL{\en{Banana Pi BPI-F3}} (\en{SpacemiT K1}, πυρήνας X60, $\VLEN=256$): πραγματικοί κύκλοι ρολογιού
-      \end{itemize}
-      \vspace{0.4em}
-      \begin{block}{Γιατί \instret;}
-        Αποσυνδέει την αλγοριθμική βελτίωση από το μικροαρχιτεκτονικό θόρυβο, αναπαραγώσιμη, συγκρίσιμη μετρική.
-      \end{block}
-    \end{column}
-    \begin{column}{0.38\textwidth}
-      \begin{exampleblock}{Συνέπεια}
-        Στις βαθμίδες που τρέχουν σε πραγματικό υλικό (1--2), η απόκλιση \instret ↔ κύκλοι είναι \HL{$\sim\!\pct{2}$}.
-      \end{exampleblock}
-    \end{column}
-  \end{columns}
+\begin{frame}{Πειραματική διάταξη}
+  \begin{itemize}
+    \item \textbf{Εξομοίωση:} \en{Spike ISS}, ντετερμινιστικό \instret (όλα τα tiers).
+    \item \textbf{Hardware:} \en{Banana Pi BPI-F3} (\en{SpacemiT K1 X60}, \VLEN${}=256$), κύκλοι ρολογιού.
+    \item \en{KAT}-validated ορθότητα, median, single-core pinning.
+    \item \con{Tier 3 μόνο σε εξομοίωση}, απουσία silicon με \Zvbc.
+  \end{itemize}
+  \vfill
+  \begin{center}\footnotesize
+    \instret = αριθμός δυναμικά εκτελεσθεισών εντολών, κάτω φράγμα κύκλων σε in-order pipelines.
+  \end{center}
 \end{frame}

@@ -91,3 +91,15 @@ results/**/archive/tmp.*
 
 # Generated markdown conversions of reference PDFs (re-run convert_pdf.py to regenerate)
 docs/references/markdown/
+
+*.lof
+*.lot
+*.run.xml
+*.out
+*.fls
+*.fdb_latexmk
+*.nav
+*.snm
+*.vrb
+*.auxlock
+*.bbl-SAVE-ERROR

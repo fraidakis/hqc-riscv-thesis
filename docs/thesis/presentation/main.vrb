@@ -17,7 +17,7 @@ clmulh  a3, a0, a1   # high half
 \end{lstlisting}
       \end{exampleblock}
       \begin{block}{Αποτέλεσμα}
-        Πραγματικό \en{silicon} (\en{Banana Pi BPI-F3}): \HL{\speedup{34}} στο \HQC-128 με μόνο τις βαθμωτές επεκτάσεις.
+        Πραγματικό \en{silicon} (\en{Banana Pi BPI-F3}): \HL{\speedup{38}} στο \HQC-128 με μόνο τις βαθμωτές επεκτάσεις.
       \end{block}
     \end{column}
   \end{columns}

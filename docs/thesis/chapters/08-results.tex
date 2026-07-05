@@ -567,7 +567,7 @@ BPI-F3 με τον SpacemiT K1 X60 (RV64GCVB, VLEN$= \num{256}$, \SI{1.6}{\giga\
 αντίστοιχα με την τάση που τεκμηριώθηκε στην \cref{sec:end-to-end}.
 
 \paragraph{RVV polymul (Tier~2): ίδιοι κύκλοι παρά τις λιγότερες εντολές.}
-Ο Tier~2 εκτελεί \pct{19} λιγότερες εντολές από τον Tier~1
+Το Tier~2 εκτελεί \pct{19} λιγότερες εντολές από το Tier~1
 ($\num{148479}$ έναντι $\num{182726}$ \instret), όμως οι πραγματικοί κύκλοι
 παραμένουν ουσιαστικά ταυτόσημοι (\num{122085} έναντι \num{122503}, διαφορά
 μόλις $\pct{0.3}$). Το μοντέλο CPI$=1$ του Spike προβλέπει έτσι πλεονέκτημα
@@ -608,7 +608,7 @@ dependencies, latency μνήμης). Ο~\cref{tab:hw-ipc} παρουσιάζει
   \end{thesistblr}
 \end{table}
 
-\paragraph{Πλήρης αξιοποίηση dual-issue}
+\paragraph{Scalar code: πλήρης αξιοποίηση dual-issue (IPC $> 1.4$).}
 Ο reference polymul επιτυγχάνει IPC $= 1.59$. 
 Η τιμή αυτή υπερβαίνει τη μονάδα διότι ο
 schoolbook πολλαπλασιασμός αποτελείται από μακρές ακολουθίες ανεξάρτητων
@@ -618,7 +618,7 @@ pipeline εκτελεί παράλληλα. Το Tier~1 polymul στο HQC-128 �
 \insn{clmul}/\insn{clmulh} pairs: κάθε \insn{clmulh} εξαρτάται από το
 ίδιο operand με το προηγούμενο \insn{clmul}, περιορίζοντας έτσι τις ευκαιρίες
 dual-issue. Η διαφορά αυτή όμως συρρικνώνεται με το μέγεθος
-($1.49 \to 1.60$ για τον Tier~1) και στο HQC-256 ο Tier~1 προσπερνά οριακά
+($1.49 \to 1.60$ για το Tier~1) και στο HQC-256 το Tier~1 προσπερνά οριακά
 τον reference ($1.60$ έναντι $1.58$, \cref{tab:hw-ipc}) και αποδίδεται στην καλύτερη πλήρωση του
 dual-issue σε μεγαλύτερα operands. Παρόμοια, η scalar μετάθεση 
 Keccak-f[1600] επιτυγχάνει IPC $= 1.56$. Ο Keccak αποτελείται από μακρές
@@ -626,9 +626,9 @@ Keccak-f[1600] επιτυγχάνει IPC $= 1.56$. Ο Keccak αποτελείτ
 χωρίς memory accesses (η κατάσταση 25$\times$64-bit χωράει σε registers),
 παρέχοντας ιδανικό instruction-level parallelism για dual-issue.
 
-\paragraph{Vector code: IPC $= 1.22$ στον polymul — μερικός dual-issue.}
-Ο Tier~2 polymul παρουσιάζει IPC $= 1.22$, πάνω από τη
-μονάδα αλλά χαμηλότερο από τον scalar. 
+\paragraph{Vector code: μερική αξιοποίηση dual-issue (IPC $\approx 1.2$).}
+Το Tier~2 polymul παρουσιάζει IPC $= 1.22$, πάνω από τη
+μονάδα αλλά χαμηλότερο από τα scalar. 
 
 \begin{enumerate}
   \item \textbf{Scalar$\leftrightarrow$vector μεταβάσεις και store-to-load forwarding:} Ο X60
@@ -647,16 +647,25 @@ Keccak-f[1600] επιτυγχάνει IPC $= 1.56$. Ο Keccak αποτελείτ
     ολοκληρώνει το πραγματικό vector work με περίπου τον μισό ρυθμό από ό,τι
     υποδηλώνει το instruction count, θέτοντας πρακτικό πλαφόν IPC $\approx 1.0$
     στα vector-dominated τμήματα ακόμη και απουσία των υπόλοιπων penalties.
+
+  \item \textbf{Vectorized decoder (IPC $= 0.66$, ο χαμηλότερος όλων):} Ο
+    \gls{rs}/\gls{rm} decoder κυριαρχείται από σειριακή $\GF{2^8}$ αριθμητική
+    (syndromes, error-locator) με ισχυρά data dependencies και κοντά vector
+    lengths που αφήνουν τη διανυσματική μονάδα σε μεγάλο βαθμό ανεκμετάλλευτη
+    (οι λειτουργίες τρέχουν με μικρό \code{vl} σε σχέση με το VLMAX), ενώ οι
+    συχνές scalar$\leftrightarrow$vector μεταβάσεις προσθέτουν stalls.
 \end{enumerate}
 
 %% --------------------------------------------------------------------------
 \subsection{Σύγκριση Spike Predictions vs Hardware Reality}
 \label{ssec:hw-spike-vs-hw}
 
-Η κεντρική ερώτηση αυτής της ενότητας είναι: πόσο αξιόπιστα προβλέπει
-το μοντέλο CPI$=1$ του Spike τη σχετική απόδοση σε hardware;
-Οι~\cref{tab:hw-spike-prediction,tab:hw-spike-prediction-levels} συγκρίνουν
-τα per-kernel και per-level speedups μεταξύ Spike και BPI-F3.
+Το μοντέλο του Spike αγνοεί microarchitectural penalties (cache
+misses, store-to-load forwarding, scalar$\leftrightarrow$vector transitions).
+Η ενότητα αυτή ποσοτικοποιεί πόσο αξιόπιστα προβλέπει τη \emph{σχετική}
+απόδοση σε πραγματικό hardware, αντιπαραβάλλοντας per-kernel και per-level
+speedups Spike έναντι BPI-F3
+(\cref{tab:hw-spike-prediction,tab:hw-spike-prediction-levels}).
 
 \begin{table}[htbp]
   \centering
@@ -718,7 +727,7 @@ dual-issue αποδίδει IPC $> 1$ και το hardware ξεπερνά την
 Η απόκλιση όμως συρρικνώνεται στα υψηλότερα security levels (HW/Spike $= 0.90$ στο HQC-256), 
 καθώς τα μεγαλύτερα δεδομένα αποσβένουν το σταθερό κόστος των scalar↔vector μεταβάσεων. Σε επίπεδο
 πυρήνα, κύριος οδηγός της απόκλισης είναι ο vectorized decoder (HW/Spike $=
-0.45$, IPC $= 0.66$, \cref{tab:hw-spike-prediction}), ενώ ο Tier~2 polymul
+0.45$, IPC $= 0.66$, \cref{tab:hw-spike-prediction}), ενώ το Tier~2 polymul
 αποκλίνει λιγότερο (HW/Spike $= 0.76$). Η
 απόκλιση οφείλεται εξ ολοκλήρου στα microarchitectural penalties που
 αναλύθηκαν στην~\cref{ssec:hw-ipc}: το Spike μοντελοποιεί κάθε εντολή
@@ -808,24 +817,28 @@ inlining cold paths, μειώνοντας τη I-cache πίεση. Βάσει α
 \label{sec:cross-architecture}
 
 Η αξιολόγηση μιας κρυπτογραφικής υλοποίησης αποκτά πλήρες νόημα όταν
-τοποθετηθεί στο ευρύτερο τοπίο των βέλτιστων δημοσιευμένων υλοποιήσεων.
-Οπότε η ενότητα αυτή τοποθετεί τα αποτελέσματα της παρούσας εργασίας στο ευρύτερο
-τοπίο υλοποιήσεων \gls{hqc}.
+τοποθετηθεί στο ευρύτερο τοπίο των βέλτιστων δημοσιευμένων υλοποιήσεων \gls{hqc}.
 
 %% --------------------------------------------------------------------------
-\subsection{Πίνακας Ετερογενούς Σύγκρισης}
+\paragraph{Πίνακας ετερογενούς σύγκρισης.}
 \label{ssec:cross-arch-table}
 
 Ο \cref{tab:cross-architecture} συγκεντρώνει τις βέλτιστες δημοσιευμένες
 επιδόσεις \HQC-128 ανά αρχιτεκτονική, μαζί με τα Tier~1 και Tier~2 της παρούσας
 εργασίας. Η επιλογή σημείων αναφοράς ακολουθεί ένα κριτήριο: μία
 best-published υλοποίηση ανά αρχιτεκτονική κατηγορία (x86-64 FFT+CRT
-champion, x86-64 SUPERCOP baseline, ARM χωρίς carry-less, RISC-V FAFFT σε
+champion, x86-64 official HQC AVX2, ARM χωρίς carry-less, RISC-V FAFFT σε
 καθαρό λογισμικό), ώστε ο πίνακας να συγκρίνει στρατηγικές επιτάχυνσης και
-όχι μεμονωμένα papers· η πλήρης βιβλιογραφική επισκόπηση δίνεται στα
+όχι μεμονωμένα papers. Η πλήρης βιβλιογραφική επισκόπηση δίνεται στα
 \cref{sec:rw-riscv} και \cref{sec:rw-analogs}. Όλες οι τιμές, τόσο των
 αρχιτεκτονικών αναφοράς όσο και της παρούσας εργασίας, είναι πραγματικοί
-κύκλοι ρολογιού (η αξιολόγησή τουTier~3 αποτελεί μελλοντική εργασία).
+κύκλοι ρολογιού (η αξιολόγησή του Tier~3 αποτελεί μελλοντική εργασία).
+
+Οι RISC-V υλοποιήσεις που στηρίζονται σε custom hardware (Schöffel, TYRCA,
+Seo, \cref{sec:rw-riscv}) εξαιρούνται από τον πίνακα αυτόν: δεν είναι καθαρό
+λογισμικό και εκτελούνται σε RV32 FPGA soft-cores, οπότε οι absolute κύκλοι
+δεν είναι άμεσα συγκρίσιμοι. Η αντικειμενική σύγκρισή τους γίνεται σε επίπεδο
+πυρήνα στην~\cref{ssec:ratified-vs-custom}.
 
 \begin{table}[htbp]
   \centering
@@ -842,19 +855,18 @@ Tier~2 επιτυγχάνει πραγματικούς κύκλους της ί�
 \footnote{Η τιμή \Decaps του x86-64 champion~\cite{Chen2026-TCHES-HQC-FFT}
 προκύπτει υπό cache-key στρατηγική (επαναχρήση μετασχηματισμών
 μεταξύ \KeyGen/\Encaps/\Decaps), ενώ οι μετρήσεις της παρούσας
-εργασίας είναι standalone ανά κλήση· ο λόγος $3.71\times$ πρέπει να
-ερμηνεύεται υπό αυτή την ασυμμετρία.}, ενώ έναντι του x86-64 SUPERCOP
-baseline (\num{868857} κύκλοι) η διαφορά είναι οριακή ($1.05\times$). Δεύτερον, η απόσταση από τον Cortex-M4 champion
+εργασίας είναι standalone ανά κλήση. Ο λόγος $3.71\times$ πρέπει να
+ερμηνεύεται υπό αυτή την ασυμμετρία.}, ενώ έναντι της HQC AVX2
+υλοποίησης (\num{344154} κύκλοι) περιορίζεται σε $2.64\times$. Δεύτερον, η απόσταση από τον Cortex-M4 champion
 ανέρχεται σε $\num{7502580} / \num{910108} = 8.24\times$, αντικατοπτρίζοντας
 άμεσα την αξία του hardware carry-less πολλαπλασιασμού. Τρίτον, η παρούσα
-υλοποίηση υπερτερεί κατά $\num{38099269} / \num{910108} = 41.9\times$ έναντι
-της FAFFT σε καθαρό λογισμικό, σε scalar RISC-V, τεκμηριώνοντας ότι η αλγοριθμική
+υλοποίηση υπερτερεί κατά $\num{38099269} / \num{1197341} = 31.8\times$ έναντι
+της FAFFT σε καθαρό λογισμικό, σε scalar RISC-V (Tier~1), τεκμηριώνοντας ότι η αλγοριθμική
 ανωτερότητα $\BigO{n \log n}$ δεν εκδηλώνεται χωρίς κατάλληλη hardware
 υποστήριξη.
 
 %% --------------------------------------------------------------------------
-\subsection{Ανάλυση Χάσματος Cortex-M4: Η Αρχιτεκτονική Αναγκαιότητα
- του Carry-less Multiply}
+\paragraph{Ανάλυση χάσματος Cortex-M4: η αρχιτεκτονική αναγκαιότητα του carry-less multiply.}
 \label{ssec:cortex-m4-gap}
 
 Η αρχιτεκτονική ARM Cortex-M4 δεν διαθέτει εντολή carry-less
@@ -862,15 +874,13 @@ baseline (\num{868857} κύκλοι) η διαφορά είναι οριακή (
 $\GFpoly$ υλοποιείται μέσω bit-slicing ή πινάκων αναζήτησης (NTL
 look-up tables), μεταφράζοντας κάθε λογικό βήμα σε δεκάδες scalar εντολές
 με εντατική χρήση καταχωρητών και πολλαπλές προσβάσεις στη μνήμη L1
-\cite{Jang2025-CortexM4-HQC}. Η ποσοτική διαφορά είναι εντυπωσιακή: η \Decaps στον Cortex-M4 απαιτεί
-\cycles{7502580} κύκλους, ενώ το Tier~2 της παρούσας εργασίας εκτελεί
-\cycles{910108} πραγματικούς κύκλους. Η παρατήρηση αυτή δεν αποτελεί κριτική της αρχιτεκτονικής Cortex-M4.
-Αντικατοπτρίζει τη θεμελιώδη αρχιτεκτονική αναγκαιότητα εξειδικευμένων
-εντολών για αποδοτική μετα-κβαντική κρυπτογραφία βασισμένη σε κώδικες.
+\cite{Jang2025-CortexM4-HQC}, εξηγώντας το $8.24\times$ χάσμα του
+\cref{tab:cross-architecture}. Η παρατήρηση δεν αποτελεί κριτική του Cortex-M4,
+αλλά αντικατοπτρίζει την αρχιτεκτονική αναγκαιότητα εξειδικευμένων εντολών για
+αποδοτική code-based μετα-κβαντική κρυπτογραφία.
 
 %% --------------------------------------------------------------------------
-\subsection{Το Παράδοξο FAFFT: Ασυμπτωτική Ανωτερότητα χωρίς Πρακτική
- Εκδήλωση}
+\paragraph{Το παράδοξο FAFFT: ασυμπτωτική ανωτερότητα χωρίς πρακτική εκδήλωση.}
 \label{ssec:fafft-paradox}
 
 Ο αλγόριθμος Frobenius Additive FFT (FAFFT) παρουσιάζει ασυμπτωτική
@@ -878,12 +888,14 @@ look-up tables), μεταφράζοντας κάθε λογικό βήμα σε 
 $\GFpoly$, θεωρητικά ανώτερη από τον Karatsuba ($\BigO{n^{\log_2 3}}
 \approx \BigO{n^{1.585}}$). Παρ' όλα αυτά, η FAFFT σε καθαρό λογισμικό
 υλοποίηση σε scalar RISC-V (CV32E40P)~\cite{ras-nist2025} απαιτεί
-\cycles{38099269} κύκλους για \Decaps HQC-128, $41.9\times$ περισσότερους
-από τους \cycles{910108} πραγματικούς κύκλους του Tier~2 Karatsuba στο BPI-F3.
+\cycles{38099269} κύκλους για \Decaps HQC-128, $31.8\times$ περισσότερους
+από τους \cycles{1197341} κύκλους του scalar Tier~1 (\Zbc) στο BPI-F3.
+Η σύγκριση scalar-προς-scalar απομονώνει την επίδραση της ISA υποστήριξης
+(\insn{clmul}) από τη vectorization, παρά τη διαφορά datapath (RV32 έναντι RV64).
 
 Τρεις δομικοί παράγοντες εξηγούν αυτό το παράδοξο.
 
-\paragraph{Ασυμβατότητα tower-field με \vclmul.}
+\textbf{Ασυμβατότητα tower-field με \vclmul.}
 Ο FAFFT λειτουργεί σε extension fields $\GF{2^m}$ μέσω tower-field
 αναπαράστασης. Η εντολή \vclmul εκτελεί carry-less πολλαπλασιασμό σε
 $\GF{2}[x]$ (πολυωνυμική αναπαράσταση), δεν υποστηρίζει απευθείας
@@ -898,7 +910,7 @@ $\GF{2}[x]$ (πολυωνυμική αναπαράσταση), δεν υποστ
 της παρούσας υλοποίησης σε καθαρό λογισμικό.
 
 %% --------------------------------------------------------------------------
-\subsection{Τοποθέτηση έναντι x86-64 Champion: Ανάλυση Εναπομένοντος Χάσματος}
+\paragraph{Τοποθέτηση έναντι x86-64 champion: ανάλυση εναπομένοντος χάσματος.}
 \label{ssec:avx2-gap}
 
 Ο x86-64 FFT+CRT champion \cite{Chen2026-TCHES-HQC-FFT} αποτελεί τη βέλτιστη
@@ -908,15 +920,14 @@ GFNI (Galois Field New Instructions) στον AMD EPYC 9754 (x86-64).
 Η ανάλυση του εναπομένοντος χάσματος ($3.71\times$ σε πραγματικούς
 κύκλους) αποκαλύπτει τρεις δομικούς παράγοντες.
 
-\paragraph{Out-of-order εκτέλεση.}
-Οι σύγχρονοι high-performance desktop cores (Intel Golden Cove, AMD Zen~4) εκτελούν 5–6 micro-ops ανά
-κύκλο μέσω out-of-order scheduling, εκμεταλλευόμενοι τον παραλληλισμό
-μεταξύ ανεξάρτητων Karatsuba sub-problems. Ο SpacemiT K1 X60 (dual-issue,
-in-order) δεν μπορεί να αξιοποιήσει αυτόν τον παραλληλισμό. Κάθε εντολή
-εκτελείται σειριακά εκτός εάν ο μεταγλωττιστής εκθέτει ρητά ILP μέσω instruction
-scheduling.
+\textbf{Out-of-order εκτέλεση.}
+Οι σύγχρονοι high-performance desktop cores (Intel Golden Cove, AMD Zen~4)
+εκτελούν 5–6 micro-ops ανά κύκλο μέσω out-of-order scheduling, εκμεταλλευόμενοι
+τον παραλληλισμό μεταξύ ανεξάρτητων Karatsuba sub-problems, κάτι που ο in-order
+dual-issue SpacemiT K1 X60 δεν μπορεί να αξιοποιήσει χωρίς ρητό compiler
+instruction scheduling.
 
-\paragraph{Αλγοριθμική ωριμότητα: FFT+CRT έναντι Karatsuba.}
+\textbf{Αλγοριθμική ωριμότητα: FFT+CRT έναντι Karatsuba.}
 Η υλοποίηση \cite{Chen2026-TCHES-HQC-FFT} αξιοποιεί additive FFT σε
 συνδυασμό με CRT decomposition, αλγοριθμική προσέγγιση που μειώνει τον
 αριθμό carry-less πολλαπλασιασμών στο asymptotic regime. Η παρούσα εργασία
@@ -927,16 +938,16 @@ combine stages. Επιπλέον, η x86-64 υλοποίηση αξιοποιε�
 RISC-V vector crypto υποστήριξη στον GCC βρίσκεται ακόμη σε πρώιμο στάδιο.
 
 Παρά τους παράγοντες αυτούς, η σύγκλιση σε $3.71\times$ σε πραγματικούς
-κύκλους (και η ουσιαστική ισοπαλία με το x86-64 SUPERCOP baseline)
-τεκμηριώνει ότι η αλγοριθμική αποδοτικότητα της RISC-V υλοποίησης είναι
-ανταγωνιστική. Το εναπομένον χάσμα αποδίδεται κυρίως σε
+κύκλους έναντι του champion (και σε $2.64\times$ έναντι της HQC AVX2
+υλοποίησης) τεκμηριώνει ότι η αλγοριθμική αποδοτικότητα της RISC-V υλοποίησης
+είναι ανταγωνιστική. Το εναπομένον χάσμα αποδίδεται κυρίως σε
 μικροαρχιτεκτονικούς παράγοντες (issue width, OoO scheduling) και αλγοριθμική
 διαφοροποίηση (FFT+CRT έναντι Karatsuba) παρά σε εγγενή ISA υστέρηση.
 Η γεφύρωση αναμένεται μέσω: (α)~εκτέλεσης σε out-of-order RISC-V cores
 με ευρύτερο \VLEN (RVA23 profile targets), και εκτέλεσης του Tier~3.
 
 %% --------------------------------------------------------------------------
-\subsection{Ratified ISA έναντι Custom Hardware}
+\paragraph{Ratified ISA έναντι custom hardware.}
 \label{ssec:ratified-vs-custom}
 
 Οι RISC-V υλοποιήσεις του \gls{hqc} στη βιβλιογραφία στηρίζονται σε custom
@@ -965,8 +976,15 @@ hardware (\cref{sec:rw-riscv}). Καθώς εκτελούνται σε διαφ�
 χωρίς το κόστος σε area, NRE και toolchain fragmentation. Το εναπομένον
 πλεονέκτημα του custom hardware εντοπίζεται στον Keccak, όπου η dedicated
 μονάδα (TYRCA \pct{90.54}, Seo \pct{99.04}) υπερτερεί σημαντικά του scalar
-\gls{zbb} της παρούσας εργασίας (\pct{31.4})· το χάσμα αυτό αναμένεται να
-κλείσει με την τυποποίηση διανυσματικού Keccak (RVS-2360, \cref{sec:rw-other}).
+\gls{zbb} της παρούσας εργασίας (\pct{31.4}). Το χάσμα αυτό είναι δευτερεύον
+και προσωρινό: αφορά έναν πυρήνα εκτός του κυρίαρχου bottleneck, ενώ η
+διανυσματική εντολή Keccak βρίσκεται ήδη υπό τυποποίηση (RVS-2360,
+\cref{sec:rw-other}). Συνεπώς, η αποδοτική εκτέλεση του \gls{hqc} δεν
+προϋποθέτει custom hardware: οι ratified επεκτάσεις επιτυγχάνουν συγκρίσιμη
+απόδοση με το πρόσθετο πλεονέκτημα ότι, ως γενικού σκοπού primitives,
+επαναχρησιμοποιούνται και από άλλους αλγορίθμους (π.χ. GCM/CRC μέσω \gls{zbc},
+lattice και άλλα code-based schemes μέσω \RVV), σε αντίθεση με single-purpose
+custom μονάδες.
 
 %% --------------------------------------------------------------------------
 \ifTODO

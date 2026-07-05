@@ -39,7 +39,7 @@
 \usepackage{tikz}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
-\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,shapes.geometric,calc}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,shapes.geometric,shapes.misc,calc,matrix,decorations.pathreplacing}
 \usepgfplotslibrary{groupplots}
 % Externalization: stable, deterministic figure names (same convention as thesis)
 \usetikzlibrary{external}
@@ -54,6 +54,12 @@
 \definecolor{conc}{HTML}{B2182B}\newcommand{\con}[1]{\textcolor{conc}{#1}}
 \definecolor{hlc}{HTML}{2166AC}\newcommand{\HL}[1]{\textcolor{hlc}{\textbf{#1}}}
 \definecolor{accent}{HTML}{2166AC}
+
+% --- Thesis figure DESIGN SYSTEM (for reused \input figures) -----------------
+% Accent must precede the \input; the design system resolves figT/*, figedge,
+% fignode/*, figk*, oi* colours used by the inputted chapter figures.
+\definecolor{thesisblue}{RGB}{10,40,80}
+\input{../figures/thesis-tikz-styles}
 
 % =============================================================================
 % Macros — class-agnostic subset replicated from preamble/macros.tex

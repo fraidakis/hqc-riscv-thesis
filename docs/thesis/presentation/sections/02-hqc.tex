@@ -1,26 +1,22 @@
 % --- 02 HQC KEM in one slide -------------------------------------------------
 \begin{frame}{Το \HQC σε μια διαφάνεια}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.5\textwidth}
+    \begin{column}{0.42\textwidth}
       \textbf{Βασικά στοιχεία}
       \begin{itemize}
         \item \en{Code-based} \KEM στον δακτύλιο $\GFquot{N}$
-        \item Αριθμητική στο \GFpoly: πολλαπλασιασμός αραιών × πυκνών πολυωνύμων
         \item Διόρθωση σφαλμάτων: συνελισσόμενοι \en{Reed--Muller} + \en{Reed--Solomon}
-        \item \en{IND-CCA2} μέσω μετασχηματισμού \en{Fujisaki--Okamoto}~\cite{FujisakiOkamoto1999}
       \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
+      \vspace{0.4em}
       \textbf{Ροή \KEM}
       \begin{enumerate}
         \item \KeyGen: $(\mathit{pk},\mathit{sk})$
         \item \Encaps: $\mathit{pk}\rightarrow(\mathit{ct},K)$
         \item \Decaps: $\mathit{ct},\mathit{sk}\rightarrow K$
       \end{enumerate}
-      \vspace{0.4em}
-      \begin{alertblock}{Κρίσιμο για την ασφάλεια}
-        Όλες οι πράξεις πρέπει να είναι \HL{σταθερού χρόνου} (\en{constant-time}), καμία εξάρτηση από μυστικά δεδομένα.
-      \end{alertblock}
+    \end{column}
+    \begin{column}{0.58\textwidth}
+      \resizebox{\linewidth}{!}{\input{../figures/ch2-background/hqc-dataflow}}
     \end{column}
   \end{columns}
   \vspace{0.3em}
