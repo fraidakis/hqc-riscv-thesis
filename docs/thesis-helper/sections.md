@@ -6,268 +6,361 @@
 * **Περιεχόμενα**
 
 ## Κεφάλαιο 1: Εισαγωγή
+
 * **1.1 Η Κβαντική Απειλή και η Μετα-Κβαντική Κρυπτογραφία:** Ο αλγόριθμος του Shor και η αναγκαιότητα μετάβασης από τα κλασικά σχήματα (RSA, ECC) σε μετα-κβαντικά. Η στρατηγική "Harvest now, Decrypt later" και η εντολή NSA CNSA 2.0 (μετάβαση σε PQC έως 2035) ως πλαίσιο επιτακτικότητας.
     <!-- FIGURE: Timeline diagram — κλασική κρυπτογραφία → κβαντική απειλή → NIST competition → standardization. Δείχνει visually την επιτακτικότητα. -->
+
 * **1.2 Το Πλαίσιο Τυποποίησης του NIST:** Παρουσίαση της ευρύτερης διαδικασίας τυποποίησης PQC (γύροι αξιολόγησης, ολοκληρωμένα πρότυπα ML-KEM/ML-DSA/SLH-DSA). Η θέση του HQC ως τελικού υποψηφίου code-based KEM προς δημοσίευση — η αλγοριθμική ανάλυση και η πορεία τυποποίησης του HQC παρουσιάζονται στο §2.2.1.
     <!-- FIGURE: Flowchart NIST rounds: Round 1 (69) → Round 2 (26) → Round 3 (7) → Round 4 (4) → Final (HQC). Με χρωματική επισήμανση του HQC path. Εστίαση στο ευρύτερο PQC τοπίο — η HQC-specific timeline μπαίνει στο §2.2.1. -->
-* **1.3 Κρυπτογραφική Ευελιξία και Επιτάχυνση μέσω ISA Extensions:**
+
+* **1.3 Κρυπτογραφική Ευελιξία και Επιτάχυνση μέσω Επεκτάσεων ISA:**
+
     * **1.3.1 Κρυπτογραφική Ευελιξία ως Απαίτηση:** Η ανωριμότητα του PQC τοπίου — αν αποδειχθεί ευπάθεια σε lattice-based σχήματα (π.χ. ML-KEM), tailor-made hardware καθίσταται άχρηστο. Concrete example: το SIKE ήταν NIST Round 4 candidate με πολλαπλούς FPGA accelerators και ένα custom RISC-V tape-out chip (TUM, 2021, 21× speedup). Λιγότερο από ένα έτος αργότερα σπάστηκε σε ~62 λεπτά σε μονό πυρήνα Intel Xeon (Castryck & Decru, ePrint 2022/975) — κάθε hardware investment κατέστη άχρηστο. Μέχρι να σταθεροποιηθεί η κατάσταση, απαιτούνται γενικές και ευέλικτες λύσεις.
-    * **1.3.2 Επιτάχυνση μέσω ISA Extensions σε Ανοιχτή Αρχιτεκτονική:** Το RISC-V σχεδιάστηκε με τη φιλοσοφία "ISA extensions replace fixed-function accelerators" — ratified κρυπτογραφικές επεκτάσεις χωρίς vendor lock-in. Πλεονέκτημα ευέλικτων ISA extensions έναντι εξειδικευμένων κυκλωμάτων: ανανέωση αλγορίθμου χωρίς αλλαγή υλικού. Οι επεκτάσεις που αξιοποιεί η παρούσα εργασία βρίσκονται ήδη στο mainstream adoption path (βλ. §3.1.3 για τεκμηρίωση). *(Η αρχιτεκτονική τεκμηρίωση των επεκτάσεων παρουσιάζεται στο Κεφάλαιο 3.)*
+
+    * **1.3.2 Επιτάχυνση μέσω Επεκτάσεων ISA σε Ανοιχτή Αρχιτεκτονική:** Το RISC-V σχεδιάστηκε με τη φιλοσοφία "ISA extensions replace fixed-function accelerators" — ratified κρυπτογραφικές επεκτάσεις χωρίς vendor lock-in. Πλεονέκτημα ευέλικτων ISA extensions έναντι εξειδικευμένων κυκλωμάτων: ανανέωση αλγορίθμου χωρίς αλλαγή υλικού. Οι επεκτάσεις που αξιοποιεί η παρούσα εργασία βρίσκονται ήδη στο mainstream adoption path (βλ. §3.1.3 για τεκμηρίωση). *(Η αρχιτεκτονική τεκμηρίωση των επεκτάσεων παρουσιάζεται στο Κεφάλαιο 3.)*
         <!-- FIGURE: Diagram "spectrum of acceleration": Fixed ASIC ← FPGA ← ISA Extensions ← Pure Software. Με annotation: flexibility αυξάνεται →, peak perf μειώνεται →. Η παρούσα εργασία τοποθετείται στο "ISA Extensions". -->
-* **1.4 Σκοπός και Συνεισφορά της Εργασίας:** Σύντομη δήλωση ερευνητικού κενού (τεκμηριώνεται αναλυτικά στο §4.4) και συνεισφοράς: end-to-end βελτιστοποίηση ολόκληρου του HQC KEM (polymul + Keccak + decode) αξιοποιώντας αποκλειστικά ratified RISC-V extensions (Zbc, Zbb, Zvbc, Zvbb). Αποδεικνύεται ότι υψηλή απόδοση επιτυγχάνεται διατηρώντας cryptographic agility (βλ. §1.3). Η αξιολόγηση πραγματοποιείται τόσο σε instruction-accurate εξομοίωση (Spike ISS) όσο και σε πραγματικό RISC-V hardware (Banana Pi BPI-F3, SpacemiT K1 X60, VLEN=256), παρέχοντας αλγοριθμική σύγκριση (instret) και πραγματικές μετρήσεις κύκλων (cycles) με pipeline effects. Η ασφάλεια timing side-channels επαληθεύεται εμπειρικά μέσω διπλής στρατηγικής: στατική ανάλυση (ctgrind) και στατιστική ανίχνευση διαρροής (dudect) σε πραγματικό hardware για τα Tier 1/2 variants (βλ. §5.5, §9.6). Η formal CT verification για Tier 3 (Zvbc/Zvbb) παραμένει ανοιχτό πρόβλημα λόγω απουσίας hardware (βλ. §10.3).
-    <!-- NOTE (συγγραφή): Εδώ μόνο 2-3 προτάσεις gap+contribution — ΟΧΙ επανάληψη του related work. Η λεπτομερής τεκμηρίωση του κενού (evidence-based) γίνεται στο §4.4. Βασικές αναφορές: fasthqc/hqc (official AVX2), Chen et al. TCHES 2026 (AVX2+GFNI, NEON), OptHQC (arxiv 2512.12904, Dong et al. 2025 — x86 AVX2, sparse×dense + threshold scheduling, 55% overall speedup), Cortex-M4 polymul (Jang et al. 2026 — FAFFT-CRT/Karatsuba/radix-16, 33.4% polymul reduction, ePrint 2025/1939, 2025/1791), GPU (ePrint 2026/012), TYRCA/PHOENIX (Ras et al. 2026 — crypto-agile ML-KEM+HQC SuperButterfly coprocessor, FPGA), Ras et al. 2026 FAFFT SoC (FAFFT on CV32E40P RV32, ANDROMEDA HW accelerator, 3.52×–8.08× SW-only, 9.64×–19.22× with HW), Schöffel et al. 2022 (first HW/SW co-design of HQC on RV32IC, sparse×dense old spec, custom ISA ext for GF(2^8), 98.9% speedup with all HW modules). -->
+
+* **1.4 Σκοπός και Συνεισφορά της Εργασίας:** Σύντομη δήλωση ερευνητικού κενού και συνεισφοράς: end-to-end βελτιστοποίηση ολόκληρου του HQC KEM (polymul + Keccak + decode) αξιοποιώντας αποκλειστικά ratified RISC-V extensions (Zbc, Zbb, Zvbc, Zvbb). Αποδεικνύεται ότι υψηλή απόδοση επιτυγχάνεται διατηρώντας cryptographic agility (βλ. §1.3). Η αξιολόγηση πραγματοποιείται τόσο σε instruction-accurate εξομοίωση (Spike ISS) όσο και σε πραγματικό RISC-V hardware (Banana Pi BPI-F3, SpacemiT K1 X60, VLEN=256), παρέχοντας αλγοριθμική σύγκριση (instret) και πραγματικές μετρήσεις κύκλων (cycles) με pipeline effects. Η ασφάλεια timing side-channels επαληθεύεται εμπειρικά μέσω διπλής στρατηγικής: στατική ανάλυση (ctgrind) και στατιστική ανίχνευση διαρροής (dudect) σε πραγματικό hardware για τα Tier 1/2 variants (βλ. §5.6, §8.7). Η formal CT verification για Tier 3 (Zvbc/Zvbb) παραμένει ανοιχτό πρόβλημα λόγω απουσίας hardware (βλ. §9.3).
+    <!-- NOTE (συγγραφή): Εδώ μόνο 2-3 προτάσεις gap+contribution — ΟΧΙ επανάληψη του related work. Βασικές αναφορές: fasthqc/hqc (official AVX2), Chen et al. TCHES 2026 (AVX2+GFNI, NEON), OptHQC (arxiv 2512.12904, Dong et al. 2025 — x86 AVX2, sparse×dense + threshold scheduling, 55% overall speedup), Cortex-M4 polymul (Jang et al. 2026 — FAFFT-CRT/Karatsuba/radix-16, 33.4% polymul reduction, ePrint 2025/1939, 2025/1791), GPU (ePrint 2026/012), TYRCA/PHOENIX (Ras et al. 2026 — crypto-agile ML-KEM+HQC SuperButterfly coprocessor, FPGA), Ras et al. 2026 FAFFT SoC (FAFFT on CV32E40P RV32, ANDROMEDA HW accelerator, 3.52×–8.08× SW-only, 9.64×–19.22× with HW), Schöffel et al. 2022 (first HW/SW co-design of HQC on RV32IC, sparse×dense old spec, custom ISA ext for GF(2^8), 98.9% speedup with all HW modules). -->
+
 * **1.5 Δομή της Εργασίας:** Σύντομη περιγραφή των επόμενων κεφαλαίων.
     <!-- FIGURE: Infographic "thesis at a glance" (1-page visual summary): problem → approach → key results. Summarizes the entire workflow: HQC + RISC-V extensions → 3 tiers → speedup numbers. -->
 
-## Κεφάλαιο 2: Θεωρητικό Υπόβαθρο Αλγορίθμων — HQC
+## Κεφάλαιο 2: Θεωρητικό Υπόβαθρο: HQC και Κρυπτογραφικοί Αλγόριθμοι
+
 * **2.1 Code-Based Κρυπτογραφία:**
-    * **2.1.1 Μαθηματική Θεμελίωση:** Εισαγωγή στην code-based κρυπτογραφία (πρόβλημα αποκωδικοποίησης τυχαίου γραμμικού κώδικα), security assumptions. Το HQC λειτουργεί σε δυαδικό πολυωνυμικό δακτύλιο (τυπικός ορισμός στο §2.3). Γιατί η αποκωδικοποίηση τυχαίου γραμμικού κώδικα θεωρείται quantum-resistant (σε αντίθεση με δομημένα lattice problems): η καλύτερη γνωστή κβαντική επίθεση (Grover-enhanced ISD) προσφέρει μόνο τετραγωνική ρίζα βελτίωση, διατηρώντας εκθετική πολυπλοκότητα.
-    * **2.1.2 Ιστορικό Πλαίσιο:** Η γενεαλογία McEliece (1978) → Niederreiter → MDPC codes → quasi-cyclic MDPC → HQC. Σύντομη αναφορά στην εξέλιξη: από μεγάλα κλειδιά (McEliece) σε compact quasi-cyclic δομές. Η θέση του HQC στο ευρύτερο τοπίο code-based σχημάτων (BIKE, Classic McEliece).
+    * **Μαθηματική Θεμελίωση:** Εισαγωγή στην code-based κρυπτογραφία (πρόβλημα αποκωδικοποίησης τυχαίου γραμμικού κώδικα), security assumptions. Το HQC λειτουργεί σε δυαδικό πολυωνυμικό δακτύλιο (τυπικός ορισμός στο §2.3). Γιατί η αποκωδικοποίηση τυχαίου γραμμικού κώδικα θεωρείται quantum-resistant (σε αντίθεση με δομημένα lattice problems): η καλύτερη γνωστή κβαντική επίθεση (Grover-enhanced ISD) προσφέρει μόνο τετραγωνική ρίζα βελτίωση, διατηρώντας εκθετική πολυπλοκότητα.
+    * **Ιστορικό Πλαίσιο:** Η γενεαλογία McEliece (1978) → Niederreiter → MDPC codes → quasi-cyclic MDPC → HQC. Σύντομη αναφορά στην εξέλιξη: από μεγάλα κλειδιά (McEliece) σε compact quasi-cyclic δομές. Η θέση του HQC στο ευρύτερο τοπίο code-based σχημάτων (BIKE, Classic McEliece).
         <!-- FIGURE: Genealogy diagram: McEliece (1978) → Niederreiter → MDPC → QC-MDPC → HQC. Branching: Classic McEliece (conservative), BIKE (QC-MDPC), HQC (quasi-cyclic + concatenated codes). -->
+
 * **2.2 Ο Αλγόριθμος HQC:**
-    * **2.2.1 Ομάδα Σχεδιασμού και Πορεία Τυποποίησης:** Η ομάδα σχεδιασμού (Carlos Aguilar Melchor, Nicolas Aragon, Slim Bettaieb, et al.), η πορεία μέσα από τους γύρους NIST (Round 1→4→Final). Η μετάβαση από sparse×dense σε dense×dense multiplication στην τελική spec (2024) λόγω side-channel concerns — αυτό ακύρωσε πολλές prior HW υλοποιήσεις. Security levels (128/192/256) και παράμετροι.
+
+    * **2.2.1 Σχεδιαστική Εξέλιξη και Πορεία Τυποποίησης:** Η ομάδα σχεδιασμού (Carlos Aguilar Melchor, Nicolas Aragon, Slim Bettaieb, et al.), η πορεία μέσα από τους γύρους NIST (Round 1→4→Final). Η μετάβαση από sparse×dense σε dense×dense multiplication στην τελική spec (2024) λόγω side-channel concerns — αυτό ακύρωσε πολλές prior HW υλοποιήσεις. Security levels (128/192/256) και παράμετροι.
         <!-- FIGURE: Timeline HQC: submission (2017) → Round 1/2/3/4 → spec change (sparse→dense, 2024) → Final standardization. -->
         <!-- FIGURE: Πίνακας παραμέτρων HQC ανά security level: N, n₁, n₂, ω, δ — ο αναγνώστης χρειάζεται quick reference. -->
-    * **2.2.2 Λειτουργία KEM: KeyGen, Encaps, Decaps:** Μαθηματική θεμελίωση και λειτουργική ανάλυση των διεργασιών Keygen, Encapsulation και Decapsulation. Ο μετασχηματισμός Fujisaki-Okamoto (FO transform) που παρέχει IND-CCA2 ασφάλεια μέσω re-encryption check στο Decaps. Pseudocode boxes (~10 γραμμές ανά algorithm) για τις 3 διεργασίες — υψηλού επιπέδου, χωρίς implementation details.
+
+    * **2.2.2 Λειτουργίες του KEM: KeyGen, Encaps, Decaps:** Μαθηματική θεμελίωση και λειτουργική ανάλυση των διεργασιών Keygen, Encapsulation και Decapsulation. Ο μετασχηματισμός Fujisaki-Okamoto (FO transform) που παρέχει IND-CCA2 ασφάλεια μέσω re-encryption check στο Decaps. Pseudocode boxes (~10 γραμμές ανά algorithm) για τις 3 διεργασίες — υψηλού επιπέδου, χωρίς implementation details.
         <!-- PSEUDOCODE: KeyGen — generate random seeds, expand to polynomials h,x,y ∈ GF(2)[x]/(x^N-1), compute s = x + h·y, output (pk=seed||s, sk=seed||x||y). -->
         <!-- PSEUDOCODE: Encaps — parse pk, generate random m, expand to e,r₁,r₂, compute u = r₁ + h·r₂, v = m·G + s·r₂ + e, d = SHA3(m), ss = SHA3(m||u||v||d), output (ct=(u,v,d), ss). -->
         <!-- PSEUDOCODE: Decaps — compute m' = Decode(v - u·y), re-encapsulate, if ct'==ct: ss=SHA3(m'||...) else ss=SHA3(σ||...). Annotation: highlight ποιο βήμα καλεί polymul, ποιο Keccak, ποιο decode. -->
         <!-- FIGURE: Σχήμα "Anatomy of a KEM call" — sequence diagram showing key exchange between Alice and Bob: KeyGen → Encaps → shared secret / Decaps → shared secret. -->
+
     * **2.2.3 Υπολογιστική Δομή και Κατανομή Κόστους:** Υψηλού επιπέδου αρχιτεκτονική: ποιοι αλγοριθμικοί πυρήνες (πολυωνυμικός πολλαπλασιασμός, SHA-3, αποκωδικοποίηση) συνθέτουν τον αλγόριθμο. Παρουσίαση pie chart κατανομής υπολογιστικού κόστους (instret) σε polymul (~96%), Keccak, decode — ως preview της δομής βελτιστοποίησης που ακολουθεί στα Κεφ. 6–7.
-        <!-- NOTE (συγγραφή): Κράτα compact — μη γίνεις textbook. Το pie chart μπαίνει εδώ χωρίς να εξηγείται η μεθοδολογία μέτρησης (αυτή εξηγείται στο Κεφ. 5). Μία πρόταση caption αρκεί: "Figure 2.1: Κατανομή δυναμικών εντολών στο reference HQC-128 (βλ. §5.3 για μεθοδολογία)." -->
+        <!-- NOTE (συγγραφή): Κράτα compact — μη γίνεις textbook. Το pie chart μπαίνει εδώ χωρίς να εξηγείται η μεθοδολογία μέτρησης (αυτή εξηγείται στο Κεφ. 5). Μία πρόταση caption αρκεί: "Figure 2.1: Κατανομή δυναμικών εντολών στο reference HQC-128 (βλ. §5.4 για μεθοδολογία)." -->
         <!-- FIGURE: Pie chart κατανομής instret (polymul ~96%, Keccak ~2-3%, decode ~1-2%, misc). -->
         <!-- FIGURE: Block diagram (flowchart) ροής δεδομένων Keygen/Encaps/Decaps — ποιος πυρήνας καλείται πού, με βέλη εισόδου/εξόδου. Χρωματική κωδικοποίηση: polymul=κόκκινο (hot), Keccak=πορτοκαλί, decode=κίτρινο. -->
-* **2.3 Πολυωνυμικός Πολλαπλασιασμός σε Δυαδικά Πεδία (GF(2)[x]):** Ανάλυση της πράξης στον δακτύλιο $GF(2)[x] / (x^N - 1)$ και μαθηματική μελέτη του αλγορίθμου Karatsuba. Αριθμητικό παράδειγμα (worked example) με 4-bit πολυώνυμα: βήμα-βήμα εφαρμογή Karatsuba decomposition σε μικρό μέγεθος ώστε να γίνει concrete η αναδρομική δομή. Δεύτερο παράδειγμα σε 8-bit ώστε να φαίνεται η αναδρομή σε 2 επίπεδα (3 sub-problems → 9 sub-sub-problems).
+
+* **2.3 Πολυωνυμικός Πολλαπλασιασμός σε GF(2)[x]:** Ανάλυση της πράξης στον δακτύλιο $GF(2)[x] / (x^N - 1)$ και μαθηματική μελέτη του αλγορίθμου Karatsuba. Αριθμητικό παράδειγμα (worked example) με 4-bit πολυώνυμα: βήμα-βήμα εφαρμογή Karatsuba decomposition σε μικρό μέγεθος ώστε να γίνει concrete η αναδρομική δομή. Δεύτερο παράδειγμα σε 8-bit ώστε να φαίνεται η αναδρομή σε 2 επίπεδα (3 sub-problems → 9 sub-sub-problems).
     <!-- NOTE (συγγραφή): Μόνο τα μαθηματικά που χρειάζονται για τον Karatsuba decomposition — μηχανική, όχι αξιώματα. -->
     <!-- FIGURE: Recursion tree diagram (μικρό, 2 levels) που δείχνει: a(x)·b(x) → {a_L·b_L, a_H·b_H, (a_L+a_H)·(b_L+b_H)} → 9 leaf products. Annotation: "3 multiplications of half-size" σε κάθε level. -->
     <!-- FIGURE: Σύγκριση complexity: schoolbook O(n²) vs Karatsuba O(n^1.585) — γράφημα με N στον x-axis και πράξεις στον y-axis. -->
+
+    * **2.3.1 Αναπαράσταση Πολυωνύμων και Κυκλική Συνέλιξη:** Αναπαράσταση των στοιχείων ως πολυωνύμων στον δακτύλιο, με παράδειγμα, και ερμηνεία του κυκλικού πολλαπλασιασμού ως γινομένου με circulant πίνακα.
+
+    * **2.3.2 Ο Αλγόριθμος Schoolbook:** Η βασική αρχή του schoolbook πολλαπλασιασμού και η reference υλοποίηση με bit-serial τρόπο.
+
+    * **2.3.3 Ο Αλγόριθμος Karatsuba:** Η αρχή του Karatsuba, η διάσπαση σε υπο-πολυώνυμα και τα τρία μερικά γινόμενα, με απόδειξη ορθότητας, ανάλυση πολυπλοκότητας και αριθμητικό παράδειγμα 4-bit.
+
+    * **2.3.4 Εφαρμογή στο HQC: Δομή Αναδρομής:** Παράμετροι αναδρομής και threshold, παράδειγμα αποσύνθεσης για HQC-128 και η ντετερμινιστική δομή του δέντρου.
+
 * **2.4 Συναρτήσεις Κατακερματισμού SHA-3 / Keccak:** Αρχιτεκτονική σπόγγου (Sponge Construction) και δομή της εσωτερικής μετάθεσης Keccak-f[1600] (θ, ρ, π, χ, ι).
     <!-- NOTE (συγγραφή): Boundary — θεωρία αλγορίθμου εδώ, βελτιστοποιήσεις στο §7.1. -->
     <!-- FIGURE: Sponge construction diagram: absorb phase (XOR input blocks into state, apply f) → squeeze phase (extract output blocks). Με annotation rate r και capacity c. -->
     <!-- FIGURE: Πίνακας 5 Keccak steps: θ=column parity XOR, ρ=lane rotation (rotation offsets table), π=lane permutation (5×5 matrix), χ=nonlinear (row-wise AND-NOT-XOR), ι=round constant XOR. Μία γραμμή ανά step, με μαθηματικό τύπο και intuition. -->
     <!-- FIGURE: Visualization της 5×5×64 Keccak state ως 3D block — lanes, columns, planes. Βοηθάει τον αναγνώστη να καταλάβει γιατί ρ/π είναι permutations. -->
+
+    * **2.4.1 Κατασκευή Σπόγγου (Sponge Construction):** Οι φάσεις απορρόφησης (absorb) και εξαγωγής (squeeze) της κατασκευής σπόγγου.
+
+    * **2.4.2 Η Εσωτερική Κατάσταση Keccak:** Η τρισδιάστατη δομή της κατάστασης σε lanes, columns και rows, και η αντιστοίχισή της σε 64-bit αρχιτεκτονικές.
+
+    * **2.4.3 Η Μετάθεση Keccak-f[1600]: Πέντε Βήματα ανά Γύρο:** Τα πέντε βήματα θ, ρ, π, χ, ι ανά γύρο, το κόστος ανά μετάθεση και το σχετικό μερίδιο στον συνολικό χρόνο βάσει του νόμου του Amdahl.
+
 * **2.5 Κώδικες Διόρθωσης Σφαλμάτων (Reed-Muller, Reed-Solomon):** Θεωρία συνδυασμένης αποκωδικοποίησης (Concatenated Decoding) κωδίκων RM και RS. Η αποκωδικοποίηση RS αποτελείται από τέσσερα στάδια: (A) υπολογισμός syndromes, (B) εύρεση error locator polynomial μέσω Berlekamp-Massey, (C) εύρεση ριζών μέσω additive FFT (Gao-Mateer — αντί κλασικού Chien search), και (D) υπολογισμός error values μέσω Forney-like αξιολόγησης. Η θεωρία κάθε σταδίου παρουσιάζεται εδώ· η βελτιστοποίηση στο §7.2.
     <!-- NOTE (συγγραφή): Berlekamp-Massey theory μόνο εδώ· στο §7.2 μόνο vectorization. -->
     <!-- FIGURE: Concatenated decoding pipeline diagram: received_word → RM decode (inner code, bit-level) → RS decode (outer code, symbol-level) → corrected output. Annotation: "RM διορθώνει bit errors εντός symbols, RS διορθώνει symbol errors μεταξύ symbols." -->
     <!-- FIGURE: Flowchart RS decoding steps: Syndrome computation (Axis A) → Berlekamp-Massey / error locator polynomial (Axis B) → Root-finding via additive FFT (Axis C) → Forney error values (Axis D) → Correction. Κάθε βήμα = box, αντιστοιχεί σε axis A/B/C/D στο §7.2. -->
 
-## Κεφάλαιο 3: Θεωρητικό Υπόβαθρο Αρχιτεκτονικής — RISC-V και Κρυπτογραφικές Επεκτάσεις
+    * **2.5.1 Εσωτερικός Κώδικας: Reed-Muller RM(1,7):** Κωδικοποίηση, πλεονασμός μέσω αντιγράφων, αποκωδικοποίηση και υπολογιστικό κόστος του εσωτερικού κώδικα Reed-Muller.
+
+    * **2.5.2 Εξωτερικός Κώδικας: Reed-Solomon επί του GF(2^8):** Αριθμητική επί του σώματος GF(2^8), κωδικοποίηση και αποκωδικοποίηση, με το υπολογιστικό κόστος και την κλιμάκωσή του στα υψηλότερα επίπεδα ασφαλείας.
+
+## Κεφάλαιο 3: RISC-V: Αρχιτεκτονική και Επεκτάσεις για Κρυπτογραφία
     <!-- FIGURE: RISC-V logo (decorative, section header). -->
+
 * **3.1 Σχεδιαστικές Αρχές και Βασική Αρχιτεκτονική RV64:**
+
     * **3.1.1 Ιστορικό Πλαίσιο και Φιλοσοφία:** Σύντομη αναφορά (Berkeley RISC → RISC-V), η αρχή "minimal base + optional extensions", ανοιχτό ISA χωρίς licensing, RISC-V International. Η σημασία για PQC: η ISA modularity επιτρέπει cryptographic agility (βλ. §1.3 για πλήρη τεκμηρίωση).
+
     * **3.1.2 Βασικά Χαρακτηριστικά RV64I:** Load-store μοντέλο, 32 general-purpose registers × 64-bit (x0–x31), σταθερό μήκος εντολής 32-bit, τα 6 instruction formats (R/I/S/B/U/J) και η λογική τους, program counter. Σύντομη αναφορά σε privilege levels (Machine/Supervisor/User) — η παρούσα εργασία εκτελεί σε Machine mode (bare-metal).
         <!-- FIGURE: Diagram 6 instruction formats (R/I/S/B/U/J) side-by-side, δείχνοντας bit fields. Κλασικό RISC-V reference figure. -->
+
     * **3.1.3 Σύμβαση Ονοματοδοσίας Επεκτάσεων και Standard Profiles:** Σύμβαση ονοματοδοσίας: RV64GC = RV64IMAFD+C. Τι σημαίνει κάθε γράμμα (I=integer base, M=multiply/divide, A=atomics, F/D=floating-point single/double, C=compressed 16-bit). Αναφορά στο RVA23 profile ως mainstream adoption target — Zbb, V, Zvbb mandatory σε αυτό το profile, επιβεβαιώνοντας ότι οι extensions που αξιοποιούμε βρίσκονται στο mainstream adoption path. Ως concrete παράδειγμα RVA22-compliant hardware: ο SpacemiT K1 X60 (Banana Pi BPI-F3) υλοποιεί RV64GCVB με VLEN=256, dual-issue in-order pipeline — αποτελεί την πλατφόρμα hardware validation της παρούσας εργασίας (λεπτομέρειες στο §5.1).
         <!-- FIGURE: Πίνακας extensions: Extension | Περιγραφή | Σχετική με παρούσα εργασία; Highlight Zbc, Zbb, V, Zvbc, Zvbb. -->
         <!-- FIGURE: Πίνακας RVA23 mandatory extensions — ποιες ανήκουν στο profile και ποιες χρησιμοποιούμε. -->
-* **3.2 Scalar Κρυπτογραφικές Επεκτάσεις (Zbc, Zbb, Zbkb):** Αναλυτική παρουσίαση των Zbc (carry-less multiplication: `clmul`, `clmulh`, `clmulr`) και Zbb/Zbkb (bit-manipulation: `rori`, `andn`, `rev8`, `brev8`). Πώς αυτές οι εντολές αντιστοιχούν σε κρυπτογραφικά primitives (GF(2)[x] πολλαπλασιασμός, Keccak rotations). **Before/after πίνακας:** πολλαπλασιασμός 64-bit πολυωνύμων χωρίς clmul (64 shifts + XORs, ~128 εντολές) vs με clmul (2 εντολές: `clmul` + `clmulh`). **Assembly snippet:** 3–4 γραμμές shift-and-XOR loop vs 2 γραμμές clmul/clmulh.
+
+* **3.2 Βαθμωτές Επεκτάσεις Bit-Manipulation για Κρυπτογραφία (Zbb, Zbc):** Αναλυτική παρουσίαση των Zbc (carry-less multiplication: `clmul`, `clmulh`, `clmulr`) και Zbb/Zbkb (bit-manipulation: `rori`, `andn`, `rev8`, `brev8`). Πώς αυτές οι εντολές αντιστοιχούν σε κρυπτογραφικά primitives (GF(2)[x] πολλαπλασιασμός, Keccak rotations). **Before/after πίνακας:** πολλαπλασιασμός 64-bit πολυωνύμων χωρίς clmul (64 shifts + XORs, ~128 εντολές) vs με clmul (2 εντολές: `clmul` + `clmulh`). **Assembly snippet:** 3–4 γραμμές shift-and-XOR loop vs 2 γραμμές clmul/clmulh.
     <!-- FIGURE: Before/after code listing (assembly): Left = naive shift-XOR loop (annotated), Right = clmul+clmulh (annotated). Caption: "64× speedup σε instruction count." -->
     <!-- FIGURE: Diagram "clmul semantics": δείχνει visually τι κάνει carry-less multiply σε bit level — XOR αντί ADD στα partial products. -->
+
+    * **3.2.1 Η Επέκταση Zbc: Carry-Less Multiplication:** Η σημασιολογία του carry-less πολλαπλασιασμού, η αντιστοίχισή του σε κρυπτογραφικά primitives, η ποσοτική επίπτωση before/after και η δευτερεύουσα χρήση στην αριθμητική GF(2^8).
+
+    * **3.2.2 Η Επέκταση Zbb: Basic Bit-Manipulation:** Η αντιστοίχιση της Zbb σε πράξεις του Keccak και η σχετιζόμενη επέκταση Zbkb.
+
 * **3.3 Αρχιτεκτονική Διανυσματικής Μονάδας (RVV 1.0):**
-    * **3.3.1 Γενική Αρχιτεκτονική και Vector-Length Agnosticism:** 32 vector registers (v0–v31), VLEN ως hardware parameter (VLEN = 2^k, τυπικά 128–2048 bits). Φιλοσοφία VLA: ο ίδιος κώδικας τρέχει σε οποιοδήποτε VLEN χωρίς recompilation.
+
+    * **3.3.1 Το Διανυσματικό Μοντέλο Κατάστασης:** 32 vector registers (v0–v31), VLEN ως hardware parameter (VLEN = 2^k, τυπικά 128–2048 bits). Φιλοσοφία VLA: ο ίδιος κώδικας τρέχει σε οποιοδήποτε VLEN χωρίς recompilation.
         <!-- FIGURE: Diagram vector register file: v0–v31, κάθε ένα VLEN bits wide. Annotation: "VLEN is unknown at compile time — only at runtime via vlenb CSR." -->
-    * **3.3.2 Control/Status Registers και Παραμετροποίηση:** `vtype` (SEW, LMUL, vta, vma, vill), `vl` (ενεργό μήκος διανύσματος), `vlenb` (VLEN/8 σε bytes). Τύπος VLMAX: `VLMAX = (VLEN / SEW) × LMUL`. Παράδειγμα: VLEN=256, SEW=64, LMUL=1 → VLMAX=4 elements.
+        * **Control/Status Registers και Παραμετροποίηση:** `vtype` (SEW, LMUL, vta, vma, vill), `vl` (ενεργό μήκος διανύσματος), `vlenb` (VLEN/8 σε bytes). Τύπος VLMAX: `VLMAX = (VLEN / SEW) × LMUL`. Παράδειγμα: VLEN=256, SEW=64, LMUL=1 → VLMAX=4 elements.
         <!-- FIGURE: Πίνακας VLMAX για διάφορους συνδυασμούς VLEN/SEW/LMUL — quick reference. -->
-    * **3.3.3 Strip-Mining και ο Μηχανισμός vsetvl:** Ο θεμελιώδης βρόχος RVV: `for (; n > 0; n -= vl) { vl = __riscv_vsetvl_e64m1(n); /* vector ops */ }`. Εξήγηση: ο compiler δεν γνωρίζει VLEN at compile-time — ο βρόχος αντλεί τόσα elements όσα χωράνε ανά iteration. Αυτό εγγυάται portability μεταξύ hardware.
+
+    * **3.3.2 Το Μοντέλο Προγραμματισμού:** Ο θεμελιώδης βρόχος RVV: `for (; n > 0; n -= vl) { vl = __riscv_vsetvl_e64m1(n); /* vector ops */ }`. Εξήγηση: ο compiler δεν γνωρίζει VLEN at compile-time — ο βρόχος αντλεί τόσα elements όσα χωράνε ανά iteration. Αυτό εγγυάται portability μεταξύ hardware.
         <!-- FIGURE: Strip-mining visualization: array 20 elements, VLMAX=4 → 5 iterations (4+4+4+4+4). Δίπλα: ίδιος κώδικας, VLMAX=8 → 3 iterations (8+8+4). Caption: "Same code, different hardware — VLA in action." -->
-    * **3.3.4 Tail/Mask Policies και Κατηγορίες Εντολών:** Tail policy (vta), Mask policy (vma), ο v0 ως mask register. Memory access (unit-stride vle/vse, strided vlse, indexed vluxei), arithmetic (vadd, vmul, vxor, vsll, vsrl), reductions (vredxor, vredsum, vredmaxu), permutations (vrgather, vslidedown, vslide1up, vcompress), mask operations (vmseq, vcpop, vfirst), type conversion (vzext — widening zero-extend, vncvt — narrowing). LMUL register grouping (1–8, fractional) και trade-offs.
+
+    * **3.3.3 Κατηγορίες Εντολών και Αναλυτικό Παράδειγμα:** Tail policy (vta), Mask policy (vma), ο v0 ως mask register. Memory access (unit-stride vle/vse, strided vlse, indexed vluxei), arithmetic (vadd, vmul, vxor, vsll, vsrl), reductions (vredxor, vredsum, vredmaxu), permutations (vrgather, vslidedown, vslide1up, vcompress), mask operations (vmseq, vcpop, vfirst), type conversion (vzext — widening zero-extend, vncvt — narrowing). LMUL register grouping (1–8, fractional) και trade-offs.
         <!-- FIGURE: Diagram LMUL grouping (πριν/μετά): LMUL=1 → 32 ανεξάρτητοι register groups, LMUL=4 → 8 grouped [v0-v3], [v4-v7], ... Visual: register file color-coded by group. Annotation: "more elements per op ↔ fewer independent operands." -->
         <!-- FIGURE: Πίνακας κατηγοριών εντολών: Category | Examples | Χρήση στην παρούσα εργασία. Rows: Memory (vle/vse/vlse), Arithmetic (vxor/vadd/vsub), Reductions (vredxor/vredmaxu), Permutations (vrgather/vslidedown), Mask ops (vmseq/vcpop/vfirst), Type conversion (vzext/vncvt), Splat (vmv.v.x). -->
-    * **3.3.5 Motivating Example — XOR Loop σε RVV:** Πλήρες worked example: ένας απλός `for` loop που κάνει XOR δύο arrays σε C (5 γραμμές), η αντίστοιχη RVV υλοποίηση (~8 γραμμές intrinsics), και annotation κάθε εντολής. Δείχνει strip-mining, vsetvl, vle/vse σε πραγματικό context.
+        * **Motivating Example — XOR Loop σε RVV:** Πλήρες worked example: ένας απλός `for` loop που κάνει XOR δύο arrays σε C (5 γραμμές), η αντίστοιχη RVV υλοποίηση (~8 γραμμές intrinsics), και annotation κάθε εντολής. Δείχνει strip-mining, vsetvl, vle/vse σε πραγματικό context.
         <!-- FIGURE: Side-by-side code: C scalar loop (left) vs RVV intrinsics (right). Annotated arrows δείχνουν ποια C line αντιστοιχεί σε ποια RVV intrinsic. -->
-* **3.4 Διανυσματικές Κρυπτογραφικές Επεκτάσεις (Zvbc, Zvbb):** Ανάλυση των Zvbc (`vclmul.vv`, `vclmulh.vv` — carry-less multiply σε vector elements) και Zvbb (`vror.vv`/`vror.vi` — vector rotate, `vandn.vv`, `vbrev8.v`). Γιατί αυτές δεν εκπέμπονται αυτόματα από τον compiler (βλ. §9.2.4).
+
+* **3.4 Διανυσματικές Κρυπτογραφικές Επεκτάσεις (Zvbc, Zvbb):** Ανάλυση των Zvbc (`vclmul.vv`, `vclmulh.vv` — carry-less multiply σε vector elements) και Zvbb (`vror.vv`/`vror.vi` — vector rotate, `vandn.vv`, `vbrev8.v`). Γιατί αυτές δεν εκπέμπονται αυτόματα από τον compiler (βλ. §8.4.4).
     <!-- FIGURE: Before/after table (vector context): Πράξη | Χωρίς Zvbc/Zvbb (εντολές) | Με Zvbc/Zvbb (εντολές). Rows: 64-bit carry-less mul, 64-bit rotation, byte-reverse. -->
-* **3.5 Μέθοδοι Προγραμματισμού RISC-V — Φάσμα Αφαίρεσης:** Ταξινόμηση των τεσσάρων μεθόδων παραγωγής κώδικα RISC-V κατά φθίνοντα βαθμό ελέγχου. Γενική παρουσίαση (ανεξάρτητη εφαρμογής) — η συγκεκριμένη χρήση στην παρούσα εργασία τεκμηριώνεται στο §5.6.
-    * **(α) Καθαρή Assembly (`.S` αρχεία):** Πλήρης χειροκίνητος έλεγχος σε register allocation, instruction ordering, memory layout. Ο μεταγλωττιστής δεν παρεμβαίνει — ο προγραμματιστής είναι υπεύθυνος για ABI compliance, calling conventions, και ορθότητα. Χρήση: boot code, interrupt handlers, ρουτίνες που απαιτούν ακριβή instruction encoding (π.χ. `ecall`, CSR manipulation πριν τη δημιουργία C runtime).
-    * **(β) Inline Assembly (`__asm__` / `__asm__ volatile`):** Ενσωματωμένες εντολές assembly μέσα σε C συναρτήσεις. Ο μεταγλωττιστής αντιμετωπίζει τα `volatile` blocks ως αδιαφανή (opaque) — δεν μπορεί να αναδιατάξει, εξαλείψει ή βελτιστοποιήσει γύρω τους. Απαιτεί χειροκίνητο constraint specification (`"=r"`, `"=&r"` early-clobber) για σύνδεση με C μεταβλητές. Χρήση: εντολές χωρίς αντίστοιχο C intrinsic (CSR reads, privileged instructions).
+
+    * **3.4.1 Η Επέκταση Zvbc: Vector Carry-Less Multiplication:** Διανυσματοποίηση του leaf του Karatsuba μέσω Zvbc, με τον περιορισμό του SEW.
+
+    * **3.4.2 Η Επέκταση Zvbb: Vector Bit-Manipulation:** Η αντιστοίχιση της Zvbb σε διανυσματικές πράξεις του Keccak.
+
+* **3.5 Μέθοδοι Προγραμματισμού RISC-V: Επίπεδα Αφαίρεσης:** Ταξινόμηση των τεσσάρων μεθόδων παραγωγής κώδικα RISC-V κατά φθίνοντα βαθμό ελέγχου. Γενική παρουσίαση (ανεξάρτητη εφαρμογής) — η συγκεκριμένη χρήση στην παρούσα εργασία τεκμηριώνεται στο §5.3.
+
+    * **3.5.1 Pure Assembly (.S αρχεία):** Πλήρης χειροκίνητος έλεγχος σε register allocation, instruction ordering, memory layout. Ο μεταγλωττιστής δεν παρεμβαίνει — ο προγραμματιστής είναι υπεύθυνος για ABI compliance, calling conventions, και ορθότητα. Χρήση: boot code, interrupt handlers, ρουτίνες που απαιτούν ακριβή instruction encoding (π.χ. `ecall`, CSR manipulation πριν τη δημιουργία C runtime).
+
+    * **3.5.2 Inline Assembly (__asm__ / __asm__ volatile):** Ενσωματωμένες εντολές assembly μέσα σε C συναρτήσεις. Ο μεταγλωττιστής αντιμετωπίζει τα `volatile` blocks ως αδιαφανή (opaque) — δεν μπορεί να αναδιατάξει, εξαλείψει ή βελτιστοποιήσει γύρω τους. Απαιτεί χειροκίνητο constraint specification (`"=r"`, `"=&r"` early-clobber) για σύνδεση με C μεταβλητές. Χρήση: εντολές χωρίς αντίστοιχο C intrinsic (CSR reads, privileged instructions).
         <!-- NOTE (συγγραφή): Εξηγείται η σύνταξη constraints σε 2-3 γραμμές — ο αναγνώστης χρειάζεται να καταλάβει γιατί inline asm είναι error-prone (missing early-clobber = silent corruption). -->
-    * **(γ) C Intrinsics (`__riscv_*`):** Συναρτήσεις μεταγλωττιστή (compiler builtins) που αντιστοιχούν 1:1 σε εντολές μηχανής αλλά συμμετέχουν πλήρως στο optimization pipeline: register allocation, instruction scheduling, common subexpression elimination (CSE), constant folding, dead code elimination. Παρέχονται μέσω standard headers: `<riscv_bitmanip.h>` (scalar Zbc/Zbb/Zbs), `<riscv_vector.h>` (RVV 1.0 + Zvbc/Zvbb). Πλεονεκτήματα έναντι inline asm: type safety, portability μεταξύ compiler versions, πλήρης ορατότητα στον optimizer. Μειονέκτημα: δεν υπάρχουν intrinsics για κάθε εντολή (π.χ. CSR reads, `wfi`).
+
+    * **3.5.3 C Intrinsics (__riscv_*):** Συναρτήσεις μεταγλωττιστή (compiler builtins) που αντιστοιχούν 1:1 σε εντολές μηχανής αλλά συμμετέχουν πλήρως στο optimization pipeline: register allocation, instruction scheduling, common subexpression elimination (CSE), constant folding, dead code elimination. Παρέχονται μέσω standard headers: `<riscv_bitmanip.h>` (scalar Zbc/Zbb/Zbs), `<riscv_vector.h>` (RVV 1.0 + Zvbc/Zvbb). Πλεονεκτήματα έναντι inline asm: type safety, portability μεταξύ compiler versions, πλήρης ορατότητα στον optimizer. Μειονέκτημα: δεν υπάρχουν intrinsics για κάθε εντολή (π.χ. CSR reads, `wfi`).
         <!-- FIGURE: Σύγκριση inline asm vs intrinsic για clmul: Left = `__asm__ volatile("clmul %0, %1, %2" : "=r"(lo) : "r"(a), "r"(b))` (5 γραμμές, constraint syntax, opaque). Right = `lo = __riscv_clmul_64(a, b)` (1 γραμμή, typed, optimizable). Caption: "Ίδια εντολή, διαφορετική ορατότητα στον compiler." -->
-    * **(δ) Απλός C με Compiler Auto-Lowering:** Ο μεταγλωττιστής αναγνωρίζει αυτόματα C idioms και εκπέμπει εξειδικευμένες εντολές χωρίς ρητή παρέμβαση του προγραμματιστή — αρκεί η αντίστοιχη extension να είναι ενεργή στο `-march` flag. Παραδείγματα: `~a & b` → `andn` (Zbb), `(x << n) | (x >> (64-n))` → `rori` (Zbb), `base + idx*8` → `sh3add` (Zba), `x |= (1ULL << pos)` → `bset` (Zbs). Πλεονέκτημα: μηδενική αλλαγή πηγαίου κώδικα — μόνο αλλαγή compilation flags. Μειονέκτημα: ο compiler δεν αναγνωρίζει σύνθετα patterns (π.χ. δεν συνθέτει `vclmul.vv` από generic C loops — βλ. §9.2.4).
+
+    * **3.5.4 Standard C με Idiom Recognition:** Ο μεταγλωττιστής αναγνωρίζει αυτόματα C idioms και εκπέμπει εξειδικευμένες εντολές χωρίς ρητή παρέμβαση του προγραμματιστή — αρκεί η αντίστοιχη extension να είναι ενεργή στο `-march` flag. Παραδείγματα: `~a & b` → `andn` (Zbb), `(x << n) | (x >> (64-n))` → `rori` (Zbb), `base + idx*8` → `sh3add` (Zba), `x |= (1ULL << pos)` → `bset` (Zbs). Πλεονέκτημα: μηδενική αλλαγή πηγαίου κώδικα — μόνο αλλαγή compilation flags. Μειονέκτημα: ο compiler δεν αναγνωρίζει σύνθετα patterns (π.χ. δεν συνθέτει `vclmul.vv` από generic C loops — βλ. §8.4.4).
     <!-- FIGURE: Πίνακας σύγκρισης 4 μεθόδων: Μέθοδος | Βαθμός Ελέγχου | Compiler Optimization | Portability | Error-Proneness | Τυπική Χρήση. -->
     <!-- FIGURE: Διάγραμμα "spectrum of abstraction" (οριζόντιο): Pure .S ←→ Inline Asm ←→ Intrinsics ←→ Auto-Lowering. Πάνω βέλος: "Έλεγχος αυξάνεται ←". Κάτω βέλος: "→ Βελτιστοποίηση compiler αυξάνεται". -->
 
-## Κεφάλαιο 4: Σχετική Βιβλιογραφία (Related Work)
-* **4.1 Υλοποιήσεις HQC σε RISC-V:** Ανασκόπηση υπαρχουσών εργασιών.
-    * **Schöffel et al. 2022 (Univ. Kaiserslautern):** Πρώτο HW/SW co-design του HQC σε custom RISC-V (RV32IC). Χρησιμοποιεί sparse×dense multiplication (παλαιά spec HQC). Custom ISA extension για GF(2^8) αριθμητική. Loosely-coupled accelerators (R-Unit, Sampling-Unit, RM-Decoder). Επιτυγχάνει 98.9% speedup με όλα τα HW modules ενεργά. ASIC 22nm + FPGA υλοποίηση. **Περιορισμοί:** παλαιά spec (sparse×dense, πλέον obsolete μετά τη 2024 spec change), custom non-standard ISA extensions (μη ratified), RV32 μόνο.
-    * **Ras et al. 2026 — FAFFT SoC (CEA-Leti/ANSSI/INRIA):** Χρήση Frobenius Additive FFT (FAFFT) αντί Karatsuba στον CV32E40P RISC-V (RV32). Προτείνει τον ANDROMEDA HW accelerator (loosely-coupled). SW-only FAFFT: 3.52×–8.08× speedup. Με ANDROMEDA: 9.64×–19.22× συνολικά. **Περιορισμοί:** απαιτεί custom HW accelerator, RV32 embedded, δεν αξιοποιεί ratified crypto extensions.
+    * **3.5.5 Συγκριτική Αξιολόγηση:** Συγκριτική αξιολόγηση των επιπέδων αφαίρεσης και η σχεδιαστική αρχή επιλογής μεθόδου ανά περίπτωση.
+
+## Κεφάλαιο 4: Σχετική Βιβλιογραφία
+
+* **4.1 Άξονες σύγκρισης:** Οι άξονες σύγκρισης των εργασιών: πλατφόρμα, μέθοδος πολυωνυμικού πολλαπλασιασμού, στρατηγική επιτάχυνσης και κάλυψη του KEM.
+
+* **4.2 HQC σε RISC-V: υλοποιήσεις βασισμένες σε custom hardware:** Ανασκόπηση υπαρχουσών εργασιών.
+
+    * **4.2.1 Schöffel et al. 2022: HW/SW co-design σε RV32IC:** Χρησιμοποιεί παλαιά spec (sparse×dense, πλέον obsolete) + custom ISA extensions — δεν είναι ratified, δεν είναι dense×dense.
+
+    * **4.2.2 Ras et al. 2025: FAFFT & ANDROMEDA σε CV32E40P:** Χρήση Frobenius Additive FFT (FAFFT) αντί Karatsuba στον CV32E40P RISC-V (RV32). Προτείνει τον ANDROMEDA HW accelerator (loosely-coupled). SW-only FAFFT: 3.52×–8.08× speedup. Με ANDROMEDA: 9.64×–19.22× συνολικά. **Περιορισμοί:** απαιτεί custom HW accelerator, RV32 embedded, δεν αξιοποιεί ratified crypto extensions.
+
+    * **4.2.3 Dolmeta et al. 2025: TYRCA, tightly-coupled επιταχυντής:** Tightly-coupled επιταχυντής (TYRCA) για κρυπτογραφικές πράξεις του HQC σε RISC-V.
+
+    * **4.2.4 Seo et al. 2026: HW/SW co-optimization σε 32-bit Ibex:** HW/SW co-optimization του HQC σε 32-bit Ibex πυρήνα RISC-V.
+
+* **4.3 HQC σε x86/ARM: υλοποιήσεις καθαρού λογισμικού:** Εργασίες με AVX2 `vpclmulqdq`, ARM NEON `pmull`.
+
+    * **4.3.1 Robert & Véron 2023: η επίσημη AVX2 υλοποίηση του HQC:** Η επίσημη υλοποίηση αναφοράς του HQC σε AVX2, βάση σύγκρισης για τις επιδόσεις σε x86.
+
+    * **4.3.2 Jang et al. 2026: Toom-Karatsuba σε AVX2/Neon:** ARM Cortex-M4. Τρεις προσεγγίσεις: Hybrid FAFFT-CRT, Hybrid FAFFT-Karatsuba, radix-16. Δεν υπάρχει carry-less multiply HW στον M4. Καλύτερο: FAFFT-CRT μειώνει polymul κατά 33.4% (HQC-1). KEM speedup: 23.7% KeyGen, 24.2% Encaps, 21.9% Decaps για HQC-1. **Περιορισμοί:** M4-specific, δεν υπάρχει carry-less multiply HW.
+
+    * **4.3.3 Chen et al. 2026: additive FFT με CRT:** AVX2+GFNI, ARM NEON (υπάρχουσα αναφορά — διατηρείται).
+
+    * **4.3.4 Dong et al. 2025: OptHQC, sparse×dense σε AVX2:** x86 με AVX2. Sparse×dense multiplication με threshold-aware scheduling. AVX-parallel SHAKE (2× speedup). Table-driven RS encode/decode. Συνολικά 55% speedup έναντι reference. **Περιορισμοί:** χρησιμοποιεί sparse×dense (μερικώς old-spec behavior), x86-specific.
+
+* **4.4 Λοιπές σχετικές εργασίες:** Βελτιστοποιήσεις lattice-based PQC (Kyber, Dilithium) σε RISC-V — εργασίες που δεν αφορούν HQC αλλά τεκμηριώνουν τη γενικότερη τάση αξιοποίησης RISC-V extensions για PQC.
     * **PHOENIX (Ras et al. 2026 — CEA-Leti):** Πρώτος crypto-agile HW coprocessor για ML-KEM ΚΑΙ HQC. Χρησιμοποιεί FAFFT για HQC (αντικαθιστά Karatsuba). SuperButterfly unit μοιράζεται μεταξύ NTT (ML-KEM) και FAFFT (HQC). FPGA Zynq-7020. **Περιορισμοί:** απαιτεί custom HW coprocessor, FAFFT-specific, δεν είναι pure-software.
-* **4.2 Υλοποιήσεις HQC σε x86 και ARM:** Εργασίες με AVX2 `vpclmulqdq`, ARM NEON `pmull`.
-    * **OptHQC (Dong et al. 2025, UC Merced):** x86 με AVX2. Sparse×dense multiplication με threshold-aware scheduling. AVX-parallel SHAKE (2× speedup). Table-driven RS encode/decode. Συνολικά 55% speedup έναντι reference. **Περιορισμοί:** χρησιμοποιεί sparse×dense (μερικώς old-spec behavior), x86-specific.
-    * **Jang et al. 2026 (Korea University):** ARM Cortex-M4. Τρεις προσεγγίσεις: Hybrid FAFFT-CRT, Hybrid FAFFT-Karatsuba, radix-16. Δεν υπάρχει carry-less multiply HW στον M4. Καλύτερο: FAFFT-CRT μειώνει polymul κατά 33.4% (HQC-1). KEM speedup: 23.7% KeyGen, 24.2% Encaps, 21.9% Decaps για HQC-1. **Περιορισμοί:** M4-specific, δεν υπάρχει carry-less multiply HW.
-    * **Chen et al. TCHES 2026:** AVX2+GFNI, ARM NEON (υπάρχουσα αναφορά — διατηρείται).
     * **"Faster GF(2)[x] polynomial multiplication using SIMD instructions":** Τεχνικές vpclmulqdq για x86 SIMD GF(2)[x] πολλαπλασιασμό.
     * **"Accelerating HQC with Additive FFT":** Ανάλυση FAFFT acceleration.
     * **"A High Efficiency Hardware Design for the Post-Quantum KEM HQC":** Πλήρης HW σχεδίαση HQC (contrast point).
     * **"Efficient Hardware Implementation of Constant-Time Sampling for HQC":** CT sampling HW (future work reference).
     * **LEAP:** Sparse polynomial multiplication accelerator (obsolete μετά τη 2024 spec change σε dense×dense).
     * **Chen et al. 2021 (BIKE optimization for Intel Haswell and ARM Cortex-M4):** FAFFT σε BIKE context (Haswell/M4).
-* **4.3 Γενικότερες PQC Εργασίες στο RISC-V:** Βελτιστοποιήσεις lattice-based PQC (Kyber, Dilithium) σε RISC-V — εργασίες που δεν αφορούν HQC αλλά τεκμηριώνουν τη γενικότερη τάση αξιοποίησης RISC-V extensions για PQC.
     * **ECO-CRYSTALS (Ji et al. 2024, NJUPT):** Πρώτη highly-optimized assembly υλοποίηση Kyber1024 και Dilithium5 σε RV64IMB (VisionFive 2, in-order dual-issue). Βελτιστοποίηση Keccak (59.18% speedup μέσω dual-issue scheduling, `rori`/`andn`), NTT (76.76%–85.57% speedup μέσω Montgomery/Plantard arithmetic), matrix-vector multiplication (row-to-column methodology, 53.85%–78.71% speedup). End-to-end: Kyber KeyGen/Encaps/Decaps σε 399k/448k/479k cycles (60.82%–65.56% speedup). **Σχετικότητα:** Αποδεικνύει ότι η Zbb (rori/andn) ωφελεί σημαντικά τον Keccak σε RV64 — ίδια παρατήρηση με την παρούσα εργασία (§7.1.1). Η dual-issue scheduling μεθοδολογία είναι αναλογική αλλά σε NTT context αντί GF(2)[x].
-    * **Zhang et al. TCHES 2025 (NUAA/HKBU):** Πλήρης κάλυψη RV{32,64}IM{B}{V} ISA combinations για Keccak, Kyber, Dilithium σε XuanTie C908 (dual-issue, VLEN=128). Νέα performance records σε Keccak (RV64IB: 1770 cycles, RV32IB: 6222 cycles), NTT, και πλήρες KEM. Hybrid vector/scalar Keccak (RVVx2 + scalar interleaving). Βελτιωμένος Plantard αλγόριθμος (αντικατάσταση ⌊·⌉ με ⌊·⌋). Kyber768 end-to-end: RV64IMBV 165k/197k/207k cycles. **Σχετικότητα:** Η hybrid vector/scalar Keccak προσέγγιση είναι αναλογική με τη 2-way SoA της παρούσας εργασίας (§7.1.3).
-    * **Saarinen 2024 (Tampere/RISC-V PQC TG):** Πρόταση `vkeccak.vi` εντολής στο RISC-V PQC Task Group. Benchmarks Kyber-768 σε SpacemiT X60 (VLEN=256): RV64GC baseline 2.48M cycles → RV64GCV+ZBB 2.09M → with intrinsics 725k → with Keccak instruction 195k (12.74× speedup). Τεκμηριώνει ότι Keccak αποτελεί 60–80% του χρόνου Kyber/Dilithium μετά NTT vectorization — ίδια παρατήρηση με τη redistribution μετά polymul optimization στην παρούσα εργασία (§6.5). **Σχετικότητα:** Η πρόταση vkeccak.vi αποτελεί μελλοντική εξέλιξη (§10.3) — αν τυποποιηθεί, θα ωφελήσει και τον HQC. Τα benchmarks σε X60 (VLEN=256) παρέχουν real-silicon σημείο αναφοράς.
+    * **Zhang et al. TCHES 2025 (NUAA/HKBU):** Πλήρης κάλυψη RV{32,64}IM{B}{V} ISA combinations για Keccak, Kyber, Dilithium σε XuanTie C908 (dual-issue, VLEN=128). Νέα performance records σε Keccak (RV64IB: 1770 cycles, RV32IB: 6222 cycles), NTT, και πλήρες KEM. Hybrid vector/scalar Keccak (RVVx2 + scalar interleaving). Βελτιωμένος Plantard αλγόριθμος (αντικατάσταση ⌊·⌉ με ⌊·⌋). Kyber768 end-to-end: RV64IMBV 165k/197k/207k cycles. **Σχετικότητα:** Η hybrid vector/scalar Keccak προσέγγιση είναι αναλογική με τη 2-way SoA της παρούσας εργασίας (§7.1.2).
+    * **Saarinen 2024 (Tampere/RISC-V PQC TG):** Πρόταση `vkeccak.vi` εντολής στο RISC-V PQC Task Group. Benchmarks Kyber-768 σε SpacemiT X60 (VLEN=256): RV64GC baseline 2.48M cycles → RV64GCV+ZBB 2.09M → with intrinsics 725k → with Keccak instruction 195k (12.74× speedup). Τεκμηριώνει ότι Keccak αποτελεί 60–80% του χρόνου Kyber/Dilithium μετά NTT vectorization — ίδια παρατήρηση με τη redistribution μετά polymul optimization στην παρούσα εργασία (§6.5). **Σχετικότητα:** Η πρόταση vkeccak.vi αποτελεί μελλοντική εξέλιξη (§9.3) — αν τυποποιηθεί, θα ωφελήσει και τον HQC. Τα benchmarks σε X60 (VLEN=256) παρέχουν real-silicon σημείο αναφοράς.
     <!-- NOTE (συγγραφή): Αυτές οι εργασίες δεν αφορούν HQC αλλά τεκμηριώνουν: (1) ότι η RISC-V PQC κοινότητα εστιάζει σε lattice-based, αφήνοντας κενό στο code-based, (2) ότι οι ίδιες extensions (Zbb, RVV) ωφελούν και τον HQC, (3) ότι ο Keccak αποτελεί κοινό bottleneck μεταξύ lattice-based και code-based PQC. -->
-* **4.4 Αποτίμηση Κενού και Τοποθέτηση Παρούσας Εργασίας:** Σύνοψη του ερευνητικού κενού που καλύπτει η παρούσα εργασία σε σχέση με τη βιβλιογραφία. Τεκμηρίωση: καμία end-to-end υλοποίηση HQC σε RISC-V, καμία αξιοποίηση Zbc/Zvbc σε HQC. Αναλυτική τεκμηρίωση ανά εργασία:
-    * **Ras et al. 2026:** Χρησιμοποιεί FAFFT + custom ANDROMEDA HW accelerator — δεν είναι pure SW, δεν αξιοποιεί ratified extensions.
-    * **Schöffel et al. 2022:** Χρησιμοποιεί παλαιά spec (sparse×dense, πλέον obsolete) + custom ISA extensions — δεν είναι ratified, δεν είναι dense×dense.
-    * **PHOENIX 2026:** Χρησιμοποιεί custom HW coprocessor (SuperButterfly) — δεν είναι pure SW.
-    * **OptHQC 2025:** Στοχεύει x86 AVX2 — δεν είναι RISC-V.
-    * **Jang et al. 2026:** Στοχεύει Cortex-M4 — δεν είναι RISC-V, δεν υπάρχει clmul.
-    * **Κανένα paper δεν καλύπτει:** end-to-end HQC σε RISC-V με ratified extensions (Zbc/Zvbc/Zvbb), pure software, dense×dense Karatsuba.
-    Οι πρόσφατες εργασίες (12/2024–2026) καλύπτουν πλήρες KEM σε x86-64 (OptHQC, Chen et al. TCHES 2026 AVX2+GFNI) και ARM NEON, polymul σε Cortex-M4 (FAFFT-CRT, radix-16+Karatsuba), GPU (ePrint 2026/012), και custom HW accelerators (TYRCA, PHOENIX FPGA, ANDROMEDA). Κανένα δεν στοχεύει pure-software βελτιστοποίηση σε RISC-V με ratified extensions — η παρούσα εργασία είναι η πρώτη που καλύπτει ολόκληρο τον HQC KEM (polymul + Keccak + decode) σε τρία RISC-V deployment tiers.
-    <!-- NOTE (συγγραφή): Μια παράγραφος ανά paper, αλλά AND summary table στο τέλος. Το §1.4 δηλώνει τη συνεισφορά (forward-looking), το §4.4 τεκμηριώνει γιατί κανείς δεν το έκανε πριν (evidence-based). -->
-    <!-- FIGURE: Summary table related work: Paper | Platform | Algorithm | Metric | Result | Limitation vs παρούσα. -->
 
 ## Κεφάλαιο 5: Πειραματική Υποδομή και Μεθοδολογία Αξιολόγησης
+
 * **5.1 Πλατφόρμες Εκτέλεσης και Μέτρησης:**
-    * **5.1.1 Spike ISS — Ντετερμινιστική Καταμέτρηση Εντολών:** Ο επίσημος αναφορικός εξομοιωτής RISC-V. Λειτουργικό μοντέλο χωρίς pipeline/cache — κάθε εντολή κοστίζει ακριβώς 1 "κύκλο" (CPI=1). Πλήρης υποστήριξη Zvbc/Zvbb. Ντετερμινιστική εκτέλεση: ίδιο binary → ίδιο instret πάντα. Πρωτεύουσα μετρική: retired instruction count. Χρήση: αλγοριθμική σύγκριση μεταξύ variants, profiling, VLEN sweep (256–2048).
+
+    * **5.1.1 Spike: Golden Reference ISS:** Ο επίσημος αναφορικός εξομοιωτής RISC-V. Λειτουργικό μοντέλο χωρίς pipeline/cache — κάθε εντολή κοστίζει ακριβώς 1 "κύκλο" (CPI=1). Πλήρης υποστήριξη Zvbc/Zvbb. Ντετερμινιστική εκτέλεση: ίδιο binary → ίδιο instret πάντα. Πρωτεύουσα μετρική: retired instruction count. Χρήση: αλγοριθμική σύγκριση μεταξύ variants, profiling, VLEN sweep (256–2048).
         <!-- FIGURE: Diagram Spike architecture: Host CPU → Spike ISS (functional model, instruction-by-instruction) → instret counter. Annotation: "No pipeline model, no cache model — pure instruction count." -->
-    * **5.1.2 QEMU — Ταχεία Λειτουργική Επαλήθευση:** Dynamic Binary Translation (DBT) μέσω TCG. 2–3 τάξεις μεγέθους ταχύτερος από Spike. Χρήση αποκλειστικά για KAT validation (300 vectors σε <30s). Η τιμή `rdcycle` στον QEMU δεν έχει φυσική σημασία — **καμία τιμή QEMU δεν χρησιμοποιείται στα αποτελέσματα**.
-    * **5.1.3 Banana Pi BPI-F3 — Πραγματικό RISC-V Hardware (SpacemiT K1 X60):** Πλατφόρμα hardware validation. Παρέχει πραγματικές μετρήσεις κύκλων (cycles) με pipeline effects, cache behavior, και dual-issue scheduling — συμπληρωματικά με τα ντετερμινιστικά instret του Spike.
+
+    * **5.1.2 Banana Pi BPI-F3: Πραγματικό RISC-V Hardware:** Πλατφόρμα hardware validation. Παρέχει πραγματικές μετρήσεις κύκλων (cycles) με pipeline effects, cache behavior, και dual-issue scheduling — συμπληρωματικά με τα ντετερμινιστικά instret του Spike.
         * **Προδιαγραφές Hardware:** SpacemiT K1 SoC, 8× X60 cores (RV64GCVB, RVA22 profile), dual-issue in-order 8-stage pipeline, 1.6 GHz, VLEN=256 bits. Dual-cluster τοπολογία: Cluster 0 (4 cores, 32KB L1i+L1d per core, 512KB shared L2, 512KB TCM), Cluster 1 (4 cores, 32KB L1, 512KB L2). 16GB LPDDR4X @ 2666 Mbps, 128GB eMMC. IMG BXE-2-32 GPU. Bianbu Linux (kernel 6.6.x).
         * **Υποστηριζόμενες Επεκτάσεις:** RV64IMAFDCV + Zba + Zbb + Zbc + Zbs (RVA22 mandatory). **Δεν υποστηρίζει** Zvbc και Zvbb (απαιτούν RVA23 profile — δεν υπάρχει ακόμη σε silicon). Αυτό σημαίνει ότι οι scalar και base-RVV variants εκτελούνται natively, ενώ οι vector-crypto variants (Zvbc/Zvbb) αξιολογούνται μόνο μέσω Spike.
         * **Μεθοδολογία Μέτρησης:** `perf_event_open` syscall με `exclude_kernel=1` (userspace-only cycles). Η `rdcycle` δεν είναι προσβάσιμη από userspace (scounteren.CY=0 στο default Linux). Πρωτόκολλο: CPU pinned σε isolated core (`taskset -c 7`), governor=performance, 100 warm-up + 10,000 measured iterations, median reported. Static binary (`-static`) για εξάλειψη PLT/GOT overhead.
-        * **Σημασία για τη Μεθοδολογία:** Η σύγκριση Spike instret vs HW cycles αποκαλύπτει τον πραγματικό IPC (Instructions Per Cycle) — δείκτη pipeline utilization. Η εμπειρική επικύρωση (βλ. §5.3) τεκμηριώνει ότι τα Spike speedups αποκλίνουν μόλις ~2% από τα πραγματικά για HQC-128/192. Επιπλέον, η πλατφόρμα χρησιμοποιείται για εμπειρική επαλήθευση constant-time συμπεριφοράς μέσω dudect (βλ. §5.5.4) — η ίδια process isolation (taskset, nice, governor) εξασφαλίζει χαμηλό θόρυβο στις μετρήσεις χρονισμού. **Σημείωση:** η CT verification καλύπτει μόνο τα Tier 1 (karatsuba_zbc) και Tier 2 (karatsuba_rvv) variants, καθώς το Tier 3 (karatsuba_zvbc) απαιτεί Zvbc/Zvbb που δεν υποστηρίζονται από τον K1.
+        * **Σημασία για τη Μεθοδολογία:** Η σύγκριση Spike instret vs HW cycles αποκαλύπτει τον πραγματικό IPC (Instructions Per Cycle) — δείκτη pipeline utilization. Η εμπειρική επικύρωση (βλ. §5.4) τεκμηριώνει ότι τα Spike speedups αποκλίνουν μόλις ~2% από τα πραγματικά για HQC-128/192. Επιπλέον, η πλατφόρμα χρησιμοποιείται για εμπειρική επαλήθευση constant-time συμπεριφοράς μέσω dudect (βλ. §5.6.3) — η ίδια process isolation (taskset, nice, governor) εξασφαλίζει χαμηλό θόρυβο στις μετρήσεις χρονισμού. **Σημείωση:** η CT verification καλύπτει μόνο τα Tier 1 (karatsuba_zbc) και Tier 2 (karatsuba_rvv) variants, καθώς το Tier 3 (karatsuba_zvbc) απαιτεί Zvbc/Zvbb που δεν υποστηρίζονται από τον K1.
         <!-- FIGURE: Φωτογραφία Banana Pi BPI-F3 board (16GB variant) με annotation βασικών components: SoC, RAM, eMMC, Ethernet, USB-C, M.2 slot. -->
         <!-- FIGURE: Πίνακας specifications BPI-F3: Feature | Value. Rows: SoC (SpacemiT K1), Cores (8× X60), Pipeline (dual-issue, in-order, 8-stage), Clock (1.6 GHz), VLEN (256 bits), ISA (RV64GCVB), L1 Cache (32KB I+D per core), L2 Cache (512KB per cluster), RAM (16GB LPDDR4X @ 2666 Mbps), Storage (128GB eMMC), OS (Bianbu Linux 6.6.x). -->
         <!-- FIGURE: Diagram αντιστοίχισης K1 extensions σε thesis variants: scalar+RVV variants ✓ (hardware validated), vector-crypto variants ✗ (emulation only via Spike). -->
-    * **5.1.4 Στρατηγική Τριπλής Πλατφόρμας:** Αυστηρός διαχωρισμός ρόλων: Spike = πρωτεύουσα μετρική (instret) + profiling + VLEN sweep + πλήρης κάλυψη όλων των variants. QEMU = ταχεία KAT validation. BPI-F3 = hardware validation (cycles, IPC) + cross-check Spike predictions + wall-clock time.
-        <!-- FIGURE: Πίνακας σύγκρισης τριών πλατφορμών: Spike ISS | QEMU | BPI-F3 Hardware. Rows: Metric type (instret/meaningless/cycles), Determinism (perfect/N.A./statistical), Pipeline model (none/none/real 8-stage dual-issue), Cache model (none/none/real 32KB L1 + 512KB L2), Variant coverage (all/all/scalar+RVV only), Speed (slow/fast/real-time), Use case (benchmarking/KAT/validation). -->
-* **5.2 Cross-Compilation Toolchains και Ρυθμίσεις Μεταγλώττισης:** Συγκριτική αξιολόγηση Clang/LLVM και GCC, CMake toolchain files, ISA flags (`-march`) και επίπεδα βελτιστοποίησης (`-O3`).
+
+* **5.2 Toolchains και Στρατηγική Μεταγλώττισης:** Συγκριτική αξιολόγηση Clang/LLVM και GCC, CMake toolchain files, ISA flags (`-march`) και επίπεδα βελτιστοποίησης (`-O3`).
     <!-- FIGURE: Build pipeline diagram: Source (.c/.h) → CMake → Toolchain (Clang/GCC) → -march flags → ELF binary → Spike execution → instret output. -->
     <!-- FIGURE: Πίνακας software versions: Tool | Version | Notes (Clang XX.x, GCC XX.x, Spike commit, CMake version). -->
-* **5.3 Μεθοδολογία Benchmarking και Περιορισμοί Μετρικής:** Καταμέτρηση δυναμικών εντολών (`instret`) και profiling μέσω DWARF debug symbols. **Σημαντική επισήμανση:** `instret ≠ cycles` — ο Spike ISS μετράει εντολές υπό ιδανικές συνθήκες pipeline (χωρίς stalls, memory latency, cache effects). Σε ιδανικό single-issue pipeline, CPI=1 → instret ≈ cycles. Σε real hardware, CPI>1 λόγω stalls (instret = lower bound). Σε dual-issue (π.χ. SpacemiT K1), CPI<1 → cycles < instret. Η ετερογενής σύγκριση με cycle counts τρίτων απαιτεί ρητές επιφυλάξεις (βλ. §9.1).
-    * **5.3.1 Μέτρηση σε Spike (instret):** Απευθείας ανάγνωση CSR `minstret` σε M-mode. Μία μόνο μέτρηση ανά λειτουργία (ντετερμινιστική — δεν απαιτεί στατιστική). Profiling μέσω PC histograms + DWARF addr2line.
-    * **5.3.2 Μέτρηση σε Πραγματικό Hardware (BPI-F3 cycles):** `perf_event_open` harness με `exclude_kernel=1`. Reset/enable/disable γύρω από κάθε iteration (per-iteration cycle counts). Στατιστική επεξεργασία: median (primary), mean, stddev, min, max, IQR. Warm-up 100 iterations (discarded) + 10,000 measured iterations. Overhead ανάλυση: ~100-200 cycles per ioctl — αμελητέο για operations >100k cycles. Σύγκριση με `perf stat` ως cross-check.
-    * **5.3.3 Εμπειρική Επικύρωση: Spike vs Hardware:** Πίνακας σύγκρισης Spike speedup predictions vs μετρημένα HW speedups. Αποτέλεσμα: ~2% απόκλιση για HQC-128/192, ~20% για HQC-256 (εξηγείται από cache capacity effects στο reference — working set ~57KB πλησιάζει L1 64KB). Τεκμηρίωση ότι η instret αποτελεί αξιόπιστο δείκτη σχετικής απόδοσης.
-    * **5.3.4 Παραγωγή IPC και Wall-Clock Time:** IPC = Spike_instret / HW_cycles. Wall-clock = HW_cycles / 1.6 GHz. Αυτές οι παράγωγες μετρικές παρέχουν πρακτική αξιολόγηση deployment readiness.
-    <!-- FIGURE: Diagram "instret vs cycles vs CPI": ideal single-issue pipeline (CPI=1, instret = cycles) vs real pipeline (CPI>1, stalls, cache misses → cycles > instret) vs dual-issue/superscalar pipeline (CPI<1, π.χ. K1 — cycles < instret). Caption: "instret ≠ cycles: η σχέση εξαρτάται από CPI." -->
-    <!-- FIGURE: Diagram measurement harness: perf_event_open → ioctl(RESET) → ioctl(ENABLE) → KEM operation → ioctl(DISABLE) → read() → results[i]. Caption: "Per-iteration cycle measurement via Linux PMU interface." -->
-    <!-- FIGURE: Histogram of 10,000 cycle measurements (HQC-128 decaps, karatsuba_zbc) showing tight distribution with occasional interrupt spikes — justifies median over mean. -->
-* **5.4 Επαλήθευση Ορθότητας (KAT Tests):** Αυτοματοποιημένος έλεγχος μέσω των Known Answer Tests του NIST. Αναπαραγωγιμότητα: όλα τα αποτελέσματα αναπαράγονται μέσω scripts (βλ. Παράρτημα Β).
-* **5.5 Μεθοδολογία Επαλήθευσης Σταθερού Χρόνου Εκτέλεσης (Constant-Time):** Μεθοδολογία επαλήθευσης ότι οι βελτιστοποιημένες υλοποιήσεις HQC διατηρούν constant-time συμπεριφορά. Διπλή στρατηγική: στατική ανάλυση (ctgrind/Valgrind Memcheck) + στατιστική ανίχνευση διαρροής (dudect σε πραγματικό hardware). Τα εμπειρικά αποτελέσματα και η ερμηνεία τους παρουσιάζονται στο §9.6.
-    * **5.5.1 Μοντέλο Απειλής και Ορισμός Constant-Time:** Ορισμός: η εκτέλεση (χρονισμός, cache access patterns, branch outcomes) είναι ανεξάρτητη από μυστικά δεδομένα. Για τον HQC: μυστικό κλειδί $\mathbf{sk} = (\mathbf{x}, \mathbf{y})$ και αποκρυπτογραφημένο μήνυμα $m'$. Σχέση με RISC-V Zkt subset: εντολές με αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση. Ανάλυση ποιοι πυρήνες απαιτούν CT (polymul — επεξεργάζεται μυστικό κλειδί, FO compare/select) και ποιοι όχι (decode — μασκάρεται από FO transform, Keccak — εγγενώς CT λόγω αλγοριθμικής δομής).
+
+    * **5.2.1 Στρατηγική Μεταγλώττισης και Επιλογή Compiler:** Η στρατηγική μεταγλώττισης και τα κριτήρια επιλογής compiler.
+
+    * **5.2.2 Διαμόρφωση Build: ISA Flags και Βελτιστοποίηση:** Οι per-variant συμβολοσειρές -march, τα επίπεδα βελτιστοποίησης και η χρήση PGO και LTO.
+
+* **5.3 Bare-Metal Πλαίσιο Εκτέλεσης:**
+
+    * **5.3.1 Boot Sequence:** Μεταγλώττιση με `-nostdlib`, εξειδικευμένο `startup.S` για αρχικοποίηση επεξεργαστή, ρητή ενεργοποίηση Vector Unit μέσω `mstatus.VS`, και custom linker script `link.ld` για έλεγχο memory layout.
+        <!-- FIGURE: Boot sequence flowchart: Reset → startup.S (set sp, enable VU, zero BSS) → main() → HQC execution → instret readout → ecall exit. -->
+
+    * **5.3.2 Διαχείριση Μνήμης και Runtime Υποστήριξη:** Εξειδικευμένες ρουτίνες `memcpy`/`memset` χωρίς runtime βιβλιοθήκες. Πολιτικές ευθυγράμμισης (alignment) για ντετερμινιστική εκτέλεση. Βελτιστοποιημένη `memcpy` με RVV.
+        <!-- FIGURE: Memory map diagram (linear, vertical): 0x80000000 .text (code) | .rodata (KAT data, constants) | .data (initialized globals) | .bss (zero-initialized, Keccak state, scratch buffers) | ↓ heap (polymul scratch) | ... | ↑ stack (top of RAM). Annotation: total RAM budget, alignment boundaries marked. -->
+
+* **5.4 Μεθοδολογία Benchmarking:** Καταμέτρηση δυναμικών εντολών (`instret`) και profiling μέσω DWARF debug symbols. **Σημαντική επισήμανση:** `instret ≠ cycles` — ο Spike ISS μετράει εντολές υπό ιδανικές συνθήκες pipeline (χωρίς stalls, memory latency, cache effects). Σε ιδανικό single-issue pipeline, CPI=1 → instret ≈ cycles. Σε real hardware, CPI>1 λόγω stalls (instret = lower bound). Σε dual-issue (π.χ. SpacemiT K1), CPI<1 → cycles < instret. Η ετερογενής σύγκριση με cycle counts τρίτων απαιτεί ρητές επιφυλάξεις (βλ. §8.3).
+
+    * **5.4.1 Μέτρηση σε Spike (instret):** Απευθείας ανάγνωση CSR `minstret` σε M-mode. Μία μόνο μέτρηση ανά λειτουργία (ντετερμινιστική — δεν απαιτεί στατιστική). Profiling μέσω PC histograms + DWARF addr2line.
+
+    * **5.4.2 Μέτρηση σε Hardware (BPI-F3 Cycles):** `perf_event_open` harness με `exclude_kernel=1`. Reset/enable/disable γύρω από κάθε iteration (per-iteration cycle counts). Στατιστική επεξεργασία: median (primary), mean, stddev, min, max, IQR. Warm-up 100 iterations (discarded) + 10,000 measured iterations. Overhead ανάλυση: ~100-200 cycles per ioctl — αμελητέο για operations >100k cycles. Σύγκριση με `perf stat` ως cross-check.
+
+* **5.5 Επαλήθευση Ορθότητας (KAT Tests):** Αυτοματοποιημένος έλεγχος μέσω των Known Answer Tests του NIST. Αναπαραγωγιμότητα: όλα τα αποτελέσματα αναπαράγονται μέσω scripts (βλ. Παράρτημα Β).
+
+* **5.6 Μεθοδολογία Επαλήθευσης Σταθερού Χρόνου Εκτέλεσης:** Μεθοδολογία επαλήθευσης ότι οι βελτιστοποιημένες υλοποιήσεις HQC διατηρούν constant-time συμπεριφορά. Διπλή στρατηγική: στατική ανάλυση (ctgrind/Valgrind Memcheck) + στατιστική ανίχνευση διαρροής (dudect σε πραγματικό hardware). Τα εμπειρικά αποτελέσματα και η ερμηνεία τους παρουσιάζονται στο §8.7.
+
+    * **5.6.1 Μοντέλο Απειλής και Ορισμός Constant-Time:** Ορισμός: η εκτέλεση (χρονισμός, cache access patterns, branch outcomes) είναι ανεξάρτητη από μυστικά δεδομένα. Για τον HQC: μυστικό κλειδί $\mathbf{sk} = (\mathbf{x}, \mathbf{y})$ και αποκρυπτογραφημένο μήνυμα $m'$. Σχέση με RISC-V Zkt subset: εντολές με αρχιτεκτονικά εγγυημένη σταθερή καθυστέρηση. Ανάλυση ποιοι πυρήνες απαιτούν CT (polymul — επεξεργάζεται μυστικό κλειδί, FO compare/select) και ποιοι όχι (decode — μασκάρεται από FO transform, Keccak — εγγενώς CT λόγω αλγοριθμικής δομής).
         <!-- NOTE (συγγραφή): Σημαντική διάκριση: δεν απαιτούν ΟΛΑ τα components CT. Η FO transform σχεδιάστηκε ώστε μόνο η σύγκριση/επιλογή να πρέπει να είναι CT. Αυτό τεκμηριώνεται αναλυτικά. -->
-    * **5.5.2 Σχεδιαστικά Πρότυπα για CT GF(2)[X] Αριθμητική:** Πώς η Zbc (`clmul`/`clmulh`) παρέχει hardware-guaranteed σταθερή καθυστέρηση (Zkt-compliant). Η αναδρομική δομή Karatsuba εκτελεί ντετερμινιστικά (compile-time σταθερό βάθος, χωρίς data-dependent branches). Ο fully-unrolled leaf (`clmul_leaf_n8`) εκτελεί ταυτόσημη ακολουθία εντολών ανεξαρτήτως τιμών εισόδου. Η RVV/Zvbc υλοποίηση (`vclmul.vv`) χρησιμοποιεί σταθερά LMUL/SEW configurations χωρίς predicated operations σε μυστικά δεδομένα.
-    * **5.5.3 Στατική Επαλήθευση — ctgrind (Valgrind Memcheck):** Μεθοδολογία: marking μυστικών δεδομένων ως "uninitialized" μέσω `VALGRIND_MAKE_MEM_UNDEFINED`. Ο Memcheck αναφέρει κάθε conditional branch ή indexed memory access που εξαρτάται από "uninitialized" bytes. Ενσωμάτωση στο CI pipeline (`ct-verify.yml`). Περιορισμοί: μόνο `scalar_ref` variant (RISC-V intrinsics δεν μεταγλωττίζονται σε x86-64), δεν ανιχνεύει μικροαρχιτεκτονικά κανάλια.
-        <!-- FIGURE: Πίνακας ctgrind αποτελεσμάτων: Variant | Level | Violations | Verdict. -->
-    * **5.5.4 Εμπειρική Επαλήθευση σε Hardware — Dudect (BPI-F3):** Μεθοδολογία Welch's t-test (Reparaz et al., DATE 2017): δύο κλάσεις εισόδου (fixed vs random), στατιστική σύγκριση κατανομών χρονισμού. Threshold |t| < 4.5 (p < 6.8×10⁻⁶). Εκτέλεση σε BPI-F3 με process isolation (`taskset -c 7`, `nice -n -20`, governor=performance). Σχεδιαστική απόφαση prepare-then-measure (εξάλειψη cache-state bias — βλ. §9.6.1). Warm-up round για εξάλειψη cold-start transients. Percentile cropping (95th) ως second-order test.
+
+    * **5.6.2 Σχεδιαστικά Πρότυπα για CT Αριθμητική στο GF(2)[x]:** Πώς η Zbc (`clmul`/`clmulh`) παρέχει hardware-guaranteed σταθερή καθυστέρηση (Zkt-compliant). Η αναδρομική δομή Karatsuba εκτελεί ντετερμινιστικά (compile-time σταθερό βάθος, χωρίς data-dependent branches). Ο fully-unrolled leaf (`clmul_leaf_n8`) εκτελεί ταυτόσημη ακολουθία εντολών ανεξαρτήτως τιμών εισόδου. Η RVV/Zvbc υλοποίηση (`vclmul.vv`) χρησιμοποιεί σταθερά LMUL/SEW configurations χωρίς predicated operations σε μυστικά δεδομένα.
+
+    * **5.6.3 Εμπειρική Επαλήθευση σε Hardware: Dudect (BPI-F3):** Μεθοδολογία Welch's t-test (Reparaz et al., DATE 2017): δύο κλάσεις εισόδου (fixed vs random), στατιστική σύγκριση κατανομών χρονισμού. Threshold |t| < 4.5 (p < 6.8×10⁻⁶). Εκτέλεση σε BPI-F3 με process isolation (`taskset -c 7`, `nice -n -20`, governor=performance). Σχεδιαστική απόφαση prepare-then-measure (εξάλειψη cache-state bias — βλ. §8.7.1). Warm-up round για εξάλειψη cold-start transients. Percentile cropping (95th) ως second-order test.
         <!-- FIGURE: Diagram prepare-then-measure protocol: Phase 1 (prepare all inputs) → Phase 2 (tight measurement loop). Caption: "Eliminates systematic cache-state asymmetry between classes." -->
-    * **5.5.5 Στόχοι Δοκιμών και Πίνακας Variants:** Δύο harnesses: `dudect_polymul` (απομονωμένο `vect_mul()` — ενισχυμένη ευαισθησία) και `dudect_kem` (πλήρες `crypto_kem_dec()` — end-to-end ασφάλεια). Τεκμηρίωση γιατί δεν υπάρχει `dudect_decode` (FO transform μασκάρει, δεν αποτελεί ευπάθεια) ούτε `dudect_keccak` (εγγενώς CT αλγοριθμικά). Πίνακας variants: ref_scalar, karatsuba_zbc, karatsuba_rvv × security levels 128/192/256. **Περιορισμός κάλυψης:** Το `karatsuba_zvbc` (Tier 3) δεν μπορεί να δοκιμαστεί με dudect διότι ο SpacemiT K1 δεν υποστηρίζει Zvbc/Zvbb — η CT verification του Tier 3 παραμένει μελλοντική εργασία εκκρεμούσα RVA23-compliant hardware (βλ. §10.3). Ωστόσο, η αρχιτεκτονική ανάλυση (§5.5.2) τεκμηριώνει ότι οι `vclmul.vv`/`vclmulh.vv` εντολές είναι Zkt-compliant (σταθερή καθυστέρηση ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση. Multi-run protocol (N=10 ανεξάρτητα trials με διαφορετικά seeds) για publication-grade evidence.
+
+    * **5.6.4 Στόχοι Δοκιμών και Πίνακας Variants:** Δύο harnesses: `dudect_polymul` (απομονωμένο `vect_mul()` — ενισχυμένη ευαισθησία) και `dudect_kem` (πλήρες `crypto_kem_dec()` — end-to-end ασφάλεια). Τεκμηρίωση γιατί δεν υπάρχει `dudect_decode` (FO transform μασκάρει, δεν αποτελεί ευπάθεια) ούτε `dudect_keccak` (εγγενώς CT αλγοριθμικά). Πίνακας variants: ref_scalar, karatsuba_zbc, karatsuba_rvv × security levels 128/192/256. **Περιορισμός κάλυψης:** Το `karatsuba_zvbc` (Tier 3) δεν μπορεί να δοκιμαστεί με dudect διότι ο SpacemiT K1 δεν υποστηρίζει Zvbc/Zvbb — η CT verification του Tier 3 παραμένει μελλοντική εργασία εκκρεμούσα RVA23-compliant hardware (βλ. §9.3). Ωστόσο, η αρχιτεκτονική ανάλυση (§5.6.2) τεκμηριώνει ότι οι `vclmul.vv`/`vclmulh.vv` εντολές είναι Zkt-compliant (σταθερή καθυστέρηση ανεξαρτήτως operands), παρέχοντας θεωρητική εγγύηση. Multi-run protocol (N=10 ανεξάρτητα trials με διαφορετικά seeds) για publication-grade evidence.
         <!-- FIGURE: Πίνακας αποτελεσμάτων dudect: Variant | Level | Target | N | t₁ | t₂ | Verdict. -->
         <!-- FIGURE: Πίνακας τεκμηρίωσης test matrix: Harness | Tests | CT Required? | Why Include/Exclude. -->
-* **5.6 Bare-Metal Πλαίσιο Εκτέλεσης:**
-    * **5.6.1 Boot Sequence:** Μεταγλώττιση με `-nostdlib`, εξειδικευμένο `startup.S` για αρχικοποίηση επεξεργαστή, ρητή ενεργοποίηση Vector Unit μέσω `mstatus.VS`, και custom linker script `link.ld` για έλεγχο memory layout.
-        <!-- FIGURE: Boot sequence flowchart: Reset → startup.S (set sp, enable VU, zero BSS) → main() → HQC execution → instret readout → ecall exit. -->
-    * **5.6.2 Διαχείριση Μνήμης και Runtime Υποστήριξη:** Εξειδικευμένες ρουτίνες `memcpy`/`memset` χωρίς runtime βιβλιοθήκες. Πολιτικές ευθυγράμμισης (alignment) για ντετερμινιστική εκτέλεση. Βελτιστοποιημένη `memcpy` με RVV.
-        <!-- FIGURE: Memory map diagram (linear, vertical): 0x80000000 .text (code) | .rodata (KAT data, constants) | .data (initialized globals) | .bss (zero-initialized, Keccak state, scratch buffers) | ↓ heap (polymul scratch) | ... | ↑ stack (top of RAM). Annotation: total RAM budget, alignment boundaries marked. -->
-    * **5.6.3 Καθαρότητα Μέτρησης (Measurement Purity):** Απουσία OS jitter και syscall overhead — κάθε εντολή (`instret`) αποδίδεται αποκλειστικά στον κρυπτογραφικό πυρήνα.
-* **5.7 Εφαρμογή Μεθόδων Προγραμματισμού στην Παρούσα Εργασία:** Αντιστοίχιση των τεσσάρων μεθόδων προγραμματισμού RISC-V (βλ. §3.5) στα συγκεκριμένα αρχεία και πυρήνες της υλοποίησης. Σχεδιαστική απόφαση: intrinsics ως default μέθοδος, inline asm μόνο όπου δεν υπάρχει intrinsic, auto-lowering ως δωρεάν bonus — σε αντίθεση με πολλές embedded crypto υλοποιήσεις που γράφουν ολόκληρους πυρήνες σε assembly. Πίνακας αντιστοίχισης:
-    * **Pure Assembly (`.S`):** `startup.S` — bare-metal boot sequence (βλ. §5.6.1).
-    * **Inline Assembly:** `bench.c` — CSR reads (`csrr mcycle`, `csrr minstret`) και `wfi`.
-    * **C Intrinsics:** Κύρια μέθοδος σε όλους τους κρυπτογραφικούς πυρήνες:
-        - Scalar Zbc: `__riscv_clmul_64()` / `__riscv_clmulh_64()` — Karatsuba leaves, GF(2^8) αριθμητική.
-        - Scalar Zbb: `__riscv_ror_64()` — Keccak θ-step rotation.
-        - RVV 1.0: `__riscv_vsetvl_*()`, `__riscv_vle64_*()`, `__riscv_vxor_*()` κ.λπ. — ολόκληρη η διανυσματική υλοποίηση.
-        - Zvbc: `__riscv_vclmul_vv_*()` / `__riscv_vclmulh_vv_*()` — vectorized carry-less multiply.
-        - Zvbb: `__riscv_vror_vv_*()`, `__riscv_vandn_vv_*()` — Keccak ρ+χ steps.
-    * **Auto-Lowering (Plain C):** Zba `sh3add` (pointer arithmetic), Zbs `bset` (bit-scatter), Zbb `andn`/`rori` (bitwise patterns). Ο μηχανισμός περιγράφεται στο §7.4, τα όρια και τα ποσοτικά ablation αποτελέσματα στο §9.2.
-    <!-- FIGURE: Πίνακας αντιστοίχισης: Μέθοδος | Αρχεία | Εντολές | Λόγος Επιλογής. -->
-* **5.8 Baseline Profiling:** Πρώτη εκτέλεση του reference HQC στο Spike environment — επιβεβαίωση ότι η υποδομή (§5.1–§5.7) λειτουργεί end-to-end. Παρουσίαση reference instret ανά operation (Keypair, Encaps, Decaps) για HQC-128 στο scalar baseline (χωρίς βελτιστοποιήσεις). Αυτοί οι αριθμοί αποτελούν τη βάση αναφοράς (denominator) για όλα τα speedup calculations στα Κεφ. 6–8. Αναφορά στο pie chart (§2.2.3) ως θεμελίωση στόχευσης βελτιστοποίησης: η κατανομή instret αποκαλύπτει ότι ο πολυωνυμικός πολλαπλασιασμός κυριαρχεί (~96%), καθορίζοντας τη σειρά βελτιστοποίησης (polymul πρώτα, Keccak/decode μετά).
 
-## Κεφάλαιο 6: Βελτιστοποίηση Πολυωνυμικού Πολλαπλασιασμού (Polynomial Multiplication)
+* **5.7 Profiling της Υλοποίησης Αναφοράς:** Πρώτη εκτέλεση του reference HQC στο Spike environment — επιβεβαίωση ότι η υποδομή (§5.1–§5.6) λειτουργεί end-to-end. Παρουσίαση reference instret ανά operation (Keypair, Encaps, Decaps) για HQC-128 στο scalar baseline (χωρίς βελτιστοποιήσεις). Αυτοί οι αριθμοί αποτελούν τη βάση αναφοράς (denominator) για όλα τα speedup calculations στα Κεφ. 6–8. Αναφορά στο pie chart (§2.2.3) ως θεμελίωση στόχευσης βελτιστοποίησης: η κατανομή instret αποκαλύπτει ότι ο πολυωνυμικός πολλαπλασιασμός κυριαρχεί (~96%), καθορίζοντας τη σειρά βελτιστοποίησης (polymul πρώτα, Keccak/decode μετά).
 
-* **6.1 Σχεδιαστικό Πλαίσιο — Hardware Tiers και Implementation Paths:**
-    * **6.1.1 Tier 1 — Scalar Deployment (rv64gc + Zbc/Zbb):** Στόχευση σε προφίλ χωρίς διανυσματική μονάδα.
-    * **6.1.2 Tier 2 — Base-RVV Deployment (rv64gcv χωρίς Zvbc/Zvbb):** Πλατφόρμες με ευρύτερη διαθεσιμότητα διανυσματικής μονάδας.
-    * **6.1.3 Tier 3 — Full Vector-Crypto Deployment (rv64gcv + Zvbc/Zvbb):** Πλήρης αξιοποίηση κρυπτογραφικών vector extensions.
+    * **5.7.1 Κόστος ανά Λειτουργία και Κατανομή σε Hotspots:** Το κόστος ανά λειτουργία του KEM και η κατανομή του σε hotspots στην υλοποίηση αναφοράς.
+
+    * **5.7.2 Στρατηγική Βελτιστοποίησης και Φράγμα Amdahl:** Η στρατηγική βελτιστοποίησης με βάση τα hotspots και το θεωρητικό φράγμα κατά Amdahl.
+
+## Κεφάλαιο 6: Βελτιστοποίηση Πολυωνυμικού Πολλαπλασιασμού
+
+* **6.1 Οργάνωση της Βελτιστοποίησης σε Τρία Tiers:**
+    * **Tier 1 — Scalar Deployment (rv64gc + Zbc/Zbb):** Στόχευση σε προφίλ χωρίς διανυσματική μονάδα.
+    * **Tier 2 — Base-RVV Deployment (rv64gcv χωρίς Zvbc/Zvbb):** Πλατφόρμες με ευρύτερη διαθεσιμότητα διανυσματικής μονάδας.
+    * **Tier 3 — Full Vector-Crypto Deployment (rv64gcv + Zvbc/Zvbb):** Πλήρης αξιοποίηση κρυπτογραφικών vector extensions.
     <!-- FIGURE: Venn diagram ή layered diagram: Tier 1 (base) ⊂ Tier 2 (+ RVV) ⊂ Tier 3 (+ Zvbc/Zvbb). Κάθε layer annotated με τις extensions που προσθέτει. -->
-* **6.2 Scalar Path — Karatsuba με Zbc:**
+
+* **6.2 Scalar Path: Word-Level Karatsuba με Zbc:**
+
     * **6.2.1 Μετάβαση από Bit-Serial σε Word-Level Πολλαπλασιασμό:** Από bit-serial schoolbook σε word-level `clmul`/`clmulh` Karatsuba φύλλα. Εξάλειψη του bit-granularity inner loop (64 conditional shift-XOR iterations → 1 instruction pair per 64-bit product).
         <!-- FIGURE: Before/after: schoolbook inner loop (bit-serial, ~N² iterations) vs clmul leaf (word-level, 2 instructions per 64-bit product). -->
         <!-- PSEUDOCODE: Schoolbook reference (5 lines: for i, for j, if bit set, XOR shifted) vs Karatsuba leaf with clmul (5 lines: split, clmul low/high/mid, combine). Side-by-side algorithmic comparison. -->
         <!-- INLINE RESULT: Αναφορά speedup bit-serial → word-level (1–2 προτάσεις): "Η μετάβαση μειώνει το polymul instret από X σε Y (−Z%)." -->
-    * **6.2.2 Assign-on-First-Write — Εξάλειψη memset:** Αντικατάσταση του zero-then-accumulate pattern με assign-on-first-write discipline: ο πρώτος writer σε κάθε output word χρησιμοποιεί direct assignment (`=`) αντί XOR-accumulation (`^=`), καθιστώντας το `memset` περιττό. Εξάλειψη του κυρίαρχου hotspot (23% total instret στο αρχικό Zbc profile).
-        <!-- INLINE RESULT: "Η εξάλειψη του memset αφαιρεί −23% total instret από το Zbc profile." -->
-    * **6.2.3 Δομή Αναδρομής και Compile-Time Specialized Generator:** Compile-time παραγωγή recursion trees μέσω Python generator. Assign-on-first-write πειθαρχία μνήμης. Trade-off analysis: code size vs recursion overhead — fully unrolled trees eliminate all runtime dispatch αλλά αυξάνουν .text footprint (βλ. §9.3 για quantitative analysis).
+
+    * **6.2.2 Στατική Παραγωγή του Δέντρου Αναδρομής Karatsuba:** Compile-time παραγωγή recursion trees μέσω Python generator. Assign-on-first-write πειθαρχία μνήμης. Trade-off analysis: code size vs recursion overhead — fully unrolled trees eliminate all runtime dispatch αλλά αυξάνουν .text footprint (βλ. §8.5 για quantitative analysis).
         <!-- FIGURE: Diagram specialized generator pipeline: Python script → recursion tree analysis → generated C header (.h) → compiled into final binary. Annotation: "Zero runtime overhead — all decisions at compile-time." -->
         <!-- PSEUDOCODE: Karatsuba recursion (high-level, ~8 lines): function polymul(a, b, n): if n ≤ LEAF_SIZE: return schoolbook(a,b); split a→(aL,aH), b→(bL,bH); P0=polymul(aL,bL); P1=polymul(aH,bH); P2=polymul(aL⊕aH, bL⊕bH); return combine(P0,P1,P2). -->
-    * **6.2.4 Unrolling και Βάθος Αναδρομής:** Περιγραφή των τεχνικών unrolling που εφαρμόστηκαν: πλήρες compile-time unrolling ολόκληρου του recursion tree (zero runtime dispatch), fixed-size branch-free leaves (clmul\_leaf\_n8, clmul\_leaf\_n9) με assign-on-first-write discipline. Σημείωση: αξιολογήθηκαν τεχνικές 2-way ILP pairing και hi⊕lo fusion αλλά απορρίφθηκαν — μέτρηση σε πραγματικό hardware (BPI-F3, X60 in-order) έδειξε μηδενικό ή αρνητικό αποτέλεσμα λόγω αυξημένου register pressure χωρίς αντίστοιχο ILP benefit στον in-order pipeline. βάρος αυξημένου .text footprint. Η ποσοτική αξιολόγηση (recursion depth vs instret vs .text size) παρουσιάζεται στο §9.3.
-    * **6.2.5 Worked Example — Πλήρης Αναδρομή HQC-128:** Concrete trace μίας πλήρους κλήσης polymul: πόσοι leaves, πόσα recursion levels, πώς μοιράζεται η μνήμη (scratch buffers), dataflow visualization.
+
+    * **6.2.3 Η Πολιτική Assign-on-First-Write:** Αντικατάσταση του zero-then-accumulate pattern με assign-on-first-write discipline: ο πρώτος writer σε κάθε output word χρησιμοποιεί direct assignment (`=`) αντί XOR-accumulation (`^=`), καθιστώντας το `memset` περιττό. Εξάλειψη του κυρίαρχου hotspot (23% total instret στο αρχικό Zbc profile).
+        <!-- INLINE RESULT: "Η εξάλειψη του memset αφαιρεί −23% total instret από το Zbc profile." -->
+        * **Unrolling και Βάθος Αναδρομής:** Περιγραφή των τεχνικών unrolling που εφαρμόστηκαν: πλήρες compile-time unrolling ολόκληρου του recursion tree (zero runtime dispatch), fixed-size branch-free leaves (clmul\_leaf\_n8, clmul\_leaf\_n9) με assign-on-first-write discipline. Σημείωση: αξιολογήθηκαν τεχνικές 2-way ILP pairing και hi⊕lo fusion αλλά απορρίφθηκαν — μέτρηση σε πραγματικό hardware (BPI-F3, X60 in-order) έδειξε μηδενικό ή αρνητικό αποτέλεσμα λόγω αυξημένου register pressure χωρίς αντίστοιχο ILP benefit στον in-order pipeline. βάρος αυξημένου .text footprint. Η ποσοτική αξιολόγηση (recursion depth vs instret vs .text size) παρουσιάζεται στο §8.5.
+        * **Worked Example — Πλήρης Αναδρομή HQC-128:** Concrete trace μίας πλήρους κλήσης polymul: πόσοι leaves, πόσα recursion levels, πώς μοιράζεται η μνήμη (scratch buffers), dataflow visualization.
         <!-- FIGURE: Full recursion tree diagram HQC-128: root (N words) → 3×(N/2) → ... → leaves (16 words each). Annotated: total leaves count, total scratch memory, μέγεθος ανά level. Color-coded: green=recomposition (RVV-scalable), red=leaf (fixed-cost). -->
-    * **6.2.6 Απορριφθείσες Εναλλακτικές (Toom-Cook, Pointer-Bump, FAFFT):** Σύντομη τεκμηρίωση γιατί TC3 O(n^1.465) χάνει πρακτικά λόγω evaluation/interpolation overhead, γιατί pointer-bump addressing παράγει regression. Η σύγκριση με FAFFT O(n log n) παρουσιάζεται στο §9.1.
-* **6.3 Base-RVV Path — Διανυσματοποίηση Recomposition:**
-    * **6.3.1 Direct-Write Discipline — Εξάλειψη Αντιγραφών z0/z2:** Αντί εγγραφής z0 και z2 σε ενδιάμεσους buffers (tmp) και μεταγενέστερης αντιγραφής στο output r, τα child multiplications γράφουν απευθείας στις τελικές θέσεις του r. Εξαλείφει δύο πλήρεις RVV copy loops (`rvv_copy_u64`) ανά κόμβο αναδρομής σε ολόκληρο το δέντρο. Μείωση temporary buffer από ~6n σε ~4n₀ words ανά επίπεδο (συνολικά `TMP_BUFFER_WORDS = 4 × VEC_N_SIZE_64`).
+        * **Απορριφθείσες Εναλλακτικές (Toom-Cook, Pointer-Bump, FAFFT):** Σύντομη τεκμηρίωση γιατί TC3 O(n^1.465) χάνει πρακτικά λόγω evaluation/interpolation overhead, γιατί pointer-bump addressing παράγει regression. Η σύγκριση με FAFFT O(n log n) παρουσιάζεται στο §8.3.
+
+* **6.3 Base-RVV Path: Διανυσματοποίηση Ανασύνθεσης:**
+    * **Direct-Write Discipline — Εξάλειψη Αντιγραφών z0/z2:** Αντί εγγραφής z0 και z2 σε ενδιάμεσους buffers (tmp) και μεταγενέστερης αντιγραφής στο output r, τα child multiplications γράφουν απευθείας στις τελικές θέσεις του r. Εξαλείφει δύο πλήρεις RVV copy loops (`rvv_copy_u64`) ανά κόμβο αναδρομής σε ολόκληρο το δέντρο. Μείωση temporary buffer από ~6n σε ~4n₀ words ανά επίπεδο (συνολικά `TMP_BUFFER_WORDS = 4 × VEC_N_SIZE_64`).
         <!-- FIGURE: Before/after diagram: Left = old layout (z0→tmp, z2→tmp, copy to r), Right = new layout (z0→r directly, z2→r directly, only zmid in tmp). Caption: "Direct-write eliminates 2 full-array copies per recursion node." -->
         <!-- INLINE RESULT: "Η εξάλειψη των copy loops αφαιρεί ~2×N word copies ανά κόμβο αναδρομής — ~60 κόμβοι στο HQC-128 tree." -->
-    * **6.3.2 Overlap-Save Combine Strategy:** Η direct-write εισάγει aliasing hazard στο combine step: η ανάγνωση z0[i] από r[i] ενώ γράφεται r[n0+i] δημιουργεί overlap. Λύση: (1) αποθήκευση overlap region r[n0..2n0-1] στο ta (inline RVV copy, LMUL=m4), (2) διαίρεση Loop 3A σε δύο μισά — πρώτο μισό (i<n0) διαβάζει z0 από r (ασφαλές, κάτω από destination), δεύτερο μισό (i≥n0) διαβάζει z0 από saved ta. Loop 3B χειρίζεται odd-n tail χωρίς z2 contribution.
+    * **Overlap-Save Combine Strategy:** Η direct-write εισάγει aliasing hazard στο combine step: η ανάγνωση z0[i] από r[i] ενώ γράφεται r[n0+i] δημιουργεί overlap. Λύση: (1) αποθήκευση overlap region r[n0..2n0-1] στο ta (inline RVV copy, LMUL=m4), (2) διαίρεση Loop 3A σε δύο μισά — πρώτο μισό (i<n0) διαβάζει z0 από r (ασφαλές, κάτω από destination), δεύτερο μισό (i≥n0) διαβάζει z0 από saved ta. Loop 3B χειρίζεται odd-n tail χωρίς z2 contribution.
         <!-- FIGURE: Diagram aliasing problem and solution: memory layout showing r[0..2n0-1] (z0), r[2n0..] (z2), destination r[n0..], overlap region highlighted. Arrow showing save-to-ta step. Caption: "Overlap-save resolves the aliasing hazard from direct-write." -->
         <!-- PSEUDOCODE: Overlap-save combine (~10 lines): save_overlap: rvv_copy(ta, r+n0, n0). Loop3A_first_half: for i in [0,n0): r[n0+i] ^= zmid[i] ⊕ r[i] ⊕ r[2n0+i]. Loop3A_second_half: for i in [n0,2n1): r[n0+i] ^= zmid[i] ⊕ ta[i-n0] ⊕ r[2n0+i]. Loop3B: for i in [2n1,2n0): r[n0+i] ^= zmid[i] ⊕ ta[i-n0]. -->
-    * **6.3.3 Inlined RVV Operations με Tuned LMUL:** Αντικατάσταση shared helper functions (`rvv_copy_u64`, `rvv_xor3_u64`, `rvv_xor_u64`) με inline RVV intrinsic loops στον generated κώδικα. LMUL tuning ανά operation: ta/tb XOR preparation σε LMUL=m8 (μέγιστο throughput, 32 words/iteration στο VLEN=256), overlap save σε LMUL=m4 (2 live register groups), combine XOR σε LMUL=m2 (4 simultaneous source vectors × 2 registers = 8 registers total). Εξαλείφει function-call overhead σε κάθε κόμβο αναδρομής.
+    * **Inlined RVV Operations με Tuned LMUL:** Αντικατάσταση shared helper functions (`rvv_copy_u64`, `rvv_xor3_u64`, `rvv_xor_u64`) με inline RVV intrinsic loops στον generated κώδικα. LMUL tuning ανά operation: ta/tb XOR preparation σε LMUL=m8 (μέγιστο throughput, 32 words/iteration στο VLEN=256), overlap save σε LMUL=m4 (2 live register groups), combine XOR σε LMUL=m2 (4 simultaneous source vectors × 2 registers = 8 registers total). Εξαλείφει function-call overhead σε κάθε κόμβο αναδρομής.
         <!-- FIGURE: LMUL allocation diagram per operation: ta/tb prep (m8, 1 group), overlap save (m4, 2 groups), combine XOR (m2, 4 groups). Caption: "LMUL tuned to register pressure per operation phase." -->
-    * **6.3.4 Μείωση Register Pressure μέσω RVV:** Στόχος μεταφοράς δεδομένων χωρίς scalar register exhaustion. Η inline στρατηγική επιτρέπει στον compiler cross-operation register allocation εντός κάθε `kmul_N` body.
-* **6.4 Vector-Crypto Path — Zvbc Leaf Kernels:**
-    * **6.4.1 Εξειδίκευση Leaf Kernels με vclmul.vv/vclmulh.vv:** Επιθετικό unrolling σε vector carry-less multiply.
+    * **Μείωση Register Pressure μέσω RVV:** Στόχος μεταφοράς δεδομένων χωρίς scalar register exhaustion. Η inline στρατηγική επιτρέπει στον compiler cross-operation register allocation εντός κάθε `kmul_N` body.
+
+* **6.4 Vector-Crypto Path: Zvbc Leaf Kernels:**
+
+    * **6.4.1 Διανυσματοποίηση Schoolbook Leaf Kernel μέσω vclmul:** Επιθετικό unrolling σε vector carry-less multiply.
         <!-- FIGURE: Diagram vclmul leaf operation: 16 input elements loaded → vclmul.vv/vclmulh.vv pairs → accumulation → 31-element output. Dataflow arrows. -->
         <!-- PSEUDOCODE: vclmul_leaf kernel (~8 lines): load a[0..15] into va, for each b[j]: vb = splat(b[j]), vlo = vclmul(va, vb), vhi = vclmulh(va, vb), accumulate result[j..j+15] ⊕= vlo, result[j+1..j+16] ⊕= vhi. -->
         <!-- INLINE RESULT: "Ο Zvbc leaf μειώνει το polymul instret κατά −X% σε σχέση με τον scalar clmul leaf (Tier 2 → Tier 3)." -->
-    * **6.4.2 Schoolbook Leaf Trade-offs:** O(n²) κόστος, σταθερό n=16 — γιατί ο leaf δεν κλιμακώνει με VLEN.
-* **6.5 Αποτίμηση — Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση Polymul:** Σύνοψη αθροιστικού αποτελέσματος όλων των βελτιστοποιήσεων polymul (§6.2–§6.4). Παρουσίαση νέου pie chart κατανομής instret μετά τη βελτιστοποίηση polymul: ο πολυωνυμικός πολλαπλασιασμός συρρικνώνεται δραματικά (από ~96% σε ~X%), αποκαλύπτοντας τους δευτερεύοντες πυρήνες ως νέα hotspots. Εφαρμογή νόμου Amdahl: η μείωση ~300× στο polymul δεν μεταφράζεται σε ~300× end-to-end, διότι Keccak (πλέον ~Y%) και decode (πλέον ~Z%) αποτελούν πλέον τα κυρίαρχα bottlenecks. Αυτή η ανακατανομή τεκμηριώνει τη στόχευση του Κεφαλαίου 7.
+
+    * **6.4.2 Όρια Κλιμάκωσης του Leaf Kernel με το VLEN:** O(n²) κόστος, σταθερό n=16 — γιατί ο leaf δεν κλιμακώνει με VLEN.
+
+* **6.5 Αποτίμηση: Ανακατανομή Προφίλ μετά τη Βελτιστοποίηση:** Σύνοψη αθροιστικού αποτελέσματος όλων των βελτιστοποιήσεων polymul (§6.2–§6.4). Παρουσίαση νέου pie chart κατανομής instret μετά τη βελτιστοποίηση polymul: ο πολυωνυμικός πολλαπλασιασμός συρρικνώνεται δραματικά (από ~96% σε ~X%), αποκαλύπτοντας τους δευτερεύοντες πυρήνες ως νέα hotspots. Εφαρμογή νόμου Amdahl: η μείωση ~300× στο polymul δεν μεταφράζεται σε ~300× end-to-end, διότι Keccak (πλέον ~Y%) και decode (πλέον ~Z%) αποτελούν πλέον τα κυρίαρχα bottlenecks. Αυτή η ανακατανομή τεκμηριώνει τη στόχευση του Κεφαλαίου 7.
     <!-- NOTE (συγγραφή): Μικρή ενότητα (1 σελίδα max). Ένα pie chart + 1 παράγραφος Amdahl + 1 πρόταση bridge στο Κεφ. 7. Εδώ μόνο qualitative redistribution (ποσοστά, bottleneck identification) — οι ακριβείς αριθμοί instret ανά function/operation/security-level παρουσιάζονται στο Κεφ. 8. -->
     <!-- FIGURE: Pie chart "μετά polymul optimization" (HQC-128, Tier 3): polymul ~X%, Keccak ~Y%, decode ~Z%, misc ~W%. Σύγκριση side-by-side με αρχικό pie chart §2.2.3. Caption: "Ο νόμος του Amdahl σε δράση: η 300× μείωση του polymul αποκαλύπτει τα δευτερεύοντα bottlenecks." -->
     <!-- FIGURE: Μικρός πίνακας σύνοψης: Tier | polymul instret (before → after) | Speedup | Νέο κυρίαρχο hotspot. -->
 
-## Κεφάλαιο 7: Βελτιστοποίηση Keccak, Decode και Βοηθητικών Πυρήνων
+## Κεφάλαιο 7: Βελτιστοποίηση Keccak και Αποκωδικοποίησης
 
-* **7.1 Επανασχεδιασμός Keccak / SHA-3:**
-    * **7.1.1 Scalar Path (Zbb):** Scalar πυρήνας με αξιοποίηση `rori` και σταθερή πολιτική μετασχηματισμών. Baseline για σύγκριση με vector paths.
+* **7.1 Βελτιστοποίηση Keccak / SHA-3:**
+
+    * **7.1.1 Scalar Path: Αξιοποίηση Zbb:** Scalar πυρήνας με αξιοποίηση `rori` και σταθερή πολιτική μετασχηματισμών. Baseline για σύγκριση με vector paths.
         <!-- PSEUDOCODE: Keccak round (scalar, ~10 lines): θ: C[x] = A[x,0]⊕...⊕A[x,4]; D[x] = C[x-1]⊕ROT(C[x+1],1); A ⊕= D. ρ+π: B[y,2x+3y] = ROT(A[x,y], offsets[x,y]). χ: A[x,y] = B[x,y] ⊕ (NOT(B[x+1,y]) AND B[x+2,y]). ι: A[0,0] ⊕= RC[round]. Annotation: ROT = rori instruction on Zbb. -->
         <!-- INLINE RESULT: "Ο scalar Zbb Keccak αποτελεί τη βάση αναφοράς: X instret ανά Keccak-f[1600] permutation." -->
-    * **7.1.2 Base-RVV Path και το "RVV Paradox":** Αξιολόγηση base-RVV διανυσματοποίησης και τεκμηριωμένη απόρριψη λόγω αυξημένου instruction footprint. Χωρίς `vror.vv` (απαιτεί Zvbb), κάθε rotation γίνεται 3 εντολές αντί 1. Σύγκριση με ARM SHA-3 dedicated instructions (EOR3, RAX1, XAR, BCAX).
+
+    * **7.1.2 Διανυσματοποίηση Keccak: το παράδοξο της RVV:** Αξιολόγηση base-RVV διανυσματοποίησης και τεκμηριωμένη απόρριψη λόγω αυξημένου instruction footprint. Χωρίς `vror.vv` (απαιτεί Zvbb), κάθε rotation γίνεται 3 εντολές αντί 1. Σύγκριση με ARM SHA-3 dedicated instructions (EOR3, RAX1, XAR, BCAX).
         <!-- FIGURE: Comparison table: Keccak rotation on RISC-V without Zvbb (vsll+vsrl+vor = 3 insn) vs with Zvbb (vror = 1 insn) vs ARM (dedicated XAR = 1 insn). Caption: "The RVV Paradox — vectorization hurts without Zvbb." -->
-    * **7.1.3 Vector-Crypto Path (Zvbb 2-way SoA):** Δικαναλική αρχιτεκτονική SoA με `vror.vi`/`vror.vx`, elimination gather-heavy bottlenecks. Η LMUL=8 register-wall (4 groups στο VLEN=256 δεν αρκούν για state + 4 index vectors → spill regression) οδήγησε σε αρχιτεκτονικό pivot: 2-way SoA σε LMUL=1, vl=2, compile-time index resolution. 2-way ως sweet spot: 4-way προκαλεί register spilling (25 lanes × 4 > 32 vector registers).
+        * **Vector-Crypto Path (Zvbb 2-way SoA):** Δικαναλική αρχιτεκτονική SoA με `vror.vi`/`vror.vx`, elimination gather-heavy bottlenecks. Η LMUL=8 register-wall (4 groups στο VLEN=256 δεν αρκούν για state + 4 index vectors → spill regression) οδήγησε σε αρχιτεκτονικό pivot: 2-way SoA σε LMUL=1, vl=2, compile-time index resolution. 2-way ως sweet spot: 4-way προκαλεί register spilling (25 lanes × 4 > 32 vector registers).
         <!-- FIGURE: Diagram SoA 2-way layout: Keccak state A (25 lanes) interleaved στα vector registers — lane[i] of state 0 and state 1 packed in same vector. Annotation: "Process 2 Keccak blocks simultaneously." -->
         <!-- FIGURE: Register pressure chart: 1-way (25 regs) vs 2-way (25 regs, doubled throughput) vs 4-way (50 regs needed > 32 available → spill). -->
         <!-- PSEUDOCODE: SoA 2-way ρ step (~5 lines): for each lane i: v_lane[i] = vle64(state0_lane[i], state1_lane[i]); // 2 elements per vector. v_lane[i] = vror(v_lane[i], rotation_offset[i]); // single instruction rotates both states. Annotation: "1 vror replaces 2× scalar rori — 2× throughput from SoA packing." -->
         <!-- INLINE RESULT: "Ο Zvbb 2-way SoA Keccak μειώνει το Keccak instret κατά −X% σε σχέση με τον scalar Zbb path." -->
-    * **7.1.4 Βελτιστοποιήσεις Absorb/Squeeze I/O:** Byte-streaming loops και ευθυγραμμισμένες 64-bit μεταφορές.
+        * **Βελτιστοποιήσεις Absorb/Squeeze I/O:** Byte-streaming loops και ευθυγραμμισμένες 64-bit μεταφορές.
+
 * **7.2 Βελτιστοποίηση Decode (Reed-Muller + Reed-Solomon):**
-    * **7.2.1 Scalar Path:** Baseline scalar υλοποίηση RM και RS.
+
+    * **7.2.1 Scalar Path: Αξιοποίηση Zbc στη gf_mul:** Baseline scalar υλοποίηση RM και RS.
         <!-- PSEUDOCODE: Concatenated decode (high-level, ~8 lines): for each symbol s[i]: rm_decoded[i] = RM_decode(s[i]) // inner code, bit-level correction. syndromes = RS_syndromes(rm_decoded). Λ(x) = Berlekamp_Massey(syndromes). roots = Chien_search(Λ). errors = Forney(roots, syndromes). output = rm_decoded ⊕ errors. -->
-    * **7.2.2 Base-RVV Path — Διανυσματοποίηση RM και RS Syndromes:** RVV-vectorized Reed-Muller FHT (strided loads, butterfly add/sub) και RS syndrome computation μέσω RVV indexed gather loads σε `gf_log[]`/`gf_exp[]` πίνακες. Η syndrome vectorization χρησιμοποιεί SEW=16, LMUL=4 (vl=64 στο VLEN=256), επιτυγχάνοντας 4× ευρύτερο παραλληλισμό ανά pass σε σχέση με την Zvbc lane-packing προσέγγιση (SEW=64, vl=16). Δεν απαιτεί Zvbc/Zvbb — μόνο V extension + scalar Zbc (για τα scalar fallback axes B/C/D).
+
+    * **7.2.2 Base-RVV Path: Διανυσματοποίηση RM και RS Syndromes:** RVV-vectorized Reed-Muller FHT (strided loads, butterfly add/sub) και RS syndrome computation μέσω RVV indexed gather loads σε `gf_log[]`/`gf_exp[]` πίνακες. Η syndrome vectorization χρησιμοποιεί SEW=16, LMUL=4 (vl=64 στο VLEN=256), επιτυγχάνοντας 4× ευρύτερο παραλληλισμό ανά pass σε σχέση με την Zvbc lane-packing προσέγγιση (SEW=64, vl=16). Δεν απαιτεί Zvbc/Zvbb — μόνο V extension + scalar Zbc (για τα scalar fallback axes B/C/D).
         <!-- FIGURE: Diagram RVV log/exp gather pipeline: load cdw bytes → vzext u8→u16 → vluxei16 gf_log[] → vadd (log sum) → conditional vsub mod 255 → vluxei16 gf_exp[] → zero-mask (vmerge) → vredxor accumulate. -->
         <!-- FIGURE: Comparison table: RVV gather (Track B) vs Zvbc vclmul (Track C): ISA requirement, elements/pass, memory traffic, instruction count per element. -->
-    * **7.2.3 Vector-Crypto Path — Zvbc RS (Berlekamp-Massey, Forney):** Διανυσματοποίηση inner loops μέσω `vclmul`-based GF(2^8) pipeline.
+
+    * **7.2.3 Vector-Crypto Path: Zvbc RS (Berlekamp-Massey, Forney, FFT):** Διανυσματοποίηση inner loops μέσω `vclmul`-based GF(2^8) pipeline.
         <!-- FIGURE: GF(2^8) multiplication pipeline diagram: element pairs → vclmul.vv → reduction mod irreducible polynomial → result. Dataflow. -->
         <!-- PSEUDOCODE: GF(2^8) vector multiply (~5 lines): function gf256_vmul(va, vb): vlo = vclmul(va, vb); // carry-less multiply, 16-bit intermediate. vhi = vclmulh(va, vb); // high half. reduced = vlo ⊕ reduce(vhi); // mod irreducible poly P(x). return reduced. Annotation: "N multiplications in parallel, N = VLMAX." -->
-    * **7.2.4 Vector-Crypto Path — Zvbc FFT Root-Finding (Axis C):** Μετατροπή αναδρομικού Gao-Mateer additive FFT σε iterative breadth-first traversal και διανυσματοποίηση μέσω Zvbc `vclmul.vv` (beta-scaling) και `vxor.vx` (XOR-broadcast). Η αναδρομική δομή (`fft_rec`) μετασχηματίζεται σε level-by-level BFS loop, εξαλείφοντας function-call overhead σε κάθε κόμβο δέντρου. Τρεις vectorized helpers: `beta_scale_zvbc()` (element-wise GF(2^8) multiply μέσω lane-packing vclmul.vv + Barrett reduction), `xor_broadcast_zvbc()` (contiguous vle16/vxor.vx/vse16 pipeline), `gammas_sums_combine_zvbc()` (vclmul.vv + reduce + vxor.vv butterfly combination). Αποτελέσματα: −84% έως −86% instret στο decode pipeline σε σχέση με scalar reference (6–7× speedup) σε όλα τα security levels. KAT validation: 300/300 vectors pass.
+        * **Vector-Crypto Path — Zvbc FFT Root-Finding (Axis C):** Μετατροπή αναδρομικού Gao-Mateer additive FFT σε iterative breadth-first traversal και διανυσματοποίηση μέσω Zvbc `vclmul.vv` (beta-scaling) και `vxor.vx` (XOR-broadcast). Η αναδρομική δομή (`fft_rec`) μετασχηματίζεται σε level-by-level BFS loop, εξαλείφοντας function-call overhead σε κάθε κόμβο δέντρου. Τρεις vectorized helpers: `beta_scale_zvbc()` (element-wise GF(2^8) multiply μέσω lane-packing vclmul.vv + Barrett reduction), `xor_broadcast_zvbc()` (contiguous vle16/vxor.vx/vse16 pipeline), `gammas_sums_combine_zvbc()` (vclmul.vv + reduce + vxor.vv butterfly combination). Αποτελέσματα: −84% έως −86% instret στο decode pipeline σε σχέση με scalar reference (6–7× speedup) σε όλα τα security levels. KAT validation: 300/300 vectors pass.
         <!-- FIGURE: Diagram recursive-to-iterative transformation: Left = recursive tree (depth-first, function calls at each node), Right = iterative BFS (level-by-level loop, no recursion). Annotation: "Eliminates O(2^M) function call overhead." -->
         <!-- FIGURE: Before/after instret table: Level | Scalar fft_rec | Zvbc fft_zvbc | Speedup. HQC-128: 384,986 → 60,353 (6.38×). HQC-192: 562,125 → 77,114 (7.29×). HQC-256: 1,059,605 → 159,206 (6.66×). -->
         <!-- PSEUDOCODE: Iterative FFT (~10 lines): function fft_iterative(w, f, tables): for level = 0 to depth-1: for each segment at level: beta_scale_zvbc(seg, beta_last) // vclmul.vv pipeline. radix(child0, child1, seg) // in-place decomposition. for each leaf: xor_broadcast_zvbc(out, betas) // vxor.vx pipeline. for level = depth-1 downto 0: gammas_sums_combine_zvbc(out, u, gs, v) // butterfly combine. -->
-    * **7.2.5 Βελτιστοποίηση GF(2^8) Reduction — Single-Pass Barrett via `vclmul`:** Αντικατάσταση της 12-εντολών two-pass Barrett reduction στη `gf_reduce_vec_u64m4()` με 6-εντολών single-pass προσέγγιση χρησιμοποιώντας `vclmul.vv` για εκτίμηση πηλίκου. Η βελτιστοποίηση εφαρμόζεται σε `fft_zvbc.c` και `reed_solomon_zvbc.c`. Μαθηματική θεμελίωση: Barrett reciprocal μ = floor(x^16 / poly) = 0x11C, αλλά η χρήση 0x11D (self-reciprocal property) επιτρέπει κοινό constant vector. Εξαντλητική επαλήθευση: 16,384 τιμές [0, 0x3FFF] → ισοδυναμία με reference. Αποτελέσματα: −2,699 instret στο decaps (−0.67%), 300/300 KAT pass. Η Zvkg (`vgmul.vv`) εξερευνήθηκε πειραματικά (Option A: 21/300 failures, Option B: 259/300 failures) και επιβεβαιώθηκε μη εφαρμόσιμη λόγω fixed GHASH polynomial (x^128 + x^7 + x^2 + x + 1 ≠ 0x11D).
+        * **Βελτιστοποίηση GF(2^8) Reduction — Single-Pass Barrett via `vclmul`:** Αντικατάσταση της 12-εντολών two-pass Barrett reduction στη `gf_reduce_vec_u64m4()` με 6-εντολών single-pass προσέγγιση χρησιμοποιώντας `vclmul.vv` για εκτίμηση πηλίκου. Η βελτιστοποίηση εφαρμόζεται σε `fft_zvbc.c` και `reed_solomon_zvbc.c`. Μαθηματική θεμελίωση: Barrett reciprocal μ = floor(x^16 / poly) = 0x11C, αλλά η χρήση 0x11D (self-reciprocal property) επιτρέπει κοινό constant vector. Εξαντλητική επαλήθευση: 16,384 τιμές [0, 0x3FFF] → ισοδυναμία με reference. Αποτελέσματα: −2,699 instret στο decaps (−0.67%), 300/300 KAT pass. Η Zvkg (`vgmul.vv`) εξερευνήθηκε πειραματικά (Option A: 21/300 failures, Option B: 259/300 failures) και επιβεβαιώθηκε μη εφαρμόσιμη λόγω fixed GHASH polynomial (x^128 + x^7 + x^2 + x + 1 ≠ 0x11D).
         <!-- FIGURE: Before/after comparison: Two-pass Barrett (12 insn: 2× {vsrl, vand, vxor, vxor+vsll×2, vxor+vsll×3, vxor+vsll×4}) vs Single-pass Barrett (6 insn: vsrl, vclmul, vsrl, vclmul, vxor, vand). Caption: "50% instruction reduction in GF(2^8) modular reduction." -->
         <!-- FIGURE: Πίνακας benchmark: Operation | Baseline (12-insn) | Optimized (6-insn) | Δ instret | Δ%. keypair: 107,408 → 107,408 (0%). encaps: 221,511 → 221,511 (0%). decaps: 404,316 → 401,617 (−2,699, −0.67%). -->
         <!-- PSEUDOCODE: Single-pass Barrett (~8 lines): function gf_reduce_single_pass(v, vl): mu_vec = vmv_v_x(0x11D); high = vsrl(v, 8); q = vclmul(high, mu_vec); q = vsrl(q, 8); correction = vclmul(q, mu_vec); v = vxor(v, correction); v = vand(v, 0xFF); return v. Annotation: "Barrett reciprocal reuses polynomial constant — single broadcast serves both multiplies." -->
-* **7.3 Βοηθητικοί Πυρήνες:**
-    * **7.3.1 `vect_add` και Bitwise Vector Πράξεις:** Ομογενοποιημένη μεταχείριση με φορητότητα μεταξύ tiers.
-    * **7.3.2 O(weight) Direct-Scatter (`vect_write_support_to_vector`):** Αντικατάσταση O(N×weight) mask-and-accumulate pattern με O(weight) direct scatter — εξάλειψη hotspot 20.99% στο scalar baseline.
+
+* **7.3 Βοηθητικοί Πυρήνες και Πρωτόγονες Πράξεις:**
+
+    * **7.3.1 vect_add και Bitwise Vector Πράξεις:** Ομογενοποιημένη μεταχείριση με φορητότητα μεταξύ tiers.
+
+    * **7.3.2 O(weight) Direct-Scatter (vect_write_support_to_vector):** Αντικατάσταση O(N×weight) mask-and-accumulate pattern με O(weight) direct scatter — εξάλειψη hotspot 20.99% στο scalar baseline.
         <!-- INLINE RESULT: "Η αλλαγή αλγορίθμου μειώνει τη συνάρτηση από X σε Y instret (−Z%)." -->
-    * **7.3.3 Πολιτικές Ευθυγράμμισης Μνήμης (Memory Alignment):** Packing και πρόσβαση μνήμης για ελαχιστοποίηση μεταφορικού κόστους.
-* **7.4 Βελτιστοποιήσεις μέσω Compiler Auto-Lowering (Zba, Zbs):** Εφαρμογή των μηχανισμών auto-lowering (βλ. §3.5δ) στον κώδικα HQC. Ποσοτική αξιολόγηση ανά extension:
-    * **7.4.1 Zba Address-Generation (`sh1add`/`sh2add`/`sh3add`):** Η Zba συγχωνεύει `slli 3 + add` σε ένα `sh3add` για pointer arithmetic σε `uint64_t*`. Εφαρμόζεται σιωπηρά σε ολόκληρο τον κώδικα — ιδιαίτερα στο αναδρομικό Karatsuba tree (pointer scaling σε κάθε recursion level) και στα RVV strip-mining loops. Στο scalar variant η πλήρως unrolled `clmul_leaf_n8` χρησιμοποιεί compile-time constant offsets χωρίς dynamic address scaling, οπότε η Zba δεν ωφελεί. Η Zicond (conditional-zero) αξιολογήθηκε παράλληλα: μηδενική συνεισφορά (zero `czero` instructions emitted).
+        * **Πολιτικές Ευθυγράμμισης Μνήμης (Memory Alignment):** Packing και πρόσβαση μνήμης για ελαχιστοποίηση μεταφορικού κόστους.
+
+* **7.4 Βελτιστοποιήσεις μέσω Idiom Recognition:** Εφαρμογή των μηχανισμών auto-lowering (βλ. §3.5δ) στον κώδικα HQC. Ποσοτική αξιολόγηση ανά extension:
+
+    * **7.4.1 Zba Address-Generation: sh1add/sh2add/sh3add:** Η Zba συγχωνεύει `slli 3 + add` σε ένα `sh3add` για pointer arithmetic σε `uint64_t*`. Εφαρμόζεται σιωπηρά σε ολόκληρο τον κώδικα — ιδιαίτερα στο αναδρομικό Karatsuba tree (pointer scaling σε κάθε recursion level) και στα RVV strip-mining loops. Στο scalar variant η πλήρως unrolled `clmul_leaf_n8` χρησιμοποιεί compile-time constant offsets χωρίς dynamic address scaling, οπότε η Zba δεν ωφελεί. Η Zicond (conditional-zero) αξιολογήθηκε παράλληλα: μηδενική συνεισφορά (zero `czero` instructions emitted).
         <!-- FIGURE: Disassembly comparison: Without Zba (slli rd, rs, 3; add rd, rd, base = 2 insn) vs With Zba (sh3add rd, rs, base = 1 insn). -->
-    * **7.4.2 Zbs Single-Bit Operations (`bset`/`bclr`/`bext`/`binv`):** Ο compiler (Clang 21.1) αυτόματα κατεβάζει (auto-lowers) το pattern `v[idx] |= (1ULL << pos)` σε μία εντολή `bset`. Εφαρμόζεται κυρίως στη `vect_write_support_to_vector()` (bit-scatter loop, βλ. §7.3.2) και τη `barrett_reduce()` (single-bit extraction). Η βελτίωση εντοπίζεται αποκλειστικά στο `decaps` path (3× κλήσεις `vect_write_support_to_vector` + rejection sampling loop).
+
+    * **7.4.2 Zbs Single-Bit Operations: bset/bclr/bext:** Ο compiler (Clang 21.1) αυτόματα κατεβάζει (auto-lowers) το pattern `v[idx] |= (1ULL << pos)` σε μία εντολή `bset`. Εφαρμόζεται κυρίως στη `vect_write_support_to_vector()` (bit-scatter loop, βλ. §7.3.2) και τη `barrett_reduce()` (single-bit extraction). Η βελτίωση εντοπίζεται αποκλειστικά στο `decaps` path (3× κλήσεις `vect_write_support_to_vector` + rejection sampling loop).
         <!-- FIGURE: Disassembly comparison: Without Zbs (li+sll+or = 3 insn) vs With Zbs (bset = 1 insn). Loop body: 10 insn → 8 insn per iteration. -->
-* **7.5 Αποτίμηση — Τελικό Προφίλ μετά Βελτιστοποίηση Όλων των Πυρήνων:** Σύνοψη αθροιστικού αποτελέσματος βελτιστοποιήσεων Keccak (§7.1), Decode (§7.2), βοηθητικών πυρήνων (§7.3) και auto-lowering (§7.4). Παρουσίαση τελικού pie chart κατανομής instret: μετά τη βελτιστοποίηση και των τριών οικογενειών πυρήνων, το προφίλ είναι πλέον *ισορροπημένο* — κανένας μεμονωμένος πυρήνας δεν κυριαρχεί πλέον με >50%. Σύγκριση τριών σταδίων: (1) αρχικό §2.2.3 (polymul 96%), (2) μετά §6.5 (polymul μειωμένο, Keccak/decode αποκαλύπτονται), (3) τελικό (ισορροπημένο). Αυτή η τριπλή σύγκριση δείχνει τη διαδοχική εφαρμογή του νόμου Amdahl. Bridge στο Κεφ. 8: "Τα αναλυτικά αποτελέσματα ανά security level και tier παρουσιάζονται στο Κεφάλαιο 8."
+
+    * **7.4.3 Πρόσθετες Extensions: Αξιολόγηση και Απόρριψη:** Αξιολόγηση πρόσθετων επεκτάσεων και τεκμηρίωση της απόρριψής τους.
+
+* **7.5 Αποτίμηση: Τελικό Υπολογιστικό Προφίλ:** Σύνοψη αθροιστικού αποτελέσματος βελτιστοποιήσεων Keccak (§7.1), Decode (§7.2), βοηθητικών πυρήνων (§7.3) και auto-lowering (§7.4). Παρουσίαση τελικού pie chart κατανομής instret: μετά τη βελτιστοποίηση και των τριών οικογενειών πυρήνων, το προφίλ είναι πλέον *ισορροπημένο* — κανένας μεμονωμένος πυρήνας δεν κυριαρχεί πλέον με >50%. Σύγκριση τριών σταδίων: (1) αρχικό §2.2.3 (polymul 96%), (2) μετά §6.5 (polymul μειωμένο, Keccak/decode αποκαλύπτονται), (3) τελικό (ισορροπημένο). Αυτή η τριπλή σύγκριση δείχνει τη διαδοχική εφαρμογή του νόμου Amdahl. Bridge στο Κεφ. 8: "Τα αναλυτικά αποτελέσματα ανά security level και tier παρουσιάζονται στο Κεφάλαιο 8."
     <!-- NOTE (συγγραφή): Μικρή ενότητα (1 σελίδα max). Τρία pie charts side-by-side (ή stacked bars) + 1 παράγραφος ερμηνείας + bridge sentence. Εδώ μόνο qualitative redistribution (ποσοστά) — οι ακριβείς αριθμοί instret, traces, και per-function breakdowns παρουσιάζονται στο Κεφ. 8. -->
     <!-- FIGURE: Τρία pie charts side-by-side (HQC-128, Tier 3): (1) Baseline §2.2.3 → (2) Post-polymul §6.5 → (3) Final post-all-kernels. Caption: "Εξέλιξη κατανομής instret: διαδοχική εφαρμογή του νόμου Amdahl." -->
     <!-- FIGURE: Πίνακας σύνοψης: Kernel | Baseline instret | Post-optimization instret | Speedup | % of final total. -->
 
-## Κεφάλαιο 8: Αποτελέσματα και Μετρήσεις Απόδοσης
-* **8.1 Απομονωμένες Μικρο-αξιολογήσεις (Isolated Micro-benchmarks):** Συστηματική σύγκριση Reference και Optimized επιδόσεων (`instret`) για polymul, Keccak και decode.
+## Κεφάλαιο 8: Πειραματικά Αποτελέσματα και Συγκριτική Αξιολόγηση
+
+* **8.1 Αξιολόγηση στο Spike (iss):** Αξιολόγηση στο instruction-accurate Spike (ISS): microbenchmarks, πλήρες KEM, κλιμάκωση ανά επίπεδο ασφαλείας και ανάλυση VLEN.
+
+    * **8.1.1 Απομονωμένα microbenchmarks:** Συστηματική σύγκριση Reference και Optimized επιδόσεων (`instret`) για polymul, Keccak και decode.
     <!-- FIGURE: Grouped bar chart: κάθε kernel (polymul, keccak, decode) με bars Reference vs Optimized (Tier 1/2/3). Speedup annotation. -->
-    * **8.1.1 bench_mul — Πολυωνυμικός Πολλαπλασιασμός:** Μία κλήση `vect_mul()` με dense pseudo-random poly_a (μιμείται h/s) και sparse poly_b (weight=PARAM_OMEGA_R, μιμείται r2/y). Ακριβής αναπαραγωγή μίας κλήσης — στο πλήρες decaps εκτελούνται 3 κλήσεις (1 decrypt + 2 re-encrypt).
-    * **8.1.2 bench_keccak — Πλήρες Decaps Keccak Call Pattern:** Αναπαράγει ολόκληρο το μοτίβο κλήσεων συμμετρικών primitives (SHAKE-256, SHA3-256, SHA3-512) που εκτελούνται κατά τη διάρκεια ενός `crypto_kem_dec()`. Συγκεκριμένα:
+        * **bench_keccak — Πλήρες Decaps Keccak Call Pattern:** Αναπαράγει ολόκληρο το μοτίβο κλήσεων συμμετρικών primitives (SHAKE-256, SHA3-256, SHA3-512) που εκτελούνται κατά τη διάρκεια ενός `crypto_kem_dec()`. Συγκεκριμένα:
         * (1) `xof_init` + `vect_sample_fixed_weight1` (ανακατασκευή μυστικού κλειδιού y από dk_pke seed)
         * (2) `hash_h` — SHA3-256 επί PUBLIC_KEY_BYTES (~2241 bytes για HQC-128)
         * (3) `hash_g` — SHA3-512 επί (hash_ek ∥ m' ∥ salt) = 64 bytes
@@ -275,80 +368,125 @@
         * (5) `hash_j` — SHA3-256 επί (hash_ek ∥ σ ∥ u ∥ v ∥ salt) ≈ 4481 bytes
         Σύνολο: ~6 XOF/hash αρχικοποιήσεις, ~30-50 Keccak-f[1600] permutations ανάλογα με security level. Δεν περιλαμβάνει `vect_mul` ή `code_decode` (μετρούνται ξεχωριστά). Η μέτρηση περιλαμβάνει και το κόστος vector sampling (rejection loops, bit-scatter) που εκτελείται εντός των `vect_sample_*` κλήσεων — αυτό είναι σκόπιμο, καθώς στο πραγματικό KEM η δειγματοληψία είναι αδιαχώριστη από τη SHAKE squeeze.
         <!-- NOTE (συγγραφή): Η προηγούμενη έκδοση μετρούσε μία μόνο absorb+squeeze (1 Keccak-f permutation). Η τρέχουσα αναπαράγει ολόκληρο το decaps symmetric pattern, δίνοντας ακριβές aggregate κόστος. -->
-    * **8.1.3 bench_decode — Συνδυασμένη Αποκωδικοποίηση RM+RS:** Μία κλήση `reed_muller_decode` + `reed_solomon_decode` με σωστά μεγέθη buffers (VEC_N1N2_SIZE_64 → VEC_N1_SIZE_64 → PARAM_K bytes). Zeroed inputs — αντιπροσωπευτικό λόγω data-independent loop structure και των δύο decoders.
-* **8.2 Αξιολόγηση Πλήρους KEM (End-to-End):** Τελικοί πίνακες KEM (Keypair, Encaps, Decaps) για όλα τα NIST security levels (128, 192, 256).
+        * **bench_decode — Συνδυασμένη Αποκωδικοποίηση RM+RS:** Μία κλήση `reed_muller_decode` + `reed_solomon_decode` με σωστά μεγέθη buffers (VEC_N1N2_SIZE_64 → VEC_N1_SIZE_64 → PARAM_K bytes). Zeroed inputs — αντιπροσωπευτικό λόγω data-independent loop structure και των δύο decoders.
+
+    * **8.1.2 Αξιολόγηση πλήρους KEM:** Τελικοί πίνακες KEM (Keypair, Encaps, Decaps) για όλα τα NIST security levels (128, 192, 256).
     <!-- FIGURE: Table: Security Level | Operation | Reference instret | Optimized instret | Speedup. -->
     <!-- FIGURE: Stacked bar chart ανά operation: breakdown πού πάει ο χρόνος μετά τη βελτιστοποίηση (polymul πλέον ~X%, Keccak ~Y%, decode ~Z%) — τελικά hotspots. -->
-* **8.3 Κλιμάκωση ανά Security Level:** Συγκριτικός πίνακας HQC-128 / HQC-192 / HQC-256 και ανάλυση scaling behavior.
+
+    * **8.1.3 Κλιμάκωση ανά security level:** Συγκριτικός πίνακας HQC-128 / HQC-192 / HQC-256 και ανάλυση scaling behavior.
     <!-- FIGURE: Line chart: security level (x) vs instret (y) ανά operation. Annotation: theoretical O(N²) vs observed scaling. -->
     <!-- FIGURE: Heatmap: speedup matrix (security level × operation × tier) — color-coded cells showing relative improvement. -->
     <!-- FIGURE: Radar/spider chart: normalized performance across all dimensions (polymul speed, keccak speed, decode speed, code size, VLEN scalability) per tier. -->
-* **8.4 Ανάλυση Κλιμάκωσης VLEN (VLEN Scaling):** Cross-cutting ανάλυση που αφορά ολόκληρο το σύστημα (polymul recomposition + Keccak + decode).
-    * **8.4.1 Μοντέλο Κλιμάκωσης και Θεωρητικό Όριο:** Ποσοστό instret που εξαρτάται από VLEN — ~27% (Karatsuba recomposition, βλ. §6.3) ωφελείται, ~54% (vclmul_leaf + Keccak) παραμένει σταθερό, ~19% (decode + misc) δεν κλιμακώνει.
+
+        * **8.1.3.1 Θεωρητικό Μοντέλο Κλιμάκωσης:** Το θεωρητικό μοντέλο κλιμάκωσης του κόστους ανά επίπεδο ασφαλείας.
+
+        * **8.1.3.2 Πειραματικά Αποτελέσματα Κλιμάκωσης:** Πειραματική κλιμάκωση: σχεδόν τετραγωνική για το reference, υπο-Karatsuba για τα optimized tiers, με αυξανόμενο speedup ανά επίπεδο ασφαλείας.
+
+        * **8.1.3.3 Ανάλυση Κλιμάκωσης ανά Πυρήνα:** Κλιμάκωση ανά πυρήνα: κυριαρχία του polymul, γραμμική κλιμάκωση του Keccak και μη γραμμική αύξηση του decode.
+
+        * **8.1.3.4 Πίνακας Speedups ανά Security Level και Λειτουργία:** Συγκεντρωτικός πίνακας speedups ανά επίπεδο ασφαλείας και λειτουργία.
+
+        * **8.1.3.5 Σύνοψη Κλιμάκωσης:** Σύνοψη των ευρημάτων κλιμάκωσης.
+
+    * **8.1.4 Ανάλυση κλιμάκωσης VLEN:** Cross-cutting ανάλυση που αφορά ολόκληρο το σύστημα (polymul recomposition + Keccak + decode).
+        * **Μοντέλο Κλιμάκωσης και Θεωρητικό Όριο:** Ποσοστό instret που εξαρτάται από VLEN — ~27% (Karatsuba recomposition, βλ. §6.3) ωφελείται, ~54% (vclmul_leaf + Keccak) παραμένει σταθερό, ~19% (decode + misc) δεν κλιμακώνει.
         <!-- FIGURE: Stacked bar chart: breakdown instret σε 3 κατηγορίες (VLEN-scalable, fixed-cost, non-vectorized). Caption: "Only ~27% benefits from wider VLEN." -->
-    * **8.4.2 Πειραματικά Αποτελέσματα VLEN Sweep:** Μετρήσεις instret για VLEN ∈ {256, 512, 1024, 2048} — sweet spot στο VLEN=512 με 5–6.5% μείωση.
+        * **Πειραματικά Αποτελέσματα VLEN Sweep:** Μετρήσεις instret για VLEN ∈ {256, 512, 1024, 2048} — sweet spot στο VLEN=512 με 5–6.5% μείωση.
         <!-- FIGURE: Line chart: x=VLEN, y=instret. Multiple lines for HQC-128/192/256. Annotation sweet spot. -->
-    * **8.4.3 Αρχιτεκτονικοί Περιορισμοί:** Γιατί vclmul_leaf (O(n²), σταθερό n=16, βλ. §6.4.2), Keccak (σταθερή 25-lane κατάσταση, βλ. §7.1.3) και decode δεν ωφελούνται από ευρύτερο VLEN. Τεκμηρίωση ότι μεγαλύτερο VLEN μπορεί να αυξήσει instret (fixed-width coding patterns, VL-dependent control overhead).
+        * **Αρχιτεκτονικοί Περιορισμοί:** Γιατί vclmul_leaf (O(n²), σταθερό n=16, βλ. §6.4.2), Keccak (σταθερή 25-lane κατάσταση, βλ. §7.1.2) και decode δεν ωφελούνται από ευρύτερο VLEN. Τεκμηρίωση ότι μεγαλύτερο VLEN μπορεί να αυξήσει instret (fixed-width coding patterns, VL-dependent control overhead).
         <!-- FIGURE: Diagram "why vclmul_leaf doesn't scale": leaf operates on fixed 16 elements — even with VLMAX=32, only 16 are used (wasted lanes). -->
-* **8.5 Αξιολόγηση σε Πραγματικό Hardware (BPI-F3 SpacemiT K1 X60):** Μετρήσεις κύκλων σε πραγματικό silicon για Tier 1 (karatsuba_zbc) και Tier 2 (karatsuba_rvv). Επικύρωση Spike predictions και αποκάλυψη microarchitectural effects.
-    * **8.5.1 Μικρο-αξιολογήσεις σε Hardware (Cycles):** Πίνακας: Variant | Spike instret | HW cycles (median, 10k iterations) | IPC | Wall-clock (μs @ 1.6 GHz). Ανά kernel (polymul, keccak, decode) και security level. Σύγκριση IPC μεταξύ scalar (αναμενόμενο ~0.5–0.8) και RVV (αναμενόμενο ~0.8–1.2 λόγω dual-issue + vector throughput). **Σημείωση Keccak auto-vectorization:** Στο hardware bench, το vector_rvv variant παρουσιάζει ~12% χαμηλότερους κύκλους Keccak (~314k vs ~359k) σε σχέση με τα scalar variants — αυτό οφείλεται στην compiler auto-vectorization (GCC `-ftree-vectorize` + `-march` με V extension), η οποία vectorizes τα θ/χ steps του Keccak-f[1600]. Αυτό δεν αντιφάσκει με το RVV Paradox (§7.1.2): εκεί αξιολογείται χειρόγραφη RVV υλοποίηση (intrinsics) ενώ εδώ ο compiler κάνει πιο συντηρητικές (και αποδοτικότερες) επιλογές auto-vectorization μόνο στα trivially-parallel steps.
-        <!-- FIGURE: Grouped bar chart: Spike instret vs HW cycles side-by-side per variant. Annotation: IPC ratio. -->
-    * **8.5.2 Πλήρες KEM σε Hardware (Cycles):** Πίνακας: Security Level | Operation | ref_scalar cycles | karatsuba_zbc cycles | karatsuba_rvv cycles | Speedup. Wall-clock time derivation: cycles / 1.6 GHz = μs per operation — πρακτική μετρική deployment.
+
+* **8.2 Αξιολόγηση σε Hardware:** Μετρήσεις κύκλων σε πραγματικό silicon για Tier 1 (karatsuba_zbc) και Tier 2 (karatsuba_rvv). Επικύρωση Spike predictions και αποκάλυψη microarchitectural effects.
+
+    * **8.2.1 Αξιολόγηση πλήρους KEM:** Πίνακας: Security Level | Operation | ref_scalar cycles | karatsuba_zbc cycles | karatsuba_rvv cycles | Speedup. Wall-clock time derivation: cycles / 1.6 GHz = μs per operation — πρακτική μετρική deployment.
         <!-- FIGURE: Table: HQC-128/192/256 × KeyGen/Encaps/Decaps × variant → cycles (median) + wall-clock μs. -->
         <!-- FIGURE: Bar chart: wall-clock time (μs) per KEM operation — practical deployment metric. Caption: "HQC-128 Decaps σε X μs στο SpacemiT K1 @ 1.6 GHz." -->
-    * **8.5.3 Ανάλυση IPC και Pipeline Utilization:** IPC = Spike_instret / HW_cycles ανά variant × operation. Ερμηνεία: scalar code IPC (memory-bound? compute-bound?), RVV code IPC (vector unit utilization, dual-issue benefit). Cache miss analysis (αν perf_event_open εκθέτει L1d miss counters στον X60). Σύγκριση με Saarinen 2024 benchmarks στην ίδια πλατφόρμα (SpacemiT X60, VLEN=256) — cross-validation.
+        * **Μικρο-αξιολογήσεις σε Hardware (Cycles):** Πίνακας: Variant | Spike instret | HW cycles (median, 10k iterations) | IPC | Wall-clock (μs @ 1.6 GHz). Ανά kernel (polymul, keccak, decode) και security level. Σύγκριση IPC μεταξύ scalar (αναμενόμενο ~0.5–0.8) και RVV (αναμενόμενο ~0.8–1.2 λόγω dual-issue + vector throughput). **Σημείωση Keccak auto-vectorization:** Στο hardware bench, το vector_rvv variant παρουσιάζει ~12% χαμηλότερους κύκλους Keccak (~314k vs ~359k) σε σχέση με τα scalar variants — αυτό οφείλεται στην compiler auto-vectorization (GCC `-ftree-vectorize` + `-march` με V extension), η οποία vectorizes τα θ/χ steps του Keccak-f[1600]. Αυτό δεν αντιφάσκει με το RVV Paradox (§7.1.2): εκεί αξιολογείται χειρόγραφη RVV υλοποίηση (intrinsics) ενώ εδώ ο compiler κάνει πιο συντηρητικές (και αποδοτικότερες) επιλογές auto-vectorization μόνο στα trivially-parallel steps.
+        <!-- FIGURE: Grouped bar chart: Spike instret vs HW cycles side-by-side per variant. Annotation: IPC ratio. -->
+
+    * **8.2.2 Μικροαρχιτεκτονική ανάλυση: IPC και dual-issue:** IPC = Spike_instret / HW_cycles ανά variant × operation. Ερμηνεία: scalar code IPC (memory-bound? compute-bound?), RVV code IPC (vector unit utilization, dual-issue benefit). Cache miss analysis (αν perf_event_open εκθέτει L1d miss counters στον X60). Σύγκριση με Saarinen 2024 benchmarks στην ίδια πλατφόρμα (SpacemiT X60, VLEN=256) — cross-validation.
         <!-- FIGURE: IPC chart per variant per operation — shows pipeline utilization improvement from vectorization. -->
         <!-- FIGURE: Πίνακας: Variant | polymul IPC | keccak IPC | decode IPC | overall IPC. Caption: "Η vectorization βελτιώνει τον IPC κατά X% στο polymul." -->
-    * **8.5.4 Σύγκριση Spike Predictions vs Hardware Reality:** Πίνακας: Level | Spike Speedup | HW Speedup | HW/Spike ratio. Ανάλυση αποκλίσεων: HQC-128/192 ~2% (excellent prediction), HQC-256 ~20% (cache capacity effects στο reference — working set πλησιάζει L1). Τεκμηρίωση ότι η instret αποτελεί αξιόπιστο δείκτη σχετικής απόδοσης.
+
+    * **8.2.3 Σύγκριση Spike Predictions vs Hardware Reality:** Πίνακας: Level | Spike Speedup | HW Speedup | HW/Spike ratio. Ανάλυση αποκλίσεων: HQC-128/192 ~2% (excellent prediction), HQC-256 ~20% (cache capacity effects στο reference — working set πλησιάζει L1). Τεκμηρίωση ότι η instret αποτελεί αξιόπιστο δείκτη σχετικής απόδοσης.
         <!-- FIGURE: Scatter plot: x=Spike speedup, y=HW speedup. Ideal line y=x. Points annotated with security level. Caption: "Spike predictions vs hardware reality — <2% deviation for HQC-128/192." -->
 
-## Κεφάλαιο 9: Εκτεταμένη Ανάλυση και Συζήτηση
-* **9.1 Σύγκριση με Ετερογενείς Αρχιτεκτονικές:** Πίνακας cross-architecture (Intel AVX-512, AMD Zen4, ARM Cortex-M4, FAFFT RISC-V, παρούσα εργασία). Πλέον με πραγματικούς κύκλους (BPI-F3) για Tier 1/2 — ενισχύει σημαντικά την αξιοπιστία σύγκρισης. Μεθοδολογική σημείωση: για Tier 3 (Zvbc/Zvbb) αναφέρεται instret (Spike) ως κάτω φράγμα κύκλων. Ανάλυση χάσματος Cortex-M4 (απουσία clmul) και γιατί FAFFT O(n log n) χάνει πρακτικά από compile-time specialized Karatsuba σε scalar cores: tower-field δεν είναι συμβατό με vclmul.vv, και το evaluation/interpolation overhead εξουδετερώνει το ασυμπτωτικό πλεονέκτημα στα μεγέθη του HQC.
+    * **8.2.4 Επίδραση Profile-Guided Optimization (PGO):** Η επίδραση του Profile-Guided Optimization (PGO) στην απόδοση σε πραγματικό hardware.
+
+* **8.3 Σύγκριση με Ετερογενείς Αρχιτεκτονικές:** Πίνακας cross-architecture (Intel AVX-512, AMD Zen4, ARM Cortex-M4, FAFFT RISC-V, παρούσα εργασία). Πλέον με πραγματικούς κύκλους (BPI-F3) για Tier 1/2 — ενισχύει σημαντικά την αξιοπιστία σύγκρισης. Μεθοδολογική σημείωση: για Tier 3 (Zvbc/Zvbb) αναφέρεται instret (Spike) ως κάτω φράγμα κύκλων. Ανάλυση χάσματος Cortex-M4 (απουσία clmul) και γιατί FAFFT O(n log n) χάνει πρακτικά από compile-time specialized Karatsuba σε scalar cores: tower-field δεν είναι συμβατό με vclmul.vv, και το evaluation/interpolation overhead εξουδετερώνει το ασυμπτωτικό πλεονέκτημα στα μεγέθη του HQC.
     <!-- FIGURE: Cross-architecture comparison table: Platform | ISA | Metric | KeyGen | Encaps | Decaps | Notes. Includes BPI-F3 real cycles for Tier 1/2 alongside instret for Tier 3. -->
-* **9.2 ISA Ablation Study:**
-    * **9.2.1 Ποσοτική Συνεισφορά Κάθε Extension:** Μεμονωμένη συνεισφορά Zbc, Zvbc, Zbb, Zvbb μέσω συστηματικών ablations.
+
+* **8.4 ISA Ablation Study:**
+
+    * **8.4.1 Ποσοτική Συνεισφορά Κάθε Extension:** Μεμονωμένη συνεισφορά Zbc, Zvbc, Zbb, Zvbb μέσω συστηματικών ablations.
         <!-- FIGURE: Waterfall chart: baseline (no extensions) → +Zbc → +Zbb → +RVV → +Zvbc → +Zvbb = final. Κάθε step δείχνει incremental improvement. -->
-    * **9.2.2 Zba Address-Generation — Αποτελέσματα Ablation:** Ποσοτικά αποτελέσματα (ο μηχανισμός περιγράφεται στο §7.4.1): −5.6% στο polymul hotspot και −3.3% στο πλήρες KEM του `karatsuba_zvbc`, −1.0% polymul / −0.7% KEM στο `karatsuba_rvv`, αλλά 0% στο `karatsuba_zbc` και `ref_scalar`. Ερμηνεία ασυμμετρίας: στο zvbc οι vclmul leaves εκτελούνται σε λιγότερες εντολές (vector), αυξάνοντας το relative weight του pointer-scaling overhead. Promoted μόνο για Tier 2/3 ISA strings.
+
+    * **8.4.2 Zba Address-Generation — Αποτελέσματα Ablation:** Ποσοτικά αποτελέσματα (ο μηχανισμός περιγράφεται στο §7.4.1): −5.6% στο polymul hotspot και −3.3% στο πλήρες KEM του `karatsuba_zvbc`, −1.0% polymul / −0.7% KEM στο `karatsuba_rvv`, αλλά 0% στο `karatsuba_zbc` και `ref_scalar`. Ερμηνεία ασυμμετρίας: στο zvbc οι vclmul leaves εκτελούνται σε λιγότερες εντολές (vector), αυξάνοντας το relative weight του pointer-scaling overhead. Promoted μόνο για Tier 2/3 ISA strings.
         <!-- FIGURE: Bar chart: polymul Δ% ανά variant (zvbc=−5.6%, rvv=−1.0%, zbc≈0%, ref≈0%). Annotation: "Zba benefit correlates with dynamic pointer-arithmetic density relative to total instret." -->
-    * **9.2.3 Zbs Single-Bit — Αποτελέσματα Ablation:** Ποσοτικά αποτελέσματα (ο μηχανισμός περιγράφεται στο §7.4.2). Αποτελέσματα (HQC-128, Spike ISS):
+
+    * **8.4.3 Zbs Single-Bit — Αποτελέσματα Ablation:** Ποσοτικά αποτελέσματα (ο μηχανισμός περιγράφεται στο §7.4.2). Αποτελέσματα (HQC-128, Spike ISS):
         * `karatsuba_zbc` decaps: −14,684 instret (−0.71%)
         * `ref_scalar` decaps: −14,684 instret (−0.025%)
         * `karatsuba_rvv` / `karatsuba_zvbc`: **0% βελτίωση** (η extension δεν ωφελεί τα vector hot paths)
         * Η απόλυτη εξοικονόμηση (−14,684 instret) είναι **ταυτόσημη** μεταξύ `ref_scalar` και `karatsuba_zbc`, επιβεβαιώνοντας ότι η βελτίωση προέρχεται αποκλειστικά από τη shared `hqc_core` βιβλιοθήκη (`vector.c`), όχι από τον polymul πυρήνα.
         * **Απόφαση:** Η Zbs ενεργοποιείται μόνο στο `HQC_SCALAR_MARCH` (scalar variants). Δεν προστίθεται στα vector variant march strings.
         <!-- FIGURE: Bar chart: Δ% decaps ανά variant (karatsuba_zbc=−0.71%, ref_scalar=−0.025%, rvv=0%, zvbc=0%). Annotation: "Zbs benefit is inversely proportional to total instret — same absolute savings, different relative impact." -->
-    * **9.2.4 Compiler Auto-Lowering — Όρια και Ευρήματα:** Τεκμηρίωση ότι ο compiler εκπέμπει αυτόματα ορισμένα patterns (π.χ. `rori` για rotations, `andn` για NOT-AND, `sh3add` για pointer scaling, `bset` για single-bit set) όταν τα Zbb/Zbkb/Zba/Zbs είναι ενεργά — χωρίς manual intrinsics. Απόδειξη ότι αντίθετα, compilers δεν συνθέτουν αυτόματα Zvbc/Zvbb primitives (`vclmul.vv`, `vror.vv`) από generic C — αυτά απαιτούν ρητή χρήση intrinsics. Αυτό τεκμηριώνει γιατί τα Κεφ. 6–7 χρησιμοποιούν intrinsics για τα vector paths αλλά plain C για τα scalar auto-lowering patterns (βλ. §7.4.1–§7.4.2 για τον μηχανισμό). Συγκεντρωτικός πίνακας: ποιες extensions ωφελούν ποια variants, ποιες δεν εκπέμπονται αυτόματα (Zvbc/Zvbb).
+
+    * **8.4.4 Idiom Recognition — Όρια και Ευρήματα:** Τεκμηρίωση ότι ο compiler εκπέμπει αυτόματα ορισμένα patterns (π.χ. `rori` για rotations, `andn` για NOT-AND, `sh3add` για pointer scaling, `bset` για single-bit set) όταν τα Zbb/Zbkb/Zba/Zbs είναι ενεργά — χωρίς manual intrinsics. Απόδειξη ότι αντίθετα, compilers δεν συνθέτουν αυτόματα Zvbc/Zvbb primitives (`vclmul.vv`, `vror.vv`) από generic C — αυτά απαιτούν ρητή χρήση intrinsics. Αυτό τεκμηριώνει γιατί τα Κεφ. 6–7 χρησιμοποιούν intrinsics για τα vector paths αλλά plain C για τα scalar auto-lowering patterns (βλ. §7.4.1–§7.4.2 για τον μηχανισμό). Συγκεντρωτικός πίνακας: ποιες extensions ωφελούν ποια variants, ποιες δεν εκπέμπονται αυτόματα (Zvbc/Zvbb).
         <!-- FIGURE: Code example: generic C loop → compiler output with Zbb (auto-lowered rori/andn) vs hand-written intrinsics with Zvbc (vclmul.vv). Side-by-side disassembly showing the boundary of auto-lowering. -->
-* **9.3 Code Size vs Performance Trade-off:** Ποσοτική ανάλυση του trade-off μεταξύ .text footprint και instret. Δύο άξονες:
-    * **(α) Unroll Depth (εντός scalar path):** Πίνακας recursion depth vs instret vs .text size (KB) για τον Karatsuba scalar path (βλ. §6.2.4 για τις τεχνικές). Τεκμηρίωση diminishing returns: κάθε επιπλέον επίπεδο unrolling μειώνει instret λιγότερο ενώ αυξάνει .text εκθετικά. Εντοπισμός sweet spot. I-cache pressure implications σε embedded cores.
+
+* **8.5 Συνολικός Συμβιβασμός Μεγέθους Κώδικα έναντι Απόδοσης:** Ποσοτική ανάλυση του trade-off μεταξύ .text footprint και instret. Δύο άξονες:
+
+    * **8.5.1 Συμβιβασμός Μεγέθους Κώδικα έναντι Απόδοσης στον Πολυωνυμικό Πολλαπλασιαστή:** Ο συμβιβασμός μεγέθους κώδικα και απόδοσης στον πολυωνυμικό πολλαπλασιαστή, ανά βάθος unrolling και ανά tier.
+        * **(α) Unroll Depth (εντός scalar path):** Πίνακας recursion depth vs instret vs .text size (KB) για τον Karatsuba scalar path (βλ. §6.2.3 για τις τεχνικές). Τεκμηρίωση diminishing returns: κάθε επιπλέον επίπεδο unrolling μειώνει instret λιγότερο ενώ αυξάνει .text εκθετικά. Εντοπισμός sweet spot. I-cache pressure implications σε embedded cores.
         <!-- FIGURE: Dual-axis chart: x=recursion depth, left y-axis=instret (decreasing), right y-axis=.text size in KB (increasing). Annotation στο sweet spot. -->
-    * **(β) Cross-Tier Σύγκριση:** Σύγκριση .text μεγέθους μεταξύ scalar (fully unrolled), RVV (compact VLA helpers) και Zvbc (vector leaf + recomposition) paths. Ο scalar path απαιτεί μεγαλύτερο .text footprint λόγω full unrolling, ενώ οι vector paths επιτυγχάνουν compact code μέσω VLA helpers. Αξιολόγηση instret/KB efficiency ratio ανά tier — implications για deployment σε I-cache-constrained embedded cores.
+        * **(β) Cross-Tier Σύγκριση:** Σύγκριση .text μεγέθους μεταξύ scalar (fully unrolled), RVV (compact VLA helpers) και Zvbc (vector leaf + recomposition) paths. Ο scalar path απαιτεί μεγαλύτερο .text footprint λόγω full unrolling, ενώ οι vector paths επιτυγχάνουν compact code μέσω VLA helpers. Αξιολόγηση instret/KB efficiency ratio ανά tier — implications για deployment σε I-cache-constrained embedded cores.
     <!-- FIGURE: Bar chart: different unroll configurations → instret (bars) με .text size overlay (line). -->
     <!-- FIGURE: Πίνακας .text size ανά variant/tier: Variant | .text (KB) | instret | instret/KB ratio. -->
-* **9.4 Σχεδιαστικές Αρχές που Γενικεύονται:** Αρχές πέρα από τον HQC: αποδοτικότητα carry-less multiply για πολυωνυμική αριθμητική γενικά, η αξία VLA strip-mining σε cryptographic workloads, τα όρια auto-vectorization σε crypto kernels, η σχέση code-generation (metaprogramming) vs hand-tuning.
-* **9.5 Συγκριτική Αξιολόγηση Μεταγλωττιστών (Clang vs GCC):** Register management, auto-vectorization, σταθερότητα παραγόμενου κώδικα. Τεκμηρίωση GCC 15.x ασυμβατότητας με Zvbb Keccak backend (βλ. §7.1.3): (α) `__attribute__((riscv_rvv_vector_bits(N)))` δεν υποστηρίζεται — GCC ακολουθεί αυστηρά το RVV spec (sizeless types), (β) LMUL=8 `vrgather.vv` + `vror.vv` codegen bug (infinite loop at runtime). Αποτέλεσμα: ο Zvbb Keccak backend είναι Clang-only· για GCC σύγκριση χρησιμοποιείται ο vendor scalar Keccak. Πειραματική επαλήθευση: υλοποιήθηκε GCC-compatible x2 path (flat buffer + named locals), KAT ορθότητα επιβεβαιώθηκε (100/100), αλλά η scalar Keccak fallback εισάγει +80-90% overhead — μη χρήσιμο ως σημείο σύγκρισης.
+
+    * **8.5.2 Αποτύπωμα Πλήρους KEM Binary:** Το αποτύπωμα μνήμης του πλήρους KEM binary ανά variant.
+
+    * **8.5.3 Ανάλυση Αποδοτικότητας: instret ανά KB:** Ανάλυση αποδοτικότητας με μετρική instret ανά KB κώδικα.
+
+    * **8.5.4 Πρακτικές Συνέπειες Deployment:** Πρακτικές συνέπειες για deployment: I-cache budget και επιλογή tier με βάση τη διαθεσιμότητα ISA αντί του μεγέθους κώδικα.
+
+    * **8.5.5 Σύνοψη και Σχεδιαστική Σύσταση:** Σύνοψη του συμβιβασμού και σχεδιαστική σύσταση.
+
+* **8.6 Συγκριτική Αξιολόγηση Μεταγλωττιστών:** Register management, auto-vectorization, σταθερότητα παραγόμενου κώδικα. Τεκμηρίωση GCC 15.x ασυμβατότητας με Zvbb Keccak backend (βλ. §7.1.2): (α) `__attribute__((riscv_rvv_vector_bits(N)))` δεν υποστηρίζεται — GCC ακολουθεί αυστηρά το RVV spec (sizeless types), (β) LMUL=8 `vrgather.vv` + `vror.vv` codegen bug (infinite loop at runtime). Αποτέλεσμα: ο Zvbb Keccak backend είναι Clang-only· για GCC σύγκριση χρησιμοποιείται ο vendor scalar Keccak. Πειραματική επαλήθευση: υλοποιήθηκε GCC-compatible x2 path (flat buffer + named locals), KAT ορθότητα επιβεβαιώθηκε (100/100), αλλά η scalar Keccak fallback εισάγει +80-90% overhead — μη χρήσιμο ως σημείο σύγκρισης.
     <!-- FIGURE: Side-by-side bar chart: Clang vs GCC instret ανά kernel και tier. Annotation: ποιος κερδίζει πού και γιατί. -->
     <!-- NOTE (συγγραφή): Αναφορά στο GCC bug ως ecosystem maturity observation — Clang/LLVM leads GCC σε RVV extension support. Δεν είναι αδυναμία της αρχιτεκτονικής, αλλά του toolchain. -->
-* **9.6 Επαλήθευση Σταθερού Χρόνου: Αποτελέσματα και Ερμηνεία:** Παρουσίαση και ερμηνεία των εμπειρικών αποτελεσμάτων της επαλήθευσης σταθερού χρόνου (η μεθοδολογία παρουσιάζεται στο §5.5). Περιλαμβάνει μεθοδολογικά ευρήματα (cache-state bias), τα αποτελέσματα dudect, το κενό formal verification για RVV/Zvbc και τη συμπληρωματικότητα των στρωμάτων επαλήθευσης.
-    * **9.6.1 Μεθοδολογικά Ευρήματα — Cache-State Bias και False Positives:** Ανακάλυψη ότι η naive interleaved προσέγγιση (generate input → immediately measure) εισάγει συστηματικό cache-state bias που παράγει false positives ακόμη και σε γνωστά CT κώδικα. Ανάλυση αιτίας: Class B operands hot στη L1d cache λόγω πρόσφατης PRNG εγγραφής, Class A operands πιθανώς cold. Λύση: canonical prepare-then-measure pattern (Reparaz et al. reference implementation). Μεθοδολογική σημασία για τη βιβλιογραφία.
-    * **9.6.2 Πειραματικά Αποτελέσματα:** Πίνακας αποτελεσμάτων: όλα τα optimized variants (karatsuba_zbc, karatsuba_rvv) περνούν σε όλα τα security levels με t-statistics πολύ κάτω από το threshold 4.5. Ερμηνεία: οι βελτιστοποιήσεις (Karatsuba recursion, Zbc carry-less multiply, RVV vectorization) δεν εισάγουν timing side-channels.
-    * **9.6.3 Γιατί Τυπική Επαλήθευση Δεν Είναι Εφικτή για RVV/Zvbc:** Τα εργαλεία formal CT verification (Binsec/Rel, ct-verif, HolBA, Bedrock2) δεν υποστηρίζουν σημασιολογικά μοντέλα για RVV 1.0 και Zvbc extensions. Ο Valgrind (RISCV64 support από v3.25.0) δεν υποστηρίζει ακόμη Zbc/RVV instructions. Η εμπειρική dudect μεθοδολογία αποτελεί state-of-the-art για αυτές τις νέες ISA extensions. Αναφορά σε ανάλογη μεθοδολογία: pqm4 project (Valgrind on host + timing on Cortex-M4).
-    * **9.6.4 Συμπληρωματικότητα Στρωμάτων Επαλήθευσης:** Πίνακας σύγκρισης ctgrind vs dudect: τι ανιχνεύει κάθε μέθοδος (secret-dependent branches, memory access, μικροαρχιτεκτονικά κανάλια, compiler-introduced violations, speculative execution). Η ctgrind παρέχει γρήγορη CI ανατροφοδότηση, η dudect παρέχει ground-truth σε πραγματικό silicon.
+
+* **8.7 Επαλήθευση Σταθερού Χρόνου: Αποτελέσματα και Ερμηνεία:** Παρουσίαση και ερμηνεία των εμπειρικών αποτελεσμάτων της επαλήθευσης σταθερού χρόνου (η μεθοδολογία παρουσιάζεται στο §5.6). Περιλαμβάνει μεθοδολογικά ευρήματα (cache-state bias), τα αποτελέσματα dudect, το κενό formal verification για RVV/Zvbc και τη συμπληρωματικότητα των στρωμάτων επαλήθευσης.
+
+    * **8.7.1 Μεθοδολογικά Ευρήματα: Cache-State Bias και False Positives:** Ανακάλυψη ότι η naive interleaved προσέγγιση (generate input → immediately measure) εισάγει συστηματικό cache-state bias που παράγει false positives ακόμη και σε γνωστά CT κώδικα. Ανάλυση αιτίας: Class B operands hot στη L1d cache λόγω πρόσφατης PRNG εγγραφής, Class A operands πιθανώς cold. Λύση: canonical prepare-then-measure pattern (Reparaz et al. reference implementation). Μεθοδολογική σημασία για τη βιβλιογραφία.
+
+    * **8.7.2 Πειραματικά Αποτελέσματα:** Πίνακας αποτελεσμάτων: όλα τα optimized variants (karatsuba_zbc, karatsuba_rvv) περνούν σε όλα τα security levels με t-statistics πολύ κάτω από το threshold 4.5. Ερμηνεία: οι βελτιστοποιήσεις (Karatsuba recursion, Zbc carry-less multiply, RVV vectorization) δεν εισάγουν timing side-channels.
+
+    * **8.7.3 Γιατί Τυπική Επαλήθευση Δεν Είναι Εφικτή για RVV/Zvbc:** Τα εργαλεία formal CT verification (Binsec/Rel, ct-verif, HolBA, Bedrock2) δεν υποστηρίζουν σημασιολογικά μοντέλα για RVV 1.0 και Zvbc extensions. Ο Valgrind (RISCV64 support από v3.25.0) δεν υποστηρίζει ακόμη Zbc/RVV instructions. Η εμπειρική dudect μεθοδολογία αποτελεί state-of-the-art για αυτές τις νέες ISA extensions. Αναφορά σε ανάλογη μεθοδολογία: pqm4 project (Valgrind on host + timing on Cortex-M4).
+
+    * **8.7.4 Συμπληρωματικότητα Στρωμάτων Επαλήθευσης:** Πίνακας σύγκρισης ctgrind vs dudect: τι ανιχνεύει κάθε μέθοδος (secret-dependent branches, memory access, μικροαρχιτεκτονικά κανάλια, compiler-introduced violations, speculative execution). Η ctgrind παρέχει γρήγορη CI ανατροφοδότηση, η dudect παρέχει ground-truth σε πραγματικό silicon.
         <!-- FIGURE: Πίνακας συμπληρωματικότητας: Property | ctgrind | dudect. Rows: branches, memory, μarch channels, compiler violations, speculation, RISC-V variants, CI automation. -->
-    * **9.6.5 Ερμηνεία Αποτελεσμάτων — Τι Αποδεικνύει και Τι Δεν Αποδεικνύει η Dudect:** Η dudect δεν αποτελεί μαθηματική απόδειξη CT — σημαίνει ότι στο δεδομένο measurement budget και confidence level δεν παρατηρήθηκε στατιστικά σημαντική συσχέτιση χρονισμού με μυστικά δεδομένα. Caveats: leakage κάτω από sensitivity threshold, διαφορετικό class partitioning, σπάνια μικροαρχιτεκτονικά φαινόμενα. Αντίστροφα: failing result (|t| > 4.5) αποτελεί ισχυρό θετικό δείκτη (p < 6.8×10⁻⁶).
-        <!-- NOTE (συγγραφή): Σημαντικό caveat — η dudect δεν αποδεικνύει, παρέχει strong statistical evidence. Η formal verification παραμένει ανοιχτό πρόβλημα (§10.3). -->
 
-## Κεφάλαιο 10: Συμπεράσματα και Μελλοντικές Επεκτάσεις
-* **10.1 Σύνοψη Συνεισφοράς:** Ανακεφαλαίωση speedups και κύριων τεχνικών αποτελεσμάτων.
-* **10.2 Περιορισμοί:** Το Tier 3 (Zvbc/Zvbb) αξιολογήθηκε αποκλειστικά σε εξομοίωση (Spike) λόγω απουσίας RVA23-compliant silicon — αναμένεται διαθεσιμότητα με μελλοντικά SoCs. Τα Tier 1 και Tier 2 επικυρώθηκαν σε πραγματικό hardware (BPI-F3, SpacemiT K1 X60) με πραγματικούς κύκλους. Η μέτρηση σε Linux userspace (perf_event_open) εισάγει residual OS noise (~timer interrupts κάθε ~4ms) — αντιμετωπίζεται μέσω median statistic. Η σύγκριση cross-architecture (§9.1) υπόκειται σε ετερογένεια μετρικών (cycles vs instret) και μικροαρχιτεκτονικών. Η εμπειρική CT verification (§5.5, §9.6) καλύπτει μόνο Tier 1/2 (karatsuba_zbc, karatsuba_rvv) — το Tier 3 (karatsuba_zvbc) δεν μπορεί να δοκιμαστεί με dudect λόγω απουσίας Zvbc/Zvbb στον K1, αν και η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει θεωρητική CT συμμόρφωση.
-* **10.3 Μελλοντική Έρευνα:** Formal constant-time verification για RVV/Zvbc binaries (ανοιχτό ερευνητικό πρόβλημα — βλ. §9.6.3), εμπειρική dudect CT validation του Tier 3 (karatsuba_zvbc) σε RVA23 hardware όταν γίνει διαθέσιμο, Tier 3 performance validation σε πραγματικό silicon, cycle-accurate RTL simulation (Marian soft-core) για Zvbc pipeline characterization, περαιτέρω vectorization εκκρεμών decode σταδίων, αξιοποίηση μελλοντικής `vkeccak.vi` εντολής (βλ. Saarinen 2024, §4.3), επέκταση dudect σε publish-mode (10M measurements) για ισχυρότερη στατιστική τεκμηρίωση.
+    * **8.7.5 Ερμηνεία Αποτελεσμάτων: Τι Αποδεικνύει και Τι Δεν Αποδεικνύει η Dudect:** Η dudect δεν αποτελεί μαθηματική απόδειξη CT — σημαίνει ότι στο δεδομένο measurement budget και confidence level δεν παρατηρήθηκε στατιστικά σημαντική συσχέτιση χρονισμού με μυστικά δεδομένα. Caveats: leakage κάτω από sensitivity threshold, διαφορετικό class partitioning, σπάνια μικροαρχιτεκτονικά φαινόμενα. Αντίστροφα: failing result (|t| > 4.5) αποτελεί ισχυρό θετικό δείκτη (p < 6.8×10⁻⁶).
+        <!-- NOTE (συγγραφή): Σημαντικό caveat — η dudect δεν αποδεικνύει, παρέχει strong statistical evidence. Η formal verification παραμένει ανοιχτό πρόβλημα (§9.3). -->
 
-## Παράρτημα Α: Οδηγός Εγκατάστασης Περιβάλλοντος
-* **Α.1 Μεταγλώττιση του RISC-V Toolchain**
-* **Α.2 Εγκατάσταση του Spike ISS**
+## Κεφάλαιο 9: Συμπεράσματα και Μελλοντικές Επεκτάσεις
 
-## Παράρτημα Β: Αναπαραγωγιμότητα και Περιγραφή Artifact
-* **Β.1 Δομή του Repository:** Αντιστοίχιση πινάκων αποτελεσμάτων σε συγκεκριμένα scripts και build configurations.
-* **Β.2 Οδηγίες Πλήρους Αναπαραγωγής Πειραμάτων:** Step-by-step instructions για reproduction ολόκληρου του benchmark suite.
+* **9.1 Σύνοψη Συνεισφοράς:** Ανακεφαλαίωση speedups και κύριων τεχνικών αποτελεσμάτων.
 
-## Παράρτημα Γ: Ακρωνύμια και Συντομογραφίες
+* **9.2 Περιορισμοί:** Το Tier 3 (Zvbc/Zvbb) αξιολογήθηκε αποκλειστικά σε εξομοίωση (Spike) λόγω απουσίας RVA23-compliant silicon — αναμένεται διαθεσιμότητα με μελλοντικά SoCs. Τα Tier 1 και Tier 2 επικυρώθηκαν σε πραγματικό hardware (BPI-F3, SpacemiT K1 X60) με πραγματικούς κύκλους. Η μέτρηση σε Linux userspace (perf_event_open) εισάγει residual OS noise (~timer interrupts κάθε ~4ms) — αντιμετωπίζεται μέσω median statistic. Η σύγκριση cross-architecture (§8.3) υπόκειται σε ετερογένεια μετρικών (cycles vs instret) και μικροαρχιτεκτονικών. Η εμπειρική CT verification (§5.6, §8.7) καλύπτει μόνο Tier 1/2 (karatsuba_zbc, karatsuba_rvv) — το Tier 3 (karatsuba_zvbc) δεν μπορεί να δοκιμαστεί με dudect λόγω απουσίας Zvbc/Zvbb στον K1, αν και η αρχιτεκτονική ανάλυση Zkt τεκμηριώνει θεωρητική CT συμμόρφωση.
+
+* **9.3 Μελλοντική Έρευνα:** Formal constant-time verification για RVV/Zvbc binaries (ανοιχτό ερευνητικό πρόβλημα — βλ. §8.7.3), εμπειρική dudect CT validation του Tier 3 (karatsuba_zvbc) σε RVA23 hardware όταν γίνει διαθέσιμο, Tier 3 performance validation σε πραγματικό silicon, cycle-accurate RTL simulation (Marian soft-core) για Zvbc pipeline characterization, περαιτέρω vectorization εκκρεμών decode σταδίων, αξιοποίηση μελλοντικής `vkeccak.vi` εντολής (βλ. Saarinen 2024, §4.4), επέκταση dudect σε publish-mode (10M measurements) για ισχυρότερη στατιστική τεκμηρίωση.
+
+    * **9.3.1 Constant-Time Υλοποίηση:** Μελλοντικές κατευθύνσεις για constant-time: formal verification για RVV/Zvbc binaries, εμπειρική dudect επαλήθευση του Tier 3, publish-mode μετρήσεις και validation σε πραγματικό silicon.
+
+## Παράρτημα Α: Αλγεβρικό Υπόβαθρο: Πεπερασμένα Σώματα και Αριθμητική σε GF(2)[x]
+
+* **Α.1 Συμβολισμός Πεπερασμένων Σωμάτων:** Ο συμβολισμός των πεπερασμένων σωμάτων: το σώμα GF(2), ο διανυσματικός χώρος GF(2)^n, ο δακτύλιος GF(2)[x] και ο δακτύλιος-πηλίκο.
+
+* **Α.2 Αριθμητική σε GF(2)[x]:** Ο ορισμός του carry-less πολλαπλασιασμού στον GF(2)[x], με παράδειγμα.
+
+* **Α.3 Το σώμα GF(2^8):** Πολλαπλασιασμός και αντιστροφή στο σώμα GF(2^8).
+
+## Ακρωνύμια και Συντομογραφίες
