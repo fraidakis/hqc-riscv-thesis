@@ -10,6 +10,12 @@
 % directly (the legacy `numbering=fraction` option is deprecated in moloch).
 \setbeamertemplate{page number in head/foot}[totalframenumber]
 
+% Section dividers: mini-outline so the committee follows the flow
+\AtBeginSection[]{%
+  \begin{frame}{Δομή}
+    \tableofcontents[currentsection]
+  \end{frame}}
+
 % --- Fonts & language -----------------------------------------------------
 % moloch does NOT auto-handle Fira -> set an explicit Greek-capable font.
 \usepackage{fontspec}

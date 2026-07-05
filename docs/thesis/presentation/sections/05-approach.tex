@@ -1,5 +1,5 @@
 % --- 05 Approach map ---------------------------------------------------------
-\begin{frame}{Στρατηγική επιτάχυνσης}
+\begin{frame}{Στοχεύουμε τρεις πυρήνες με εγγενείς εντολές}
   \centering
   \tikzsetnextfilename{pres-approach-map}
   \begin{tikzpicture}[
@@ -10,14 +10,14 @@
       arr/.style={-{Stealth},thick}]
     \node[hot] (poly) {Πολ/σμός \GFpoly\\{\scriptsize Karatsuba + \clmul}};
     \node[mid,right=of poly] (keccak) {\en{Keccak}/\en{SHA-3}\\{\scriptsize 2-way SoA + \Zvbb}};
-    \node[mid,right=of keccak] (decode) {Αποκωδικοποίηση\\{\scriptsize RM/RS · \en{FFT}}};
+    \node[mid,right=of keccak] (decode) {Αποκωδικοποίηση\\{\scriptsize RM/RS, \en{FFT}}};
     \node[font=\scriptsize,below=0.5cm of poly] {$\sim\!\pct{96}$ κόστους};
     \node[font=\scriptsize,below=0.5cm of keccak] {δεύτερος στόχος};
     \node[font=\scriptsize,below=0.5cm of decode] {\Decaps μόνο};
   \end{tikzpicture}
   \vspace{0.6em}
   \begin{itemize}
-    \item Κάθε πυρήνας βελτιστοποιείται και στις 3 βαθμίδες (σειριακή → \RVV → \en{vector-crypto})
+    \item Κάθε πυρήνας βελτιστοποιείται και στις 3 Tiers (σειριακή → \RVV → \en{vector-crypto})
     \item Κοινή αρχή: αντικατάσταση ακριβών βρόχων με \HL{εγγενείς εντολές}, διατηρώντας \en{constant-time}
   \end{itemize}
 \end{frame}

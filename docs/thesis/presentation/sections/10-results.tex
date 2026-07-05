@@ -2,19 +2,23 @@
 % Provenance: results/reports/summaries/speedups_simulation.md (Spike instret, VLEN=256, specialized tree).
 % KEM end-to-end speedups vs HQC reference implementation.
 \begin{frame}{Αποτελέσματα: επιτάχυνση end-to-end \KEM}
+  \begin{center}\small
+    \HL{Όσο μεγαλύτερο το επίπεδο ασφάλειας, τόσο μεγαλύτερο το όφελος του διανυσματικού πολ/σμού.}
+  \end{center}
+  \vspace{0.3em}
   \begin{columns}[c,onlytextwidth]
     \begin{column}{0.46\textwidth}
       \renewcommand{\arraystretch}{1.25}
       \begin{tabular}{@{}lcc@{}}
         \toprule
-        Βαθμίδα & \HQC-128 & \HQC-256 \\
+        Tier & \HQC-128 & \HQC-256 \\
         \midrule
-        1 · σειριακή (\Zbc) & \speedup{35.0} & \speedup{60.1} \\
-        2 · \RVV          & \speedup{55.9} & \speedup{86.9} \\
-        3 · \en{vec-crypto} & \HL{\speedup{75.9}} & \HL{\speedup{163.8}} \\
+        1, σειριακή (\Zbc) & \speedup{35.0} & \speedup{60.1} \\
+        2, \RVV          & \speedup{55.9} & \speedup{86.9} \\
+        3, \en{vector-crypto} & \HL{\speedup{75.9}} & \HL{\speedup{163.8}} \\
         \bottomrule
       \end{tabular}\\[0.6em]
-      {\footnotesize Πυρήνας πολ/σμού (Βαθμίδα 3): \HL{\speedup{264}} / \HL{\speedup{436}}}
+      {\footnotesize Πυρήνας πολ/σμού (Tier 3): \HL{\speedup{264}} / \HL{\speedup{436}}}
     \end{column}
     \begin{column}{0.54\textwidth}
       \centering
@@ -36,12 +40,7 @@
           \legend{\HQC-128,\HQC-256}
         \end{axis}
       \end{tikzpicture}\\
-      {\footnotesize Έναντι αναφορικής υλοποίησης \HQC · \en{Spike} \instret}
+      {\footnotesize Έναντι αναφορικής υλοποίησης \HQC, \en{Spike} \instret}
     \end{column}
   \end{columns}
-  \vspace{0.2em}
-  \pause
-  \begin{exampleblock}{}
-    \centering Κλιμάκωση με το security level: όσο μεγαλύτερα τα πολυώνυμα, \HL{τόσο μεγαλύτερο το όφελος} του διανυσματικού πολ/σμού.
-  \end{exampleblock}
 \end{frame}
