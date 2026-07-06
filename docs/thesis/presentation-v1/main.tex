@@ -48,6 +48,11 @@
 
 % --- Backup (after the closing frame; not counted in the 15') ----------------
 \appendix
+% Freeze the total frame count so the backup/appendix frames below are
+% excluded from the "n / N" page counter (total = last main-content frame).
+\newcounter{finalframe}
+\setcounter{finalframe}{\value{framenumber}}
 \input{backup}
+\setcounter{framenumber}{\value{finalframe}}
 
 \end{document}

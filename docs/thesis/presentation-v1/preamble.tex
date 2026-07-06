@@ -57,9 +57,7 @@
 % clean. The old prefix=build/ext/ under $out_dir crashed on build/build/ext.
 \tikzset{external/system call={lualatex \tikzexternalcheckshellescape -halt-on-error -interaction=batchmode -shell-escape -output-directory=build -jobname "\image" "\texsource"}}
 
-% --- Bibliography ---------------------------------------------------------
-\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
-\addbibresource{../bibliography/references.bib}
+% --- Bibliography: removed (no citations/references in this deck) ----------
 
 % --- Semantic, colorblind-safe colors (WCAG AA >= 4.5:1) ------------------
 \definecolor{posc}{HTML}{1B7837}\newcommand{\pos}[1]{\textcolor{posc}{#1}}

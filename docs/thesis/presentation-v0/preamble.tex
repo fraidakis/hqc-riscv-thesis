@@ -54,14 +54,10 @@
 % whole build when it is missing, fall back to native beamer notes (per skill's
 % documented fallback): \note{...} + "show notes on second screen" (no
 % timer/next-slide preview in that mode, but the build still succeeds).
-\IfFileExists{pdfpcnotes.sty}{%
-  \usepackage{pdfpcnotes}%
-}{%
-  \PackageWarningNoLine{presentation}{pdfpcnotes.sty not found -- falling back
-    to native beamer notes (no timer/next-slide preview).\MessageBreak
-    Install with: tlmgr install pdfpcnotes}%
-  \setbeameroption{show notes on second screen=right}%
-}
+% Presenter notes DISABLED for now (v0): force-hide notes and skip the
+% pdfpcnotes / show-notes-on-second-screen path. Re-enable by restoring the
+% \IfFileExists{pdfpcnotes.sty} block below.
+\setbeameroption{hide notes}
 % \pnote must always exist: pdfpcnotes defines it when present; otherwise we
 % alias it to beamer's native \note. This MUST live at top level (NOT inside
 % the \IfFileExists branches) -- \IfFileExists wraps each branch in an internal
