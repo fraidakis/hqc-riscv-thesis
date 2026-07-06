@@ -5,6 +5,9 @@ $biber = 'biber %O %S';
 $bibtex_use = 2;
 $max_repeat = 7;         # extra passes for cleveref + totalframenumber convergence
 
+$out_dir = 'build';       # isolate all build artifacts under build/
+$aux_dir = 'build';       # keep the presentation source tree clean
+
 $clean_ext = 'bbl run.xml synctex.gz nav snm vrb auxlock';
 
 # make sure the externalization target dir exists before the first run

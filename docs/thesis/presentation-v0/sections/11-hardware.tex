@@ -1,0 +1,21 @@
+% --- 11 Hardware validation --------------------------------------------------
+\begin{frame}{Επαλήθευση σε πραγματικό υλικό}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.55\textwidth}
+      \begin{itemize}
+        \item Τα Tiers 1--2 τρέχουν σε \HL{πραγματικό πυρήνα} (\en{BPI-F3}, παραγωγικό \en{silicon})
+        \item Επιβεβαίωση: η επιτάχυνση \instret μεταφράζεται σε \HL{πραγματική επιτάχυνση κύκλων}
+        \item Η επιτάχυνση σε \instret και κύκλους συμφωνεί εντός \HL{$\sim\!\pct{2}$} (\HQC-128/192)
+      \end{itemize}
+      \vspace{0.4em}
+      \begin{block}{Tier 3}
+        \Zvbc/\Zvbb ακόμη σε εξομοίωση (δεν υπάρχει διαθέσιμο \en{silicon}), αποτελέσματα σε \instret.
+      \end{block}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \begin{exampleblock}{Στο πραγματικό υλικό σήμερα}
+        Μόνο με τις \HL{βαθμωτές} επεκτάσεις (\Zbc/\Zbb), διαθέσιμες τώρα: \HL{\speedup{38}} στο \HQC-128.
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}

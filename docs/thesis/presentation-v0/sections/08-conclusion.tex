@@ -1,0 +1,45 @@
+% =============================================================================
+% 08-conclusion.tex  —  Section: Συμπεράσματα  (~1 frame, ~1.5 min)
+% =============================================================================
+\section{Συμπεράσματα}
+
+% --- Frame S14: conclusion ---
+\begin{frame}{Οι επικυρωμένες επεκτάσεις \en{RISC-V} επαρκούν για υψηλής επιδόσεως \en{code-based PQC} χωρίς custom hardware}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \textbf{Επίτευγμα:}
+      \begin{itemize}
+        \item \pos{\HL{3-\en{tier}: \speedup{101}/\speedup{124}/\speedup{264}}} στον \polymul (\en{HQC-128})
+        \item \pos{\HL{\speedup{76}/\speedup{164}}} πλήρες \KEM (\en{HQC-128/256})
+        \item \pos{\HL{\speedup{46}/\speedup{78}}} σε \en{silicon} (\en{BPI-F3, Tier~2})
+        \item \pos{Ανταγωνιστικό} με \en{x86-64 AVX2 / ARM Cortex-M4}
+        \item \pos{Καθαρό λογισμικό}: ανοιχτός κώδικας, \en{portable}
+      \end{itemize}
+      \vspace{0.5em}
+      \textbf{\con{Περιορισμοί}:}
+      \begin{itemize}\small
+        \item \en{Tier~3} χωρίς \en{silicon} (\en{SpacemiT K3 Zvbc:} μόλις επικυρώθηκε \en{Q2 2026})
+        \item \en{Keccak floor}: άνω όριο χωρίς \en{vkeccak.vi}
+        \item \instret μετρική μόνο (τερματισμός \en{IPC} από \en{hardware})
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \vspace{0.5em}
+      \begin{block}{\en{Future work}}
+        \begin{itemize}\small
+          \item \en{Tier~3 silicon} επικύρωση (\en{SpacemiT K3})
+          \item \en{vkeccak.vi} (\en{RVS-2360}) ενσωμάτωση
+          \item \en{BIKE}: όμοια δομή \polymul, \en{direct transfer}
+          \item \en{Constant-time} τυπικοποίηση \en{Tier~3}
+          \item \en{LTO+PGO} benchmark επανάληψη
+        \end{itemize}
+      \end{block}
+      \vspace{0.6em}
+      \centering
+      {\large \textbf{\en{\url{github.com/fraidakis/hqc-riscv-thesis}}}}\\
+      \vspace{0.3em}
+      {\footnotesize Ερωτήσεις;}
+    \end{column}
+  \end{columns}
+  \pnote{90 s. Deliver all three headline numbers cleanly. Pause at limitations: be honest. Future work: vkeccak.vi is the big one.}
+\end{frame}

@@ -1,0 +1,56 @@
+% =============================================================================
+% main.tex — HQC on RISC-V defense deck
+% LuaLaTeX; build with: latexmk (see Makefile / .latexmkrc)
+% =============================================================================
+\documentclass[aspectratio=169,10pt]{beamer}
+\input{preamble}
+
+% --- Metadata ---
+\title{%
+  \en{Beamer}-αρχείο δεν δείχνει τίτλο εδώ: βλ. κανόνα title κάτω% placeholder suppressed
+}
+% Real title block:
+\title{%
+  Βελτιστοποίηση Μετα-Κβαντικής Κρυπτογραφίας \en{HQC} σε \en{RISC-V}%
+}
+\subtitle{%
+  Υλοποίηση σε καθαρό λογισμικό με επικυρωμένες επεκτάσεις \Zbc/\Zvbc/\Zbb/\Zvbb%
+}
+\author{\textbf{Φραιδάκης Ιωάννης}}
+\institute{%
+  Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης\\%
+  Τμήμα Ηλεκτρολόγων Μηχανικών \& Μηχανικών Υπολογιστών\\%
+  \smallskip
+  \footnotesizeΕπιβλέπων: Παπαευσταθίου Ιωάννης, Καθηγητής Α.Π.Θ.%
+  % TODO: συμπληρώστε 2ο/3ο μέλος επιτροπής (comment, δεν εμφανίζεται)
+}
+\date{\smallΘεσσαλονίκη, Ιούλιος 2026}
+% NOTE: η ημερομηνία υποστήριξης / τα μέλη επιτροπής χρειάζονται επιβεβαίωση πριν από εκτύπωση.
+
+% =============================================================================
+\begin{document}
+% =============================================================================
+
+\maketitle
+
+% --- Agenda (one frame; moloch section-pages act as in-talk dividers) ---
+\begin{frame}{Δομή της παρουσίασης}
+  \tableofcontents
+  \pnote{30 s. Quick orientation. ~14 content frames + section dividers = 15'.}
+\end{frame}
+
+% --- Content sections ---
+\input{sections/01-motivation}
+\input{sections/02-background}
+\input{sections/03-approach}
+\input{sections/04-kernels}
+\input{sections/05-results}
+\input{sections/06-hardware}
+\input{sections/07-crossarch}
+\input{sections/08-conclusion}
+
+% --- Backup / Q&A (not counted in frame numbering) ---
+\appendix
+\input{backup}
+
+\end{document}

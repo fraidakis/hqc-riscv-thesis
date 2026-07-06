@@ -1,0 +1,56 @@
+% =============================================================================
+% 06-hardware.tex  —  Section: Hardware Validation  (~1 frame, ~1 min)
+% =============================================================================
+% (υπο-ενότητα εντός Section Αποτελέσματα)
+
+% --- Frame S12: hardware validation ---
+\begin{frame}{Σε πραγματικό \en{silicon} (\en{BPI-F3 / SpacemiT K1}): \HL{\speedup{46}/\speedup{78}} επικυρωμένα, \en{IPC}~\HL{$\approx$1.49}}
+  \begin{columns}[T]
+    \begin{column}{0.54\textwidth}
+      % src: results/reports/summaries/speedups_hardware.md
+      % Tier1 (scalar_zb) / Tier2 (vector_rvv) KEM Total cycles on BPI-F3
+      \tikzsetnextfilename{pres-06-hw-speedup-table}
+      \begin{tikzpicture}
+        \begin{axis}[
+          width=\columnwidth, height=5.0cm,
+          ybar, bar width=8pt,
+          ymin=0, ymax=90,
+          xtick={1,2,3},
+          xticklabels={\en{HQC-128}, \en{HQC-192}, \en{HQC-256}},
+          ylabel={\en{KEM total} \speedup{} (\en{cycles})},
+          ylabel style={font=\scriptsize},
+          yticklabel style={font=\scriptsize},
+          xticklabel style={font=\scriptsize},
+          legend style={at={(0.03,0.97)},anchor=north west,font=\scriptsize,
+            draw=none,fill=white,fill opacity=0.85},
+          legend cell align=left,
+          cycle list name=thesistiers,
+          ymajorgrids=true, grid style={dotted,gray!40},
+          enlarge x limits=0.25,
+          nodes near coords,
+          nodes near coords align=above,
+          every node near coord/.append style={font=\scriptsize,
+            rotate=90, anchor=west, inner sep=1pt},
+        ]
+          % Tier1: 37.5 / ~50.8 / 66.0
+          % Tier2: 45.9 / ~59.5 / 78.4
+          \addplot coordinates {(1,37.5) (2,50.8) (3,66.0)};
+          \addlegendentry{\en{Tier~1 (scalar\_zb)}}
+          \addplot coordinates {(1,45.9) (2,59.5) (3,78.4)};
+          \addlegendentry{\en{Tier~2 (vector\_rvv)}}
+        \end{axis}
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \vspace{0.5em}
+      \begin{itemize}
+        \item \textbf{\en{BPI-F3}}: \en{SpacemiT K1}, \VLEN~=~256, \en{RV64GCV+Zbc+Zvbc}
+        \item \instret υπερεκτιμά ~\pct{50} των \en{cycles} (αναμένεται \en{IPC}~$\approx$1.49)
+        \item \pos{\instret προβλέπει, \en{hardware} επιβεβαιώνει} την τάξη μεγέθους
+        \item \en{Tier~3 silicon}: \con{ανύπαρκτο} στο \en{K1} (\Zvbc \en{not ratified} ~\en{May 2026})
+        \item \HL{\speedup{46}} (\en{Tier~2, HQC-128}) \& \HL{\speedup{78}} (\en{Tier~2, HQC-256}) σε πραγματικό \en{silicon}
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \pnote{45 s. Hardware validates sim predictions. IPC~1.49 = in-order K1 executes superscalarly. Tier3 silicon pending.}
+\end{frame}

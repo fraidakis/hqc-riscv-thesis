@@ -1,0 +1,25 @@
+% --- 12 Comparison with related work -----------------------------------------
+% Provenance: figures/ch9-discussion/cross-architecture-table.tex (trimmed).
+\begin{frame}{Πρώτη αξιοποίηση επικυρωμένων κρυπτο-επεκτάσεων: έως \speedup{164}}
+  \centering
+  \renewcommand{\arraystretch}{1.2}
+  {\small
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Εργασία & Πλατφόρμα & Προσέγγιση & Επιτάχυνση \\
+    \midrule
+    \en{Sch\"offel}~\cite{Schoeffel2022-HQC-IoT} & RV32 (SW) & καθαρό λογισμικό & baseline \\
+    \en{FAFFT}~\cite{OptHQC2025} & RV32 + \en{FPGA} & καθαρό λογισμικό & χαμηλή \\
+    \en{pqm4}~\cite{Jang2025-CortexM4-HQC} & ARM Cortex-M4 & bit-slicing & μέτρια \\
+    \midrule
+    \HL{Παρούσα εργασία} & RV64GC + κρυπτο-\en{ISA} & \HL{εγγενείς εντολές} & \HL{έως \speedup{164}} \\
+    \bottomrule
+  \end{tabular}}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item Οι προηγούμενες RISC-V εργασίες είναι \con{καθαρά λογισμικές} ή απαιτούν custom \en{FPGA}
+    \item \HL{Πρώτη εργασία} που αξιοποιεί \HL{επικυρωμένες κρυπτογραφικές επεκτάσεις} για το \HQC
+  \end{itemize}
+  \vspace{-0.2em}
+  {\footnotesize Πλήρης πίνακας κύκλων/\instret στο παράρτημα.}
+\end{frame}

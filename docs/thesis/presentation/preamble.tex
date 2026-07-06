@@ -49,7 +49,13 @@
 \usepgfplotslibrary{groupplots}
 % Externalization: stable, deterministic figure names (same convention as thesis)
 \usetikzlibrary{external}
-\tikzexternalize[prefix=build/ext/]
+\tikzexternalize[prefix=ext/]
+% out_dir-safe externalization: with $out_dir=build the main job writes the
+% .md5/.dpth files into build/, so the prefix must be relative to build/
+% (=> build/ext). The figure sub-compiles are pushed into the same build/
+% via -output-directory, keeping PDFs and .md5 together and the source tree
+% clean. The old prefix=build/ext/ under $out_dir crashed on build/build/ext.
+\tikzset{external/system call={lualatex \tikzexternalcheckshellescape -halt-on-error -interaction=batchmode -shell-escape -output-directory=build -jobname "\image" "\texsource"}}
 
 % --- Bibliography ---------------------------------------------------------
 \usepackage[backend=biber,style=ieee,sorting=none]{biblatex}

@@ -1,0 +1,51 @@
+% =============================================================================
+% 04-kernels.tex  —  Section: Κερνές Keccak & Decode  (~1 frame, ~1 min)
+% =============================================================================
+% (Υποενότητα εντός Section Προσέγγιση: δεν ξεκινά νέα section)
+
+% --- Frame S9: Keccak + Decode ---
+\begin{frame}{Πέρα από τον \polymul: \en{Keccak} (\HL{\speedup{1.37}}) \& \en{decode} (\HL{\speedup{14.3}})}
+  \begin{columns}[T]
+    \begin{column}{0.50\textwidth}
+      \textbf{\en{Keccak-512} (όλα \en{tiers}):}
+      \begin{itemize}\small
+        \item \Zbb \rori: \en{ROL/ROR} σε 1 εντολή (αντί 2 στο \en{ref.})
+        \item \en{Round unroll} + \en{register reuse}: σχεδόν καμία βελτίωση από \en{autovectorize} λόγω \en{Keccak permutation structure}
+        \item \con{Παράδοξο \RVV}: vectorization αποδωσιμότερη για \en{Keccak}
+        \item \en{vkeccak.vi} (\en{RVS-2360}): μέλλοντική επέκταση
+      \end{itemize}
+      \vspace{0.6em}
+      \textbf{\en{Reed-Muller/Solomon decode} (\en{Tier~1+}):}
+      \begin{itemize}\small
+        \item \en{RM/RS} στον \Decaps: \pct{0.54}/\pct{1.23} \en{ref.} — \speedup{14.3} με \RVV+\Zvbc $\GF{2^8}$
+        \item \en{GF}($2^8$) \polymul με \vclmul: \en{vectorized Reed-Solomon}
+        \item \en{Reed-Muller fast Walsh-Hadamard}: \en{RVV} βήματα
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \vspace{0.3em}
+      \begin{block}{\en{Amdahl} projection μετά από \en{Tier~3}}
+        \footnotesize
+        \begin{tabular}{@{}lrr@{}}
+          \toprule
+          \en{Kernel} & \en{ref.\%} & \en{Tier~3\%} \\
+          \midrule
+          \polymul & \pct{96.6} & \pct{21.8} \\
+          \en{Keccak} & \pct{0.76} & \pct{49.2} \\
+          \en{Decode} & \pct{0.54} & \pct{24.0} \\
+          \en{Misc} & \pct{2.1} & \pct{5.1} \\
+          \bottomrule
+        \end{tabular}\\
+        \vspace{0.4em}
+        \textbf{Κερδήσαμε \polymul προβάλλει \en{Keccak} στο top.}
+      \end{block}
+      \vspace{0.4em}
+      \begin{block}{\en{Tier~3 KEM instret} (\en{HQC-128})}
+        \footnotesize
+        \en{Keccak} = \HL{\pct{49.2}} (\pct{57.0} \en{of Tier~3 total})\\
+        \emph{\en{Amdahl} όριο μετατατίζεται στο \en{Keccak}}
+      \end{block}
+    \end{column}
+  \end{columns}
+  \pnote{45 s. Frame 9. Keccak: Zbb helps but little gain vs polymul. Decode: RVV+Zvbc. Table foreshadows next section.}
+\end{frame}

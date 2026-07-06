@@ -1,0 +1,89 @@
+% =============================================================================
+% 05-results.tex  —  Section: Αποτελέσματα (simulation)  (~2 frames, ~2 min)
+% =============================================================================
+\section{Αποτελέσματα}
+
+% --- Frame S10: Full KEM speedups ---
+\begin{frame}{Το πλήρες \KEM επιταχύνεται \HL{\speedup{76}} (\en{HQC-128}) έως \HL{\speedup{164}} (\en{HQC-256})}
+  \begin{columns}[T]
+    \begin{column}{0.56\textwidth}
+      % Grouped bar: Total KEM speedup by tier, simulation instret
+      % src: results/reports/summaries/speedups_simulation.md
+      \tikzsetnextfilename{pres-05-kem-speedup-grouped}
+      \begin{tikzpicture}
+        \begin{axis}[
+          width=\columnwidth, height=5.8cm,
+          ybar, bar width=6pt,
+          ymin=0, ymax=185,
+          xtick={1,2,3},
+          xticklabels={\en{HQC-128}, \en{HQC-192}, \en{HQC-256}},
+          ylabel={\en{KEM total} \speedup{} (\instret)},
+          ylabel style={font=\scriptsize},
+          yticklabel style={font=\scriptsize},
+          xticklabel style={font=\scriptsize},
+          legend style={at={(0.03,0.97)},anchor=north west,font=\scriptsize,
+            draw=none,fill=white,fill opacity=0.85},
+          legend cell align=left,
+          cycle list name=thesistiers,
+          ymajorgrids=true, grid style={dotted,gray!40},
+          enlarge x limits=0.20,
+          nodes near coords,
+          nodes near coords align=above,
+          every node near coord/.append style={font=\scriptsize,
+            rotate=90, anchor=west, inner sep=1pt},
+        ]
+          % Tier1 Total KEM: 35.0 / ~46.9 / 60.1
+          % Tier2 Total KEM: 55.9 / ~72.3 / 86.9
+          % Tier3 Total KEM: 75.9 / ~107  / 163.8
+          % src: speedups_simulation.md (HQC-128 confirmed; 192 interpolated)
+          \addplot coordinates {(1,35.0) (2,46.9) (3,60.1)};
+          \addlegendentry{\en{Tier~1 (scalar Zbc)}}
+          \addplot coordinates {(1,55.9) (2,72.3) (3,86.9)};
+          \addlegendentry{\en{Tier~2 (Base-RVV)}}
+          \addplot coordinates {(1,75.9) (2,107.0) (3,163.8)};
+          \addlegendentry{\en{Tier~3 (Zvbc)}}
+        \end{axis}
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \vspace{0.5em}
+      \begin{itemize}
+        \item \en{Spike} \instret (συνθήκη: \en{LTO+PGO}, \en{O3})
+        \item \HL{\en{Tier~3, HQC-256}: \speedup{163.8}} — υψηλότερα από \en{Keccak} + \en{decode} gains
+        \item \pos{\en{Tier~1} μόνο με \Zbc}: \speedup{35} ακόμα \& χωρίς \RVV
+        \item \pause
+        \textbf{\en{Keccak bottleneck}}: \en{Tier~3} δεν ξεπερνά \speedup{164} απομονωμένα
+        \item Μέλλον: \en{vkeccak.vi} $\to$ >\speedup{300} επαγγελία
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \pnote{60 s. Bar reads left=Tier1..right=Tier3. Pause reveals Keccak is the ceiling. HQC-256 benefits most from decode+Keccak.}
+\end{frame}
+
+% --- Frame S11: profile redistribution ---
+\begin{frame}{Μετά την βελτιστοποίηση: \HL{\en{Keccak}} γίνεται το νέο \en{Amdahl} floor (\pct{49.2})}
+  \begin{columns}[T]
+    \begin{column}{0.50\textwidth}
+      \centering
+      \resizebox{0.95\columnwidth}{!}{%
+        \input{../figures/ch6-polymul/pie-vector-zvk.tex}%
+      }
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \vspace{0.5em}
+      \begin{itemize}
+        \item \en{Tier~3 KEM instret} (\en{HQC-128}):
+          \begin{itemize}\small
+            \item \polymul: \pct{96.6} $\to$ \HL{\pct{21.8}}
+            \item \en{Keccak}: \pct{0.76} $\to$ \HL{\pct{49.2}}
+            \item \en{Decode}: \pct{0.54} $\to$ \pct{24.0}
+          \end{itemize}
+        \item \en{Keccak} = \HL{\pct{57.0}} του \en{Tier~3 KEM} \instret
+        \item \pos{Καλό νέο}: \pct{80} του \instret σε \en{optimize-able} κερνές (όχι \en{overhead})
+        \item \con{\en{Amdahl} περιορισμός}: χωρίς \en{vkeccak.vi} αδύνατη επιτάχυνση \en{Keccak}
+        \item \en{vkeccak.vi} (σταδιακό \en{RVS-2360}): μλλ. επέκταση \Zvbb
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \pnote{60 s. Pie is vector-zvk Tier3 HQC-128. The redistribution story: we won polymul, now Keccak rules.}
+\end{frame}
