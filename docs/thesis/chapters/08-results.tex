@@ -31,6 +31,7 @@ reference–optimized για τους τρεις πυρήνες στο HQC-128 �
 \begin{figure}[htbp]
   \centering
   \input{figures/ch8-results/microbench-bar-chart}
+  \captionsetup{list=no}
   \caption{Σύγκριση \instret ανά πυρήνα και tier για HQC-128 (λογαριθμική
     κλίμακα).}
   \label{fig:microbench-bar}
@@ -158,7 +159,7 @@ security levels και τις τρεις βαθμίδες hardware. Η βάση 
 
 \begin{table}[htbp]
   \centering
-  \caption{\instret πλήρους \KEM ανά security level, λειτουργία και tier (Spike, VLEN $= \num{256}$).}
+  \caption[\instret πλήρους \KEM ανά security level, λειτουργία και tier]{\instret πλήρους \KEM ανά security level, λειτουργία και tier (Spike, VLEN $= \num{256}$).}
   \label{tab:kem-results}
   \small
   \input{figures/ch8-results/kem-results-table}
@@ -211,7 +212,7 @@ overhead της αποκωδικοποίησης.
 
 \begin{table}[htbp]
   \centering
-  \caption{Speedups πλήρους \gls{kem} (HQC-128, Spike, VLEN $= \num{256}$).}
+  \caption[Speedups πλήρους \glsxtrshort{kem} ]{Speedups πλήρους \gls{kem} (HQC-128, Spike, VLEN $= \num{256}$).}
   \label{tab:kem-summary}
   \begin{thesistblr}{
     colspec = {l r r r},
@@ -499,7 +500,8 @@ $\VLEN \in \{256, 512, 1024, 2048\}$ και για τα δύο διανυσμα�
 \begin{figure}[htbp]
   \centering
   \input{figures/ch8-results/vlen-budget-breakdown}
-  \caption{Κατανομή \instret σε κατηγορίες ευαισθησίας \VLEN (HQC-128, Tier~3, \VLEN$= \num{256}$).}
+  \captionsetup{list=no}
+  \caption[Κατανομή \instret σε κατηγορίες ευαισθησίας στο \VLEN]{Κατανομή \instret σε κατηγορίες ευαισθησίας \VLEN (HQC-128, Tier~3, \VLEN$= \num{256}$).}
   \label{fig:vlen-budget}
 \end{figure}
 
@@ -690,7 +692,7 @@ speedups Spike έναντι BPI-F3
 
 \begin{table}[htbp]
   \centering
-  \caption{Spike vs Hardware στα τρία security levels (πλήρες \gls{kem}).}
+  \caption{Spike vs Hardware στα τρία security levels (πλήρες \glsxtrshort{kem}).}
   \label{tab:hw-spike-prediction-levels}
   \begin{thesistblr}{
     colspec = {l l r r r},
@@ -961,6 +963,7 @@ hardware (\cref{sec:rw-riscv}). Καθώς εκτελούνται σε διαφ�
 
 \begin{table}[htbp]
   \centering
+  \captionsetup{list=no}
   \caption{Επιτάχυνση σε επίπεδο πυρήνα: ratified RISC-V ISA.}
   \label{tab:ratified-vs-custom}
   \small
@@ -1563,6 +1566,7 @@ inlining, αυξάνουν το μέγεθος του κώδικα και την
 
 \begin{table}[htbp]
   \centering
+  \captionsetup{list=no}
   \caption{Συγκριτική αξιολόγηση Clang vs GCC (πλήρες \KEM, BPI-F3, $\VLEN = \num{256}$).}
   \label{tab:compiler-comparison}
   \small
