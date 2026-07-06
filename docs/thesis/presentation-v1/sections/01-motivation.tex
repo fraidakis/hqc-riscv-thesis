@@ -1,10 +1,17 @@
 % --- 01 Motivation: quantum threat (timeline fig-hero) -----------------------
 % NOTE: figure reuse via \input -> \tikzsetnextfilename lives inside the figure file.
-\begin{frame}{Από το \en{RSA} στο \en{PQC}: 40 χρόνια, deadline το \HL{2035}}
-  \begin{center}\small
-    \HL{Πρόβλημα:} ο αλγόριθμος \en{Shor} σπάει \en{RSA}/\en{ECC} σε πολυωνυμικό χρόνο.\\
-    \HL{Λύση:} \en{NIST PQC}. Το \HQC επιλέχθηκε από το \en{NIST} (Μάρτιος 2025).
-  \end{center}
+\begin{frame}{Η κβαντική απειλή επιβάλλει \en{Post-Quantum Cryptography}}
+  % Speaker note (pdfpc): blank lines break the build (\par recursion) -> use \\ for line breaks.
+  \pdfpcnote{budget ≈60s | exit ≈1:00\\
+- Shor → σπάει RSA/ECC σε πολυωνυμικό χρόνο → κβαντικός υπολογιστής επαρκούς μεγέθους καταργεί την ασύμμετρη κρυπτο\\
+- πρόοδος κβαντικών → η απειλή δεν είναι θεωρητική → migration τώρα, harvest-now decrypt-later\\
+- NIST PQC → ≈δεκαετία διαγωνισμού (2016→2025) → επιλέγεται το HQC, code-based εναλλακτική στα lattices\\
+cut: αν αργώ → κράτα Shor + HQC 2025, δείξε το timeline, προχώρα}
+  \vspace{0.9em}
+  \begin{itemize}\small
+    \item \HL{Πρόβλημα:} ο \en{Shor} σπάει \en{RSA}/\en{ECC} σε πολυωνυμικό χρόνο
+    \item \HL{Λύση:} \en{NIST PQC}, με το \HQC να επιλέγεται το 2025
+  \end{itemize}
   \vfill
   \begin{center}
     \resizebox{\linewidth}{!}{\input{../figures/ch1-introduction/timeline-pqc}}

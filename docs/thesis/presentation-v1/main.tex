@@ -15,7 +15,7 @@
   \footnotesize Επιβλέπων: Παπαευσταθίου Ιωάννης, Καθηγητής Α.Π.Θ.\\%
   \footnotesize Εξεταστική επιτροπή: Ι. Παπαευσταθίου, Β. Παυλίδης, Α. Χατζόπουλος%
 }
-\date{\smallΘεσσαλονίκη, Ιούλιος 2026}
+\date{\small Θεσσαλονίκη, Ιούλιος 2026}
 
 \begin{document}
 
@@ -50,11 +50,9 @@
 
 % --- Backup (after the closing frame; not counted in the 15') ----------------
 \appendix
-% Freeze the total frame count so the backup/appendix frames below are
-% excluded from the "n / N" page counter (total = last main-content frame).
-\newcounter{finalframe}
-\setcounter{finalframe}{\value{framenumber}}
+% appendixnumberbeamer (loaded in preamble) freezes the "n / N" total at the
+% last main-content frame and renumbers the backup frames separately, so the
+% footer no longer overflows (e.g. 21/20).
 \input{backup}
-\setcounter{framenumber}{\value{finalframe}}
 
 \end{document}

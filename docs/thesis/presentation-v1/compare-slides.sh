@@ -50,6 +50,7 @@ ALL_SECTIONS=false
 CONTEXT=false
 OVERLAYS=false
 OPEN=true
+ZOOM="${ZOOM:-292}"   # default Chrome PDF-viewer zoom (%) for every opened tab
 
 usage() {
     cat <<EOF
@@ -67,6 +68,7 @@ OPTIONS:
       --context        Also build the full deck with each variant swapped in
       --overlays       Keep \pause reveals (default: handout-flatten to 1 page)
       --no-open        Build only; do not launch the browser
+  -z, --zoom N         Chrome PDF-viewer zoom percent for opened tabs (default: $ZOOM)
   -h, --help           Show this help
 
 EXAMPLES:
@@ -88,6 +90,7 @@ while [[ $# -gt 0 ]]; do
         --context)    CONTEXT=true; shift ;;
         --overlays)   OVERLAYS=true; shift ;;
         --no-open)    OPEN=false; shift ;;
+        -z|--zoom)    ZOOM="$2"; shift 2 ;;
         -h|--help)    usage 0 ;;
         *)            echo "Error: unknown option '$1'"; usage 1 ;;
     esac
@@ -95,6 +98,14 @@ done
 
 # --- Helpers ----------------------------------------------------------------
 is_variant() { [[ "$(basename "$1" .tex)" == *_* ]]; }
+
+# Turn a PDF path into a file:// URL carrying the default zoom so Chrome's
+# built-in PDF viewer opens every tab at $ZOOM% instead of 100%.
+to_url() {
+    local p="$1"
+    case "$p" in /*) : ;; *) p="$(cd "$(dirname "$p")" && pwd)/$(basename "$p")" ;; esac
+    printf 'file://%s#zoom=%s' "$p" "$ZOOM"
+}
 
 # Resolve a section base file (no underscore) from exact name or fuzzy fragment.
 resolve_section() {
@@ -159,6 +170,27 @@ for base in "${BASES[@]}"; do
 done
 
 if [[ ${#GROUP_LABEL[@]} -eq 0 ]]; then echo "Nothing to build."; exit 1; fi
+
+# --- Announce the build plan ------------------------------------------------
+TOTAL_FRAMES=0
+[[ "$OVERLAYS" == true ]] && MODE="overlays (\\pause kept)" || MODE="handout (1 page/frame)"
+echo "=== Build plan ==="
+echo "Groups: ${#GROUP_LABEL[@]}  |  Mode: ${MODE}  |  Zoom: ${ZOOM}%"
+for g in "${!GROUP_LABEL[@]}"; do
+    vcount=0
+    while IFS= read -r sec; do [[ -n "$sec" ]] && vcount=$((vcount+1)); done <<< "${GROUP_FILES[$g]}"
+    variants=$((vcount - 1))
+    TOTAL_FRAMES=$((TOTAL_FRAMES + vcount))
+    echo "  * ${GROUP_LABEL[$g]}: 1 base + ${variants} variant(s) = ${vcount} frames"
+    while IFS= read -r sec; do
+        [[ -n "$sec" ]] || continue
+        [[ "$sec" == "${GROUP_LABEL[$g]}" ]] && continue
+        echo "      - ${sec}"
+    done <<< "${GROUP_FILES[$g]}"
+done
+echo "Total frames to build: ${TOTAL_FRAMES}"
+[[ "$CONTEXT" == true ]] && echo "Plus full-deck context builds for every variant (--context)."
+echo ""
 
 mkdir -p "$BUILD_DIR"
 
@@ -245,8 +277,8 @@ fi
 # --- Overlays kept -> tab split unreliable; just open consolidated -----------
 if [[ "$OVERLAYS" == true ]]; then
     echo ""; echo "--overlays set: opening consolidated deck (per-group tabs disabled)."
-    "$CHROME" --new-window "$PDF" >/dev/null 2>&1 &
-    [[ "$CONTEXT" == true ]] && for p in "$BUILD_DIR"/_ctx-*.pdf; do [[ -e "$p" ]] && "$CHROME" --new-window "$p" >/dev/null 2>&1 & sleep 0.3; done
+    "$CHROME" --new-window "$(to_url "$PDF")" >/dev/null 2>&1 &
+    [[ "$CONTEXT" == true ]] && for p in "$BUILD_DIR"/_ctx-*.pdf; do [[ -e "$p" ]] && "$CHROME" --new-window "$(to_url "$p")" >/dev/null 2>&1 & sleep 0.3; done
     echo "Done."; exit 0
 fi
 
@@ -265,7 +297,7 @@ if ! command -v pdfseparate >/dev/null 2>&1 || [[ "${PAGES:-0}" -ne "$EXPECTED" 
     echo ""
     echo "Per-page split unavailable or page count (${PAGES:-?}) != expected ($EXPECTED)"
     echo "(a frame spilled to multiple pages). Opening the consolidated deck instead."
-    "$CHROME" --new-window "$PDF" >/dev/null 2>&1 &
+    "$CHROME" --new-window "$(to_url "$PDF")" >/dev/null 2>&1 &
     echo "Done."; exit 0
 fi
 
@@ -278,9 +310,9 @@ for g in "${!GROUP_LABEL[@]}"; do
     tabs=()
     while IFS= read -r sec; do
         [[ -n "$sec" ]] || continue
-        tabs+=("${BUILD_DIR}/page-${p}.pdf"); p=$((p+1))
+        tabs+=("$(to_url "${BUILD_DIR}/page-${p}.pdf")"); p=$((p+1))
     done <<< "${GROUP_FILES[$g]}"
-    echo "Opening: ${GROUP_LABEL[$g]} (${#tabs[@]} tabs)"
+    echo "Opening: ${GROUP_LABEL[$g]} (${#tabs[@]} tabs @ ${ZOOM}% zoom)"
     "$CHROME" --new-window "${tabs[@]}" >/dev/null 2>&1 &
     sleep 0.3
 done
@@ -288,7 +320,7 @@ done
 if [[ "$CONTEXT" == true ]]; then
     for pdf in "$BUILD_DIR"/_ctx-*.pdf; do
         [[ -e "$pdf" ]] || continue
-        "$CHROME" --new-window "$pdf" >/dev/null 2>&1 &
+        "$CHROME" --new-window "$(to_url "$pdf")" >/dev/null 2>&1 &
         sleep 0.3
     done
 fi
