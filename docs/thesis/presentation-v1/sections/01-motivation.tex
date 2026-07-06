@@ -1,12 +1,17 @@
 % --- 01 Motivation: quantum threat (timeline fig-hero) -----------------------
 % NOTE: figure reuse via \input -> \tikzsetnextfilename lives inside the figure file.
 \begin{frame}{Η κβαντική απειλή επιβάλλει \en{Post-Quantum Cryptography}}
-  % Speaker note (pdfpc): blank lines break the build (\par recursion) -> use \\ for line breaks.
-  \pdfpcnote{budget ≈60s | exit ≈1:00\\
-- Shor → σπάει RSA/ECC σε πολυωνυμικό χρόνο → κβαντικός υπολογιστής επαρκούς μεγέθους καταργεί την ασύμμετρη κρυπτο\\
-- πρόοδος κβαντικών → η απειλή δεν είναι θεωρητική → migration τώρα, harvest-now decrypt-later\\
-- NIST PQC → ≈δεκαετία διαγωνισμού (2016→2025) → επιλέγεται το HQC, code-based εναλλακτική στα lattices\\
-cut: αν αργώ → κράτα Shor + HQC 2025, δείξε το timeline, προχώρα}
+  % Speaker notes: ONE \pdfpcnote per cue -> pdfpc joins them with REAL newlines.
+  % The empty \pdfpcnote{} entries insert blank lines, so the dashes render as a
+  % real (wrapping) Markdown bullet list instead of collapsing into one paragraph.
+  % Never leave blank SOURCE lines here (they emit \par -> frame crash).
+  \pdfpcnote{budget ≈60s | exit ≈1:00}
+  \pdfpcnote{}
+  \pdfpcnote{- Shor → σπάει RSA/ECC σε πολυωνυμικό χρόνο → κβαντικός υπολογιστής επαρκούς μεγέθους καταργεί την ασύμμετρη κρυπτο}
+  \pdfpcnote{- πρόοδος κβαντικών → η απειλή δεν είναι θεωρητική → migration τώρα, harvest-now decrypt-later}
+  \pdfpcnote{- NIST PQC → ≈δεκαετία διαγωνισμού (2016→2025) → επιλέγεται το HQC, code-based εναλλακτική στα lattices}
+  \pdfpcnote{}
+  \pdfpcnote{cut: αν αργώ → κράτα Shor + HQC 2025, δείξε το timeline, προχώρα}
   \vspace{0.9em}
   \begin{itemize}\small
     \item \HL{Πρόβλημα:} ο \en{Shor} σπάει \en{RSA}/\en{ECC} σε πολυωνυμικό χρόνο

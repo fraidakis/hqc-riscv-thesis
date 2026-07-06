@@ -1,4 +1,4 @@
-% Cross-architecture comparison table for §8.5 (Σύγκριση με Ετερογενείς Αρχιτεκτονικές)
+% Cross-architecture comparison table for §8.3 (Σύγκριση με Ετερογενείς Αρχιτεκτονικές)
 % All figures are real clock cycles (no instret).
 % Reference data: see caption citations (Chen2026/RobertVeron2023/Jang2025/ras-nist2025).
 % Present-work data: real BPI-F3 median cycles (SpacemiT K1 X60), see tab:hw-kem
@@ -15,7 +15,7 @@
 {\textit{Αρχιτεκτονικές αναφοράς (κύκλοι ρολογιού σε πραγματικό hardware)}} & & & & & & \\
 x86-64 (FFT+CRT) & AVX2 + \code{PCLMULQDQ} + GFNI & cycles & \num{87000} & \num{110000} & \num{245000} & AMD EPYC 9754, cache-key; \cref{ssec:rw-chen-fft}~\cite{Chen2026-TCHES-HQC-FFT} \\
 x86-64 (official HQC) & AVX2 + \code{PCLMULQDQ} & cycles & \num{111073} & \num{185741} & \num{344154} & NIST ref, R\&V gf2x; \cref{ssec:rw-robert-veron}~\cite{RobertVeron2023-avx512-gf2x,HQC-reference-impl} \\
-ARM Cortex-M4 & ARMv7E-M (no clmul) & cycles & \num{1837507} & \num{4878515} & \num{7502580} & pqm4, bit-slicing~\cite{Jang2025-CortexM4-HQC} \\
+ARM Cortex-M4 & ARMv7E-M (no clmul) & cycles & \num{3065459} & \num{5942521} & \num{10175173} & SW-only, Hybrid FAFFT-CRT~\cite{Jang2025-CortexM4-HQC} \\
 RISC-V FAFFT & RV32IMC (CV32E40P) & cycles & \num{12208482} & \num{24882981} & \num{38099269} & SW-only, FPGA; \cref{ssec:rw-ras-fafft}~\cite{ras-nist2025} \\
 {\textit{Παρούσα εργασία (πραγματικοί κύκλοι, BPI-F3 / SpacemiT K1 X60, VLEN $= \num{256}$)}} & & & & & & \\
 Tier~1 (\code{scalar\_zb}) & RV64GC + \Zbc/\Zbb & cycles & \num{232836} & \num{461278} & \num{1197341} & Scalar, specialized tree \\
