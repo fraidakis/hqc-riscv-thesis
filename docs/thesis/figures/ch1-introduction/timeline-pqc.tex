@@ -52,11 +52,13 @@
   node[midway, below=7pt, font=\sffamily\bfseries\scriptsize, text=figthreat, text width=4.8cm, align=center]
   {Harvest Now, Decrypt Later\\(δεδομένα ήδη σε κίνδυνο)};
 
+\ifNOTpresentation  % legend shown only in thesis (hidden in presentation decks)
 % --- self-contained shape legend ---
 \node[evt=figneutral] (lg1) at (-0.1,-2.65) {};
 \node[figT/annot, text=black, anchor=west, xshift=7pt] (lg1t) at (lg1.east) {Γεγονός (event)};
 \node[std=oiGreen] (lg2) at (-0.1,-3.0) {};
 \node[figT/annot, text=black, anchor=west, xshift=7pt] (lg2t) at (lg2.east) {Πρότυπο / τυποποίηση};
 \node[draw=figrule, figLW/hair, rounded corners=2pt, inner sep=6pt, fit=(lg1)(lg1t)(lg2)(lg2t)] {};
+\fi
 
 \end{tikzpicture}

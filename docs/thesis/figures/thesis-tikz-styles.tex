@@ -68,6 +68,9 @@
 % greys; marks/glyphs then carry the distinction (a11y). Single block
 % (was split across the old v1/v2 layers).
 \ifdefined\iffigmono\else\newif\iffigmono\fi
+% Presentation vs thesis output. Default TRUE (full thesis figure).
+% Presentation preambles (v0/v1) set \NOTpresentationfalse to drop thesis-only extras.
+\ifdefined\ifNOTpresentation\else\newif\ifNOTpresentation\NOTpresentationtrue\fi
 \iffigmono
   \colorlet{figaccent}{black!85}\colorlet{figprocess}{black!55}%
   \colorlet{figthreat}{black!70}\colorlet{figsolution}{black!40}%
