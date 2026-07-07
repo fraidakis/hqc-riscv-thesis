@@ -31,6 +31,10 @@
 \setsansfont{Noto Sans}
 \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
 \newcommand{\en}[1]{\textenglish{#1}}      % english spans (= \textenglish)
+% Noto Sans lacks U+2192; map the literal arrow to the math glyph so it
+% renders on slides instead of being silently dropped ("Missing character").
+\usepackage{newunicodechar}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
 
 % --- Math -----------------------------------------------------------------
 \usepackage{unicode-math}
@@ -54,13 +58,14 @@
 \usepgfplotslibrary{groupplots}
 % Externalization: stable, deterministic figure names (same convention as thesis)
 \usetikzlibrary{external}
-\tikzexternalize[prefix=ext/]
-% out_dir-safe externalization: with $out_dir=build the main job writes the
-% .md5/.dpth files into build/, so the prefix must be relative to build/
-% (=> build/ext). The figure sub-compiles are pushed into the same build/
-% via -output-directory, keeping PDFs and .md5 together and the source tree
-% clean. The old prefix=build/ext/ under $out_dir crashed on build/build/ext.
-\tikzset{external/system call={lualatex \tikzexternalcheckshellescape -halt-on-error -interaction=batchmode -shell-escape -output-directory=build -jobname "\image" "\texsource"}}
+% Externalization DISABLED for this deck. Unlike the thesis (scrbook), the
+% tikz-external sub-compile re-runs the ENTIRE beamer main.tex once per figure
+% (overlays + pdfpc + hyperxmp), which crashes the sub-job here:
+%   "did NOT result in a usable output file 'ext/...'".
+% This deck has only a few light TikZ pictures, so drawing them INLINE is
+% robust and fast enough. The external library stays loaded so the figure
+% files' \tikzsetnextfilename{...} calls remain harmless no-ops.
+\graphicspath{{./}{build/}}
 
 % --- Bibliography: removed (no citations/references in this deck) ----------
 

@@ -10,5 +10,5 @@ $aux_dir = 'build';       # keep the presentation source tree clean
 
 $clean_ext = 'bbl run.xml synctex.gz nav snm vrb auxlock';
 
-# make sure the externalization target dir exists before the first run
-system('mkdir -p build/ext');
+# Externalization is disabled in preamble.tex (figures render inline), so no
+# build/ext bootstrap or symlink bridge is needed here.
