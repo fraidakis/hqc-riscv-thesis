@@ -1,12 +1,41 @@
 % VARIANT — not \input by main.tex; promote with promote-slide.sh
-% 09-setup_minimal — R+I: single-message headline, λιγότερες λέξεις (drop median/pinning detail).
+% 09-setup_bridge — R: vertical rebalance (vfill + [T] top-aligned blocks) + full-width bridge standfirst (qualitative, no dup numbers).
 \begin{frame}{Δύο πλατφόρμες: ντετερμινιστικό \instret + επικύρωση σε \en{silicon}}
-  \begin{itemize}
-    \item \textbf{Εξομοίωση:} \en{Spike ISS}, \HL{ντετερμινιστικό \instret} (όλα τα Tiers), \en{KAT}-validated
-    \item \textbf{Hardware:} \en{Banana Pi BPI-F3} (\en{SpacemiT K1 X60}, \VLEN${}=256$), \HL{κύκλοι ρολογιού}.
-  \end{itemize}
   \vfill
-  \begin{center}\footnotesize
-    \instret = δυναμικά εκτελεσθείσες εντολές, κάτω φράγμα κύκλων σε in-order pipelines.
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.5\textwidth}
+      \begin{block}{Εξομοίωση: \en{Spike ISS}}
+        \begin{itemize}
+          \item \HL{Ντετερμινιστικό \instret}, golden reference
+          \item Κάλυψη \HL{όλων των Tiers} (1--3)
+          \item \en{KAT}-validated ορθότητα
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{block}{Hardware: \en{Banana Pi BPI-F3}}
+        \begin{itemize}
+          \item \en{SpacemiT K1 X60}, \VLEN${}=\num{256}$
+          \item \HL{Πραγματικοί κύκλοι} ρολογιού
+          \item Tiers \HL{1--2}, median, single-core pinning
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+  \vfill
+  \begin{center}\large
+    \HL{Το Spike μετρά ντετερμινιστικά, το \en{silicon} επιβεβαιώνει.}
   \end{center}
+  \vspace{0.2em}
+  \begin{center}\footnotesize
+    \instret = αριθμός δυναμικά εκτελεσθεισών εντολών, κάτω φράγμα κύκλων σε in-order pipelines.
+  \end{center}
+  \vfill
+  \pdfpcnote{budget ≈45s | exit ≈4:15}
+  \pdfpcnote{}
+  \pdfpcnote{- δύο πλατφόρμες → γιατί: Spike δίνει ντετερμινιστικό instret (όλα τα Tiers), BPI-F3 πραγματικούς κύκλους (Tiers 1--2)}
+  \pdfpcnote{- ορθότητα → NIST KATs: 100 test vectors ανά security level, πλήρης κύκλος KeyGen→Encaps→Decaps → PASS 100/100}
+  \pdfpcnote{- so-what (bridge): μετράμε ντετερμινιστικά, επιβεβαιώνουμε σε πραγματικό πυρήνα}
+  \pdfpcnote{}
+  \pdfpcnote{cut: λεπτομέρεια median/single-core pinning}
 \end{frame}

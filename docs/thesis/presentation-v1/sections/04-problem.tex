@@ -1,11 +1,19 @@
-% VARIANT — not \input by main.tex; promote with promote-slide.sh
 % --- 04 Problem (fullbleed, L): pie-dominant, standfirst + minimal κείμενο ----
-\begin{frame}{Ο πολυωνυμικός πολ/σμός κυριαρχεί: $\sim\!\pct{96}$ του κόστους}
+\begin{frame}{Ο πολυωνυμικός πολ/σμός κυριαρχεί: $\sim\!\pct{97}$ του κόστους}
   \HL{Σχεδόν όλο το κόστος του \HQC-128 συγκεντρώνεται σε έναν πυρήνα.}
   \vfill
   \begin{center}
-    \resizebox{0.92\linewidth}{!}{\input{../figures/ch2-background/pie-scalar-ref}}
+    \adjustbox{max width=0.95\linewidth,max height=0.62\textheight,center}{\input{../figures/ch2-background/pie-scalar-ref}}
   \end{center}
   \vfill
-  {\footnotesize Κατανομή \instret, βαθμωτή αναφορά \HQC-128 (κύριος τομέας: πολ/σμός \GFpoly).}
+  {\footnotesize Κατανομή \instret, reference \HQC-128 (κύριος τομέας: πολ/σμός \GFpoly).}
+  \pdfpcnote{budget ≈70s | exit ≈5:25}
+  \pdfpcnote{}
+  \pdfpcnote{- κεντρικό μήνυμα → το multiplication (GF(2)[x]) κυριαρχεί, ≈97 τοις εκατό του instret → εκεί επιτιθέμεθα}
+  \pdfpcnote{- αριστερό donut → HQC-128 scalar reference: ένας πυρήνας τρώει σχεδόν όλο το κόστος → κλασικός Amdahl στόχος}
+  \pdfpcnote{- δεξί inset → υπόλοιπο ≈3.4 τοις εκατό (Memory/Utility, Keccak, Decode) → αμελητέα, όχι προτεραιότητα}
+  \pdfpcnote{- so-what → όλη η βελτιστοποίηση πάει στο multiplication → δικαιολογεί τα scalar/vector κεφάλαια που ακολουθούν}
+  \pdfpcnote{- approach (πρώην map) → κοινή αρχή: ακριβοί βρόχοι → εγγενείς εντολές, constant-time preserved, εφαρμογή σε 3 Tiers (serial→RVV→vector-crypto, βλ. slide 03)}
+  \pdfpcnote{}
+  \pdfpcnote{cut: παράλειψε το inset breakdown, πες μόνο «το υπόλοιπο είναι αμελητέο»}
 \end{frame}

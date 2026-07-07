@@ -9,6 +9,8 @@
   \pdfpcnote{- scalar: Zbc = clmul/clmulh (πολλαπλασιασμός στο GF(2)[x]), Zbb = rotations/logic για Keccak}
   \pdfpcnote{- vector: Zvbc = vclmul.vx/vclmulh.vx (διανυσματικός πολ/σμός), Zvbb = vror + vector-logic για Keccak}
   \pdfpcnote{- κάθε tier υπερσύνολο του προηγούμενου -> Tier1 σειριακή, Tier2 base-RVV, Tier3 vector-crypto}
+  \pdfpcnote{- γιατί tiers (1) φορητότητα -> κάθε tier τρέχει σε όποιον επεξεργαστή υλοποιεί τις επεκτάσεις -> ίδιος κώδικας, πολλά targets}
+  \pdfpcnote{- γιατί tiers (2) marginal contribution -> Tier1->Tier2 απομονώνει το κέρδος της vector unit, Tier2->Tier3 το κέρδος των vector-crypto (Zvbc/Zvbb)}
   \pdfpcnote{}
   \pdfpcnote{cut: αν αργώ -> κράτα το diagram + «κάθε tier υπερσύνολο», προχώρα}
   \begin{itemize}\small
