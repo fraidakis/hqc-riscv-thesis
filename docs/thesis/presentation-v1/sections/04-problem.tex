@@ -1,23 +1,11 @@
-% --- 04 Problem: where the cost is -------------------------------------------
-\begin{frame}{Ο πολυωνυμικός πολ/σμός κυριαρχεί: \pct{96} του κόστους}
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.52\textwidth}
-      \begin{itemize}
-        \item Ο \HL{πολυωνυμικός πολ/σμός} κυριαρχεί: $\sim\!\pct{96}$ των \instret στη βαθμωτή αναφορά
-        \item Δεύτεροι στόχοι: \HL{\en{Keccak}/\en{SHA-3}} και \HL{αποκωδικοποίηση}
-      \end{itemize}
-      \vspace{0.5em}
-      \begin{block}{Στόχοι της εργασίας}
-        \begin{enumerate}
-          \item Επιτάχυνση μέσω επεκτάσεων \en{ISA}
-          \item Επαλήθευση σε πραγματικό \en{silicon}
-        \end{enumerate}
-      \end{block}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \centering
-      \resizebox{\linewidth}{!}{\input{../figures/ch2-background/pie-scalar-ref}}\\
-      {\footnotesize Κατανομή \instret, βαθμωτή αναφορά \HQC-128}
-    \end{column}
-  \end{columns}
+% VARIANT — not \input by main.tex; promote with promote-slide.sh
+% --- 04 Problem (fullbleed, L): pie-dominant, standfirst + minimal κείμενο ----
+\begin{frame}{Ο πολυωνυμικός πολ/σμός κυριαρχεί: $\sim\!\pct{96}$ του κόστους}
+  \HL{Σχεδόν όλο το κόστος του \HQC-128 συγκεντρώνεται σε έναν πυρήνα.}
+  \vfill
+  \begin{center}
+    \resizebox{0.92\linewidth}{!}{\input{../figures/ch2-background/pie-scalar-ref}}
+  \end{center}
+  \vfill
+  {\footnotesize Κατανομή \instret, βαθμωτή αναφορά \HQC-128 (κύριος τομέας: πολ/σμός \GFpoly).}
 \end{frame}

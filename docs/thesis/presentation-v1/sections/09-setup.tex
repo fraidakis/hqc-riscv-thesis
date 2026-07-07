@@ -1,12 +1,12 @@
-\begin{frame}{Πειραματική διάταξη}
+% VARIANT — not \input by main.tex; promote with promote-slide.sh
+% 09-setup_minimal — R+I: single-message headline, λιγότερες λέξεις (drop median/pinning detail).
+\begin{frame}{Δύο πλατφόρμες: ντετερμινιστικό \instret + επικύρωση σε \en{silicon}}
   \begin{itemize}
-    \item \textbf{Εξομοίωση:} \en{Spike ISS}, ντετερμινιστικό \instret (όλα τα Tiers).
-    \item \textbf{Hardware:} \en{Banana Pi BPI-F3} (\en{SpacemiT K1 X60}, \VLEN${}=256$), κύκλοι ρολογιού.
-    \item \en{KAT}-validated ορθότητα, median, single-core pinning.
-    \item \con{Tier 3 μόνο σε εξομοίωση}, απουσία silicon με \Zvbc.
+    \item \textbf{Εξομοίωση:} \en{Spike ISS}, \HL{ντετερμινιστικό \instret} (όλα τα Tiers), \en{KAT}-validated
+    \item \textbf{Hardware:} \en{Banana Pi BPI-F3} (\en{SpacemiT K1 X60}, \VLEN${}=256$), \HL{κύκλοι ρολογιού}.
   \end{itemize}
   \vfill
   \begin{center}\footnotesize
-    \instret = αριθμός δυναμικά εκτελεσθεισών εντολών, κάτω φράγμα κύκλων σε in-order pipelines.
+    \instret = δυναμικά εκτελεσθείσες εντολές, κάτω φράγμα κύκλων σε in-order pipelines.
   \end{center}
 \end{frame}
