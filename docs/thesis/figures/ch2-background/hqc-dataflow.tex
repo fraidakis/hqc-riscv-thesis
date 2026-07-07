@@ -14,7 +14,7 @@
 \node[keccak] (kg-shake) at (0, 4.4) {SHAKE256\\(expand seed)};
 \node[misc] (kg-sample) at (0, 3.0) {Sampling\\$x, y, h$};
 \node[polymul] (kg-mul) at (0, 1.6) {$s = x + h \cdot y$\\(polymul)};
-\node[misc] (kg-out) at (0, 0.2) {$ek = (\text{seed}, s)$};
+\node[misc] (kg-out) at (0, 0.2) {$ek = (h, s)$};
 
 \draw[figedge] (kg-shake) -- (kg-sample);
 \draw[figedge] (kg-sample) -- (kg-mul);

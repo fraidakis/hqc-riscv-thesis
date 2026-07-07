@@ -191,17 +191,6 @@
   note         = {Version 1.0, ratified 2024-10-17}
 }
 
-@article{Berlekamp1978,
-  author    = {Berlekamp, Elwyn R. and McEliece, Robert J. and van Tilborg, Henk C. A.},
-  title     = {On the Inherent Intractability of Certain Coding Problems},
-  journal   = {IEEE Transactions on Information Theory},
-  volume    = {24},
-  number    = {3},
-  pages     = {384--386},
-  year      = {1978},
-  doi       = {10.1109/TIT.1978.1055873}
-}
-
 @article{LiDengWang1994,
   author    = {Li, Yuan Xing and Deng, Robert H. and Wang, Xin Mei},
   title     = {On the Equivalence of {McEliece}'s and {Niederreiter}'s Public-Key Cryptosystems},
@@ -254,18 +243,6 @@
   doi       = {10.1109/ISIT.2013.6620590}
 }
 
-@misc{Bernstein2010-PQC-ISD,
-  author       = {Bernstein, Daniel J.},
-  title        = {Grover vs.\ {McEliece}},
-  year         = {2010},
-  booktitle    = {Post-Quantum Cryptography (PQCrypto 2010)},
-  series       = {Lecture Notes in Computer Science},
-  volume       = {6061},
-  pages        = {73--80},
-  publisher    = {Springer},
-  doi          = {10.1007/978-3-642-12929-2_6}
-}
-
 @misc{ClassicMcEliece2020,
   author       = {Daniel J. Bernstein and Tung Chou and Tanja Lange and Ingo von Maurich and Rafael Misoczki and Ruben Niederhagen and Edoardo Persichetti and Christiane Peters and Peter Schwabe and Nicolas Sendrier and Jakub Szefer and Wen Wang},
   title        = {Classic {McEliece}: Conservative Code-Based Cryptography},
@@ -295,18 +272,6 @@
   howpublished = {\url{https://pqc-hqc.org/}},
   urldate         = {2026-06-11},
   note         = {NIST PQC Round 4 updated specification (23 February 2024)}
-}
-
-@inproceedings{FujisakiOkamoto1999,
-  author    = {Fujisaki, Eiichiro and Okamoto, Tatsuaki},
-  title     = {Secure Integration of Asymmetric and Symmetric Encryption Schemes},
-  booktitle = {Advances in Cryptology --- CRYPTO '99},
-  series    = {Lecture Notes in Computer Science},
-  volume    = {1666},
-  pages     = {537--554},
-  year      = {1999},
-  publisher = {Springer},
-  doi       = {10.1007/3-540-48405-1_34}
 }
 
 @article{Karatsuba1962,
@@ -453,15 +418,6 @@
   note         = {Version 1.0, ratified November 2021.}
 }
 
-@book{Patterson2017-COD,
-  author    = {David A. Patterson and John L. Hennessy},
-  title     = {Computer Organization and Design: The Hardware/Software Interface, {RISC-V} Edition},
-  publisher = {Morgan Kaufmann},
-  year      = {2017},
-  edition   = {1st},
-  isbn      = {978-0128122754}
-}
-
 @misc{spike-github,
   author       = {Andrew Waterman and {RISC-V Software Foundation}},
   title        = {Spike {RISC-V} {ISA} Simulator},
@@ -469,15 +425,6 @@
   howpublished = {\url{https://github.com/riscv-software-src/riscv-isa-sim}},
   urldate         = {2026-06-11},
   note         = {Official reference ISA simulator. Implements functional model of RISC-V harts with full V, Zvbc, Zvbb support}
-}
-
-@misc{qemu-riscv,
-  author       = {{QEMU Project}},
-  title        = {{QEMU} --- {RISC-V} System Emulation},
-  year         = {2024},
-  howpublished = {\url{https://www.qemu.org/docs/master/system/target-riscv.html}},
-  urldate         = {2026-06-11},
-  note         = {Dynamic binary translation via Tiny Code Generator (TCG). Version 10.2.2 used}
 }
 
 @article{zhang-tches2025,
@@ -543,7 +490,7 @@
   month        = may,
   howpublished = {RISC-V International, Spec Jira RVS-2360, \url{https://lf-riscv.atlassian.net/wiki/spaces/PQC/pages/485425183/PQC+Keccak+Instructions+Ratification+Plan}},
   urldate         = {2026-06-11},
-  note         = {Task Group: RVG-84 Post-Quantum Cryptography TG. Specification under development; target ratification of v1.0 by 31 December 2026 (per Task Group plan)}
+  note         = {RVG-84 Post-Quantum Cryptography TG. Specification under development; target ratification of v1.0 by 31 December 2026}
 }
 
 @inproceedings{Schoeffel2022-HQC-IoT,
@@ -578,14 +525,6 @@
   year         = {2025},
   howpublished = {Cryptology {ePrint} Archive, Paper 2025/1939, \url{https://eprint.iacr.org/2025/1939}},
   note         = {Hybrid FAFFT-CRT reduces polymul cycles by 33.4\% (HQC-1) and 27.2\% (HQC-3) on Cortex-M4 without carry-less multiply hardware}
-}
-
-@misc{Chen2018-Frobenius-AFFT,
-  author       = {Ming-Shing Chen and Chen-Mou Cheng and Po-Chun Kuo and Wen-Ding Li and Bo-Yin Yang},
-  title        = {Multiplying Boolean Polynomials with {Frobenius} Partitions in Additive {Fast Fourier Transform}},
-  howpublished = {arXiv preprint arXiv:1803.11301},
-  year         = {2018},
-  doi          = {10.48550/arXiv.1803.11301}
 }
 
 @article{Chen2026-TCHES-HQC-FFT,
@@ -632,7 +571,7 @@
   number    = {3},
   pages     = {97--124},
   doi       = {10.46586/tches.v2021.i3.97-124},
-  note      = {First application of additive FFT to BIKE polynomial multiplication on Haswell and Cortex-M4}
+  note      = {First application of additive FFT to BIKE polynomial multiplication on Cortex-M4}
 }
 
 @inproceedings{Deshpande2023-HQC-HW,
@@ -652,15 +591,7 @@
   year         = {2024},
   howpublished = {IEEE International Symposium on Circuits and Systems (ISCAS)},
   doi          = {10.1109/ISCAS58744.2024.10558440},
-  note         = {Sparse polynomial multiplication accelerator --- obsolete after 2024 HQC spec change to dense$\times$dense}
-}
-
-@misc{CTsampling-HQC2023,
-  author       = {Sanjay Deshpande and Mamuri Nawan and Kashif Nawaz and Jakub Szefer},
-  title        = {Efficient Hardware Implementation of Constant-Time Sampling for {HQC}},
-  year         = {2023},
-  howpublished = {Cryptology {ePrint} Archive, Paper 2023/1397, \url{https://eprint.iacr.org/2023/1397}},
-  note         = {Constant-time rejection sampling hardware for HQC fixed-weight vector generation}
+  note         = {Sparse polynomial multiplication accelerator --- obsolete after change to dense$\times$dense}
 }
 
 % =============================================================================
@@ -709,14 +640,6 @@
   note      = {HolBA/TrABin binary analysis platform in HOL4 (ARMv8, Cortex-M0). Framework reference only; the RISC-V ChaCha20 functional-correctness case study is Palmskog et al. 2025, not a constant-time proof}
 }
 
-@misc{Valgrind-riscv64,
-  author       = {{Valgrind Developers}},
-  title        = {Valgrind 3.25.0 Release Notes},
-  year         = {2025},
-  howpublished = {\url{https://valgrind.org/docs/manual/dist.news.html}},
-  note         = {First release with RISC-V 64-bit (riscv64-linux) support, April 2025}
-}
-
 @article{Koblitz1987,
   author  = {Neal Koblitz},
   title   = {Elliptic Curve Cryptosystems},
@@ -738,41 +661,6 @@
   year      = {1986},
   publisher = {Springer},
   doi       = {10.1007/3-540-39799-X_31}
-}
-
-@article{Ding2021-HIMQ3,
-  author  = {Jintai Ding and Zheng Zhang and Joshua Deaton},
-  title   = {The Singularity Attack to the Multivariate Signature Scheme {HIMQ-3}},
-  journal = {Advances in Mathematics of Communications},
-  volume  = {15},
-  number  = {1},
-  pages   = {65--72},
-  year    = {2021},
-  doi     = {10.3934/amc.2020043}
-}
-
-@inproceedings{HofheinzHovelmannsKiltz2017,
-  author    = {Hofheinz, Dennis and H{\"o}velmanns, Kathrin and Kiltz, Eike},
-  title     = {A Modular Analysis of the {Fujisaki--Okamoto} Transformation},
-  booktitle = {Theory of Cryptography --- TCC 2017, Part I},
-  series    = {Lecture Notes in Computer Science},
-  volume    = {10677},
-  pages     = {341--371},
-  year      = {2017},
-  publisher = {Springer},
-  doi       = {10.1007/978-3-319-70500-2_12}
-}
-
-@inproceedings{Brent2008-gf2x,
-  author    = {Brent, Richard P. and Gaudry, Pierrick and Thom{\'e}, Emmanuel and Zimmermann, Paul},
-  title     = {Faster Multiplication in {GF}(2)[x]},
-  booktitle = {Algorithmic Number Theory --- ANTS-VIII},
-  series    = {Lecture Notes in Computer Science},
-  volume    = {5011},
-  pages     = {153--166},
-  year      = {2008},
-  publisher = {Springer},
-  doi       = {10.1007/978-3-540-79456-1_10}
 }
 
 @manual{RISCV-crypto-vol2,
@@ -799,41 +687,15 @@
   organization = {RISC-V International}
 }
 
-@inproceedings{becker2022keccak,
-  author    = {Hanno Becker and Matthias J. Kannwischer},
-  title     = {Hybrid Scalar/Vector Implementations of {Keccak} and {SPHINCS\textsuperscript{+}} on {AArch64}},
-  booktitle = {Progress in Cryptology -- INDOCRYPT 2022},
-  series    = {Lecture Notes in Computer Science},
-  volume    = {13774},
-  pages     = {272--293},
-  publisher = {Springer},
-  year      = {2022},
-  doi       = {10.1007/978-3-031-22912-1\_12},
-  note      = {Cryptology ePrint Archive, Paper 2022/1243},
-}
-
 @inproceedings{pqclean2022,
   author    = {Matthias J. Kannwischer and Peter Schwabe and Douglas Stebila and Thom Wiggers},
   title     = {Improving Software Quality in Cryptography Standardization Projects},
-  booktitle = {2022 IEEE European Symposium on Security and Privacy Workshops (EuroS\&PW)},
+  booktitle = {2022 IEEE European Symposium on Security and Privacy Workshops},
   pages     = {19--30},
   publisher = {IEEE},
   year      = {2022},
   doi       = {10.1109/EuroSPW55150.2022.00010},
   note      = {Cryptology ePrint Archive, Paper 2022/337; PQClean/PQClean},
-}
-
-@inproceedings{Barrett1986,
-  author    = {Barrett, Paul D.},
-  title     = {Implementing the {Rivest Shamir} and {Adleman} Public Key Encryption Algorithm on a Standard Digital Signal Processor},
-  booktitle = {Advances in Cryptology -- {CRYPTO} 1986},
-  editor    = {Odlyzko, Andrew M.},
-  series    = {Lecture Notes in Computer Science},
-  volume    = {263},
-  pages     = {311--323},
-  publisher = {Springer-Verlag},
-  year      = {1987},
-  doi       = {10.1007/3-540-47721-7_24}
 }
 
 @article{Conoly2025-Bedrock2CT,
@@ -854,59 +716,6 @@
   note         = {Functional-correctness verification of a ChaCha20 RISC-V binary (base ISA) in HOL4; not a constant-time proof}
 }
 
-@misc{RVV-intrinsic-doc,
-  author       = {RISC-V International},
-  title        = {{RISC-V} Vector Extension Intrinsic Document (v1.0, ratified)},
-  year         = {2024},
-  howpublished = {\url{https://github.com/riscv-non-isa/rvv-intrinsic-doc}},
-  urldate         = {2026-06-11},
-  note         = {LLVM/Clang leads reference support (Clang 17/19 ahead of GCC)}
-}
-
-@misc{GCC14-changes,
-  author       = {GNU Project},
-  title        = {{GCC} 14 Release Series --- Changes: {RISC-V} Vector Crypto (Zvbb, Zvbc, ...)},
-  year         = {2024},
-  howpublished = {\url{https://gcc.gnu.org/gcc-14/changes.html}},
-  urldate         = {2026-06-11},
-  note         = {Vector crypto merged Jul 2023; shipped in GCC 14.1, May 2024}
-}
-
-@misc{GCC-PR112817,
-  author       = {GNU Project},
-  title        = {{GCC} Bugzilla PR 112817: provide attribute riscv\_rvv\_vector\_bits for VLS codegen},
-  year         = {2023},
-  howpublished = {\url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=112817}},
-  urldate         = {2026-06-11},
-}
-
-@misc{LLVM-D145088,
-  author       = {LLVM Project},
-  title        = {[{RISCV}] Add attribute(riscv\_rvv\_vector\_bits(N)) based on AArch64 arm\_sve\_vector\_bits},
-  year         = {2023},
-  howpublished = {\url{https://reviews.llvm.org/D145088}},
-  urldate         = {2026-06-11},
-  note         = {Clang-specific fixed-length RVV vector type attribute}
-}
-
-@misc{LLVM-21,
-  author       = {LLVM Project},
-  title        = {{LLVM}/{Clang} 21.1.0 Released},
-  year         = {2025},
-  howpublished = {\url{https://discourse.llvm.org/t/llvm-21-1-0-released/88066}},
-  urldate         = {2026-06-11},
-  note         = {Released 26 August 2025}
-}
-
-@misc{GCC-15,
-  author       = {GNU Project},
-  title        = {{GCC} 15.2 Released},
-  year         = {2025},
-  howpublished = {\url{https://gcc.gnu.org/gcc-15/}},
-  urldate         = {2026-06-11},
-  note         = {Released 8 August 2025}
-}
-
 @misc{GCC-14,
   author       = {GNU Project},
   title        = {{GCC} 14.2 Released},
@@ -923,16 +732,6 @@
   howpublished = {\url{https://releases.llvm.org/20.1.0/docs/}},
   urldate         = {2026-06-23},
   note         = {Banana Pi BPI-F3 native Clang 20.1.2}
-}
-
-@misc{Bradbury-LLVM-RVV2025,
-  author       = {Bradbury, Alex and Lau, Luke},
-  title        = {Improvements to {RISC-V} vector code generation in {LLVM}},
-  year         = {2025},
-  month        = may,
-  howpublished = {\url{https://blogs.igalia.com/compilers/2025/05/28/improvements-to-risc-v-vector-code-generation-in-llvm/}},
-  urldate      = {2026-06-22},
-  note         = {Igalia Compilers Team blog; summary of a talk at RISC-V Summit Europe 2025}
 }
 
 @misc{HQC-reference-impl,
@@ -975,14 +774,6 @@
   type    = {Technical Report},
   number  = {UCB/CSD-83-141},
   note    = {ACM Doctoral Dissertation Award, 1984},
-}
-
-@phdthesis{Waterman2016-riscv,
-  author  = {Andrew Waterman},
-  title   = {Design of the {RISC-V} Instruction Set Architecture},
-  school  = {University of California, Berkeley},
-  year    = {2016},
-  number  = {UCB/EECS-2016-1},
 }
 
 @misc{SpacemiT-K3,
@@ -1063,7 +854,7 @@
   month        = jun,
   howpublished = {\url{https://llvm.org/devmtg/2025-06/slides/technical-talk/li-risc.pdf}},
   urldate      = {2026-06-23},
-  note         = {LLVM Developers' Meeting (AsiaLLVM 2025), technical talk; SPEC CPU 2017 on RISC-V}
+  note         = {LLVM Developers' Meeting (AsiaLLVM 2025); SPEC CPU 2017 on RISC-V}
 }
 
 @misc{CloserInTheGap2026,

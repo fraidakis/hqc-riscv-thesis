@@ -13,22 +13,22 @@
   yearlabel/.style={text=figneutral, font=\sffamily\scriptsize\itshape},
 ]
 
-\node[mainbox] (mceliece) {McEliece\\(Goppa codes)};
+\node[mainbox, align=center] (mceliece) {McEliece\\(Goppa codes)};
 \node[yearlabel, right=2pt of mceliece.north east, anchor=north west] {1978};
 
-\node[mainbox, below=of mceliece] (niederreiter) {Niederreiter\\(syndrome-based)};
+\node[mainbox, align=center, below=of mceliece] (niederreiter) {Niederreiter\\(syndrome-based)};
 \node[yearlabel, right=2pt of niederreiter.north east, anchor=north west] {1986};
 
-\node[mainbox, below=of niederreiter] (qcmdpc) {Quasi-cyclic codes\\(moderate density)};
+\node[mainbox, align=center, below=of niederreiter] (qcmdpc) {Quasi-cyclic codes\\(moderate density)};
 \node[yearlabel, right=2pt of qcmdpc.north east, anchor=north west] {2013};
 
-\node[hqcbox, below left=1.5cm and 0.5cm of qcmdpc] (hqc) {\HQC\\(NIST Final)};
+\node[hqcbox, align=center, below left=1.5cm and 0.5cm of qcmdpc] (hqc) {\HQC\\(NIST Final)};
 \node[yearlabel, left=2pt of hqc.north west, anchor=north east] {2017–2025};
 
-\node[altbox, below right=1.5cm and 0.5cm of qcmdpc] (bike) {BIKE\\(NIST Round 4)};
+\node[altbox, align=center, below right=1.5cm and 0.5cm of qcmdpc] (bike) {BIKE\\(NIST Round 4)};
 \node[yearlabel, right=2pt of bike.north east, anchor=north west] {2017};
 
-\node[altbox, right=2.5cm of mceliece] (classic) {Classic McEliece\\(NIST Final)};
+\node[altbox, align=center, right=2.5cm of mceliece] (classic) {Classic McEliece\\(NIST Final)};
 \node[yearlabel, right=2pt of classic.north east, anchor=north west] {conservative};
 
 % Critical path (accent, emphasised) all the way to HQC

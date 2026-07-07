@@ -1,24 +1,30 @@
 % --- 02 HQC KEM in one slide -------------------------------------------------
-\begin{frame}{Το \HQC σε μια διαφάνεια}
+\begin{frame}{HQC: ανταλλαγή κλειδιού βασισμένη σε κώδικες διόρθωσης σφαλμάτων}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.42\textwidth}
-      \textbf{Βασικά στοιχεία}
+    \begin{column}{0.44\textwidth}
+      \textbf{Τι είναι}
       \begin{itemize}
         \item \en{Code-based} \KEM στον δακτύλιο $\GFquot{N}$
-        \item Διόρθωση σφαλμάτων: συνελισσόμενοι \en{Reed--Muller} + \en{Reed--Solomon}
+        \item Συνενωμένος κώδικας: \en{Reed--Solomon} (εξωτ.) $\circ$ \en{Reed--Muller} (εσωτ.)
+        \item 3 επίπεδα ασφαλείας: \HQC-128/192/256 (\en{NIST} 1/3/5)
       \end{itemize}
       \vspace{0.4em}
-      \textbf{Ροή \KEM}
-      \begin{enumerate}
-        \item \KeyGen: $(\mathit{pk},\mathit{sk})$
-        \item \Encaps: $\mathit{pk}\rightarrow(\mathit{ct},K)$
-        \item \Decaps: $\mathit{ct},\mathit{sk}\rightarrow K$
-      \end{enumerate}
+      \textbf{Τρεις κυρίαρχες πράξεις}
+      \begin{itemize}
+        \item \HL{polymul} στον δακτύλιο
+        \item \HL{Keccak} (\en{SHA-3}/\en{SHAKE}): hashing \& seed expansion
+        \item \HL{decode} (\en{RM} + \en{RS})
+      \end{itemize}
     \end{column}
-    \begin{column}{0.58\textwidth}
-      \resizebox{\linewidth}{!}{\input{../figures/ch2-background/hqc-dataflow}}
+    \begin{column}{0.56\textwidth}
+      \resizebox{\linewidth}{!}{\input{../figures/ch2-background/hqc-kem-sequence}}
     \end{column}
   \end{columns}
-  \vspace{0.3em}
-  {\footnotesize Παράμετροι: \HQC-128/192/256 ($N=\num{17669}/\num{35851}/\num{57637}$). Βλ. παράρτημα.}
+  \pdfpcnote{budget ≈75s | exit ≈2:15}
+  \pdfpcnote{}
+  \pdfpcnote{- KEM → εγκαθιστά κοινό μυστικό → μετά συμμετρική κρυπτο}
+  \pdfpcnote{- Bob δημοσιεύει ek → Alice ενθέτει ελεγχόμενο θόρυβο (ct) → Bob αποκωδικοποιεί με dk}
+  \pdfpcnote{- polymul, Keccak, decode → οι 3 πράξεις που κυριαρχούν στον χρόνο}
+  \pdfpcnote{}
+  \pdfpcnote{cut: παρέλειψε το «τι είναι KEM», κράτα μόνο τις 3 πράξεις}
 \end{frame}

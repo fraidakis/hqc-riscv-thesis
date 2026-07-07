@@ -2,6 +2,12 @@
 % backup.tex — appendix frames (answers to anticipated committee questions)
 % Not counted in the 15'. All numbers traceable to results/reports/ & figures/.
 % =============================================================================
+\begin{frame}{Παράρτημα: η διαδικασία τυποποίησης NIST (2016--2025) οδήγησε στην επιλογή \HQC}
+  \centering
+  \resizebox{0.9\linewidth}{!}{\input{../figures/ch1-introduction/nist-rounds-flowchart}}
+  % src: figures/ch1-introduction/nist-rounds-flowchart.tex
+\end{frame}
+
 \begin{frame}{Παράρτημα: παράμετροι \HQC}
   \centering
   \renewcommand{\arraystretch}{1.2}
@@ -15,7 +21,57 @@
     \HQC-256 & \num{57637} & 90 & 640 & 131 \\
     \bottomrule
   \end{tabular}}
-  \\[0.4em]{\footnotesize Πηγή: figures/ch2-background/hqc-params-table.tex}
+  % src: figures/ch2-background/hqc-params-table.tex
+  \\[0.6em]
+  {\footnotesize
+    $N$: διάσταση δακτυλίου (μέγιστος βαθμός πολυωνύμου).
+    $n_1$: μήκος \en{RS} codeword (σύμβολα).
+    $n_2$: μήκος \en{RM} codeword (bits).
+    $\omega$: βάρος \en{Hamming} μυστικού.\par}
+\end{frame}
+
+\begin{frame}{Παράρτημα: \en{Keccak} (sponge \& state) και οι πράξεις \Zbb}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.55\textwidth}
+      \resizebox{\linewidth}{!}{\input{../figures/ch2-background/keccak-sponge}}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \resizebox{\linewidth}{!}{\input{../figures/ch2-background/keccak-state-3d}}
+    \end{column}
+\usetheme{moloch}                    % maintained fork of metropolis (pgfplots/TikZ-safe)
+% Fraction-style frame numbering (current/total). moloch removed metropolis'
+% \metroset/numbering option in favour of beamer's native template, so set it
+% directly (the legacy `numbering=fraction` option is deprecated in moloch).
+\setbeamertemplate{page number in head/foot}[totalframenumber]
+% Backup/appendix frames (after \appendix) are renumbered separately and
+% excluded from the "n / N" total, so the footer never overflows (e.g. 21/20).
+\usepackage{appendixnumberbeamer}
+\usepackage{pdfpc}                       % presenter notes+timer; markdown ON (default) so long note lines WRAP in the notes pane
+\pdfpcsetup{duration=15, lastminutes=2}  % 15' countdown baked in PDF; TODO: enduserslide=<last content frame>
+
+% Section dividers: mini-outline so the committee follows the flow
+\AtBeginSection[]{%
+  \begin{frame}{Δομή}
+    \tableofcontents[currentsection]
+  \end{frame}}
+
+
+  \end{columns}
+  \vspace{0.3em}
+  \begin{itemize}
+    \item \defterm{absorb}: \en{XOR} εισόδου στο rate, μετάθεση $f$
+    \item \defterm{squeeze}: εξαγωγή εξόδου από την ίδια κατάσταση
+    \item bit-level: rotation lane, εναλλαγή lanes, αντιστοίχιση σε \Zbb (\rori, \en{andn})
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Παράρτημα: συνενωμένη κωδικοποίηση (\en{RS} $\circ$ \en{RM})}
+  \centering
+  \resizebox{0.92\linewidth}{!}{\input{../figures/ch2-background/concatenated-pipeline}}
+  \begin{itemize}
+    \item εσωτερικός \en{Reed--Muller}: διορθώνει σφάλματα bit εντός κάθε συμβόλου
+    \item εξωτερικός \en{Reed--Solomon}: διορθώνει ολόκληρα σύμβολα (bytes) που ο εσωτερικός απέτυχε να αποκαταστήσει
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Παράρτημα: αποκωδικοποίηση μέσω \en{FFT} (\Zvbc)}
@@ -25,7 +81,7 @@
     \item \HQC-192: \num{562125} $\rightarrow$ \num{77114} \instret (\speedup{7.29})
     \item \HQC-256: \num{1059605} $\rightarrow$ \num{159206} \instret (\speedup{6.66})
   \end{itemize}
-  {\footnotesize Πηγή: results/reports/summaries/speedups\_simulation.md \textperiodcentered{} \S 7.2.4}
+  % src: results/reports/summaries/speedups_simulation.md §7.2.4
 \end{frame}
 
 \begin{frame}{Παράρτημα: ανάλυση συνεισφοράς επεκτάσεων (\en{ablation})}
@@ -34,7 +90,7 @@
     \item \ext{Zba} (διευθυνσιοδότηση): $-\pct{5.6}$ \instret
     \item \ext{Zbs} (πράξεις bit): $-\pct{0.71}$ \instret
   \end{itemize}
-  {\footnotesize Πηγή: figures/ch9-discussion/{waterfall-ablation,zba-ablation-bar,zbs-ablation-bar}.tex}
+  % src: figures/ch9-discussion/{waterfall-ablation,zba-ablation-bar,zbs-ablation-bar}.tex
 \end{frame}
 
 \ifincludeCT
