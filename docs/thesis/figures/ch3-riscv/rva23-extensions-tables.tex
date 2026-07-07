@@ -1,0 +1,38 @@
+% figures/ch3-riscv/rva23-extensions-tables.tex
+% Class-agnostic shared tables (macros only, no \gls/\cite) so both the thesis
+% and the defense deck can \input the same source. Values traceable to:
+% src: chapters/03-risc-v-architecture.tex (tab:extensions-used, tab:rva23-extensions)
+\begingroup
+\small
+\begin{tblr}{
+  width = \linewidth,
+  colspec = {l X[l] l c},
+  row{1} = {font=\bfseries},
+  hline{1,Z} = {0.6pt},
+  hline{2} = {0.4pt},
+}
+  Επέκταση & Περιγραφή & Ratified & Tier \\
+  \Zbc  & Carry-less multiply (\clmul, \clmulh) & 11/2021 & 1 \\
+  \Zbb  & Basic bit-manip (\rori, \insn{andn}, \insn{rev8}) & 11/2021 & 1 \\
+  V     & Vector extension 1.0 (\RVV) & 11/2021 & 2 \\
+  \Zvbc & Vector carry-less multiply (\vclmul, \vclmulh) & 09/2023 & 3 \\
+  \Zvbb & Vector bit-manip (\vror, \insn{vandn}, \insn{vbrev8}) & 09/2023 & 3 \\
+\end{tblr}
+
+\vspace{1em}
+
+\begin{tblr}{
+  width = \linewidth,
+  colspec = {l l X[l]},
+  row{1} = {font=\bfseries},
+  hline{1,Z} = {0.6pt},
+  hline{2} = {0.4pt},
+}
+  Επέκταση & Κατάσταση RVA23 & Σημασία \\
+  V (\RVV\ 1.0) & Mandatory & Εγγυημένη παρουσία σε κάθε RVA23 \en{chip} \\
+  \Zbb  & Mandatory & Rotations, \insn{andn} διαθέσιμα παντού \\
+  \Zvbb & Mandatory & Vector rotations/\insn{vandn} εγγυημένα \\
+  \Zvbc & Development option & Αναμένεται υποχρεωτική σε μελλοντικό προφίλ \\
+  \Zbc  & Expansion option & Scalar carry-less multiply \\
+\end{tblr}
+\endgroup

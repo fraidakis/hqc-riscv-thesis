@@ -88,30 +88,7 @@ standardization interface όπως το CV-X-IF, (iii)~custom, μη-επικυρ
   \footnotesize
   \setlength{\tabcolsep}{3pt}
   \resizebox{\textwidth}{!}{%
-  \begin{thesistblr}{
-    colspec = {l l l l c c c},
-    cell{2}{1} = {c=7}{l},
-    cell{7}{1} = {c=7}{l},
-    cell{12}{1} = {c=7}{l},
-    hline{7,12,16} = {0.4pt, figtablerule},
-  }
-    Εργασία & Platform & Μέθοδος polymul & Στρατηγική επιτάχυνσης & \rotatebox{70}{RISC-V} & \rotatebox{70}{Καθαρό λογισμ.} & \rotatebox{70}{Πλήρες \gls{kem}} \\
-    \SetCell[c=7]{l} \textit{\HQC σε RISC-V (custom hardware) — το ερευνητικό κενό} & & & & & & \\
-    Schöffel et al.~\cite{Schoeffel2022-HQC-IoT} & RV32IC & sparse$\times$dense & loosely-coupled + custom ISA & \ding{51} & \ding{55} & \ding{51} \\
-    Ras et al.~\cite{ras-nist2025} & RV32IMC & FAFFT & loosely-coupled (ANDROMEDA) & \ding{51} & \ding{55} & \ding{51} \\
-    TYRCA~\cite{Dolmeta2025-TYRCA} & CV32E40PX & Karatsuba & tightly-coupled (CV-X-IF) & \ding{51} & \ding{55} & \ding{51} \\
-    Seo et al.~\cite{Seo2026-HQC-Ibex} & RV32 (Ibex) & Toom-Cook + Karatsuba & tightly-coupled & \ding{51} & \ding{55} & \ding{51} \\
-    \SetCell[c=7]{l} \textit{Υλοποιήσεις καθαρού λογισμικού σε x86 / ARM} & & & & & & \\
-    Robert \& Véron~\cite{RobertVeron2023-avx512-gf2x} & x86 (AVX-512/AVX2) & Toom-Cook + Karatsuba & SIMD & \ding{55} & \ding{51} & \ding{55} \\
-    Jang et al.~\cite{Jang2026-gf2x-SIMD} & x86 / ARM & Toom-Cook + Karatsuba & SIMD & \ding{55} & \ding{51} & \ding{55} \\
-    Chen et al.~\cite{Chen2026-TCHES-HQC-FFT} & x86 / ARM & additive FFT (CRT) & SIMD & \ding{55} & \ding{51} & \ding{51} \\
-    OptHQC~\cite{OptHQC2025} & x86 AVX2 & sparse$\times$dense & SIMD & \ding{55} & \ding{51} & \ding{51} \\
-    \SetCell[c=7]{l} \textit{Λοιπές εργασίες (ISE / lattice)} & & & & & & \\
-    HORCRUX~\cite{Dolmeta2025-HORCRUX} & RISC-V + ISE & — & custom PQC ISE & \ding{51} & \ding{55} & — \\
-    ECO-CRYSTALS~\cite{Ji2024-ECO-CRYSTALS} & RV64IMB & NTT & επικυρωμένο SW (\gls{zbb}) & \ding{51} & \ding{51} & — \\
-    Zhang et al.~\cite{zhang-tches2025} & RV\{32,64\}IM\{B\}\{V\} & NTT & επικυρωμένο SW (\RVV/\gls{zbb}) & \ding{51} & \ding{51} & — \\
-    \textbf{Παρούσα εργασία} & \textbf{RV64GC\{V\}} & \textbf{Karatsuba} & \textbf{επικυρωμένο SW (\gls{zbc}/\gls{zvbc})} & \ding{51} & \ding{51} & \ding{51} \\
-  \end{thesistblr}%
+  \input{figures/ch4-related-work/rw-riscv-summary}%
   }
 \end{table}
 
@@ -120,7 +97,13 @@ standardization interface όπως το CV-X-IF, (iii)~custom, μη-επικυρ
 
 Και οι τέσσερις δημοσιευμένες RISC-V υλοποιήσεις του \gls{hqc} μοιράζονται ένα κοινό
 χαρακτηριστικό: όλες στηρίζονται σε custom hardware και όχι στις ήδη επικυρωμένες
-επεκτάσεις του RISC-V. Αυτό ακριβώς το κενό καλύπτει η παρούσα εργασία (\cref{sec:rw-axes}). Οι τέσσερις εργασίες
+επεκτάσεις του RISC-V.
+Κοινή είναι επίσης η πλατφόρμα-στόχος: όλες υλοποιούνται σε embedded-class RV32
+πυρήνες (CV32E40P/X, Ibex) ως φορείς HW/SW co-design και όχι σε application-class
+RV64. Η επιλογή αυτή αντανακλά το deployment scenario των constrained IoT/edge
+συσκευών, αφήνοντας ανεξερεύνητη τη βελτιστοποίηση καθαρού λογισμικού σε
+application-class RV64 με επικυρωμένες επεκτάσεις.
+Αυτό ακριβώς το κενό καλύπτει η παρούσα εργασία (\cref{sec:rw-axes}). Οι τέσσερις εργασίες
 παρουσιάζονται με χρονολογική σειρά δημοσίευσης και αναλύονται σε βάθος παρακάτω.
 
 \subsection{Schöffel et al.\ 2022: HW/SW co-design σε RV32IC}

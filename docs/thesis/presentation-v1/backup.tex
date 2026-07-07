@@ -66,6 +66,25 @@
   \end{itemize}
 \end{frame}
 
+\begin{frame}{Παράρτημα: το ερευνητικό κενό}
+  \centering
+  \resizebox{!}{0.72\textheight}{\input{../figures/ch4-related-work/rw-riscv-summary-slide}}
+  % src: chapters/04-related-work.tex :: tab:rw-riscv-summary (full 7-col table)
+  \par\smallskip
+  {\scriptsize Καθαρό λογισμ. = χωρίς custom hardware. \ding{55} στο Πλήρες \KEM: μόνο επιμέρους kernel.}
+  \pdfpcnote{gap: όλες οι RISC-V εργασίες = custom hardware (loosely/tightly-coupled ISA) ή δεν καλύπτουν πλήρες KEM. Παρούσα εργασία: επικυρωμένες επεκτάσεις (Zbc/Zvbc), πλήρες KEM.}
+  \pdfpcnote{}
+  \pdfpcnote{method/strategy ammo (dropped columns):}
+  \pdfpcnote{- Schoffel: sparse x dense, loosely-coupled + custom ISA}
+  \pdfpcnote{- Ras (ANDROMEDA): FAFFT, loosely-coupled}
+  \pdfpcnote{- TYRCA: Karatsuba, tightly-coupled (CV-X-IF)}
+  \pdfpcnote{- Seo (Ibex): Toom-Cook + Karatsuba, tightly-coupled}
+  \pdfpcnote{- Robert/Veron, Jang: Toom-Cook + Karatsuba, SIMD (x86/ARM)}
+  \pdfpcnote{- Chen: additive FFT (CRT), SIMD. OptHQC: sparse x dense, AVX2}
+  \pdfpcnote{- HORCRUX/ECO-CRYSTALS/Zhang: NTT / custom PQC ISE (lattice/ISE), oxi HQC full KEM}
+  \pdfpcnote{- Parousa ergasia: Karatsuba, epikyromeno SW (Zbc/Zvbc)}
+\end{frame}
+
 \begin{frame}{Παράρτημα: αποκωδικοποίηση μέσω \en{FFT} (\Zvbc)}
   \begin{itemize}
     \item Εύρεση ριζών (\en{root-finding}) \en{Reed--Solomon}: \HL{$-$\pct{84} έως $-$\pct{86}} \instret
@@ -159,4 +178,39 @@
   \par\medskip
   \resizebox{0.82\textwidth}{!}{\input{../figures/ch3-riscv/riscv-programming-spectrum}}
   % src: figures/ch3-riscv/riscv-programming-spectrum.tex
+\end{frame}
+
+% =============================================================================
+% Backup: RISC-V platform detail (promoted from ch3 tables & figures)
+% =============================================================================
+\begin{frame}{Παράρτημα: επεκτάσεις RISC-V και προφίλ \en{RVA23}}
+  \centering
+  \input{../figures/ch3-riscv/rva23-extensions-tables}
+  % src: chapters/03-risc-v-architecture.tex (tab:extensions-used, tab:rva23-extensions)
+\end{frame}
+
+\begin{frame}{Παράρτημα: \en{RVV} και οι παράμετροι \VLEN/\SEW/\LMUL/\VLMAX}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.55\textwidth}
+      \resizebox{\linewidth}{!}{\input{../figures/ch3-riscv/rvv-lmul-grouping}}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \footnotesize
+      \begin{itemize}
+        \item \HL{\VLEN}: πλάτος φυσικού \en{vector register} σε bits, \en{hardware-defined} (π.χ. 128/256/512), σταθερό στο runtime
+        \item \HL{\SEW}: πλάτος ενός στοιχείου σε bits (8/16/32/64), ρυθμιζόμενο runtime μέσω \insn{vsetvli}
+        \item \HL{\LMUL}: πόσα registers ομαδοποιούνται σε ένα λογικό \en{vector group} (1, 2, 4, 8 ή κλασματικά 1/2, 1/4, 1/8)
+        \item \HL{\VLMAX}: μέγιστος αριθμός στοιχείων ανά \en{vector operation} στα τρέχοντα \SEW/\LMUL
+      \end{itemize}
+      \vspace{0.4em}
+      \[ \VLMAX = \frac{\VLEN \times \LMUL}{\SEW} = \frac{256 \times 4}{64} = 16 \]
+      {\scriptsize \VLEN=256, \SEW=64, \LMUL=4: μία εντολή επεξεργάζεται έως 16 στοιχεία των 64 bits.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Παράρτημα: \clmul πριν/μετά τη \Zbc}
+  \centering
+  \input{../figures/ch3-riscv/clmul-before-after}
+  % src: figures/ch3-riscv/clmul-before-after.tex
 \end{frame}

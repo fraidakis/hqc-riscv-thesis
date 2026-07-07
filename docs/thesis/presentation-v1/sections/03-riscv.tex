@@ -1,35 +1,24 @@
 % --- 03 RISC-V platform & relevant extensions --------------------------------
-\begin{frame}{Το RISC-V ανοίγει τρια Tiers κρυπτογραφικής επιτάχυνσης}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.46\textwidth}
-      \begin{itemize}
-        \item Αρθρωτή, ανοιχτή \en{ISA}, ιδανικό πεδίο για εξειδικευμένη επιτάχυνση
-      \end{itemize}
-      \vspace{0.3em}
-      \begin{block}{Βαθμωτές (σειριακές)}
-        \begin{itemize}
-          \item \Zbc: \clmul / \clmulh, πολ/σμός χωρίς κρατούμενο στο \GFpoly
-          \item \Zbb: περιστροφές/λογικές για \en{Keccak}
-        \end{itemize}
-      \end{block}
-      \begin{block}{Διανυσματικές (\RVV)}
-        \begin{itemize}
-          \item \Zvbc: \vclmul / \vclmulh, διανυσματικός πολ/σμός
-          \item \Zvbb: \vror, διανυσματικές λογικές για \en{Keccak}
-        \end{itemize}
-      \end{block}
-    \end{column}
-    \begin{column}{0.54\textwidth}
-      \resizebox{\linewidth}{!}{\input{../figures/ch6-polymul/polymul-tiers}}
-    \end{column}
-  \end{columns}
-  \vspace{0.3em}
-  \pause
-  \begin{exampleblock}{Τρια Tiers ανάπτυξης (\en{deployment tiers})}
-    \HL{Tier 1}: σειριακή (\Zbc/\Zbb) \quad
-    \HL{Tier 2}: βασική \RVV \quad
-    \HL{Tier 3}: \en{vector-crypto} (\Zvbc/\Zvbb)
-  \end{exampleblock}
-  \vspace{-0.2em}
-  {\footnotesize Προφίλ \en{RVA23}: οι κρυπτογραφικές επεκτάσεις γίνονται υποχρεωτικές.}
+% NOTE: figure reuse via \input -> \tikzsetnextfilename lives inside the figure file.
+\begin{frame}{Το RISC-V ανοίγει τρία Tiers κρυπτογραφικής επιτάχυνσης}
+  % Speaker notes: ONE \pdfpcnote per cue (pdfpc joins them with REAL newlines);
+  % empty \pdfpcnote{} inserts blank lines. Never leave blank SOURCE lines here.
+  \pdfpcnote{budget ~75s | exit ~2:15}
+  \pdfpcnote{}
+  \pdfpcnote{- ανοιχτό/αρθρωτό ISA -> base + προαιρετικές επεκτάσεις, χωρίς royalties/licensing -> ιδανικό πεδίο για εξειδικευμένη επιτάχυνση}
+  \pdfpcnote{- scalar: Zbc = clmul/clmulh (πολλαπλασιασμός στο GF(2)[x]), Zbb = rotations/logic για Keccak}
+  \pdfpcnote{- vector: Zvbc = vclmul.vx/vclmulh.vx (διανυσματικός πολ/σμός), Zvbb = vror + vector-logic για Keccak}
+  \pdfpcnote{- κάθε tier υπερσύνολο του προηγούμενου -> Tier1 σειριακή, Tier2 base-RVV, Tier3 vector-crypto}
+  \pdfpcnote{}
+  \pdfpcnote{cut: αν αργώ -> κράτα το diagram + «κάθε tier υπερσύνολο», προχώρα}
+  \begin{itemize}\small
+    \item \HL{Ανοιχτό, αρθρωτό \en{ISA}}: η προδιαγραφή διατίθεται χωρίς royalties ή licensing fees
+    \item Ελάχιστο base ISA (\en{RV64I}) + \HL{ανεξάρτητες προαιρετικές επεκτάσεις} (M, A, F/D, V, \dots)
+  \end{itemize}
+  \vfill
+  \begin{center}
+    \resizebox{0.9\linewidth}{!}{\input{../figures/ch6-polymul/polymul-tiers}}
+  \end{center}
+  \vfill
+  {\footnotesize Προφίλ \en{RVA23} (2024): V/\Zbb/\Zvbb υποχρεωτικές, \Zvbc/\Zbc προαιρετικές, \en{mainstream adoption path}.}
 \end{frame}

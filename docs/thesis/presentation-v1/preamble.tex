@@ -105,8 +105,8 @@
 \newcommand{\insn}[1]{\texttt{#1}\xspace}
 \newcommand{\clmul}{\insn{clmul}}
 \newcommand{\clmulh}{\insn{clmulh}}
-\newcommand{\vclmul}{\insn{vclmul.vv}}
-\newcommand{\vclmulh}{\insn{vclmulh.vv}}
+\newcommand{\vclmul}{\insn{vclmul.vx}}
+\newcommand{\vclmulh}{\insn{vclmulh.vx}}
 \newcommand{\vror}{\insn{vror}}
 \newcommand{\rori}{\insn{rori}}
 % RISC-V extensions
@@ -145,6 +145,17 @@
   keepspaces=true,
 }
 \lstset{style=riscv}
+
+% --- RISC-V Assembler dialect (for reused \input figures, e.g. clmul-before-after) ---
+\lstdefinelanguage[RISC-V]{Assembler}{
+  morekeywords={clmul, clmulh, clmulr, rori, andn, vsetvli, vle64, vse64,
+    vxor, vadd, vmul, vsll, vsrl, vclmul, vclmulh, vror, vandn, vbrev8,
+    vrgather, vslidedown, vredxor, li, mv, add, sub, xor, and, or, sll, srl,
+    beq, bne, blt, bge, jal, jalr, ecall, ret, la, ld, sd, lw, sw},
+  sensitive=true,
+  morecomment=[l]{\#},
+  morecomment=[l]{//},
+}
 
 % --- Constant-time content toggle: set \includeCTtrue to restore CT slides ---
 \newif\ifincludeCT

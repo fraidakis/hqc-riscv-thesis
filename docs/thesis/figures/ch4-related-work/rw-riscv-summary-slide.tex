@@ -1,0 +1,28 @@
+% Slide variant (trimmed) of \label{tab:rw-riscv-summary}.
+% Full 7-col table: chapters/04-related-work.tex (canonical source).
+% Dropped cols "Μέθοδος polymul" + "Στρατηγική επιτάχυνσης" -> frame \pdfpcnote.
+\renewcommand{\arraystretch}{1.15}%
+\begin{tabular}{@{}ll ccc@{}}
+  \toprule
+  Εργασία & Platform & \rotatebox{70}{RISC-V} & \rotatebox{70}{Καθαρό λογισμ.} & \rotatebox{70}{Πλήρες \KEM} \\
+  \midrule
+  \multicolumn{5}{@{}l}{\textit{\HQC σε RISC-V (custom hardware), το ερευνητικό κενό}} \\
+  \en{Sch\"offel} et al. & RV32IC & \ding{51} & \ding{55} & \ding{51} \\
+  \en{Ras} et al. & RV32IMC & \ding{51} & \ding{55} & \ding{51} \\
+  \en{TYRCA} & CV32E40PX & \ding{51} & \ding{55} & \ding{51} \\
+  \en{Seo} et al. & RV32 (Ibex) & \ding{51} & \ding{55} & \ding{51} \\
+  \midrule
+  \multicolumn{5}{@{}l}{\textit{Υλοποιήσεις καθαρού λογισμικού σε x86 / ARM}} \\
+  \en{Robert \& V\'eron} & x86 (AVX-512/AVX2) & \ding{55} & \ding{51} & \ding{55} \\
+  \en{Jang} et al. & x86 / ARM & \ding{55} & \ding{51} & \ding{55} \\
+  \en{Chen} et al. & x86 / ARM & \ding{55} & \ding{51} & \ding{51} \\
+  \en{OptHQC} & x86 AVX2 & \ding{55} & \ding{51} & \ding{51} \\
+  \midrule
+  \multicolumn{5}{@{}l}{\textit{Λοιπές εργασίες (ISE / lattice)}} \\
+  \en{HORCRUX} & RISC-V + ISE & \ding{51} & \ding{55} & — \\
+  \en{ECO-CRYSTALS} & RV64IMB & \ding{51} & \ding{51} & — \\
+  \en{Zhang} et al. & RV\{32,64\}IM\{B\}\{V\} & \ding{51} & \ding{51} & — \\
+  \midrule
+  \HL{Παρούσα εργασία} & \HL{RV64GC\{V\}} & \ding{51} & \ding{51} & \ding{51} \\
+  \bottomrule
+\end{tabular}%
