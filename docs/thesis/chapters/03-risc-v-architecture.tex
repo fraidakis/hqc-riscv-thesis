@@ -465,14 +465,6 @@ $\LMUL = 8$ οι \num{32} καταχωρητές σχηματίζουν μόλι
   \label{fig:lmul-grouping}
 \end{figure}
 
-Στην παρούσα εργασία, η επιλογή \LMUL καθορίζεται από τις ανάγκες κάθε
-πυρήνα: η ανασύνθεση (recomposition) του Karatsuba χρησιμοποιεί $\LMUL = 4$ (ισορροπία
-μεταξύ throughput και register availability για τα ενδιάμεσα αποτελέσματα),
-ενώ ο Keccak χρησιμοποιεί $\LMUL = 8$ (ολόκληρο το 25-lane state χωράει
-σε μία ομάδα σε $\VLEN \geq 256$). Στα RVV intrinsics ο παράγοντας \LMUL
-κωδικοποιείται στο suffix του τύπου (π.χ. \code{vsetvl\_e64m4} για
-$\LMUL = 4$ έναντι \code{vsetvl\_e64m8} για $\LMUL = 8$).
-
 \subsection{Το Μοντέλο Προγραμματισμού}
 \label{ssec:strip-mining}
 \label{ssec:rvv-policies-instructions}

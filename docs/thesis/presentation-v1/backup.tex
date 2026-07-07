@@ -142,3 +142,21 @@
   \par\vspace{0.3em}
   \footnotesize \en{IPC}$\approx 1.49$, ο \instret υπερεκτιμά τους κύκλους κατά ${\approx}$\pct{50}.
 \end{frame}
+
+\begin{frame}{Παράρτημα: γιατί ISA Extensions και C Intrinsics}
+  \pdfpcnote{budget on-demand | trigger: "γιατί ISA/intrinsics, όχι FPGA/ASIC ή assembly"}
+  \pdfpcnote{}
+  \pdfpcnote{- άξονας υλικού → ISA ext = sweet spot → κέρδος χωρίς κόστος/χρόνο σχεδίασης FPGA/ASIC}
+  \pdfpcnote{- άξονας λογισμικού → intrinsics → έλεγχος register/instruction + βελτιστοποιήσεις compiler (scheduling, regalloc)}
+  \pdfpcnote{- κοινό μήνυμα → σκόπιμο ενδιάμεσο, portable + maintainable}
+  \pdfpcnote{}
+  \pdfpcnote{cut: δείξε μόνο τα δύο pills («Παρούσα εργασία») και προχώρα}
+  \centering
+  \resizebox{0.82\textwidth}{!}{\input{../figures/ch1-introduction/acceleration-spectrum}}
+  % src: figures/ch1-introduction/acceleration-spectrum.tex
+  \par\medskip
+  \textcolor{gray!45}{\rule{0.55\linewidth}{0.4pt}}
+  \par\medskip
+  \resizebox{0.82\textwidth}{!}{\input{../figures/ch3-riscv/riscv-programming-spectrum}}
+  % src: figures/ch3-riscv/riscv-programming-spectrum.tex
+\end{frame}
