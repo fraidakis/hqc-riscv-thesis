@@ -1,6 +1,6 @@
 % --- 03 RISC-V platform & relevant extensions --------------------------------
 % NOTE: figure reuse via \input -> \tikzsetnextfilename lives inside the figure file.
-\begin{frame}{Το RISC-V ανοίγει τρία Tiers κρυπτογραφικής επιτάχυνσης}
+\begin{frame}{RISC-V: τρία Tiers κρυπτογραφικής επιτάχυνσης}
   % Speaker notes: ONE \pdfpcnote per cue (pdfpc joins them with REAL newlines);
   % empty \pdfpcnote{} inserts blank lines. Never leave blank SOURCE lines here.
   \pdfpcnote{budget ~75s | exit ~2:15}
@@ -14,13 +14,13 @@
   \pdfpcnote{}
   \pdfpcnote{cut: αν αργώ -> κράτα το diagram + «κάθε tier υπερσύνολο», προχώρα}
   \begin{itemize}\small
-    \item \HL{Ανοιχτό, αρθρωτό \en{ISA}}: η προδιαγραφή διατίθεται χωρίς royalties ή licensing fees
-    \item Ελάχιστο base ISA (\en{RV64I}) + \HL{ανεξάρτητες προαιρετικές επεκτάσεις} (M, A, F/D, V, \dots)
+    \item \HL{Ανοιχτό, modular \en{ISA}}: η προδιαγραφή διατίθεται χωρίς royalties ή licensing fees
+    \item Ελάχιστο base ISA (\en{RV64I}) + \HL{ανεξάρτητες προαιρετικές επεκτάσεις} (M, F/D, V, \dots)
   \end{itemize}
   \vfill
   \begin{center}
     \resizebox{0.9\linewidth}{!}{\input{../figures/ch6-polymul/polymul-tiers}}
   \end{center}
   \vfill
-  {\footnotesize Προφίλ \en{RVA23} (2024): V/\Zbb/\Zvbb υποχρεωτικές, \Zvbc/\Zbc προαιρετικές, \en{mainstream adoption path}.}
+  {\footnotesize Προφίλ \en{RVA23} (2024): V/\Zbb/\Zvbb υποχρεωτικές, \Zvbc \en{developer option}, \en{mainstream adoption path}.}
 \end{frame}

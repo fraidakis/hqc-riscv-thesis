@@ -1,12 +1,12 @@
 % VARIANT — not \input by main.tex; promote with promote-slide.sh
 % 09-setup_bridge — R: vertical rebalance (vfill + [T] top-aligned blocks) + full-width bridge standfirst (qualitative, no dup numbers).
-\begin{frame}{Δύο πλατφόρμες: ντετερμινιστικό \instret + επικύρωση σε \en{silicon}}
+\begin{frame}{Δύο πλατφόρμες: ντετερμινιστικό \instret + επικύρωση σε \en{hardware}}
   \vfill
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.5\textwidth}
-      \begin{block}{Εξομοίωση: \en{Spike ISS}}
+      \begin{block}{Προσομοίωση: \en{Spike ISS}}
         \begin{itemize}
-          \item \HL{Ντετερμινιστικό \instret}, golden reference
+          \item \HL{Ντετερμινιστικό \instret}
           \item Κάλυψη \HL{όλων των Tiers} (1--3)
           \item \en{KAT}-validated ορθότητα
         \end{itemize}
@@ -17,18 +17,18 @@
         \begin{itemize}
           \item \en{SpacemiT K1 X60}, \VLEN${}=\num{256}$
           \item \HL{Πραγματικοί κύκλοι} ρολογιού
-          \item Tiers \HL{1--2}, median, single-core pinning
+          \item Tiers \HL{1--2}, median of \num{10000} runs
         \end{itemize}
       \end{block}
     \end{column}
   \end{columns}
   \vfill
   \begin{center}\large
-    \HL{Το Spike μετρά ντετερμινιστικά, το \en{silicon} επιβεβαιώνει.}
+    \HL{Το Spike μετρά ντετερμινιστικά, το \en{hardware} επιβεβαιώνει.}
   \end{center}
   \vspace{0.2em}
   \begin{center}\footnotesize
-    \instret = αριθμός δυναμικά εκτελεσθεισών εντολών, κάτω φράγμα κύκλων σε in-order pipelines.
+    \instret = αριθμός δυναμικά εκτελεσθεισών εντολών.
   \end{center}
   \vfill
   \pdfpcnote{budget ≈45s | exit ≈4:15}
