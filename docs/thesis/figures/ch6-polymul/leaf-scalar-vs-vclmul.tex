@@ -22,24 +22,25 @@
   \end{tabular}
 };
 \node[figT/title, above] at (scalar.north) {Scalar \textsf{Zbc} leaf};
-\node[caption] at (scalar.south) {$n^2$ scalar clmul/clmulh};
+\node[caption] at (scalar.south) {$n^2$ scalar ζεύγη clmul/clmulh};
 
 % Right box: vector Zvbc vclmul.vx leaf (solution)
 \node[box, fill=figsolutionfill, draw=figsolution] (vector) at (8.0,0) {%
   \begin{tabular}{@{}l@{}}
+  vb = vle64(b, n)\\
   for i in 0..n-1:\\
-  \quad vb  = b[0..n-1]\\
   \quad vlo = vclmul.vx(vb, a[i])\\
   \quad vhi = vclmulh.vx(vb, a[i])\\
-  \quad vr \^{}= combine(vlo, vhi)
+  \quad r[i..] \^{}= vlo\\
+  \quad r[i+1..] \^{}= vhi
   \end{tabular}
 };
 \node[figT/title, above] at (vector.north) {Vector \textsf{Zvbc} leaf};
-\node[caption] at (vector.south) {1 vclmul.vx/vclmulh.vx per $i$ (VLMAX $=T$)};
+\node[caption] at (vector.south) {$n$ vector vclmul.vx/vclmulh.vx};
 
 % Transition arrow (critical path): inner j-loop collapses to one vector op
 \draw[figedge/accent]
-  (scalar.east) -- node[above, figT/label] {$j$-loop $n\to1$}
+  (scalar.east) -- node[above, figT/label] {$\times n$}
   (vector.west);
 
 \end{tikzpicture}
