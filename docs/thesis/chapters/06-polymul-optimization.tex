@@ -153,7 +153,7 @@ iterations ανά λέξη $a[i]$ του εξωτερικού βρόχου. Το
   \centering
   \input{figures/ch6-polymul/schoolbook-vs-clmul.tex}
   \caption[Bit-serial schoolbook vs.\ clmul leaf]{Σύγκριση bit-serial schoolbook (αριστερά) με word-level
-  \clmul{} leaf (δεξιά). Αριστερά, κάθε bit~$k$ του $a[i]$ παράγει μια μάσκα
+  \clmul{} leaf (δεξιά). Αριστερά, κάθε bit του $a[i]$ παράγει μια μάσκα
   που υπό συνθήκη προσθέτει (XOR) το ολισθημένο $b[j]$ στο χαμηλό ($r[i+j]$)
   και στο υψηλό ($r[i+j+1]$) μέρος. Δεξιά, ένα ζεύγος \clmul/\clmulh παράγει
   απευθείας τα δύο μέρη, εξαλείφοντας τον βρόχο των \num{64} bits.}
@@ -197,7 +197,7 @@ $N$ των πολυωνύμων εισόδου (μετρημένο σε \num{64}
 ονομαστική συνάρτηση (\code{kmul\_9} κ.ο.κ.), χωρίς runtime έλεγχο
 threshold. Τρίτον, τα όρια των βρόχων είναι σταθερές γνωστές σε compile
 time και όχι runtime μεταβλητές, ώστε ο μεταγλωττιστής να εφαρμόζει
-πλήρες unrolling των μικρών βρόχων και constant propagation.
+πλήρες unrolling των μικρών βρόχων.
 
 Το \cref{fig:specialized-tree-pipeline} συνοψίζει το pipeline του generator.
 
@@ -214,14 +214,14 @@ dispatch. Σε βαθιά αναδρομικές δομές, η RISC-V calling c
 κλήση. Για δέντρα βάθους 5–6 (αναλόγως security level), το αθροιστικό
 αυτό overhead κλιμακώνεται με το πλήθος των κόμβων του δέντρου
 ($\approx (3^{d+1}-1)/2$). Εκπέμποντας κάθε κόμβο ως διακριτή
-\code{static} συνάρτηση, ο μεταγλωττιστής έχει τη δυνατότητα 
-να περιορίσει το per-call prologue/epilogue
-και να κάνει inlining των leaf operations
-εντός του κόμβου που τις καλεί, με τοπικό register allocation και
-ελεύθερο scheduling των loads/stores.\ifTODO Το πλήρες unrolling του δέντρου
+\code{static} συνάρτηση (internal linkage), ο μεταγλωττιστής μπορεί να κάνει inline τους κόμβους,
+εξαλείφοντας το per-call prologue/epilogue και ενσωματώνοντας τις leaf
+operations εντός του κόμβου που τις καλεί, με unified register allocation
+σε ολόκληρο το inlined σώμα και ελεύθερο scheduling των loads/stores.
+\ifTODO Το πλήρες unrolling του δέντρου
 έχει ως αποτέλεσμα αυξημένο \code{.text} footprint, και η ποσοτική αξιολόγηση
 αυτού του trade-off (recursion depth vs \instret vs \code{.text} size)
-παρουσιάζεται στην \cref{sec:polymul-codesize}\fi.
+παρουσιάζεται στην \cref{sec:polymul-codesize}.\fi
 
 \paragraph{Υποστήριξη πολλαπλών backends.}
 Ο generator υποστηρίζει τρεις modes μέσω της παραμέτρου

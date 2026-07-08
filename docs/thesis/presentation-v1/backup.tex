@@ -102,6 +102,26 @@
   % src: figures/ch9-discussion/{waterfall-ablation,zba-ablation-bar,zbs-ablation-bar}.tex
 \end{frame}
 
+\begin{frame}{Παράρτημα: βαθμωτή κλιμάκωση ανά στάδιο (\en{ablation}, \instret)}
+  \small
+  \begin{center}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Στάδιο (\instret) & \HQC-128 & \HQC-192 & \HQC-256 \\
+    \midrule
+    A: word-level \clmul & \speedup{38.6} & \speedup{38.4} & \speedup{45.4} \\
+    B: static tree & \speedup{1.99} & \speedup{1.99} & \speedup{2.05} \\
+    C: assign-on-first-write & \speedup{1.27} & \speedup{1.27} & \speedup{1.18} \\
+    \midrule
+    Σωρευτικά & \speedup{97.4} & \speedup{97.3} & \speedup{109.6} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.3em}
+  \footnotesize Πλατφόρμα: \en{BPI-F3} (\instret ablation), scalar \en{polymul} \HQC-128).
+  % src: results/reports/ablation/polymul_scalar_zbc.md (instret incremental + cumulative)
+\end{frame}
+
 \ifincludeCT
 \begin{frame}{Παράρτημα: \en{constant-time} επαλήθευση}
   \begin{itemize}

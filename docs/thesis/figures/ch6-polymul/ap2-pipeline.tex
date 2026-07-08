@@ -29,10 +29,12 @@
 \node[figbadge] at (header.north west) {3};
 \node[figbadge] at (binary.north west) {4};
 
-% phase braces above the row
-\draw[figbrace] ($(script.north west)+(0,0.5)$) -- ($(header.north east)+(0,0.5)$)
+% phase braces above the row (leveled to the tallest node's north)
+\draw[figbrace] ($(script.north west)+(0,0.5)$)
+  -- ($(script.north west -| header.north east)+(0,0.5)$)
   node[midway, above=3pt, figT/label, text=figprocess] {compile time (μία φορά)};
-\draw[figbrace] ($(binary.north west)+(0,0.5)$) -- ($(binary.north east)+(0,0.5)$)
+\draw[figbrace] ($(script.north west -| binary.north west)+(0,0.5)$)
+  -- ($(script.north west -| binary.north east)+(0,0.5)$)
   node[midway, above=3pt, figT/label, text=figaccent] {runtime: 0 overhead};
 
 % vertical divider compile | runtime
