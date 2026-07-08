@@ -1,0 +1,45 @@
+% Fig: scalar Zbc leaf vs vector Zvbc (vclmul.vx) leaf.
+% Presentation-oriented companion to schoolbook-vs-clmul.tex, used by
+% presentation-v1/sections/07-vector (Tier 1/2 scalar leaf vs Tier 3 vector leaf).
+% Semantic colour: left = costly scalar path (figthreat), right = vector
+% solution (figsolution); transition arrow = critical path (figedge/accent).
+\tikzsetnextfilename{ch6-polymul-leaf-scalar-vs-vclmul}
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=2pt, minimum width=5.0cm,
+    minimum height=2.2cm, align=left, figT/mono, figLW/base},
+  caption/.style={figT/annot, below=2pt},
+]
+
+% Left box: scalar Zbc leaf (costly path)
+\node[box, fill=figthreatfill, draw=figthreat] (scalar) at (0,0) {%
+  \begin{tabular}{@{}l@{}}
+  for i in 0..n-1:\\
+  \quad for j in 0..n-1:\\
+  \quad\quad lo = clmul(a[i], b[j])\\
+  \quad\quad hi = clmulh(a[i], b[j])\\
+  \quad\quad r[i+j] \^{}= lo\\
+  \quad\quad r[i+j+1] \^{}= hi
+  \end{tabular}
+};
+\node[figT/title, above] at (scalar.north) {Scalar \textsf{Zbc} leaf};
+\node[caption] at (scalar.south) {$n^2$ scalar clmul/clmulh};
+
+% Right box: vector Zvbc vclmul.vx leaf (solution)
+\node[box, fill=figsolutionfill, draw=figsolution] (vector) at (8.0,0) {%
+  \begin{tabular}{@{}l@{}}
+  for i in 0..n-1:\\
+  \quad vb  = b[0..n-1]\\
+  \quad vlo = vclmul.vx(vb, a[i])\\
+  \quad vhi = vclmulh.vx(vb, a[i])\\
+  \quad vr \^{}= combine(vlo, vhi)
+  \end{tabular}
+};
+\node[figT/title, above] at (vector.north) {Vector \textsf{Zvbc} leaf};
+\node[caption] at (vector.south) {1 vclmul.vx/vclmulh.vx per $i$ (VLMAX $=T$)};
+
+% Transition arrow (critical path): inner j-loop collapses to one vector op
+\draw[figedge/accent]
+  (scalar.east) -- node[above, figT/label] {$j$-loop $n\to1$}
+  (vector.west);
+
+\end{tikzpicture}

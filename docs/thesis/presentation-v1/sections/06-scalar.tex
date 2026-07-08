@@ -1,3 +1,4 @@
+% VARIANT — not \input by main.tex; promote with promote-slide.sh (-s 06-scalar -v <suffix>)
 % --- 06 Scalar optimization (Zbc clmul) --------------------------------------
 % Slide 1: word-level clmul concept (schoolbook -> word-level leaf).
 % Slide 2: compile-time specialization (static generator + assign-on-first-write
@@ -6,35 +7,33 @@
 %   Table 1 vect_mul, Spike instret, HQC-128: 18,504,302 -> 182,726 = x101.3.
 % src (assign-on-first-write -21%): results/reports/ablation/
 %   polymul_scalar_zbc.md, transition AC->ACB instret x1.27 (HQC-128).
+
 \begin{frame}[fragile]{Tier 1: ο word-level \clmul αντικαθιστά τον bit-serial schoolbook}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \begin{itemize}
-        \item Ο σχολικός πολ/σμός bit-bit αντικαθίσταται από \HL{\clmul}: μία πράξη ανά λέξη 64 bit
-        \item Ο εσωτερικός βρόχος των 64 bits \HL{εξαλείφεται} (64 iterations $\to$ 1)
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.52\textwidth}
-      \resizebox{\linewidth}{!}{\input{../figures/ch6-polymul/schoolbook-vs-clmul}}
-    \end{column}
-  \end{columns}
+  Ο εσωτερικός βρόχος των 64 bits \HL{εξαλείφεται} (64 iterations $\to$ 1)
+  \vfill
+  \begin{center}
+    \adjustbox{max width=\linewidth,max totalheight=0.64\textheight,center}{\input{../figures/ch6-polymul/schoolbook-vs-clmul}}
+  \end{center}
+  \vfill
 \end{frame}
 
 \begin{frame}[fragile]{Tier 1: compile-time specialization με μηδέν runtime overhead}
   \begin{itemize}
     \item \HL{Static code generator}: για σταθερά $N \in \{277, 561, 901\}$ λέξεις, το δέντρο Karatsuba εκπέμπεται ως literals, με \pos{μηδέν runtime checks}
-    \item \HL{\en{Assign-on-first-write}}: κατάργηση του μηδενισμού buffer μέσω $0 \oplus x = x$ (\con{$-\pct{21}$} \instret)
-    \item Ένας generator, \HL{τρία backends} (\code{--mode} \code{zbc}/\code{rvv}/\code{zvbc}): κοινή διάσχιση δέντρου, διαφέρει μόνο ο \en{combine}/\en{leaf dispatch} $\to$ ενιαία αλλαγή σε \HL{όλα τα tiers}
   \end{itemize}
-  \vspace{0.3em}
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.62\textwidth}
-      \resizebox{\linewidth}{!}{\input{../figures/ch6-polymul/ap2-pipeline}}
-    \end{column}
-    \begin{column}{0.38\textwidth}
-      \begin{block}{Αποτέλεσμα}
-        Σωρευτικά \HL{\speedup{101.3}} σε \instret στον πυρήνα πολ/σμού \HQC-128, μόνο με τις βαθμωτές επεκτάσεις \Zbc.
-      \end{block}
-    \end{column}
-  \end{columns}
+  \vspace{0.2em}
+  \begin{center}
+    \adjustbox{max width=0.9\linewidth,max totalheight=0.38\textheight,center}{\input{../figures/ch6-polymul/ap2-pipeline}}
+  \end{center}
+  \vspace{0.2em}
+  {\color{accent!40}\rule{\linewidth}{0.6pt}}
+  \vspace{0.2em}
+  \begin{itemize}
+    \item \HL{\en{Assign-on-first-write}}: κατάργηση του μηδενισμού buffer μέσω $0 \oplus x = x$ (\con{$-\pct{21}$} \instret)
+    \item Ένας generator, \HL{τρία backends} (\code{--mode} \code{zbc}/\code{rvv}/\code{zvbc})
+  \end{itemize}
+  \vspace{0.2em}
+  \begin{block}{Αποτέλεσμα}
+    Σωρευτικά \HL{\speedup{101.3}} σε \instret στον πυρήνα πολ/σμού \HQC-128, μόνο με τις βαθμωτές επεκτάσεις \Zbc.
+  \end{block}
 \end{frame}

@@ -1,25 +1,50 @@
 % --- 07 Vector optimization (Zvbc) -------------------------------------------
-\begin{frame}{Tiers 2--3: διανυσματικός πολ/σμός με \Zvbc}
+\begin{frame}{Το Tier 2 διανυσματοποιεί τα \BigO{n}, ο \en{leaf} μένει ο φραγμός}
   \begin{itemize}
-    \item \textbf{Tier 2 (βασική \RVV):} διανυσματοποίηση XOR/μετατοπίσεων, αλλά ο πολ/σμός παραμένει σειριακός
-    \item \textbf{Tier 3 (\en{vector-crypto}):} ο \HL{\vclmul} εκτελεί πολ/σμό \GFpoly διανυσματικά
+    \item \textbf{Tier 2 (βασική \RVV):} οι \GFpoly βρόχοι ανασύνθεσης (\BigO{n}) διανυσματοποιούνται (XOR/μετατοπίσεις), ο πυρήνας πολ/σμού παραμένει σειριακός
+    \item Ο scalar \en{leaf} (\BigO{n^2}) ήταν \HL{εξ αρχής ο κυρίαρχος όρος}: το Tier 2, αγγίζοντας μόνο τα \BigO{n}, τον αφήνει ανέγγιχτο (\en{binding constraint})
+    \item \textbf{Tier 3 (\en{vector-crypto}):} ο \HL{\vclmul} φέρνει τη διανυσματοποίηση μέσα στον ίδιο τον leaf
   \end{itemize}
-  \vspace{0.4em}
+  \pdfpcnote{Tier 2: ο κρίσιμος βρόχος ανασύνθεσης περνά από scalar XOR σε vxor.vv, γραμμικό κόστος. Ο leaf clmul/clmulh (O(n^2)) ήταν ήδη ο κυρίαρχος όρος, όχι κάτι που εμφανίζεται μετά το Tier 2.}
+\end{frame}
+
+\begin{frame}{Το Tier 3 διανυσματοποιεί τον ίδιο τον \en{leaf kernel}}
+  \HL{Ο \vclmul{} υπολογίζει πολλαπλά $64\times64$ carry-less γινόμενα ανά διάνυσμα.}
+  \vspace{0.3em}
+  \begin{center}
+    \resizebox{0.9\linewidth}{!}{\input{../figures/ch6-polymul/leaf-scalar-vs-vclmul}}
+  \end{center}
+  % src: figures/ch6-polymul/leaf-scalar-vs-vclmul.tex
+  \vspace{0.2em}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.55\textwidth}
-      \begin{block}{Διανυσματικό φύλλο (\en{leaf}) Karatsuba}
-        \begin{itemize}
-          \item Πολλαπλά ανεξάρτητα προϊόντα ανά διάνυσμα
-          \item Πολιτική assign-on-first-write για αποδοτική συνάθροιση
-          \item Κλιμάκωση με το \VLEN του υλικού
-          \item \en{Compile-time specialization} (\code{--mode rvv}/\code{zvbc}): ίδιος generator με το Tier 1
-        \end{itemize}
-      \end{block}
+    \begin{column}{0.58\textwidth}
+      \begin{itemize}
+        \item Σε \VLEN{}=256, \code{LMUL=m4}: \HL{VLMAX $= T = 16$}, ο εσωτερικός $j$-βρόχος συμπτύσσεται σε μία vector iteration ανά $i$
+      \end{itemize}
     \end{column}
-    \begin{column}{0.45\textwidth}
+    \begin{column}{0.42\textwidth}
       \begin{exampleblock}{Επίδραση}
-        Ο πολ/σμός παύει να είναι το bottleneck: \HL{\speedup{264}} (\HQC-128) έως \HL{\speedup{436}} (\HQC-256) στον πυρήνα πολ/σμού.
+        Ο πολ/σμός παύει να είναι το bottleneck: \HL{\speedup{264}} (\HQC-128) στον πυρήνα πολ/σμού.
       \end{exampleblock}
     \end{column}
   \end{columns}
+  \pdfpcnote{.vx μορφή: για κάθε i, το scalar a[i] πολλαπλασιάζεται carry-less με ολόκληρο τον πίνακα b[0..n-1]. Σε VLMAX=16=T ο inner j-loop γίνεται μία iteration, μηδενίζοντας τον scalar inner loop.}
+  \pdfpcnote{264 = polymul HQC-128 Tier 3 (σωρευτικά vs scalar_ref). Το HQC-256 (x436) πάει στο results slide.}
+\end{frame}
+
+\begin{frame}{Λύνοντας τον πολ/σμό, το \en{bottleneck} μετατοπίζεται}
+  \HL{Ο πολ/σμός πέφτει από ${\approx}$\pct{97} σε ${\approx}$\pct{22} του \instret: πλέον κυριαρχούν \en{Keccak} και αποκωδικοποίηση.}
+  \vspace{0.3em}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \resizebox{0.9\linewidth}{!}{\input{../figures/ch6-polymul/pie-scalar-zb}}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \centering
+      \resizebox{0.9\linewidth}{!}{\input{../figures/ch6-polymul/pie-vector-zvk}}
+    \end{column}
+  \end{columns}
+  % src: figures/ch6-polymul/{pie-scalar-zb,pie-vector-zvk}.tex (HQC-128 instret profile)
+  \pdfpcnote{Scalar Zb (Tier 1): polymul 32.7, Keccak 33.7, decode 15.3, other 18.2. Vector Zvk (Tier 3): polymul 21.8, Keccak 49.2, decode 24.0, other 5.1. Αυτό αιτιολογεί γιατί τα επόμενα βήματα στοχεύουν Keccak/decode.}
 \end{frame}

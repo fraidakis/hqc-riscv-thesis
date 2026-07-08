@@ -122,6 +122,28 @@
   % src: results/reports/ablation/polymul_scalar_zbc.md (instret incremental + cumulative)
 \end{frame}
 
+\begin{frame}{Παρώρτημα: γιατί το \en{threshold} $T=16$ (και όχι $32/64$)}
+  \begin{itemize}
+    \item Το $T=16$ ταιριάζει το \VLMAX{} ($\VLEN{}=256$, \code{LMUL=m4}): ο leaf καλύπτει ακριβώς μία vector iteration
+    \item Αύξηση $T$ αυξάνει τετραγωνικά τα γινόμενα ανά leaf ($T^2$ αντί $(T/2)^2\times3$), ακυρώνοντας ένα επίπεδο Karatsuba
+  \end{itemize}
+  \vspace{0.2em}
+  \begin{center}
+  \small
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    $T$ & median \instret & $\Delta$ vs $T=16$ \\
+    \midrule
+    \textbf{16} & \textbf{\num{354187}} & (βάση) \\
+    32 & \num{365221} & \con{+\pct{3.1}} \\
+    64 & \num{428584} & \con{+\pct{21.0}} \\
+    128 & \num{540060} & \con{+\pct{52.5}} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.2em}
+\end{frame}
+
 \ifincludeCT
 \begin{frame}{Παράρτημα: \en{constant-time} επαλήθευση}
   \begin{itemize}
