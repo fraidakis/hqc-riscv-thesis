@@ -1,33 +1,34 @@
-% --- 07 Vector optimization (Zvbc) -------------------------------------------
+% VARIANT of sections/07-vector.tex (frame 1) — L: κάθετη ροή (stacked bullets).
+% Υπόθεση: αντικαθιστά το κάτω two-column split με ενιαία κάθετη ροή
+% (πρώτα η σημείωση VLMAX, μετά η "Επίδραση στον πυρήνα") και προσθέτει
+% οπτικό separator ανάμεσα στο Tier 2 (setup) και στο Tier 3 (λύση στο leaf).
+% VARIANT — not \input by main.tex; promote with promote-slide.sh
 \begin{frame}{Από τους \BigO{n} βρόχους στον \BigO{n^2} leaf}
+  % --- Tier 2: τι έμεινε ---
   \begin{itemize}
     \item \textbf{Tier 2:} διανυσματοποιεί το \BigO{n} (ανασύνθεση), όχι το \BigO{n^2} leaf
   \end{itemize}
+  \vspace{0.3em}
+  {\color{gray!45}\hrule}
+  \vspace{0.4em}
+  % --- Tier 3: η λύση στο leaf ---
   \HL{Ο \vclmul{} υπολογίζει πολλαπλά $64\times64$ carry-less γινόμενα ανά διάνυσμα.}
   \vspace{0.3em}
   \begin{center}
-    \resizebox{0.9\linewidth}{!}{\input{../figures/ch6-polymul/leaf-scalar-vs-vclmul}}
+    \resizebox{0.82\linewidth}{!}{\input{../figures/ch6-polymul/leaf-scalar-vs-vclmul}}
   \end{center}
   % src: figures/ch6-polymul/leaf-scalar-vs-vclmul.tex
-  \vspace{0.2em}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.58\textwidth}
-      \begin{itemize}
-        \item Σε \VLEN{}=256, \code{LMUL=m4}: \HL{VLMAX $= T = 16$}, ο εσωτερικός $j$-βρόχος συμπτύσσεται σε μία vector iteration ανά $i$
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.42\textwidth}
-      \begin{exampleblock}{Επίδραση στον πυρήνα}
-        \HL{\speedup{264}} στον πυρήνα πολ/σμού (\HQC-128).
-      \end{exampleblock}
-    \end{column}
-  \end{columns}
+  \vspace{0.3em}
+  \begin{itemize}
+    \item Σε \VLEN{}=256, \code{LMUL=m4}: \HL{VLMAX $= T = 16$}, αρκεί ένα vector iteration ανά $i$
+    \item \textbf{Αποτέλεσμα:} \HL{\speedup{264}} στον πυρήνα πολ/σμού (\HQC-128, Tier 3)
+  \end{itemize}
   \pdfpcnote{Tier 2: ο κρίσιμος βρόχος ανασύνθεσης περνά από scalar XOR σε vxor.vv, γραμμικό κόστος. Ο leaf clmul/clmulh (O(n^2)) ήταν ήδη ο κυρίαρχος όρος, όχι κάτι που εμφανίζεται μετά το Tier 2.}
   \pdfpcnote{.vx μορφή: για κάθε i, το scalar a[i] πολλαπλασιάζεται carry-less με ολόκληρο τον πίνακα b[0..n-1]. Σε VLMAX=16=T ο inner j-loop γίνεται μία iteration, μηδενίζοντας τον scalar inner loop.}
   \pdfpcnote{264 = polymul HQC-128 Tier 3 (σωρευτικά vs scalar_ref). Το HQC-256 (x436) πάει στο results slide.}
 \end{frame}
 
-\begin{frame}{Νέο προφίλ κόστους: κυριαρχεί πλέον το \en{Keccak}}
+\begin{frame}{Μετά την βελτιστοποίηση: \HL{\en{Keccak}} γίνεται το νέο \en{Amdahl} floor (\pct{49.2})}
   \HL{Ο πολ/σμός (αρχικά ${\approx}$\pct{97}) υποχωρεί σε ${\approx}$\pct{33} (Tier 1) $\to$ ${\approx}$\pct{22} (Tier 3). Κυρίαρχο πλέον το \en{Keccak}.}
   \vspace{0.3em}
   \begin{columns}[T,onlytextwidth]

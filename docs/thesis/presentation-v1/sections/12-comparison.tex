@@ -1,25 +1,43 @@
-% --- 12 Comparison with related work -----------------------------------------
-% Provenance: figures/ch9-discussion/cross-architecture-table.tex (trimmed).
-\begin{frame}{Πρώτη αξιοποίηση επικυρωμένων κρυπτο-επεκτάσεων: έως \speedup{164}}
-  \centering
-  \renewcommand{\arraystretch}{1.2}
-  {\small
-  \begin{tabular}{@{}llll@{}}
-    \toprule
-    Εργασία & Πλατφόρμα & Προσέγγιση & Επιτάχυνση \\
-    \midrule
-    \en{Sch\"offel} & RV32 (SW) & καθαρό λογισμικό & baseline \\
-    \en{FAFFT} & RV32 + \en{FPGA} & καθαρό λογισμικό & χαμηλή \\
-    \en{pqm4} & ARM Cortex-M4 & bit-slicing & μέτρια \\
-    \midrule
-    \HL{Παρούσα εργασία} & RV64GC + κρυπτο-\en{ISA} & \HL{εγγενείς εντολές} & \HL{έως \speedup{164}} \\
-    \bottomrule
-  \end{tabular}}
-  \vspace{0.6em}
-  \begin{itemize}
-    \item Οι προηγούμενες RISC-V εργασίες είναι \con{καθαρά λογισμικές} ή απαιτούν custom \en{FPGA}
-    \item \HL{Πρώτη εργασία} που αξιοποιεί \HL{επικυρωμένες κρυπτογραφικές επεκτάσεις} για το \HQC
+% =============================================================================
+% 12-comparison.tex  —  Συγκριτική Cross-Architecture  (~1 frame, ~1 min)
+% =============================================================================
+% (υπο-ενότητα εντός Section Αποτελέσματα)
+​
+% --- Frame S13: cross-architecture comparison ---
+% NOTE: simplified slide table; original ch9 table uses cite+ref commands
+% incompatible with bib-less deck -- recreated here with literal cycle values.
+% src: figures/ch9-discussion/cross-architecture-table.tex (cycle values preserved)
+\begin{frame}{Συγκρίσιμο με εξειδικευμένες \en{SIMD} αρχιτεκτονικές, χωρίς custom hardware}
+  \vspace{0.3em}
+  \begin{center}
+  % Decaps cycles for HQC-128; src: ch9 cross-architecture-table.tex
+  \begin{thesistblr}{
+    colspec = {X[l,2.2] X[c,1] X[c,1] X[c,1] X[l,2.0]},
+    row{1} = {font=\bfseries\footnotesize},
+    row{2-Z} = {font=\footnotesize},
+    row{6,7} = {bg=thesisblue!8},
+  }
+    Αρχιτεκτονική / ISA & \en{KeyGen} & \en{Encaps} & \en{Decaps} & Σημείωση \\
+    \en{x86-64 FFT+CRT (AVX2)} &
+      \num{87000} & \num{110000} & \num{245000} & \en{SW+HW vectorize} \\
+    \en{x86-64 official HQC (AVX2)} &
+      \num{111073} & \num{185741} & \num{344154} & \en{NIST ref.} \\
+    \en{ARM Cortex-M4} &
+      \num{1837507} & \num{4878515} & \num{7502580} & \en{embedded, no SIMD} \\
+    \en{RISC-V FAFFT (RV32+FPGA)} &
+      \num{12208482} & \num{24882981} & \num{38099269} & \en{RVV SW+FPGA} \\
+    \textbf{Δικό μας Tier~1 (\Zbc)} &
+      \num{232836} & \num{461278} & \num{1197341} & \textbf{\en{pure SW}} \\
+    \textbf{Δικό μας Tier~2 (\RVV)} &
+      \num{212671} & \num{425274} & \num{910108} & \textbf{\en{VLEN=256, pure SW}} \\
+  \end{thesistblr}
+  \end{center}
+  \vspace{0.2em}
+  \begin{itemize}\small
+    \item \pos{Ανταγωνιστικό} με \en{x86-64} \en{AVX2} και \en{ARM Cortex-M4}, \emph{χωρίς \en{custom hardware}}
+    \item \en{FAFFT} συνδυάζει \en{SW+FPGA}: εξισορροπημένη σύγκριση (\en{different platform})
+    \item \con{\en{x86-64 FFT+CRT}}: βέλτιστο απόλυτο — \en{asymptotically} $\BigO{N\log N}$ \polymul + \en{mature AVX2}
   \end{itemize}
-  \vspace{-0.2em}
-  {\footnotesize Πλήρης πίνακας κύκλων/\instret στο παράρτημα.}
+  \pdfpcnote{45 s. Table: rows 6-7 highlighted = ours. We match/beat ARM M4 and FAFFT. Gap to x86-64 AVX2 is expected (mature arch, no ISA constraints).}
 \end{frame}
+​

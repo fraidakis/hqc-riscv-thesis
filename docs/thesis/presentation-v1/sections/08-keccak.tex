@@ -1,24 +1,57 @@
 % --- 08 Keccak & decode ------------------------------------------------------
-\begin{frame}{Οι δύο εναπομείναντες πυρήνες: \en{Keccak} \& \en{decode} διανυσματοποιούνται}
-  \HL{Μετά τον πολ/σμό, \en{Keccak} και \en{decode} κυριαρχούν, και οι δύο επιταχύνονται με \RVV/\Zvbb/\Zvbc.}
-  \vspace{0.4em}
+\begin{frame}{Οι δύο εναπομείναντες πυρήνες: \en{Keccak} (scalar \Zbb) \& \en{decode} (\RVV)}
   \begin{columns}[T]
     \begin{column}{0.50\textwidth}
       \textbf{\en{Keccak}-$f[1600]$}
       \begin{itemize}\small
-        \item Άμεση διανυσματοποίηση μίας κατάστασης \con{αντιπαραγωγική}: ανεπαρκής παραλληλία εντός της στοιβάδας
-        \item \HL{2-way \en{SoA}}: δύο ανεξάρτητα \en{permutations} παράλληλα
-        \item \Zvbb \vror: εξάλειψη της shift+or εξομοίωσης \enspace$\Rightarrow$\enspace \speedup{1.36}
+        \item \HL{Scalar \Zbb idiom recognition}: \rori, \insn{andn} \enspace$\Rightarrow$\enspace \speedup{1.37}
+        \item Διανυσμ. \con{αντιπαραγωγική}: fused βήματα, scalar$\leftrightarrow$vector μεταφορές
+        \item \en{LMUL=8} \& \en{2-way SoA} \con{βραδύτερες} από scalar (\en{vl}$=2$, vrgather-bound)
+        \item \pos{Ουσιαστική λύση}: αφιερωμένη εντολή \en{HW} (\en{RISC-V PQC}, v1.0 στόχος 31/12/2026)
       \end{itemize}
     \end{column}
     \begin{column}{0.50\textwidth}
       \textbf{\en{Reed-Muller/Solomon decode}}
       \begin{itemize}\small
-        \item \en{RM} \en{fast Walsh-Hadamard}: διανυσματικά \RVV βήματα
-        \item \en{RS} επί του \GF{2^8} με \vclmul (\Zvbc): \en{Berlekamp-Massey}, \en{Forney}, \en{FFT}
+        \item \en{Tier 1} scalar: \code{gf\_mul} $\to$ ένα \clmul
+        \item \en{RM} \en{FHT}: διανυσματικά \RVV βήματα
+        \item \en{RS} επί του \GF{2^8} με \vclmul (\Zvbc)
         \item Έναντι βαθμωτής \en{ref.} \enspace$\Rightarrow$\enspace \HL{\speedup{14.3}}
       \end{itemize}
     \end{column}
   \end{columns}
-  \pdfpcnote{Δύο kernels μετά τον polymul. Keccak: 2-way SoA + Zvbb vror -> x1.36. Decode: RM RVV FWHT + RS Zvbc (BM/Forney/FFT) -> x14.3 vs scalar ref (src: results/reports/ablation/decode_zvbc.md, HQC-128 x14.27).}
+  \pdfpcnote{budget 75s}
+  \pdfpcnote{}
+  \pdfpcnote{- Keccak: scalar Zbb idiom (rori, andn) -> x1.37. Vectorization negative result (fused, scalar<->vector, vl=2).}
+  \pdfpcnote{- LMUL=8/SoA βραδύτερες από scalar. Δρόμος: αφιερωμένη εντολή - εκτελεί ολόκληρη τη μετάθεση Keccak-f[1600]σε μία εντολή}
+  \pdfpcnote{- Decode: Tier1 clmul, RM FWHT (RVV) + RS Zvbc (BM/Forney/FFT) -> x14.3 vs scalar ref.}
+  \pdfpcnote{}
+  \pdfpcnote{cut: αν καθυστερώ, μόνο τα δύο headline (x1.37, x14.3).}
+\end{frame}
+
+% --- Kernel redistribution (Amdahl) ------------------------------------------
+\begin{frame}{Ανακατανομή προφίλ: ο \en{Keccak} γίνεται ο νέος κυρίαρχος πυρήνας}
+  \HL{\en{Keccak}: \pct{0.8} $\to$ \pct{57}. Νέος κυρίαρχος πυρήνας μετά τον πολ/σμό.}
+  \vspace{0.4em}
+  \begin{center}
+  \small
+  \begin{tabular}{lrr}
+    \toprule
+    Πυρήνας & \en{Baseline} (\%) & \en{Τελικό} (\%) \\
+    \midrule
+    \en{Keccak} / SHA-3                 & \num{0.8}  & \textbf{\num{57.0}} \\
+    \en{Polymul} (schoolbook/Karatsuba) & \num{96.6} & \num{24.0} \\
+    Λοιπά (sampling, \code{vect\_add})    & \num{0.2}  & \num{7.4} \\
+    GF αριθμητική (\code{gf\_mul})        & \num{0.1}  & \num{4.7} \\
+    \en{Decode} (RM + RS)               & \num{0.4}  & \num{3.8} \\
+    I/O, μνήμη (\code{memcpy})           & \num{1.9}  & \num{3.7} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \pdfpcnote{budget 40s}
+  \pdfpcnote{}
+  \pdfpcnote{- Amdahl: polymul 96.6 -> 24, Keccak 0.8 -> 57 = νέος bottleneck.}
+  \pdfpcnote{- Λύνεται μόνο με αφιερωμένη εντολή HW Keccak (RISC-V PQC).}
+  \pdfpcnote{}
+  \pdfpcnote{cut: μόνο το take-home (Keccak dominant).}
 \end{frame}
