@@ -57,6 +57,19 @@
   \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]{Παράρτημα: \en{Zbb} idiom recognition στον \en{Keccak}}
+  Ο μεταγλωττιστής (\en{Clang}~21.1.1, \code{-O3}) αναγνωρίζει αντιπροσωπευτικά
+  \en{C} idioms της μετάθεσης και εκπέμπει μονολεκτικές εντολές \Zbb:
+  \begin{lstlisting}
+(x << n) | (x >> (64-n))  =>  rori   // rotation idiom, order-independent
+(~a) & b                  =>  andn   // not+and fused into one op
+  \end{lstlisting}
+  \begin{itemize}\small
+    \item \HL{Register pressure}: χωρίς \rori κάθε rotation θέλει scratch registers, ώστε τα \num{25} lanes $+$ ενδιάμεσα $\theta/\rho/\chi$ οδηγούν σε spills
+    \item \pos{Αποτέλεσμα}: ${\approx}$\speedup{1.36} στον πυρήνα \en{Keccak}-$f[1600]$ (μόνο \code{-march}, χωρίς αλλαγή πηγαίου)
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{Παράρτημα: συνενωμένη κωδικοποίηση (\en{RS} $\circ$ \en{RM})}
   \centering
   \resizebox{0.75\linewidth}{!}{\input{../figures/ch2-background/concatenated-pipeline}}
@@ -91,6 +104,16 @@
     \item \HQC-256: \num{1059605} $\rightarrow$ \num{159206} \instret (\speedup{6.66})
   \end{itemize}
   % src: results/reports/summaries/speedups\_simulation.md \textperiodcentered{} \S 7.2.4
+\end{frame}
+
+\begin{frame}{Παράρτημα: διανυσματοποίηση \en{decode} (\en{RM} FHT $+$ \en{RS})}
+  \begin{itemize}\small
+    \item \code{expand\_and\_sum} (bit-extraction): \insn{vid} για shift amounts $[0,\ldots,31]$, \insn{vsrl.vv}$+$\insn{vand} εξάγει \num{32} bits/word (\en{SEW=32}, \en{LMUL=4}) \enspace$\Rightarrow$\enspace \speedup{1.9}
+    \item \code{hadamard} (7-pass FHT): \num{64} butterfly ζεύγη με \insn{vlse16} (strided, byte-stride \num{4}), \num{6} vector εντολές/pass έναντι \num{896} scalar \enspace$\Rightarrow$\enspace σωρευτικά \speedup{2.4}
+    \item \code{find\_peaks} (argmax): \insn{vredmaxu}$+$\insn{vmseq}/\insn{vfirst\_m} σε ένα pass (\en{LMUL=8}) \enspace$\Rightarrow$\enspace σωρευτικά \speedup{3.3}
+    \item \en{RS} Στάδιο~A (syndromes): dot-product επί του \GF{2^8}, σωρευτικά \speedup{4.3}
+    \item \en{Tier 3} (\Zvbc): Στάδια B/C/D μέσω \insn{vclmul.vv} lane-packing (ένα \code{gf\_mul}/lane)
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Παράρτημα: ανάλυση συνεισφοράς επεκτάσεων (\en{ablation})}
@@ -179,7 +202,7 @@
     \toprule
     Επιτάχυνση & \HQC-128 & \HQC-192 & \HQC-256 \\
     \midrule
-    \en{Keccak} & \speedup{1.37} & \speedup{1.36} & \speedup{1.36} \\
+    \en{Keccak} & \speedup{1.36} & \speedup{1.36} & \speedup{1.36} \\
     \en{Decode} & \speedup{14.3} & \speedup{15.9} & \speedup{13.2} \\
     \bottomrule
   \end{tabular}
@@ -247,6 +270,27 @@
       {\scriptsize \VLEN=256, \SEW=64, \LMUL=4: μία εντολή επεξεργάζεται έως 16 στοιχεία των 64 bits.}
     \end{column}
   \end{columns}
+\end{frame}
+
+
+\begin{frame}{Παράρτημα: γιατί το κέρδος από ευρύτερο \VLEN είναι μικρό}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.52\textwidth}
+      \footnotesize
+      \begin{itemize}
+        \item Ακόμη στο \VLEN$=\num{2048}$: Tier~3 \HL{$-\pct{2.6}$} (\HQC-256), Tier~2 $<\pct{1.7}$.
+        \item Κυριαρχεί scalar εργασία (\en{Keccak}/\Zbb $\approx\pct{56.5}$ του \KEM).
+        \item Το vectorized κλάσμα είναι ήδη κορεσμένο (\code{vclmul\_leaf}, $n=\num{16}$, $\VLMAX \ge n$).
+        \item Μόνο η ανασύνθεση Karatsuba (VLA strip-mining, $\approx\pct{2.9}$) κλιμακώνει.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+      \resizebox{\linewidth}{!}{\input{../figures/ch8-results/vlen-budget-breakdown}}
+    \end{column}
+  \end{columns}
+  % src: results/simulation/benchmarks/vlen_scaling/sim_vlen_l256-vector-{zvk,rvv}_latest.csv
+  \pdfpcnote{HQC-128, Tier3, VLEN=256 breakdown: scalable 3.0\% / fixed-vec 17.2\% / scalar 79.9\%. Tier3 HQC-256 256->2048 = -2.61\%; Tier2 = -1.35\%.}
 \end{frame}
 
 \begin{frame}[fragile]{Παράρτημα: \clmul πριν/μετά τη \Zbc}

@@ -4,14 +4,14 @@
     \begin{column}{0.50\textwidth}
       \textbf{\en{Keccak}-$f[1600]$}
       \begin{itemize}\small
-        \item \HL{Scalar \Zbb idiom recognition}: \rori, \insn{andn} \enspace$\Rightarrow$\enspace \speedup{1.37}
-        \item Διανυσμ. \con{αντιπαραγωγική}: fused βήματα, scalar$\leftrightarrow$vector μεταφορές
-        \item \en{LMUL=8} \& \en{2-way SoA} \con{βραδύτερες} από scalar (\en{vl}$=2$, vrgather-bound)
+        \item \HL{Scalar \Zbb idiom recognition}: \rori, \insn{andn} \enspace$\Rightarrow$\enspace \speedup{1.36}
+        \item \con{Παράδοξο RVV}: fused βήματα, scalar$\leftrightarrow$vector μεταφορές
+        \item \en{LMUL=8} \con{πιο αργό} από scalar: μόνο \num{4} register groups $\Rightarrow$ \con{spills} $+$ \insn{vrgather.vv} με κόστος \con{${\sim}$τετραγωνικό με} \en{LMUL}
         \item \pos{Ουσιαστική λύση}: αφιερωμένη εντολή \en{HW} (\en{RISC-V PQC}, v1.0 στόχος 31/12/2026)
       \end{itemize}
     \end{column}
     \begin{column}{0.50\textwidth}
-      \textbf{\en{Reed-Muller/Solomon decode}}
+      \textbf{\en{Reed--Muller/Solomon decode}}
       \begin{itemize}\small
         \item \en{Tier 1} scalar: \code{gf\_mul} $\to$ ένα \clmul
         \item \en{RM} \en{FHT}: διανυσματικά \RVV βήματα
@@ -22,11 +22,12 @@
   \end{columns}
   \pdfpcnote{budget 75s}
   \pdfpcnote{}
-  \pdfpcnote{- Keccak: scalar Zbb idiom (rori, andn) -> x1.37. Vectorization negative result (fused, scalar<->vector, vl=2).}
-  \pdfpcnote{- LMUL=8/SoA βραδύτερες από scalar. Δρόμος: αφιερωμένη εντολή - εκτελεί ολόκληρη τη μετάθεση Keccak-f[1600]σε μία εντολή}
-  \pdfpcnote{- Decode: Tier1 clmul, RM FWHT (RVV) + RS Zvbc (BM/Forney/FFT) -> x14.3 vs scalar ref.}
+  \pdfpcnote{- Keccak: το idiom recognition (rori/andn) φτάνει ήδη το βέλτιστο scalar. Vectorization = τεκμηριωμένο αρνητικό αποτέλεσμα, όχι παράλειψη.}
+  \pdfpcnote{- LMUL=8 βραδύτερη: 4 μόνο register groups -> spills/γύρο + vrgather.vv ~τετραγωνικό στο LMUL. Δρόμος: αφιερωμένη εντολή HW (ολόκληρη μετάθεση σε μία εντολή).}
+  \pdfpcnote{- Q: μεταφορές μία φορά πριν/μετά; Όχι: 4 fused βήματα στενά συζευγμένα, καθένα διαφορετικό cross-lane pattern -> hybrid = per-element μεταφορές μέσα στη ροή. Πλήρως vector = ακριβά shuffles στα ρ/π/χ.}
+  \pdfpcnote{- Decode: x14.3 = RM (FHT/RVV) + RS (Zvbc). Αν ρωτηθώ, backup με ανάλυση ανά βήμα.}
   \pdfpcnote{}
-  \pdfpcnote{cut: αν καθυστερώ, μόνο τα δύο headline (x1.37, x14.3).}
+  \pdfpcnote{cut: αν καθυστερώ, μόνο τα δύο headline (x1.36, x14.3).}
 \end{frame}
 
 % --- Kernel redistribution (Amdahl) ------------------------------------------

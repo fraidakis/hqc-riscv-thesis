@@ -1,0 +1,34 @@
+% VARIANT — not \input by main.tex; promote with promote-slide.sh
+% Variant of 11-hardware.tex — PRESENTATION (R) + INFORMATION-SCOPE (I):
+%   de-dup τιτλου/standfirst, color-coded assertion, 2 bullets, Tier3 caveat -> pnote.
+% Data/provenance unchanged: results/reports/summaries/speedups_hardware.md
+%             + chapters/08-results.tex :: tab:hw-spike-prediction-levels
+\begin{frame}{Το \instret προβλέπει \pos{αξιόπιστα} το βαθμωτό, \con{αισιόδοξα} το διανυσματικό}
+  \begin{center}\small
+    \HL{Επαλήθευση σε \en{BPI-F3} (\en{SpacemiT X60}, \en{VLEN}$=$256): πλήρες \KEM, 100 iters.}
+  \end{center}
+  \vspace{0.4em}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.52\textwidth}
+      \centering
+      \renewcommand{\arraystretch}{1.25}
+      \begin{tabular}{@{}llccc@{}}
+        \toprule
+        Επίπεδο & \en{Tier} & \en{Spike} & \en{HW} & \en{HW/Spike} \\
+        \midrule
+        \HQC-128 & 1 (\Zbc) & \speedup{35.0} & \speedup{37.5} & \pos{\num{1.07}} \\
+                 & 2 (\RVV) & \speedup{55.9} & \speedup{45.9} & \con{\num{0.82}} \\
+        \HQC-256 & 1 (\Zbc) & \speedup{60.1} & \speedup{66.0} & \pos{\num{1.10}} \\
+                 & 2 (\RVV) & \speedup{86.9} & \speedup{78.5} & \con{\num{0.90}} \\
+        \bottomrule
+      \end{tabular}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{itemize}\small
+        \item \pos{Βαθμωτά:} το \en{HW} ξεπερνά την πρόβλεψη κατά \pct{7}--\pct{10} (\en{dual-issue}, \en{IPC}$>$1)
+        \item \con{Διανυσματικά:} το \en{Spike} αγνοεί τα scalar$\leftrightarrow$vector penalties
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \pdfpcnote{Spike αγνοει microarch penalties: cache miss, store-to-load fwd, scalar<->vector transitions. Scalar HW/Spike 1.07-1.10 (dual-issue IPC>1). Vector 0.82-0.90 (Spike overpredicts). Tier3 zvbc = simulation only, no silicon yet.}
+\end{frame}

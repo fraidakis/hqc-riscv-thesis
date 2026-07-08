@@ -1,46 +1,26 @@
-% --- 10 Results (HEADLINE) ---------------------------------------------------
-% Provenance: results/reports/summaries/speedups_simulation.md (Spike instret, VLEN=256, specialized tree).
-% KEM end-to-end speedups vs HQC reference implementation.
+% VARIANT — not \input by main.tex; promote with promote-slide.sh
+% Variant of 10-results.tex — INFORMATION-SCOPE (I) + LAYOUT (L=_tablefocus): table-only, plot dropped.
+% Message = exact numbers; kernel-multiplier line promoted into the table body.
+% Data/provenance unchanged: results/reports/summaries/speedups_simulation.md
 \begin{frame}{Το πλήρες \KEM επιταχύνεται \HL{\speedup{76}} (\en{HQC-128}) έως \HL{\speedup{164}} (\en{HQC-256})}
   \begin{center}\small
     \HL{Όσο μεγαλύτερο το επίπεδο ασφάλειας, τόσο μεγαλύτερο το όφελος του διανυσματικού πολ/σμού.}
   \end{center}
-  \vspace{0.3em}
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.46\textwidth}
-      \renewcommand{\arraystretch}{1.25}
-      \begin{tabular}{@{}lcc@{}}
-        \toprule
-        Tier & \HQC-128 & \HQC-256 \\
-        \midrule
-        1, σειριακή (\Zbc) & \speedup{35.0} & \speedup{60.1} \\
-        2, \RVV          & \speedup{55.9} & \speedup{86.9} \\
-        3, \en{vector-crypto} & \HL{\speedup{75.9}} & \HL{\speedup{163.8}} \\
-        \bottomrule
-      \end{tabular}\\[0.6em]
-      {\footnotesize Πυρήνας πολ/σμού (Tier 3): \HL{\speedup{264}} / \HL{\speedup{436}}}
-    \end{column}
-    \begin{column}{0.54\textwidth}
-      \centering
-      \tikzsetnextfilename{pres-results-kem-bars}
-      \begin{tikzpicture}
-        \begin{axis}[
-            ybar, width=\textwidth, height=4.6cm,
-            bar width=8pt, enlarge x limits=0.25,
-            ymin=0, ymax=200,
-            ylabel={\scriptsize επιτάχυνση ($\times$)},
-            symbolic x coords={Βαθμ.1,Βαθμ.2,Βαθμ.3},
-            xtick=data, x tick label style={font=\scriptsize},
-            ytick={0,50,100,150,200}, y tick label style={font=\scriptsize},
-            legend style={font=\scriptsize,at={(0.02,0.97)},anchor=north west,draw=none},
-            nodes near coords, every node near coord/.append style={font=\tiny,rotate=90,anchor=west},
-        ]
-          \addplot[fill=hlc!55] coordinates {(Βαθμ.1,35.0) (Βαθμ.2,55.9) (Βαθμ.3,75.9)};
-          \addplot[fill=conc!55] coordinates {(Βαθμ.1,60.1) (Βαθμ.2,86.9) (Βαθμ.3,163.8)};
-          \legend{\HQC-128,\HQC-256}
-        \end{axis}
-      \end{tikzpicture}\\
-      {\footnotesize Έναντι αναφορικής υλοποίησης \HQC, \en{Spike} \instret}
-    \end{column}
-  \end{columns}
+  \vspace{0.6em}
+  \begin{center}
+    \renewcommand{\arraystretch}{1.5}\large
+    \begin{tabular}{@{}lcc@{}}
+      \toprule
+      Tier & \HQC-128 & \HQC-256 \\
+      \midrule
+      1, scalar (\Zbc)    & \speedup{35.0}      & \speedup{60.1} \\
+      2, \RVV               & \speedup{55.9}      & \speedup{86.9} \\
+      3, \en{vector-crypto} & \HL{\speedup{75.9}} & \HL{\speedup{163.8}} \\
+      \midrule
+      Πυρήνας πολ/σμού (Βαθμ.3) & \HL{\speedup{264}} & \HL{\speedup{436}} \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+  \vspace{0.4em}
+  {\footnotesize\centering Έναντι refernce \HQC implementation, \en{Spike} \instret.\par}
 \end{frame}

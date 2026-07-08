@@ -1,21 +1,28 @@
-% --- 11 Hardware validation --------------------------------------------------
-\begin{frame}{Επαλήθευση σε πραγματικό υλικό}
+% VARIANT — not \input by main.tex; promote with promote-slide.sh
+% Variant of 11-hardware.tex — LAYOUT (L=_bigfact) + INFORMATION-SCOPE (I):
+%   δύο κυρίαρχα big-fact ratio (regime dichotomy)· absolute speedups demoted/dropped.
+% Data/provenance unchanged: chapters/08-results.tex :: tab:hw-spike-prediction-levels
+\begin{frame}{\instret προβλέπει \pos{αξιόπιστα} το scalar, \con{αισιόδοξα} το vector}
+  \vspace{0.4em}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.55\textwidth}
-      \begin{itemize}
-        \item Τα Tiers 1--2 τρέχουν σε \HL{πραγματικό πυρήνα} (\en{BPI-F3}, παραγωγικό \en{silicon})
-        \item Επιβεβαίωση: η επιτάχυνση \instret μεταφράζεται σε \HL{πραγματική επιτάχυνση κύκλων}
-        \item Η επιτάχυνση σε \instret και κύκλους συμφωνεί εντός \HL{$\sim\!\pct{2}$} (\HQC-128/192)
-      \end{itemize}
-      \vspace{0.4em}
-      \begin{block}{Tier 3}
-        \Zvbc/\Zvbb ακόμη σε εξομοίωση (δεν υπάρχει διαθέσιμο \en{silicon}), αποτελέσματα σε \instret.
-      \end{block}
+    \begin{column}{0.5\textwidth}
+      \centering
+      {\large\pos{\textbf{Βαθμωτά (Tier~1)}}}\\[0.3em]
+      {\Huge\pos{\num{1.07}--\num{1.10}}}\\[0.2em]
+      {\footnotesize λόγος \en{HW/Spike}}\\[0.6em]
+      \pos{\en{HW} $>$ πρόβλεψη}\\ \small \en{dual-issue}, \en{IPC}$>$1
     \end{column}
-    \begin{column}{0.45\textwidth}
-      \begin{exampleblock}{Στο πραγματικό υλικό σήμερα}
-        Μόνο με τις \HL{βαθμωτές} επεκτάσεις (\Zbc/\Zbb), διαθέσιμες τώρα: \HL{\speedup{38}} στο \HQC-128.
-      \end{exampleblock}
+    \begin{column}{0.5\textwidth}
+      \centering
+      {\large\con{\textbf{Διανυσματικά (Tier~2)}}}\\[0.3em]
+      {\Huge\con{\num{0.82}--\num{0.90}}}\\[0.2em]
+      {\footnotesize λόγος \en{HW/Spike}}\\[0.6em]
+      \con{\en{HW} $<$ πρόβλεψη}\\ \small scalar$\leftrightarrow$vector penalties
     \end{column}
   \end{columns}
+  \vspace{0.8em}
+  \begin{center}\footnotesize
+    Πλήρες \KEM, \en{BPI-F3} (\en{SpacemiT X60}, \en{VLEN}$=$256). Η διανυσματική απόκλιση συρρικνώνεται στα υψηλότερα επίπεδα (\num{0.82}$\to$\num{0.90}).
+  \end{center}
+  \pdfpcnote{Bigfact variant: δυο καθεστωτα. Scalar 1.07-1.10 (HW ξεπερνα). Vector 0.82-0.90 (Spike overpredicts, penalties). Οι absolute speedups ειναι στο table/fulldata variant.}
 \end{frame}
