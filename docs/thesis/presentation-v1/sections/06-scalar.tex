@@ -1,28 +1,37 @@
-% Active slide. \input by main.tex; variants via promote-slide.sh (-s 06-scalar -v <suffix>)
+% VARIANT (_caption) -- not \input by main.tex; promote with promote-slide.sh -s 06-scalar -v _caption
+% Repositions the leaf x38.61 instret line (frame 1). Original 06-scalar.tex kept intact.
+% src (leaf x38.61): TODO verify -- results/reports/... (leaf clmul vs bit-serial, HQC-128)
 % --- 06 Scalar optimization (Zbc clmul) --------------------------------------
 % Slide 1: word-level clmul concept (schoolbook -> word-level leaf).
-% Slide 2: compile-time specialization (static generator + assign-on-first-write
-%          + multi-backend), cumulative scalar polymul speedup.
+% Slide 2: compile-time specialization (static generator + assign-on-first-write),
+%          cumulative scalar polymul speedup. Multi-backend moved to speaker notes.
 % src (headline x101.3): results/reports/summaries/speedups_simulation.md,
 %   Table 1 vect_mul, Spike instret, HQC-128: 18,504,302 -> 182,726 = x101.3.
 % src (assign-on-first-write -21%): results/reports/ablation/
 %   polymul_scalar_zbc.md, transition AC->ACB instret x1.27 (HQC-128).
 
 \begin{frame}[fragile]{Tier 1: ο word-level \clmul αντικαθιστά τον bit-serial schoolbook}
-  \vspace{0.5em}
+  \vspace{0.3em}
   Ο εσωτερικός βρόχος των 64 \en{bits} \HL{εξαλείφεται} (64 \en{iterations} $\to$ 1)
   \vfill
   \begin{center}
-    \adjustbox{max width=\linewidth,max totalheight=0.64\textheight,center}{\input{../figures/ch6-polymul/schoolbook-vs-clmul}}
+    \adjustbox{max width=\linewidth,max totalheight=0.60\textheight,center}{\input{../figures/ch6-polymul/schoolbook-vs-clmul}}\\[0.6em]
+    {\small \pos{\speedup{38.61} \instret} στο \en{leaf kernel} vs \en{bit-serial} (\HQC-128)}
   \end{center}
   \vfill
+  \pdfpcnote{budget ≈75s | exit ≈6:40}
+  \pdfpcnote{}
+  \pdfpcnote{- bit-serial: 64 iter/word, predicated shift-XOR του b[j] στο r[i+j], ακριβο}
+  \pdfpcnote{- clmul/clmulh: τα δυο μερη r[i+j], r[i+j+1] απευθειας, χωρις βροχο}
+  \pdfpcnote{- figure: αριστερα μασκα ανα bit (XOR σε low/high), δεξια clmul/clmulh μαζι}
+  \pdfpcnote{- so-what: ο βροχος 64-bit εξαφανιζεται, >x38 στο leaf}
+  \pdfpcnote{}
+  \pdfpcnote{cut: λεπτομερεια μασκας, πες μονο "loop -> 1 instruction"}
 \end{frame}
 
-\begin{frame}[fragile]{Tier 1: \en{static code generator} + \en{assign-on-first-write}}
+\begin{frame}[fragile]{Tier 1: \en{pre-build generator} + \en{assign-on-first-write}}
   \begin{itemize}
-    \item \HL{\en{Static code generator}}: δέντρο Karatsuba ως \en{literals} για σταθερά $N \in \{277, 561, 901\}$, \pos{μηδέν \en{runtime checks}}
-    \item \HL{Τρία \en{backends}} από έναν \en{generator} (\code{--mode} \code{zbc}/\code{rvv}/\code{zvbc})
-  \end{itemize}
+    \item \HL{\en{Static code generator}}: σταθερό $N$ $\Rightarrow$ δέντρο αναδρομής γνωστό σε \en{compile time}, πλήρως ξεδιπλωμένο, χωρίς \en{runtime branching}  \end{itemize}
   \vspace{0.2em}
   \begin{center}
     \adjustbox{max width=0.82\linewidth,max totalheight=0.30\textheight,center}{\input{../figures/ch6-polymul/ap2-pipeline}}
@@ -37,4 +46,14 @@
   \begin{block}{Αποτέλεσμα}
     Σωρευτικά \HL{\speedup{101.3}} σε \instret στον πυρήνα πολ/σμού \HQC-128.
   \end{block}
+  \pdfpcnote{budget ≈90s | exit ≈8:10}
+  \pdfpcnote{}
+  \pdfpcnote{- N σταθερο ανα level (277/561/901), δεντρο Karatsuba πληρως προκαθορισμενο}
+  \pdfpcnote{- pre-build generator: μια C συναρτηση ανα κομβο, splits/threshold ως σταθερες}
+  \pdfpcnote{- ενας generator, τρια backends (zbc/rvv/zvbc), εδω η βαθμωτη Zbc διαδρομη}
+  \pdfpcnote{- compiler: full unrolling + constant propagation, μηδεν runtime checks}
+  \pdfpcnote{- assign-on-first-write: 0 XOR x = x εξαλειφει το memset, -21\% instret}
+  \pdfpcnote{- so-what: σωρευτικα x101.3 μονο με Zbc}
+  \pdfpcnote{}
+  \pdfpcnote{cut: το multi-backend, παε κατευθειαν στο αποτελεσμα}
 \end{frame}

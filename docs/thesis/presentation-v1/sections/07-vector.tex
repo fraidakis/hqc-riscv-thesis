@@ -1,14 +1,8 @@
 % --- 07 Vector optimization (Zvbc) -------------------------------------------
-\begin{frame}{Το Tier 2 διανυσματοποιεί τα \BigO{n}, ο \en{leaf} μένει ο φραγμός}
+\begin{frame}{Από τους \BigO{n} βρόχους στον \BigO{n^2} leaf}
   \begin{itemize}
-    \item \textbf{Tier 2 (βασική \RVV):} οι \GFpoly βρόχοι ανασύνθεσης (\BigO{n}) διανυσματοποιούνται (XOR/μετατοπίσεις), ο πυρήνας πολ/σμού παραμένει σειριακός
-    \item Ο scalar \en{leaf} (\BigO{n^2}) ήταν \HL{εξ αρχής ο κυρίαρχος όρος}: το Tier 2, αγγίζοντας μόνο τα \BigO{n}, τον αφήνει ανέγγιχτο (\en{binding constraint})
-    \item \textbf{Tier 3 (\en{vector-crypto}):} ο \HL{\vclmul} φέρνει τη διανυσματοποίηση μέσα στον ίδιο τον leaf
+    \item \textbf{Tier 2:} διανυσματοποιεί το \BigO{n} (ανασύνθεση), όχι το \BigO{n^2} leaf
   \end{itemize}
-  \pdfpcnote{Tier 2: ο κρίσιμος βρόχος ανασύνθεσης περνά από scalar XOR σε vxor.vv, γραμμικό κόστος. Ο leaf clmul/clmulh (O(n^2)) ήταν ήδη ο κυρίαρχος όρος, όχι κάτι που εμφανίζεται μετά το Tier 2.}
-\end{frame}
-
-\begin{frame}{Το Tier 3 διανυσματοποιεί τον ίδιο τον \en{leaf kernel}}
   \HL{Ο \vclmul{} υπολογίζει πολλαπλά $64\times64$ carry-less γινόμενα ανά διάνυσμα.}
   \vspace{0.3em}
   \begin{center}
@@ -23,17 +17,18 @@
       \end{itemize}
     \end{column}
     \begin{column}{0.42\textwidth}
-      \begin{exampleblock}{Επίδραση}
-        Ο πολ/σμός παύει να είναι το bottleneck: \HL{\speedup{264}} (\HQC-128) στον πυρήνα πολ/σμού.
+      \begin{exampleblock}{Επίδραση στον πυρήνα}
+        \HL{\speedup{264}} στον πυρήνα πολ/σμού (\HQC-128).
       \end{exampleblock}
     \end{column}
   \end{columns}
+  \pdfpcnote{Tier 2: ο κρίσιμος βρόχος ανασύνθεσης περνά από scalar XOR σε vxor.vv, γραμμικό κόστος. Ο leaf clmul/clmulh (O(n^2)) ήταν ήδη ο κυρίαρχος όρος, όχι κάτι που εμφανίζεται μετά το Tier 2.}
   \pdfpcnote{.vx μορφή: για κάθε i, το scalar a[i] πολλαπλασιάζεται carry-less με ολόκληρο τον πίνακα b[0..n-1]. Σε VLMAX=16=T ο inner j-loop γίνεται μία iteration, μηδενίζοντας τον scalar inner loop.}
   \pdfpcnote{264 = polymul HQC-128 Tier 3 (σωρευτικά vs scalar_ref). Το HQC-256 (x436) πάει στο results slide.}
 \end{frame}
 
-\begin{frame}{Λύνοντας τον πολ/σμό, το \en{bottleneck} μετατοπίζεται}
-  \HL{Ο πολ/σμός πέφτει από ${\approx}$\pct{97} σε ${\approx}$\pct{22} του \instret: πλέον κυριαρχούν \en{Keccak} και αποκωδικοποίηση.}
+\begin{frame}{Νέο προφίλ κόστους: κυριαρχεί πλέον το \en{Keccak}}
+  \HL{Ο πολ/σμός (αρχικά ${\approx}$\pct{97}) υποχωρεί σε ${\approx}$\pct{33} (Tier 1) $\to$ ${\approx}$\pct{22} (Tier 3). Κυρίαρχο πλέον το \en{Keccak}.}
   \vspace{0.3em}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.5\textwidth}
