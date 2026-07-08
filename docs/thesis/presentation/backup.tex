@@ -57,19 +57,6 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Παράρτημα: \en{Zbb} idiom recognition στον \en{Keccak}}
-  Ο μεταγλωττιστής (\en{Clang}~21.1.1, \code{-O3}) αναγνωρίζει αντιπροσωπευτικά
-  \en{C} idioms της μετάθεσης και εκπέμπει μονολεκτικές εντολές \Zbb:
-  \begin{lstlisting}
-(x << n) | (x >> (64-n))  =>  rori   // rotation idiom, order-independent
-(~a) & b                  =>  andn   // not+and fused into one op
-  \end{lstlisting}
-  \begin{itemize}\small
-    \item \HL{Register pressure}: χωρίς \rori κάθε rotation θέλει scratch registers, ώστε τα \num{25} lanes $+$ ενδιάμεσα $\theta/\rho/\chi$ οδηγούν σε spills
-    \item \pos{Αποτέλεσμα}: ${\approx}$\speedup{1.36} στον πυρήνα \en{Keccak}-$f[1600]$ (μόνο \code{-march}, χωρίς αλλαγή πηγαίου)
-  \end{itemize}
-\end{frame}
-
 \begin{frame}{Παράρτημα: συνενωμένη κωδικοποίηση (\en{RS} $\circ$ \en{RM})}
   \centering
   \resizebox{0.75\linewidth}{!}{\input{../figures/ch2-background/concatenated-pipeline}}
@@ -77,6 +64,32 @@
     \item εσωτερικός \en{Reed--Muller}: διορθώνει σφάλματα bit εντός κάθε συμβόλου
     \item εξωτερικός \en{Reed--Solomon}: διορθώνει ολόκληρα σύμβολα (bytes) που ο εσωτερικός απέτυχε να αποκαταστήσει
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Παράρτημα: επεκτάσεις RISC-V και προφίλ \en{RVA23}}
+  \centering
+  \input{../figures/ch3-riscv/rva23-extensions-tables}
+  % src: chapters/03-risc-v-architecture.tex (tab:extensions-used, tab:rva23-extensions)
+\end{frame}
+
+\begin{frame}{Παράρτημα: \en{RVV} και οι παράμετροι \VLEN/\SEW/\LMUL/\VLMAX}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.55\textwidth}
+      \resizebox{\linewidth}{!}{\input{../figures/ch3-riscv/rvv-lmul-grouping}}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \footnotesize
+      \begin{itemize}
+        \item \HL{\VLEN}: πλάτος φυσικού \en{vector register} σε bits, \en{hardware-defined} (π.χ. 128/256/512), σταθερό στο runtime
+        \item \HL{\SEW}: πλάτος ενός στοιχείου σε bits (8/16/32/64), ρυθμιζόμενο runtime μέσω \insn{vsetvli}
+        \item \HL{\LMUL}: πόσα registers ομαδοποιούνται σε ένα λογικό \en{vector group} (1, 2, 4, 8 ή κλασματικά 1/2, 1/4, 1/8)
+        \item \HL{\VLMAX}: μέγιστος αριθμός στοιχείων ανά \en{vector operation} στα τρέχοντα \SEW/\LMUL
+      \end{itemize}
+      \vspace{0.4em}
+      \[ \VLMAX = \frac{\VLEN \times \LMUL}{\SEW} = \frac{256 \times 4}{64} = 16 \]
+      {\scriptsize \VLEN=256, \SEW=64, \LMUL=4: μία εντολή επεξεργάζεται έως 16 στοιχεία των 64 bits.}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{Παράρτημα: το ερευνητικό κενό}
@@ -96,21 +109,41 @@
   \pdfpcnote{- Parousa ergasia: Karatsuba, epikyromeno SW (Zbc/Zvbc)}
 \end{frame}
 
-\begin{frame}{Παράρτημα: επικυρωμένο ISA vs custom hardware (kernel-level)}
+\begin{frame}{Παράρτημα: γιατί ISA Extensions και C Intrinsics}
+  \pdfpcnote{budget on-demand | trigger: "γιατί ISA/intrinsics, όχι FPGA/ASIC ή assembly"}
+  \pdfpcnote{}
+  \pdfpcnote{- άξονας υλικού → ISA ext = sweet spot → κέρδος χωρίς κόστος/χρόνο σχεδίασης FPGA/ASIC}
+  \pdfpcnote{- άξονας λογισμικού → intrinsics → έλεγχος register/instruction + βελτιστοποιήσεις compiler (scheduling, regalloc)}
+  \pdfpcnote{- κοινό μήνυμα → σκόπιμο ενδιάμεσο, portable + maintainable}
+  \pdfpcnote{}
+  \pdfpcnote{cut: δείξε μόνο τα δύο pills («Παρούσα εργασία») και προχώρα}
   \centering
-  \resizebox{\linewidth}{!}{\input{../figures/ch9-discussion/ratified-vs-custom-hw-table}}
-  % src: figures/ch9-discussion/ratified-vs-custom-hw-table.tex
-  \pdfpcnote{Q alles RISC-V ergasies: TYRCA/Seo ftanoun x100+ se kernel ALLA me tightly-coupled custom ISE. Emeis: x95 poly-mul me MONO ratified Zbc/Zvbc, xoris custom silicon -> pio portable/maintainable.}
+  \resizebox{0.82\textwidth}{!}{\input{../figures/ch1-introduction/acceleration-spectrum}}
+  % src: figures/ch1-introduction/acceleration-spectrum.tex
+  \par\medskip
+  \textcolor{gray!45}{\rule{0.55\linewidth}{0.4pt}}
+  \par\medskip
+  \resizebox{0.82\textwidth}{!}{\input{../figures/ch3-riscv/riscv-programming-spectrum}}
+  % src: figures/ch3-riscv/riscv-programming-spectrum.tex
 \end{frame}
 
-\begin{frame}{Παράρτημα: αποκωδικοποίηση μέσω \en{FFT} (\Zvbc)}
-  \begin{itemize}
-    \item Εύρεση ριζών (\en{root-finding}) \en{Reed--Solomon}: \HL{$-$\pct{84} έως $-$\pct{86}} \instret
-    \item \HQC-128: \num{384986} $\rightarrow$ \num{60353} \instret (\speedup{6.38})
-    \item \HQC-192: \num{562125} $\rightarrow$ \num{77114} \instret (\speedup{7.29})
-    \item \HQC-256: \num{1059605} $\rightarrow$ \num{159206} \instret (\speedup{6.66})
+\begin{frame}[fragile]{Παράρτημα: \clmul πριν/μετά τη \Zbc}
+  \centering
+  \input{../figures/ch3-riscv/clmul-before-after}
+  % src: figures/ch3-riscv/clmul-before-after.tex
+\end{frame}
+
+\begin{frame}[fragile]{Παράρτημα: \en{Zbb} idiom recognition στον \en{Keccak}}
+  Ο μεταγλωττιστής (\en{Clang}~21.1.1, \code{-O3}) αναγνωρίζει αντιπροσωπευτικά
+  \en{C} idioms της μετάθεσης και εκπέμπει μονολεκτικές εντολές \Zbb:
+  \begin{lstlisting}
+(x << n) | (x >> (64-n))  =>  rori   // rotation idiom, order-independent
+(~a) & b                  =>  andn   // not+and fused into one op
+  \end{lstlisting}
+  \begin{itemize}\small
+    \item \HL{Register pressure}: χωρίς \rori κάθε rotation θέλει scratch registers, ώστε τα \num{25} lanes $+$ ενδιάμεσα $\theta/\rho/\chi$ οδηγούν σε spills
+    \item \pos{Αποτέλεσμα}: ${\approx}$\speedup{1.36} στον πυρήνα \en{Keccak}-$f[1600]$ (μόνο \code{-march}, χωρίς αλλαγή πηγαίου)
   \end{itemize}
-  % src: results/reports/summaries/speedups\_simulation.md \textperiodcentered{} \S 7.2.4
 \end{frame}
 
 \begin{frame}{Παράρτημα: διανυσματοποίηση \en{decode} (\en{RM} FHT $+$ \en{RS})}
@@ -121,15 +154,6 @@
     \item \en{RS} Στάδιο~A (syndromes): dot-product επί του \GF{2^8}, σωρευτικά \speedup{4.3}
     \item \en{Tier 3} (\Zvbc): Στάδια B/C/D μέσω \insn{vclmul.vv} lane-packing (ένα \code{gf\_mul}/lane)
   \end{itemize}
-\end{frame}
-
-\begin{frame}{Παράρτημα: ανάλυση συνεισφοράς επεκτάσεων (\en{ablation})}
-  \begin{itemize}
-    \item \Zbc (\clmul): κυρίαρχη συνεισφορά, ενεργοποιεί όλα τα Tiers
-    \item \ext{Zba} (διευθυνσιοδότηση): $-\pct{5.6}$ \instret
-    \item \ext{Zbs} (πράξεις bit): $-\pct{0.71}$ \instret
-  \end{itemize}
-  % src: figures/ch9-discussion/{waterfall-ablation,zba-ablation-bar,zbs-ablation-bar}.tex
 \end{frame}
 
 \begin{frame}{Παράρτημα: βαθμωτή κλιμάκωση ανά στάδιο (\en{ablation}, \instret)}
@@ -173,16 +197,6 @@
   \end{center}
   \vspace{0.2em}
 \end{frame}
-
-\ifincludeCT
-\begin{frame}{Παράρτημα: \en{constant-time} επαλήθευση}
-  \begin{itemize}
-    \item \en{dudect} (στατιστικό τεστ χρονισμού) στο πραγματικό υλικό
-    \item \en{ctgrind}/\en{Valgrind} για έλεγχο πρόσβασης μνήμης/διακλαδώσεων
-    \item Εφαρμόστηκε στα Tiers 1--2 (διαθέσιμο υλικό)
-  \end{itemize}
-\end{frame}
-\fi
 
 \begin{frame}{Παράρτημα: πλήρης πίνακας επιταχύνσεων \en{KEM} (\instret)}
   \small
@@ -232,53 +246,12 @@
   \footnotesize \en{IPC}$\approx 1.49$, ο \instret υπερεκτιμά τους κύκλους κατά ${\approx}$\pct{50}.
 \end{frame}
 
-\begin{frame}{Παράρτημα: γιατί ISA Extensions και C Intrinsics}
-  \pdfpcnote{budget on-demand | trigger: "γιατί ISA/intrinsics, όχι FPGA/ASIC ή assembly"}
-  \pdfpcnote{}
-  \pdfpcnote{- άξονας υλικού → ISA ext = sweet spot → κέρδος χωρίς κόστος/χρόνο σχεδίασης FPGA/ASIC}
-  \pdfpcnote{- άξονας λογισμικού → intrinsics → έλεγχος register/instruction + βελτιστοποιήσεις compiler (scheduling, regalloc)}
-  \pdfpcnote{- κοινό μήνυμα → σκόπιμο ενδιάμεσο, portable + maintainable}
-  \pdfpcnote{}
-  \pdfpcnote{cut: δείξε μόνο τα δύο pills («Παρούσα εργασία») και προχώρα}
+\begin{frame}{Παράρτημα: επικυρωμένο ISA vs custom hardware (kernel-level)}
   \centering
-  \resizebox{0.82\textwidth}{!}{\input{../figures/ch1-introduction/acceleration-spectrum}}
-  % src: figures/ch1-introduction/acceleration-spectrum.tex
-  \par\medskip
-  \textcolor{gray!45}{\rule{0.55\linewidth}{0.4pt}}
-  \par\medskip
-  \resizebox{0.82\textwidth}{!}{\input{../figures/ch3-riscv/riscv-programming-spectrum}}
-  % src: figures/ch3-riscv/riscv-programming-spectrum.tex
+  \resizebox{\linewidth}{!}{\input{../figures/ch9-discussion/ratified-vs-custom-hw-table}}
+  % src: figures/ch9-discussion/ratified-vs-custom-hw-table.tex
+  \pdfpcnote{Q alles RISC-V ergasies: TYRCA/Seo ftanoun x100+ se kernel ALLA me tightly-coupled custom ISE. Emeis: x95 poly-mul me MONO ratified Zbc/Zvbc, xoris custom silicon -> pio portable/maintainable.}
 \end{frame}
-
-% =============================================================================
-% Backup: RISC-V platform detail (promoted from ch3 tables & figures)
-% =============================================================================
-\begin{frame}{Παράρτημα: επεκτάσεις RISC-V και προφίλ \en{RVA23}}
-  \centering
-  \input{../figures/ch3-riscv/rva23-extensions-tables}
-  % src: chapters/03-risc-v-architecture.tex (tab:extensions-used, tab:rva23-extensions)
-\end{frame}
-
-\begin{frame}{Παράρτημα: \en{RVV} και οι παράμετροι \VLEN/\SEW/\LMUL/\VLMAX}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.55\textwidth}
-      \resizebox{\linewidth}{!}{\input{../figures/ch3-riscv/rvv-lmul-grouping}}
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \footnotesize
-      \begin{itemize}
-        \item \HL{\VLEN}: πλάτος φυσικού \en{vector register} σε bits, \en{hardware-defined} (π.χ. 128/256/512), σταθερό στο runtime
-        \item \HL{\SEW}: πλάτος ενός στοιχείου σε bits (8/16/32/64), ρυθμιζόμενο runtime μέσω \insn{vsetvli}
-        \item \HL{\LMUL}: πόσα registers ομαδοποιούνται σε ένα λογικό \en{vector group} (1, 2, 4, 8 ή κλασματικά 1/2, 1/4, 1/8)
-        \item \HL{\VLMAX}: μέγιστος αριθμός στοιχείων ανά \en{vector operation} στα τρέχοντα \SEW/\LMUL
-      \end{itemize}
-      \vspace{0.4em}
-      \[ \VLMAX = \frac{\VLEN \times \LMUL}{\SEW} = \frac{256 \times 4}{64} = 16 \]
-      {\scriptsize \VLEN=256, \SEW=64, \LMUL=4: μία εντολή επεξεργάζεται έως 16 στοιχεία των 64 bits.}
-    \end{column}
-  \end{columns}
-\end{frame}
-
 
 \begin{frame}{Παράρτημα: γιατί το κέρδος από ευρύτερο \VLEN είναι μικρό}
   \begin{columns}[c,onlytextwidth]
@@ -298,10 +271,4 @@
   \end{columns}
   % src: results/simulation/benchmarks/vlen_scaling/sim_vlen_l256-vector-{zvk,rvv}_latest.csv
   \pdfpcnote{HQC-128, Tier3, VLEN=256 breakdown: scalable 3.0\% / fixed-vec 17.2\% / scalar 79.9\%. Tier3 HQC-256 256->2048 = -2.61\%; Tier2 = -1.35\%.}
-\end{frame}
-
-\begin{frame}[fragile]{Παράρτημα: \clmul πριν/μετά τη \Zbc}
-  \centering
-  \input{../figures/ch3-riscv/clmul-before-after}
-  % src: figures/ch3-riscv/clmul-before-after.tex
 \end{frame}

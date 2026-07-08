@@ -1,0 +1,27 @@
+% --- 13 Conclusions, limitations & future work -------------------------------
+\begin{frame}{Συμπεράσματα, περιορισμοί \& μελλοντική εργασία}
+  \textbf{Συμπεράσματα}
+  \begin{enumerate}
+    \item \HL{Πρώτη πλήρης υλοποίηση του \HQC σε RISC-V} με επεκτάσεις \en{ISA}
+    \item Επιτάχυνση \KEM \HL{\speedup{76}} (\HQC-128) έως \HL{\speedup{164}} (\HQC-256) σε \instret
+  \end{enumerate}
+  \vspace{0.8em}
+  {\color{gray!45}\hrule}
+  \vspace{1.5em}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.5\textwidth}
+      \textbf{Περιορισμοί}
+      \begin{itemize}
+        \item Tier 3 (\Zvbc/\Zvbb): μόνο σε Spike, όχι μετρήσεις σε κύκλους
+        \item \en{Keccak floor}: άνω όριο χωρίς την εντολή \code{vkeccak.vi}
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{Μελλοντική εργασία}
+      \begin{itemize}
+        \item Tier~3 σε \en{silicon}: \en{SpacemiT K3} (\Zvbc, Μάιος 2026)
+        \item Ενσωμάτωση \code{vkeccak.vi} (\en{RVS-2360})
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
