@@ -127,12 +127,6 @@
   % src: figures/ch3-riscv/riscv-programming-spectrum.tex
 \end{frame}
 
-\begin{frame}[fragile]{Παράρτημα: \clmul πριν/μετά τη \Zbc}
-  \centering
-  \input{../figures/ch3-riscv/clmul-before-after}
-  % src: figures/ch3-riscv/clmul-before-after.tex
-\end{frame}
-
 \begin{frame}[fragile]{Παράρτημα: \en{Zbb} idiom recognition στον \en{Keccak}}
   Ο μεταγλωττιστής (\en{Clang}~21.1.1, \code{-O3}) αναγνωρίζει αντιπροσωπευτικά
   \en{C} idioms της μετάθεσης και εκπέμπει μονολεκτικές εντολές \Zbb:
@@ -141,18 +135,16 @@
 (~a) & b                  =>  andn   // not+and fused into one op
   \end{lstlisting}
   \begin{itemize}\small
-    \item \HL{Register pressure}: χωρίς \rori κάθε rotation θέλει scratch registers, ώστε τα \num{25} lanes $+$ ενδιάμεσα $\theta/\rho/\chi$ οδηγούν σε spills
     \item \pos{Αποτέλεσμα}: ${\approx}$\speedup{1.36} στον πυρήνα \en{Keccak}-$f[1600]$ (μόνο \code{-march}, χωρίς αλλαγή πηγαίου)
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Παράρτημα: διανυσματοποίηση \en{decode} (\en{RM} FHT $+$ \en{RS})}
   \begin{itemize}\small
-    \item \code{expand\_and\_sum} (bit-extraction): \insn{vid} για shift amounts $[0,\ldots,31]$, \insn{vsrl.vv}$+$\insn{vand} εξάγει \num{32} bits/word (\en{SEW=32}, \en{LMUL=4}) \enspace$\Rightarrow$\enspace \speedup{1.9}
-    \item \code{hadamard} (7-pass FHT): \num{64} butterfly ζεύγη με \insn{vlse16} (strided, byte-stride \num{4}), \num{6} vector εντολές/pass έναντι \num{896} scalar \enspace$\Rightarrow$\enspace σωρευτικά \speedup{2.4}
-    \item \code{find\_peaks} (argmax): \insn{vredmaxu}$+$\insn{vmseq}/\insn{vfirst\_m} σε ένα pass (\en{LMUL=8}) \enspace$\Rightarrow$\enspace σωρευτικά \speedup{3.3}
-    \item \en{RS} Στάδιο~A (syndromes): dot-product επί του \GF{2^8}, σωρευτικά \speedup{4.3}
-    \item \en{Tier 3} (\Zvbc): Στάδια B/C/D μέσω \insn{vclmul.vv} lane-packing (ένα \code{gf\_mul}/lane)
+    \item \code{expand\_and\_sum} (bit-extraction): \insn{vid} για shift amounts $[0,\ldots,31]$, \insn{vsrl.vv}$+$\insn{vand} εξάγει \num{32} bits/word (\en{SEW=32}, \en{LMUL=4})
+    \item \code{hadamard} (7-pass FHT): \num{64} butterfly ζεύγη με \insn{vlse16} (strided, byte-stride \num{4}), \num{6} vector εντολές/pass έναντι \num{896} scalar 
+    \item \code{find\_peaks} (argmax): \insn{vredmaxu}$+$\insn{vmseq}/\insn{vfirst\_m} σε ένα pass (\en{LMUL=8})
+    \item \en{RS} Στάδιο~A (syndromes): dot-product επί του \GF{2^8}
   \end{itemize}
 \end{frame}
 
@@ -176,7 +168,7 @@
   % src: results/reports/ablation/polymul_scalar_zbc.md (instret incremental + cumulative)
 \end{frame}
 
-\begin{frame}{Παρώρτημα: γιατί το \en{threshold} $T=16$ (και όχι $32/64$)}
+\begin{frame}{Παράρτημα: γιατί το \en{threshold} $T=16$ (και όχι $32/64$)}
   \begin{itemize}
     \item Το $T=16$ ταιριάζει το \VLMAX{} ($\VLEN{}=256$, \code{LMUL=m4}): ο leaf καλύπτει ακριβώς μία vector iteration
     \item Αύξηση $T$ αυξάνει τετραγωνικά τα γινόμενα ανά leaf ($T^2$ αντί $(T/2)^2\times3$), ακυρώνοντας ένα επίπεδο Karatsuba

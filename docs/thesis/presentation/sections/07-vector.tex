@@ -2,8 +2,8 @@
 % Υπόθεση: αντικαθιστά το κάτω two-column split με ενιαία κάθετη ροή
 % (πρώτα η σημείωση VLMAX, μετά η "Επίδραση στον πυρήνα") και προσθέτει
 % οπτικό separator ανάμεσα στο Tier 2 (setup) και στο Tier 3 (λύση στο leaf).
-% VARIANT — not \input by main.tex; promote with promote-slide.sh
 \begin{frame}{Tier 2+3: Διανυσματοποίηση βρόχων ανασύνθεσης και leaf}
+  \pdfpcnote{budget ≈75s}
   % --- Tier 2: τι έμεινε ---
   \begin{itemize}
     \item \textbf{Tier 2:} διανυσματοποιεί το \BigO{n} (ανασύνθεση), όχι το \BigO{n^2} leaf
@@ -12,13 +12,14 @@
   {\color{gray!45}\hrule}
   \vspace{0.6em}
   % --- Tier 3: η λύση στο leaf ---
-  \HL{Ο \vclmul{} υπολογίζει πολλαπλά $64\times64$ carry-less γινόμενα ανά διάνυσμα.}
+  \HL{Tier 3: \vclmul{} υπολογίζει πολλαπλά $64\times64$ carry-less γινόμενα.}
   \vspace{0.3em}
   \begin{center}
     \resizebox{0.82\linewidth}{!}{\input{../figures/ch6-polymul/leaf-scalar-vs-vclmul}}
   \end{center}
   % src: figures/ch6-polymul/leaf-scalar-vs-vclmul.tex
   \vspace{0.3em}
+  \pause
   \begin{itemize}
     \item Σε \VLEN{}=256, \code{LMUL=m4}: \HL{VLMAX $= T = 16$}, αρκεί ένα vector iteration ανά $i$
     \item \textbf{Αποτέλεσμα:} \HL{\speedup{264}} στον πυρήνα πολ/σμού (\HQC-128, Tier 3)
@@ -29,6 +30,7 @@
 \end{frame}
 
 \begin{frame}{Μετά την βελτιστοποίηση: \HL{\en{Keccak}} γίνεται το νέο \en{Amdahl} floor (\pct{49.2})}
+  \pdfpcnote{budget ≈45s}
   \HL{Ο πολ/σμός (αρχικά ${\approx}$\pct{97}) υποχωρεί σε ${\approx}$\pct{33} (Tier 1) $\to$ ${\approx}$\pct{22} (Tier 3). Κυρίαρχο πλέον το \en{Keccak}.}
   \vspace{0.3em}
   \begin{columns}[T,onlytextwidth]

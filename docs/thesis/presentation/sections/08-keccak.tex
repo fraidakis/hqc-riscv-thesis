@@ -28,30 +28,3 @@
   \pdfpcnote{}
   \pdfpcnote{cut: αν καθυστερώ, μόνο τα δύο headline (x1.36, x14.3).}
 \end{frame}
-
-% % --- Kernel redistribution (Amdahl) ------------------------------------------
-% \begin{frame}{Ανακατανομή προφίλ: ο \en{Keccak} γίνεται ο νέος κυρίαρχος πυρήνας}
-%   \HL{\en{Keccak}: \pct{0.8} $\to$ \pct{57}. Νέος κυρίαρχος πυρήνας μετά τον πολ/σμό.}
-%   \vspace{0.4em}
-%   \begin{center}
-%   \small
-%   \begin{tabular}{lrr}
-%     \toprule
-%     Πυρήνας & \en{Baseline} (\%) & \en{Τελικό} (\%) \\
-%     \midrule
-%     \en{Keccak} / SHA-3                 & \num{0.8}  & \textbf{\num{57.0}} \\
-%     \en{Polymul} (schoolbook/Karatsuba) & \num{96.6} & \num{24.0} \\
-%     Λοιπά (sampling, \code{vect\_add})    & \num{0.2}  & \num{7.4} \\
-%     GF αριθμητική (\code{gf\_mul})        & \num{0.1}  & \num{4.7} \\
-%     \en{Decode} (RM + RS)               & \num{0.4}  & \num{3.8} \\
-%     I/O, μνήμη (\code{memcpy})           & \num{1.9}  & \num{3.7} \\
-%     \bottomrule
-%   \end{tabular}
-%   \end{center}
-%   \pdfpcnote{budget 40s}
-%   \pdfpcnote{}
-%   \pdfpcnote{- Amdahl: polymul 96.6 -> 24, Keccak 0.8 -> 57 = νέος bottleneck.}
-%   \pdfpcnote{- Λύνεται μόνο με αφιερωμένη εντολή HW Keccak (RISC-V PQC).}
-%   \pdfpcnote{}
-%   \pdfpcnote{cut: μόνο το take-home (Keccak dominant).}
-% \end{frame}
