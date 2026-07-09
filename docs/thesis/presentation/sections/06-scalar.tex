@@ -1,6 +1,4 @@
-% VARIANT (_caption) -- not \input by main.tex; promote with promote-slide.sh -s 06-scalar -v _caption
-% Repositions the leaf x38.61 instret line (frame 1). Original 06-scalar.tex kept intact.
-% src (leaf x38.61): TODO verify -- results/reports/... (leaf clmul vs bit-serial, HQC-128)
+% src (leaf x38.61): author-confirmed (leaf clmul vs bit-serial, HQC-128)
 % --- 06 Scalar optimization (Zbc clmul) --------------------------------------
 % Slide 1: word-level clmul concept (schoolbook -> word-level leaf).
 % Slide 2: compile-time specialization (static generator + assign-on-first-write),
@@ -12,6 +10,9 @@
 
 \begin{frame}[fragile]{Tier 1: ο word-level \clmul αντικαθιστά τον bit-serial schoolbook}
   \vspace{0.3em}
+  \HL{Karatsuba} ώς $T=16$ \en{words} $\Rightarrow$ \en{schoolbook leaves}\\
+  \GFpoly: \HL{carry-less} πολλαπλασιασμός
+  \vfill
   Ο εσωτερικός βρόχος των 64 \en{bits} \HL{εξαλείφεται} (64 \en{iterations} $\to$ 1)
   \vfill
   \begin{center}
@@ -40,11 +41,11 @@
   {\color{accent!40}\rule{\linewidth}{0.6pt}}
   \vspace{0.2em}
   \begin{itemize}
-    \item \HL{\en{Assign-on-first-write}}: χωρίς μηδενισμό \en{buffer} ($0 \oplus x = x$), \con{$-\pct{21}$} \instret
+    \item \HL{\en{Assign-on-first-write}}: χωρίς μηδενισμό \en{buffer} ($0 \oplus x = x$)
   \end{itemize}
   \vspace{0.2em}
   \begin{block}{Αποτέλεσμα}
-    Σωρευτικά \HL{\speedup{101.3}} σε \instret στον πυρήνα πολ/σμού \HQC-128.
+    Σωρευτικά \HL{\speedup{101.3}} \instret σε isolated polymul benchmark (\HQC-128, Tier 1).
   \end{block}
   \pdfpcnote{budget ≈90s | exit ≈8:10}
   \pdfpcnote{}
@@ -52,7 +53,7 @@
   \pdfpcnote{- pre-build generator: μια C συναρτηση ανα κομβο, splits/threshold ως σταθερες}
   \pdfpcnote{- ενας generator, τρια backends (zbc/rvv/zvbc), εδω η βαθμωτη Zbc διαδρομη}
   \pdfpcnote{- compiler: full unrolling + constant propagation, μηδεν runtime checks}
-  \pdfpcnote{- assign-on-first-write: 0 XOR x = x εξαλειφει το memset, -21\% instret}
+  \pdfpcnote{- assign-on-first-write: 0 XOR x = x εξαλειφει το memset}
   \pdfpcnote{- so-what: σωρευτικα x101.3 μονο με Zbc}
   \pdfpcnote{}
   \pdfpcnote{cut: το multi-backend, παε κατευθειαν στο αποτελεσμα}

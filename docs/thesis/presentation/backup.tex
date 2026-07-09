@@ -253,22 +253,43 @@
   \pdfpcnote{Q alles RISC-V ergasies: TYRCA/Seo ftanoun x100+ se kernel ALLA me tightly-coupled custom ISE. Emeis: x95 poly-mul me MONO ratified Zbc/Zvbc, xoris custom silicon -> pio portable/maintainable.}
 \end{frame}
 
-\begin{frame}{Παράρτημα: γιατί το κέρδος από ευρύτερο \VLEN είναι μικρό}
+\begin{frame}{Ευρύτερο \VLEN αποδίδει ελάχιστα: το κρίσιμο κλάσμα είναι οριακό}
+  \HL{Μόνο $\approx\pct{3}$ του \KEM κλιμακώνει με ευρύτερο \VLEN.}
   \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.52\textwidth}
+    \begin{column}{0.48\textwidth}
       \footnotesize
       \begin{itemize}
-        \item Ακόμη στο \VLEN$=\num{2048}$: Tier~3 \HL{$-\pct{2.6}$} (\HQC-256), Tier~2 $<\pct{1.7}$.
-        \item Κυριαρχεί scalar εργασία (\en{Keccak}/\Zbb $\approx\pct{56.5}$ του \KEM).
-        \item Το vectorized κλάσμα είναι ήδη κορεσμένο (\code{vclmul\_leaf}, $n=\num{16}$, $\VLMAX \ge n$).
-        \item Μόνο η ανασύνθεση Karatsuba (VLA strip-mining, $\approx\pct{2.9}$) κλιμακώνει.
+        \item Στο \VLEN$=\num{2048}$: Tier~3 $-\pct{2.6}$ (\HQC-256), Tier~2 $<\pct{1.7}$.
+        \item Κυριαρχεί scalar εργασία (\en{Keccak}/\Zbb $\approx\pct{56.5}$).
+        \item \code{vclmul\_leaf} κορεσμένο ($n=\num{16}$, $\VLMAX \ge n$).
+        \item Μόνο Karatsuba (VLA strip-mining, $\approx\pct{2.9}$) κλιμακώνει.
       \end{itemize}
     \end{column}
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.52\textwidth}
       \centering
-      \resizebox{\linewidth}{!}{\input{../figures/ch8-results/vlen-budget-breakdown}}
+      \tikzsetnextfilename{pres-backup-vlen-budget-hbar}
+      \begin{tikzpicture}
+      \begin{axis}[
+        width=\linewidth, height=5.0cm,
+        xbar stacked, bar width=11pt,
+        symbolic y coords={Other,Decode,Keccak,Polymul},
+        ytick=data, xmin=0, xmax=60, xtick={0,20,40,60},
+        xlabel={Ποσοστό \instret (\%)},
+        legend style={at={(0.5,-0.30)}, anchor=north, legend columns=1,
+                      font=\scriptsize, draw=none},
+        every axis plot/.append style={draw=none},
+        enlarge y limits=0.22,
+      ]
+      \addplot[fill=green!50!black,fill opacity=0.75] coordinates {(2.9,Polymul) (0,Keccak) (0.1,Decode) (0,Other)};
+      \addlegendentry{Κλιμακώνει με \VLEN}
+      \addplot[fill=blue!60,fill opacity=0.75] coordinates {(15.6,Polymul) (0,Keccak) (1.6,Decode) (0,Other)};
+      \addlegendentry{Σταθερό (vectorized)}
+      \addplot[fill=gray!50] coordinates {(10.1,Polymul) (56.5,Keccak) (5.3,Decode) (8.0,Other)};
+      \addlegendentry{Scalar / μη κλιμακούμενο}
+      \end{axis}
+      \end{tikzpicture}
+      % src: results/simulation/profiling/hotspots/vector_Zvk/hotspots_kem_L128_vector-zvk_latest.csv (commit bdd9cf4)
     \end{column}
   \end{columns}
-  % src: results/simulation/benchmarks/vlen_scaling/sim_vlen_l256-vector-{zvk,rvv}_latest.csv
-  \pdfpcnote{HQC-128, Tier3, VLEN=256 breakdown: scalable 3.0\% / fixed-vec 17.2\% / scalar 79.9\%. Tier3 HQC-256 256->2048 = -2.61\%; Tier2 = -1.35\%.}
+  \pdfpcnote{HQC-128, Tier3, VLEN=256: scalable 3.0\% / fixed-vec 17.2\% / scalar 79.9\%. Horizontal layout -> kernel labels no overlap.}
 \end{frame}
